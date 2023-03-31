@@ -1,0 +1,167 @@
+@import "../../_variables";
+@import "../../_animations";
+
+.event-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: $text-color;
+  background-color: $background-color;
+
+  &__flyer {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 2rem;
+
+    img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      border-radius: 4px;
+      animation: fadeIn 1s ease-in-out forwards;
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 600px;
+    background-color: $light-color;
+    padding: 2rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    &__title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      animation: slideIn 1s ease-in-out forwards;
+      color: $primary-color;
+    }
+
+    &__subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      animation: fadeInLeft 1s ease-in-out forwards;
+      color: $secondary-color;
+    }
+
+    &__text {
+      max-height: 20rem;
+      overflow: auto;
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 2rem;
+      animation: fadeInLeft 1s ease-in-out forwards;
+      color: $gray-color;
+    }
+
+    &__date-time-location {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2rem;
+      animation: fadeInLeft 1s ease-in-out forwards;
+
+      span {
+        font-weight: bold;
+      }
+    }
+
+    &__button {
+      @include button;
+
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    animation: fadeIn 0.5s ease-in-out forwards;
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+    }
+
+    .checkbox-container {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(2, minmax(min-content, max-content));
+      grid-gap: 1rem;
+      color: $text-color;
+      margin-top: 0.5rem;
+      align-items: center;
+      align-content: center;
+
+      label {
+        font-size: 1.25rem;
+        align-self: center;
+      }
+
+      input {
+        align-self: center;
+        margin-bottom: 0;
+      }
+
+      .checkbox-container:last-of-type input[type="checkbox"] {
+        background-color: red;
+      }
+    }
+
+    button {
+      @include button;
+
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+  }
+}
+
+.event-details__info {
+  // Add these styles
+  &__date,
+  &__time,
+  &__location {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: $gray-color;
+  }
+
+  // Add this style
+  &__video {
+    position: relative;
+    padding-bottom: 56.25%; // 16:9 aspect ratio
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    margin-bottom: 2rem;
+
+    iframe {
+      border: none;
+      width: 100%;
+      height: auto;
+      max-width: 500px;
+
+      margin-bottom: 1rem;
+    }
+  }
+
+  &__button {
+    margin-top: 0.5rem;
+  }
+}

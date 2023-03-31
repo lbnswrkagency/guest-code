@@ -1,0 +1,66 @@
+@import "../../_variables";
+@import "../../_animations";
+
+.create-event {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: $background-color;
+
+  h1 {
+    color: $primary-color;
+    margin-bottom: 2rem;
+  }
+
+  form {
+    @include form;
+    animation: fadeIn 0.5s ease-in-out forwards;
+
+    input,
+    textarea,
+    select {
+      display: block;
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      color: $text-color;
+      background-color: darken($light-color, 5%);
+      animation: slideFromLeft 0.5s ease-in-out forwards;
+    }
+
+    button {
+      @include button;
+      width: 100%;
+      font-size: 1.25rem;
+      animation: slideFromRight 0.5s ease-in-out forwards;
+      margin-top: 1rem;
+    }
+
+    .checkbox-container {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(2, minmax(min-content, max-content));
+      grid-gap: 1rem;
+      color: $text-color;
+      margin-bottom: 1rem;
+      align-items: center;
+      align-content: center;
+
+      label {
+        font-size: 1.25rem;
+        align-self: center;
+      }
+
+      input {
+        align-self: center;
+        margin-bottom: 0;
+      }
+    }
+  }
+}

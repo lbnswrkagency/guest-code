@@ -1,0 +1,46 @@
+@import "../../variables";
+
+.registration-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: $background-color;
+
+  h2 {
+    font-size: 2rem;
+    color: $primary-color;
+    animation: fadeIn 2s;
+  }
+
+  p {
+    color: $light-color;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    animation: fadeIn 2s;
+  }
+
+  a {
+    color: $primary-color;
+    font-size: 1.2rem;
+    text-decoration: none;
+    transition: color 0.3s;
+    animation: fadeIn 2s;
+
+    &:hover {
+      color: darken($primary-color, 5%);
+      text-decoration: underline;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

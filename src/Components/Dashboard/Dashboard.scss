@@ -1,0 +1,93 @@
+@import "../../_variables";
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100vh;
+  padding: 3rem 0;
+  background-color: $background-color;
+  animation: fadeIn 1s ease-in-out;
+
+  .dashboard-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: $container-width;
+
+    h1 {
+      color: $primary-color;
+      font-size: 3rem;
+      margin-bottom: 2rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      animation: slideIn 1s ease-in-out forwards;
+    }
+
+    .user-info {
+      display: grid;
+      grid-template-rows: repeat(3, minmax(min-content, max-content));
+      grid-gap: 1rem;
+      justify-items: center;
+      justify-content: center;
+
+      .profile-picture {
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+      }
+
+      p {
+        font-size: 1.2rem;
+        color: $light-color;
+        margin: 0;
+
+        &:first-child {
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+        }
+      }
+    }
+  }
+
+  .dashboard-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: $container-width;
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1.25rem;
+      color: $light-color;
+      background-color: $primary-color;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+
+      &:hover {
+        background-color: darken($primary-color, 5%);
+        transform: translateY(-2px);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
