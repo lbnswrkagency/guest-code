@@ -6,8 +6,16 @@ const EventSchema = new Schema({
   title: { type: String, required: true },
   subTitle: { type: String },
   text: { type: String },
-  flyer: { type: String },
-  video: { type: String },
+  flyer: {
+    instagramStory: { type: String },
+    squareFormat: { type: String },
+    landscape: { type: String },
+  },
+  video: {
+    instagramStory: { type: String },
+    squareFormat: { type: String },
+    landscape: { type: String },
+  },
   date: { type: Date, required: true },
   time: { type: String, required: true },
   location: { type: String, required: true },
@@ -17,6 +25,7 @@ const EventSchema = new Schema({
   tableCode: { type: Boolean, default: false },
   link: { type: String, required: true, unique: true },
   guestCodes: [{ type: Schema.Types.ObjectId, ref: "GuestCode" }],
+  guestCodeCondition: { type: String, default: "" },
 });
 
 module.exports = mongoose.model("Event", EventSchema);

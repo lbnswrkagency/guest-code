@@ -2,17 +2,26 @@
 import React, { useState, useContext } from "react"; // Add useContext
 import { useNavigate } from "react-router-dom";
 import "./CreateEvent.scss";
-import { createEvent } from "../../utils/apiClient"; // Updated import
+import { createEvent, compressAndOptimizeFiles } from "../../utils/apiClient"; // Updated import
 import BackButton from "../BackButton/BackButton";
 import AuthContext from "../../contexts/AuthContext"; // Add import
+import FileUpload from "../FileUpload/FileUpload";
 
 const CreateEvent = () => {
   const [eventData, setEventData] = useState({
     title: "",
     subTitle: "",
     text: "",
-    flyer: "",
-    video: "",
+    flyer: {
+      instagramStory: "",
+      squareFormat: "",
+      landscape: "",
+    },
+    video: {
+      instagramStory: "",
+      squareFormat: "",
+      landscape: "",
+    },
     date: "",
     time: "",
     location: "",
@@ -35,14 +44,37 @@ const CreateEvent = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    // Call the API to create the event and pass eventData along with the user ID
+
     try {
-      await createEvent({ ...eventData, user: user._id }); // Add the user ID to the eventData
+      // Compress and optimize files on the server-side
+      const optimizedEventData = await compressAndOptimizeFiles(
+        eventData,
+        user._id
+      );
+
+      // Call the API to create the event and pass optimizedEventData along with the user ID
+      await createEvent({ ...optimizedEventData, user: user._id }); // Add the user ID to the eventData
       // After successfully creating the event, navigate back to the events page
       navigate("/events");
     } catch (error) {
       console.error("Error submitting event:", error);
     }
+  };
+
+  const handleFileUpload = (file, selectedRatio, uploadType) => {
+    // Convert the File object to a data URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Update eventData based on selectedRatio and uploadType
+      setEventData({
+        ...eventData,
+        [uploadType]: {
+          ...eventData[uploadType],
+          [selectedRatio]: reader.result,
+        },
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   console.log(eventData);
@@ -72,20 +104,17 @@ const CreateEvent = () => {
           onChange={handleChange}
           placeholder="Text"
         />
-        <input
-          type="text"
-          name="flyer"
-          value={eventData.flyer}
-          onChange={handleChange}
-          placeholder="Flyer URL"
+        <FileUpload
+          handleUpload={handleFileUpload}
+          uploadType="flyer"
+          eventData={eventData.flyer}
         />
-        <input
-          type="text"
-          name="video"
-          value={eventData.video}
-          onChange={handleChange}
-          placeholder="Video URL"
+        <FileUpload
+          handleUpload={handleFileUpload}
+          uploadType="video"
+          eventData={eventData.video}
         />
+        Now, with these changes, the `FileUpload
         <input
           type="date"
           name="date"

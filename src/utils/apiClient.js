@@ -69,3 +69,74 @@ export const generateGuestCode = async (guestCodeData) => {
     throw error;
   }
 };
+
+export const updateGuestCodeCondition = async (eventId, guestCodeCondition) => {
+  try {
+    const response = await axios.patch(
+      `/api/events/updateGuestCodeCondition/${eventId}`,
+      {
+        guestCodeCondition,
+      }
+    );
+    return response.data.event;
+  } catch (error) {
+    console.error("Error updating guest code condition:", error);
+    throw error;
+  }
+};
+
+// apiClient.js
+
+export const compressAndOptimizeFiles = async (eventData) => {
+  console.log(eventData);
+  try {
+    const formData = new FormData();
+
+    for (const format in eventData.flyer) {
+      if (eventData.flyer[format]) {
+        formData.append(
+          `flyer.${format}`, // Update this line
+          dataURLtoFile(eventData.flyer[format], `flyer_${format}.jpeg`)
+        );
+      }
+    }
+
+    for (const format in eventData.video) {
+      if (eventData.video[format]) {
+        formData.append(
+          `video.${format}`, // Update this line
+          dataURLtoFile(eventData.video[format], `video_${format}.mp4`)
+        );
+      }
+    }
+
+    formData.append("eventData", JSON.stringify(eventData));
+
+    const response = await axios.post(
+      "/api/events/compressAndOptimizeFiles",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error compressing and optimizing files:", error);
+    throw error;
+  }
+};
+
+function dataURLtoFile(dataurl, filename) {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}

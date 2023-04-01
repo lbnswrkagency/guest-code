@@ -118,3 +118,46 @@
 .bounce-in {
   animation: bounceIn 1s ease-in-out forwards;
 }
+
+@keyframes zoomIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.zoom-in {
+  animation: zoomIn 1s ease-in-out forwards;
+}
+
+@keyframes rotateIn {
+  0% {
+    transform: rotate(-45deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0);
+    opacity: 1;
+  }
+}
+
+.rotate-in {
+  animation: rotateIn 1s ease-in-out forwards;
+}
+
+@keyframes slide {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(56.57px, 56.57px);
+  }
+}

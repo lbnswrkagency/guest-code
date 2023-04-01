@@ -29,7 +29,6 @@ const EventPage = () => {
     e.preventDefault();
 
     const name = e.target.name.value;
-
     const email = e.target.email.value;
 
     // Check if name and email are not empty
@@ -38,7 +37,7 @@ const EventPage = () => {
       return;
     }
 
-    const condition = "5€ Discount til midnight";
+    const condition = event.guestCodeCondition;
     const pax = 1;
     const paxChecked = 0;
 
@@ -59,6 +58,8 @@ const EventPage = () => {
     }
   };
 
+  console.log(event);
+
   return (
     <div className="event-page">
       <BackButton />
@@ -66,24 +67,23 @@ const EventPage = () => {
         <>
           <header className="event-page__header">
             <div className="event-page__flyer">
-              <img
-                src="http://www.bootiesonair.com/static/media/event.0ac92e65eff66d478724.png"
-                alt={`${event.title} flyer`}
-              />
+              <img src={event.flyer.landscape} alt={`${event.title} flyer`} />
             </div>
-            <h1 className="event-page__title">{event.title}</h1>
-            <h2 className="event-page__subtitle">{event.subTitle}</h2>
-            <div className="event-page__date-time-location">
-              <span className="event-page__date">
-                {new Date(event.date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-              </span>
-              <span className="event-page__time">{event.time}</span>
-              <span className="event-page__location">{event.location}</span>
+            <div className="event-page__info">
+              <h1 className="event-page__title">{event.title}</h1>
+              <h2 className="event-page__subtitle">{event.subTitle}</h2>
+              <div className="event-page__date-time-location">
+                <span className="event-page__date">
+                  {new Date(event.date).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
+                </span>
+                <span className="event-page__time">{event.time}</span>
+                <span className="event-page__location">{event.location}</span>
+              </div>
             </div>
           </header>
 
@@ -98,7 +98,7 @@ const EventPage = () => {
                 <div className="event-page__video">
                   <iframe
                     title="event-video"
-                    src="http://fyped.de/sample.mp4"
+                    src={`${event.video.instagramStory}`}
                     // allow="autoplay; encrypted-media"
                     allowFullScreen
                     className="event-page__video-iframe"
@@ -116,24 +116,32 @@ const EventPage = () => {
 
           {event.guestCode && (
             <section className="event-page__guest-code form-section">
-              <h3 className="guest-code__title">Generate Guest Code</h3>
+              <h3 className="event-page__guest-code__title">
+                Generate Guest Code
+              </h3>
+              <h4 className="event-page__guest-code__subTitle">
+                {event.guestCodeCondition}
+              </h4>
               <form
-                className="guest-code__form"
+                className="event-page__guest-code__form"
                 onSubmit={handleGuestCodeFormSubmit}
               >
                 <input
                   type="text"
                   name="name"
                   placeholder="Name"
-                  className="guest-code__input"
+                  className="event-page__guest-code__input"
                 />
                 <input
                   type="email"
                   name="email"
                   placeholder="Email"
-                  className="guest-code__input"
+                  className="event-page__guest-code__input"
                 />
-                <button type="submit" className="guest-code__submit-btn">
+                <button
+                  type="submit"
+                  className="event-page__guest-code__submit-btn"
+                >
                   Generate Guest Code
                 </button>
               </form>

@@ -2,8 +2,12 @@ const Event = require("../models/Event");
 const User = require("../models/User");
 const GuestCode = require("../models/GuestCode");
 const QRCode = require("qrcode");
-
+const sharp = require("sharp");
+const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
+const { uploadToS3 } = require("../utils/s3Uploader");
+const fsPromises = require("fs").promises;
+const fs = require("fs");
 
 const onToBoolean = (value) => {
   return value === "on";
@@ -184,4 +188,146 @@ exports.generateGuestCode = async (req, res) => {
     console.error("Error generating guest code:", error);
     res.status(500).json({ error: "Error generating guest code" });
   }
+};
+
+exports.updateGuestCodeCondition = async (req, res) => {
+  const eventId = req.params.eventId;
+  const updatedGuestCodeCondition = req.body.guestCodeCondition;
+
+  // Validate the received data
+  if (!eventId || !updatedGuestCodeCondition) {
+    return res.status(400).json({
+      success: false,
+      message: "Event ID and guest code condition are required.",
+    });
+  }
+
+  try {
+    const event = await Event.findByIdAndUpdate(
+      eventId,
+      { guestCodeCondition: updatedGuestCodeCondition },
+      { new: true }
+    );
+
+    if (!event) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Event not found." });
+    }
+
+    res.status(200).json({ success: true, event });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+const compressAndOptimizeImage = async (image) => {
+  const optimizedImageBuffer = await sharp(image.path)
+    .resize({ width: 1080 }) // Adjust the resize value based on your requirements
+    .jpeg({ quality: 80 }) // Adjust the quality value based on your requirements
+    .toBuffer();
+
+  return {
+    ...image,
+    buffer: optimizedImageBuffer,
+  };
+};
+
+const compressVideo = async (video) => {
+  return new Promise((resolve, reject) => {
+    const outputPath = `${video.path}_compressed.mp4`;
+    ffmpeg(video.path)
+      .outputOptions([
+        "-codec:v libx264", // Use the H.264 video codec
+        "-profile:v main",
+        "-preset:v medium",
+        "-b:v 800k", // Adjust the video bitrate based on your requirements
+        "-maxrate 800k",
+        "-bufsize 1600k",
+        "-vf scale='trunc(oh*a/2)*2:720'", // Adjust the video scale based on your requirements
+        "-codec:a aac",
+        "-b:a 128k", // Adjust the audio bitrate based on your requirements
+      ])
+      .output(outputPath)
+      .on("end", () => {
+        resolve({
+          ...video,
+          path: outputPath,
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
+      })
+      .run();
+  });
+};
+
+exports.compressAndOptimizeFiles = async (req, res) => {
+  try {
+    // Add these two lines to filter the files by their fieldname prefix
+    const flyerFiles = filterFilesByFieldnamePrefix(req.files, "flyer.");
+    const videoFiles = filterFilesByFieldnamePrefix(req.files, "video.");
+
+    const optimizedEventData = JSON.parse(req.body.eventData);
+
+    for (const file of flyerFiles) {
+      const format = file.fieldname.split(".")[1];
+      const optimizedImage = await compressAndOptimizeImage(file);
+
+      const uploadedImageUrl = await uploadToS3(
+        optimizedImage.buffer, // Pass the buffer instead of an object
+        "flyers",
+        `${optimizedEventData.title}_${format}.jpeg`,
+        optimizedImage.mimetype // Pass the mimetype
+      );
+
+      optimizedEventData.flyer[format] = uploadedImageUrl;
+
+      deleteFile(file.path);
+    }
+    for (const file of videoFiles) {
+      const format = file.fieldname.split(".")[1];
+      const compressedVideo = await compressVideo(file);
+
+      // Read the compressed video file into a buffer
+      const compressedVideoBuffer = await fsPromises.readFile(
+        compressedVideo.path
+      );
+
+      const uploadedVideoUrl = await uploadToS3(
+        compressedVideoBuffer, // Pass the buffer instead of an object
+        "videos",
+        `${optimizedEventData.title}_${format}.mp4`,
+        file.mimetype
+      );
+      optimizedEventData.video[format] = uploadedVideoUrl;
+      deleteFile(compressedVideo.path);
+      deleteFile(file.path);
+    }
+
+    res.status(200).json(optimizedEventData);
+  } catch (error) {
+    console.warn(error);
+    res
+      .status(400)
+      .json({ message: "Error compressing and optimizing files", error });
+  }
+};
+
+const filterFilesByFieldnamePrefix = (files, prefix) => {
+  const allFiles = Object.values(files).flat();
+  return allFiles.filter(
+    (file) => file.fieldname && file.fieldname.startsWith(prefix)
+  );
+};
+
+const deleteFile = (filePath) => {
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.error(`Error deleting file: ${filePath}`, err);
+    } else {
+      console.log(`File deleted: ${filePath}`);
+    }
+  });
 };

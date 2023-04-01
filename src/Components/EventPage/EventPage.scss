@@ -32,10 +32,8 @@
     .event-page__title,
     .event-page__subtitle,
     .event-page__date-time-location {
-      position: absolute;
       z-index: 1;
-      background-color: rgba(0, 0, 0, 0.5);
-      padding: 0.5rem;
+
       border-radius: 4px;
     }
 
@@ -45,7 +43,7 @@
       font-size: 2rem;
       font-weight: bold;
       animation: slideIn 1s ease-in-out forwards;
-      color: $primary-color;
+      color: $light-color;
     }
 
     .event-page__subtitle {
@@ -53,7 +51,7 @@
       left: 5%;
       font-size: 1.5rem;
       animation: fadeInLeft 1s ease-in-out forwards;
-      color: $secondary-color;
+      color: $light-color;
     }
 
     .event-page__date-time-location {
@@ -63,6 +61,7 @@
       flex-direction: column;
       align-items: flex-start;
       animation: fadeInUp 1s ease-in-out forwards;
+      color: $light-color;
 
       span {
         font-size: 1.2rem;
@@ -79,7 +78,7 @@
     align-items: center;
     text-align: center;
     width: 100%;
-    max-width: 600px;
+    max-width: 800px;
     padding: 2rem;
     border-radius: 4px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -129,7 +128,7 @@
     text-align: center;
     width: 100%;
     max-width: 600px;
-    background-color: $light-color;
+    background-color: $gray-color;
     padding: 2rem;
     border-radius: 4px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -138,14 +137,15 @@
   &__title {
     font-size: 1.5rem;
     font-weight: bold;
-    margin-bottom: 0.5rem;
+
     animation: slideIn 1s ease-in-out forwards;
     color: $primary-color;
   }
 
   &__subtitle {
     font-size: 1.2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+
     animation: fadeInLeft 1s ease-in-out forwards;
     color: $secondary-color;
   }
@@ -307,9 +307,93 @@
   }
 }
 
+.event-page__guest-code {
+  @include form;
+  margin-bottom: 2rem;
+  animation: fadeIn 1s ease-in-out forwards,
+    subtleGradient 5s ease-in-out infinite;
+  background-color: rgba($primary-color, 0.1);
+
+  &__title {
+    position: relative;
+    font-size: 2rem !important;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: $primary-color;
+    padding: 1rem;
+    animation: slideIn 1s ease-in-out forwards, zoomIn 1s ease-in-out forwards;
+    border-radius: 4px;
+  }
+
+  &__subTitle {
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+    color: $light-color;
+    animation: fadeIn 1s ease-in-out forwards;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    color: $text-color;
+    background-color: $light-color;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    transition: border-color 0.3s;
+
+    &:focus {
+      border-color: darken($border-color, 5%);
+    }
+
+    animation: fadeInUp 1s ease-in-out forwards;
+  }
+
+  &__submit-btn {
+    @include button;
+    width: 100%;
+    font-size: 1rem;
+    text-align: center;
+    animation: bounceIn 1s ease-in-out forwards;
+
+    &:hover {
+      animation: bounce 1s ease-in-out infinite;
+    }
+  }
+}
+
 // Add this to your media query (max-width: 768px)
 .event-page__guest-code {
+  max-width: 800px;
+
   &__title {
     font-size: 1.2rem;
   }
+}
+
+.event-page__info {
+  display: grid;
+  bottom: 2rem;
+  left: 2rem;
+  position: absolute;
+  width: 33.3%;
+  padding: 1rem;
+
+  background: linear-gradient(
+    135deg,
+    $primary-color-trans,
+    $secondary-color-trans
+  );
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: subtleGradient 5s ease-in-out infinite;
 }

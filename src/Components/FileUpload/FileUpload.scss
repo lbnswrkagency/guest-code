@@ -1,0 +1,62 @@
+@import "../../_variables";
+@import "../../_animations";
+
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: $text-color;
+
+  & .format-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .format-button {
+    @include button;
+
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .aspect-ratio-example {
+    width: 50px;
+    background-color: $secondary-color;
+    margin-bottom: 1rem;
+
+    &.aspect-ratio-instagram {
+      height: 88px;
+    }
+
+    &.aspect-ratio-square {
+      height: 50px;
+    }
+
+    &.aspect-ratio-landscape {
+      height: 28px;
+    }
+  }
+}
+
+.delete-button {
+  background-color: red;
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 1rem 0;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.validated {
+  background-color: green;
+  color: white;
+}

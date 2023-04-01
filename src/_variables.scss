@@ -30,6 +30,13 @@ $light-color: #f8f9fa; // A light gray color for backgrounds and light elements
 $gray-color: #6c757d; // A gray color for general use
 $text-color: #000; // White color for text
 $border-color: #d4af37; // A gold color for borders
+$primary-color-trans: rgba(212, 175, 55, 0.8); // A gold color with 80% opacity
+$secondary-color-trans: rgba(
+  108,
+  117,
+  125,
+  0.8
+); // A gray color with 80% opacity
 
 $font-family: "Roboto", sans-serif;
 $font-size: 16px;

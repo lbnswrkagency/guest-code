@@ -12,6 +12,7 @@ import Events from "./Components/Events/Events";
 import CreateEvent from "./Components/CreateEvent/CreateEvent";
 import EventDetails from "./Components/EventDetails/EventDetails";
 import EventPage from "./Components/EventPage/EventPage";
+import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/events/create" element={<CreateEvent />} />
           <Route path="/events/:eventId" element={<EventDetails />} />
           <Route path="/events/page/:eventId" element={<EventPage />} />;
+          <Route path="/guest-code-settings" component={GuestCodeSettings} />
         </Routes>
       </Router>
     </AuthProvider>

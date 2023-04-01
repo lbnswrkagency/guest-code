@@ -1,0 +1,47 @@
+@import "../../_variables";
+
+.edit-event {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.5s ease-in-out forwards;
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+  }
+
+  .checkbox-container {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(min-content, max-content));
+    grid-gap: 1rem;
+    color: $text-color;
+    margin-top: 0.5rem;
+    align-items: center;
+    align-content: center;
+
+    label {
+      font-size: 1.25rem;
+      align-self: center;
+    }
+
+    input {
+      align-self: center;
+      margin-bottom: 0;
+    }
+  }
+
+  button {
+    @include button;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
