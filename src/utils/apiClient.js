@@ -85,28 +85,41 @@ export const updateGuestCodeCondition = async (eventId, guestCodeCondition) => {
   }
 };
 
-// apiClient.js
-
 export const compressAndOptimizeFiles = async (eventData) => {
   console.log(eventData);
+
   try {
     const formData = new FormData();
 
-    for (const format in eventData.flyer) {
-      if (eventData.flyer[format]) {
-        formData.append(
-          `flyer.${format}`, // Update this line
-          dataURLtoFile(eventData.flyer[format], `flyer_${format}.jpeg`)
-        );
+    if (eventData.flyer) {
+      for (const format in eventData.flyer) {
+        if (eventData.flyer[format]) {
+          const file =
+            eventData.flyer[format] instanceof File ||
+            !isDataURL(eventData.flyer[format])
+              ? eventData.flyer[format]
+              : dataURLtoFile(eventData.flyer[format], `flyer_${format}.jpeg`);
+
+          if (file) {
+            formData.append(`flyer.${format}`, file);
+          }
+        }
       }
     }
 
-    for (const format in eventData.video) {
-      if (eventData.video[format]) {
-        formData.append(
-          `video.${format}`, // Update this line
-          dataURLtoFile(eventData.video[format], `video_${format}.mp4`)
-        );
+    if (eventData.video) {
+      for (const format in eventData.video) {
+        if (eventData.video[format]) {
+          const file =
+            eventData.video[format] instanceof File ||
+            !isDataURL(eventData.video[format])
+              ? eventData.video[format]
+              : dataURLtoFile(eventData.video[format], `video_${format}.mp4`);
+
+          if (file) {
+            formData.append(`video.${format}`, file);
+          }
+        }
       }
     }
 
@@ -130,6 +143,12 @@ export const compressAndOptimizeFiles = async (eventData) => {
 };
 
 function dataURLtoFile(dataurl, filename) {
+  console.log(filename);
+  console.log(dataurl);
+
+  if (!dataurl) {
+    return null;
+  }
   const arr = dataurl.split(",");
   const mime = arr[0].match(/:(.*?);/)[1];
   const bstr = atob(arr[1]);
@@ -139,4 +158,8 @@ function dataURLtoFile(dataurl, filename) {
     u8arr[n] = bstr.charCodeAt(n);
   }
   return new File([u8arr], filename, { type: mime });
+}
+
+function isDataURL(s) {
+  return !!s.match(/^\s*data:([a-zA-Z]+\/[a-zA-Z]+);base64,/);
 }

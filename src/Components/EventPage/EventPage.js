@@ -67,7 +67,14 @@ const EventPage = () => {
         <>
           <header className="event-page__header">
             <div className="event-page__flyer">
-              <img src={event.flyer.landscape} alt={`${event.title} flyer`} />
+              <img
+                src={
+                  event && event.flyer && event.flyer.landscape
+                    ? event.flyer.landscape
+                    : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+                }
+                alt={`${event.title} flyer`}
+              />
             </div>
             <div className="event-page__info">
               <h1 className="event-page__title">{event.title}</h1>
@@ -98,7 +105,11 @@ const EventPage = () => {
                 <div className="event-page__video">
                   <iframe
                     title="event-video"
-                    src={`${event.video.instagramStory}`}
+                    src={
+                      event && event.video && event.video.landscape
+                        ? event.video.landscape
+                        : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+                    }
                     // allow="autoplay; encrypted-media"
                     allowFullScreen
                     className="event-page__video-iframe"

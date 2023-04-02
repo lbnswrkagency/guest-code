@@ -46,7 +46,11 @@ const EventDetails = () => {
       <BackButton />
       <div className="event-details__flyer">
         <img
-          src="http://www.bootiesonair.com/static/media/event.0ac92e65eff66d478724.png"
+          src={
+            event && event.flyer && event.flyer.landscape
+              ? event.flyer.landscape
+              : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+          }
           alt="Event Flyer"
         />
       </div>
@@ -70,7 +74,11 @@ const EventDetails = () => {
               <div className="event-details__info__video">
                 <iframe
                   title="event-video"
-                  src="http://fyped.de/sample.mp4"
+                  src={
+                    event && event.video && event.video.landscape
+                      ? event.video.landscape
+                      : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+                  }
                   allow="autoplay; encrypted-media"
                   allowFullScreen
                   className="event-details__info__video-iframe"

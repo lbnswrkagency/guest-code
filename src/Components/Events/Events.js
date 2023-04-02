@@ -41,6 +41,8 @@ const Events = () => {
     return eventDate.toLocaleDateString("en-US", options);
   };
 
+  console.log(events);
+
   return (
     <div className="events">
       <BackButton />
@@ -56,7 +58,11 @@ const Events = () => {
           <Link to={`/events/${event._id}`} key={event._id}>
             <div className="event-item">
               <img
-                src="http://www.bootiesonair.com/static/media/event.0ac92e65eff66d478724.png"
+                src={
+                  event && event.flyer && event.flyer.landscape
+                    ? event.flyer.landscape
+                    : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+                }
                 alt="Event Flyer"
               />
               <div className="event-info">

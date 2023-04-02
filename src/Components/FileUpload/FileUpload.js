@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import "./FileUpload.scss";
 
-const FileUpload = ({ handleUpload, uploadType, eventData }) => {
+const FileUpload = ({ handleUpload, uploadType }) => {
+  const fileInputRef = useRef();
   const [validatedButtons, setValidatedButtons] = useState({
     instagramStory: false,
     squareFormat: false,
@@ -9,10 +10,11 @@ const FileUpload = ({ handleUpload, uploadType, eventData }) => {
   });
   const aspectRatios = {
     instagramStory: "9:16",
-    square: "1:1",
+    squareFormat: "1:1",
     landscape: "16:9",
   };
   const handleFileChange = async (event, ratio) => {
+    event.persist();
     const file = event.target.files[0];
     if (file) {
       const fileSize = file.size;
@@ -54,7 +56,7 @@ const FileUpload = ({ handleUpload, uploadType, eventData }) => {
         const targetAspectRatio = aspectRatios[chosenRatio]
           .split(":")
           .reduce((a, b) => a / b);
-        resolve(Math.abs(aspectRatio - targetAspectRatio) < 0.15); // Increase tolerance value
+        resolve(Math.abs(aspectRatio - targetAspectRatio) < 0.2); // Increase tolerance value
       };
     });
     return promise;
@@ -71,15 +73,14 @@ const FileUpload = ({ handleUpload, uploadType, eventData }) => {
         const targetAspectRatio = aspectRatios[chosenRatio]
           .split(":")
           .reduce((a, b) => a / b);
-        resolve(Math.abs(aspectRatio - targetAspectRatio) < 0.15); // Increase tolerance value
+        resolve(Math.abs(aspectRatio - targetAspectRatio) < 0.2); // Increase tolerance value
       });
     });
     return promise;
   };
-
   return (
     <div className={`file-upload ${uploadType}`}>
-      <h3>Select {uploadType === "flyer" ? "Flyer" : "Video"} Format:</h3>
+      {/* ... rest of your component code */}
       <div className="format-buttons">
         {Object.keys(aspectRatios).map((ratio) => (
           <div className="format-container" key={ratio}>
@@ -89,6 +90,7 @@ const FileUpload = ({ handleUpload, uploadType, eventData }) => {
               }`}
             >
               <input
+                ref={fileInputRef} // Add ref to the file input
                 type="file"
                 name={uploadType}
                 onChange={(e) => handleFileChange(e, ratio)}
