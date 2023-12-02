@@ -1,0 +1,11 @@
+staticSites:
+  - name: quiz-expotec
+    buildCommand: npm run build
+    publishDir: build
+    routes:
+      - type: rewrite
+        source: /.*
+        destination: /
+    envVars:
+      - key: NODE_ENV
+        value: production
