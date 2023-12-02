@@ -1,0 +1,92 @@
+@import "../../_variables";
+@import "../../_animations";
+
+.carousel-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: $background-color;
+  gap: 2rem;
+
+  h2 {
+    color: $primary-color;
+    margin-bottom: 2rem;
+  }
+
+  .input-section,
+  .output-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-gap: 1rem;
+    justify-items: center;
+    align-items: center;
+    width: 100%;
+    max-width: $container-width;
+    animation: fadeIn 0.5s ease-in-out forwards;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 0.5rem;
+    font-family: $font-family;
+    font-size: $font-size;
+    border: 2px solid $border-color;
+    border-radius: 4px;
+    background-color: $light-color;
+    color: $text-color;
+    transition: border-color 0.3s;
+
+    &:focus {
+      border-color: $primary-color;
+      outline: none;
+    }
+  }
+
+  .input-section {
+    margin-bottom: 2rem;
+  }
+
+  .output-section {
+    margin-bottom: 2rem;
+  }
+
+  button {
+    @include button;
+    margin-top: 1rem;
+    animation: scaleIn 0.3s ease-in-out forwards;
+  }
+
+  .constructed-sentence {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-gap: 0.5rem;
+    justify-items: center;
+    align-items: center;
+    font-family: $font-family;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: $primary-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: $container-width;
+    padding: 0 1rem;
+    text-align: center;
+
+    span {
+      padding: 0 0.25rem;
+    }
+  }
+
+  // Add your media queries for responsive design
+  @media (max-width: 768px) {
+    .input-section,
+    .output-section {
+      grid-template-columns: repeat(1, 1fr);
+    }
+  }
+}
