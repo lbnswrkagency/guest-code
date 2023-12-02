@@ -1,5 +1,5 @@
 staticSites:
-  - name: quiz-expotec
+  - name: guest-code
     buildCommand: npm run build
     publishDir: build
     routes:
