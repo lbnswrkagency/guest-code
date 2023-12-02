@@ -15,7 +15,9 @@ const EmailVerification = () => {
   useEffect(() => {
     const verifyEmail = async () => {
       try {
-        const response = await axios.get(`/api/auth/verify/${token}`);
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/auth/verify/${token}`
+        );
         setMessage(response.data.message);
 
         // Store the new token in the local storage

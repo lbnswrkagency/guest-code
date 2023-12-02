@@ -3,7 +3,10 @@ import axios from "axios";
 
 export const createEvent = async (eventData) => {
   try {
-    const response = await axios.post("/api/events", eventData);
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/events`,
+      eventData
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating event:", error);
@@ -13,7 +16,9 @@ export const createEvent = async (eventData) => {
 
 export const getAllEvents = async () => {
   try {
-    const response = await axios.get("/api/events");
+    const response = await axios.get(
+      `${process.env.REACT_APP_API_BASE_URL}/events`
+    );
     return response.data.events;
   } catch (error) {
     console.error("Error fetching events:", error);
@@ -23,7 +28,10 @@ export const getAllEvents = async () => {
 
 export const editEvent = async (eventId, eventData) => {
   try {
-    const response = await axios.put(`/api/events/${eventId}`, eventData);
+    const response = await axios.put(
+      `${process.env.REACT_APP_API_BASE_URL}/events/${eventId}`,
+      eventData
+    );
     return response.data.event;
   } catch (error) {
     console.error("Error editing event:", error);
@@ -33,7 +41,9 @@ export const editEvent = async (eventId, eventData) => {
 
 export const deleteEvent = async (eventId) => {
   try {
-    await axios.delete(`/api/events/${eventId}`);
+    await axios.delete(
+      `${process.env.REACT_APP_API_BASE_URL}/events/${eventId}`
+    );
   } catch (error) {
     console.error("Error deleting event:", error);
     throw error;
@@ -42,7 +52,9 @@ export const deleteEvent = async (eventId) => {
 
 export const getEventById = async (eventId) => {
   try {
-    const response = await axios.get(`/api/events/${eventId}`);
+    const response = await axios.get(
+      `${process.env.REACT_APP_API_BASE_URL}/events/${eventId}`
+    );
     return response.data.event;
   } catch (error) {
     console.error("Error fetching event by ID:", error);
@@ -52,7 +64,9 @@ export const getEventById = async (eventId) => {
 
 export const getEventByLink = async (eventLink) => {
   try {
-    const response = await axios.get(`/api/events/link/${eventLink}`);
+    const response = await axios.get(
+      `${process.env.REACT_APP_API_BASE_URL}/events/link/${eventLink}`
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching event by link:", error);
@@ -62,7 +76,10 @@ export const getEventByLink = async (eventLink) => {
 
 export const generateGuestCode = async (guestCodeData) => {
   try {
-    const response = await axios.post("/api/guest-codes", guestCodeData);
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/events`,
+      guestCodeData
+    );
     return response.data.guestCode;
   } catch (error) {
     console.error("Error generating guest code:", error);
@@ -73,7 +90,7 @@ export const generateGuestCode = async (guestCodeData) => {
 export const updateGuestCodeCondition = async (eventId, guestCodeCondition) => {
   try {
     const response = await axios.patch(
-      `/api/events/updateGuestCodeCondition/${eventId}`,
+      `${process.env.REACT_APP_API_BASE_URL}/events/updateGuestCodeCondition/${eventId}`,
       {
         guestCodeCondition,
       }
@@ -126,7 +143,7 @@ export const compressAndOptimizeFiles = async (eventData) => {
     formData.append("eventData", JSON.stringify(eventData));
 
     const response = await axios.post(
-      "/api/events/compressAndOptimizeFiles",
+      `${process.env.REACT_APP_API_BASE_URL}/events/compressAndOptimizeFiles`,
       formData,
       {
         headers: {

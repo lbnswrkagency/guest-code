@@ -16,10 +16,13 @@ axios.interceptors.request.use(
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await axios.post("/api/auth/login", {
-      email,
-      password,
-    });
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/auth/login"`,
+      {
+        email,
+        password,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error during login: ", error.response.data);
@@ -53,7 +56,9 @@ export const fetchUserData = async () => {
     }
 
     // Remove the "Authorization" header here, as it will be set by the interceptor
-    const response = await axios.get("/api/auth/user");
+    const response = await axios.get(
+      `${process.env.REACT_APP_API_BASE_URL}/auth/user`
+    );
 
     return response.data;
   } catch (error) {

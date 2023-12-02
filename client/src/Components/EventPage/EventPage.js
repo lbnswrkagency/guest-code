@@ -58,15 +58,18 @@ const EventPage = ({ passedEventId }) => {
     }
 
     try {
-      const response = await axios.post("/api/events/generateGuestCode", {
-        eventId: event._id,
-        email,
-        phone,
-        name,
-        condition: event.guestCodeCondition,
-        pax: 1,
-        paxChecked: 0,
-      });
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/events/generateGuestCode`,
+        {
+          eventId: event._id,
+          email,
+          phone,
+          name,
+          condition: event.guestCodeCondition,
+          pax: 1,
+          paxChecked: 0,
+        }
+      );
 
       alert("Guest code generated and QR code sent.");
       // You might want to handle the response further here
@@ -92,7 +95,11 @@ const EventPage = ({ passedEventId }) => {
   };
 
   console.log(event);
-
+  console.log("BASE URL", process.env.REACT_APP_API_BASE_URL);
+  console.log(
+    "FETCH STRING",
+    `${process.env.REACT_APP_API_BASE_URL}/auth/user`
+  );
   return (
     <div className="event-page">
       {/* <BackButton /> */}
