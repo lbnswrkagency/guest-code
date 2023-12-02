@@ -4,8 +4,6 @@ require("dotenv").config();
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-console.log("SECRET KEY", process.env.SENDGRID_API_KEY);
-
 const sendVerificationEmail = async (to, token) => {
   try {
     console.debug("Preparing verification email...");
