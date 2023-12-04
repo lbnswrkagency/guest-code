@@ -41,6 +41,7 @@ const EventPage = ({ passedEventId }) => {
   }
 
   useEffect(() => {
+    console.log("EVENT LINK", eventLink);
     const fetchEvent = async () => {
       try {
         const response = await getEventByLink(eventLink);
