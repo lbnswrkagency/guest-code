@@ -31,6 +31,7 @@ const createTicketPDF = async (
   pax
 ) => {
   const browser = await puppeteer.launch({
+    headless: "new",
     args: [
       "--disable-setuid-sandbox",
       "--no-sandbox",
@@ -74,7 +75,7 @@ const createTicketPDF = async (
       }
 
       h3 {
-        font-weight: 500;
+        font-weight: 600;
         color: #a6965d;
       }
 
@@ -84,7 +85,7 @@ const createTicketPDF = async (
       }
 
       p {
-        font-weight: 500;
+        font-weight: 600;
         color: #000;
       }
 
