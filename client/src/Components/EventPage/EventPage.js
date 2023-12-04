@@ -19,6 +19,8 @@ const EventPage = ({ passedEventId }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+
+  const [isLoading, setIsLoading] = useState(true);
   const s3ImageUrls = Array.from(
     { length: 20 },
     (_, i) =>
@@ -41,19 +43,30 @@ const EventPage = ({ passedEventId }) => {
   }
 
   useEffect(() => {
-    console.log("EVENT LINK", eventLink);
     const fetchEvent = async () => {
       try {
         const response = await getEventByLink(eventLink);
-
         setEvent(response.event); // Set event directly with the fetched event data
       } catch (error) {
         console.error("Error fetching event:", error);
       }
     };
 
-    fetchEvent();
-  }, [eventLink]);
+    const checkImagesLoaded = () => {
+      const images = tempCarouselImages.map((src) => {
+        const img = new Image();
+        img.src = src;
+        return new Promise((resolve) => {
+          img.onload = resolve;
+        });
+      });
+
+      Promise.all(images).then(() => setIsLoading(false)); // Set loading to false when all images are loaded
+    };
+
+    fetchEvent().then(checkImagesLoaded); // Call fetchEvent and then checkImagesLoaded
+  }, [eventLink, tempCarouselImages]); // Add tempCarouselImages as a dependency
+
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -99,17 +112,19 @@ const EventPage = ({ passedEventId }) => {
     }
   };
   const sliderSettings = {
-    autoplay: true,
+    autoplay: false, // Disable autoplay
     speed: 1000,
-    autoplaySpeed: 3000,
     cssEase: "cubic-bezier(0.455, 0.030, 0.515, 0.955)",
-    slidesToShow: 2, // Default setting for screens wider than 999px
+    slidesToShow: 2,
     slidesToScroll: 2,
     infinite: true,
     useTransform: true,
     adaptiveHeight: true,
+    swipe: false, // Enable swipe for touch devices
+    draggable: false, // Enable drag for desktop
     beforeChange: (current, next) => animateSlideChange(next),
     fade: false,
+    touchMove: false,
     responsive: [
       {
         breakpoint: 999, // Applies settings below this width
@@ -122,14 +137,23 @@ const EventPage = ({ passedEventId }) => {
     ],
   };
 
-  console.log(event);
-
   return (
     <div className="event-page">
       <ToastContainer />
-      {/* <BackButton /> */}
 
-      {event ? (
+      {isLoading ? (
+        <div
+          style={{
+            backgroundColor: "black",
+            height: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <img className="event-page-loading" src={logo_w} alt="Loading..." />
+        </div>
+      ) : event ? (
         <>
           <header className="event-page-header">
             <img src={logo_w} alt="" className="event-page-header-logo" />
@@ -139,7 +163,6 @@ const EventPage = ({ passedEventId }) => {
                 className="event-page-header-guestcode"
                 onSubmit={handleGuestCodeFormSubmit}
               >
-                {" "}
                 <div className="event-page-header-guestcode-form">
                   <input
                     type="text"
@@ -155,8 +178,7 @@ const EventPage = ({ passedEventId }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email Address"
                   />
-
-                  <p className="event-page-header-guestcode-form-separator">
+                  {/* <p className="event-page-header-guestcode-form-separator">
                     OR
                   </p>
                   <input
@@ -165,7 +187,7 @@ const EventPage = ({ passedEventId }) => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="WhatsApp Number"
-                  />
+                  /> */}
                 </div>
                 <div className="event-page-header-guestcode-condition">
                   <p>{event.guestCodeCondition}</p>
@@ -206,7 +228,7 @@ const EventPage = ({ passedEventId }) => {
           </footer> */}
         </>
       ) : (
-        <p>Loading...</p>
+        <p>Event data not available.</p> // Placeholder for when event data is not available
       )}
     </div>
   );

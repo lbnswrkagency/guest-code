@@ -6,6 +6,11 @@
   width: 100vw !important;
   height: 100vh;
   overflow: hidden;
+
+  &-loading {
+    animation: pulse 2s infinite ease-in-out; /* Adjust the duration (2s) as needed */
+    width: 15rem;
+  }
   &-header {
     position: relative;
     display: grid;
@@ -17,7 +22,7 @@
       z-index: 99;
       width: 10rem;
       justify-self: center;
-      margin-top: 0rem;
+      margin-top: 5rem;
       grid-column: 1/2;
       grid-row: 1/2;
 
@@ -44,7 +49,7 @@
       z-index: 99;
       width: 4rem;
       justify-self: center;
-      margin-top: 6rem;
+      margin-top: 12rem;
       grid-column: 1/2;
       grid-row: 1/2;
       animation: spinAndZoom 5s linear infinite; // Adjust the duration as needed
@@ -122,7 +127,7 @@
         z-index: 99;
 
         input[type="text"] {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.5);
           backdrop-filter: blur(5px);
           -webkit-backdrop-filter: blur(5px);
           border: 1px solid rgba(255, 255, 255, 0.6);
@@ -153,8 +158,10 @@
           }
           &::placeholder {
             font-size: 0.525rem;
-            color: #ddd;
+            color: #ffffff;
             opacity: 1;
+            font-weight: 800;
+            letter-spacing: 0.25rem;
             text-align: center;
 
             @include mq(phone) {
@@ -403,5 +410,19 @@
   }
   75% {
     transform: rotateY(270deg) scale(1.1); // Slightly zooms in
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(
+      1.2
+    ); /* Adjust the scale value to control the intensity of the pulse */
+  }
+  100% {
+    transform: scale(1);
   }
 }
