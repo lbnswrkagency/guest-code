@@ -1,10 +1,16 @@
 FROM ghcr.io/puppeteer/puppeteer:21.5.2
 
+# Switch to root user to avoid permission issues
+USER root
+
+# Resolve potential duplicate source entries
+RUN sed -i '/google/d' /etc/apt/sources.list.d/google-chrome.list
+
 # Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Install canvas dependencies
+# Update package list and install canvas dependencies
 RUN apt-get update && apt-get install -y \
     libcairo2-dev \
     libpango1.0-dev \
