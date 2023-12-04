@@ -22,7 +22,7 @@ const sendVerificationEmail = async (to, token) => {
     sendSmtpEmail.to = [{ email: to }];
     sendSmtpEmail.sender = {
       name: "Afro Spiti",
-      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
+      email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
     };
     sendSmtpEmail.subject = "Guest Code - Email Verification";
     sendSmtpEmail.htmlContent = `<h2>Welcome to Guest Code!</h2><p>Please verify your email by clicking on the link below:</p><a href="http://localhost:3000/verify/${token}">Verify Email</a>`;
@@ -76,7 +76,7 @@ const sendQRCodeEmail = async (
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.sender = {
       name: "Afro Spiti",
-      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
+      email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
     };
     sendSmtpEmail.subject = "Afro Spiti - Guest Code";
     sendSmtpEmail.htmlContent = `

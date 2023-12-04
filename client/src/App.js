@@ -26,7 +26,6 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<EventPage passedEventId={eventId} />} />
-
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
