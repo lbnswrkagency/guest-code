@@ -101,7 +101,7 @@ const sendQRCodeEmail = async (
     sendSmtpEmail.attachment = [
       {
         content: ticketPdfBuffer.toString("base64"),
-        name: "guestcode.pdf",
+        name: `${name.replace(/\s+/g, "_")}_guestcode.pdf`,
         type: "application/pdf",
       },
     ];
