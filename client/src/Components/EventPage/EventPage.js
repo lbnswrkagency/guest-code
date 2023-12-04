@@ -100,6 +100,11 @@ const EventPage = ({ passedEventId }) => {
         autoClose: 5000,
       });
 
+      // Clear the input fields
+      setEmail("");
+      setName("");
+      setPhone("");
+
       // Additional handling if needed
     } catch (error) {
       console.error("Error generating guest code:", error);
