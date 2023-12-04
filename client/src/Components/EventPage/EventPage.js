@@ -20,9 +20,9 @@ const EventPage = ({ passedEventId }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const s3ImageUrls = Array.from(
-    { length: 31 },
+    { length: 20 },
     (_, i) =>
-      `https://guest-code.s3.eu-north-1.amazonaws.com/server/${String(
+      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
         i + 1
       ).padStart(2, "0")}.jpg`
   );
