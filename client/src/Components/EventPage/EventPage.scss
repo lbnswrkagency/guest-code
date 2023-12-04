@@ -92,6 +92,12 @@
         margin-top: 2rem;
         margin-right: 15rem;
       }
+
+      @include mq(desktop) {
+        justify-self: center;
+        margin: 0;
+        margin-top: 16rem;
+      }
     }
 
     &-flyer {
@@ -141,6 +147,11 @@
         margin-bottom: 7rem;
       }
 
+      @include mq(desktop) {
+        margin-bottom: 0;
+        margin-bottom: 15%;
+      }
+
       &-form {
         display: grid;
         gap: 10px;
@@ -178,6 +189,10 @@
           @include mq(tablet-landscape) {
             font-size: 1.55rem;
           }
+
+          @include mq(desktop) {
+            font-size: 2rem;
+          }
           &::placeholder {
             font-size: 0.525rem;
             color: #ffffff;
@@ -192,6 +207,11 @@
 
             @include mq(tablet) {
               font-size: 0.75rem;
+            }
+
+            @include mq(desktop) {
+              margin: 0;
+              padding: 0;
             }
           }
 
