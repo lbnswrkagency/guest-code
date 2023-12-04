@@ -49,10 +49,13 @@ const createTicketPDF = async (
 
   const htmlContent = `
 <!DOCTYPE html>
-<html lang="en">
+  <html style="font-family: 'Manrope', sans-serif;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" rel="stylesheet">
     <title>Ticket</title>
     <style>
       @page {
@@ -71,7 +74,7 @@ const createTicketPDF = async (
       }
 
       h3 {
-        font-weight: 500;
+        font-weight: 600;
         color: #a6965d;
       }
 
@@ -81,7 +84,7 @@ const createTicketPDF = async (
       }
 
       p {
-        font-weight: 500;
+        font-weight: 600;
         color: #000;
       }
 
@@ -103,8 +106,7 @@ const createTicketPDF = async (
 
       .header-title {
         color: #fff;
-   
-        font-size: 35px;
+        font-size: 40px;
         align-self: center;
       }
 
@@ -115,8 +117,6 @@ const createTicketPDF = async (
       padding-left: 10%;
       align-content: center;
       }
-
-
 
       .header-logo {
         width: 9rem;
@@ -151,7 +151,7 @@ const createTicketPDF = async (
         grid-row: 1/2;
         grid-column: 1/3;
         color: #000;
-       
+     
       }
 
       .event-bites {
@@ -246,7 +246,7 @@ const createTicketPDF = async (
 
         <div class="event-bites">
           <h3>Bites</h3>
-          <p>Chicken Wings<br/>Meat Pie</p>
+          <p>Chicken Wings, Meat Pie, Beef Stick</p>
         </div>
 
         <div class="event-hours">
