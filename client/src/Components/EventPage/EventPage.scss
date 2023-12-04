@@ -55,7 +55,7 @@
 
     &-qr {
       z-index: 99;
-      width: 4rem;
+      width: 3rem;
       justify-self: center;
       margin-top: 12rem;
       grid-column: 1/2;
@@ -65,7 +65,7 @@
 
       @include mq(phone) {
         margin-top: 5.5rem;
-        width: 5rem;
+        width: 3.5rem;
       }
 
       @include mq(tablet) {
