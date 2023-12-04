@@ -6,7 +6,7 @@
   width: 100vw !important;
   height: 100vh;
   overflow: hidden;
-
+  grid-template-rows: 1fr 1fr;
   &-loading {
     animation: pulse 2s infinite ease-in-out; /* Adjust the duration (2s) as needed */
     width: 15rem;
@@ -17,15 +17,8 @@
     overflow: hidden;
     width: 100vw !important;
     height: 100vh !important;
-
-    &-beta {
-      z-index: 3;
-      position: absolute;
-      width: 6rem;
-      top: 1rem;
-      justify-self: center;
-    }
-
+    grid-column: 1/2;
+    grid-row: 1/2;
     &-logo {
       z-index: 99;
       width: 10rem;

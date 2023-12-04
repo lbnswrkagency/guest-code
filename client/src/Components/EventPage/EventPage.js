@@ -176,27 +176,28 @@ const EventPage = ({ passedEventId }) => {
           <header className="event-page-header">
             <img src={logo_w} alt="" className="event-page-header-logo" />
             <img src={qrCode} alt="" className="event-page-header-qr" />
-            {event.guestCode && (
-              <form
-                className="event-page-header-guestcode"
-                onSubmit={handleGuestCodeFormSubmit}
-              >
-                <div className="event-page-header-guestcode-form">
-                  <input
-                    type="text"
-                    className="event-page-header-guestcode-form-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Name"
-                  />
-                  <input
-                    type="text"
-                    className="event-page-header-guestcode-form-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email Address"
-                  />
-                  {/* <p className="event-page-header-guestcode-form-separator">
+          </header>
+          {event.guestCode && (
+            <form
+              className="event-page-header-guestcode"
+              onSubmit={handleGuestCodeFormSubmit}
+            >
+              <div className="event-page-header-guestcode-form">
+                <input
+                  type="text"
+                  className="event-page-header-guestcode-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name"
+                />
+                <input
+                  type="text"
+                  className="event-page-header-guestcode-form-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
+                />
+                {/* <p className="event-page-header-guestcode-form-separator">
                     OR
                   </p>
                   <input
@@ -206,39 +207,39 @@ const EventPage = ({ passedEventId }) => {
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="WhatsApp Number"
                   /> */}
-                </div>
-                <div className="event-page-header-guestcode-condition">
-                  <p>{event.guestCodeCondition}</p>
-                </div>
-                <button
-                  type="submit"
-                  className="event-page-header-guestcode-button"
-                >
-                  GENERATE GUEST CODE
-                </button>
-              </form>
+              </div>
+              <div className="event-page-header-guestcode-condition">
+                <p>{event.guestCodeCondition}</p>
+              </div>
+              <button
+                type="submit"
+                className="event-page-header-guestcode-button"
+              >
+                GENERATE GUEST CODE
+              </button>
+            </form>
+          )}
+          <div className="event-page-header-flyer">
+            {tempCarouselImages.length > 0 ? (
+              <Slider {...sliderSettings}>
+                {tempCarouselImages.map((image, index) => (
+                  <div key={index}>
+                    <img src={image} alt={`Flyer ${index + 1}`} />
+                  </div>
+                ))}
+              </Slider>
+            ) : (
+              <img
+                src={
+                  event.flyer && event.flyer.instagramStory
+                    ? event.flyer.instagramStory
+                    : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
+                }
+                alt={`${event.title} flyer`}
+              />
             )}
-            <div className="event-page-header-flyer">
-              {tempCarouselImages.length > 0 ? (
-                <Slider {...sliderSettings}>
-                  {tempCarouselImages.map((image, index) => (
-                    <div key={index}>
-                      <img src={image} alt={`Flyer ${index + 1}`} />
-                    </div>
-                  ))}
-                </Slider>
-              ) : (
-                <img
-                  src={
-                    event.flyer && event.flyer.instagramStory
-                      ? event.flyer.instagramStory
-                      : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
-                  }
-                  alt={`${event.title} flyer`}
-                />
-              )}
-            </div>
-          </header>
+          </div>
+
           {/* 
           <footer className="event-page__footer">
             <h1 className="event-page__footer-title">{event.title}</h1>
