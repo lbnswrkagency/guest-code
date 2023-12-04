@@ -93,8 +93,7 @@ const EventPage = ({ passedEventId }) => {
 
       toast.update(loadingToastId, {
         render:
-          response.data.message ||
-          "Check your email (including spam) for the guest code.",
+          response.data.message || "Check your Mails (+Spam). Thank you 🤝",
         type: "success",
         isLoading: false,
         autoClose: 5000,
