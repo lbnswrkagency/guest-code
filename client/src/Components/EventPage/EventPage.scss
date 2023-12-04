@@ -15,17 +15,19 @@
 
     &-logo {
       z-index: 99;
-      width: 15rem;
+      width: 10rem;
       justify-self: center;
-      margin-top: 1rem;
+      margin-top: 0rem;
       grid-column: 1/2;
       grid-row: 1/2;
 
       @include mq(phone) {
-        margin-top: 3rem;
+        margin-top: 5rem;
+        width: 12rem;
       }
 
       @include mq(tablet) {
+        width: 17rem;
         margin-top: 5rem;
       }
 
@@ -40,20 +42,22 @@
 
     &-qr {
       z-index: 99;
-      width: 6rem;
+      width: 4rem;
       justify-self: center;
-      margin-top: 9.5rem;
+      margin-top: 6rem;
       grid-column: 1/2;
       grid-row: 1/2;
       animation: spinAndZoom 5s linear infinite; // Adjust the duration as needed
       transform-style: preserve-3d; // Needed for 3D transformations
 
       @include mq(phone) {
-        margin-top: 15rem;
+        margin-top: 13.5rem;
+        width: 5rem;
       }
 
       @include mq(tablet) {
-        margin-top: 18rem;
+        margin-top: 17rem;
+        width: 7rem;
       }
 
       @include mq(tablet-landscape) {
@@ -94,13 +98,13 @@
       z-index: 99;
       justify-self: center;
       align-self: end;
-      margin-bottom: 3rem;
+      margin-bottom: 6rem;
 
       @include mq(phone) {
-        margin-bottom: 6rem;
+        margin-bottom: 12rem;
       }
       @include mq(tablet) {
-        margin-bottom: 10rem;
+        margin-bottom: 15rem;
       }
 
       @include mq(tablet-landscape) {
