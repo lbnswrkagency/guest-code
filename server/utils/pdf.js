@@ -106,7 +106,7 @@ const createTicketPDF = async (
 
       .header-title {
         color: #fff;
-        font-size: 40px;
+        font-size: 50px;
         align-self: center;
       }
 
@@ -119,7 +119,7 @@ const createTicketPDF = async (
       }
 
       .header-logo {
-        width: 9rem;
+        width: 8rem;
         justify-self: end;
         align-self: center;
       }
