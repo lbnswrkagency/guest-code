@@ -22,12 +22,12 @@
       z-index: 99;
       width: 10rem;
       justify-self: center;
-      margin-top: 5rem;
+      margin-top: 2.5rem;
       grid-column: 1/2;
       grid-row: 1/2;
 
       @include mq(phone) {
-        margin-top: 5rem;
+        margin-top: 3rem;
         width: 12rem;
       }
 
@@ -56,7 +56,7 @@
       transform-style: preserve-3d; // Needed for 3D transformations
 
       @include mq(phone) {
-        margin-top: 13.5rem;
+        margin-top: 5.5rem;
         width: 5rem;
       }
 
