@@ -154,20 +154,39 @@ exports.getEventPage = async (req, res) => {
 
 exports.generateGuestCode = async (req, res) => {
   try {
-    const { name, email, condition, eventId, pax, paxChecked } = req.body;
+    const { name, email, condition, eventId, pax } = req.body;
+
+    // Capitalize names
+    const formattedName = name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
 
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ error: "Event not found" });
     }
 
+    // Check for existing guest code with remaining scans
+    const existingGuestCode = await GuestCode.findOne({
+      email: email.toLowerCase(),
+      event: eventId,
+      $expr: { $ne: ["$pax", "$paxChecked"] }, // Ensure pax does not equal paxChecked
+    });
+
+    if (existingGuestCode) {
+      return res
+        .status(400)
+        .json({ error: "You still have a usable Guest Code." });
+    }
+
     const guestCode = new GuestCode({
-      name,
-      email,
+      name: formattedName,
+      email: email.toLowerCase(),
       condition,
       event: eventId,
       pax,
-      paxChecked,
+      paxChecked: 0,
     });
 
     await guestCode.save();
@@ -176,18 +195,24 @@ exports.generateGuestCode = async (req, res) => {
     await event.save();
 
     // Generate the QR code
-
     const qrCodeDataURL = await QRCode.toDataURL(`${guestCode._id}`, {
       errorCorrectionLevel: "L",
     });
 
     // Send the QR code via email
-    await sendQRCodeEmail(name, email, condition, pax, qrCodeDataURL, event);
+    await sendQRCodeEmail(
+      formattedName,
+      email,
+      condition,
+      pax,
+      qrCodeDataURL,
+      event
+    );
 
-    res.status(201).json({ message: "Guest code created and email sent" });
+    res.status(201).json({ message: "Guest code created and email sent." });
   } catch (error) {
     console.error("Error generating guest code:", error);
-    res.status(500).json({ error: "Error generating guest code" });
+    res.status(500).json({ error: "Error generating guest code." });
   }
 };
 

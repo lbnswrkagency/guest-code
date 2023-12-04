@@ -80,18 +80,22 @@ const sendQRCodeEmail = async (
     };
     sendSmtpEmail.subject = "Afro Spiti - Guest Code";
     sendSmtpEmail.htmlContent = `
-  <div style="font-family: Arial, sans-serif; color: #333333; text-align: left;">
-    <h2>Hey ${name},</h2>
-    <p style="font-size: 16px; color: #333333;">Thank you for getting your Guest Code. With this code, enjoy a special offer:</p>
-    <h3>BUY 1 DRINK GET 2, valid until 10 pm every Sunday at Afro Spiti, Bardeau.</h3>
-    <p style="font-size: 16px; color: #333333;">Please show the attached Guest Code at the bar for it to be scanned when you order.</p>
-    <br />
-    <p style="font-size: 16px; color: #333333;">Remember, your Guest Code can be used once.</p>
-    <p style="font-size: 16px; color: #333333;">We're looking forward to seeing you at the event!</p>
-    <br />
-    <p style="font-size: 16px; color: #333333;">Sincerely,</p>
-    <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png" alt="Logo" style="width: 100px; height: auto; display: block; margin-top: 20px;">
-  </div>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td align="left" style="font-family: Arial, sans-serif; color: #333333;">
+      <h2 style="font-size: 22px; margin-top: 0;">Hey ${name},</h2>
+      <p style="font-size: 16px;">Thank you for getting your Guest Code. With this code, enjoy a special offer:</p>
+      <h3 style="font-size: 18px;">BUY 1 DRINK GET 2, valid until 10 pm every Sunday at Afro Spiti, Bardeau.</h3>
+      <p style="font-size: 16px;">Please show the attached Guest Code at the bar for it to be scanned when you order.</p>
+      <p style="font-size: 16px;">Remember, your Guest Code can be used once.</p>
+      <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>
+      <p style="font-size: 16px; margin-bottom: 0;">Sincerely,</p>
+      <br />
+      <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png" alt="Logo" style="width: 100px; height: auto; display: block; margin-top: 20px;">
+    </td>
+  </tr>
+</table>
+
 `;
 
     sendSmtpEmail.attachment = [

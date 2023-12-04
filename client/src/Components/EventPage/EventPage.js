@@ -71,9 +71,7 @@ const EventPage = ({ passedEventId }) => {
     e.preventDefault();
 
     if (!email && !phone) {
-      toast.warn(
-        "Please provide either an Email Address or a WhatsApp number."
-      );
+      toast.warn("Please enter an email or phone number.");
       return;
     }
 
@@ -94,23 +92,38 @@ const EventPage = ({ passedEventId }) => {
       );
 
       toast.update(loadingToastId, {
-        render: "Guest Code generated and send.",
+        render:
+          response.data.message ||
+          "Check your email (including spam) for the guest code.",
         type: "success",
         isLoading: false,
         autoClose: 5000,
       });
 
-      // You might want to handle the response further here
+      // Additional handling if needed
     } catch (error) {
       console.error("Error generating guest code:", error);
-      toast.update(loadingToastId, {
-        render: "Error generating guest code. Please try again.",
-        type: "error",
-        isLoading: false,
-        autoClose: 5000,
-      });
+      if (error.response && error.response.status === 400) {
+        // If the status code is 400, show a hint instead of an error
+        toast.update(loadingToastId, {
+          render: error.response.data.error,
+          type: "info",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      } else {
+        // For all other errors, show an error message
+        toast.update(loadingToastId, {
+          render:
+            "There was a problem generating your guest code. Please try again.",
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      }
     }
   };
+
   const sliderSettings = {
     autoplay: false, // Disable autoplay
     speed: 1000,

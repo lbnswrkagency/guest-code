@@ -251,7 +251,7 @@ const createTicketPDF = async (
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>8 PM</p>
+          <p>8, PM EVERY SUNDAY</p>
         </div>
 
         <div class="event-location">
