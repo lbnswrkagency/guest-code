@@ -18,6 +18,14 @@
     width: 100vw !important;
     height: 100vh !important;
 
+    &-beta {
+      z-index: 3;
+      position: absolute;
+      width: 6rem;
+      top: 1rem;
+      justify-self: center;
+    }
+
     &-logo {
       z-index: 99;
       width: 10rem;
@@ -240,7 +248,7 @@
 
         @include mq(phone) {
           height: 3rem;
-          width: 120rem;
+          width: 20rem;
           font-size: 0.9rem;
         }
 
