@@ -209,7 +209,7 @@ exports.generateGuestCode = async (req, res) => {
       event
     );
 
-    res.status(201).json({ message: "Guest code created and email sent." });
+    res.status(201).json({ message: "Check your Mails (+Spam). Thank you 🤝" });
   } catch (error) {
     console.error("Error generating guest code:", error);
     res.status(500).json({ error: "Error generating guest code." });
