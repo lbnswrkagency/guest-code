@@ -31,7 +31,6 @@ const createTicketPDF = async (
   pax
 ) => {
   const browser = await puppeteer.launch({
-    headless: "new",
     args: [
       "--disable-setuid-sandbox",
       "--no-sandbox",
