@@ -37,7 +37,6 @@ const CreateEvent = () => {
 
   const handleSubmit = async (event, eventData) => {
     event.preventDefault();
-    console.log("CreateEvent eventData:", eventData);
 
     try {
       // Compress and optimize files on the server-side

@@ -25,8 +25,6 @@ const EditEvent = ({ event, onUpdate, eventId }) => {
   const handleSubmit = async (e, eventData) => {
     e.preventDefault();
 
-    console.log("UPDATED EVENT", updatedEvent);
-
     try {
       const compressedFiles = await compressAndOptimizeFiles(updatedEvent);
       const eventWithCompressedFiles = {
@@ -63,8 +61,6 @@ const EditEvent = ({ event, onUpdate, eventId }) => {
   const handleEventDataChange = (updatedEventData) => {
     setUpdatedEvent(updatedEventData);
   };
-
-  console.log("Edit Event", event);
 
   return (
     <div className="edit-event">

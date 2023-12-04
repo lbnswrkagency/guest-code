@@ -28,7 +28,6 @@ const EventForm = ({
     }
   };
 
-  console.log("EventForm.js", eventData);
   return (
     <form onSubmit={(event) => onSubmit(event, eventData)}>
       <input

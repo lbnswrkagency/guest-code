@@ -24,10 +24,6 @@ const s3 = new S3Client({
 });
 
 const uploadToS3 = async (fileBufferOrPath, folder, fileName, mimetype) => {
-  console.log("HELLO UPLOAD s3");
-  console.log("Bucket Name:", bucketName);
-  console.log("File Name:", fileName);
-
   const isBuffer = Buffer.isBuffer(fileBufferOrPath);
   const fileStream = isBuffer
     ? fileBufferOrPath

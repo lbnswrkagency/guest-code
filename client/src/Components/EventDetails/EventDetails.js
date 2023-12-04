@@ -44,7 +44,6 @@ const EventDetails = () => {
     }
   };
 
-  console.log("EVENT", event);
   return (
     <div className="event-details">
       <BackButton />

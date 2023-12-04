@@ -103,8 +103,6 @@ export const updateGuestCodeCondition = async (eventId, guestCodeCondition) => {
 };
 
 export const compressAndOptimizeFiles = async (eventData) => {
-  console.log("EVENT DATA", eventData);
-
   try {
     const formData = new FormData();
 
@@ -160,9 +158,6 @@ export const compressAndOptimizeFiles = async (eventData) => {
 };
 
 function dataURLtoFile(dataurl, filename) {
-  console.log(filename);
-  console.log(dataurl);
-
   if (!dataurl) {
     return null;
   }

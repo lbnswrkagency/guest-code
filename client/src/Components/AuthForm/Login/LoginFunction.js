@@ -48,7 +48,6 @@ export const login = async (email, password, navigate, setUser) => {
 };
 
 export const fetchUserData = async () => {
-  console.log("TRY");
   try {
     const token = localStorage.getItem("token");
 

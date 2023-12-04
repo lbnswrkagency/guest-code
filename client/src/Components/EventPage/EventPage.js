@@ -9,10 +9,6 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import image1 from "./carousel/1.png";
-import image2 from "./carousel/2.png";
-import image3 from "./carousel/3.png";
-import image4 from "./carousel/4.png";
 import logo_w from "./carousel/logo_w.svg";
 import qrCode from "./carousel/qrCode.svg";
 
@@ -23,8 +19,14 @@ const EventPage = ({ passedEventId }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const tempCarouselImages = [image1, image2, image3, image4];
-
+  const s3ImageUrls = Array.from(
+    { length: 31 },
+    (_, i) =>
+      `https://guest-code.s3.eu-north-1.amazonaws.com/server/${String(
+        i + 1
+      ).padStart(2, "0")}.jpg`
+  );
+  const tempCarouselImages = s3ImageUrls;
   function animateSlideChange(nextIndex) {
     const slides = document.querySelectorAll(".slick-slide"); // Selector might need adjustment
 
@@ -159,7 +161,7 @@ const EventPage = ({ passedEventId }) => {
                     className="event-page-header-guestcode-form-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Phone Number"
+                    placeholder="WhatsApp Number"
                   />
                 </div>
                 <div className="event-page-header-guestcode-condition">
