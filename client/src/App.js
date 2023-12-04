@@ -2,7 +2,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
+  BrowserRouter,
 } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -26,6 +26,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<EventPage passedEventId={eventId} />} />
+
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
