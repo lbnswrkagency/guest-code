@@ -1,3 +1,40 @@
+$breakpoints: (
+  phone: 400px,
+  tablet: 768px,
+  tablet-landscape: 992px,
+  laptop: 1200px,
+  desktop: 1500px,
+  desktop-large: 1920px,
+  desktop-extra-large: 2560px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+@mixin grid($key) {
+  display: grid;
+  grid-template-columns: repeat($key, minmax(min-content, max-content));
+}
+
+@mixin grid-row($key) {
+  display: grid;
+  grid-template-rows: repeat($key, minmax(min-content, max-content));
+}
+@mixin grid-auto($type: "columns") {
+  display: grid;
+  grid-gap: 1rem; /* Optional, to add space between the child elements */
+
+  @if $type == "columns" {
+    grid-template-columns: repeat(auto-fill, minmax(min-content, max-content));
+  } @else if $type == "rows" {
+    grid-template-rows: repeat(auto-fill, minmax(min-content, max-content));
+  }
+}
+
 @mixin form {
   width: 100%;
   max-width: 400px;

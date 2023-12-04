@@ -6,6 +6,8 @@ import "slick-carousel/slick/slick-theme.css";
 import "./EventPage.scss";
 import { getEventByLink } from "../../utils/apiClient";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import image1 from "./carousel/1.png";
 import image2 from "./carousel/2.png";
@@ -53,9 +55,13 @@ const EventPage = ({ passedEventId }) => {
     e.preventDefault();
 
     if (!email && !phone) {
-      alert("Please provide either an email address or a phone number.");
+      toast.warn(
+        "Please provide either an Email Address or a WhatsApp number."
+      );
       return;
     }
+
+    const loadingToastId = toast.loading("Generating Guest Code...");
 
     try {
       const response = await axios.post(
@@ -71,37 +77,51 @@ const EventPage = ({ passedEventId }) => {
         }
       );
 
-      alert("Guest code generated and QR code sent.");
+      toast.update(loadingToastId, {
+        render: "Guest Code generated and send.",
+        type: "success",
+        isLoading: false,
+        autoClose: 5000,
+      });
+
       // You might want to handle the response further here
     } catch (error) {
       console.error("Error generating guest code:", error);
-      alert("Error generating guest code. Please try again.");
+      toast.update(loadingToastId, {
+        render: "Error generating guest code. Please try again.",
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
     }
   };
-
-  // Slider settings
   const sliderSettings = {
     autoplay: true,
     speed: 1000,
     autoplaySpeed: 3000,
-    cssEase: "cubic-bezier(0.455, 0.030, 0.515, 0.955)", // Custom easing for a unique transition
-    slidesToShow: 1,
-    slidesToScroll: 1,
+    cssEase: "cubic-bezier(0.455, 0.030, 0.515, 0.955)",
+    slidesToShow: 2, // Default setting for screens wider than 999px
+    slidesToScroll: 2,
     infinite: true,
-    useTransform: true, // Enable transform for better performance
-    adaptiveHeight: true, // Adjust height based on each slide's content
-    beforeChange: (current, next) => animateSlideChange(next), // Custom function to animate slides
-    fade: false, // Disable fade to allow custom animations
+    useTransform: true,
+    adaptiveHeight: true,
+    beforeChange: (current, next) => animateSlideChange(next),
+    fade: false,
+    responsive: [
+      {
+        breakpoint: 999, // Applies settings below this width
+        settings: {
+          slidesToShow: 1, // Show 1 image per slide for screens narrower than 1000px
+          slidesToScroll: 1,
+        },
+      },
+      // Additional breakpoints can be added here
+    ],
   };
 
-  console.log(event);
-  console.log("BASE URL", process.env.REACT_APP_API_BASE_URL);
-  console.log(
-    "FETCH STRING",
-    `${process.env.REACT_APP_API_BASE_URL}/auth/user`
-  );
   return (
     <div className="event-page">
+      <ToastContainer />
       {/* <BackButton /> */}
 
       {event ? (
@@ -174,11 +194,11 @@ const EventPage = ({ passedEventId }) => {
               )}
             </div>
           </header>
-
+          {/* 
           <footer className="event-page__footer">
             <h1 className="event-page__footer-title">{event.title}</h1>
             <h2 className="event-page__footer-subtitle">{event.subTitle}</h2>
-          </footer>
+          </footer> */}
         </>
       ) : (
         <p>Loading...</p>

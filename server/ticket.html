@@ -1,38 +1,3 @@
-// pdf.js
-const puppeteer = require("puppeteer");
-const fs = require("fs");
-const path = require("path");
-const logoPath = path.join(__dirname, "logo_w.svg");
-const logoData = fs.readFileSync(logoPath, { encoding: "base64" });
-const logoBase64 = `data:image/svg+xml;base64,${logoData}`;
-
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  const options = {
-    weekday: "short",
-    year: "2-digit",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Europe/Berlin",
-  };
-  return date
-    .toLocaleDateString("de-DE", options)
-    .replace(",", "")
-    .replace(".", "");
-}
-
-const createTicketPDF = async (
-  event,
-  qrCodeDataURL,
-  name,
-  email,
-  condition,
-  pax
-) => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-
-  const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -88,6 +53,7 @@ const createTicketPDF = async (
 
       .header-title {
         color: #fff;
+   
         font-size: 50px;
         align-self: center;
       }
@@ -99,6 +65,8 @@ const createTicketPDF = async (
       padding-left: 10%;
       align-content: center;
       }
+
+
 
       .header-logo {
         width: 8rem;
@@ -133,7 +101,7 @@ const createTicketPDF = async (
         grid-row: 1/2;
         grid-column: 1/3;
         color: #000;
-     
+       
       }
 
       .event-bites {
@@ -270,13 +238,3 @@ const createTicketPDF = async (
     </div>
   </body>
 </html>
-  `;
-
-  await page.setContent(htmlContent);
-  const pdfBuffer = await page.pdf({ format: "A6", printBackground: true });
-
-  await browser.close();
-  return pdfBuffer;
-};
-
-module.exports = createTicketPDF;

@@ -17,7 +17,7 @@ axios.interceptors.request.use(
 export const loginUser = async (email, password) => {
   try {
     const response = await axios.post(
-      `${process.env.REACT_APP_API_BASE_URL}/auth/login"`,
+      `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
       {
         email,
         password,
@@ -48,6 +48,7 @@ export const login = async (email, password, navigate, setUser) => {
 };
 
 export const fetchUserData = async () => {
+  console.log("TRY");
   try {
     const token = localStorage.getItem("token");
 

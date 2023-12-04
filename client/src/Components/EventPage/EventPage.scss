@@ -5,10 +5,11 @@
   display: grid;
   width: 100vw !important;
   height: 100vh;
+  overflow: hidden;
   &-header {
     position: relative;
     display: grid;
-
+    overflow: hidden;
     width: 100vw !important;
     height: 100vh !important;
 
@@ -19,7 +20,24 @@
       margin-top: 1rem;
       grid-column: 1/2;
       grid-row: 1/2;
+
+      @include mq(phone) {
+        margin-top: 3rem;
+      }
+
+      @include mq(tablet) {
+        margin-top: 5rem;
+      }
+
+      @include mq(tablet-landscape) {
+        margin-top: 0rem;
+      }
+
+      @include mq(laptop) {
+        margin-top: 5rem;
+      }
     }
+
     &-qr {
       z-index: 99;
       width: 6rem;
@@ -29,6 +47,21 @@
       grid-row: 1/2;
       animation: spinAndZoom 5s linear infinite; // Adjust the duration as needed
       transform-style: preserve-3d; // Needed for 3D transformations
+
+      @include mq(phone) {
+        margin-top: 15rem;
+      }
+
+      @include mq(tablet) {
+        margin-top: 18rem;
+      }
+
+      @include mq(tablet-landscape) {
+        margin-top: 0rem;
+        justify-self: end;
+        margin-top: 2rem;
+        margin-right: 15rem;
+      }
     }
 
     &-flyer {
@@ -39,7 +72,18 @@
       img,
       video {
         object-fit: cover; // Ensures video covers the area without stretching
-        width: 100%;
+        width: 120%;
+        @include mq(phone) {
+          width: 160%;
+        }
+
+        @include mq(tablet) {
+          width: 100%;
+        }
+
+        @include mq(laptop) {
+          height: 100% !important;
+        }
       }
     }
 
@@ -50,7 +94,22 @@
       z-index: 99;
       justify-self: center;
       align-self: end;
-      margin-bottom: 6rem;
+      margin-bottom: 3rem;
+
+      @include mq(phone) {
+        margin-bottom: 6rem;
+      }
+      @include mq(tablet) {
+        margin-bottom: 10rem;
+      }
+
+      @include mq(tablet-landscape) {
+        margin-bottom: 3rem;
+      }
+
+      @include mq(laptop) {
+        margin-bottom: 7rem;
+      }
 
       &-form {
         display: grid;
@@ -66,7 +125,6 @@
           border-radius: 20px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
           color: #fff;
-          font-size: 0.88rem;
           font-weight: bold;
           text-transform: uppercase;
           padding: 10px 20px;
@@ -76,12 +134,32 @@
           letter-spacing: 1px;
           outline: none;
           transition: background 0.3s, box-shadow 0.3s;
+          text-align: center;
+          font-size: 1.25rem;
+          @include mq(phone) {
+            font-size: 1.25rem;
+          }
 
+          @include mq(tablet) {
+            font-size: 1.75rem;
+          }
+
+          @include mq(tablet-landscape) {
+            font-size: 1.55rem;
+          }
           &::placeholder {
-            font-size: 0.475rem;
+            font-size: 0.525rem;
             color: #ddd;
             opacity: 1;
             text-align: center;
+
+            @include mq(phone) {
+              font-size: 0.6rem;
+            }
+
+            @include mq(tablet) {
+              font-size: 0.75rem;
+            }
           }
 
           &:focus {
@@ -125,8 +203,8 @@
       }
 
       &-button {
-        width: 10rem;
-        height: 2rem;
+        width: 15rem;
+        height: 3rem;
         background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -134,13 +212,13 @@
         border: 1px solid rgba(255, 255, 255, 0.6);
         color: #ffffff;
         padding: 10px 30px;
-        font-size: 0.425rem; // Make font slightly larger for readability
+        font-size: 0.8rem; // Make font slightly larger for readability
         font-weight: bold;
         text-transform: uppercase;
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        margin-top: 15px;
+        margin-top: 2rem;
         outline: none;
         animation: subtleBounce 1.75s ease-in-out infinite;
         justify-self: center;
@@ -149,6 +227,20 @@
         font-family: "Roboto", sans-serif; // A modern, clean font-family
         letter-spacing: 1px; // Increase letter-spacing for style
 
+        @include mq(phone) {
+          height: 3rem;
+          width: 15rem;
+          font-size: 0.9rem;
+        }
+
+        @include mq(tablet) {
+          height: 3.5rem;
+          width: 20rem;
+          font-size: 0.9rem;
+        }
+
+        @include mq(tablet-landscape) {
+        }
         &:before {
           content: "";
           position: absolute;
@@ -210,11 +302,22 @@
         text-transform: uppercase;
         font-weight: bold;
         letter-spacing: 2px;
-        width: 15rem;
-        height: 4rem;
+        width: 17rem;
+        height: 5rem;
         transform: translateZ(0);
         transition: transform 0.25s, box-shadow 0.25s;
         margin-top: 1rem;
+        justify-self: center;
+
+        @include mq(phone) {
+          width: 17rem;
+          height: 5rem;
+        }
+
+        @include mq(tablet) {
+          width: 25rem;
+          height: 6rem;
+        }
         &:hover {
           transform: scale(1.05) translateZ(50px);
           box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
@@ -222,13 +325,21 @@
 
         p {
           text-align: center;
-          font-size: 0.75rem;
-          width: 18ch;
+          font-size: 0.85rem;
+          width: 17ch;
           font-weight: 800;
           color: rgb(159, 255, 159);
           text-shadow: 0 2px 2px rgba(0, 0, 0, 0.2); // Subtle shadow for depth
           transition: transform 0.3s ease-in-out;
           animation: pulse 2s infinite ease-in-out;
+
+          @include mq(phone) {
+            font-size: 0.85rem;
+          }
+
+          @include mq(tablet) {
+            font-size: 1rem;
+          }
           &:hover {
             transform: scale(1.03); // Slightly enlarge on hover for interaction
             text-shadow: 0 3px 3px rgba(0, 0, 0, 0.25); // Enhance shadow on hover
@@ -251,6 +362,9 @@
         grid-gap: 0.5rem;
       }
     }
+  }
+
+  &-footer {
   }
 }
 
