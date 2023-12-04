@@ -214,7 +214,7 @@
       }
 
       &-button {
-        width: 15rem;
+        width: 18rem;
         height: 3rem;
         background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
@@ -240,7 +240,7 @@
 
         @include mq(phone) {
           height: 3rem;
-          width: 15rem;
+          width: 120rem;
           font-size: 0.9rem;
         }
 
