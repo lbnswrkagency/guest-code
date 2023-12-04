@@ -190,7 +190,7 @@ const EventPage = ({ passedEventId }) => {
                   placeholder="Name"
                 />
                 <input
-                  type="text"
+                  type="email"
                   className="event-page-header-guestcode-form-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
