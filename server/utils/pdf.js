@@ -246,7 +246,7 @@ const createTicketPDF = async (
 
         <div class="event-bites">
           <h3>Bites</h3>
-          <p>Chicken Wings, Meat Pie, Beef Stick</p>
+          <p>Chicken Wings<br/>Meat Pie</p>
         </div>
 
         <div class="event-hours">
