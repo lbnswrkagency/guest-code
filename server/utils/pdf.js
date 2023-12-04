@@ -5,6 +5,7 @@ const path = require("path");
 const logoPath = path.join(__dirname, "logo_w.svg");
 const logoData = fs.readFileSync(logoPath, { encoding: "base64" });
 const logoBase64 = `data:image/svg+xml;base64,${logoData}`;
+require("dotenv").config;
 
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -30,10 +31,21 @@ const createTicketPDF = async (
   pax
 ) => {
   const browser = await puppeteer.launch({
-    headless: true, // Enable headless mode
-    args: ["--no-sandbox", "--disable-setuid-sandbox"], // Add arguments
+    args: [
+      "--disable-setuid-sandbox",
+      "--no-sandbox",
+      "--single-process",
+      "--no-zygote",
+    ],
+    executablePath:
+      process.env.NODE_ENV === "production"
+        ? process.env.PUPPETEER_EXECUTABLE_PATH
+        : puppeteer.executablePath(),
   });
   const page = await browser.newPage();
+
+  // headless: true, // Enable headless mode
+  // args: ["--no-sandbox", "--disable-setuid-sandbox"], // Add arguments
 
   const htmlContent = `
 <!DOCTYPE html>
