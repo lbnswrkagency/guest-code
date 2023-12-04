@@ -19,6 +19,7 @@ const EventPage = ({ passedEventId }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [loadingProgress, setLoadingProgress] = useState(0); // New state for loading progress
 
   const [isLoading, setIsLoading] = useState(true);
   const s3ImageUrls = Array.from(
@@ -46,26 +47,33 @@ const EventPage = ({ passedEventId }) => {
     const fetchEvent = async () => {
       try {
         const response = await getEventByLink(eventLink);
-        setEvent(response.event); // Set event directly with the fetched event data
+        setEvent(response.event);
       } catch (error) {
         console.error("Error fetching event:", error);
       }
     };
 
     const checkImagesLoaded = () => {
-      const images = tempCarouselImages.map((src) => {
+      let loadedImages = 0;
+      const totalImages = tempCarouselImages.length;
+      const imageLoadPromises = tempCarouselImages.map((src) => {
         const img = new Image();
         img.src = src;
         return new Promise((resolve) => {
-          img.onload = resolve;
+          img.onload = () => {
+            loadedImages++;
+            const progress = Math.round((loadedImages / totalImages) * 100);
+            setLoadingProgress(progress);
+            resolve();
+          };
         });
       });
 
-      Promise.all(images).then(() => setIsLoading(false)); // Set loading to false when all images are loaded
+      Promise.all(imageLoadPromises).then(() => setIsLoading(false));
     };
 
-    fetchEvent().then(checkImagesLoaded); // Call fetchEvent and then checkImagesLoaded
-  }, [eventLink, tempCarouselImages]); // Add tempCarouselImages as a dependency
+    fetchEvent().then(checkImagesLoaded);
+  }, [eventLink, tempCarouselImages]);
 
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
@@ -159,16 +167,11 @@ const EventPage = ({ passedEventId }) => {
       <ToastContainer />
 
       {isLoading ? (
-        <div
-          style={{
-            backgroundColor: "black",
-            height: "100vh",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <img className="event-page-loading" src={logo_w} alt="Loading..." />
+        <div className="event-page-loading">
+          <img src={logo_w} alt="Loading..." />
+          <p style={{ color: "white", marginTop: "20px" }}>
+            {loadingProgress}%
+          </p>{" "}
         </div>
       ) : event ? (
         <>
