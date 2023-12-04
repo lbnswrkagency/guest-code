@@ -29,7 +29,10 @@ const createTicketPDF = async (
   condition,
   pax
 ) => {
-  const browser = await puppeteer.launch({ headless: "true" });
+  const browser = await puppeteer.launch({
+    headless: true, // Enable headless mode
+    args: ["--no-sandbox", "--disable-setuid-sandbox"], // Add arguments
+  });
   const page = await browser.newPage();
 
   const htmlContent = `
