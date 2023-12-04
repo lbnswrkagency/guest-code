@@ -49,13 +49,10 @@ const createTicketPDF = async (
 
   const htmlContent = `
 <!DOCTYPE html>
-  <html style="font-family: 'Manrope', sans-serif;">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" rel="stylesheet">
     <title>Ticket</title>
     <style>
       @page {
@@ -74,7 +71,7 @@ const createTicketPDF = async (
       }
 
       h3 {
-        font-weight: 600;
+        font-weight: 500;
         color: #a6965d;
       }
 
@@ -84,7 +81,7 @@ const createTicketPDF = async (
       }
 
       p {
-        font-weight: 600;
+        font-weight: 500;
         color: #000;
       }
 
@@ -106,7 +103,8 @@ const createTicketPDF = async (
 
       .header-title {
         color: #fff;
-        font-size: 50px;
+   
+        font-size: 35px;
         align-self: center;
       }
 
@@ -118,8 +116,10 @@ const createTicketPDF = async (
       align-content: center;
       }
 
+
+
       .header-logo {
-        width: 8rem;
+        width: 9rem;
         justify-self: end;
         align-self: center;
       }
@@ -151,7 +151,7 @@ const createTicketPDF = async (
         grid-row: 1/2;
         grid-column: 1/3;
         color: #000;
-     
+       
       }
 
       .event-bites {
@@ -236,22 +236,22 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>${formatDate(event.date)}</p>
+          <p>Every Sunday</p>
         </div>
 
         <div class="event-beats">
           <h3>Beats</h3>
-          <p>Afrobeats, Amapiano, Dancehall</p>
+          <p>Afrobeats<br/>Amapiano<br/>Dancehall</p>
         </div>
 
         <div class="event-bites">
           <h3>Bites</h3>
-          <p>Chicken Wings, Meat Pie, Beef Stick</p>
+          <p>Chicken Wings<br/>Meat Pie</p>
         </div>
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>8, PM EVERY SUNDAY</p>
+          <p>8 PM</p>
         </div>
 
         <div class="event-location">
