@@ -25,7 +25,11 @@ app.use(cors());
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://guestcode-client.onrender.com"],
+    origin: [
+      "http://localhost:3000",
+      "https://guestcode-client.onrender.com",
+      "https://afrospiti.com",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
