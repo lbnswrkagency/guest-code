@@ -63,15 +63,12 @@ const EventPage = ({ passedEventId }) => {
     let isComponentMounted = true;
 
     const imageChangeInterval = setInterval(() => {
-      setImageOpacity(0);
+      setImageOpacity(0); // Fade out
       setTimeout(() => {
         setCurrentImageIndex((prevIndex) =>
           prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
         );
-        setNextImageIndex((prevIndex) =>
-          prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-        );
-        setImageOpacity(1);
+        setTimeout(() => setImageOpacity(1), 500); // Fade in after a delay
       }, 1000);
     }, 5000);
 

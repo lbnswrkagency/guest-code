@@ -101,7 +101,7 @@
 
       &-carousel {
         width: 100%;
-
+        transition: opacity 1s ease-in-out;
         @include mq(tablet) {
           object-fit: cover;
           width: 100%;
