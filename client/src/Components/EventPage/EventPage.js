@@ -79,7 +79,7 @@ const EventPage = ({ passedEventId }) => {
     e.preventDefault();
 
     if (!email && !phone) {
-      toast.warn("Please enter an email or phone number.");
+      toast.warn("Please enter an email and your name.");
       return;
     }
 
@@ -137,7 +137,7 @@ const EventPage = ({ passedEventId }) => {
   };
 
   const sliderSettings = {
-    autoplay: false, // Disable autoplay
+    autoplay: true, // Disable autoplay
     speed: 1000,
     cssEase: "cubic-bezier(0.455, 0.030, 0.515, 0.955)",
     slidesToShow: 2,
@@ -154,6 +154,7 @@ const EventPage = ({ passedEventId }) => {
       {
         breakpoint: 999, // Applies settings below this width
         settings: {
+          autoplay: true,
           slidesToShow: 1, // Show 1 image per slide for screens narrower than 1000px
           slidesToScroll: 1,
         },
@@ -191,6 +192,7 @@ const EventPage = ({ passedEventId }) => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Name"
+                  required
                 />
                 <input
                   type="email"
