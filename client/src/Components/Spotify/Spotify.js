@@ -59,11 +59,17 @@ const Spotify = () => {
         <div className="spotify-songs">
           {latestSongs.map((item, index) => (
             <div key={index} className="song">
-              <img
-                src={item.track.album.images[2].url}
-                alt={item.track.name}
-                className="song-cover"
-              />
+              <a
+                href={item.track.external_urls.spotify}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={item.track.album.images[2].url}
+                  alt={item.track.name}
+                  className="song-cover"
+                />
+              </a>
               <div className="song-info">
                 <p className="song-name">{item.track.name}</p>
                 <p className="song-artist">
