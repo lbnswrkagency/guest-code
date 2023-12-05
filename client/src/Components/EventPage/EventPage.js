@@ -277,7 +277,7 @@ const EventPage = ({ passedEventId }) => {
           </footer> */}
         </>
       ) : (
-        <p>Event data not available.</p> // Placeholder for when event data is not available
+        <p></p> // Placeholder for when event data is not available
       )}
     </div>
   );
