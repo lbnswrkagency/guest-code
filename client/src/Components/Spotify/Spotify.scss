@@ -69,6 +69,7 @@
         @include grid(2);
         grid-gap: 1rem;
         text-align: left;
+        padding: 0.5rem;
 
         &:hover {
           background-color: #0d6637;
