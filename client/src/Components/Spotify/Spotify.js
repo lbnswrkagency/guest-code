@@ -24,7 +24,14 @@ const Spotify = () => {
     return <div>Loading...</div>;
   }
 
-  const latestSongs = [...playlist.tracks.items].reverse().slice(0, 10);
+  // Sort the tracks based on the 'added_at' field
+  const sortedTracks = [...playlist.tracks.items].sort(
+    (a, b) => new Date(b.added_at) - new Date(a.added_at)
+  );
+
+  // Get the latest 10 tracks
+  const latestSongs = sortedTracks.slice(0, 10);
+
   return (
     <section className="spotify">
       <div className="spotify-header">
@@ -50,17 +57,17 @@ const Spotify = () => {
         <h2 className="spotify-latest">Latest Updates</h2>
 
         <div className="spotify-songs">
-          {latestSongs.map((track, index) => (
+          {latestSongs.map((item, index) => (
             <div key={index} className="song">
               <img
-                src={track.track.album.images[2].url}
-                alt={track.track.name}
+                src={item.track.album.images[2].url}
+                alt={item.track.name}
                 className="song-cover"
               />
               <div className="song-info">
-                <p className="song-name">{track.track.name}</p>
+                <p className="song-name">{item.track.name}</p>
                 <p className="song-artist">
-                  {track.track.artists.map((artist) => artist.name).join(", ")}
+                  {item.track.artists.map((artist) => artist.name).join(", ")}
                 </p>
               </div>
             </div>

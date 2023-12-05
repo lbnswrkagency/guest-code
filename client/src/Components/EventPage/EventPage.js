@@ -186,8 +186,6 @@ const EventPage = ({ passedEventId }) => {
     ],
   };
 
-  console.log("HELLO");
-
   return (
     <div className="event-page">
       <ToastContainer />
