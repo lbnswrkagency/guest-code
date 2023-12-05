@@ -32,18 +32,6 @@ const EventPage = ({ passedEventId }) => {
       ).padStart(2, "0")}.jpg`
   );
   const tempCarouselImages = s3ImageUrls;
-  function animateSlideChange(nextIndex) {
-    const slides = document.querySelectorAll(".slick-slide"); // Selector might need adjustment
-
-    slides.forEach((slide, index) => {
-      if (index === nextIndex) {
-        slide.style.transition = "transform 1s ease-in-out";
-        slide.style.transform = "rotateY(-20deg) scale(1.1)";
-      } else {
-        slide.style.transform = "rotateY(0deg) scale(1)";
-      }
-    });
-  }
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -63,13 +51,9 @@ const EventPage = ({ passedEventId }) => {
     let isComponentMounted = true;
 
     const imageChangeInterval = setInterval(() => {
-      setImageOpacity(0); // Fade out
-      setTimeout(() => {
-        setCurrentImageIndex((prevIndex) =>
-          prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-        );
-        setTimeout(() => setImageOpacity(1), 500); // Fade in after a delay
-      }, 1000);
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+      );
     }, 5000);
 
     tempCarouselImages.forEach((src) => {
@@ -154,33 +138,6 @@ const EventPage = ({ passedEventId }) => {
         });
       }
     }
-  };
-
-  const sliderSettings = {
-    autoplay: true, // Disable autoplay
-    speed: 1000,
-    cssEase: "cubic-bezier(0.455, 0.030, 0.515, 0.955)",
-    slidesToShow: 2,
-    slidesToScroll: 2,
-    infinite: true,
-    useTransform: true,
-    adaptiveHeight: true,
-    swipe: false, // Enable swipe for touch devices
-    draggable: false, // Enable drag for desktop
-    beforeChange: (current, next) => animateSlideChange(next),
-    fade: false,
-    touchMove: false,
-    responsive: [
-      {
-        breakpoint: 999, // Applies settings below this width
-        settings: {
-          autoplay: true,
-          slidesToShow: 1, // Show 1 image per slide for screens narrower than 1000px
-          slidesToScroll: 1,
-        },
-      },
-      // Additional breakpoints can be added here
-    ],
   };
 
   return (
