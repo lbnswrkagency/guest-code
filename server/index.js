@@ -7,6 +7,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 
 const authRoutes = require("./routes/api/auth");
+const spotifyRoutes = require("./routes/api/spotifyRoutes");
 
 const userRoutes = require("./routes/api/users");
 
@@ -41,6 +42,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
 app.use("/api/events", eventsRoutes);
+
+app.use("/api/spotify", spotifyRoutes);
 
 app.use("/api/dns", dnsRoutes);
 

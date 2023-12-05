@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+
 import "./EventPage.scss";
 import { getEventByLink } from "../../utils/apiClient";
 import axios from "axios";
@@ -11,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import logo_w from "./carousel/logo_w.svg";
 import qrCode from "./carousel/qrCode.svg";
+import Spotify from "../Spotify/Spotify";
 
 const EventPage = ({ passedEventId }) => {
   const location = useLocation();
@@ -20,8 +19,11 @@ const EventPage = ({ passedEventId }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [loadingProgress, setLoadingProgress] = useState(0); // New state for loading progress
-
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [nextImageIndex, setNextImageIndex] = useState(1);
+  const [imageOpacity, setImageOpacity] = useState(1);
+
   const s3ImageUrls = Array.from(
     { length: 20 },
     (_, i) =>
@@ -53,27 +55,48 @@ const EventPage = ({ passedEventId }) => {
       }
     };
 
-    const checkImagesLoaded = () => {
-      let loadedImages = 0;
-      const totalImages = tempCarouselImages.length;
-      const imageLoadPromises = tempCarouselImages.map((src) => {
-        const img = new Image();
-        img.src = src;
-        return new Promise((resolve) => {
-          img.onload = () => {
-            loadedImages++;
-            const progress = Math.round((loadedImages / totalImages) * 100);
-            setLoadingProgress(progress);
-            resolve();
-          };
-        });
-      });
+    fetchEvent();
+  }, [eventLink]);
 
-      Promise.all(imageLoadPromises).then(() => setIsLoading(false));
+  useEffect(() => {
+    let loadedImages = 0;
+    let isComponentMounted = true;
+
+    const imageChangeInterval = setInterval(() => {
+      setImageOpacity(0);
+      setTimeout(() => {
+        setCurrentImageIndex((prevIndex) =>
+          prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+        );
+        setNextImageIndex((prevIndex) =>
+          prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+        );
+        setImageOpacity(1);
+      }, 1000);
+    }, 5000);
+
+    tempCarouselImages.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        if (isComponentMounted) {
+          loadedImages++;
+          const progress = Math.round(
+            (loadedImages / tempCarouselImages.length) * 100
+          );
+          setLoadingProgress(progress);
+          if (loadedImages === tempCarouselImages.length) {
+            setIsLoading(false);
+          }
+        }
+      };
+    });
+
+    return () => {
+      isComponentMounted = false;
+      clearInterval(imageChangeInterval); // Clear interval on component unmount
     };
-
-    fetchEvent().then(checkImagesLoaded);
-  }, [eventLink, tempCarouselImages]);
+  }, [tempCarouselImages.length]);
 
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
@@ -163,6 +186,8 @@ const EventPage = ({ passedEventId }) => {
     ],
   };
 
+  console.log("HELLO");
+
   return (
     <div className="event-page">
       <ToastContainer />
@@ -179,29 +204,32 @@ const EventPage = ({ passedEventId }) => {
           <header className="event-page-header">
             <img src={logo_w} alt="" className="event-page-header-logo" />
             <img src={qrCode} alt="" className="event-page-header-qr" />
-          </header>
-          {event.guestCode && (
-            <form
-              className="event-page-header-guestcode"
-              onSubmit={handleGuestCodeFormSubmit}
-            >
-              <div className="event-page-header-guestcode-form">
-                <input
-                  type="text"
-                  className="event-page-header-guestcode-form-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
-                  required
-                />
-                <input
-                  type="email"
-                  className="event-page-header-guestcode-form-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email Address"
-                />
-                {/* <p className="event-page-header-guestcode-form-separator">
+
+            {event.guestCode && (
+              <form
+                className="event-page-header-guestcode"
+                onSubmit={handleGuestCodeFormSubmit}
+              >
+                <div className="event-page-header-guestcode-form">
+                  <div className="event-page-header-guestcode-condition">
+                    <p>{event.guestCodeCondition}</p>
+                  </div>
+                  <input
+                    type="text"
+                    className="event-page-header-guestcode-form-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Name"
+                    required
+                  />
+                  <input
+                    type="email"
+                    className="event-page-header-guestcode-form-email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email Address"
+                  />
+                  {/* <p className="event-page-header-guestcode-form-separator">
                     OR
                   </p>
                   <input
@@ -211,39 +239,39 @@ const EventPage = ({ passedEventId }) => {
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="WhatsApp Number"
                   /> */}
-              </div>
-              <div className="event-page-header-guestcode-condition">
-                <p>{event.guestCodeCondition}</p>
-              </div>
-              <button
-                type="submit"
-                className="event-page-header-guestcode-button"
-              >
-                GENERATE GUEST CODE
-              </button>
-            </form>
-          )}
-          <div className="event-page-header-flyer">
-            {tempCarouselImages.length > 0 ? (
-              <Slider {...sliderSettings}>
-                {tempCarouselImages.map((image, index) => (
-                  <div key={index}>
-                    <img src={image} alt={`Flyer ${index + 1}`} />
-                  </div>
-                ))}
-              </Slider>
-            ) : (
-              <img
-                src={
-                  event.flyer && event.flyer.instagramStory
-                    ? event.flyer.instagramStory
-                    : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
-                }
-                alt={`${event.title} flyer`}
-              />
-            )}
-          </div>
+                </div>
 
+                <button
+                  type="submit"
+                  className="event-page-header-guestcode-button"
+                >
+                  GENERATE GUEST CODE
+                </button>
+              </form>
+            )}
+            <div className="event-page-header-flyer">
+              {isLoading ? (
+                <div>Loading...</div>
+              ) : (
+                <>
+                  <img
+                    src={tempCarouselImages[currentImageIndex]}
+                    alt={`Flyer ${currentImageIndex + 1}`}
+                    className="event-page-header-flyer-carousel"
+                    style={{ opacity: imageOpacity }}
+                  />
+                  <img
+                    src={tempCarouselImages[nextImageIndex]}
+                    alt={`Flyer ${nextImageIndex + 1}`}
+                    className="event-page-header-flyer-carousel2"
+                    style={{ opacity: imageOpacity }}
+                  />
+                </>
+              )}
+            </div>
+          </header>
+
+          <Spotify />
           {/* 
           <footer className="event-page__footer">
             <h1 className="event-page__footer-title">{event.title}</h1>

@@ -3,10 +3,6 @@
 
 .event-page {
   display: grid;
-  width: 100vw !important;
-  height: 100vh;
-  overflow: hidden;
-  grid-template-rows: 1fr 1fr;
 
   &-loading {
     display: grid;
@@ -34,27 +30,27 @@
   &-header {
     position: relative;
     display: grid;
-    overflow: hidden;
-    width: 100vw !important;
-    height: 100vh !important;
+    height: 100%;
     grid-column: 1/2;
     grid-row: 1/2;
+
+    @include mq(laptop) {
+      max-height: 100vh;
+    }
+
     &-logo {
       z-index: 99;
       width: 10rem;
       justify-self: center;
-      margin-top: 2.5rem;
+      align-self: center;
       grid-column: 1/2;
       grid-row: 1/2;
 
       @include mq(phone) {
-        margin-top: 3rem;
         width: 12rem;
       }
 
       @include mq(tablet) {
-        width: 17rem;
-        margin-top: 5rem;
       }
 
       @include mq(tablet-landscape) {
@@ -62,7 +58,6 @@
       }
 
       @include mq(laptop) {
-        margin-top: 5rem;
       }
     }
 
@@ -70,55 +65,61 @@
       z-index: 99;
       width: 4rem;
       justify-self: center;
-      margin-top: 8rem;
+
       grid-column: 1/2;
-      grid-row: 1/2;
+      grid-row: 2/3;
       animation: spinAndZoom 5s linear infinite; // Adjust the duration as needed
       transform-style: preserve-3d; // Needed for 3D transformations
+      align-self: center;
 
       @include mq(phone) {
-        margin-top: 5.5rem;
         width: 3.5rem;
       }
 
       @include mq(tablet) {
-        margin-top: 17rem;
         width: 7rem;
       }
 
       @include mq(tablet-landscape) {
-        margin-top: 0rem;
-        justify-self: end;
-        margin-top: 2rem;
-        margin-right: 15rem;
       }
 
       @include mq(desktop) {
         justify-self: center;
-        margin: 0;
-        margin-top: 16rem;
       }
     }
 
     &-flyer {
       grid-column: 1/2;
-      grid-row: 1/2;
-      width: 100vw;
-      height: 100vh;
-      img,
-      video {
-        object-fit: cover; // Ensures video covers the area without stretching
-        width: 120%;
-        @include mq(phone) {
-          width: 160%;
-        }
+      grid-row: 1/4;
+      width: 100%;
+      display: grid;
+      height: 100%;
+      overflow: hidden;
+      @include mq(tablet) {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      &-carousel {
+        width: 100%;
 
         @include mq(tablet) {
+          object-fit: cover;
           width: 100%;
+          height: auto;
+          transition: opacity 1s ease-in-out;
+          max-height: auto;
         }
+      }
 
-        @include mq(laptop) {
-          height: 100% !important;
+      &-carousel2 {
+        display: none;
+        width: 100%;
+
+        @include mq(tablet) {
+          transition: opacity 1s ease-in-out;
+          object-fit: cover;
+          display: block;
+          height: auto;
         }
       }
     }
@@ -126,25 +127,20 @@
     &-guestcode {
       display: grid;
       grid-column: 1/2;
-      grid-row: 1/2;
+      grid-row: 3/4;
       z-index: 99;
       justify-self: center;
-      align-self: end;
-      margin-bottom: 6rem;
+      align-self: center;
 
       @include mq(phone) {
-        margin-bottom: 12rem;
       }
       @include mq(tablet) {
-        margin-bottom: 17rem;
       }
 
       @include mq(tablet-landscape) {
-        margin-bottom: 3rem;
       }
 
       @include mq(laptop) {
-        margin-bottom: 7rem;
       }
 
       @include mq(desktop) {
@@ -160,13 +156,13 @@
 
         input[type="text"],
         input[type="email"] {
-          background: rgba(255, 255, 255, 0.5);
+          background: transparent;
           backdrop-filter: blur(5px);
           -webkit-backdrop-filter: blur(5px);
           border: 1px solid rgba(255, 255, 255, 0.6);
           border-radius: 20px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          color: #fff;
+          // color: #fff;
           font-weight: bold;
           text-transform: uppercase;
           padding: 10px 20px;
@@ -178,6 +174,8 @@
           transition: background 0.3s, box-shadow 0.3s;
           text-align: center;
           font-size: 1.25rem;
+          width: 15rem;
+          height: 2.75rem;
           @include mq(phone) {
             font-size: 1.25rem;
           }
@@ -222,6 +220,7 @@
         }
 
         &-name {
+          margin-top: 2rem;
         }
 
         &-separator {
@@ -256,16 +255,16 @@
       }
 
       &-button {
-        width: 18rem;
-        height: 3rem;
-        background: rgba(255, 255, 255, 0.2);
+        width: 6rem;
+        height: 4rem;
+        background-color: transparent;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.6);
         color: #ffffff;
-        padding: 10px 30px;
-        font-size: 0.8rem; // Make font slightly larger for readability
+        padding: 0.25rem;
+        font-size: 0.6rem; // Make font slightly larger for readability
         font-weight: bold;
         text-transform: uppercase;
         cursor: pointer;
@@ -279,7 +278,7 @@
         overflow: hidden;
         font-family: "Roboto", sans-serif; // A modern, clean font-family
         letter-spacing: 1px; // Increase letter-spacing for style
-
+        margin-bottom: 2rem;
         @include mq(phone) {
           height: 3rem;
           width: 20rem;
@@ -344,11 +343,11 @@
       &-condition {
         display: grid;
         place-items: center;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        // background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
         border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        // border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         font-family: "Arial", sans-serif;
 
@@ -359,9 +358,9 @@
         height: 5rem;
         transform: translateZ(0);
         transition: transform 0.25s, box-shadow 0.25s;
-        margin-top: 1rem;
         justify-self: center;
 
+        // margin-bottom: 2rem;
         @include mq(phone) {
           width: 17rem;
           height: 5rem;
@@ -381,7 +380,7 @@
           font-size: 0.85rem;
           width: 17ch;
           font-weight: 800;
-          color: rgb(159, 255, 159);
+          // color: rgb(159, 255, 159);
           text-shadow: 0 2px 2px rgba(0, 0, 0, 0.2); // Subtle shadow for depth
           transition: transform 0.3s ease-in-out;
           animation: pulse 2s infinite ease-in-out;
