@@ -54,6 +54,9 @@ const EventPage = ({ passedEventId }) => {
       setCurrentImageIndex((prevIndex) =>
         prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
       );
+      setNextImageIndex((prevIndex) =>
+        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+      );
     }, 5000);
 
     tempCarouselImages.forEach((src) => {
