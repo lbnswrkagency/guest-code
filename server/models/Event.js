@@ -25,7 +25,7 @@ const EventSchema = new Schema({
   tableCode: { type: Boolean, default: false },
   carousel: { type: Boolean, default: false },
   link: { type: String, required: true, unique: true },
-  guestCodes: [{ type: Schema.Types.ObjectId, ref: "GuestCode" }],
+
   guestCodeCondition: { type: String, default: "" },
 });
 

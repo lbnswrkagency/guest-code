@@ -14,12 +14,12 @@ axios.interceptors.request.use(
   }
 );
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (identifier, password) => {
   try {
     const response = await axios.post(
       `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
       {
-        email,
+        identifier,
         password,
       }
     );
@@ -30,13 +30,15 @@ export const loginUser = async (email, password) => {
   }
 };
 
-export const login = async (email, password, navigate, setUser) => {
+export const login = async (identifier, password, navigate, setUser) => {
   try {
-    const { token } = await loginUser(email, password);
+    const { token } = await loginUser(identifier, password);
 
     if (token) {
       localStorage.setItem("token", token); // Save the token in the local storage
+
       const userData = await fetchUserData(); // Fetch the user data
+
       setUser(userData); // Set the user state after a successful login
       navigate("/dashboard");
     } else {

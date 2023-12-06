@@ -4,9 +4,12 @@ const bcrypt = require("bcryptjs");
 
 const UserSchema = new Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: false, unique: true },
   password: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
+  isScanner: { type: Boolean, default: false },
+  isPromoter: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   events: [{ type: Schema.Types.ObjectId, ref: "Event" }],
 });

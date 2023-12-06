@@ -191,9 +191,6 @@ exports.generateGuestCode = async (req, res) => {
 
     await guestCode.save();
 
-    event.guestCodes.push(guestCode._id);
-    await event.save();
-
     // Generate the QR code
     const qrCodeDataURL = await QRCode.toDataURL(`${guestCode._id}`, {
       errorCorrectionLevel: "L",

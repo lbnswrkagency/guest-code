@@ -92,10 +92,15 @@ exports.login = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    let user;
+    if (identifier.includes("@")) {
+      user = await User.findOne({ email: identifier });
+    } else {
+      user = await User.findOne({ name: identifier }); // Assuming 'name' is the username field in your User model
+    }
 
     if (!user) {
       return res

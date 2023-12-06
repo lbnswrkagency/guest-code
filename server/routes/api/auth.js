@@ -30,7 +30,7 @@ router.get("/verify/:token", verifyEmail);
 router.post(
   "/login",
   [
-    check("email", "Email is required").isEmail(),
+    check("identifier", "Identifier is required").notEmpty(),
     check("password", "Password is required").notEmpty(),
   ],
   login

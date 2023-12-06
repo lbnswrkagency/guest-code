@@ -50,3 +50,4 @@ public
 
 # Serverless directories
 .serverless/
+script.js

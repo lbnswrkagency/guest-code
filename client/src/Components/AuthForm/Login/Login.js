@@ -7,7 +7,7 @@ import AuthContext from "../../../contexts/AuthContext";
 import "../AuthForm.scss";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ identifier: "", password: "" });
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
@@ -18,7 +18,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    await login(formData.email, formData.password, navigate, setUser);
+    await login(formData.identifier, formData.password, navigate, setUser);
   };
 
   return (
@@ -26,10 +26,10 @@ const Login = () => {
       <h2>Login</h2>
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
+          type="text"
+          name="identifier"
+          placeholder="Username or Email"
+          value={formData.identifier}
           onChange={handleChange}
         />
         <input
@@ -41,9 +41,9 @@ const Login = () => {
         />
         <button type="submit">Login</button>
       </form>
-      <p>
+      {/* <p>
         Don't have an account? <Link to="/register">Register</Link>
-      </p>
+      </p> */}
     </AuthForm>
   );
 };
