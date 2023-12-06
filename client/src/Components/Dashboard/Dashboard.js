@@ -6,11 +6,13 @@ import { logout } from "../AuthForm/Login/LoginFunction";
 import "./Dashboard.scss";
 import Settings from "../Settings/Settings";
 import FriendsCode from "../FriendsCode/FriendsCode";
+import Scanner from "../Scanner/Scanner";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsCode, setShowFriendsCode] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -25,6 +27,10 @@ const Dashboard = () => {
 
   if (showFriendsCode) {
     return <FriendsCode user={user} />;
+  }
+
+  if (showScanner) {
+    return <Scanner user={user} />;
   }
 
   if (showSettings) {
@@ -73,7 +79,7 @@ const Dashboard = () => {
         {user.isScanner && (
           <button
             className="scanner-button"
-            onClick={() => navigate("/scanner")}
+            onClick={() => setShowScanner(true)}
           >
             Scanner
           </button>

@@ -28,7 +28,7 @@ function FriendsCode({ user }) {
             pax: 1,
             date: "19/11/2022",
             paxChecked: 0,
-            condition: "BUY 1 GET 2 ANY DRINKS UNTIL 11PM",
+            condition: "BUY 1 GET 2 ANY DRINKS UNTIL 10PM",
             event: user.events,
             host: user.name,
           },
