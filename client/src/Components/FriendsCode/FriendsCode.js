@@ -50,11 +50,16 @@ function FriendsCode({ user }) {
   return (
     <div className="friendscode">
       <Toaster />
+
       <img
         className="friendscode-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
         alt=""
       />
+      <h1 className="friendscode-title">Invite your Friends!</h1>
+      <p className="friendscode-description">
+        with this Friends Code they can Buy 1 Get 2, until 11PM
+      </p>
 
       <div className="friendscode-admin">
         <h1>Friends-Code</h1>
@@ -65,7 +70,7 @@ function FriendsCode({ user }) {
         <input
           className="friendscode-name"
           type="text"
-          placeholder="Name"
+          placeholder="Your Friends Name"
           onChange={(e) => setName(e.target.value)}
         />
 

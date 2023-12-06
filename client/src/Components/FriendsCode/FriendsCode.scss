@@ -46,6 +46,19 @@ body {
     width: 25rem;
   }
 
+  &-title {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  &-description {
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
   &-image {
     width: 70%;
     border: 1px solid red;
@@ -88,8 +101,6 @@ body {
   background-color: #bba14f;
   border-radius: 1.75rem;
 
-  grid-column: 1/2;
-  grid-row: 2/3;
   overflow: hidden;
 
   h1 {
