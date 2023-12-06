@@ -19,7 +19,7 @@ function FriendsCode({ user }) {
 
   const handleFriendsCode = () => {
     if (name && condition) {
-      toast.loading("Der Friends-Code wird erstellt...");
+      toast.loading("Generating Friends-Code...");
       axios
         .post(
           `${process.env.REACT_APP_API_BASE_URL}/friends/add`,
@@ -36,7 +36,7 @@ function FriendsCode({ user }) {
         )
         .then((response) => {
           toast.remove();
-          toast.success("Friends-Code wurde erstellt!");
+          toast.success("Friends-Code generated!");
           const url = window.URL.createObjectURL(new Blob([response.data]));
           setDownloadUrl(url);
         });
