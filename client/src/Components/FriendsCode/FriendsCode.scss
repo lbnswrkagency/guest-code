@@ -46,6 +46,10 @@ body {
     width: 25rem;
   }
 
+  &-image {
+    width: 70%;
+    border: 1px solid red;
+  }
   &-logo {
     width: 5rem;
 
@@ -167,12 +171,19 @@ body {
   justify-items: center;
   grid-gap: 1rem;
   margin-top: 1rem;
+
+  &-text {
+    text-align: center;
+  }
 }
 // Alkim ist der Beste
 .share-buttons {
   display: grid;
   grid-gap: 0.3rem;
   width: 10rem;
+  justify-self: center;
+
+  justify-items: center;
 }
 
 .friends-download {

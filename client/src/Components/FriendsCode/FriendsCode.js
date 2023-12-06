@@ -75,7 +75,14 @@ function FriendsCode({ user }) {
       <div className="friendscode-preview">
         {downloadUrl ? (
           <>
+            <p className="friendscode-preview-text">HOLD IMAGE & SAVE</p>
             <img className="friendscode-image" src={downloadUrl} alt="" />
+            <p className="friendscode-preview-text">
+              HOLD IMAGE & SAVE
+              <br />
+              <br />
+              OR
+            </p>
             <div className="share-buttons">
               <a
                 href={downloadUrl}
