@@ -75,7 +75,7 @@ const createTicketPDF = async (
 
       h3 {
         font-weight: 600;
-        color: #a6965d;
+        color: #999999;
       }
 
       h2 {
@@ -124,7 +124,7 @@ const createTicketPDF = async (
         align-self: center;
       }
       .event {
-        background: #fae28c;
+        background: #EDEDED;
 
         border-radius: 28px;
         width: 80%;
@@ -262,7 +262,7 @@ const createTicketPDF = async (
           width="248"
           height="1"
           viewBox="0 0 248 1"
-          fill="none"
+          fill="#DEDEDE"
           xmlns="http://www.w3.org/2000/svg"
           class="event-divider"
           ;

@@ -16,6 +16,7 @@ const app = express();
 const eventsRoutes = require("./routes/api/events");
 const dnsRoutes = require("./routes/api/dnsRoutes");
 const friendsRoutes = require("./routes/api/friendsRoutes");
+const qrRoutes = require("./routes/api/qrRoutes");
 
 dotenv.config();
 
@@ -48,7 +49,9 @@ app.use("/api/events", eventsRoutes);
 app.use("/api/spotify", spotifyRoutes);
 
 app.use("/api/dns", dnsRoutes);
+
 app.use("/api/friends", friendsRoutes);
+app.use("/api/qr", qrRoutes);
 
 const port = process.env.PORT || 5000;
 
