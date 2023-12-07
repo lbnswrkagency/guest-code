@@ -17,11 +17,17 @@ function Scanner() {
 
   const handleError = (err) => {
     console.error(err);
-    setScannerError(true);
-    toast.error("Scanning error. Please ensure your device has a webcam.");
-    // Stop the scanner when an error occurs
-    if (qrCodeScanner) {
-      qrCodeScanner.clear();
+
+    // Example: Check for specific error types before setting scannerError
+    if (err.name === "NotAllowedError" || err.name === "NotFoundError") {
+      setScannerError(true);
+      toast.error("Scanning error. Please ensure your device has a webcam.");
+      if (qrCodeScanner) {
+        qrCodeScanner.clear();
+      }
+    } else {
+      // Handle non-critical errors differently
+      console.log("Non-critical error: ", err.message);
     }
   };
 

@@ -199,6 +199,11 @@ const createTicketPDF = async (
         justify-content: center;
       }
 
+      .qrcode-data p {
+        font-size: .5rem;
+      
+      }
+
       .qrcode-text {
         justify-self: center;
         align-self: center;
@@ -283,7 +288,12 @@ const createTicketPDF = async (
             <p>UNTIL 10PM</p>
         </div>
 
+        <div class="qrcode-data">
         <img src="${qrCodeDataURL}" alt="QR Code" />
+        <p>${event._id}</p>
+        </div>
+  
+
       </div>
     </div>
   </body>
