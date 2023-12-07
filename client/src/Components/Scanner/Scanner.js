@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-
+import React, { useEffect, useState } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import { toast } from "react-toastify";
 import "./Scanner.scss";
 
@@ -8,18 +8,11 @@ function Scanner() {
   const [paxChecked, setPaxChecked] = useState(0);
   const [scanning, setScanning] = useState(true);
 
-  const handleScan = (data) => {
-    if (data) {
-      setScanResult(data);
-      setScanning(false); // Pause scanning
-
-      // TODO: Send request to backend to validate ticket
-      // If valid, set paxChecked from response
-      // Example: setPaxChecked(response.paxChecked);
-
-      // Display toast for valid ticket
-      toast.success("Successfully scanned");
-    }
+  const handleScan = (decodedText, decodedResult) => {
+    setScanResult(decodedText);
+    setScanning(false); // Pause scanning
+    // TODO: Send request to backend to validate ticket
+    toast.success("Successfully scanned");
   };
 
   const handleError = (err) => {
@@ -27,39 +20,39 @@ function Scanner() {
     toast.error("Scanning error");
   };
 
-  const increasePax = () => {
-    // TODO: Send update request to backend to increase paxChecked
-    setPaxChecked(paxChecked + 1);
-    toast.info("Checked in");
-  };
+  useEffect(() => {
+    let qrCodeScanner;
 
-  const decreasePax = () => {
-    // TODO: Send update request to backend to decrease paxChecked
-    if (paxChecked > 0) {
-      setPaxChecked(paxChecked - 1);
-      toast.info("Checked out");
+    if (scanning) {
+      qrCodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: 250 },
+        false
+      );
+      qrCodeScanner.render(handleScan, handleError);
     }
-  };
 
-  const resumeScanning = () => {
-    setScanning(true);
-    setScanResult("");
-  };
+    return () => {
+      if (qrCodeScanner) {
+        qrCodeScanner.clear();
+      }
+    };
+  }, [scanning]);
 
   return (
     <div className="scanner">
       {scanning ? (
-        <div className="test"></div>
+        <div id="qr-reader" style={{ width: "500px" }}></div>
       ) : (
         <div>
           <p>Scanned Result: {scanResult}</p>
-          <button onClick={resumeScanning}>Scan Again</button>
+          <button onClick={() => setScanning(true)}>Scan Again</button>
         </div>
       )}
       <div>
-        <button onClick={decreasePax}>Decrease</button>
+        <button onClick={() => setPaxChecked(paxChecked - 1)}>Decrease</button>
         <span>Pax Checked: {paxChecked}</span>
-        <button onClick={increasePax}>Increase</button>
+        <button onClick={() => setPaxChecked(paxChecked + 1)}>Increase</button>
       </div>
     </div>
   );
