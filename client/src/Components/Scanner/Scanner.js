@@ -13,10 +13,16 @@ function Scanner() {
   const handleScan = (decodedText, decodedResult) => {
     validateTicket(decodedText);
   };
+  let qrCodeScanner;
+
   const handleError = (err) => {
     console.error(err);
-    setScannerError(true); // Set error state to true when an error occurs
-    toast.error("Scanning error");
+    setScannerError(true);
+    toast.error("Scanning error. Please ensure your device has a webcam.");
+    // Stop the scanner when an error occurs
+    if (qrCodeScanner) {
+      qrCodeScanner.clear();
+    }
   };
 
   const checkTimeLimit = () => {
@@ -71,20 +77,32 @@ function Scanner() {
   };
 
   useEffect(() => {
-    let qrCodeScanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: 250 },
-      false
-    );
+    let isMounted = true; // To check if the component is still mounted
+
+    const startScanner = () => {
+      qrCodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: 250 },
+        false
+      );
+
+      qrCodeScanner.render(handleScan, (err) => {
+        if (isMounted) {
+          handleError(err);
+        }
+      });
+    };
 
     if (scanning && !scannerError) {
-      // Only render scanner if no error has occurred
-      qrCodeScanner.render(handleScan, handleError);
-    } else {
-      qrCodeScanner.clear();
+      startScanner();
     }
 
-    return () => qrCodeScanner.clear();
+    return () => {
+      isMounted = false;
+      if (qrCodeScanner) {
+        qrCodeScanner.clear();
+      }
+    };
   }, [scanning, scannerError]);
 
   const resetScanner = () => {
