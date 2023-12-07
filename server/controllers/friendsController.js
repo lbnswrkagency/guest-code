@@ -107,12 +107,15 @@ const addFriendsCode = async (req, res) => {
     
             </div>
           </div>
-          <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); align-content: center; align-items: center; grid-gap: 2.625rem;">
-              <div style="padding-left: 2.438rem;">
+          <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
+              
+              <div style="justify-self: center;">
                   <p style="margin: 0; font-weight: 700; font-size: 1.25rem; line-height: 1.5rem;">BUY 1 GET 2<br /> ANY DRINKS<br /> UNTIL 10PM</p>
               </div>
-          
-              <img style="background-color: white; width: 8rem; height: 8rem; position:relative; right: 1.7rem;" src=${bufferImage}></img>
+              <div style="justify-self: center;">
+                  <img style="background-color: white; width: 8rem; height: 8rem; " src=${bufferImage}></img>
+                  <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${createdFriend._id}</p>        
+               </div>
           </div>
           </body>
           </html>

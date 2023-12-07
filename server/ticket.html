@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+  <html style="font-family: 'Manrope', sans-serif;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" rel="stylesheet">
     <title>Ticket</title>
     <style>
       @page {
@@ -21,8 +24,8 @@
       }
 
       h3 {
-        font-weight: 500;
-        color: #a6965d;
+        font-weight: 600;
+        color: #999999;
       }
 
       h2 {
@@ -31,7 +34,7 @@
       }
 
       p {
-        font-weight: 500;
+        font-weight: 600;
         color: #000;
       }
 
@@ -53,7 +56,6 @@
 
       .header-title {
         color: #fff;
-   
         font-size: 50px;
         align-self: center;
       }
@@ -66,15 +68,13 @@
       align-content: center;
       }
 
-
-
       .header-logo {
         width: 8rem;
         justify-self: end;
         align-self: center;
       }
       .event {
-        background: #fae28c;
+        background: #EDEDED;
 
         border-radius: 28px;
         width: 80%;
@@ -101,7 +101,7 @@
         grid-row: 1/2;
         grid-column: 1/3;
         color: #000;
-       
+     
       }
 
       .event-bites {
@@ -149,6 +149,16 @@
         justify-content: center;
       }
 
+
+      .qrcode-data {
+         justify-self: center;
+      }
+
+      .qrcode-data p {
+        font-size: .5rem;
+      
+      }
+
       .qrcode-text {
         justify-self: center;
         align-self: center;
@@ -186,7 +196,7 @@
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>${formatDate(event.date)}</p>
+          <p>Every Sunday</p>
         </div>
 
         <div class="event-beats">
@@ -201,7 +211,7 @@
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>8 PM, every Sunday</p>
+          <p>8 PM</p>
         </div>
 
         <div class="event-location">
@@ -212,7 +222,7 @@
           width="248"
           height="1"
           viewBox="0 0 248 1"
-          fill="none"
+          fill="#DEDEDE"
           xmlns="http://www.w3.org/2000/svg"
           class="event-divider"
           ;
@@ -233,7 +243,12 @@
             <p>UNTIL 10PM</p>
         </div>
 
+        <div class="qrcode-data">
         <img src="${qrCodeDataURL}" alt="QR Code" />
+        <p>${event._id}</p>
+        </div>
+  
+
       </div>
     </div>
   </body>
