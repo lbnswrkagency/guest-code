@@ -58,7 +58,7 @@ function FriendsCode({ user }) {
       />
       <h1 className="friendscode-title">Invite your Friends!</h1>
       <p className="friendscode-description">
-        with this Friends Code they can Buy 1 Get 2, until 11PM
+        with this Friends Code they can Buy 1 Get 2, until 10PM
       </p>
 
       <div className="friendscode-admin">
