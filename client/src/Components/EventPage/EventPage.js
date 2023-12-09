@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import logo_w from "./carousel/logo_w.svg";
 import qrCode from "./carousel/qrCode.svg";
 import Spotify from "../Spotify/Spotify";
+import Instagram from "../Instagram/Instagram";
 
 const EventPage = ({ passedEventId }) => {
   const location = useLocation();
@@ -225,13 +226,13 @@ const EventPage = ({ passedEventId }) => {
               )}
             </div>
           </header>
+          <Instagram />
 
           <Spotify />
-          {/* 
+
           <footer className="event-page__footer">
-            <h1 className="event-page__footer-title">{event.title}</h1>
-            <h2 className="event-page__footer-subtitle">{event.subTitle}</h2>
-          </footer> */}
+            <img src={logo_w} alt="Loading..." />
+          </footer>
         </>
       ) : (
         <p></p> // Placeholder for when event data is not available

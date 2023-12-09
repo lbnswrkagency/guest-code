@@ -10,6 +10,35 @@
   background-color: $background-color;
   animation: fadeIn 1s ease-in-out;
 
+  &-count {
+    display: grid;
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    &-each {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      &-name {
+        justify-self: start;
+      }
+
+      &-number {
+        justify-self: end;
+        font-weight: 600;
+      }
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+    }
+
+    p {
+      text-align: left;
+    }
+  }
+
   .dashboard-header {
     display: flex;
     flex-direction: column;

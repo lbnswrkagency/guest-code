@@ -86,3 +86,26 @@ $container-width: 1200px;
   position: absolute;
   z-index: 99;
 }
+
+// Primary and Secondary Colors
+$primary-color: #e1306c; // Instagram's primary color
+$secondary-color: #4b4f56; // A complementary grey
+
+// Text Colors
+$primary-text-color: #333333; // Dark color for primary text
+$secondary-text-color: #666666; // Lighter color for secondary text
+
+// Background Colors
+$light-background-color: #fafafa; // Light grey background
+$dark-background-color: #262626; // Dark grey for alternate backgrounds
+
+// Instagram-specific Color
+$instagram-color: #e1306c; // Instagram pink
+
+// Utility Colors
+$white-color: #ffffff;
+$black-color: #000000;
+
+// Box Shadow
+$box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+$box-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.2);

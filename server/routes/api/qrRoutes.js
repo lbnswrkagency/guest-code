@@ -12,4 +12,6 @@ router.put("/increase/:ticketId", authenticate, qrController.increasePax);
 // PUT route to decrease paxChecked
 router.put("/decrease/:ticketId", authenticate, qrController.decreasePax);
 
+router.get("/counts", authenticate, qrController.getCounts);
+
 module.exports = router;

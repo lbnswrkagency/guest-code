@@ -420,7 +420,11 @@
     }
   }
 
-  &-footer {
+  &__footer {
+    justify-self: center;
+    img {
+      width: 15rem;
+    }
   }
 }
 

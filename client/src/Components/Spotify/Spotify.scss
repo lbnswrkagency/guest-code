@@ -6,12 +6,12 @@
   background: linear-gradient(135deg, #1db954 0%, #1a9850 100%);
   color: white;
   text-align: center;
-  border-radius: 8px;
+
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   display: grid;
   justify-content: center;
   justify-items: center;
-
+  padding-bottom: 8rem;
   &-latest {
     margin-top: 3rem;
     text-align: start;

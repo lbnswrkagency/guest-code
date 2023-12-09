@@ -80,8 +80,34 @@ const decreasePax = async (req, res) => {
   }
 };
 
+const getCounts = async (req, res) => {
+  try {
+    const friendsCounts = await FriendsCode.aggregate([
+      { $group: { _id: "$host", total: { $sum: 1 } } },
+    ]);
+
+    const guestCounts = await GuestCode.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          used: { $sum: "$paxChecked" },
+        },
+      },
+    ]);
+
+    res.json({
+      friendsCounts,
+      guestCounts: guestCounts[0] || { total: 0, used: 0 },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   validateTicket,
   increasePax,
   decreasePax,
+  getCounts,
 };
