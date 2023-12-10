@@ -18,6 +18,7 @@ const Dashboard = () => {
     friendsCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,10 +33,12 @@ const Dashboard = () => {
       }
     };
 
-    if (user.isAdmin) {
+    // Ensure user is not null and has isAdmin property before fetching
+    if (user && user.isAdmin) {
       fetchCounts();
     }
-  }, [user.isAdmin]);
+  }, [user]); // Depend on user object
+
   const handleLogout = () => {
     logout();
     setUser(null);
