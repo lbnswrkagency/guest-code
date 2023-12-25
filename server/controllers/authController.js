@@ -132,7 +132,7 @@ exports.login = async (req, res) => {
 
     // Generate Access Token
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1m", // short-lived access token
+      expiresIn: "15m", // short-lived access token
     });
 
     console.log("Access Token:", accessToken);
@@ -200,7 +200,7 @@ exports.refreshAccessToken = async (req, res) => {
     console.log("ENV ACCESS SECRET", process.env.JWT_ACCESS_SECRET);
 
     const newAccessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1m",
+      expiresIn: "15m",
     });
 
     console.log("New access token generated:", newAccessToken);
