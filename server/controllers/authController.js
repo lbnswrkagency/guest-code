@@ -152,7 +152,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Use secure cookies in production
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Use 'None' for production if cross-site, 'Lax' for development
-      domain: process.env.CLIENT_BASE_URL, // Set the domain from CLIENT_BASE_URL environment variable
+      domain: `${process.env.CLIENT_BASE_URL}`,
     });
     console.log("Refresh token set in cookie:", refreshToken);
 
