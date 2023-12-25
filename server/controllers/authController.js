@@ -145,10 +145,11 @@ exports.login = async (req, res) => {
 
     console.log("Refresh Token:", refreshToken);
 
-    // Set Refresh Token in HttpOnly Cookie
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false, // Set to false for local development
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
       sameSite: "lax", // Consider using 'lax' for broader compatibility
     });
 
