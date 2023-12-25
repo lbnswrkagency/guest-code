@@ -1,10 +1,9 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { login } from "../Login/LoginFunction";
-import AuthForm from "../AuthForm";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import AuthContext from "../../../contexts/AuthContext";
-
 import "../AuthForm.scss";
+import AuthForm from "../AuthForm";
 
 const Login = () => {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
@@ -17,8 +16,45 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
+        formData
+      );
 
-    await login(formData.identifier, formData.password, navigate, setUser);
+      console.log("Login response:", response.data); // Log the response data
+
+      const { accessToken } = response.data; // Ensure this matches the backend response
+
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        await fetchUserData();
+        navigate("/dashboard");
+      } else {
+        console.error("No access token received");
+      }
+    } catch (error) {
+      console.error("Error during login: ", error);
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setUser(response.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      throw error;
+    }
   };
 
   return (

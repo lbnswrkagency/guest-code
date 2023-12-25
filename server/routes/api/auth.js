@@ -8,7 +8,11 @@ const {
   login,
   verifyEmail,
   getUserData,
+  refreshAccessToken,
+  logout,
 } = require("../../controllers/authController");
+
+router.post("/refresh_token", refreshAccessToken);
 
 // Register route
 router.post(
@@ -37,6 +41,16 @@ router.post(
 );
 
 // Add the new route for fetching user data
-router.get("/user", authenticate, getUserData);
+// authRoutes.js
+router.get(
+  "/user",
+  (req, res, next) => {
+    next();
+  },
+  authenticate,
+  getUserData
+);
+
+router.post("/logout", logout);
 
 module.exports = router;

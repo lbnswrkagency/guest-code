@@ -1,14 +1,10 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  BrowserRouter,
-} from "react-router-dom";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import { AuthProvider } from "./contexts/AuthContext";
 
 import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
-
 import Login from "./Components/AuthForm/Login/Login";
 import Register from "./Components/AuthForm/Register/Register";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
@@ -18,10 +14,11 @@ import CreateEvent from "./Components/CreateEvent/CreateEvent";
 import EventDetails from "./Components/EventDetails/EventDetails";
 import EventPage from "./Components/EventPage/EventPage";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
-// import FriendsCode from "./Components/FriendsCode/FriendsCode";
+// import FriendsCode from './Components/FriendsCode/FriendsCode';
 
 function App() {
   const eventId = "31vp88ph";
+
   return (
     <Router>
       <AuthProvider>

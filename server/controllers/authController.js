@@ -117,23 +117,42 @@ exports.login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid password." });
     }
 
+    // Payload for the tokens
     const payload = {
       userId: user._id,
       email: user.email,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+    // Generate Access Token
+    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+      expiresIn: "1m", // short-lived access token
     });
 
-    res.json({ success: true, token });
+    console.log("Access Token:", accessToken);
+
+    // Generate Refresh Token
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+      expiresIn: "7d", // long-lived refresh token
+    });
+
+    console.log("Refresh Token:", refreshToken);
+
+    // Set Refresh Token in HttpOnly Cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // secure: true only if in production
+      sameSite: "strict",
+    });
+
+    // Return Access Token
+    console.log("Sending response with access token");
+    res.json({ success: true, accessToken });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
@@ -155,4 +174,37 @@ exports.getUserData = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
   }
+};
+
+exports.refreshAccessToken = async (req, res) => {
+  console.log("-------REFRESH TOKEN CALLED----------");
+  console.log("REQ COOKIES --- ", req.cookies); // This will log only the cookies
+
+  // Specifically log the refreshToken if present
+  if (req.cookies && req.cookies.refreshToken) {
+    console.log("Refresh Token from Cookie:", req.cookies.refreshToken);
+  } else {
+    console.log("No refresh token found in cookies");
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    console.log("Refresh token decoded:", decoded);
+    const payload = { userId: decoded.userId, email: decoded.email };
+
+    const newAccessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+      expiresIn: "1m",
+    });
+
+    console.log("New access token generated:", newAccessToken);
+    res.json({ success: true, accessToken: newAccessToken });
+  } catch (error) {
+    console.error("Error in refreshing token:", error);
+    res.status(403).json({ message: "Invalid refresh token" });
+  }
+};
+
+exports.logout = (req, res) => {
+  res.clearCookie("refreshToken"); // Clear the refresh token cookie
+  res.json({ success: true, message: "Logged out successfully" });
 };

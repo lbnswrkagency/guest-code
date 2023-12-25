@@ -69,8 +69,18 @@ export const fetchUserData = async () => {
   }
 };
 
-export const logout = () => {
-  // Clear the user data and token from the local storage
-  localStorage.removeItem("user");
-  localStorage.removeItem("token");
+export const logout = async (navigate) => {
+  try {
+    // Clear the user data and token from the local storage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+
+    // Make a call to the backend to clear the refresh token cookie
+    await axios.post(`${process.env.REACT_APP_API_BASE_URL}/auth/logout`);
+
+    // Redirect to the root domain
+    navigate("/");
+  } catch (error) {
+    console.error("Error during logout: ", error);
+  }
 };
