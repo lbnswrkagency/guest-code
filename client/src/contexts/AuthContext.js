@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
     "/events/create",
     "/events/:eventId",
     "/guest-code-settings",
-    "/login",
+    // "/login",
     "/register",
     "/registration-success",
     "/verify/:token",
@@ -37,6 +37,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     const setupAxiosInterceptors = () => {
       const interceptor = axios.interceptors.response.use(
         (response) => response,
