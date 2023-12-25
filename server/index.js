@@ -22,7 +22,7 @@ const corsOptions = {
     "http://localhost:3000",
     "https://guestcode-client.onrender.com",
     "https://afrospiti.com",
-    "http://192.168.1.10:3000",
+    "https://www.afrospiti.com/",
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
