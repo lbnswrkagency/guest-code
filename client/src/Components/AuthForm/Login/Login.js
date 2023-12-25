@@ -19,13 +19,13 @@ const Login = () => {
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
-        formData
+        formData,
+        { withCredentials: true } // Include this line
       );
 
-      console.log("Login response:", response.data); // Log the response data
+      console.log("Login response:", response.data);
 
-      const { accessToken } = response.data; // Ensure this matches the backend response
-
+      const { accessToken } = response.data;
       if (accessToken) {
         localStorage.setItem("token", accessToken);
         await fetchUserData();
@@ -34,7 +34,7 @@ const Login = () => {
         console.error("No access token received");
       }
     } catch (error) {
-      console.error("Error during login: ", error);
+      console.error("Error during login:", error);
     }
   };
 
@@ -47,7 +47,7 @@ const Login = () => {
 
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
       );
 
       setUser(response.data);
