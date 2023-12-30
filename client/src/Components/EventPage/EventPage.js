@@ -161,50 +161,6 @@ const EventPage = ({ passedEventId }) => {
             <img src={logo_w} alt="" className="event-page-header-logo" />
             <img src={qrCode} alt="" className="event-page-header-qr" />
 
-            {event.guestCode && (
-              <form
-                className="event-page-header-guestcode"
-                onSubmit={handleGuestCodeFormSubmit}
-              >
-                <div className="event-page-header-guestcode-form">
-                  <div className="event-page-header-guestcode-condition">
-                    <p>{event.guestCodeCondition}</p>
-                  </div>
-                  <input
-                    type="text"
-                    className="event-page-header-guestcode-form-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Name"
-                    required
-                  />
-                  <input
-                    type="email"
-                    className="event-page-header-guestcode-form-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email Address"
-                  />
-                  {/* <p className="event-page-header-guestcode-form-separator">
-                    OR
-                  </p>
-                  <input
-                    type="text"
-                    className="event-page-header-guestcode-form-phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="WhatsApp Number"
-                  /> */}
-                </div>
-
-                <button
-                  type="submit"
-                  className="event-page-header-guestcode-button"
-                >
-                  GENERATE GUEST CODE
-                </button>
-              </form>
-            )}
             <div className="event-page-header-flyer">
               {isLoading ? (
                 <div>Loading...</div>
@@ -226,6 +182,53 @@ const EventPage = ({ passedEventId }) => {
               )}
             </div>
           </header>
+
+          {event.guestCode && (
+            <form
+              className="event-page-header-guestcode"
+              onSubmit={handleGuestCodeFormSubmit}
+            >
+              <div className="event-page-header-guestcode-form">
+                <div className="event-page-header-guestcode-condition">
+                  <p>{event.guestCodeCondition}</p>
+                </div>
+                <input
+                  type="text"
+                  className="event-page-header-guestcode-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name"
+                  required
+                />
+                <input
+                  type="email"
+                  className="event-page-header-guestcode-form-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
+                />
+                {/* <p className="event-page-header-guestcode-form-separator">
+                    OR
+                  </p>
+                  <input
+                    type="text"
+                    className="event-page-header-guestcode-form-phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="WhatsApp Number"
+                  /> */}
+              </div>
+
+              <button
+                type="submit"
+                className="event-page-header-guestcode-button"
+              >
+                GENERATE GUEST CODE
+              </button>
+            </form>
+          )}
+
+          
           <Instagram />
 
           <Spotify />
