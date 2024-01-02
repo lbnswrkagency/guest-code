@@ -35,7 +35,6 @@ app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use((req, res, next) => {
-  console.log("Incoming Cookies:", req.cookies);
   next();
 });
 

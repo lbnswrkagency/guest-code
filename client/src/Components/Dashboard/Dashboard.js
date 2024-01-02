@@ -8,12 +8,14 @@ import Settings from "../Settings/Settings";
 import FriendsCode from "../FriendsCode/FriendsCode";
 import Scanner from "../Scanner/Scanner";
 import axios from "axios";
+import Statistic from "../Statistic/Statistic";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsCode, setShowFriendsCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showStatistic, setShowStatistic] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
     guestCounts: { total: 0, used: 0 },
@@ -50,11 +52,23 @@ const Dashboard = () => {
   }
 
   if (showFriendsCode) {
-    return <FriendsCode user={user} />;
+    return (
+      <FriendsCode user={user} onClose={() => setShowFriendsCode(false)} />
+    );
   }
 
   if (showScanner) {
-    return <Scanner user={user} />;
+    return <Scanner user={user} onClose={() => setShowScanner(false)} />;
+  }
+
+  if (showStatistic) {
+    return (
+      <Statistic
+        user={user}
+        counts={counts}
+        onClose={() => setShowStatistic(false)}
+      />
+    );
   }
 
   if (showSettings) {
@@ -64,62 +78,44 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Dashboard</h1>
+        <h1 className="dashboard-header-title">Dashboard</h1>
         <div className="user-info">
-          <img
+          {/* <img
             src="https://via.placeholder.com/50"
             alt="Profile"
-            className="profile-picture"
-          />
-          <p>{user.name}</p>
-          <p>{user.email}</p>
+            className="dashboard-header-picture"
+          /> */}
+          <p className="dashboard-header-name">{user.name}</p>
+          <p className="dashboard-header-email">{user.email}</p>
         </div>
-        {user.isAdmin && (
-          <div className="dashboard-count">
-            <h2>FriendsCodes</h2>
-            {counts.friendsCounts.map((count) => (
-              <div key={count._id} className="dashboard-count-each">
-                {" "}
-                <p className="dashboard-count-each-name">{count._id}</p>
-                <p className="dashboard-count-each-number">{count.total}</p>
-              </div>
-            ))}
-            <h2>GuestCodes</h2>
-            <div className="dashboard-count-each">
-              <p className="dashboard-count-each-name">Total</p>
-              <p className="dashboard-count-each-number">
-                {counts.guestCounts.total}
-              </p>
-            </div>
-            <div className="dashboard-count-each">
-              <p className="dashboard-count-each-name">Used</p>
-              <p className="dashboard-count-each-number">
-                {counts.guestCounts.used}
-              </p>
-            </div>
-          </div>
-        )}
       </div>
       <div className="dashboard-actions">
         {user.isAdmin && (
           <>
             <button
-              className="event-button"
+              className="dashboard-actions-button"
               onClick={() => navigate("/events")}
             >
               Events
             </button>
             <button
-              className="settings-button"
+              className="dashboard-actions-button"
+              onClick={() => setShowStatistic(true)}
+            >
+              Statistic
+            </button>
+            <button
+              className="dashboard-actions-button"
               onClick={() => setShowSettings(true)}
             >
               Settings
             </button>
           </>
         )}
+
         {user.isPromoter && (
           <button
-            className="friends-code-button"
+            className="dashboard-actions-button"
             onClick={() => setShowFriendsCode(true)}
           >
             Friends Code
@@ -127,13 +123,16 @@ const Dashboard = () => {
         )}
         {user.isScanner && (
           <button
-            className="scanner-button"
+            className="dashboard-actions-button"
             onClick={() => setShowScanner(true)}
           >
             Scanner
           </button>
         )}
-        <button className="logout-button" onClick={handleLogout}>
+        <button
+          className="dashboard-actions-button-logout"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </div>

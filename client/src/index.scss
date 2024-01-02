@@ -20,3 +20,14 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+#root {
+  display: grid;
+}
+
+.login-back-arrow {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  z-index: 99;
+}

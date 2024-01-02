@@ -2,16 +2,18 @@ import React, { useState } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "./FriendsCode.scss";
+import { useNavigate } from "react-router-dom";
 
 import qrcode from "./img/qrcode.svg";
 import logo from "./img/rund.svg";
 import Preview from "./img/guestcode.png";
 
-function FriendsCode({ user }) {
+function FriendsCode({ user, onClose }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [downloadUrl, setDownloadUrl] = useState("");
   const [condition, setCondition] = useState("free");
+  const navigate = useNavigate();
 
   const handleCheckbox = (event) => {
     setCondition(event.target.id);
@@ -28,7 +30,7 @@ function FriendsCode({ user }) {
             pax: 1,
             date: "19/11/2022",
             paxChecked: 0,
-            condition: "BUY 1 GET 2 ANY DRINKS UNTIL 10PM",
+            condition: "FREE ENTRANCE UNTIL MIDNIGHT",
             event: user.events,
             host: user.name,
           },
@@ -50,7 +52,9 @@ function FriendsCode({ user }) {
   return (
     <div className="friendscode">
       <Toaster />
-
+      <div className="login-back-arrow" onClick={onClose}>
+        ← Back
+      </div>
       <img
         className="friendscode-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
@@ -58,14 +62,12 @@ function FriendsCode({ user }) {
       />
       <h1 className="friendscode-title">Invite your Friends!</h1>
       <p className="friendscode-description">
-        with this Friends Code they can Buy 1 Get 2, until 10PM
+        with this Friends Code you get free entrance until midnight.
       </p>
 
       <div className="friendscode-admin">
         <h1>Friends-Code</h1>
-        <div className="friendscode-sub">
-          <p>BUY 1 GET 2 UNTIL 11 PM.</p>
-        </div>
+        <p>FREE ENTRANCE UNTIL MIDNIGHT</p>
 
         <input
           className="friendscode-name"
@@ -80,14 +82,11 @@ function FriendsCode({ user }) {
       <div className="friendscode-preview">
         {downloadUrl ? (
           <>
-            <p className="friendscode-preview-text">HOLD IMAGE & SAVE</p>
-            <img className="friendscode-image" src={downloadUrl} alt="" />
             <p className="friendscode-preview-text">
-              HOLD IMAGE & SAVE
-              <br />
-              <br />
-              OR
+              SAVE IMAGE & <br /> SEND YOUR FRIEND
             </p>
+            <img className="friendscode-image" src={downloadUrl} alt="" />
+
             <div className="share-buttons">
               <a
                 href={downloadUrl}

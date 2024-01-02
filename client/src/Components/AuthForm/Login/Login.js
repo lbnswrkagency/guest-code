@@ -23,8 +23,6 @@ const Login = () => {
         { withCredentials: true } // Include this line
       );
 
-      console.log("Login response:", response.data);
-
       const { accessToken } = response.data;
       if (accessToken) {
         localStorage.setItem("token", accessToken);
@@ -59,9 +57,13 @@ const Login = () => {
 
   return (
     <AuthForm>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
+      <div className="login-back-arrow" onClick={() => navigate("/")}>
+        ← Back
+      </div>
+      <h2 className="login-title">Login</h2>
+      <form className="login-form" onSubmit={handleSubmit}>
         <input
+          className="login-form-name"
           type="text"
           name="identifier"
           placeholder="Username or Email"
@@ -69,13 +71,16 @@ const Login = () => {
           onChange={handleChange}
         />
         <input
+          className="login-form-password"
           type="password"
           name="password"
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
         />
-        <button type="submit">Login</button>
+        <button className="login-form-submit" type="submit">
+          Login
+        </button>
       </form>
       {/* <p>
         Don't have an account? <Link to="/register">Register</Link>

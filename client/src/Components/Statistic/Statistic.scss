@@ -1,0 +1,60 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+}
+
+$breakpoints: (
+  smallest: 200px,
+  supersmall: 400px,
+  small: 480px,
+  smallmid: 600px,
+  midsmall: 800px,
+  midmedium: 1000px,
+  medium: 1200px,
+  midlarge: 1500px,
+  large: 2000px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+.statistic {
+  padding: 2rem;
+  display: grid;
+
+  &-count {
+    display: grid;
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    width: 60%;
+    justify-self: center;
+
+    &-each {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid lightgrey;
+
+      &-number {
+        justify-self: end;
+        font-weight: 600;
+      }
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+    }
+
+    p {
+      text-align: left;
+    }
+  }
+}

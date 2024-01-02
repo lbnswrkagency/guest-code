@@ -14,8 +14,6 @@ const {
 
 // Middleware to log incoming requests
 router.use((req, res, next) => {
-  console.log(`Incoming request to ${req.path}`);
-  console.log("Cookies:", req.cookies);
   next();
 });
 
@@ -46,12 +44,10 @@ router.post(
     check("password", "Password is required").notEmpty(),
   ],
   (req, res, next) => {
-    console.log("Login route request:", req.cookies);
     next();
   },
   login,
   (req, res, next) => {
-    console.log("Login route response:", res.headers);
     next();
   }
 );

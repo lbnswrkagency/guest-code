@@ -58,14 +58,14 @@ const addFriendsCode = async (req, res) => {
             <div style="display: grid; margin-top: 3rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
                 <div>
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Bardeau Bar</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.7rem; line-height: 1.25rem;">Navarchou Apostoli 6</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Psiri, Athens</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Baby Disco</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">Dekeleon 26</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Gazi, Athens</p>
                 </div>
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Every Sunday</p>
-                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">8 PM</p>
+                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">10 PM</p>
                 </div>
             </div>
           
@@ -86,8 +86,8 @@ const addFriendsCode = async (req, res) => {
 
                 <div style="margin-top: 0.5rem; ">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Bites</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Chicken Wings</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Meat Pie</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Chicken &</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Waffles</p>
                     
                 </div>
          
@@ -110,7 +110,7 @@ const addFriendsCode = async (req, res) => {
           <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
               
               <div style="justify-self: center;">
-                  <p style="margin: 0; font-weight: 700; font-size: 1.25rem; line-height: 1.5rem;">BUY 1 GET 2<br /> ANY DRINKS<br /> UNTIL 10PM</p>
+                  <p style="margin: 0; font-weight: 700; font-size: .85rem; line-height: 1.5rem;">FREE ENTRANCE<br /> UNTIL MIDNIGHT</p>
               </div>
               <div style="justify-self: center;">
                   <img style="background-color: white; width: 8rem; height: 8rem; " src=${bufferImage}></img>

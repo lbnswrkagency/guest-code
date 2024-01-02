@@ -1,6 +1,33 @@
-@import "../../_variables";
+@import "../../../variables";
 
-.login {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+}
+
+$breakpoints: (
+  smallest: 200px,
+  supersmall: 400px,
+  small: 480px,
+  smallmid: 600px,
+  midsmall: 800px,
+  midmedium: 1000px,
+  medium: 1200px,
+  midlarge: 1500px,
+  large: 2000px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+.register {
   @include grid-row(2);
   padding: 2rem;
   margin-top: 10rem;
@@ -29,9 +56,10 @@
       gap: 10px;
       border-radius: 5px;
       border: 2px solid #fff;
-      background-color: #000;
+      background-color: #000 !important;
       backdrop-filter: blur(8px);
       color: #fff;
+
       &::placeholder {
         color: #fff;
       }
@@ -58,4 +86,13 @@
       border: none;
     }
   }
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px black inset !important;
+  box-shadow: 0 0 0 30px black inset !important;
+  -webkit-text-fill-color: white !important;
 }

@@ -128,34 +128,25 @@ exports.login = async (req, res) => {
       userId: user._id,
       email: user.email,
     };
-    console.log("ENV ACCESS SECRET", process.env.JWT_ACCESS_SECRET);
 
     // Generate Access Token
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
       expiresIn: "1m", // short-lived access token
     });
 
-    console.log("Access Token:", accessToken);
-    console.log("ENV REFRESH SECRET", process.env.JWT_REFRESH_SECRET);
-
     // Generate Refresh Token
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
       expiresIn: "7d", // long-lived refresh token
     });
-
-    console.log("Refresh Token:", refreshToken);
-
-    console.log("NODE_ENV:", process.env.NODE_ENV);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Use secure cookies in production
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Use 'None' for production if cross-site, 'Lax' for development
     });
-    console.log("Refresh token set in cookie:", refreshToken);
 
     // Return Access Token
-    console.log("Sending response with access token");
+
     res.json({ success: true, accessToken });
   } catch (error) {
     console.error(error);
@@ -181,29 +172,22 @@ exports.getUserData = async (req, res) => {
 };
 
 exports.refreshAccessToken = async (req, res) => {
-  console.log("-------REFRESH TOKEN CALLED----------");
-  console.log("REQ COOKIES --- ", req.cookies);
-
   if (!req.cookies || !req.cookies.refreshToken) {
     console.log("No refresh token found in cookies");
     return res.status(403).json({ message: "No refresh token" });
   }
 
   const refreshToken = req.cookies.refreshToken;
-  console.log("Refresh Token from Cookie:", refreshToken);
 
   try {
-    console.log("ENV REFRESH SECRET", process.env.JWT_REFRESH_SECRET);
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    console.log("Refresh token decoded:", decoded);
+
     const payload = { userId: decoded.userId, email: decoded.email };
-    console.log("ENV ACCESS SECRET", process.env.JWT_ACCESS_SECRET);
 
     const newAccessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
       expiresIn: "1m",
     });
 
-    console.log("New access token generated:", newAccessToken);
     res.json({ success: true, accessToken: newAccessToken });
   } catch (error) {
     console.error("Error in refreshing token:", error);
