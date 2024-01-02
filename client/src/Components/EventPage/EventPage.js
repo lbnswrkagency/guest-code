@@ -176,288 +176,294 @@ const EventPage = ({ passedEventId }) => {
   };
 
   return (
-    <div className="event-page">
+    <div className="event-page-container">
+      <p className="smartphone-message">USE YOUR SMARTPHONE</p>
       <ToastContainer />
-
-      {isLoading ? (
-        <div className="event-page-loading">
-          <img src={logo_w} alt="Loading..." />
-          <p style={{ color: "white", marginTop: "20px" }}>
-            {loadingProgress}%
-          </p>{" "}
-        </div>
-      ) : event ? (
-        <>
-          <header className="event-page-header">
-            <div className="event-page-header-navigation">
-              <img
-                src={isNavVisible ? "./image/close.svg" : "./image/menu.svg"}
-                alt={isNavVisible ? "Close" : "Menu"}
-                className="event-page-header-navigation-burger"
-                onClick={toggleNav}
-              />
-              <img
-                src={logo_w}
-                alt=""
-                className="event-page-header-navigation-logo"
-              />
-              <img
-                src="./image/login.svg"
-                alt=""
-                className="event-page-header-navigation-login"
-                onClick={() => navigate("/login")}
-              />
-            </div>
-
-            <img
-              src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/%2301.png"
-              alt=""
-              className="event-page-header-image"
-            />
-
-            <div className="event-page-header-footer">
-              <div
-                className={`event-page-header-footer-hidden ${
-                  isHiddenVisible ? "visible" : ""
-                }`}
-              >
-                <div className="djs">
-                  <p className="djs-title">DJs</p>
-                  <div className="djs-single">
-                    <img
-                      src="./image/hulk.jpg"
-                      alt=""
-                      className="djs-single-image"
-                    />
-                    <p className="djs-single-name">Hulk</p>
-                  </div>
-                  <div className="djs-single">
-                    <img
-                      src="./image/hendricks.jpg"
-                      alt=""
-                      className="djs-single-image"
-                    />
-                    <p className="djs-single-name">Hendricks</p>
-                  </div>
-                  <div className="djs-single">
-                    <img
-                      src="./image/dimkay.jpg"
-                      alt=""
-                      className="djs-single-image"
-                    />
-                    <p className="djs-single-name">DIM KAY</p>
-                  </div>
-                </div>
-                <div className="mc">
-                  <p className="mc-title">MC</p>
-                  <div className="mc-single">
-                    <img
-                      src="./image/jfyah.jpg"
-                      alt=""
-                      className="mc-single-image"
-                    />
-                    <p className="mc-single-name">J Fyah</p>
-                  </div>
-                </div>
-              </div>
-              <div className="event-page-header-footer-lineup">
-                <svg className="event-page-header-footer-lineup-shadow"></svg>
-                <div>
-                  <h5 className="lineup-title">LINE UP</h5>
-                  <h4 className="lineup-event">Afro Spiti</h4>
-                  <p>SUN 14 JAN 2024</p>
-                </div>
+      <div className="event-page">
+        {isLoading ? (
+          <div className="event-page-loading">
+            <img src={logo_w} alt="Loading..." />
+            <p style={{ color: "white", marginTop: "20px" }}>
+              {loadingProgress}%
+            </p>{" "}
+          </div>
+        ) : event ? (
+          <>
+            <header className="event-page-header">
+              <div className="event-page-header-navigation">
                 <img
-                  src="./image/arrowup.svg"
+                  src={isNavVisible ? "./image/close.svg" : "./image/menu.svg"}
+                  alt={isNavVisible ? "Close" : "Menu"}
+                  className="event-page-header-navigation-burger"
+                  onClick={toggleNav}
+                />
+                <img
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
                   alt=""
-                  className={`event-page-header-footer-lineup-arrow ${
-                    isHiddenVisible ? "rotated" : ""
-                  }`}
-                  onClick={() => setIsHiddenVisible((prev) => !prev)}
+                  className="event-page-header-navigation-logo"
+                />
+                <img
+                  src="./image/login.svg"
+                  alt=""
+                  className="event-page-header-navigation-login"
+                  onClick={() => navigate("/login")}
                 />
               </div>
-              <div className="event-page-header-footer-buttons">
-                <button
-                  onClick={() =>
-                    guestCodeRef.current.scrollIntoView({ behavior: "smooth" })
-                  }
+
+              <img
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/%2301.png"
+                alt=""
+                className="event-page-header-image"
+              />
+
+              <div className="event-page-header-footer">
+                <div
+                  className={`event-page-header-footer-hidden ${
+                    isHiddenVisible ? "visible" : ""
+                  }`}
                 >
-                  Generate GuestCode
-                </button>
-                <p>for free entrance til midnight</p>
-              </div>
-            </div>
-            {isNavVisible && (
-              <div className="navigation-overlay">
-                <ul className="navigation-list">
-                  <li
-                    onClick={() => {
+                  <div className="djs">
+                    <p className="djs-title">DJs</p>
+                    <div className="djs-single">
+                      <img
+                        src="./image/hulk.jpg"
+                        alt=""
+                        className="djs-single-image"
+                      />
+                      <p className="djs-single-name">Hulk</p>
+                    </div>
+                    <div className="djs-single">
+                      <img
+                        src="./image/hendricks.jpg"
+                        alt=""
+                        className="djs-single-image"
+                      />
+                      <p className="djs-single-name">Hendricks</p>
+                    </div>
+                    <div className="djs-single">
+                      <img
+                        src="./image/dimkay.jpg"
+                        alt=""
+                        className="djs-single-image"
+                      />
+                      <p className="djs-single-name">DIM KAY</p>
+                    </div>
+                  </div>
+                  <div className="mc">
+                    <p className="mc-title">MC</p>
+                    <div className="mc-single">
+                      <img
+                        src="./image/jfyah.jpg"
+                        alt=""
+                        className="mc-single-image"
+                      />
+                      <p className="mc-single-name">J Fyah</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="event-page-header-footer-lineup">
+                  <svg className="event-page-header-footer-lineup-shadow"></svg>
+                  <div>
+                    <h5 className="lineup-title">LINE UP</h5>
+                    <h4 className="lineup-event">Afro Spiti</h4>
+                    <p>SUN 14 JAN 2024</p>
+                  </div>
+                  <img
+                    src="./image/arrowup.svg"
+                    alt=""
+                    className={`event-page-header-footer-lineup-arrow ${
+                      isHiddenVisible ? "rotated" : ""
+                    }`}
+                    onClick={() => setIsHiddenVisible((prev) => !prev)}
+                  />
+                </div>
+                <div className="event-page-header-footer-buttons">
+                  <button
+                    onClick={() =>
                       guestCodeRef.current.scrollIntoView({
                         behavior: "smooth",
-                      });
-                      setIsNavVisible(false); // Close the navigation overlay
-                    }}
+                      })
+                    }
                   >
-                    Guest Code
-                  </li>
-                  <li
-                    onClick={() => {
-                      dateRef.current.scrollIntoView({ behavior: "smooth" });
-                      setIsNavVisible(false); // Close the navigation overlay
-                    }}
-                  >
-                    Date & Time
-                  </li>
-                  <li
-                    onClick={() => {
-                      eventRef.current.scrollIntoView({ behavior: "smooth" });
-                      setIsNavVisible(false); // Close the navigation overlay
-                    }}
-                  >
-                    About Us
-                  </li>
-
-                  <li
-                    onClick={() => {
-                      locationRef.current.scrollIntoView({
-                        behavior: "smooth",
-                      });
-                      setIsNavVisible(false); // Close the navigation overlay
-                    }}
-                  >
-                    Location
-                  </li>
-                </ul>
+                    Generate GuestCode
+                  </button>
+                  <p>free entrance til midnight</p>
+                </div>
               </div>
-            )}
-            {/* <img src={qrCode} alt="" className="event-page-header-qr" /> */}
-          </header>
+              {isNavVisible && (
+                <div className="navigation-overlay">
+                  <ul className="navigation-list">
+                    <li
+                      onClick={() => {
+                        guestCodeRef.current.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                        setIsNavVisible(false); // Close the navigation overlay
+                      }}
+                    >
+                      Guest Code
+                    </li>
+                    <li
+                      onClick={() => {
+                        dateRef.current.scrollIntoView({ behavior: "smooth" });
+                        setIsNavVisible(false); // Close the navigation overlay
+                      }}
+                    >
+                      Date & Time
+                    </li>
+                    <li
+                      onClick={() => {
+                        eventRef.current.scrollIntoView({ behavior: "smooth" });
+                        setIsNavVisible(false); // Close the navigation overlay
+                      }}
+                    >
+                      About Us
+                    </li>
 
-          <div ref={dateRef} className="event-page-banner">
-            <h1 className="event-page-banner-title">Afro Spiti</h1>
-            <h3 className="event-page-banner-subtitle">
-              Athens home of Afrobeats.
-            </h3>
-            <p className="event-page-banner-info">
-              Sunday · 14.01.2024 · 10 PM
-            </p>
-            <div
-              className="event-page-banner-location"
-              onClick={copyAddressToClipboard}
-            >
-              <img src="./image/location.svg" alt="" />
-              <p>
-                <b>Baby Disco</b> · Dekeleon 26 · Athens 118 54
+                    <li
+                      onClick={() => {
+                        locationRef.current.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                        setIsNavVisible(false); // Close the navigation overlay
+                      }}
+                    >
+                      Location
+                    </li>
+                  </ul>
+                </div>
+              )}
+              {/* <img src={qrCode} alt="" className="event-page-header-qr" /> */}
+            </header>
+
+            <div ref={dateRef} className="event-page-banner">
+              <h1 className="event-page-banner-title">Afro Spiti</h1>
+              <h3 className="event-page-banner-subtitle">
+                Athens home of Afrobeats.
+              </h3>
+              <p className="event-page-banner-info">
+                Sunday · 14.01.2024 · 10 PM
+              </p>
+
+              <div
+                className="event-page-banner-location"
+                onClick={copyAddressToClipboard}
+              >
+                <img src="./image/location.svg" alt="" />
+
+                <p>
+                  <b>Baby Disco</b> · Dekeleon 26 · Athens 118 54
+                </p>
+              </div>
+            </div>
+
+            <div className="event-page-slider">
+              {isLoading ? (
+                <div>Loading...</div>
+              ) : (
+                <>
+                  <img
+                    src={tempCarouselImages[currentImageIndex]}
+                    alt={`Flyer ${currentImageIndex + 1}`}
+                    className="event-page-slider-carousel"
+                    style={{ opacity: imageOpacity }}
+                  />
+                </>
+              )}
+            </div>
+
+            {event.guestCode && (
+              <form
+                ref={guestCodeRef}
+                className="event-page-guestcode"
+                onSubmit={handleGuestCodeFormSubmit}
+              >
+                <h1 className="event-page-guestcode-title">GUEST CODE</h1>
+                <div className="event-page-guestcode-form">
+                  <p className="event-page-guestcode-condition">
+                    free entrance until midnight
+                  </p>
+                  <input
+                    type="text"
+                    className="event-page-guestcode-form-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Name"
+                    required
+                  />
+                  <input
+                    type="email"
+                    className="event-page-guestcode-form-email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email Address"
+                  />
+                </div>
+                <button type="submit" className="event-page-guestcode-button">
+                  Generate GuestCode
+                </button>
+              </form>
+            )}
+            <div ref={eventRef} className="event-page-info">
+              <h2 className="event-page-info-subtitle">EVENT</h2>
+              <h1 className="event-page-info-title">Afro Spiti</h1>
+              <img
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/eventinfo.png"
+                alt=""
+                className="event-page-info-image"
+              />
+              <p className="event-page-info-text">
+                Afro Spiti Athens – your go-to spot for the best Afro Dancehall
+                and Amapiano vibes in the city. We're the first to bring serious
+                Afro beats parties to Athens, and we know how to keep the dance
+                floor buzzing all night. It's more than just a party; it's where
+                you feel the beat, enjoy great food, and have a fantastic time
+                with friends. Come join us for a night of fun, dance to great
+                music, and make memories. At Afro Spiti Athens, every night is
+                about good vibes and great beats.
               </p>
             </div>
-          </div>
 
-          <div className="event-page-slider">
-            {isLoading ? (
-              <div>Loading...</div>
-            ) : (
-              <>
-                <img
-                  src={tempCarouselImages[currentImageIndex]}
-                  alt={`Flyer ${currentImageIndex + 1}`}
-                  className="event-page-slider-carousel"
-                  style={{ opacity: imageOpacity }}
-                />
-              </>
-            )}
-          </div>
+            <Instagram />
 
-          {event.guestCode && (
-            <form
-              ref={guestCodeRef}
-              className="event-page-guestcode"
-              onSubmit={handleGuestCodeFormSubmit}
-            >
-              <h1 className="event-page-guestcode-title">GUEST CODE</h1>
-              <div className="event-page-guestcode-form">
-                <p className="event-page-guestcode-condition">
-                  free entrance until midnight
-                </p>
-                <input
-                  type="text"
-                  className="event-page-guestcode-form-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
-                  required
-                />
-                <input
-                  type="email"
-                  className="event-page-guestcode-form-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email Address"
-                />
-              </div>
-              <button type="submit" className="event-page-guestcode-button">
-                Generate GuestCode
-              </button>
-            </form>
-          )}
-          <div ref={eventRef} className="event-page-info">
-            <h2 className="event-page-info-subtitle">EVENT</h2>
-            <h1 className="event-page-info-title">Afro Spiti</h1>
-            <img
-              src="https://guest-code.s3.eu-north-1.amazonaws.com/server/eventinfo.png"
-              alt=""
-              className="event-page-info-image"
-            />
-            <p className="event-page-info-text">
-              Afro Spiti Athens – your go-to spot for the best Afro Dancehall
-              and Amapiano vibes in the city. We're the first to bring serious
-              Afro beats parties to Athens, and we know how to keep the dance
-              floor buzzing all night. It's more than just a party; it's where
-              you feel the beat, enjoy great food, and have a fantastic time
-              with friends. Come join us for a night of fun, dance to great
-              music, and make memories. At Afro Spiti Athens, every night is
-              about good vibes and great beats.
-            </p>
-          </div>
+            <div ref={locationRef} className="event-page-location">
+              <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
+              <h1 className="event-page-location-title">BABY DISCO</h1>
+              <img
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BabyDisco_Spin.png"
+                alt=""
+                className="event-page-location-image"
+              />
 
-          <Instagram />
+              <span
+                style={{ cursor: "pointer" }}
+                onClick={() => copyAddressToClipboard(address)}
+                className="event-page-location-copy"
+              >
+                <p>click to copy</p>
+                <img src="./image/copy.svg" alt="" />
+                {address}
+              </span>
 
-          <div ref={locationRef} className="event-page-location">
-            <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
-            <h1 className="event-page-location-title">BABY DISCO</h1>
-            <img
-              src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BabyDisco_Spin.png"
-              alt=""
-              className="event-page-location-image"
-            />
+              <iframe
+                title="Event Location"
+                src={googleMapsUrl}
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+              ></iframe>
+            </div>
 
-            <span
-              style={{ cursor: "pointer" }}
-              onClick={() => copyAddressToClipboard(address)}
-              className="event-page-location-copy"
-            >
-              <p>click to copy</p>
-              <img src="./image/copy.svg" alt="" />
-              {address}
-            </span>
+            <Spotify />
 
-            <iframe
-              title="Event Location"
-              src={googleMapsUrl}
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-            ></iframe>
-          </div>
-
-          <Spotify />
-
-          <footer className="event-page__footer">
-            <img src={logo_w} alt="" />
-          </footer>
-        </>
-      ) : (
-        <p></p> // Placeholder for when event data is not available
-      )}
+            <footer className="event-page__footer">
+              <img src={logo_w} alt="" />
+            </footer>
+          </>
+        ) : (
+          <p></p> // Placeholder for when event data is not available
+        )}
+      </div>
     </div>
   );
 };

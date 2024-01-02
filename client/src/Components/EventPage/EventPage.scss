@@ -1,8 +1,24 @@
 @import "../../_variables";
 @import "../../_animations";
 
+.event-page-container {
+  .smartphone-message {
+    display: none;
+    @include mq(tablet) {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 15rem;
+    }
+  }
+}
+
 .event-page {
   display: grid;
+
+  @include mq(tablet) {
+    display: none;
+  }
 
   &-slider {
     height: 15rem;
