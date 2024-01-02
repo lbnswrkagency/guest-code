@@ -27,12 +27,22 @@ const EventPage = ({ passedEventId }) => {
   const [isHiddenVisible, setIsHiddenVisible] = useState(false);
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
+  const eventRef = useRef(null);
+  const socialRef = useRef(null);
+  const locationRef = useRef(null);
+  const spotifyRef = useRef(null);
+  const dateRef = useRef(null);
   const address = "Dekeleon 26, Athens 11854";
   const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(
     address
   )}&output=embed`;
 
   const [copied, setCopied] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(false);
+
+  const toggleNav = () => {
+    setIsNavVisible(!isNavVisible);
+  };
 
   const copyAddressToClipboard = async (text) => {
     try {
@@ -181,6 +191,12 @@ const EventPage = ({ passedEventId }) => {
           <header className="event-page-header">
             <div className="event-page-header-navigation">
               <img
+                src={isNavVisible ? "./image/close.svg" : "./image/menu.svg"}
+                alt={isNavVisible ? "Close" : "Menu"}
+                className="event-page-header-navigation-burger"
+                onClick={toggleNav}
+              />
+              <img
                 src={logo_w}
                 alt=""
                 className="event-page-header-navigation-logo"
@@ -188,7 +204,7 @@ const EventPage = ({ passedEventId }) => {
               <img
                 src="./image/login.svg"
                 alt=""
-                className="event-page-header-navigation-burger"
+                className="event-page-header-navigation-login"
                 onClick={() => navigate("/login")}
               />
             </div>
@@ -271,11 +287,53 @@ const EventPage = ({ passedEventId }) => {
                 <p>for free entrance til midnight</p>
               </div>
             </div>
+            {isNavVisible && (
+              <div className="navigation-overlay">
+                <ul className="navigation-list">
+                  <li
+                    onClick={() => {
+                      guestCodeRef.current.scrollIntoView({
+                        behavior: "smooth",
+                      });
+                      setIsNavVisible(false); // Close the navigation overlay
+                    }}
+                  >
+                    Guest Code
+                  </li>
+                  <li
+                    onClick={() => {
+                      dateRef.current.scrollIntoView({ behavior: "smooth" });
+                      setIsNavVisible(false); // Close the navigation overlay
+                    }}
+                  >
+                    Date & Time
+                  </li>
+                  <li
+                    onClick={() => {
+                      eventRef.current.scrollIntoView({ behavior: "smooth" });
+                      setIsNavVisible(false); // Close the navigation overlay
+                    }}
+                  >
+                    About Us
+                  </li>
 
+                  <li
+                    onClick={() => {
+                      locationRef.current.scrollIntoView({
+                        behavior: "smooth",
+                      });
+                      setIsNavVisible(false); // Close the navigation overlay
+                    }}
+                  >
+                    Location
+                  </li>
+                </ul>
+              </div>
+            )}
             {/* <img src={qrCode} alt="" className="event-page-header-qr" /> */}
           </header>
 
-          <div className="event-page-banner">
+          <div ref={dateRef} className="event-page-banner">
             <h1 className="event-page-banner-title">Afro Spiti</h1>
             <h3 className="event-page-banner-subtitle">
               Athens home of Afrobeats.
@@ -341,7 +399,7 @@ const EventPage = ({ passedEventId }) => {
               </button>
             </form>
           )}
-          <div className="event-page-info">
+          <div ref={eventRef} className="event-page-info">
             <h2 className="event-page-info-subtitle">EVENT</h2>
             <h1 className="event-page-info-title">Afro Spiti</h1>
             <img
@@ -363,7 +421,7 @@ const EventPage = ({ passedEventId }) => {
 
           <Instagram />
 
-          <div className="event-page-location">
+          <div ref={locationRef} className="event-page-location">
             <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
             <h1 className="event-page-location-title">BABY DISCO</h1>
             <img
