@@ -4,7 +4,7 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "./Scanner.scss";
 
-function Scanner() {
+function Scanner({ onClose }) {
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(true);
@@ -118,6 +118,9 @@ function Scanner() {
 
   return (
     <div className="scanner">
+      <div className="login-back-arrow" onClick={onClose}>
+        ← Back
+      </div>
       <img
         className="scanner-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"

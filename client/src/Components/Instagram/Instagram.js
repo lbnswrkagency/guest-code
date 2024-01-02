@@ -6,26 +6,29 @@ function Instagram() {
     window.open("https://www.instagram.com/afrospiti/", "_blank");
   };
 
+  const handleTikTokClick = () => {
+    window.open("https://www.tiktok.com/@afrospiti/", "_blank");
+  };
+
   return (
     <div className="instagram">
-      <div className="instagram-container">
-        <h1 className="instagram-container-title">@AFROSPITI</h1>
-        <img
-          src="https://guest-code.s3.eu-north-1.amazonaws.com/server/instagram.svg"
-          alt="Instagram Icon"
-          className="instagram-container-svg"
-        />
-        <p className="instagram-container-text">
-          This Sunday, every Sunday.
-          <br />
-          Afro Beats & Bites.
-          <br />8 PM
-        </p>
+      <h1 className="instagram-title">@AFROSPITI</h1>
+      <img
+        src="./image/ig.svg"
+        alt="Instagram Icon"
+        className="instagram-image"
+      />
+      <div className="instagram-button">
         <button
-          className="instagram-container-button"
+          className="instagram-button-instagram"
           onClick={handleInstagramClick}
         >
-          FOLLOW US ON INSTAGRAM
+          <img src="./image/ig_button.svg" alt="" />
+          Follow on Instagram
+        </button>
+        <button className="instagram-button-tiktok" onClick={handleTikTokClick}>
+          <img src="./image/tiktok_button.svg" alt="" />
+          Follow on TikTok
         </button>
       </div>
     </div>

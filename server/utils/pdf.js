@@ -216,11 +216,11 @@ const createTicketPDF = async (
       }
 
       .qrcode-text > h2 {
-        font-size: 40px;
+        font-size: 25px;
       }
 
       .qrcode-text > p {
-        font-size: 30px;
+        font-size: 15px;
       }
 
 
@@ -246,7 +246,7 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Every Sunday</p>
+          <p>Sunday, 14.01.2024</p>
         </div>
 
         <div class="event-beats">
@@ -256,17 +256,17 @@ const createTicketPDF = async (
 
         <div class="event-bites">
           <h3>Bites</h3>
-          <p>Chicken Wings<br/>Meat Pie</p>
+          <p>Chicken &<br/>Waffles</p>
         </div>
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>8 PM</p>
+          <p>10 PM</p>
         </div>
 
         <div class="event-location">
           <h3>Location</h3>
-          <p>Bardeau Bar<br />Navarchou Apostoli 6<br />Psiri, Athens<br /></p>
+          <p>Baby Disco<br />Dekeleon 26<br />Gazi, Athens<br /></p>
         </div>
         <svg
           width="248"
@@ -288,9 +288,8 @@ const createTicketPDF = async (
 
       <div class="qrcode">
         <div class="qrcode-text">
-          <h2>BUY 1 GET 2</h3>
-            <p>ANY DRINK</p>
-            <p>UNTIL 10PM</p>
+          <h2>FREE ENTRANCE</h3>
+          <p>UNTIL MIDNIGHT</p>
         </div>
 
         <div class="qrcode-data">
