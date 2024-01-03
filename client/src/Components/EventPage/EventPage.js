@@ -414,13 +414,12 @@ const EventPage = ({ passedEventId }) => {
               />
               <p className="event-page-info-text">
                 Afro Spiti Athens – your go-to spot for the best Afro Dancehall
-                and Amapiano vibes in the city. We're the first to bring serious
-                Afro beats parties to Athens, and we know how to keep the dance
-                floor buzzing all night. It's more than just a party; it's where
-                you feel the beat, enjoy great food, and have a fantastic time
-                with friends. Come join us for a night of fun, dance to great
-                music, and make memories. At Afro Spiti Athens, every night is
-                about good vibes and great beats.
+                and Amapiano vibes in the city, and we know how to keep the
+                dance floor buzzing all night. It's more than just a party; it's
+                where you feel the beat, enjoy great food, and have a fantastic
+                time with friends. Come join us for a night of fun, dance to
+                great music, and make memories. At Afro Spiti Athens, every
+                night is about good vibes and great beats.
               </p>
             </div>
 
