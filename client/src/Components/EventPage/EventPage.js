@@ -25,6 +25,10 @@ const EventPage = ({ passedEventId }) => {
   const [nextImageIndex, setNextImageIndex] = useState(1);
   const [imageOpacity, setImageOpacity] = useState(1);
   const [isHiddenVisible, setIsHiddenVisible] = useState(false);
+
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [areImagesLoaded, setAreImagesLoaded] = useState(false);
+
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
   const eventRef = useRef(null);
@@ -70,8 +74,10 @@ const EventPage = ({ passedEventId }) => {
       try {
         const response = await getEventByLink(eventLink);
         setEvent(response.event);
+        setIsDataLoaded(true); // Set data loaded to true
       } catch (error) {
         console.error("Error fetching event:", error);
+        setIsDataLoaded(true); // Consider setting true on error to stop loading, or handle differently
       }
     };
 
@@ -82,27 +88,14 @@ const EventPage = ({ passedEventId }) => {
     let loadedImages = 0;
     let isComponentMounted = true;
 
-    const imageChangeInterval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-      );
-      setNextImageIndex((prevIndex) =>
-        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 5000);
-
     tempCarouselImages.forEach((src) => {
       const img = new Image();
       img.src = src;
       img.onload = () => {
         if (isComponentMounted) {
           loadedImages++;
-          const progress = Math.round(
-            (loadedImages / tempCarouselImages.length) * 100
-          );
-          setLoadingProgress(progress);
           if (loadedImages === tempCarouselImages.length) {
-            setIsLoading(false);
+            setAreImagesLoaded(true); // Set images loaded to true
           }
         }
       };
@@ -110,9 +103,14 @@ const EventPage = ({ passedEventId }) => {
 
     return () => {
       isComponentMounted = false;
-      clearInterval(imageChangeInterval); // Clear interval on component unmount
     };
   }, [tempCarouselImages.length]);
+
+  useEffect(() => {
+    if (areImagesLoaded && isDataLoaded) {
+      setIsLoading(false);
+    }
+  }, [areImagesLoaded, isDataLoaded]);
 
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
