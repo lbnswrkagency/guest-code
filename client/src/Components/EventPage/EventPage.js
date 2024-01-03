@@ -277,6 +277,7 @@ const EventPage = ({ passedEventId }) => {
                 </div>
                 <div className="event-page-header-footer-buttons">
                   <button
+                    className="button-class-bug"
                     onClick={() =>
                       guestCodeRef.current.scrollIntoView({
                         behavior: "smooth",
