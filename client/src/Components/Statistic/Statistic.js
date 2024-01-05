@@ -1,13 +1,21 @@
 import React from "react";
 import "./Statistic.scss";
+import moment from "moment";
 
-function Statistic({ counts, onClose }) {
+function Statistic({ counts, onClose, currentWeek, onPrevWeek, onNextWeek }) {
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
         ← Back
       </div>
+
       <div className="statistic-count">
+        <div className="statistic-navigation">
+          <button onClick={onPrevWeek}>Previous</button>
+          <span>{currentWeek.format("DD MMM YYYY")}</span>{" "}
+          {/* Displaying the current week's Sunday */}
+          <button onClick={onNextWeek}>Next</button>
+        </div>
         <h2>FriendsCodes</h2>
         {counts.friendsCounts.map((count) => (
           <div key={count._id} className="statistic-count-each">

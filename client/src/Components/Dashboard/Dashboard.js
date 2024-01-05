@@ -9,6 +9,7 @@ import FriendsCode from "../FriendsCode/FriendsCode";
 import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
+import moment from "moment";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -22,6 +23,35 @@ const Dashboard = () => {
   });
 
   const navigate = useNavigate();
+  const [currentWeek, setCurrentWeek] = useState(moment().startOf("week")); // Change to 'week'
+
+  useEffect(() => {
+    fetchCountsForWeek(currentWeek);
+  }, [currentWeek]);
+
+  const fetchCountsForWeek = (week) => {
+    const startDate = week.format("YYYY-MM-DD");
+    const endDate = week.clone().endOf("isoWeek").format("YYYY-MM-DD");
+
+    axios
+      .get(`${process.env.REACT_APP_API_BASE_URL}/qr/counts`, {
+        params: { startDate, endDate },
+      })
+      .then((response) => {
+        // Handle response
+      })
+      .catch((error) => {
+        console.error("Error fetching counts", error);
+      });
+  };
+
+  const handlePrevWeek = () => {
+    setCurrentWeek((prev) => prev.clone().subtract(1, "weeks"));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeek((prev) => prev.clone().add(1, "weeks"));
+  };
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -64,9 +94,11 @@ const Dashboard = () => {
   if (showStatistic) {
     return (
       <Statistic
-        user={user}
         counts={counts}
         onClose={() => setShowStatistic(false)}
+        currentWeek={currentWeek}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
       />
     );
   }

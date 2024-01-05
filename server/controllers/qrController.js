@@ -81,25 +81,38 @@ const decreasePax = async (req, res) => {
 };
 
 const getCounts = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
   try {
-    // Aggregate to count total and used FriendsCodes by host
+    // Define the match condition based on the provided dates
+    const matchCondition = {};
+    if (startDate && endDate) {
+      matchCondition.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    // Aggregate FriendsCodes with the match condition
     const friendsCounts = await FriendsCode.aggregate([
+      { $match: matchCondition },
       {
         $group: {
-          _id: "$host", // Group by host
-          total: { $sum: 1 }, // Count total FriendsCodes
-          used: { $sum: { $cond: [{ $gt: ["$paxChecked", 0] }, 1, 0] } }, // Count used FriendsCodes (assuming paxChecked > 0 means used)
+          _id: "$host",
+          total: { $sum: 1 },
+          used: { $sum: { $cond: [{ $gt: ["$paxChecked", 0] }, 1, 0] } },
         },
       },
     ]);
 
-    // Aggregate to count total and used GuestCodes
+    // Aggregate GuestCodes with the match condition
     const guestCounts = await GuestCode.aggregate([
+      { $match: matchCondition },
       {
         $group: {
           _id: null,
           total: { $sum: 1 },
-          used: { $sum: "$paxChecked" }, // Sum of paxChecked field
+          used: { $sum: "$paxChecked" },
         },
       },
     ]);
