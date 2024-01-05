@@ -93,15 +93,16 @@ exports.login = async (req, res) => {
   }
 
   const { identifier, password } = req.body;
-
   try {
     let user;
     if (identifier.includes("@")) {
-      user = await User.findOne({ email: identifier });
+      user = await User.findOne({ email: identifier.toLowerCase() });
     } else {
-      user = await User.findOne({ name: identifier }); // Assuming 'name' is the username field in your User model
+      // Convert both inputted username and stored username to lower case
+      user = await User.findOne({
+        name: { $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i") },
+      });
     }
-
     if (!user) {
       return res
         .status(404)

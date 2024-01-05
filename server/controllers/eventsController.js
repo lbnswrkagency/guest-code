@@ -217,6 +217,9 @@ exports.updateGuestCodeCondition = async (req, res) => {
   const eventId = req.params.eventId;
   const updatedGuestCodeCondition = req.body.guestCodeCondition;
 
+  console.log("EVENT ID", eventId);
+  console.log("BODY", req.body);
+
   // Validate the received data
   if (!eventId || !updatedGuestCodeCondition) {
     return res.status(400).json({

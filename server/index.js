@@ -24,7 +24,7 @@ const corsOptions = {
     "https://afrospiti.com",
     "https://www.afrospiti.com",
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Include 'PATCH' here
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };

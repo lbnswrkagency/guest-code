@@ -11,9 +11,9 @@ function Statistic({ counts, onClose }) {
         <h2>FriendsCodes</h2>
         {counts.friendsCounts.map((count) => (
           <div key={count._id} className="statistic-count-each">
-            {" "}
             <p className="statistic-count-each-name">{count._id}</p>
-            <p className="statistic-count-each-number">{count.total}</p>
+            <p className="statistic-count-each-number">Total: {count.total}</p>
+            <p className="statistic-count-each-used">Used: {count.used}</p>
           </div>
         ))}
         <h2>GuestCodes</h2>

@@ -82,16 +82,24 @@ const decreasePax = async (req, res) => {
 
 const getCounts = async (req, res) => {
   try {
+    // Aggregate to count total and used FriendsCodes by host
     const friendsCounts = await FriendsCode.aggregate([
-      { $group: { _id: "$host", total: { $sum: 1 } } },
+      {
+        $group: {
+          _id: "$host", // Group by host
+          total: { $sum: 1 }, // Count total FriendsCodes
+          used: { $sum: { $cond: [{ $gt: ["$paxChecked", 0] }, 1, 0] } }, // Count used FriendsCodes (assuming paxChecked > 0 means used)
+        },
+      },
     ]);
 
+    // Aggregate to count total and used GuestCodes
     const guestCounts = await GuestCode.aggregate([
       {
         $group: {
           _id: null,
           total: { $sum: 1 },
-          used: { $sum: "$paxChecked" },
+          used: { $sum: "$paxChecked" }, // Sum of paxChecked field
         },
       },
     ]);
@@ -101,6 +109,7 @@ const getCounts = async (req, res) => {
       guestCounts: guestCounts[0] || { total: 0, used: 0 },
     });
   } catch (error) {
+    console.error("Error fetching counts", error);
     res.status(500).json({ message: error.message });
   }
 };
