@@ -595,12 +595,53 @@
     padding-bottom: 2rem;
     font-weight: 600;
     font-style: italic;
+    justify-content: center !important;
+    justify-items: center !important;
+
+    &-button {
+      position: relative;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      justify-self: center;
+      align-self: center;
+
+      width: 100%;
+
+      button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        border-radius: 5px;
+        width: 100%;
+        padding: 16px 32px;
+        backdrop-filter: blur(8px);
+        border: none;
+        font-family: Manrope;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: normal;
+        color: #fff;
+      }
+
+      &-instagram {
+        background: linear-gradient(180deg, #bc3081 0%, #654c9f 100%);
+      }
+
+      &-tiktok {
+        background: linear-gradient(180deg, #00f2ea 0%, #ff0050 100%);
+        margin-top: 0.5rem;
+      }
+    }
 
     &-copy {
       @include grid(2);
       align-items: center;
       grid-gap: 0.5rem;
       position: relative;
+
       img {
         width: 2rem;
       }
@@ -608,7 +649,7 @@
       p {
         position: absolute;
         top: -1.25rem;
-        left: 0.25rem;
+        left: -1rem;
         font-weight: 300;
         font-size: 0.75rem;
         animation: pulse 2s infinite ease-in-out;
@@ -616,7 +657,8 @@
     }
 
     iframe {
-      margin-top: 1rem;
+      width: 100%;
+      background-color: red;
     }
   }
 }

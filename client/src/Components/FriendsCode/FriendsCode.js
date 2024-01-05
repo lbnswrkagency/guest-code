@@ -62,12 +62,12 @@ function FriendsCode({ user, onClose }) {
       />
       <h1 className="friendscode-title">Invite your Friends!</h1>
       <p className="friendscode-description">
-        with this Friends Code you get free entrance until midnight.
+        with this Friends Code you get free entrance ALL NIGHT.
       </p>
 
       <div className="friendscode-admin">
         <h1>Friends-Code</h1>
-        <p>FREE ENTRANCE UNTIL MIDNIGHT</p>
+        <p>FREE ENTRANCE ALL NIGHT</p>
 
         <input
           className="friendscode-name"

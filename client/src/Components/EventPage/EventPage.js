@@ -48,6 +48,10 @@ const EventPage = ({ passedEventId }) => {
     setIsNavVisible(!isNavVisible);
   };
 
+  const handleInstagramClick = () => {
+    window.open("https://www.instagram.com/babydisco24/", "_blank");
+  };
+
   const copyAddressToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -442,13 +446,23 @@ const EventPage = ({ passedEventId }) => {
                 {address}
               </span>
 
-              <iframe
+              <div className="event-page-location-button">
+                <button
+                  className="event-page-location-button-instagram"
+                  onClick={handleInstagramClick}
+                >
+                  <img src="./image/ig_button.svg" alt="" />
+                  Follow on Instagram
+                </button>
+              </div>
+
+              {/* <iframe
                 title="Event Location"
                 src={googleMapsUrl}
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
-              ></iframe>
+              ></iframe> */}
             </div>
 
             <Spotify />
