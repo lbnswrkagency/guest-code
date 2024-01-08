@@ -36,6 +36,8 @@ const EventPage = ({ passedEventId }) => {
   const guestCodeRef = useRef(null);
   const eventRef = useRef(null);
 
+  const contactRef = useRef(null);
+  const explainRef = useRef(null);
   const locationRef = useRef(null);
 
   const dateRef = useRef(null);
@@ -359,6 +361,7 @@ const EventPage = ({ passedEventId }) => {
                     >
                       Guest Code
                     </li>
+
                     <li
                       onClick={() => {
                         dateRef.current.scrollIntoView({ behavior: "smooth" });
@@ -385,6 +388,16 @@ const EventPage = ({ passedEventId }) => {
                       }}
                     >
                       Location
+                    </li>
+                    <li
+                      onClick={() => {
+                        contactRef.current.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                        setIsNavVisible(false); // Close the navigation overlay
+                      }}
+                    >
+                      Contact
                     </li>
                   </ul>
                 </div>
@@ -523,7 +536,7 @@ const EventPage = ({ passedEventId }) => {
 
             <Spotify />
 
-            <div className="event-page-contact">
+            <div className="event-page-contact" ref={contactRef}>
               <h2 className="event-page-contact-title">Contact Us</h2>
               <h4 className="event-page-contact-subtitle">Support</h4>
               <form
