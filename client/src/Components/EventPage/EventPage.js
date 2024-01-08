@@ -8,9 +8,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import logo_w from "./carousel/logo_w.svg";
-import qrCode from "./carousel/qrCode.svg";
 import Spotify from "../Spotify/Spotify";
 import Instagram from "../Instagram/Instagram";
+import Explain from "../Explain/Explain";
 
 const EventPage = ({ passedEventId }) => {
   const location = useLocation();
@@ -28,13 +28,16 @@ const EventPage = ({ passedEventId }) => {
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [areImagesLoaded, setAreImagesLoaded] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
 
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
   const eventRef = useRef(null);
-  const socialRef = useRef(null);
+
   const locationRef = useRef(null);
-  const spotifyRef = useRef(null);
+
   const dateRef = useRef(null);
   const address = "Dekeleon 26, Athens 11854";
   const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(
@@ -65,7 +68,7 @@ const EventPage = ({ passedEventId }) => {
   };
 
   const s3ImageUrls = Array.from(
-    { length: 20 },
+    { length: 10 },
     (_, i) =>
       `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
         i + 1
@@ -87,6 +90,16 @@ const EventPage = ({ passedEventId }) => {
 
     fetchEvent();
   }, [eventLink]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [tempCarouselImages.length]);
 
   useEffect(() => {
     let loadedImages = 0;
@@ -174,6 +187,47 @@ const EventPage = ({ passedEventId }) => {
           autoClose: 5000,
         });
       }
+    }
+  };
+
+  const handleContactFormSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!contactEmail || !contactName || !contactMessage) {
+      toast.warn("Please fill in all fields.");
+      return;
+    }
+
+    const loadingToastId = toast.loading("Sending Message...");
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/contact/send`,
+        {
+          name: contactName,
+          email: contactEmail,
+          message: contactMessage,
+        }
+      );
+
+      toast.update(loadingToastId, {
+        render: response.data.message,
+        type: toast.TYPE.SUCCESS,
+        isLoading: false,
+        autoClose: 5000,
+      });
+
+      setContactName("");
+      setContactEmail("");
+      setContactMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.update(loadingToastId, {
+        render: "Failed to send message. Please try again later.",
+        type: toast.TYPE.ERROR,
+        isLoading: false,
+        autoClose: 5000,
+      });
     }
   };
 
@@ -359,6 +413,8 @@ const EventPage = ({ passedEventId }) => {
               </div>
             </div>
 
+            <Explain />
+
             <div className="event-page-slider">
               {isLoading ? (
                 <div>Loading...</div>
@@ -466,6 +522,37 @@ const EventPage = ({ passedEventId }) => {
             </div>
 
             <Spotify />
+
+            <div className="event-page-contact">
+              <h2 className="event-page-contact-title">Contact Us</h2>
+              <h4 className="event-page-contact-subtitle">Support</h4>
+              <form
+                className="event-page-contact-form"
+                onSubmit={handleContactFormSubmit}
+              >
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="Name"
+                  required
+                />
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="E-Mail"
+                  required
+                />
+                <textarea
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="Message"
+                  required
+                />
+                <button type="submit">Send</button>
+              </form>
+            </div>
 
             <footer className="event-page__footer">
               <img src={logo_w} alt="" />

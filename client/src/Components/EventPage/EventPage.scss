@@ -661,6 +661,76 @@
       background-color: red;
     }
   }
+
+  &-contact {
+    padding: 2rem;
+
+    &-title {
+      color: #fff;
+      font-family: Manrope;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 20px; /* 142.857% */
+      letter-spacing: 4.2px;
+      text-transform: uppercase;
+    }
+
+    &-subtitle {
+      color: #fff;
+      font-family: Manrope;
+      font-size: 30px;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 40px;
+      margin-bottom: 1rem;
+    }
+
+    &-form {
+      @include grid-row(4);
+      grid-gap: 0.5rem;
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 1rem 2rem;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+
+        border: 1px solid #fff;
+        background: rgba(0, 0, 0, 0.5);
+
+        &::placeholder {
+          color: #fff;
+          font-family: Manrope;
+          text-align: center;
+          font-style: normal;
+          font-weight: 700;
+          line-height: normal;
+        }
+      }
+
+      button {
+        border-radius: 5px;
+        background: #fff;
+        backdrop-filter: blur(8px);
+        height: 3rem;
+        color: #000;
+        font-family: Manrope;
+        font-size: 16px;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        color: #000;
+        font-family: Manrope;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: normal;
+        text-align: center;
+      }
+    }
+  }
 }
 
 @keyframes pulse {
