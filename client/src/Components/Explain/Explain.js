@@ -21,7 +21,7 @@ function Explain() {
             <img src="./image/qrcode.svg" alt="" />
           </div>
           <div className="explain-more-bullet">
-            <p>Scan it at the Entrance</p>
+            <p>Scan at Entrance</p>
             <img src="./image/scan.svg" alt="" />
           </div>
           <div className="explain-more-bullet">
