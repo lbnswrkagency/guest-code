@@ -8,10 +8,6 @@ const fetchAllTracks = async (url, accessToken, allTracks = []) => {
     const tracks = response.data.items;
     allTracks.push(...tracks);
 
-    console.log(
-      `Fetched ${tracks.length} tracks. Total so far: ${allTracks.length}`
-    );
-
     if (response.data.next) {
       return fetchAllTracks(response.data.next, accessToken, allTracks);
     }
@@ -49,18 +45,11 @@ exports.getSpotifyPlaylist = async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    console.log(
-      "Initial fetch successful. Total tracks in first fetch: ",
-      playlistResponse.data.items.length
-    );
-
     // Fetch all tracks
     const allTracks = await fetchAllTracks(
       playlistResponse.data.href,
       accessToken
     );
-
-    console.log("Total tracks fetched: ", allTracks.length);
 
     res.json({ items: allTracks });
   } catch (error) {

@@ -2,7 +2,7 @@
 @import "../../_animations";
 
 .spotify {
-  padding: 2rem;
+  padding: 1rem;
   background-color: #232323;
   position: relative;
   color: white;
@@ -11,6 +11,8 @@
   display: grid;
   justify-content: center;
   justify-items: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 
   &-image {
     position: absolute;

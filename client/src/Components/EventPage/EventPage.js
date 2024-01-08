@@ -475,23 +475,26 @@ const EventPage = ({ passedEventId }) => {
                 </button>
               </form>
             )}
+
             <div ref={eventRef} className="event-page-info">
-              <h2 className="event-page-info-subtitle">EVENT</h2>
-              <h1 className="event-page-info-title">Afro Spiti</h1>
-              <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/eventinfo.png"
-                alt=""
-                className="event-page-info-image"
-              />
-              <p className="event-page-info-text">
-                Afro Spiti Athens – your go-to spot for the best Afro Dancehall
-                and Amapiano vibes in the city, and we know how to keep the
-                dance floor buzzing all night. It's more than just a party; it's
-                where you feel the beat, enjoy great food, and have a fantastic
-                time with friends. Come join us for a night of fun, dance to
-                great music, and make memories. At Afro Spiti Athens, every
-                night is about good vibes and great beats.
-              </p>
+              <div className="event-page-info-wrapper">
+                <h2 className="event-page-info-subtitle">EVENT</h2>
+                <h1 className="event-page-info-title">Afro Spiti</h1>
+                <img
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/eventinfo.png"
+                  alt=""
+                  className="event-page-info-image"
+                />
+                <p className="event-page-info-text">
+                  Afro Spiti Athens – your go-to spot for the best Afro
+                  Dancehall and Amapiano vibes in the city, and we know how to
+                  keep the dance floor buzzing all night. It's more than just a
+                  party; it's where you feel the beat, enjoy great food, and
+                  have a fantastic time with friends. Come join us for a night
+                  of fun, dance to great music, and make memories. At Afro Spiti
+                  Athens, every night is about good vibes and great beats.
+                </p>
+              </div>
             </div>
 
             <Instagram />
