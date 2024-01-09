@@ -45,7 +45,7 @@ const Spotify = () => {
   return (
     <section className="spotify">
       <h1 className="spotify-header">@AFROSPITI</h1>
-      <img className="spotify-image" src="./image/spotify.svg" alt="" />
+      <img className="spotify-image" src="./image/spotify_b.svg" alt="" />
 
       <div className="spotify-playlist">
         <a

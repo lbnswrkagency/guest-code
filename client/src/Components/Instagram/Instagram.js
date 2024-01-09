@@ -24,11 +24,13 @@ function Instagram() {
           onClick={handleInstagramClick}
         >
           <img src="./image/ig_button.svg" alt="" />
-          Follow on Instagram
+
+          <p> Follow on Instagram </p>
         </button>
         <button className="instagram-button-tiktok" onClick={handleTikTokClick}>
           <img src="./image/tiktok_button.svg" alt="" />
-          Follow on TikTok
+
+          <p> Follow on TikTok</p>
         </button>
       </div>
     </div>

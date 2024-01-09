@@ -42,9 +42,7 @@ const EventPage = ({ passedEventId }) => {
 
   const dateRef = useRef(null);
   const address = "Dekeleon 26, Athens 11854";
-  const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(
-    address
-  )}`;
+  const googleMapsUrl = `geo:0,0?q=${encodeURIComponent(address)}`;
 
   const [copied, setCopied] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(false);
