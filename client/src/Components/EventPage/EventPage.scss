@@ -76,7 +76,7 @@
     &-subtitle {
       color: #fff;
       font-family: Manrope;
-      font-size: 16px;
+      font-size: 1rem;
       font-style: normal;
       font-weight: 500;
       margin-bottom: 1rem;
@@ -84,7 +84,7 @@
 
     &-info {
       font-family: Manrope;
-      font-size: 16px;
+      font-size: 1rem;
       font-style: normal;
       font-weight: 500;
       line-height: 24px;
@@ -234,13 +234,14 @@
           height: 3rem;
           color: #000;
           font-family: Manrope;
-          font-size: 16px;
+          font-size: 1rem;
           font-style: normal;
           font-weight: 700;
           line-height: normal;
           background-color: #fff;
-          border: 1px solid #fff;
+          border: 2px solid #fff;
           margin-top: 1rem;
+          border-radius: 5px;
         }
 
         p {
@@ -419,7 +420,7 @@
         align-items: center;
         color: #fff;
         border-radius: 5px;
-        border: 1px solid #fff;
+        border: 2px solid #fff;
         background: rgba(0, 0, 0, 0.5);
 
         @include mq(phone) {
@@ -445,7 +446,7 @@
           font-style: normal;
           font-weight: 700;
           line-height: normal;
-
+          font-size: 1rem;
           @include mq(phone) {
             font-size: 0.6rem;
           }
@@ -507,12 +508,12 @@
       height: 3rem;
       color: #000;
       font-family: Manrope;
-      font-size: 16px;
+      font-size: 1rem;
       font-style: normal;
       font-weight: 700;
       line-height: normal;
       background-color: #fff;
-      border: 1px solid #fff;
+      border: 2px solid #fff;
       margin-top: 1rem;
       border-radius: 5px;
       @include mq(phone) {
@@ -593,7 +594,7 @@
 
     &-text {
       font-family: Manrope;
-      font-size: 16px;
+      font-size: 1rem;
       font-style: normal;
       font-weight: 500;
       line-height: 24px;
@@ -601,74 +602,86 @@
   }
 
   &-location {
-    display: grid;
     padding-bottom: 2rem;
     font-weight: 600;
     font-style: italic;
-    justify-content: center !important;
-    justify-items: center !important;
+    display: grid;
+    width: 100%;
+
+    &-image {
+      justify-self: center;
+      width: 80%;
+    }
 
     &-button {
-      position: relative;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
       justify-self: center;
       align-self: center;
-
+      margin-top: 1rem;
       width: 100%;
 
       button {
-        display: flex;
+        display: grid;
+        grid-template-columns: 0.1fr 0.9fr;
         align-items: center;
-        justify-content: center;
         gap: 1rem;
         border-radius: 5px;
         width: 100%;
-        padding: 16px 32px;
+        height: 3.5rem;
         backdrop-filter: blur(8px);
         border: none;
         font-family: Manrope;
-        font-size: 16px;
+        font-size: 1rem;
         font-style: normal;
         font-weight: 700;
         line-height: normal;
         color: #fff;
+        padding-left: 0.75rem;
       }
 
       &-instagram {
-        background: linear-gradient(180deg, #bc3081 0%, #654c9f 100%);
+        background: none;
+
+        img {
+          justify-self: center;
+        }
+
+        p {
+          color: #fff;
+          font-family: Manrope;
+          font-size: 1rem;
+          font-style: normal;
+          font-weight: 700;
+          line-height: 1.5rem;
+          text-align: left;
+        }
+      }
+
+      &-maps {
+        align-items: center;
+
+        position: relative;
+        border: none;
+        width: 100%;
+        justify-content: center;
+        border-radius: 5px;
+        background: #fff;
+        backdrop-filter: blur(8px);
+
+        p {
+          color: #000;
+          font-family: Manrope;
+          font-size: 1rem;
+          font-style: normal;
+          font-weight: 700;
+          line-height: 24px;
+          text-align: left;
+        }
       }
 
       &-tiktok {
         background: linear-gradient(180deg, #00f2ea 0%, #ff0050 100%);
         margin-top: 0.5rem;
       }
-    }
-
-    &-copy {
-      @include grid(2);
-      align-items: center;
-      grid-gap: 0.5rem;
-      position: relative;
-
-      img {
-        width: 2rem;
-      }
-
-      p {
-        position: absolute;
-        top: -1.25rem;
-        left: -1rem;
-        font-weight: 300;
-        font-size: 0.75rem;
-        animation: pulse 2s infinite ease-in-out;
-      }
-    }
-
-    iframe {
-      width: 100%;
-      background-color: red;
     }
   }
 
@@ -707,8 +720,8 @@
         justify-content: center;
         align-items: center;
         color: #fff;
-
-        border: 1px solid #fff;
+        border-radius: 5px;
+        border: 2px solid #fff;
         background: rgba(0, 0, 0, 0.5);
 
         &::placeholder {
@@ -718,6 +731,15 @@
           font-style: normal;
           font-weight: 700;
           line-height: normal;
+          font-size: 1rem;
+        }
+      }
+
+      textarea {
+        min-height: 7rem;
+
+        &::placeholder {
+          padding-top: 1.5rem;
         }
       }
 
@@ -728,12 +750,12 @@
         height: 3rem;
         color: #000;
         font-family: Manrope;
-        font-size: 16px;
+        font-size: 1rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
         color: #000;
         font-family: Manrope;
-        font-size: 16px;
+
         font-style: normal;
         font-weight: 700;
         line-height: normal;

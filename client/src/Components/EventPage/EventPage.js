@@ -44,7 +44,7 @@ const EventPage = ({ passedEventId }) => {
   const address = "Dekeleon 26, Athens 11854";
   const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(
     address
-  )}&output=embed`;
+  )}`;
 
   const [copied, setCopied] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(false);
@@ -508,33 +508,24 @@ const EventPage = ({ passedEventId }) => {
                 className="event-page-location-image"
               />
 
-              <span
-                style={{ cursor: "pointer" }}
-                onClick={() => copyAddressToClipboard(address)}
-                className="event-page-location-copy"
-              >
-                <p>click to copy</p>
-                <img src="./image/copy.svg" alt="" />
-                {address}
-              </span>
-
               <div className="event-page-location-button">
+                <button
+                  style={{ cursor: "pointer" }}
+                  onClick={() => window.open(googleMapsUrl, "_blank")}
+                  className="event-page-location-button-maps"
+                >
+                  <img src="./image/maps.svg" alt="" />
+                  <p>{address}</p>
+                </button>
+
                 <button
                   className="event-page-location-button-instagram"
                   onClick={handleInstagramClick}
                 >
                   <img src="./image/ig_button.svg" alt="" />
-                  Follow on Instagram
+                  <p>@Babydisco24</p>
                 </button>
               </div>
-
-              {/* <iframe
-                title="Event Location"
-                src={googleMapsUrl}
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-              ></iframe> */}
             </div>
 
             <Spotify />
