@@ -174,10 +174,18 @@ exports.generateGuestCode = async (req, res) => {
       $expr: { $ne: ["$pax", "$paxChecked"] }, // Ensure pax does not equal paxChecked
     });
 
-    if (existingGuestCode) {
+    const startOfWeek = new Date();
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(
+      startOfWeek.getDate() -
+        startOfWeek.getDay() +
+        (startOfWeek.getDay() === 0 ? -6 : 1)
+    ); // Adjust to your week start (Sunday or Monday)
+
+    if (existingGuestCode && existingGuestCode.createdAt >= startOfWeek) {
       return res
         .status(400)
-        .json({ error: "You still have a usable Guest Code." });
+        .json({ error: "You still have a usable Guest Code for this Sunday." });
     }
 
     const guestCode = new GuestCode({
