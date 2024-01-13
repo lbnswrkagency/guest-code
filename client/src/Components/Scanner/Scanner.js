@@ -56,7 +56,7 @@ function Scanner({ onClose }) {
       setScanning(false);
       if (!toastShown) {
         toast.success("Ticket validated successfully", { autoClose: 2000 });
-        setToastShown(true); // Update state to indicate toast has been shown
+        setToastShown(true);
       }
     } catch (error) {
       if (!toastShown) {
@@ -75,7 +75,10 @@ function Scanner({ onClose }) {
       );
       setScanResult({ ...scanResult, paxChecked: response.data.paxChecked });
       toast.success(
-        `Pax ${increment ? "increased" : "decreased"} successfully`
+        `Pax ${increment ? "increased" : "decreased"} successfully`,
+        {
+          autoClose: 2000,
+        }
       );
     } catch (error) {
       toast.error(`Error ${increment ? "increasing" : "decreasing"} pax`);
@@ -86,6 +89,7 @@ function Scanner({ onClose }) {
     if (manualId) {
       validateTicket(manualId);
       setManualId("");
+      setToastShown(false);
     }
   };
 
@@ -121,7 +125,7 @@ function Scanner({ onClose }) {
   const resetScanner = () => {
     setScanning(true);
     setScanResult(null);
-    setToastShown(false); // Reset toast shown state
+    setToastShown(false);
   };
 
   return (

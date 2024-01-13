@@ -157,6 +157,7 @@ const EventPage = ({ passedEventId }) => {
       setLoadingProgress((loadedResources / totalResources) * 100);
     }
   }, [loadedResources, totalResources]);
+
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
 
