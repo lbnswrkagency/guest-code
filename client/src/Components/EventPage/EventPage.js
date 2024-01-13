@@ -108,6 +108,16 @@ const EventPage = ({ passedEventId }) => {
   }, []);
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [tempCarouselImages.length]);
+
+  useEffect(() => {
     const allImagesLoaded = imagesLoaded.every(Boolean);
     if (allImagesLoaded && event) {
       setIsLoading(false);
