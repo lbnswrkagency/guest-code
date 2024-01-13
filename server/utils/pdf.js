@@ -210,6 +210,7 @@ const createTicketPDF = async (
       }
 
       .qrcode-text {
+   
         justify-self: center;
         align-self: center;
   
@@ -217,10 +218,11 @@ const createTicketPDF = async (
 
       .qrcode-text > h2 {
         font-size: 25px;
+        font-weight: 800;
       }
 
       .qrcode-text > p {
-        font-size: 15px;
+        font-size: 25px;
       }
 
 

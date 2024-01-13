@@ -30,7 +30,7 @@ function FriendsCode({ user, onClose }) {
             pax: 1,
             date: "19/11/2022",
             paxChecked: 0,
-            condition: "FREE ENTRANCE UNTIL MIDNIGHT",
+            condition: "FREE ENTRANCE ALL NIGHT",
             event: user.events,
             host: user.name,
           },

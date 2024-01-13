@@ -3,6 +3,11 @@ import "./Statistic.scss";
 import moment from "moment";
 
 function Statistic({ counts, onClose, currentWeek, onPrevWeek, onNextWeek }) {
+  // Calculate total FriendsCodes
+  const totalFriendsCodes = counts.friendsCounts.reduce(
+    (acc, curr) => acc + curr.total,
+    0
+  );
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
@@ -13,7 +18,6 @@ function Statistic({ counts, onClose, currentWeek, onPrevWeek, onNextWeek }) {
         <div className="statistic-navigation">
           <button onClick={onPrevWeek}>Previous</button>
           <span>{currentWeek.format("DD MMM YYYY")}</span>{" "}
-          {/* Displaying the current week's Sunday */}
           <button onClick={onNextWeek}>Next</button>
         </div>
         <h2>FriendsCodes</h2>
@@ -24,6 +28,10 @@ function Statistic({ counts, onClose, currentWeek, onPrevWeek, onNextWeek }) {
             <p className="statistic-count-each-used">Used: {count.used}</p>
           </div>
         ))}
+        <div className="statistic-count-each">
+          <p className="statistic-count-each-name">Total</p>
+          <p className="statistic-count-each-number">{totalFriendsCodes}</p>
+        </div>
         <h2>GuestCodes</h2>
         <div className="statistic-count-each">
           <p className="statistic-count-each-name">Total</p>

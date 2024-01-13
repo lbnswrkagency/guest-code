@@ -28,9 +28,35 @@ const EventPage = ({ passedEventId }) => {
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [areImagesLoaded, setAreImagesLoaded] = useState(false);
+
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+  const [loadedResources, setLoadedResources] = useState(0);
+
+  const s3ImageUrls = Array.from(
+    { length: 10 },
+    (_, i) =>
+      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
+        i + 1
+      ).padStart(2, "0")}.jpg`
+  );
+
+  const tempCarouselImages = s3ImageUrls;
+
+  const allImageUrls = [
+    ...tempCarouselImages,
+    "https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header.png",
+  ];
+
+  // Update totalResources
+
+  // State to track each image load status
+  const [imagesLoaded, setImagesLoaded] = useState(
+    new Array(allImageUrls.length).fill(false)
+  );
+
+  const totalResources = allImageUrls.length + 1; // +1 for event data
 
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
@@ -67,24 +93,57 @@ const EventPage = ({ passedEventId }) => {
     }
   };
 
-  const s3ImageUrls = Array.from(
-    { length: 10 },
-    (_, i) =>
-      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
-        i + 1
-      ).padStart(2, "0")}.jpg`
-  );
-  const tempCarouselImages = s3ImageUrls;
+  useEffect(() => {
+    allImageUrls.forEach((src, index) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        setImagesLoaded((prev) => {
+          const newLoaded = [...prev];
+          newLoaded[index] = true;
+          return newLoaded;
+        });
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    const allImagesLoaded = imagesLoaded.every(Boolean);
+    if (allImagesLoaded && event) {
+      setIsLoading(false);
+    } else {
+      const loadedCount = imagesLoaded.filter(Boolean).length;
+      setLoadingProgress((loadedCount / totalResources) * 100);
+    }
+  }, [imagesLoaded, event]);
+
+  useEffect(() => {
+    let isMounted = true; // Flag to track mounting
+
+    tempCarouselImages.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        if (isMounted) {
+          setLoadedResources((prev) => prev + 1);
+        }
+      };
+    });
+
+    return () => {
+      isMounted = false; // Clean up the flag on unmount
+    };
+  }, []); // Run only once when the component mounts
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         const response = await getEventByLink(eventLink);
         setEvent(response.event);
-        setIsDataLoaded(true); // Set data loaded to true
       } catch (error) {
         console.error("Error fetching event:", error);
-        setIsDataLoaded(true); // Consider setting true on error to stop loading, or handle differently
+      } finally {
+        setLoadedResources((prev) => prev + 1);
       }
     };
 
@@ -92,43 +151,12 @@ const EventPage = ({ passedEventId }) => {
   }, [eventLink]);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 3000); // Change image every 3 seconds
-
-    return () => clearInterval(intervalId); // Clean up the interval on component unmount
-  }, [tempCarouselImages.length]);
-
-  useEffect(() => {
-    let loadedImages = 0;
-    let isComponentMounted = true;
-
-    tempCarouselImages.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        if (isComponentMounted) {
-          loadedImages++;
-          if (loadedImages === tempCarouselImages.length) {
-            setAreImagesLoaded(true); // Set images loaded to true
-          }
-        }
-      };
-    });
-
-    return () => {
-      isComponentMounted = false;
-    };
-  }, [tempCarouselImages.length]);
-
-  useEffect(() => {
-    if (areImagesLoaded && isDataLoaded) {
+    if (loadedResources === totalResources) {
       setIsLoading(false);
+    } else {
+      setLoadingProgress((loadedResources / totalResources) * 100);
     }
-  }, [areImagesLoaded, isDataLoaded]);
-
+  }, [loadedResources, totalResources]);
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -238,10 +266,15 @@ const EventPage = ({ passedEventId }) => {
       <div className="event-page">
         {isLoading ? (
           <div className="event-page-loading">
-            <img src={logo_w} alt="Loading..." />
+            <p>AFRO SPITI</p>
+            <div class="loader">
+              <div class="box1"></div>
+              <div class="box2"></div>
+              <div class="box3"></div>
+            </div>
             <p style={{ color: "white", marginTop: "20px" }}>
-              {loadingProgress}%
-            </p>{" "}
+              loading... {Math.round(loadingProgress)}%
+            </p>
           </div>
         ) : event ? (
           <>

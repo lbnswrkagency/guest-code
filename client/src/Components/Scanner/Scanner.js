@@ -10,6 +10,8 @@ function Scanner({ onClose }) {
   const [scanning, setScanning] = useState(true);
   const [timeLimitPassed, setTimeLimitPassed] = useState(false);
   const [scannerError, setScannerError] = useState(false);
+  const [toastShown, setToastShown] = useState(false);
+
   const handleScan = (decodedText, decodedResult) => {
     validateTicket(decodedText);
   };
@@ -47,15 +49,20 @@ function Scanner({ onClose }) {
       );
       setScanResult(response.data);
 
-      // Check for time limit
       if (checkTimeLimit()) {
         setTimeLimitPassed(true);
       }
 
       setScanning(false);
-      toast.success("Ticket validated successfully");
+      if (!toastShown) {
+        toast.success("Ticket validated successfully", { autoClose: 2000 });
+        setToastShown(true); // Update state to indicate toast has been shown
+      }
     } catch (error) {
-      toast.error("Error validating ticket");
+      if (!toastShown) {
+        toast.error("Error validating ticket", { autoClose: 2000 });
+        setToastShown(true); // Update state to indicate toast has been shown
+      }
     }
   };
 
@@ -114,6 +121,7 @@ function Scanner({ onClose }) {
   const resetScanner = () => {
     setScanning(true);
     setScanResult(null);
+    setToastShown(false); // Reset toast shown state
   };
 
   return (

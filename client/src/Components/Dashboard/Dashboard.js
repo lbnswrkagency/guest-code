@@ -25,20 +25,25 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [currentWeek, setCurrentWeek] = useState(moment().startOf("week")); // Change to 'week'
 
-  useEffect(() => {
-    fetchCountsForWeek(currentWeek);
-  }, [currentWeek]);
+  const [eventWeekday, setEventWeekday] = useState("SUNDAY"); // Add state for event weekday
 
-  const fetchCountsForWeek = (week) => {
-    const startDate = week.format("YYYY-MM-DD");
-    const endDate = week.clone().endOf("isoWeek").format("YYYY-MM-DD");
+  useEffect(() => {
+    fetchCountsForWeek(currentWeek, eventWeekday);
+  }, [currentWeek, eventWeekday]);
+
+  const fetchCountsForWeek = (week, weekday) => {
+    const startOfWeek = week.clone().day(weekday).startOf("day");
+    const endOfWeek = startOfWeek.clone().add(1, "weeks");
+
+    const startDate = startOfWeek.format("YYYY-MM-DD");
+    const endDate = endOfWeek.format("YYYY-MM-DD");
 
     axios
       .get(`${process.env.REACT_APP_API_BASE_URL}/qr/counts`, {
         params: { startDate, endDate },
       })
       .then((response) => {
-        // Handle response
+        setCounts(response.data);
       })
       .catch((error) => {
         console.error("Error fetching counts", error);
