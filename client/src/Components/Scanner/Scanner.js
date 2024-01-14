@@ -73,6 +73,7 @@ function Scanner({ onClose }) {
         setToastShown(true);
       }
     } catch (error) {
+      qrCodeScanner.pause(); // Pause scanner on error
       if (!toastShown) {
         toast.error("Error validating ticket", { autoClose: 2000 });
         setToastShown(true); // Update state to indicate toast has been shown
