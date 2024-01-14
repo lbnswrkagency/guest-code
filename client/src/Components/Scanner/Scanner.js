@@ -5,6 +5,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "./Scanner.scss";
 
 function Scanner({ onClose }) {
+  let isScanning = true;
+
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(true);
@@ -13,16 +15,22 @@ function Scanner({ onClose }) {
   const [toastShown, setToastShown] = useState(false);
 
   const handleScan = (decodedText, decodedResult) => {
-    if (!toastShown) {
-      setToastShown(true); // Prevents multiple scans
-      validateTicket(decodedText);
+    if (isScanning) {
+      isScanning = false; // Prevents multiple scans
+      validateTicket(decodedText).finally(() => {
+        isScanning = true; // Reset for next scan
+      });
     }
   };
 
   let qrCodeScanner;
 
+  let isScanning = true; // Declare at the beginning of the Scanner component
+
   const handleError = (err) => {
     console.error(err);
+    if (!isScanning) return; // Prevents multiple error toasts
+    isScanning = false; // Set to false to prevent further scans
 
     // Example: Check for specific error types before setting scannerError
     if (err.name === "NotAllowedError" || err.name === "NotFoundError") {
@@ -35,6 +43,8 @@ function Scanner({ onClose }) {
       // Handle non-critical errors differently
       console.log("Non-critical error: ", err.message);
     }
+
+    setTimeout(() => (isScanning = true), 2000); // Reset flag after a delay
   };
 
   const checkTimeLimit = () => {
