@@ -25,8 +25,6 @@ function Scanner({ onClose }) {
 
   let qrCodeScanner;
 
-  let isScanning = true; // Declare at the beginning of the Scanner component
-
   const handleError = (err) => {
     console.error(err);
     if (!isScanning) return; // Prevents multiple error toasts
