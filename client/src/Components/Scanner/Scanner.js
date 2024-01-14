@@ -17,8 +17,10 @@ function Scanner({ onClose }) {
   const handleScan = (decodedText, decodedResult) => {
     if (isScanning) {
       isScanning = false; // Prevents multiple scans
+      qrCodeScanner.pause(); // Immediately pause scanner
       validateTicket(decodedText).finally(() => {
         isScanning = true; // Reset for next scan
+        qrCodeScanner.resume(); // Resume scanner after processing
       });
     }
   };
@@ -76,7 +78,8 @@ function Scanner({ onClose }) {
         setToastShown(true); // Update state to indicate toast has been shown
       }
     } finally {
-      setToastShown(false); // Reset for next scan
+      qrCodeScanner.resume(); // Resume scanner after validation
+      setToastShown(false);
     }
   };
 
