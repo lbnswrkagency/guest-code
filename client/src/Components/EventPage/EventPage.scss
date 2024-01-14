@@ -514,15 +514,9 @@
       margin-top: 1rem;
       border-radius: 5px;
       @include mq(phone) {
-        height: 3rem;
-        width: 20rem;
-        font-size: 0.9rem;
       }
 
       @include mq(tablet) {
-        height: 3.5rem;
-        width: 20rem;
-        font-size: 0.9rem;
       }
 
       @include mq(tablet-landscape) {

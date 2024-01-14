@@ -30,10 +30,14 @@ const Dashboard = () => {
   useEffect(() => {
     fetchCountsForWeek(currentWeek, eventWeekday);
   }, [currentWeek, eventWeekday]);
+  const fetchCountsForWeek = (week) => {
+    // Set the start of the week to the closest past Sunday (or today if it's Sunday)
+    const startOfWeek = week.clone().day("Sunday").startOf("day");
+    if (startOfWeek.isAfter(moment())) {
+      startOfWeek.subtract(1, "weeks");
+    }
 
-  const fetchCountsForWeek = (week, weekday) => {
-    const startOfWeek = week.clone().day(weekday).startOf("day");
-    const endOfWeek = startOfWeek.clone().add(1, "weeks");
+    const endOfWeek = startOfWeek.clone().add(1, "weeks").endOf("day");
 
     const startDate = startOfWeek.format("YYYY-MM-DD");
     const endDate = endOfWeek.format("YYYY-MM-DD");

@@ -13,8 +13,12 @@ function Scanner({ onClose }) {
   const [toastShown, setToastShown] = useState(false);
 
   const handleScan = (decodedText, decodedResult) => {
-    validateTicket(decodedText);
+    if (!toastShown) {
+      setToastShown(true); // Prevents multiple scans
+      validateTicket(decodedText);
+    }
   };
+
   let qrCodeScanner;
 
   const handleError = (err) => {
@@ -63,6 +67,8 @@ function Scanner({ onClose }) {
         toast.error("Error validating ticket", { autoClose: 2000 });
         setToastShown(true); // Update state to indicate toast has been shown
       }
+    } finally {
+      setToastShown(false); // Reset for next scan
     }
   };
 
