@@ -64,7 +64,7 @@ const addFriendsCode = async (req, res) => {
                 </div>
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
-                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Sunday, 14.01.2024</p>
+                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Sunday, 21.01.2024</p>
                          <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">10 PM</p>
                 </div>
             </div>

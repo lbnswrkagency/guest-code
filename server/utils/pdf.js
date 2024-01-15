@@ -248,7 +248,7 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Sunday, 14.01.2024</p>
+          <p>Sunday, 21.01.2024</p>
         </div>
 
         <div class="event-beats">

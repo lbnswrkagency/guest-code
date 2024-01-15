@@ -298,7 +298,7 @@ const EventPage = ({ passedEventId }) => {
                   onClick={toggleNav}
                 />
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/%2301.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header_dazero3.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -322,51 +322,65 @@ const EventPage = ({ passedEventId }) => {
                     isHiddenVisible ? "visible" : ""
                   }`}
                 >
-                  <div className="djs">
-                    <p className="djs-title">DJs</p>
-                    <div className="djs-single">
-                      <img
-                        src="./image/hulk.jpg"
-                        alt=""
-                        className="djs-single-image"
-                      />
-                      <p className="djs-single-name">Hulk</p>
+                  <div className="lineup">
+                    {" "}
+                    <div className="djs">
+                      <p className="djs-title">DJs</p>
+                      <div className="djs-single djs-single-guest">
+                        <img
+                          src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/dazero_face.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Dazero</p>
+                        <p className="origin">CROM CYPRUS</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/hulk.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hulk</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/hendricks.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hendricks</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/dimkay.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">DIM KAY</p>
+                      </div>
                     </div>
-                    <div className="djs-single">
-                      <img
-                        src="./image/hendricks.jpg"
-                        alt=""
-                        className="djs-single-image"
-                      />
-                      <p className="djs-single-name">Hendricks</p>
-                    </div>
-                    <div className="djs-single">
-                      <img
-                        src="./image/dimkay.jpg"
-                        alt=""
-                        className="djs-single-image"
-                      />
-                      <p className="djs-single-name">DIM KAY</p>
-                    </div>
-                  </div>
-                  <div className="mc">
-                    <p className="mc-title">MC</p>
-                    <div className="mc-single">
-                      <img
-                        src="./image/jfyah.jpg"
-                        alt=""
-                        className="mc-single-image"
-                      />
-                      <p className="mc-single-name">J Fyah</p>
+                    <div className="mc">
+                      <p className="mc-title">MC</p>
+                      <div className="mc-single">
+                        <img
+                          src="./image/jfyah.jpg"
+                          alt=""
+                          className="mc-single-image"
+                        />
+                        <p className="mc-single-name">J Fyah</p>
+                      </div>
                     </div>
                   </div>
                 </div>
+
                 <div className="event-page-header-footer-lineup">
                   <svg className="event-page-header-footer-lineup-shadow"></svg>
+
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 14 JAN 2024</p>
+                    <p>SUN 21 JAN 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -377,6 +391,7 @@ const EventPage = ({ passedEventId }) => {
                     onClick={() => setIsHiddenVisible((prev) => !prev)}
                   />
                 </div>
+
                 <div className="event-page-header-footer-buttons">
                   <button
                     onClick={() =>
@@ -453,7 +468,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 14.01.2024 · 10 PM
+                Sunday · 21.01.2024 · 10 PM
               </p>
 
               <div

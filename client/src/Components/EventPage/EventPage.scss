@@ -107,7 +107,7 @@
 
     &-footer {
       position: absolute;
-      bottom: 1rem;
+      bottom: 0;
       width: 100%;
       justify-self: center;
       justify-items: center;
@@ -119,6 +119,11 @@
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.5s ease-out;
+
+        .lineup {
+          max-height: 15rem;
+          overflow: auto;
+        }
 
         .djs,
         .mc {
@@ -151,6 +156,17 @@
               letter-spacing: 4.2px;
               text-transform: uppercase;
               align-self: center;
+            }
+          }
+
+          &-single-guest {
+            @include grid(3);
+
+            .origin {
+              font-size: 0.5rem;
+              align-self: top;
+              margin-left: -0.75rem;
+              margin-top: -0.5rem;
             }
           }
         }
@@ -211,8 +227,10 @@
           top: 0;
           left: 0;
           right: 0;
+
           height: 100%;
           width: 100%;
+
           background: rgba(0, 0, 0, 0.4);
           box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
           z-index: 1;
@@ -255,6 +273,9 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       padding-top: 2rem;
+      justify-self: center;
+      grid-gap: 1rem;
+      width: 100%;
 
       &-login {
         grid-column: 1/2;
@@ -266,7 +287,7 @@
 
       &-logo {
         z-index: 2;
-        width: 10rem;
+        width: 5rem;
         justify-self: center;
         align-self: center;
         grid-column: 2/3;
