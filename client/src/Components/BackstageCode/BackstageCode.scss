@@ -1,0 +1,226 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+}
+
+$breakpoints: (
+  smallest: 200px,
+  supersmall: 400px,
+  small: 480px,
+  smallmid: 600px,
+  midsmall: 800px,
+  midmedium: 1000px,
+  medium: 1200px,
+  midlarge: 1500px,
+  large: 2000px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+body {
+  background-color: black;
+}
+
+.backstagecode {
+  position: relative;
+  display: grid;
+  justify-content: center;
+
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 5rem;
+  width: 100%;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  justify-self: center;
+
+  @include mq(medium) {
+    width: 25rem;
+  }
+
+  &-title {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    text-align: center;
+  }
+
+  &-description {
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: normal;
+    margin-top: 1rem;
+  }
+
+  &-image {
+    width: 80%;
+  }
+  &-logo {
+    width: 5rem;
+
+    animation: 3s ease-out 0s 1 LogoRotate;
+    justify-self: center;
+    margin-bottom: 4rem;
+    margin-top: 4rem;
+  }
+
+  &-sub {
+    z-index: 2;
+    p {
+      text-align: left;
+      margin-top: 0.5rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+  }
+}
+
+.backstagecode-admin {
+  color: #fff;
+  display: grid;
+  grid-template-rows: repeat(auto, 1fr);
+  grid-gap: 0.5rem;
+  width: 90%;
+  aspect-ratio: 1 1;
+  justify-content: center;
+  padding-bottom: 2rem;
+  padding-top: 2rem;
+  justify-self: center;
+  border-radius: 5px;
+  background: rgb(43, 43, 43);
+  overflow: hidden;
+  text-align: center;
+  margin-top: 2rem;
+
+  h1 {
+    font-size: 1.5rem;
+    z-index: 2;
+    font-weight: 800;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-top: 1rem;
+  }
+
+  input {
+    // width: 20.375rem;
+    height: 3.5rem;
+    font-style: normal;
+
+    font-size: 1rem;
+    line-height: 1.375rem;
+    color: white;
+    margin-top: 1rem;
+    border-radius: 5px;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    padding-left: 1rem;
+
+    &::placeholder {
+      text-align: center;
+      color: #fff;
+    }
+  }
+
+  button {
+    width: 20.375rem;
+    height: 3.5rem;
+    font-style: normal;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.375rem;
+    color: white;
+    margin-top: 0.25rem;
+    z-index: 1;
+    background-color: #000;
+    border: none;
+    border-radius: 0.25rem;
+  }
+}
+
+.customerName {
+  z-index: 1;
+}
+
+#email {
+  z-index: 1;
+}
+
+.guestcode-number {
+  width: 12rem !important;
+}
+
+.checkList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(min-content, max-content));
+  grid-gap: 1rem;
+  z-index: 5;
+
+  &-single {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(min-content, max-content));
+    align-items: center;
+    grid-gap: 0.5rem;
+
+    input {
+      width: 1rem;
+    }
+  }
+}
+
+.backstagecode-preview {
+  display: grid;
+  justify-content: center;
+  justify-items: center;
+  grid-gap: 1rem;
+  margin-top: 2rem;
+  background-color: rgb(255, 255, 255);
+  padding-top: 2rem;
+
+  &-text {
+    text-align: center;
+    color: #000;
+    font-weight: 800;
+    font-size: 1.5rem;
+  }
+}
+// Alkim ist der Beste
+.share-buttons {
+  cursor: pointer;
+  width: 100%;
+  justify-self: center;
+  align-items: center;
+  display: grid;
+  padding: 1rem;
+  background-color: #000;
+  border-radius: 5px;
+  border: 2px solid #fff;
+  backdrop-filter: blur(8px);
+  margin-bottom: 2rem;
+}
+
+.backstage-download {
+  color: #fff;
+  text-align: center;
+  font-style: normal;
+  font-weight: bold;
+  z-index: 2;
+  text-decoration: none;
+  border-radius: 0.25rem;
+}

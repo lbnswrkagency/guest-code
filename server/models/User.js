@@ -10,6 +10,7 @@ const UserSchema = new Schema({
   isAdmin: { type: Boolean, default: false },
   isScanner: { type: Boolean, default: false },
   isPromoter: { type: Boolean, default: false },
+  isDeveloper: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   events: [{ type: Schema.Types.ObjectId, ref: "Event" }],
 });

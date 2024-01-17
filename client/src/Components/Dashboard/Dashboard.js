@@ -6,6 +6,7 @@ import { logout } from "../AuthForm/Login/LoginFunction";
 import "./Dashboard.scss";
 import Settings from "../Settings/Settings";
 import FriendsCode from "../FriendsCode/FriendsCode";
+import BackstageCode from "../BackstageCode/BackstageCode";
 import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsCode, setShowFriendsCode] = useState(false);
+  const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
   const [counts, setCounts] = useState({
@@ -23,50 +25,58 @@ const Dashboard = () => {
   });
 
   const navigate = useNavigate();
-  const [currentWeek, setCurrentWeek] = useState(moment().startOf("week")); // Change to 'week'
 
-  const [eventWeekday, setEventWeekday] = useState("SUNDAY"); // Add state for event weekday
+  const startingEventString = "14012024"; // Your starting date in DDMMYYYY format
+  const startingEventDate = moment(startingEventString, "DDMMYYYY");
 
-  useEffect(() => {
-    fetchCountsForWeek(currentWeek, eventWeekday);
-  }, [currentWeek, eventWeekday]);
-  const fetchCountsForWeek = (week) => {
-    // Set the start of the week to the closest past Sunday (or today if it's Sunday)
-    const startOfWeek = week.clone().day("Sunday").startOf("day");
-    if (startOfWeek.isAfter(moment())) {
-      startOfWeek.subtract(1, "weeks");
+  const findNextEventDate = (today, startEventDate) => {
+    let nextEventDate = startEventDate.clone();
+    while (nextEventDate.isBefore(today)) {
+      nextEventDate.add(1, "weeks");
+    }
+    return nextEventDate;
+  };
+
+  const [currentEventDate, setCurrentEventDate] = useState(
+    findNextEventDate(moment(), startingEventDate)
+  );
+  const calculateDataInterval = (currentEvent, startEvent) => {
+    let startDate, endDate;
+
+    if (currentEvent.isSame(startEvent, "day")) {
+      // For the first event, fetch all data from the beginning up to the day after the event at 6AM
+      startDate = null;
+      endDate = startEvent.clone().add(1, "days").hour(6);
+    } else {
+      // For subsequent events, fetch data from the Monday at 6AM of the previous week to the day after the event at 6AM
+      startDate = currentEvent
+        .clone()
+        .subtract(1, "weeks")
+        .day("Monday")
+        .hour(6);
+      endDate = currentEvent.clone().add(1, "days").hour(6);
     }
 
-    const endOfWeek = startOfWeek.clone().add(1, "weeks").endOf("day");
-
-    const startDate = startOfWeek.format("YYYY-MM-DD");
-    const endDate = endOfWeek.format("YYYY-MM-DD");
-
-    axios
-      .get(`${process.env.REACT_APP_API_BASE_URL}/qr/counts`, {
-        params: { startDate, endDate },
-      })
-      .then((response) => {
-        setCounts(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching counts", error);
-      });
+    return { startDate, endDate };
   };
-
-  const handlePrevWeek = () => {
-    setCurrentWeek((prev) => prev.clone().subtract(1, "weeks"));
-  };
-
-  const handleNextWeek = () => {
-    setCurrentWeek((prev) => prev.clone().add(1, "weeks"));
-  };
+  const [dataInterval, setDataInterval] = useState(
+    calculateDataInterval(currentEventDate, startingEventDate)
+  );
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
+        const { startDate, endDate } = dataInterval;
+        let params = {};
+
+        if (startDate) {
+          params.startDate = startDate.format("YYYY-MM-DD");
+        }
+        params.endDate = endDate.format("YYYY-MM-DD");
+
         const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/qr/counts`
+          `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
+          { params }
         );
         setCounts(response.data);
       } catch (error) {
@@ -74,16 +84,29 @@ const Dashboard = () => {
       }
     };
 
-    // Ensure user is not null and has isAdmin property before fetching
     if (user && user.isAdmin) {
       fetchCounts();
     }
-  }, [user]); // Depend on user object
+  }, [user, dataInterval]); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();
     setUser(null);
     navigate("/");
+  };
+
+  const handlePrevWeek = () => {
+    if (!currentEventDate.isSame(startingEventDate, "day")) {
+      const newEventDate = currentEventDate.clone().subtract(1, "weeks");
+      setCurrentEventDate(newEventDate);
+      setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
+    }
+  };
+
+  const handleNextWeek = () => {
+    const newEventDate = currentEventDate.clone().add(1, "weeks");
+    setCurrentEventDate(newEventDate);
+    setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
   };
 
   if (loading || !user) {
@@ -96,6 +119,12 @@ const Dashboard = () => {
     );
   }
 
+  if (showBackstageCode) {
+    return (
+      <BackstageCode user={user} onClose={() => setShowBackstageCode(false)} />
+    );
+  }
+
   if (showScanner) {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
@@ -104,10 +133,12 @@ const Dashboard = () => {
     return (
       <Statistic
         counts={counts}
-        onClose={() => setShowStatistic(false)}
-        currentWeek={currentWeek}
+        currentEventDate={currentEventDate}
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
+        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+        onClose={() => setShowStatistic(false)}
+        user={user}
       />
     );
   }
@@ -131,19 +162,13 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="dashboard-actions">
-        {user.isAdmin && (
+        {user.isDeveloper && (
           <>
             <button
               className="dashboard-actions-button"
               onClick={() => navigate("/events")}
             >
               Events
-            </button>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => setShowStatistic(true)}
-            >
-              Statistic
             </button>
             <button
               className="dashboard-actions-button"
@@ -154,6 +179,22 @@ const Dashboard = () => {
           </>
         )}
 
+        {user.isAdmin && (
+          <>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setShowStatistic(true)}
+            >
+              Statistic
+            </button>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setShowBackstageCode(true)}
+            >
+              Backstage Code
+            </button>
+          </>
+        )}
         {user.isPromoter && (
           <button
             className="dashboard-actions-button"

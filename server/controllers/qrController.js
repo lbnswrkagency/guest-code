@@ -1,4 +1,5 @@
 const FriendsCode = require("../models/FriendsCode");
+const BackstageCode = require("../models/BackstageCode");
 const GuestCode = require("../models/GuestCode");
 
 const validateTicket = async (req, res) => {
@@ -86,11 +87,12 @@ const getCounts = async (req, res) => {
   try {
     // Define the match condition based on the provided dates
     const matchCondition = {};
-    if (startDate && endDate) {
-      matchCondition.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+    if (startDate) {
+      matchCondition.createdAt = { $gte: new Date(startDate) };
+    }
+    if (endDate) {
+      matchCondition.createdAt = matchCondition.createdAt || {};
+      matchCondition.createdAt.$lte = new Date(endDate);
     }
 
     // Aggregate FriendsCodes with the match condition
@@ -117,9 +119,22 @@ const getCounts = async (req, res) => {
       },
     ]);
 
+    // Aggregate BackstageCodes with the match condition
+    const backstageCounts = await BackstageCode.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: "$host",
+          total: { $sum: 1 },
+          used: { $sum: { $cond: [{ $gt: ["$paxChecked", 0] }, 1, 0] } },
+        },
+      },
+    ]);
+
     res.json({
       friendsCounts,
       guestCounts: guestCounts[0] || { total: 0, used: 0 },
+      backstageCounts,
     });
   } catch (error) {
     console.error("Error fetching counts", error);

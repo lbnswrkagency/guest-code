@@ -10,6 +10,7 @@ const userRoutes = require("./routes/api/users");
 const eventsRoutes = require("./routes/api/events");
 const dnsRoutes = require("./routes/api/dnsRoutes");
 const friendsRoutes = require("./routes/api/friendsRoutes");
+const backstageRoutes = require("./routes/api/backstageRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 
@@ -46,6 +47,7 @@ app.use("/api/events", eventsRoutes);
 app.use("/api/spotify", spotifyRoutes);
 app.use("/api/dns", dnsRoutes);
 app.use("/api/friends", friendsRoutes);
+app.use("/api/backstage", backstageRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 // Connect to MongoDB
