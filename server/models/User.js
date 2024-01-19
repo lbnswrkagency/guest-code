@@ -15,6 +15,10 @@ const UserSchema = new Schema({
   isBackstage: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   events: [{ type: Schema.Types.ObjectId, ref: "Event" }],
+  avatar: {
+    type: String,
+    default: "",
+  },
 });
 
 UserSchema.methods.comparePassword = function (candidatePassword) {

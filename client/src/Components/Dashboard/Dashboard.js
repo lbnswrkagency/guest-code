@@ -11,7 +11,7 @@ import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
-// import AvatarUpload from "../AvatarUpload/index";
+import AvatarUpload from "../AvatarUpload/index";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
+  const [imageSwitch, setImageSwitch] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
     backstageCounts: [],
@@ -40,7 +41,6 @@ const Dashboard = () => {
   };
 
   const getThisWeeksFriendsCount = () => {
-    console.log(counts);
     return counts.friendsCounts
       .filter((count) => count._id === user.name)
       .reduce((acc, curr) => acc + curr.total, 0);
@@ -103,7 +103,7 @@ const Dashboard = () => {
     if (user) {
       fetchCounts();
     }
-  }, []); // Depend on user object and dataInterval
+  }, [dataInterval]); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();

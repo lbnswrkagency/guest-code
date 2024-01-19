@@ -1,9 +1,8 @@
-const aws = require("aws-sdk");
-const multer = require("multer");
-const multerS3 = require("multer-s3");
 const path = require("path");
 const url = require("url");
-const User = require("../models/User"); // Adjust the path as needed
+const User = require("../models/User");
+
+const aws = require("aws-sdk");
 
 // AWS S3 Configuration
 aws.config.update({
@@ -14,28 +13,6 @@ aws.config.update({
 const s3 = new aws.S3({
   Bucket: process.env.AWS_S3_BUCKET_NAME,
 });
-
-// Multer configuration for profile image upload
-const profileImgUpload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: "myleo-images", // Replace with your bucket name
-    acl: "public-read",
-    key: function (req, file, cb) {
-      cb(
-        null,
-        path.basename(file.originalname, path.extname(file.originalname)) +
-          "-" +
-          Date.now() +
-          path.extname(file.originalname)
-      );
-    },
-  }),
-  limits: { fileSize: 2000000 },
-  fileFilter: function (req, file, cb) {
-    checkFileType(file, cb);
-  },
-}).single("profileImage");
 
 function checkFileType(file, cb) {
   const filetypes = /jpeg|jpg|png|gif/;
@@ -66,63 +43,60 @@ const addAvatar = async (req, res) => {
   );
 };
 
-// New uploadAvatar function (from profile.js)
-const uploadAvatar = (req, res) => {
-  profileImgUpload(req, res, async (error) => {
-    if (error) {
-      res.json({ error: error });
-    } else {
-      if (req.file === undefined) {
-        res.json("Error: No File Selected");
-      } else {
-        const imageName = req.file.key;
-        const imageLocation = req.file.location;
-        const userId = req.body.userId;
+const uploadAvatar = async (req, res) => {
+  console.log("BODY", req.body);
+  console.log("FILE", req.file);
 
-        try {
-          const user = await User.findById(userId);
-          if (user) {
-            const oldAvatarUrl = user.avatar;
-            if (oldAvatarUrl) {
-              const oldAvatarKey = url
-                .parse(oldAvatarUrl)
-                .pathname.substring(1);
-              const deleteParams = {
-                Bucket: "myleo-images",
-                Key: oldAvatarKey,
-              };
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
 
-              s3.deleteObject(deleteParams, (err, data) => {
-                if (err) {
-                  console.log(err, err.stack);
-                } else {
-                  // Log successful deletion or handle it as needed
-                }
-              });
-            }
+  const imageName = req.file.key;
+  const imageLocation = req.file.location;
+  const userId = req.body.userId;
 
-            user.avatar = imageLocation;
-            await user.save();
+  try {
+    console.log("USER ID CALL", userId);
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`User not found with id: ${userId}`);
+      return res.status(404).json({ error: "User not found" });
+    }
 
-            res.json({
-              image: imageName,
-              location: imageLocation,
-              userId: userId,
-            });
-          } else {
-            console.log(`User not found with id: ${userId}`);
-          }
-        } catch (err) {
-          console.error(err);
-          res
-            .status(500)
-            .json({ error: "An error occurred while updating the avatar" });
-        }
+    // Delete the old avatar if it exists
+
+    console.log("USERR FOUND", user);
+
+    if (user.avatar) {
+      const oldAvatarKey = url.parse(user.avatar).pathname.substring(1);
+      const deleteParams = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: oldAvatarKey,
+      };
+
+      try {
+        await s3.deleteObject(deleteParams).promise();
+      } catch (err) {
+        console.log("Error deleting old avatar:", err);
       }
     }
-  });
-};
 
+    // Update the user's avatar URL in the database
+    user.avatar = imageLocation;
+    await user.save();
+
+    res.json({
+      image: imageName,
+      location: imageLocation,
+      userId: userId,
+    });
+  } catch (err) {
+    console.error("Error in uploadAvatar:", err);
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the avatar" });
+  }
+};
 module.exports = {
   addAvatar,
   uploadAvatar,

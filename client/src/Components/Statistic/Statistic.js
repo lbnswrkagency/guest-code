@@ -30,6 +30,7 @@ function Statistic({
 
   const displayDate = currentEventDate.format("DD MMM YYYY");
 
+  console.log("COUNTS", counts);
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>

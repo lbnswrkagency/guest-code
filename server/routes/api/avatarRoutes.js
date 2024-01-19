@@ -1,12 +1,17 @@
 const express = require("express");
+const multer = require("multer");
 const avatarController = require("../../controllers/avatarController");
-
 const router = express.Router();
 
-// Existing route
-router.post("/add/avatar", avatarController.addAvatar);
+// Configure multer for file storage
+const storage = multer.memoryStorage(); // Adjust as needed
+const upload = multer({ storage: storage });
 
-// New route for profile image upload
-router.post("/profile-img-upload", avatarController.uploadAvatar);
+router.post("/add/avatar", avatarController.addAvatar);
+router.post(
+  "/profile-img-upload",
+  upload.single("profileImage"),
+  avatarController.uploadAvatar
+);
 
 module.exports = router;

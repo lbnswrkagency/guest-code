@@ -34,28 +34,30 @@ class AvatarUpload extends Component {
     this.state.setImageSwitch(true);
   };
 
-  onCrop = (event) => {
-    // If file selected
-    const { editor } = this.state;
+  onCrop = () => {
+    const { editor, selectedFile, user } = this.state;
 
-    const data = new FormData();
-
-    if (editor) {
+    if (editor && selectedFile) {
       let canvas = editor.getImageScaledToCanvas().toDataURL("image/png");
-
-      var arr = canvas.split(","),
-        bstr = atob(arr[1]),
-        n = bstr.length,
-        u8arr = new Uint8Array(n);
+      let arr = canvas.split(",");
+      let bstr = atob(arr[1]);
+      let n = bstr.length;
+      let u8arr = new Uint8Array(n);
 
       while (n--) {
         u8arr[n] = bstr.charCodeAt(n);
       }
 
-      var file = new File([u8arr], "abc.png", { type: "image/jpeg" });
+      let file = new File([u8arr], "avatar.png", { type: "image/jpeg" });
 
-      data.append("profileImage", file, this.state.selectedFile.name);
-      data.append("userId", this.state.user._id);
+      const data = new FormData();
+
+      data.append("profileImage", file);
+      data.append("userId", user._id);
+
+      for (let [key, value] of data.entries()) {
+        console.log(key, value);
+      }
 
       axios
         .post(
@@ -65,54 +67,39 @@ class AvatarUpload extends Component {
             headers: {
               accept: "application/json",
               "Accept-Language": "en-US,en;q=0.8",
-              "Content-Type": `multipart/form-data; boundary=${data._boundary}`,
+              // The Content-Type is set automatically by Axios for FormData
             },
           }
         )
         .then((response) => {
-          if (200 === response.status) {
-            // If file size is larger than expected.
+          // Handle success
+          console.log("RESPONSE", response);
+          if (response.status === 200) {
             if (response.data.error) {
-              if ("LIMIT_FILE_SIZE" === response.data.error.code) {
-                this.ocShowAlert("Max size: 2MB", "red");
-              } else {
-                this.ocShowAlert(response.data.error, "red");
-              }
+              // Handle specific errors
+              this.ocShowAlert(response.data.error, "red");
             } else {
-              // Success
-              let fileName = response.data;
-
-              // Continue with profile avatar upload logic
-              axios
-                .post(
-                  `${
-                    process.env.NODE_ENV === "production"
-                      ? "api"
-                      : "http://localhost:5001/api"
-                  }/register/add/avatar`,
-                  {
-                    avatar: fileName.location,
-                    email: this.state.user.email,
-                    userId: this.state.user._id,
-                  }
-                )
-                .then((response2) => {
-                  this.state.setUser({
-                    ...this.state.user,
-                    avatar: response2.data,
-                  });
-                  this.setState({ cropMode: false });
-                  this.state.setImageSwitch(false);
-                });
+              // Successful upload
+              this.setState({
+                user: {
+                  ...this.state.user,
+                  avatar: response.data.location,
+                },
+                cropMode: false,
+              });
+              this.state.setUser({
+                ...this.state.user,
+                avatar: response.data.location,
+              });
+              this.state.setImageSwitch(false);
             }
           }
         })
         .catch((error) => {
-          // If another error
-          this.ocShowAlert(error, "red");
+          // Handle any other errors
+          this.ocShowAlert(`Error: ${error.message}`, "red");
         });
     } else {
-      // if file not selected throw error
       this.ocShowAlert("Please upload file", "red");
     }
   };
