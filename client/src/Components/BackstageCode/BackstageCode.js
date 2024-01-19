@@ -8,7 +8,7 @@ import qrcode from "./img/qrcode.svg";
 import logo from "./img/rund.svg";
 import Preview from "./img/guestcode.png";
 
-function BackstageCode({ user, onClose }) {
+function BackstageCode({ user, onClose, weeklyBackstageCount }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -65,6 +65,13 @@ function BackstageCode({ user, onClose }) {
         with this Backstage Code you get free entrance all night and Backstage
         access
       </p>
+
+      <div className="backstagecode-count">
+        <h4>THIS WEEKS COUNT</h4>
+        <div className="backstagecode-count-number">
+          <p>{weeklyBackstageCount}</p>
+        </div>
+      </div>
 
       <div className="backstagecode-admin">
         <h1>Backstage-Code</h1>

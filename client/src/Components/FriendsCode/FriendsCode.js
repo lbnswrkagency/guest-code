@@ -8,7 +8,7 @@ import qrcode from "./img/qrcode.svg";
 import logo from "./img/rund.svg";
 import Preview from "./img/guestcode.png";
 
-function FriendsCode({ user, onClose }) {
+function FriendsCode({ user, onClose, weeklyFriendsCount }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -64,6 +64,13 @@ function FriendsCode({ user, onClose }) {
       <p className="friendscode-description">
         with this Friends Code you get free entrance ALL NIGHT.
       </p>
+
+      <div className="friendscode-count">
+        <h4>THIS WEEKS COUNT</h4>
+        <div className="friendscode-count-number">
+          <p>{weeklyFriendsCount}</p>
+        </div>
+      </div>
 
       <div className="friendscode-admin">
         <h1>Friends-Code</h1>

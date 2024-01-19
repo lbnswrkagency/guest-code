@@ -11,6 +11,7 @@ import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
+import AvatarUpload from "../AvatarUpload/index";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -35,6 +36,18 @@ const Dashboard = () => {
       nextEventDate.add(1, "weeks");
     }
     return nextEventDate;
+  };
+
+  const getThisWeeksFriendsCount = () => {
+    return counts.friendsCounts
+      .filter((count) => count._id === user.name)
+      .reduce((acc, curr) => acc + curr.total, 0);
+  };
+
+  const getThisWeeksBackstageCount = () => {
+    return counts.backstageCounts
+      .filter((count) => count._id === user.name)
+      .reduce((acc, curr) => acc + curr.total, 0);
   };
 
   const [currentEventDate, setCurrentEventDate] = useState(
@@ -115,13 +128,21 @@ const Dashboard = () => {
 
   if (showFriendsCode) {
     return (
-      <FriendsCode user={user} onClose={() => setShowFriendsCode(false)} />
+      <FriendsCode
+        user={user}
+        onClose={() => setShowFriendsCode(false)}
+        weeklyFriendsCount={getThisWeeksFriendsCount()}
+      />
     );
   }
 
   if (showBackstageCode) {
     return (
-      <BackstageCode user={user} onClose={() => setShowBackstageCode(false)} />
+      <BackstageCode
+        user={user}
+        onClose={() => setShowBackstageCode(false)}
+        weeklyBackstageCount={getThisWeeksBackstageCount()}
+      />
     );
   }
 
@@ -157,6 +178,7 @@ const Dashboard = () => {
             alt="Profile"
             className="dashboard-header-picture"
           /> */}
+          {/* <AvatarUpload /> */}
           <p className="dashboard-header-name">{user.name}</p>
           <p className="dashboard-header-email">{user.email}</p>
         </div>

@@ -13,6 +13,7 @@ const friendsRoutes = require("./routes/api/friendsRoutes");
 const backstageRoutes = require("./routes/api/backstageRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
+const avatarRoutes = require("./routes/api/avatarRoutes");
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use("/api/friends", friendsRoutes);
 app.use("/api/backstage", backstageRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/avatar", avatarRoutes);
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
