@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [showStatistic, setShowStatistic] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
+    backstageCOunts: [],
     guestCounts: { total: 0, used: 0 },
   });
 
