@@ -11,7 +11,7 @@ import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
-import AvatarUpload from "../AvatarUpload/index";
+// import AvatarUpload from "../AvatarUpload/index";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
