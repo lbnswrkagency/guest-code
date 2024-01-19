@@ -22,7 +22,7 @@ const Dashboard = () => {
   const [showStatistic, setShowStatistic] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
-    backstageCOunts: [],
+    backstageCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
 
@@ -40,6 +40,7 @@ const Dashboard = () => {
   };
 
   const getThisWeeksFriendsCount = () => {
+    console.log(counts);
     return counts.friendsCounts
       .filter((count) => count._id === user.name)
       .reduce((acc, curr) => acc + curr.total, 0);
@@ -92,16 +93,17 @@ const Dashboard = () => {
           `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
           { params }
         );
+
         setCounts(response.data);
       } catch (error) {
         console.error("Error fetching counts", error);
       }
     };
 
-    if (user && user.isAdmin) {
+    if (user) {
       fetchCounts();
     }
-  }, [user, dataInterval]); // Depend on user object and dataInterval
+  }, []); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();
