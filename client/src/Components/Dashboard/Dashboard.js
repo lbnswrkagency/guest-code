@@ -162,7 +162,7 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="dashboard-actions">
-        {user.isDeveloper && (
+        {/* {user.isDeveloper && (
           <>
             <button
               className="dashboard-actions-button"
@@ -177,7 +177,7 @@ const Dashboard = () => {
               Settings
             </button>
           </>
-        )}
+        )} */}
 
         {user.isAdmin && (
           <>
@@ -189,18 +189,16 @@ const Dashboard = () => {
             </button>
           </>
         )}
-
-        {user.isAdmin ||
-          (user.isBackstage && (
-            <>
-              <button
-                className="dashboard-actions-button"
-                onClick={() => setShowBackstageCode(true)}
-              >
-                Backstage Code
-              </button>
-            </>
-          ))}
+        {(user.isAdmin || user.isBackstage) && (
+          <>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setShowBackstageCode(true)}
+            >
+              Backstage Code
+            </button>
+          </>
+        )}
 
         {user.isPromoter && (
           <button
