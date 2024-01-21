@@ -192,6 +192,8 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
+                  : scanResult.typeOfTicket === "Backstage-Code"
+                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -201,6 +203,8 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
+                  : scanResult.typeOfTicket === "Backstage-Code"
+                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -210,6 +214,8 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
+                  : scanResult.typeOfTicket === "Backstage-Code"
+                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -219,6 +225,8 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
+                  : scanResult.typeOfTicket === "Backstage-Code"
+                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -228,6 +236,8 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
+                  : scanResult.typeOfTicket === "Backstage-Code"
+                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >

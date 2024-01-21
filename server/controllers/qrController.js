@@ -17,6 +17,13 @@ const validateTicket = async (req, res) => {
       if (guestCodeTicket) {
         ticket = guestCodeTicket;
         typeOfTicket = "Guest-Code";
+      } else {
+        // Add the check for BackstageCode here
+        const backstageCodeTicket = await BackstageCode.findById(ticketId);
+        if (backstageCodeTicket) {
+          ticket = backstageCodeTicket;
+          typeOfTicket = "Backstage-Code";
+        }
       }
     }
 
@@ -34,17 +41,27 @@ const validateTicket = async (req, res) => {
 const increasePax = async (req, res) => {
   try {
     const ticketId = req.params.ticketId;
-    let ticket =
-      (await FriendsCode.findByIdAndUpdate(
+    let ticket = await FriendsCode.findByIdAndUpdate(
+      ticketId,
+      { $inc: { paxChecked: 1 } },
+      { new: true }
+    );
+
+    if (!ticket) {
+      ticket = await GuestCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: 1 } },
         { new: true }
-      )) ||
-      (await GuestCode.findByIdAndUpdate(
+      );
+    }
+
+    if (!ticket) {
+      ticket = await BackstageCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: 1 } },
         { new: true }
-      ));
+      );
+    }
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
@@ -59,17 +76,27 @@ const increasePax = async (req, res) => {
 const decreasePax = async (req, res) => {
   try {
     const ticketId = req.params.ticketId;
-    let ticket =
-      (await FriendsCode.findByIdAndUpdate(
+    let ticket = await FriendsCode.findByIdAndUpdate(
+      ticketId,
+      { $inc: { paxChecked: -1 } },
+      { new: true }
+    );
+
+    if (!ticket) {
+      ticket = await GuestCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: -1 } },
         { new: true }
-      )) ||
-      (await GuestCode.findByIdAndUpdate(
+      );
+    }
+
+    if (!ticket) {
+      ticket = await BackstageCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: -1 } },
         { new: true }
-      ));
+      );
+    }
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
