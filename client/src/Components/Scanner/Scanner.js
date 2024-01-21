@@ -107,12 +107,9 @@ function Scanner({ onClose }) {
         }/${scanResult._id}`
       );
       setScanResult({ ...scanResult, paxChecked: response.data.paxChecked });
-      toast.success(
-        `Pax ${increment ? "increased" : "decreased"} successfully`,
-        {
-          autoClose: 2000,
-        }
-      );
+      toast.success(`Checked ${increment ? "in" : "out"} successfully`, {
+        autoClose: 2000,
+      });
     } catch (error) {
       toast.error(`Error ${increment ? "increasing" : "decreasing"} pax`);
     }
