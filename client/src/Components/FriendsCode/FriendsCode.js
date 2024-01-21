@@ -8,7 +8,7 @@ import qrcode from "./img/qrcode.svg";
 import logo from "./img/rund.svg";
 import Preview from "./img/guestcode.png";
 
-function FriendsCode({ user, onClose, weeklyFriendsCount }) {
+function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -41,6 +41,7 @@ function FriendsCode({ user, onClose, weeklyFriendsCount }) {
           toast.success("Friends-Code generated!");
           const url = window.URL.createObjectURL(new Blob([response.data]));
           setDownloadUrl(url);
+          refreshCounts();
         });
     }
 
@@ -48,8 +49,6 @@ function FriendsCode({ user, onClose, weeklyFriendsCount }) {
       toast.error("Enter a Name.");
     }
   };
-
-  console.log("COUTNS FRIENDSCODE", weeklyFriendsCount);
 
   return (
     <div className="friendscode">

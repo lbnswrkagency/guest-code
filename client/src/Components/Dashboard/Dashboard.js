@@ -63,9 +63,6 @@ const Dashboard = () => {
   const calculateDataInterval = (currentEvent, startEvent) => {
     let startDate, endDate;
 
-    // console.log("CURRENT EVENT INTERVAL", currentEvent);
-    // console.log("START EVENT INTERVAL", startEvent);
-
     if (currentEvent.isSame(startEvent, "day")) {
       // For the first event, fetch all data from the beginning up to the day after the event at 6AM
       startDate = null;
@@ -85,30 +82,29 @@ const Dashboard = () => {
   const [dataInterval, setDataInterval] = useState(
     calculateDataInterval(currentEventDate, startingEventDate)
   );
+  const fetchCounts = async () => {
+    try {
+      const { startDate, endDate } = dataInterval;
+
+      let params = {};
+
+      if (startDate) {
+        params.startDate = startDate.format("YYYY-MM-DD");
+      }
+      params.endDate = endDate.format("YYYY-MM-DD");
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
+        { params }
+      );
+
+      setCounts(response.data);
+    } catch (error) {
+      console.error("Error fetching counts", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const { startDate, endDate } = dataInterval;
-
-        let params = {};
-
-        if (startDate) {
-          params.startDate = startDate.format("YYYY-MM-DD");
-        }
-        params.endDate = endDate.format("YYYY-MM-DD");
-
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
-          { params }
-        );
-
-        setCounts(response.data);
-      } catch (error) {
-        console.error("Error fetching counts", error);
-      }
-    };
-
     if (user) {
       fetchCounts();
     }
@@ -128,9 +124,13 @@ const Dashboard = () => {
     }
   };
 
+  const refreshCounts = () => {
+    fetchCounts();
+  };
+
   const handleNextWeek = () => {
     const newEventDate = currentEventDate.clone().add(1, "weeks");
-    console.log("newEventDate", newEventDate);
+
     setCurrentEventDate(newEventDate);
     setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
   };
@@ -145,16 +145,17 @@ const Dashboard = () => {
         user={user}
         onClose={() => setShowFriendsCode(false)}
         weeklyFriendsCount={getThisWeeksFriendsCount()}
+        refreshCounts={refreshCounts}
       />
     );
   }
-
   if (showBackstageCode) {
     return (
       <BackstageCode
         user={user}
         onClose={() => setShowBackstageCode(false)}
         weeklyBackstageCount={getThisWeeksBackstageCount()}
+        refreshCounts={refreshCounts}
       />
     );
   }
