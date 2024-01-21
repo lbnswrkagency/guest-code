@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import React, { useEffect, useRef, useState } from "react";
+
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "./Scanner.scss";
+import jsQR from "jsqr";
 
 function Scanner({ onClose }) {
   let isScanning = true;
@@ -13,6 +14,8 @@ function Scanner({ onClose }) {
   const [timeLimitPassed, setTimeLimitPassed] = useState(false);
   const [scannerError, setScannerError] = useState(false);
   const [toastShown, setToastShown] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const handleScan = (decodedText, decodedResult) => {
     if (isScanning) {
@@ -45,6 +48,18 @@ function Scanner({ onClose }) {
     }
 
     setTimeout(() => (isScanning = true), 2000); // Reset flag after a delay
+  };
+
+  const processVideo = (videoElement) => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+    if (code) {
+      validateTicket(code.data);
+    }
   };
 
   const checkTimeLimit = () => {
@@ -114,31 +129,61 @@ function Scanner({ onClose }) {
   useEffect(() => {
     let isMounted = true; // To check if the component is still mounted
 
-    const startScanner = () => {
-      qrCodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: 250 },
-        false
-      );
-
-      qrCodeScanner.render(handleScan, (err) => {
-        if (isMounted) {
-          handleError(err);
+    const tick = () => {
+      if (
+        isMounted &&
+        videoRef.current &&
+        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
+      ) {
+        const canvasElement = canvasRef.current;
+        const context = canvasElement.getContext("2d");
+        canvasElement.width = videoRef.current.videoWidth;
+        canvasElement.height = videoRef.current.videoHeight;
+        context.drawImage(
+          videoRef.current,
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+        const imageData = context.getImageData(
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          validateTicket(code.data);
         }
-      });
+      }
+      requestAnimationFrame(tick);
     };
 
-    if (scanning && !scannerError) {
-      startScanner();
-    }
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment" } })
+      .then(function (stream) {
+        if (isMounted) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          tick();
+        }
+      })
+      .catch(function (err) {
+        if (isMounted) {
+          console.error(err);
+          setScannerError(true);
+        }
+      });
 
     return () => {
       isMounted = false;
-      if (qrCodeScanner) {
-        qrCodeScanner.clear();
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach((track) => track.stop());
       }
     };
-  }, [scanning, scannerError]);
+  }, [scanning, scannerError]); // Dependencies array
 
   const resetScanner = () => {
     setScanning(true);
@@ -170,7 +215,15 @@ function Scanner({ onClose }) {
             <p>Scanner error. Please ensure your device has a webcam.</p>
           </div>
         ) : (
-          <div id="qr-reader"></div>
+          <div className="scanner-reader">
+            <video
+              ref={videoRef}
+              style={{ display: "none" }}
+              playsInline
+              muted
+            ></video>
+            <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
+          </div>
         )}
 
         <input
