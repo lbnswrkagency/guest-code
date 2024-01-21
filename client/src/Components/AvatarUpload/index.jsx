@@ -16,18 +16,14 @@ class AvatarUpload extends Component {
       selectedFile: null,
       user: props.user,
       setUser: props.setUser,
-      setTeam: props.setTeam,
       setImageSwitch: props.setImageSwitch,
     };
   }
-
-  setEditorRef = (editor) => this.setState({ editor });
 
   profileImageChange = (fileChangeEvent) => {
     const file = fileChangeEvent.target.files[0];
     const { type } = file;
     if (type.endsWith("jpeg") || type.endsWith("png") || type.endsWith("jpg")) {
-      // this.setState({ selectedImage: file });
       this.setState({ selectedFile: file });
     }
     this.setState({ cropMode: true });
@@ -36,6 +32,10 @@ class AvatarUpload extends Component {
 
   onCrop = () => {
     const { editor, selectedFile, user } = this.state;
+
+    console.log("Edit", editor);
+    console.log("Selected File", selectedFile);
+    console.log("USER", user);
 
     if (editor && selectedFile) {
       let canvas = editor.getImageScaledToCanvas().toDataURL("image/png");

@@ -49,6 +49,8 @@ function FriendsCode({ user, onClose, weeklyFriendsCount }) {
     }
   };
 
+  console.log("COUTNS FRIENDSCODE", weeklyFriendsCount);
+
   return (
     <div className="friendscode">
       <Toaster />

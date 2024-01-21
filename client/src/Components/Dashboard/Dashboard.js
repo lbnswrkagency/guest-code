@@ -34,9 +34,14 @@ const Dashboard = () => {
 
   const findNextEventDate = (today, startEventDate) => {
     let nextEventDate = startEventDate.clone();
-    while (nextEventDate.isBefore(today)) {
+
+    while (
+      nextEventDate.isBefore(today, "day") ||
+      (nextEventDate.isSame(today, "day") && today.hour() < 6)
+    ) {
       nextEventDate.add(1, "weeks");
     }
+
     return nextEventDate;
   };
 
@@ -57,6 +62,9 @@ const Dashboard = () => {
   );
   const calculateDataInterval = (currentEvent, startEvent) => {
     let startDate, endDate;
+
+    // console.log("CURRENT EVENT INTERVAL", currentEvent);
+    // console.log("START EVENT INTERVAL", startEvent);
 
     if (currentEvent.isSame(startEvent, "day")) {
       // For the first event, fetch all data from the beginning up to the day after the event at 6AM
@@ -82,6 +90,7 @@ const Dashboard = () => {
     const fetchCounts = async () => {
       try {
         const { startDate, endDate } = dataInterval;
+
         let params = {};
 
         if (startDate) {
@@ -103,7 +112,7 @@ const Dashboard = () => {
     if (user) {
       fetchCounts();
     }
-  }, [dataInterval]); // Depend on user object and dataInterval
+  }, [dataInterval, currentEventDate]); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();
@@ -121,6 +130,7 @@ const Dashboard = () => {
 
   const handleNextWeek = () => {
     const newEventDate = currentEventDate.clone().add(1, "weeks");
+    console.log("newEventDate", newEventDate);
     setCurrentEventDate(newEventDate);
     setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
   };
@@ -181,7 +191,12 @@ const Dashboard = () => {
             alt="Profile"
             className="dashboard-header-picture"
           /> */}
-          {/* <AvatarUpload /> */}
+          {/* <AvatarUpload
+            user={user}
+            setUser={setUser}
+            setImageSwitch={setImageSwitch}
+          /> */}
+
           <p className="dashboard-header-name">{user.name}</p>
           <p className="dashboard-header-email">{user.email}</p>
         </div>

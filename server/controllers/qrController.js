@@ -84,7 +84,6 @@ const decreasePax = async (req, res) => {
 const getCounts = async (req, res) => {
   const { startDate, endDate } = req.query;
 
-  console.log("QUERY", req.query);
   try {
     // Define the match condition based on the provided dates
     const matchCondition = {};

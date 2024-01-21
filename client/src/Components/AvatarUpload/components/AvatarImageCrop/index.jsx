@@ -18,7 +18,9 @@ const AvatarImageCrop = ({
       borderRadius={100}
       border={0}
     />
-    <span className="text-center text-xs text-rose-500 font-medium uppercase mt-2 mb-2">v Bitte bestätigen v</span>
+    <span className="text-center text-xs text-rose-500 font-medium uppercase mt-2 mb-2">
+      v Bitte bestätigen v
+    </span>
     <div className="relative flex gap-2 items-center justify-between">
       <div className="p-1.5 rounded-full bg-pink">
         <svg
