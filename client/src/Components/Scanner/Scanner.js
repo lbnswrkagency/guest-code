@@ -15,7 +15,14 @@ function Scanner({ onClose }) {
   const [toastShown, setToastShown] = useState(false);
 
   const handleScan = (decodedText, decodedResult) => {
-    validateTicket(decodedText);
+    if (isScanning) {
+      isScanning = false; // Prevents multiple scans
+      qrCodeScanner.pause(); // Immediately pause scanner
+      validateTicket(decodedText).finally(() => {
+        isScanning = true; // Reset for next scan
+        qrCodeScanner.resume(); // Resume scanner after processing
+      });
+    }
   };
 
   let qrCodeScanner;
@@ -55,6 +62,10 @@ function Scanner({ onClose }) {
         { ticketId }
       );
       setScanResult(response.data);
+
+      if (checkTimeLimit()) {
+        setTimeLimitPassed(true);
+      }
 
       setScanning(false);
       if (!toastShown) {
@@ -181,8 +192,6 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
-                  : scanResult.typeOfTicket === "Backstage-Code"
-                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -192,8 +201,6 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
-                  : scanResult.typeOfTicket === "Backstage-Code"
-                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -203,8 +210,6 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
-                  : scanResult.typeOfTicket === "Backstage-Code"
-                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -214,8 +219,6 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
-                  : scanResult.typeOfTicket === "Backstage-Code"
-                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >
@@ -225,8 +228,6 @@ function Scanner({ onClose }) {
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
                   ? "guest-code-color"
-                  : scanResult.typeOfTicket === "Backstage-Code"
-                  ? "backstage-code-color"
                   : "friends-code-color"
               }`}
             >

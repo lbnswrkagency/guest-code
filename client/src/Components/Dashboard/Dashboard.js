@@ -108,7 +108,7 @@ const Dashboard = () => {
     if (user) {
       fetchCounts();
     }
-  }, [dataInterval, currentEventDate]); // Depend on user object and dataInterval
+  }, [dataInterval, currentEventDate, user]); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();
