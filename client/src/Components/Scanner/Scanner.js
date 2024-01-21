@@ -15,6 +15,7 @@ function Scanner({ onClose }) {
   const [toastShown, setToastShown] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const [isTicketValidated, setIsTicketValidated] = useState(false);
 
   const handleScan = (decodedText, decodedResult) => {
     if (isScanning) {
@@ -70,21 +71,14 @@ function Scanner({ onClose }) {
   };
 
   const validateTicket = async (ticketId) => {
-    if (toastShown) return; // Prevents multiple validations for the same ticket
-
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/qr/validate`,
         { ticketId }
       );
       setScanResult(response.data);
-
+      setIsTicketValidated(true); // Set the flag to true on successful validation
       setScanning(false);
-      if (!toastShown) {
-        toast.success("Ticket validated successfully", { autoClose: 2000 });
-        setToastShown(true); // This is where you set it to true
-        setTimeout(() => setToastShown(false), 2000); // Add this line to reset it to false after the toast duration
-      }
     } catch (error) {
       if (!toastShown) {
         toast.error("Error validating ticket", { autoClose: 2000 });
