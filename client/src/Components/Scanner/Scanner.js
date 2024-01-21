@@ -15,14 +15,7 @@ function Scanner({ onClose }) {
   const [toastShown, setToastShown] = useState(false);
 
   const handleScan = (decodedText, decodedResult) => {
-    if (isScanning) {
-      isScanning = false; // Prevents multiple scans
-      qrCodeScanner.pause(); // Immediately pause scanner
-      validateTicket(decodedText).finally(() => {
-        isScanning = true; // Reset for next scan
-        qrCodeScanner.resume(); // Resume scanner after processing
-      });
-    }
+    validateTicket(decodedText);
   };
 
   let qrCodeScanner;
@@ -62,10 +55,6 @@ function Scanner({ onClose }) {
         { ticketId }
       );
       setScanResult(response.data);
-
-      if (checkTimeLimit()) {
-        setTimeLimitPassed(true);
-      }
 
       setScanning(false);
       if (!toastShown) {
