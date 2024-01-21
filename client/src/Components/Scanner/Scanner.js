@@ -62,6 +62,13 @@ function Scanner({ onClose }) {
     }
   };
 
+  const stopVideoStream = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach((track) => track.stop());
+    }
+  };
+
   const checkTimeLimit = () => {
     const now = new Date();
     const timeLimit = new Date();
@@ -69,7 +76,6 @@ function Scanner({ onClose }) {
 
     return now > timeLimit;
   };
-
   const validateTicket = async (ticketId) => {
     try {
       const response = await axios.post(
@@ -78,12 +84,14 @@ function Scanner({ onClose }) {
       );
       setScanResult(response.data);
       setIsTicketValidated(true); // Set the flag to true on successful validation
-      setScanning(false);
+      stopVideoStream(); // Stop the video stream
+      setScanning(false); // Update the scanning state
     } catch (error) {
+      // Handle the error case as needed
       if (!toastShown) {
         toast.error("Error validating ticket", { autoClose: 2000 });
         setToastShown(true);
-        setTimeout(() => setToastShown(false), 2000); // Add this line here as well
+        setTimeout(() => setToastShown(false), 2000); // Reset the toast shown state
       }
     }
   };
