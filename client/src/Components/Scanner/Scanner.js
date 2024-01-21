@@ -11,7 +11,6 @@ function Scanner({ onClose }) {
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(true);
-  const [timeLimitPassed, setTimeLimitPassed] = useState(false);
   const [scannerError, setScannerError] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const videoRef = useRef(null);
@@ -71,6 +70,8 @@ function Scanner({ onClose }) {
   };
 
   const validateTicket = async (ticketId) => {
+    if (toastShown) return; // Prevents multiple validations for the same ticket
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/qr/validate`,
@@ -78,24 +79,18 @@ function Scanner({ onClose }) {
       );
       setScanResult(response.data);
 
-      if (checkTimeLimit()) {
-        setTimeLimitPassed(true);
-      }
-
       setScanning(false);
       if (!toastShown) {
         toast.success("Ticket validated successfully", { autoClose: 2000 });
-        setToastShown(true);
+        setToastShown(true); // This is where you set it to true
+        setTimeout(() => setToastShown(false), 2000); // Add this line to reset it to false after the toast duration
       }
     } catch (error) {
-      qrCodeScanner.pause(); // Pause scanner on error
       if (!toastShown) {
         toast.error("Error validating ticket", { autoClose: 2000 });
-        setToastShown(true); // Update state to indicate toast has been shown
+        setToastShown(true);
+        setTimeout(() => setToastShown(false), 2000); // Add this line here as well
       }
-    } finally {
-      qrCodeScanner.resume(); // Resume scanner after validation
-      setToastShown(false);
     }
   };
 
@@ -282,12 +277,6 @@ function Scanner({ onClose }) {
               }`}
             >
               <h2>CONDITION</h2> <p>{scanResult.condition}</p>
-              {timeLimitPassed && (
-                <div className="scanner-result-data-value-limit">
-                  <p>TIME PASSED</p>
-                  <p>If you want to be nice, you can still check it in.</p>
-                </div>
-              )}
             </div>
           </div>
           <button className="scanner-open" onClick={resetScanner}>
