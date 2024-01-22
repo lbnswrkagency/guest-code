@@ -298,7 +298,7 @@ const EventPage = ({ passedEventId }) => {
                   onClick={toggleNav}
                 />
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header_dazero3.png"
+                src="./image/hendricks_header.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -327,6 +327,58 @@ const EventPage = ({ passedEventId }) => {
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
+                      <div className="djs-single djs-single-guest">
+                        <img
+                          src="./image/hendricks.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hendricks</p>
+                        <p className="origin">BERLIN</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/robin.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Robin</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/march.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">March</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/lartistique.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">L'artistique</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/maro.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Maro</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/klou.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Klou</p>
+                      </div>
+
                       <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -335,15 +387,7 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hulk</p>
                       </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/hendricks.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hendricks</p>
-                        <p className="origin">BDAY</p>
-                      </div>
+
                       <div className="djs-single">
                         <img
                           src="./image/dimkay.jpg"
@@ -373,7 +417,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 28 JAN 2024</p>
+                    <p>SUN 21 JAN 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -461,7 +505,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 28.01.2024 · 11 PM
+                Sunday · 21.01.2024 · 10 PM
               </p>
 
               <div

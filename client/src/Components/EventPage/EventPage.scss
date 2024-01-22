@@ -27,8 +27,8 @@
 
     img {
       width: 100%;
-      height: 100%; // Make sure the image takes the full height of the container
-      object-fit: cover; // Cover the container with the image without stretching
+      height: 100%;
+      object-fit: cover;
       object-position: center; // Center the image within the container
     }
   }
@@ -143,7 +143,7 @@
             grid-gap: 1rem;
             margin-bottom: 0.5rem;
             img {
-              width: 2rem;
+              width: 3rem;
               border-radius: 50%;
             }
 
@@ -161,6 +161,11 @@
 
           &-single-guest {
             @include grid(3);
+
+            img {
+              width: 3rem;
+              border-radius: 50%;
+            }
 
             .origin {
               font-size: 0.5rem;
@@ -287,7 +292,7 @@
 
       &-logo {
         z-index: 2;
-        width: 5rem;
+        width: 9rem;
         justify-self: center;
         align-self: center;
         grid-column: 2/3;
