@@ -326,15 +326,7 @@ const EventPage = ({ passedEventId }) => {
                     {" "}
                     <div className="djs">
                       <p className="djs-title">DJs</p>
-                      <div className="djs-single djs-single-guest">
-                        <img
-                          src="https://guest-code.s3.eu-north-1.amazonaws.com/flyers/dazero_face.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Dazero</p>
-                        <p className="origin">CROM CYPRUS</p>
-                      </div>
+
                       <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -350,6 +342,7 @@ const EventPage = ({ passedEventId }) => {
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hendricks</p>
+                        <p className="origin">BDAY</p>
                       </div>
                       <div className="djs-single">
                         <img
@@ -380,7 +373,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 21 JAN 2024</p>
+                    <p>SUN 28 JAN 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -468,7 +461,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 21.01.2024 · 10 PM
+                Sunday · 28.01.2024 · 11 PM
               </p>
 
               <div
