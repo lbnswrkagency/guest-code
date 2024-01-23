@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
+const moment = require("moment-timezone");
+moment.tz.setDefault("Europe/Athens");
 
 const authRoutes = require("./routes/api/auth");
 const spotifyRoutes = require("./routes/api/spotifyRoutes");

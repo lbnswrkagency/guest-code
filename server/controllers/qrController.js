@@ -1,7 +1,8 @@
 const FriendsCode = require("../models/FriendsCode");
 const BackstageCode = require("../models/BackstageCode");
 const GuestCode = require("../models/GuestCode");
-
+const moment = require("moment-timezone");
+moment.tz.setDefault("Europe/Athens");
 const validateTicket = async (req, res) => {
   try {
     const ticketId = req.body.ticketId;
@@ -111,15 +112,25 @@ const decreasePax = async (req, res) => {
 const getCounts = async (req, res) => {
   const { startDate, endDate } = req.query;
 
+  // Log the received start and end dates
+
   try {
     // Define the match condition based on the provided dates
     const matchCondition = {};
     if (startDate) {
-      matchCondition.createdAt = { $gte: new Date(startDate) };
+      const start = moment(startDate)
+        .tz("Europe/Athens")
+        .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
+        .toDate();
+      matchCondition.createdAt = { $gte: start };
     }
     if (endDate) {
+      const end = moment(endDate)
+        .tz("Europe/Athens")
+        .set({ hour: 6, minute: 0, second: 0, millisecond: 0 })
+        .toDate();
       matchCondition.createdAt = matchCondition.createdAt || {};
-      matchCondition.createdAt.$lte = new Date(endDate);
+      matchCondition.createdAt.$lte = end;
     }
 
     // Aggregate FriendsCodes with the match condition
@@ -158,6 +169,7 @@ const getCounts = async (req, res) => {
       },
     ]);
 
+    // Return the aggregated counts
     res.json({
       friendsCounts,
       guestCounts: guestCounts[0] || { total: 0, used: 0 },
