@@ -361,7 +361,14 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">L'artistique</p>
                       </div>
-
+                      <div className="djs-single">
+                        <img
+                          src="./image/ledude.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Ledude</p>
+                      </div>
                       <div className="djs-single">
                         <img
                           src="./image/maro.png"

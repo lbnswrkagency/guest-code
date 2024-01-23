@@ -30,7 +30,16 @@ function Statistic({
 
   const displayDate = currentEventDate.format("DD MMM YYYY");
 
-  console.log("COUNTS", counts);
+  const totalGenerated =
+    counts.friendsCounts.reduce((sum, item) => sum + item.total, 0) +
+    counts.backstageCounts.reduce((sum, item) => sum + item.total, 0) +
+    (counts.guestCounts.total || 0);
+
+  const totalUsed =
+    counts.friendsCounts.reduce((sum, item) => sum + item.used, 0) +
+    counts.backstageCounts.reduce((sum, item) => sum + item.used, 0) +
+    (counts.guestCounts.used || 0);
+
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
@@ -99,6 +108,13 @@ function Statistic({
               <p>{totalUsedBackstageCodes}</p>
             </div>
           )}
+        </div>
+      </div>
+      <div className="statistc-parent">
+        <div className="statistic-parent-group total">
+          <p>TOTAL</p>
+          <p>{totalGenerated}</p>
+          <p>{totalUsed}</p>
         </div>
       </div>
     </div>
