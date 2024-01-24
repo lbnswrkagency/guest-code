@@ -1,4 +1,4 @@
-const Event = require("../models/Event");
+const Event = require("../models/eventsModel");
 const User = require("../models/User");
 const GuestCode = require("../models/GuestCode");
 const QRCode = require("qrcode");

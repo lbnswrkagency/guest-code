@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { check } = require("express-validator");
-const { authenticate } = require("../../middleware/authMiddleware");
+const { authenticate } = require("../middleware/authMiddleware");
 
 const {
   register,
@@ -10,7 +10,7 @@ const {
   getUserData,
   refreshAccessToken,
   logout,
-} = require("../../controllers/authController");
+} = require("../controllers/authController");
 
 // Middleware to log incoming requests
 router.use((req, res, next) => {

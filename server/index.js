@@ -6,10 +6,10 @@ const cookieParser = require("cookie-parser");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
 
-const authRoutes = require("./routes/api/auth");
+const authRoutes = require("./routes/auth");
 const spotifyRoutes = require("./routes/api/spotifyRoutes");
 const userRoutes = require("./routes/api/users");
-const eventsRoutes = require("./routes/api/events");
+const eventsRoutes = require("./routes/api/eventsRoutes");
 const dnsRoutes = require("./routes/api/dnsRoutes");
 const friendsRoutes = require("./routes/api/friendsRoutes");
 const backstageRoutes = require("./routes/api/backstageRoutes");

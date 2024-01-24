@@ -75,10 +75,12 @@ const addFriendsCode = async (req, res) => {
 
               <div> 
                 <div style="margin-top: 0.5rem;">
-                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Beats</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Afrobeats</p>
-                        <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Amapiano</p>
-                            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Dancehall</p>
+                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hendricks (BDAY)</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hulk</p>                    
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Dim Kay</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">J Fyah</p>
+                              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Maro</p>
                 </div>
 
               </div>
@@ -86,14 +88,13 @@ const addFriendsCode = async (req, res) => {
 
 
                      <div style="margin-top: 0.5rem; ">
-                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hulk</p>                    
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hendricks</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Dim Kay</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">J Fyah</p>
+                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">10 Artist</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Robin</p>                    
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">March</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">L'artistique</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Klou</p>
+                                        <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">LeDude</p>
                 </div>
-         
-         
 
            </div>
           

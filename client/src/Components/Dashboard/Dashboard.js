@@ -203,7 +203,7 @@ const Dashboard = () => {
         </div>
       </div>
       <div className="dashboard-actions">
-        {/* {user.isDeveloper && (
+        {user.isDeveloper && (
           <>
             <button
               className="dashboard-actions-button"
@@ -211,14 +211,14 @@ const Dashboard = () => {
             >
               Events
             </button>
-            <button
+            {/* <button
               className="dashboard-actions-button"
               onClick={() => setShowSettings(true)}
             >
               Settings
-            </button>
+            </button> */}
           </>
-        )} */}
+        )}
 
         {user.isAdmin && (
           <>
