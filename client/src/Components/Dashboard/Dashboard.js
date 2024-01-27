@@ -47,14 +47,33 @@ const Dashboard = () => {
 
   const getThisWeeksFriendsCount = () => {
     return counts.friendsCounts
-      .filter((count) => count._id === user.name)
+      .filter((count) => count._id === user._id)
       .reduce((acc, curr) => acc + curr.total, 0);
   };
 
   const getThisWeeksBackstageCount = () => {
-    return counts.backstageCounts
-      .filter((count) => count._id === user.name)
-      .reduce((acc, curr) => acc + curr.total, 0);
+    console.log("USER IN COUNT", user);
+
+    console.log("backstageCounts Array:", counts.backstageCounts);
+
+    // Use user.name for comparison as per your current requirement
+    const filteredCounts = counts.backstageCounts.filter((count) => {
+      console.log(
+        "Comparing count _id:",
+        count._id,
+        "with user name:",
+        user.name
+      );
+      return count._id === user.name; // Make sure this comparison is correct as per your data
+    });
+
+    console.log("Filtered backstageCounts Array:", filteredCounts);
+
+    const total = filteredCounts.reduce((acc, curr) => acc + curr.total, 0);
+
+    console.log("Total Backstage Count for User:", total);
+
+    return total;
   };
 
   const [currentEventDate, setCurrentEventDate] = useState(
@@ -181,6 +200,8 @@ const Dashboard = () => {
   if (showSettings) {
     return <Settings />;
   }
+
+  console.log("COUNTS", counts);
 
   return (
     <div className="dashboard">

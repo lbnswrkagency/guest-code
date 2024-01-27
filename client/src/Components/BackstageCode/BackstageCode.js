@@ -15,11 +15,25 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
   const [condition, setCondition] = useState("free");
   const navigate = useNavigate();
 
+  const [remainingCount, setRemainingCount] = useState(
+    user.backstageCodeLimit
+      ? user.backstageCodeLimit - weeklyBackstageCount
+      : weeklyBackstageCount
+  );
+
   const handleCheckbox = (event) => {
     setCondition(event.target.id);
   };
 
   const handleBackstageCode = () => {
+    if (
+      user.backstageCodeLimit &&
+      weeklyBackstageCount >= user.backstageCodeLimit
+    ) {
+      toast.error("You reached your weekly limit");
+      return;
+    }
+
     if (name && condition) {
       toast.loading("Generating Backstage-Code...");
       axios
@@ -42,6 +56,9 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
           const url = window.URL.createObjectURL(new Blob([response.data]));
           setDownloadUrl(url);
           refreshCounts();
+          if (user.backstageCodeLimit) {
+            setRemainingCount(remainingCount - 1); // Decrement the remaining count
+          }
         });
     }
 
@@ -50,6 +67,9 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
     }
   };
 
+  console.log("REMAINING", remainingCount);
+  console.log("THIS WEEKS COUNT", weeklyBackstageCount);
+  console.log("THIS WEEKS LIMIT", user.backstageCodeLimit);
   return (
     <div className="backstagecode">
       <Toaster />
@@ -68,9 +88,11 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
       </p>
 
       <div className="backstagecode-count">
-        <h4>THIS WEEKS COUNT</h4>
+        <h4>
+          {user.backstageCodeLimit ? "REMAINING THIS WEEK" : "THIS WEEKS COUNT"}
+        </h4>
         <div className="backstagecode-count-number">
-          <p>{weeklyBackstageCount}</p>
+          <p>{remainingCount}</p>
         </div>
       </div>
 

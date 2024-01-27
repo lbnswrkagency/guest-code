@@ -13,6 +13,8 @@ const UserSchema = new Schema({
   isStaff: { type: Boolean, default: false },
   isDeveloper: { type: Boolean, default: false },
   isBackstage: { type: Boolean, default: false },
+  backstageCodeLimit: { type: Number, default: false },
+  friendsCodeLimit: { type: Number, default: false },
   createdAt: { type: Date, default: Date.now },
   events: [{ type: Schema.Types.ObjectId, ref: "Event" }],
   avatar: {
