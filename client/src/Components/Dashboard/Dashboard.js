@@ -46,16 +46,33 @@ const Dashboard = () => {
   };
 
   const getThisWeeksFriendsCount = () => {
-    return counts.friendsCounts
-      .filter((count) => count._id === user._id)
-      .reduce((acc, curr) => acc + curr.total, 0);
+    console.log("USER IN COUNT", user);
+
+    console.log("friendsCounts Array:", counts.friendsCounts);
+
+    const filteredFriendsCounts = counts.friendsCounts.filter((count) => {
+      console.log(
+        "Comparing count _id:",
+        count._id,
+        "with user name:",
+        user.name
+      );
+      return count._id === user.name;
+    });
+
+    console.log("Filtered friendsCounts Array:", filteredFriendsCounts);
+
+    const totalFriendsCount = filteredFriendsCounts.reduce(
+      (acc, curr) => acc + curr.total,
+      0
+    );
+
+    console.log("Total Friends Count for User:", totalFriendsCount);
+
+    return totalFriendsCount;
   };
 
   const getThisWeeksBackstageCount = () => {
-    console.log("USER IN COUNT", user);
-
-    console.log("backstageCounts Array:", counts.backstageCounts);
-
     // Use user.name for comparison as per your current requirement
     const filteredCounts = counts.backstageCounts.filter((count) => {
       console.log(
