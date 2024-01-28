@@ -34,40 +34,27 @@ const Dashboard = () => {
 
   const findNextEventDate = (today, startEventDate) => {
     let nextEventDate = startEventDate.clone();
-
-    while (
-      nextEventDate.isBefore(today, "day") ||
-      (nextEventDate.isSame(today, "day") && today.hour() < 6)
-    ) {
+    do {
+      if (
+        nextEventDate.isAfter(today, "day") ||
+        (nextEventDate.isSame(today, "day") && today.hour() < 6)
+      ) {
+        break;
+      }
       nextEventDate.add(1, "weeks");
-    }
-
+    } while (true);
     return nextEventDate;
   };
 
   const getThisWeeksFriendsCount = () => {
-    console.log("USER IN COUNT", user);
-
-    console.log("friendsCounts Array:", counts.friendsCounts);
-
     const filteredFriendsCounts = counts.friendsCounts.filter((count) => {
-      console.log(
-        "Comparing count _id:",
-        count._id,
-        "with user name:",
-        user.name
-      );
       return count._id === user.name;
     });
-
-    console.log("Filtered friendsCounts Array:", filteredFriendsCounts);
 
     const totalFriendsCount = filteredFriendsCounts.reduce(
       (acc, curr) => acc + curr.total,
       0
     );
-
-    console.log("Total Friends Count for User:", totalFriendsCount);
 
     return totalFriendsCount;
   };
@@ -75,36 +62,33 @@ const Dashboard = () => {
   const getThisWeeksBackstageCount = () => {
     // Use user.name for comparison as per your current requirement
     const filteredCounts = counts.backstageCounts.filter((count) => {
-      console.log(
-        "Comparing count _id:",
-        count._id,
-        "with user name:",
-        user.name
-      );
       return count._id === user.name; // Make sure this comparison is correct as per your data
     });
 
-    console.log("Filtered backstageCounts Array:", filteredCounts);
-
     const total = filteredCounts.reduce((acc, curr) => acc + curr.total, 0);
-
-    console.log("Total Backstage Count for User:", total);
 
     return total;
   };
+  const today = moment();
+  let nearestSunday = today.clone().day(0); // Finds the nearest past Sunday
 
-  const [currentEventDate, setCurrentEventDate] = useState(
-    findNextEventDate(moment(), startingEventDate)
-  );
+  if (today.day() === 0 && today.hour() >= 6) {
+    // If today is Sunday and the hour is 6 AM or later, move to the next Sunday
+    nearestSunday.add(1, "weeks");
+  }
+
+  const initialEventDate = nearestSunday.isBefore(startingEventDate)
+    ? startingEventDate
+    : nearestSunday;
+  const [currentEventDate, setCurrentEventDate] = useState(initialEventDate);
+
   const calculateDataInterval = (currentEvent, startEvent) => {
     let startDate, endDate;
 
     if (currentEvent.isSame(startEvent, "day")) {
-      // For the first event, fetch all data from the beginning up to the day after the event at 6AM
       startDate = null;
       endDate = startEvent.clone().add(1, "days").hour(6);
     } else {
-      // For subsequent events, fetch data from the Monday at 6AM of the previous week to the day after the event at 6AM
       startDate = currentEvent
         .clone()
         .subtract(1, "weeks")
@@ -115,6 +99,7 @@ const Dashboard = () => {
 
     return { startDate, endDate };
   };
+
   const [dataInterval, setDataInterval] = useState(
     calculateDataInterval(currentEventDate, startingEventDate)
   );
@@ -217,8 +202,6 @@ const Dashboard = () => {
   if (showSettings) {
     return <Settings />;
   }
-
-  console.log("COUNTS", counts);
 
   return (
     <div className="dashboard">
