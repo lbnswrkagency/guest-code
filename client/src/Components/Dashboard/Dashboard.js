@@ -69,15 +69,16 @@ const Dashboard = () => {
 
     return total;
   };
-  const today = moment();
-  let nearestSunday = today.clone().day(0); // Finds the nearest past Sunday
 
-  if (today.day() === 0 && today.hour() >= 6) {
-    // If today is Sunday and the hour is 6 AM or later, move to the next Sunday
-    nearestSunday.add(1, "weeks");
+  const today = moment();
+  let nearestSunday = today.clone().startOf("day").day(0); // Get the Sunday of the current week
+
+  if (today.day() === 0 && today.hour() < 6) {
+    // If it's Sunday before 6 AM, consider the previous Sunday as the nearest
+    nearestSunday.subtract(1, "weeks");
   }
 
-  const initialEventDate = nearestSunday.isBefore(startingEventDate)
+  const initialEventDate = nearestSunday.isSameOrBefore(startingEventDate)
     ? startingEventDate
     : nearestSunday;
   const [currentEventDate, setCurrentEventDate] = useState(initialEventDate);
@@ -103,6 +104,7 @@ const Dashboard = () => {
   const [dataInterval, setDataInterval] = useState(
     calculateDataInterval(currentEventDate, startingEventDate)
   );
+
   const fetchCounts = async () => {
     try {
       const { startDate, endDate } = dataInterval;
