@@ -468,7 +468,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 04.02.2024 · 10 PM
+                Sunday · 04.02.2024 · 11 PM
               </p>
 
               <div
