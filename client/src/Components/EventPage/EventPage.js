@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="./image/hendricks_header.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER040224.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -326,65 +326,12 @@ const EventPage = ({ passedEventId }) => {
                     {" "}
                     <div className="djs">
                       <p className="djs-title">DJs</p>
-
+                      {/* 
                       <div className="djs-single djs-single-guest">
-                        <img
-                          src="./image/hendricks.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
+                        <img alt="" className="djs-single-image" />
                         <p className="djs-single-name">Hendricks</p>
                         <p className="origin">BERLIN</p>
-                      </div>
-
-                      <div className="djs-single">
-                        <img
-                          src="./image/robin.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Robin</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/march.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">March</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/lartistique.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">L'artistique</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/ledude.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Ledude</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/maro.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Maro</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/klou.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Klou</p>
-                      </div>
+                      </div> */}
 
                       <div className="djs-single">
                         <img
@@ -397,11 +344,20 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single">
                         <img
+                          src="./image/hendricks.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hendricks</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
                           src="./image/dimkay.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">DIM KAY</p>
+                        <p className="djs-single-name">Dim KayY</p>
                       </div>
                     </div>
                     <div className="mc">
@@ -512,7 +468,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 28.01.2024 · 10 PM
+                Sunday · 04.02.2024 · 10 PM
               </p>
 
               <div
