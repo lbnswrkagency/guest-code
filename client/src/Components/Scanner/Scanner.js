@@ -76,6 +76,7 @@ function Scanner({ onClose }) {
 
     return now > timeLimit;
   };
+
   const validateTicket = async (ticketId) => {
     try {
       const response = await axios.post(

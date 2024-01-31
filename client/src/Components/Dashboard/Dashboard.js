@@ -12,6 +12,7 @@ import axios from "axios";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
 import AvatarUpload from "../AvatarUpload/index";
+import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -26,25 +27,15 @@ const Dashboard = () => {
     backstageCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
+  const {
+    startingEventDate,
+    currentEventDate,
+    dataInterval,
+    handlePrevWeek,
+    handleNextWeek,
+  } = useCurrentEvent();
 
   const navigate = useNavigate();
-
-  const startingEventString = "14012024"; // Your starting date in DDMMYYYY format
-  const startingEventDate = moment(startingEventString, "DDMMYYYY");
-
-  const findNextEventDate = (today, startEventDate) => {
-    let nextEventDate = startEventDate.clone();
-    do {
-      if (
-        nextEventDate.isAfter(today, "day") ||
-        (nextEventDate.isSame(today, "day") && today.hour() < 6)
-      ) {
-        break;
-      }
-      nextEventDate.add(1, "weeks");
-    } while (true);
-    return nextEventDate;
-  };
 
   const getThisWeeksFriendsCount = () => {
     const filteredFriendsCounts = counts.friendsCounts.filter((count) => {
@@ -69,41 +60,6 @@ const Dashboard = () => {
 
     return total;
   };
-
-  const today = moment();
-  let nearestSunday = today.clone().startOf("day").day(0); // Get the Sunday of the current week
-
-  if (today.day() === 0 && today.hour() < 6) {
-    // If it's Sunday before 6 AM, consider the previous Sunday as the nearest
-    nearestSunday.subtract(1, "weeks");
-  }
-
-  const initialEventDate = nearestSunday.isSameOrBefore(startingEventDate)
-    ? startingEventDate
-    : nearestSunday;
-  const [currentEventDate, setCurrentEventDate] = useState(initialEventDate);
-
-  const calculateDataInterval = (currentEvent, startEvent) => {
-    let startDate, endDate;
-
-    if (currentEvent.isSame(startEvent, "day")) {
-      startDate = null;
-      endDate = startEvent.clone().add(1, "days").hour(6);
-    } else {
-      startDate = currentEvent
-        .clone()
-        .subtract(1, "weeks")
-        .day("Monday")
-        .hour(6);
-      endDate = currentEvent.clone().add(1, "days").hour(6);
-    }
-
-    return { startDate, endDate };
-  };
-
-  const [dataInterval, setDataInterval] = useState(
-    calculateDataInterval(currentEventDate, startingEventDate)
-  );
 
   const fetchCounts = async () => {
     try {
@@ -131,7 +87,7 @@ const Dashboard = () => {
     if (user) {
       fetchCounts();
     }
-  }, [dataInterval, currentEventDate, user]); // Depend on user object and dataInterval
+  }, [currentEventDate, user]); // Depend on user object and dataInterval
 
   const handleLogout = () => {
     logout();
@@ -139,23 +95,8 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const handlePrevWeek = () => {
-    if (!currentEventDate.isSame(startingEventDate, "day")) {
-      const newEventDate = currentEventDate.clone().subtract(1, "weeks");
-      setCurrentEventDate(newEventDate);
-      setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
-    }
-  };
-
   const refreshCounts = () => {
     fetchCounts();
-  };
-
-  const handleNextWeek = () => {
-    const newEventDate = currentEventDate.clone().add(1, "weeks");
-
-    setCurrentEventDate(newEventDate);
-    setDataInterval(calculateDataInterval(newEventDate, startingEventDate));
   };
 
   if (loading || !user) {
