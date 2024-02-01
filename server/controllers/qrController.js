@@ -179,8 +179,17 @@ const getCounts = async (req, res) => {
       },
     ]);
 
-    // Assuming GuestCode follows a similar pattern or adjust accordingly
-    const guestCounts = { total: 0, used: 0 }; // Modify as needed
+    // Aggregate GuestCodes with the match condition
+    const guestCounts = await GuestCode.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          used: { $sum: "$paxChecked" },
+        },
+      },
+    ]);
 
     res.json({ friendsCounts, guestCounts, backstageCounts });
   } catch (error) {

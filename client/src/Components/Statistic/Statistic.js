@@ -25,8 +25,15 @@ function Statistic({
   const totalUsedBackstageCodes = counts.backstageCounts
     ? counts.backstageCounts.reduce((acc, curr) => acc + curr.used, 0)
     : 0;
-  const totalGuestCodes = counts.guestCounts ? counts.guestCounts.total : 0;
-  const totalUsedGuestCodes = counts.guestCounts ? counts.guestCounts.used : 0;
+
+  const totalGuestCodes =
+    counts.guestCounts && counts.guestCounts.length > 0
+      ? counts.guestCounts[0].total
+      : 0;
+  const totalUsedGuestCodes =
+    counts.guestCounts && counts.guestCounts.length > 0
+      ? counts.guestCounts[0].used
+      : 0;
 
   const displayDate = currentEventDate.format("DD MMM YYYY");
 

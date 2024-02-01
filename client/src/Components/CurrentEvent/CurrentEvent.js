@@ -21,6 +21,12 @@ export const useCurrentEvent = () => {
     return nextEventDate;
   };
 
+  const resetEventDateToToday = useCallback(() => {
+    const today = moment();
+    const nextEventDate = findNextEventDate(today);
+    setCurrentDate(nextEventDate);
+  }, []);
+
   const getCurrentEventDate = () => {
     let nearestSunday = currentDate.clone().startOf("week");
     if (
@@ -75,5 +81,11 @@ export const useCurrentEvent = () => {
   //     dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
   //   );
 
-  return { currentEventDate, dataInterval, handlePrevWeek, handleNextWeek };
+  return {
+    currentEventDate,
+    dataInterval,
+    handlePrevWeek,
+    handleNextWeek,
+    resetEventDateToToday,
+  };
 };

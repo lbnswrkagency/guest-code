@@ -38,6 +38,7 @@ const Dashboard = () => {
     dataInterval,
     handlePrevWeek,
     handleNextWeek,
+    resetEventDateToToday,
   } = useCurrentEvent();
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
@@ -169,7 +170,10 @@ const Dashboard = () => {
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
         isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
-        onClose={() => setShowStatistic(false)}
+        onClose={() => {
+          setShowStatistic(false);
+          resetEventDateToToday(); // Reset event date to today
+        }}
         user={user}
       />
     );
@@ -183,7 +187,10 @@ const Dashboard = () => {
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
         isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
-        onClose={() => setShowRanking(false)}
+        onClose={() => {
+          setShowRanking(false);
+          resetEventDateToToday(); // Reset event date to today
+        }}
         user={user}
       />
     );
