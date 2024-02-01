@@ -1,0 +1,159 @@
+@import "../../_variables";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+}
+
+$breakpoints: (
+  smallest: 200px,
+  supersmall: 400px,
+  small: 480px,
+  smallmid: 600px,
+  midsmall: 800px,
+  midmedium: 1000px,
+  medium: 1200px,
+  midlarge: 1500px,
+  large: 2000px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+.ranking {
+  padding: 2rem;
+  display: grid;
+  margin-top: 4rem;
+
+  .winner-container {
+    border-bottom: 2px solid rgb(180, 151, 3);
+    margin-bottom: 2rem;
+  }
+
+  &-list {
+    margin-top: 3rem;
+  }
+
+  &-item {
+    display: grid;
+    grid-template-columns: 0.1fr 0.3fr 0.4fr 0.2fr;
+    min-height: 3.25rem;
+    border-bottom: 1px solid lightgrey;
+    padding: 0.5rem;
+    &-rank {
+      align-self: center;
+      font-size: 1.15rem;
+      justify-self: center;
+    }
+    &-avatar {
+      width: 3rem;
+
+      border-radius: 50%;
+      align-self: center;
+      justify-self: center;
+    }
+
+    &-name {
+      align-self: center;
+      font-size: 1.15rem;
+    }
+
+    &-total {
+      justify-self: end;
+      align-self: center;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: rgb(185, 8, 8);
+    }
+
+    .used {
+      color: rgb(3, 180, 3);
+    }
+
+    .winner {
+      color: rgb(180, 151, 3);
+      font-weight: 800;
+      font-size: 1.3rem;
+    }
+  }
+
+  &-navigation {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 1rem;
+    button {
+      background: none;
+      border: none;
+      font-weight: 800;
+      color: #fff;
+      font-size: 1.5rem;
+      align-self: center;
+    }
+
+    button:nth-child(1) {
+      justify-self: start;
+    }
+
+    p {
+      justify-self: center;
+      align-self: center;
+      text-transform: uppercase;
+    }
+
+    button:nth-child(3) {
+      justify-self: end;
+    }
+  }
+
+  &-container {
+    display: grid;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    width: 100%;
+
+    h2 {
+      margin-top: 1rem;
+      text-align: start;
+      margin-bottom: 0.25rem;
+    }
+
+    p {
+      text-align: left;
+    }
+  }
+
+  &-parent {
+    @include grid-row(2);
+    width: 100%;
+
+    &-group {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 0.25rem;
+      p:nth-child(2) {
+        text-align: center;
+        font-weight: 800;
+        color: rgb(185, 8, 8);
+      }
+      p:nth-child(3) {
+        text-align: end;
+        font-weight: 800;
+        color: rgb(3, 180, 3);
+      }
+    }
+  }
+
+  .total {
+    border: 1px solid white;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+  }
+}

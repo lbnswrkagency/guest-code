@@ -14,6 +14,7 @@ import moment from "moment";
 import AvatarUpload from "../AvatarUpload/index";
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
+import Ranking from "../Ranking/Ranking";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -22,8 +23,10 @@ const Dashboard = () => {
   const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
   const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
+  const [isCropMode, setIsCropMode] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
     backstageCounts: [],
@@ -36,12 +39,21 @@ const Dashboard = () => {
     handlePrevWeek,
     handleNextWeek,
   } = useCurrentEvent();
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+
+  // Toggle function to switch between edit and view mode
+  const toggleEditAvatar = () => {
+    setIsEditingAvatar(!isEditingAvatar);
+  };
 
   const navigate = useNavigate();
 
+  const handleCropModeToggle = (isInCropMode) => {
+    setIsCropMode(isInCropMode);
+  };
   const getThisWeeksFriendsCount = () => {
     const filteredFriendsCounts = counts.friendsCounts.filter((count) => {
-      return count._id === user.name;
+      return count._id === user._id;
     });
 
     const totalFriendsCount = filteredFriendsCounts.reduce(
@@ -55,7 +67,7 @@ const Dashboard = () => {
   const getThisWeeksBackstageCount = () => {
     // Use user.name for comparison as per your current requirement
     const filteredCounts = counts.backstageCounts.filter((count) => {
-      return count._id === user.name; // Make sure this comparison is correct as per your data
+      return count._id === user._id; // Make sure this comparison is correct as per your data
     });
 
     const total = filteredCounts.reduce((acc, curr) => acc + curr.total, 0);
@@ -86,10 +98,13 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    if (user?.avatar) {
+      setIsEditingAvatar(false); // Resets editing state when a new avatar URL is detected.
+    }
     if (user) {
       fetchCounts();
     }
-  }, [currentEventDate, user]); // Depend on user object and dataInterval
+  }, [currentEventDate, user]);
 
   const handleLogout = () => {
     logout();
@@ -160,6 +175,20 @@ const Dashboard = () => {
     );
   }
 
+  if (showRanking) {
+    return (
+      <Ranking
+        counts={counts}
+        currentEventDate={currentEventDate}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
+        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+        onClose={() => setShowRanking(false)}
+        user={user}
+      />
+    );
+  }
+
   if (showSettings) {
     return <Settings />;
   }
@@ -169,16 +198,42 @@ const Dashboard = () => {
       <div className="dashboard-header">
         <h1 className="dashboard-header-title">Dashboard</h1>
         <div className="user-info">
-          {/* <img
-            src="https://via.placeholder.com/50"
-            alt="Profile"
-            className="dashboard-header-picture"
-          /> */}
-          {/* <AvatarUpload
-            user={user}
-            setUser={setUser}
-            setImageSwitch={setImageSwitch}
-          /> */}
+          <div className="dashboard-header-avatar">
+            {!isEditingAvatar && user.avatar && (
+              <>
+                <img
+                  src={user.avatar}
+                  alt="Profile"
+                  className="dashboard-header-avatar-picture"
+                />
+                <img
+                  src="/image/edit-icon_w.svg" // Path to your edit icon
+                  alt="Edit Avatar"
+                  className="avatar-edit-icon avatar-icon"
+                  onClick={toggleEditAvatar}
+                />
+              </>
+            )}
+            {(isEditingAvatar || !user.avatar) && (
+              <>
+                <AvatarUpload
+                  user={user}
+                  setUser={setUser}
+                  setImageSwitch={setImageSwitch}
+                  onCropModeChange={handleCropModeToggle} // Pass this prop to AvatarUpload
+                />
+
+                {user.avatar && !isCropMode && (
+                  <img
+                    src="/image/cancel-icon_w.svg"
+                    alt="Cancel Edit"
+                    className="avatar-cancel-icon avatar-icon"
+                    onClick={toggleEditAvatar}
+                  />
+                )}
+              </>
+            )}
+          </div>
 
           <p className="dashboard-header-name">{user.name}</p>
           <p className="dashboard-header-email">{user.email}</p>
@@ -229,6 +284,14 @@ const Dashboard = () => {
             onClick={() => setCodeType("Friends")}
           >
             Friends Code
+          </button>
+        )}
+        {user.isPromoter && (
+          <button
+            className="dashboard-actions-button"
+            onClick={() => setShowRanking(true)}
+          >
+            Ranking
           </button>
         )}
         {user.isScanner && (

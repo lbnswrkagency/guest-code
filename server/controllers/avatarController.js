@@ -1,8 +1,8 @@
 const path = require("path");
 const url = require("url");
 const User = require("../models/User");
-
 const aws = require("aws-sdk");
+const { uploadToS3, deleteExistingAvatar } = require("../utils/s3Uploader");
 
 // AWS S3 Configuration
 aws.config.update({
@@ -44,53 +44,40 @@ const addAvatar = async (req, res) => {
 };
 
 const uploadAvatar = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded." });
-  }
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
 
-  const imageName = req.file.key;
-  const imageLocation = req.file.location;
   const userId = req.body.userId;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  // Correctly extract file extension and construct the new filename
+  const originalName = req.file.originalname;
+  const fileExtension = originalName.substring(originalName.lastIndexOf("."));
+  const fileName = `avatar-${userId}${fileExtension}`; // Correct format for filename
+
+  const folder = "server"; // Your S3 folder
+  const mimetype = req.file.mimetype;
 
   try {
-    const user = await User.findById(userId);
-    if (!user) {
-      console.log(`User not found with id: ${userId}`);
-      return res.status(404).json({ error: "User not found" });
-    }
+    // First, try deleting any existing avatar for the user
+    await deleteExistingAvatar(folder, fileName);
 
-    // Delete the old avatar if it exists
-
-    if (user.avatar) {
-      const oldAvatarKey = url.parse(user.avatar).pathname.substring(1);
-      const deleteParams = {
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: oldAvatarKey,
-      };
-
-      try {
-        await s3.deleteObject(deleteParams).promise();
-      } catch (err) {
-        console.log("Error deleting old avatar:", err);
-      }
-    }
-
-    // Update the user's avatar URL in the database
-    user.avatar = imageLocation;
+    // Then, upload the new avatar
+    const imageUrl = await uploadToS3(
+      req.file.buffer,
+      folder,
+      fileName,
+      mimetype
+    );
+    user.avatar = imageUrl;
     await user.save();
-
-    res.json({
-      image: imageName,
-      location: imageLocation,
-      userId: userId,
-    });
-  } catch (err) {
-    console.error("Error in uploadAvatar:", err);
-    res
-      .status(500)
-      .json({ error: "An error occurred while updating the avatar" });
+    res.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error("Error uploading avatar:", error);
+    res.status(500).json({ error: "Failed to upload avatar" });
   }
 };
+
 module.exports = {
   addAvatar,
   uploadAvatar,

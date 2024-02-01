@@ -5,9 +5,92 @@
   padding: 2rem;
   text-align: center;
   align-self: center;
+
   height: 100%;
   &-header {
     margin-top: 5rem;
+
+    &-avatar {
+      display: grid;
+      position: relative;
+
+      margin-bottom: 1rem;
+
+      &-picture {
+        justify-self: center;
+        border-radius: 50%;
+        width: 10rem;
+      }
+
+      .avatar-icon {
+        position: absolute;
+        width: 2rem;
+        bottom: 0;
+        right: 4rem;
+        cursor: pointer;
+      }
+
+      .avatar-controls {
+        cursor: pointer;
+        width: 2.5rem;
+        margin: 0.5rem;
+      }
+
+      .profileApp {
+        width: 10rem;
+        justify-self: center;
+
+        .image-upload-file {
+          display: none;
+        }
+      }
+
+      .avatar-crop {
+        display: grid;
+        grid-gap: 1rem;
+        justify-content: center;
+        &-controls {
+          display: grid;
+
+          &-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #f4c430; /* Gold background */
+            outline: none;
+            opacity: 0.75;
+            -webkit-transition: 0.2s;
+            transition: opacity 0.2s;
+
+            &::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 25px;
+              height: 25px;
+              background: #ffd700; /* Solid gold color */
+              cursor: pointer;
+              border-radius: 50%;
+            }
+
+            &::-moz-range-thumb {
+              width: 25px;
+              height: 25px;
+              background: #ffd700; /* Solid gold color */
+              cursor: pointer;
+              border-radius: 50%;
+            }
+
+            &:focus::-webkit-slider-thumb {
+              background: #b8860b; /* Darker gold tone on focus */
+            }
+
+            &:focus::-moz-range-thumb {
+              background: #b8860b; /* Darker gold tone on focus */
+            }
+          }
+        }
+      }
+    }
 
     &-title {
       color: #fff;
@@ -45,7 +128,7 @@
   &-actions {
     display: grid;
     grid-gap: 0.5rem;
-    margin-top: 5rem;
+    margin-top: 1.25rem;
     &-button {
       display: flex;
       padding: 16px 32px;

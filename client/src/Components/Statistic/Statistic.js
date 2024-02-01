@@ -43,7 +43,7 @@ function Statistic({
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
-        ← Back
+        <img src="/image/back-icon.svg" alt="" />
       </div>
 
       <div className="statistic-container">
@@ -75,7 +75,7 @@ function Statistic({
           {(user.isDeveloper || user.isStaff) &&
             counts.friendsCounts.map((count) => (
               <div key={count._id} className="statistic-parent-group">
-                <p>{count._id}</p>
+                <p>{count.name}</p>
                 <p>{count.total}</p>
                 <p>{count.used}</p>
               </div>
@@ -96,7 +96,7 @@ function Statistic({
             counts.backstageCounts &&
             counts.backstageCounts.map((count) => (
               <div key={count._id} className="statistic-parent-group">
-                <p>{count._id}</p>
+                <p>{count.name}</p>
                 <p>{count.total}</p>
                 <p>{count.used}</p>
               </div>

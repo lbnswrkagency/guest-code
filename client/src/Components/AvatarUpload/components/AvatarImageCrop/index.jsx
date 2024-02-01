@@ -9,62 +9,37 @@ const AvatarImageCrop = ({
   onScaleChange,
   onCancel,
 }) => (
-  <div className="flex flex-col justify-center">
+  <div className="avatar-crop">
     <AvatarEditor
-      className="mx-auto rounded-full"
+      className="avatar-crop-editor"
       image={imageSrc}
       scale={scaleValue}
       ref={setEditorRef}
       borderRadius={100}
       border={0}
     />
-    <span className="text-center text-xs text-rose-500 font-medium uppercase mt-2 mb-2">
-      v Bitte bestätigen v
-    </span>
-    <div className="relative flex gap-2 items-center justify-between">
-      <div className="p-1.5 rounded-full bg-pink">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-6 h-6 text-white"
-          onClick={onCancel}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
+
+    <div className="avatar-crop-controls">
+      {/* <span className="avatar-crop-controls-text">BESTÄTIGEN</span> */}
+
+      <div className="avatar-crop-controls-cancel" onClick={onCancel}>
+        <img
+          className="avatar-controls"
+          src="/image/cancel-icon_w.svg"
+          alt=""
+        />
       </div>
 
       <input
-        className="flex w-full accent-pink"
+        className="avatar-crop-controls-range"
         type="range"
         value={scaleValue}
         min="1"
         max="10"
         onChange={onScaleChange}
       />
-
-      <div className="p-1.5 rounded-full bg-pink">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-6 h-6 text-white"
-          onClick={onCrop}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4.5 12.75l6 6 9-13.5"
-          />
-        </svg>
+      <div className="avatar-crop-controls-confirm" onClick={onCrop}>
+        <img className="avatar-controls" src="/image/check-icon_w.svg" alt="" />
       </div>
     </div>
   </div>

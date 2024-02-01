@@ -58,8 +58,10 @@ const Login = () => {
   return (
     <AuthForm>
       <div className="login-back-arrow" onClick={() => navigate("/")}>
-        ← Back
+        <img src="/image/back-icon.svg" alt="" />
       </div>
+      <img className="login-logo" src="/image/logo.svg" alt="" />
+
       <h2 className="login-title">Login</h2>
       <form className="login-form" onSubmit={handleSubmit}>
         <input

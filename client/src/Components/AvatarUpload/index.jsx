@@ -20,6 +20,8 @@ class AvatarUpload extends Component {
     };
   }
 
+  setEditorRef = (editor) => this.setState({ editor });
+
   profileImageChange = (fileChangeEvent) => {
     const file = fileChangeEvent.target.files[0];
     const { type } = file;
@@ -28,6 +30,7 @@ class AvatarUpload extends Component {
     }
     this.setState({ cropMode: true });
     this.state.setImageSwitch(true);
+    this.props.onCropModeChange(true);
   };
 
   onCrop = () => {
@@ -64,29 +67,21 @@ class AvatarUpload extends Component {
           }
         )
         .then((response) => {
-          // Handle success
-
           if (response.status === 200) {
-            if (response.data.error) {
-              // Handle specific errors
-              this.ocShowAlert(response.data.error, "red");
-            } else {
-              // Successful upload
-              this.setState({
-                user: {
-                  ...this.state.user,
-                  avatar: response.data.location,
-                },
-                cropMode: false,
-              });
-              this.state.setUser({
-                ...this.state.user,
-                avatar: response.data.location,
-              });
-              this.state.setImageSwitch(false);
-            }
+            // Update global user state with new avatar URL
+            const updatedUser = {
+              ...this.props.user,
+              avatar: response.data.imageUrl,
+            };
+
+            this.props.setUser(updatedUser); // Assuming setUser updates global state
+            // Reset local state to exit crop mode
+            this.setState({ cropMode: false });
+            this.state.setImageSwitch(false);
+            this.props.onCropModeChange(false);
           }
         })
+
         .catch((error) => {
           // Handle any other errors
           this.ocShowAlert(`Error: ${error.message}`, "red");
@@ -99,6 +94,7 @@ class AvatarUpload extends Component {
   onCancel = () => {
     this.setState({ cropMode: false });
     this.state.setImageSwitch(false);
+    this.props.onCropModeChange(false);
   };
 
   onScaleChange = (scaleValueEvent) => {
@@ -137,6 +133,7 @@ class AvatarUpload extends Component {
                 accept="image/png, image/jpeg"
                 onChange={this.profileImageChange}
                 id="file-input"
+                className="image-upload-file"
               />
             </div>
           </>

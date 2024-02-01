@@ -1,4 +1,9 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsCommand,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { createRequest } = require("@aws-sdk/util-create-request");
 const fs = require("fs").promises;
@@ -23,11 +28,35 @@ const s3 = new S3Client({
   },
 });
 
+const deleteExistingAvatar = async (folder, fileName) => {
+  const listParams = {
+    Bucket: AWS_S3_BUCKET_NAME,
+    Prefix: `${folder}/${fileName}`,
+  };
+
+  try {
+    const { Contents } = await s3.send(new ListObjectsCommand(listParams));
+    if (Contents && Contents.length > 0) {
+      const deleteParams = {
+        Bucket: AWS_S3_BUCKET_NAME,
+        Key: Contents[0].Key,
+      };
+      await s3.send(new DeleteObjectCommand(deleteParams));
+    }
+  } catch (error) {
+    console.error("Error deleting existing avatar:", error);
+    // Consider how you want to handle this error. For example, you might want to throw it or handle it gracefully.
+  }
+};
+
 const uploadToS3 = async (fileBufferOrPath, folder, fileName, mimetype) => {
+  await deleteExistingAvatar(folder, fileName); // Check and delete existing file
+
   const isBuffer = Buffer.isBuffer(fileBufferOrPath);
   const fileStream = isBuffer
     ? fileBufferOrPath
     : await fs.readFile(fileBufferOrPath);
+
   const key = `${folder}/${fileName}`;
 
   const params = {
@@ -49,4 +78,5 @@ const uploadToS3 = async (fileBufferOrPath, folder, fileName, mimetype) => {
 
 module.exports = {
   uploadToS3,
+  deleteExistingAvatar,
 };
