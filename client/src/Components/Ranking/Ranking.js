@@ -33,6 +33,8 @@ function Ranking({
       <div className="login-back-arrow" onClick={onClose}>
         <img src="/image/back-icon.svg" alt="" />
       </div>
+
+      <img className="logo-global" src="/image/logo.svg" alt="" />
       <div className="ranking-header">
         <div className="statistic-navigation">
           <button

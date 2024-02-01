@@ -30,7 +30,7 @@ $breakpoints: (
 .statistic {
   padding: 2rem;
   display: grid;
-
+  padding-top: 5rem;
   &-navigation {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
