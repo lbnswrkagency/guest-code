@@ -27,7 +27,12 @@ a:hover {
 
 .login-back-arrow {
   position: absolute;
-  top: 2rem;
-  left: 2rem;
+  top: 3rem;
+  left: 3rem;
   z-index: 99;
+
+  img {
+    width: 2rem;
+    height: 2rem;
+  }
 }

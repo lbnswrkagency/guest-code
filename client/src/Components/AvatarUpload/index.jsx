@@ -33,10 +33,6 @@ class AvatarUpload extends Component {
   onCrop = () => {
     const { editor, selectedFile, user } = this.state;
 
-    console.log("Edit", editor);
-    console.log("Selected File", selectedFile);
-    console.log("USER", user);
-
     if (editor && selectedFile) {
       let canvas = editor.getImageScaledToCanvas().toDataURL("image/png");
       let arr = canvas.split(",");
@@ -55,10 +51,6 @@ class AvatarUpload extends Component {
       data.append("profileImage", file);
       data.append("userId", user._id);
 
-      for (let [key, value] of data.entries()) {
-        console.log(key, value);
-      }
-
       axios
         .post(
           `${process.env.REACT_APP_API_BASE_URL}/avatar/profile-img-upload`,
@@ -73,7 +65,7 @@ class AvatarUpload extends Component {
         )
         .then((response) => {
           // Handle success
-          console.log("RESPONSE", response);
+
           if (response.status === 200) {
             if (response.data.error) {
               // Handle specific errors

@@ -67,9 +67,6 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
     }
   };
 
-  console.log("REMAINING", remainingCount);
-  console.log("THIS WEEKS COUNT", weeklyBackstageCount);
-  console.log("THIS WEEKS LIMIT", user.backstageCodeLimit);
   return (
     <div className="backstagecode">
       <Toaster />

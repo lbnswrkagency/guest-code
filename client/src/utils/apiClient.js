@@ -88,12 +88,6 @@ export const generateGuestCode = async (guestCodeData) => {
 };
 
 export const updateGuestCodeCondition = async (eventId, guestCodeCondition) => {
-  console.log("EVENT ID", eventId);
-  console.log("CONDITION", guestCodeCondition);
-  console.log(
-    "BACKEND CALL",
-    `${process.env.REACT_APP_API_BASE_URL}/events/updateGuestCodeCondition/${eventId}`
-  );
   try {
     const response = await axios.patch(
       `${process.env.REACT_APP_API_BASE_URL}/events/updateGuestCodeCondition/${eventId}`,

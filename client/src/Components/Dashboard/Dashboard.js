@@ -13,6 +13,7 @@ import Statistic from "../Statistic/Statistic";
 import moment from "moment";
 import AvatarUpload from "../AvatarUpload/index";
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
+import CodeGenerator from "../CodeGenerator/CodeGenerator";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
+  const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
@@ -124,6 +126,22 @@ const Dashboard = () => {
     );
   }
 
+  if (codeType) {
+    return (
+      <CodeGenerator
+        user={user}
+        onClose={() => setCodeType("")}
+        weeklyCount={
+          codeType === "Friends"
+            ? getThisWeeksFriendsCount()
+            : getThisWeeksBackstageCount()
+        }
+        refreshCounts={refreshCounts}
+        type={codeType}
+      />
+    );
+  }
+
   if (showScanner) {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
@@ -198,7 +216,7 @@ const Dashboard = () => {
           <>
             <button
               className="dashboard-actions-button"
-              onClick={() => setShowBackstageCode(true)}
+              onClick={() => setCodeType("Backstage")}
             >
               Backstage Code
             </button>
@@ -208,7 +226,7 @@ const Dashboard = () => {
         {user.isPromoter && (
           <button
             className="dashboard-actions-button"
-            onClick={() => setShowFriendsCode(true)}
+            onClick={() => setCodeType("Friends")}
           >
             Friends Code
           </button>
