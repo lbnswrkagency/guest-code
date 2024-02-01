@@ -207,7 +207,7 @@ const Dashboard = () => {
       </div>
       <img className="dashboard-logo" src="/image/logo.svg" alt="" />
       <div className="dashboard-header">
-        <h1 className="dashboard-header-title">Dashboard</h1>
+        <h1 className="dashboard-header-title">Member Area</h1>
         <div className="user-info">
           <div className="dashboard-header-avatar">
             {!isEditingAvatar && user.avatar && (

@@ -75,11 +75,24 @@ body {
   }
 
   &-title {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    color: #fff;
     text-align: center;
-    font-size: 1.5rem;
-    padding: 1rem;
+    font-family: Manrope;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    color: #fff;
+    font-family: Manrope;
+
+    font-style: normal;
+    font-weight: 700;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: 4.2px;
+    text-transform: uppercase;
+    margin-top: 1rem;
   }
 
   &-subtitle {
@@ -111,7 +124,7 @@ body {
     animation: 3s ease-out 0s 1 LogoRotate;
     justify-self: center;
     margin-bottom: 1rem;
-    margin-top: 4rem;
+    margin-top: 7rem;
   }
 
   &-sub {

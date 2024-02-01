@@ -152,9 +152,11 @@
       border: 2px solid #fff;
       background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
+      cursor: pointer;
     }
 
     &-button-logout {
+      cursor: pointer;
       border-radius: 5px;
       background: #fff;
       backdrop-filter: blur(8px);

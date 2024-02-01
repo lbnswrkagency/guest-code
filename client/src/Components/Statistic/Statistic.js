@@ -53,6 +53,7 @@ function Statistic({
         <img src="/image/back-icon.svg" alt="" />
       </div>
       <img className="logo-global" src="/image/logo.svg" alt="" />
+      <h1 className="dashboard-header-title">Statistic</h1>
       <div className="statistic-container">
         <div className="statistic-navigation">
           <button

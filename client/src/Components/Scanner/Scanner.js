@@ -189,13 +189,15 @@ function Scanner({ onClose }) {
   return (
     <div className="scanner">
       <div className="login-back-arrow" onClick={onClose}>
-        ← Back
+        <img src="/image/back-icon.svg" alt="" />
       </div>
+
       <img
         className="scanner-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
         alt=""
       />
+
       <ToastContainer />
 
       <div

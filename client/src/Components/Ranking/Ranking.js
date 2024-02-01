@@ -35,6 +35,7 @@ function Ranking({
       </div>
 
       <img className="logo-global" src="/image/logo.svg" alt="" />
+      <h1 className="dashboard-header-title">Ranking</h1>
       <div className="ranking-header">
         <div className="statistic-navigation">
           <button
