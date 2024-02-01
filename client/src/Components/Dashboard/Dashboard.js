@@ -83,9 +83,9 @@ const Dashboard = () => {
       let params = {};
 
       if (startDate) {
-        params.startDate = startDate.format("YYYY-MM-DD");
+        params.startDate = startDate.format("YYYY-MM-DDTHH:mm:ss");
       }
-      params.endDate = endDate.format("YYYY-MM-DD");
+      params.endDate = endDate.format("YYYY-MM-DDTHH:mm:ss");
 
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,

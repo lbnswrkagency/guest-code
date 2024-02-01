@@ -35,9 +35,12 @@ export const useCurrentEvent = () => {
     ) {
       nearestSunday.subtract(7, "days");
     }
-    return nearestSunday.isBefore(startingEventDate)
+    let eventDate = nearestSunday.isBefore(startingEventDate)
       ? startingEventDate
       : findNextEventDate(nearestSunday);
+    // Set the event start time to 11 PM
+    eventDate.hour(23).minute(0).second(0);
+    return eventDate;
   };
 
   const calculateDataInterval = (eventDate) => {
@@ -67,19 +70,19 @@ export const useCurrentEvent = () => {
     [currentEventDate]
   );
 
-  //   // Add console logs
-  //   console.log(
-  //     "Current Event Date:",
-  //     currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  //   );
-  //   console.log(
-  //     "Data Interval Start:",
-  //     dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  //   );
-  //   console.log(
-  //     "Data Interval End:",
-  //     dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  //   );
+  // Add console logs
+  // console.log(
+  //   "Current Event Date:",
+  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval Start:",
+  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval End:",
+  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
 
   return {
     currentEventDate,
