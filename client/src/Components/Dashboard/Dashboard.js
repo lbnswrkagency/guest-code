@@ -195,6 +195,10 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
+      <div className="login-back-arrow" onClick={() => navigate("/")}>
+        <img src="/image/back-icon.svg" alt="" />
+      </div>
+      <img className="dashboard-logo" src="/image/logo.svg" alt="" />
       <div className="dashboard-header">
         <h1 className="dashboard-header-title">Dashboard</h1>
         <div className="user-info">
@@ -236,7 +240,7 @@ const Dashboard = () => {
           </div>
 
           <p className="dashboard-header-name">{user.name}</p>
-          <p className="dashboard-header-email">{user.email}</p>
+          {/* <p className="dashboard-header-email">{user.email}</p> */}
         </div>
       </div>
       <div className="dashboard-actions">
