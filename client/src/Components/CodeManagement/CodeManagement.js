@@ -3,7 +3,14 @@ import axios from "axios";
 import "./CodeManagement.scss";
 import toast, { Toaster } from "react-hot-toast";
 
-function CodeManagement({ user, type, triggerUpdate, updateCount, limit }) {
+function CodeManagement({
+  user,
+  type,
+  triggerUpdate,
+  updateCount,
+  limit,
+  refreshCounts,
+}) {
   const [codes, setCodes] = useState([]);
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [editCodeId, setEditCodeId] = useState(null);
@@ -51,11 +58,7 @@ function CodeManagement({ user, type, triggerUpdate, updateCount, limit }) {
         triggerUpdate();
         toast.dismiss();
         toast.success("Code deleted successfully.");
-        if (limit !== undefined && limit > 0) {
-          updateCount(true); // Increase count when deleting a code, if there's a limit
-        } else {
-          updateCount(false); // Decrease count when deleting a code, if there's no limit
-        }
+        refreshCounts(); // Call the passed refreshCounts function from CodeGenerator
       } catch (error) {
         console.error("Error deleting code", error);
         toast.error("Failed to delete the code.");

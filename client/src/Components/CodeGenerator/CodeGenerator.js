@@ -155,6 +155,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
         triggerUpdate={triggerUpdate}
         updateCount={updateCount}
         limit={limit}
+        refreshCounts={refreshCounts} // Add this line
       />
 
       {/* {downloadUrl && (

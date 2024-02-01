@@ -380,7 +380,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 28 JAN 2024</p>
+                    <p>SUN 04 FEB 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
