@@ -10,9 +10,21 @@
     grid-template-columns: 0.4fr 0.175fr 0.175fr 0.175fr 0.175fr;
     padding: 0.5rem;
     border-radius: 0.5rem;
-    background-color: rgb(95, 0, 0);
+
     text-align: center;
     align-items: center;
+
+    color: #fff;
+    font-family: Manrope;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    border-radius: 5px;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
 
     &-view {
       position: fixed;
