@@ -44,9 +44,6 @@ const addAvatar = async (req, res) => {
 };
 
 const uploadAvatar = async (req, res) => {
-  console.log("BODY", req.body);
-  console.log("FILE", req.file);
-
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded." });
   }
@@ -56,7 +53,6 @@ const uploadAvatar = async (req, res) => {
   const userId = req.body.userId;
 
   try {
-    console.log("USER ID CALL", userId);
     const user = await User.findById(userId);
     if (!user) {
       console.log(`User not found with id: ${userId}`);
@@ -64,8 +60,6 @@ const uploadAvatar = async (req, res) => {
     }
 
     // Delete the old avatar if it exists
-
-    console.log("USERR FOUND", user);
 
     if (user.avatar) {
       const oldAvatarKey = url.parse(user.avatar).pathname.substring(1);

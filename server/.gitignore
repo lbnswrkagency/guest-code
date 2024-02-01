@@ -51,3 +51,4 @@ public
 # Serverless directories
 .serverless/
 script.js
+correction.js

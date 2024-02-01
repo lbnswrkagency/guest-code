@@ -10,6 +10,7 @@ const BackstageCodeSchema = new Schema(
     condition: { type: String, required: true },
     pax: { type: Number, required: true },
     paxChecked: { type: Number, required: true },
+    hostId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   {
     timestamps: true,
