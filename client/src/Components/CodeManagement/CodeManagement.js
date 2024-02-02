@@ -216,7 +216,7 @@ function CodeManagement({
               >
                 <img
                   className="code-management-item-icon "
-                  src="/image/check-icon.svg"
+                  src="/image/check-icon_w.svg"
                   alt="Confirm"
                 />
               </button>
@@ -226,7 +226,7 @@ function CodeManagement({
               >
                 <img
                   className="code-management-item-icon"
-                  src="/image/cancel-icon.svg"
+                  src="/image/cancel-icon_w.svg"
                   alt="Cancel"
                 />
               </button>
