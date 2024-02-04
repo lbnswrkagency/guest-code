@@ -33,7 +33,6 @@ const Dashboard = () => {
     guestCounts: { total: 0, used: 0 },
   });
   const {
-    startingEventDate,
     currentEventDate,
     dataInterval,
     handlePrevWeek,
@@ -48,6 +47,9 @@ const Dashboard = () => {
   };
 
   const navigate = useNavigate();
+
+  const startingEventString = "14012024";
+  const startingEventDate = moment(startingEventString, "DDMMYYYY");
 
   const handleCropModeToggle = (isInCropMode) => {
     setIsCropMode(isInCropMode);
@@ -195,6 +197,8 @@ const Dashboard = () => {
       />
     );
   }
+
+  console.log("startingEventDate", startingEventDate);
 
   if (showSettings) {
     return <Settings />;

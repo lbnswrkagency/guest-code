@@ -86,6 +86,7 @@ export const useCurrentEvent = () => {
     dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
   );
 
+  console.log("STARTING", startingEventDate);
   return {
     currentEventDate,
     dataInterval,
