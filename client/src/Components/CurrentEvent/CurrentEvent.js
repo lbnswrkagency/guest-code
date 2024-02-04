@@ -10,10 +10,12 @@ export const useCurrentEvent = () => {
   const findNextEventDate = (date) => {
     let nextEventDate = startingEventDate.clone();
     while (true) {
-      if (
-        nextEventDate.isAfter(date, "day") ||
-        (nextEventDate.isSame(date, "day") && date.hour() >= 6)
-      ) {
+      // Check if nextEventDate is strictly after today (not considering hours for this check)
+      if (nextEventDate.isAfter(date, "day")) {
+        break;
+      }
+      // If it's the same day, ensure we only move to the next event if it's past the event switch time
+      if (nextEventDate.isSame(date, "day") && date.hour() < 6) {
         break;
       }
       nextEventDate.add(1, "weeks");
@@ -71,18 +73,18 @@ export const useCurrentEvent = () => {
   );
 
   // Add console logs
-  // console.log(
-  //   "Current Event Date:",
-  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval Start:",
-  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval End:",
-  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
+  console.log(
+    "Current Event Date:",
+    currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
+  console.log(
+    "Data Interval Start:",
+    dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
+  console.log(
+    "Data Interval End:",
+    dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
 
   return {
     currentEventDate,
