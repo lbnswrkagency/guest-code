@@ -45,7 +45,7 @@ function Ranking({
 
       {isCurrentWeek && (
         <>
-          <p className="dashboard-header-subtitle">THIS WEEK'S PRIZE</p>
+          <p className="dashboard-header-subtitle">THIS WEEK'S PRICE</p>
           <p className="dashboard-header-price">
             Apple AirPods (2nd generation)
           </p>
