@@ -39,7 +39,7 @@ router.post(
   compressAndOptimizeFiles
 );
 
-router.post("/uploadVideoToS3", authenticate, uploadSingle, uploadVideoToS3);
+router.post("/uploadVideoToS3", uploadSingle, uploadVideoToS3);
 
 router.delete("/deleteDroppedFile/:fileName", authenticate, deleteDroppedFile);
 router.get(
