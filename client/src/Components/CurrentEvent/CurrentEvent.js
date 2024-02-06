@@ -30,19 +30,22 @@ export const useCurrentEvent = () => {
   }, []);
 
   const getCurrentEventDate = () => {
-    let nearestSunday = currentDate.clone().startOf("week");
-    if (
-      currentDate.clone().startOf("day").isSame(nearestSunday) &&
-      currentDate.hour() < 6
-    ) {
-      nearestSunday.subtract(7, "days");
+    let now = moment();
+    let nextEventDate = startingEventDate.clone();
+
+    // Iterate to find the next event date considering the end time at 6 AM
+    while (true) {
+      let eventEndTime = nextEventDate.clone().add(1, "days").hour(6); // Event end time is the next day at 6 AM
+      if (eventEndTime.isAfter(now)) {
+        break; // Found the next event that hasn't ended yet
+      }
+      nextEventDate.add(1, "weeks"); // Move to the next week
     }
-    let eventDate = nearestSunday.isBefore(startingEventDate)
-      ? startingEventDate
-      : findNextEventDate(nearestSunday);
-    // Set the event start time to 11 PM
-    eventDate.hour(23).minute(0).second(0);
-    return eventDate;
+
+    // Set the event start time to 11 PM for the found date
+    nextEventDate.hour(23).minute(0).second(0);
+
+    return nextEventDate;
   };
 
   const calculateDataInterval = (eventDate) => {
@@ -73,20 +76,19 @@ export const useCurrentEvent = () => {
   );
 
   // Add console logs
-  console.log(
-    "Current Event Date:",
-    currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
-  console.log(
-    "Data Interval Start:",
-    dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
-  console.log(
-    "Data Interval End:",
-    dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
+  // console.log(
+  //   "Current Event Date:",
+  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval Start:",
+  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval End:",
+  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
 
-  console.log("STARTING", startingEventDate);
   return {
     currentEventDate,
     dataInterval,

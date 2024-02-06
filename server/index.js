@@ -5,7 +5,8 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
-
+const path = require("path");
+const fs = require("fs");
 const authRoutes = require("./routes/auth");
 const spotifyRoutes = require("./routes/api/spotifyRoutes");
 const userRoutes = require("./routes/api/users");
@@ -18,6 +19,10 @@ const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 const avatarRoutes = require("./routes/api/avatarRoutes");
 
+const tempDir = path.join(__dirname, "temp");
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 dotenv.config();
 
 const app = express();

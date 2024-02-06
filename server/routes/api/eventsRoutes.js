@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../../middleware/authMiddleware");
-const upload = require("../../utils/multerConfig");
-
+const { upload, uploadSingle } = require("../../utils/multerConfig");
 const {
   createEvent,
   getAllEvents,
@@ -14,8 +13,12 @@ const {
   generateGuestCode,
   updateGuestCodeCondition,
   compressAndOptimizeFiles,
+  uploadVideoToS3,
+  listDroppedFiles,
+  deleteDroppedFile,
+  getSignedUrlForDownload,
 } = require("../../controllers/eventsController");
-
+router.get("/listDroppedFiles", authenticate, listDroppedFiles);
 router.post("/", authenticate, createEvent);
 router.get("/", authenticate, getAllEvents);
 router.put("/:eventId", authenticate, editEvent);
@@ -36,4 +39,12 @@ router.post(
   compressAndOptimizeFiles
 );
 
+router.post("/uploadVideoToS3", authenticate, uploadSingle, uploadVideoToS3);
+
+router.delete("/deleteDroppedFile/:fileName", authenticate, deleteDroppedFile);
+router.get(
+  "/getSignedUrlForDownload/:fileName",
+  authenticate,
+  getSignedUrlForDownload
+);
 module.exports = router;

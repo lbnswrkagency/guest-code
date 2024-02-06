@@ -5,7 +5,13 @@ const QRCode = require("qrcode");
 const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
-const { uploadToS3 } = require("../utils/s3Uploader");
+const {
+  uploadToS3,
+  listFilesFromS3,
+  deleteFileFromS3,
+  generateSignedUrl,
+} = require("../utils/s3Uploader");
+
 const fsPromises = require("fs").promises;
 const fs = require("fs");
 
@@ -361,4 +367,67 @@ const deleteFile = (filePath) => {
       console.log(`File deleted: ${filePath}`);
     }
   });
+};
+
+exports.uploadVideoToS3 = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+
+  try {
+    const filePath = req.file.path; // Assuming disk storage
+    const mimeType = req.file.mimetype;
+    const fileName = req.file.originalname;
+    const folderName = "dropped";
+
+    // Use the uploadToS3 function from your s3Uploader utility
+    const uploadedUrl = await uploadToS3(
+      filePath,
+      folderName,
+      fileName,
+      mimeType
+    );
+
+    // Delete the local file after successful upload if using disk storage
+    await fsPromises.unlink(filePath);
+
+    res.json({ success: true, url: uploadedUrl });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to upload video", details: error.message });
+  }
+};
+
+exports.listDroppedFiles = async (req, res) => {
+  try {
+    const fileList = await listFilesFromS3("dropped");
+    res.json({ success: true, files: fileList });
+  } catch (error) {
+    console.error("Error listing files:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to list files", details: error.message });
+  }
+};
+exports.deleteDroppedFile = async (req, res) => {
+  const { fileName } = req.params;
+  try {
+    await deleteFileFromS3("dropped", fileName);
+    res.json({ success: true, message: "File deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({ error: "Failed to delete file" });
+  }
+};
+
+exports.getSignedUrlForDownload = async (req, res) => {
+  const { fileName } = req.params;
+  try {
+    const url = await generateSignedUrl("dropped", fileName);
+    res.json({ success: true, url });
+  } catch (error) {
+    console.error("Error generating signed URL:", error);
+    res.status(500).json({ error: "Failed to generate download URL" });
+  }
 };

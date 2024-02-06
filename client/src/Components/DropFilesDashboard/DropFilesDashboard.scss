@@ -1,0 +1,50 @@
+@import "../../_variables";
+
+.dropfiles-dashboard {
+  display: grid;
+  margin-top: 2rem;
+  grid-gap: 0.75rem;
+  padding: 0 2rem;
+  padding-bottom: 5rem;
+  &-item {
+    display: grid;
+    grid-template-columns: 0.6fr 0.2fr 0.2fr;
+    height: 3.5rem;
+    overflow: hidden;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+
+    text-align: center;
+    align-items: center;
+
+    color: #fff;
+    font-family: Manrope;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    border-radius: 5px;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+
+    &-name {
+      text-align: center;
+      overflow: hidden;
+      font-size: 0.75rem;
+    }
+
+    &-button {
+      height: 2rem;
+      width: 2rem;
+      justify-self: center;
+      background: none;
+      border: none;
+      img {
+        height: 1rem;
+        width: 1rem;
+      }
+    }
+  }
+}

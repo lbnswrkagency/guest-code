@@ -15,12 +15,13 @@ import AvatarUpload from "../AvatarUpload/index";
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import Ranking from "../Ranking/Ranking";
-
+import DropFiles from "../DropFiles/DropFiles";
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsCode, setShowFriendsCode] = useState(false);
   const [showBackstageCode, setShowBackstageCode] = useState(false);
+  const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
@@ -198,7 +199,16 @@ const Dashboard = () => {
     );
   }
 
-  console.log("startingEventDate", startingEventDate);
+  if (showDropFiles) {
+    return (
+      <DropFiles
+        onClose={() => {
+          setShowDropFiles(false);
+        }}
+        user={user}
+      />
+    );
+  }
 
   if (showSettings) {
     return <Settings />;
@@ -269,6 +279,17 @@ const Dashboard = () => {
             >
               Settings
             </button> */}
+          </>
+        )}
+
+        {user.isAdmin && (
+          <>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setShowDropFiles(true)}
+            >
+              Dropped Files
+            </button>
           </>
         )}
 
