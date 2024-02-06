@@ -83,11 +83,15 @@ const DropFiles = ({ onClose, showDashboard = true }) => {
             src="/image/upload-icon.svg"
             alt="Upload"
             style={{ cursor: "pointer" }}
+            className={`${!file ? "pulse" : ""}`}
           />
         </label>
       </div>
 
-      <button className="dropfiles-submit" onClick={uploadFile}>
+      <button
+        className={`dropfiles-submit ${file ? "pulse" : ""}`}
+        onClick={uploadFile}
+      >
         Upload
       </button>
       <ToastContainer />
