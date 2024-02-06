@@ -288,17 +288,6 @@ const Dashboard = () => {
           <>
             <button
               className="dashboard-actions-button"
-              onClick={() => setShowDropFiles(true)}
-            >
-              Dropped Files
-            </button>
-          </>
-        )}
-
-        {user.isAdmin && (
-          <>
-            <button
-              className="dashboard-actions-button"
               onClick={() => setShowStatistic(true)}
             >
               Statistic
@@ -331,6 +320,17 @@ const Dashboard = () => {
           >
             Ranking
           </button>
+        )}
+
+        {user.isAdmin && (
+          <>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setShowDropFiles(true)}
+            >
+              Dropped Files
+            </button>
+          </>
         )}
         {user.isScanner && (
           <button
