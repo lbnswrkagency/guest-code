@@ -33,6 +33,7 @@ const Dashboard = () => {
     backstageCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
+
   const {
     currentEventDate,
     dataInterval,
@@ -40,6 +41,7 @@ const Dashboard = () => {
     handleNextWeek,
     resetEventDateToToday,
   } = useCurrentEvent();
+
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
   // Toggle function to switch between edit and view mode

@@ -29,24 +29,26 @@ export const useCurrentEvent = () => {
     setCurrentDate(nextEventDate);
   }, []);
 
-  const getCurrentEventDate = () => {
-    let now = moment();
+  const getCurrentEventDate = useCallback(() => {
+    // Use 'currentDate' to determine the "view" date, not necessarily today's date
+    let viewDate = currentDate;
     let nextEventDate = startingEventDate.clone();
 
-    // Iterate to find the next event date considering the end time at 6 AM
+    // Iterate to find the next event date considering the end time at 6 AM relative to the viewDate
     while (true) {
-      let eventEndTime = nextEventDate.clone().add(1, "days").hour(6); // Event end time is the next day at 6 AM
-      if (eventEndTime.isAfter(now)) {
-        break; // Found the next event that hasn't ended yet
+      let eventEndTime = nextEventDate.clone().add(1, "days").hour(6);
+      if (eventEndTime.isAfter(viewDate, "day")) {
+        // Compare strictly by day to allow for navigation logic
+        break; // Found the next event that hasn't ended yet according to the viewDate
       }
-      nextEventDate.add(1, "weeks"); // Move to the next week
+      nextEventDate.add(1, "weeks");
     }
 
     // Set the event start time to 11 PM for the found date
     nextEventDate.hour(23).minute(0).second(0);
 
     return nextEventDate;
-  };
+  }, [currentDate]); // Ensure this recalculates when currentDate changes due to navigation
 
   const calculateDataInterval = (eventDate) => {
     let startDate = eventDate

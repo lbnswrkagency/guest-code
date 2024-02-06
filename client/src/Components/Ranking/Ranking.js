@@ -11,7 +11,13 @@ function Ranking({
   onClose,
   user,
 }) {
-  // Only focusing on FriendsCodes here
+  const today = moment();
+  const weekStart = today.clone().startOf("isoWeek"); // Consider your event's specific week start if different
+  const weekEnd = today.clone().endOf("isoWeek");
+  const isCurrentWeek =
+    currentEventDate.isSameOrAfter(weekStart) &&
+    currentEventDate.isSameOrBefore(weekEnd);
+
   const friendsCodesRanking = counts.friendsCounts
     .sort((a, b) => {
       const sortBy = currentEventDate.isBefore(moment()) ? "used" : "total";
@@ -36,6 +42,21 @@ function Ranking({
 
       <img className="logo-global" src="/image/logo.svg" alt="" />
       <h1 className="dashboard-header-title">Ranking</h1>
+
+      {isCurrentWeek && (
+        <>
+          <p className="dashboard-header-subtitle">THIS WEEK'S PRIZE</p>
+          <p className="dashboard-header-price">
+            Apple AirPods (2nd generation)
+          </p>
+          <img
+            className="dashboard-header-image"
+            src="/image/price.png"
+            alt=""
+          />
+        </>
+      )}
+
       <div className="ranking-header">
         <div className="statistic-navigation">
           <button

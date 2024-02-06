@@ -126,6 +126,36 @@
       line-height: normal;
     }
 
+    &-image {
+      width: 7rem;
+      justify-self: center;
+    }
+    &-subtitle {
+      color: #fff;
+      text-align: center;
+      font-family: Manrope;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      color: #fff;
+      font-family: Manrope;
+
+      font-style: normal;
+      font-weight: 700;
+      line-height: 20px; /* 142.857% */
+      letter-spacing: 4.2px;
+      text-transform: uppercase;
+    }
+
+    &-price {
+      font-style: italic;
+      text-align: center;
+      color: #ffd700;
+      font-weight: 600;
+    }
     &-email {
       font-style: italic;
     }
