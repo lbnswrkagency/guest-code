@@ -332,7 +332,14 @@ const EventPage = ({ passedEventId }) => {
                         <p className="djs-single-name">Hendricks</p>
                         <p className="origin">BERLIN</p>
                       </div> */}
-
+                      <div className="djs-single">
+                        <img
+                          src="./image/hulk.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hulk</p>
+                      </div>
                       <div className="djs-single">
                         <img
                           src="./image/hendricks.jpg"
@@ -340,15 +347,6 @@ const EventPage = ({ passedEventId }) => {
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hendricks</p>
-                      </div>
-
-                      <div className="djs-single">
-                        <img
-                          src="./image/maro.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Maro</p>
                       </div>
 
                       <div className="djs-single">
@@ -380,7 +378,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 11 FEB 2024</p>
+                    <p>SUN 18 FEB 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -468,7 +466,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 11.02.2024 · 11 PM
+                Sunday · 18.02.2024 · 11 PM
               </p>
 
               <div

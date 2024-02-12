@@ -184,22 +184,22 @@ const Dashboard = () => {
     );
   }
 
-  if (showRanking) {
-    return (
-      <Ranking
-        counts={counts}
-        currentEventDate={currentEventDate}
-        onPrevWeek={handlePrevWeek}
-        onNextWeek={handleNextWeek}
-        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
-        onClose={() => {
-          setShowRanking(false);
-          resetEventDateToToday(); // Reset event date to today
-        }}
-        user={user}
-      />
-    );
-  }
+  // if (showRanking) {
+  //   return (
+  //     <Ranking
+  //       counts={counts}
+  //       currentEventDate={currentEventDate}
+  //       onPrevWeek={handlePrevWeek}
+  //       onNextWeek={handleNextWeek}
+  //       isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+  //       onClose={() => {
+  //         setShowRanking(false);
+  //         resetEventDateToToday(); // Reset event date to today
+  //       }}
+  //       user={user}
+  //     />
+  //   );
+  // }
 
   if (showDropFiles) {
     return (
@@ -313,14 +313,14 @@ const Dashboard = () => {
             Friends Code
           </button>
         )}
-        {user.isPromoter && (
+        {/* {user.isPromoter && (
           <button
             className="dashboard-actions-button"
             onClick={() => setShowRanking(true)}
           >
             Ranking
           </button>
-        )}
+        )} */}
 
         {user.isAdmin && (
           <>

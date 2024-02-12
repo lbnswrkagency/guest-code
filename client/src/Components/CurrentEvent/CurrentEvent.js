@@ -77,7 +77,6 @@ export const useCurrentEvent = () => {
     [currentEventDate]
   );
 
-  // Add console logs
   // console.log(
   //   "Current Event Date:",
   //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
