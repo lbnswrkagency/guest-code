@@ -35,7 +35,7 @@ const EventPage = ({ passedEventId }) => {
   const [loadedResources, setLoadedResources] = useState(0);
 
   const s3ImageUrls = Array.from(
-    { length: 10 },
+    { length: 20 },
     (_, i) =>
       `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
         i + 1
@@ -536,7 +536,7 @@ const EventPage = ({ passedEventId }) => {
                 <h2 className="event-page-info-subtitle">EVENT</h2>
                 <h1 className="event-page-info-title">Afro Spiti</h1>
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/eventinfo.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/general.png"
                   alt=""
                   className="event-page-info-image"
                 />

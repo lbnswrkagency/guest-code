@@ -21,9 +21,10 @@
   }
 
   &-slider {
-    height: 15rem;
     overflow: hidden;
     position: relative;
+    width: 100%;
+    height: auto;
 
     img {
       width: 100%;
