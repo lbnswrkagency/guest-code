@@ -378,7 +378,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 18 FEB 2024</p>
+                    <p>SUN 25 FEB 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -466,7 +466,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 18.02.2024 · 11 PM
+                Sunday · 25.02.2024 · 11 PM
               </p>
 
               <div
