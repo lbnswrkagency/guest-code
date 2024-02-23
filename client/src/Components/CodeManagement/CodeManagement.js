@@ -3,15 +3,7 @@ import axios from "axios";
 import "./CodeManagement.scss";
 import toast, { Toaster } from "react-hot-toast";
 
-function CodeManagement({
-  user,
-  type,
-  triggerUpdate,
-  updateCount,
-  limit,
-  refreshCounts,
-}) {
-  const [codes, setCodes] = useState([]);
+function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -28,6 +20,7 @@ function CodeManagement({
           `${process.env.REACT_APP_API_BASE_URL}${apiUrl}`,
           { params: { userId: user._id } }
         );
+
         setCodes(
           response.data.sort(
             (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -39,7 +32,7 @@ function CodeManagement({
     };
 
     fetchCodes();
-  }, [user._id, type, triggerUpdate]);
+  }, [user._id, type, refreshCounts]);
 
   const loadMore = () => {
     setVisibleCodes((prevVisible) => prevVisible + 10);
@@ -55,7 +48,6 @@ function CodeManagement({
             process.env.REACT_APP_API_BASE_URL
           }/code/${type.toLowerCase()}/delete/${deleteCodeId}`
         );
-        triggerUpdate();
         toast.dismiss();
         toast.success("Code deleted successfully.");
         refreshCounts(); // Call the passed refreshCounts function from CodeGenerator
@@ -87,9 +79,9 @@ function CodeManagement({
           // Add other fields if needed
         }
       );
-      triggerUpdate();
       toast.dismiss();
       toast.success("Code updated successfully.");
+      refreshCounts();
       setEditCodeId(null);
       setEditName("");
     } catch (error) {
@@ -147,6 +139,8 @@ function CodeManagement({
       toast.error("Failed to download the code.");
     }
   };
+
+  console.log("TYPE", type);
 
   return (
     <div className="code-management">

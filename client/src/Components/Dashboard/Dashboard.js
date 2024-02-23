@@ -7,6 +7,7 @@ import "./Dashboard.scss";
 import Settings from "../Settings/Settings";
 import FriendsCode from "../FriendsCode/FriendsCode";
 import BackstageCode from "../BackstageCode/BackstageCode";
+import TableCode from "../TableCode/TableCode";
 import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
@@ -16,10 +17,12 @@ import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import Ranking from "../Ranking/Ranking";
 import DropFiles from "../DropFiles/DropFiles";
+
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsCode, setShowFriendsCode] = useState(false);
+  const [showTableCode, setShowTableCode] = useState(false);
   const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -136,9 +139,21 @@ const Dashboard = () => {
       />
     );
   }
+
   if (showBackstageCode) {
     return (
       <BackstageCode
+        user={user}
+        onClose={() => setShowBackstageCode(false)}
+        weeklyBackstageCount={getThisWeeksBackstageCount()}
+        refreshCounts={refreshCounts}
+      />
+    );
+  }
+
+  if (showTableCode) {
+    return (
+      <TableCode
         user={user}
         onClose={() => setShowBackstageCode(false)}
         weeklyBackstageCount={getThisWeeksBackstageCount()}
@@ -304,6 +319,17 @@ const Dashboard = () => {
             </button>
           </>
         )}
+
+        {/* {(user.isAdmin || user.isTable) && (
+          <>
+            <button
+              className="dashboard-actions-button"
+              onClick={() => setCodeType("Table")}
+            >
+              Table Code
+            </button>
+          </>
+        )} */}
 
         {user.isPromoter && (
           <button

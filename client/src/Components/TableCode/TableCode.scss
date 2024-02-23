@@ -29,7 +29,7 @@ body {
   background-color: black;
 }
 
-.code {
+.tablecodes {
   position: relative;
   display: grid;
   justify-content: center;
@@ -41,23 +41,6 @@ body {
   grid-template-columns: 1fr;
   overflow: hidden;
   justify-self: center;
-
-  &-select {
-    // width: 20.375rem;
-    height: 3.5rem;
-    font-style: normal;
-
-    font-size: 1rem;
-    line-height: 1.375rem;
-    color: #000;
-
-    border-radius: 5px;
-    border: 2px solid #fff;
-    background: #fff;
-    backdrop-filter: blur(8px);
-    padding-left: 1rem;
-    text-align: center;
-  }
 
   &-count {
     display: grid;
@@ -92,31 +75,9 @@ body {
   }
 
   &-title {
-    color: #fff;
+    padding-left: 1rem;
+    padding-right: 1rem;
     text-align: center;
-    font-family: Manrope;
-    font-size: 20px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: normal;
-    text-transform: uppercase;
-    margin-bottom: 2rem;
-    color: #fff;
-    font-family: Manrope;
-
-    font-style: normal;
-    font-weight: 700;
-    line-height: 20px; /* 142.857% */
-    letter-spacing: 4.2px;
-    text-transform: uppercase;
-    margin-top: 1rem;
-  }
-
-  &-subtitle {
-    text-align: center;
-    font-style: italic;
-    margin-bottom: 1rem;
-    margin-top: -1rem;
   }
 
   &-description {
@@ -140,8 +101,8 @@ body {
 
     animation: 3s ease-out 0s 1 LogoRotate;
     justify-self: center;
-    margin-bottom: 1rem;
-    margin-top: 7rem;
+    margin-bottom: 4rem;
+    margin-top: 4rem;
   }
 
   &-sub {
@@ -155,8 +116,8 @@ body {
   }
 }
 
-.code-admin {
-  color: #fff;
+.friendscode-admin {
+  color: black;
   display: grid;
   grid-template-rows: repeat(auto, 1fr);
   grid-gap: 0.5rem;
@@ -164,13 +125,13 @@ body {
   aspect-ratio: 1 1;
   justify-content: center;
   padding-bottom: 2rem;
-
+  padding-top: 2rem;
   justify-self: center;
   border-radius: 5px;
-
+  background: #fae28c;
   overflow: hidden;
   text-align: center;
-  margin-top: 1rem;
+  margin-top: 2rem;
 
   h1 {
     font-size: 1.5rem;
@@ -191,17 +152,17 @@ body {
 
     font-size: 1rem;
     line-height: 1.375rem;
-    color: #000;
+    color: white;
     margin-top: 1rem;
     border-radius: 5px;
     border: 2px solid #fff;
-    background: #fff;
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     padding-left: 1rem;
-    text-align: center;
+
     &::placeholder {
       text-align: center;
-      color: #000;
+      color: #fff;
     }
   }
 
@@ -218,7 +179,6 @@ body {
     background-color: #000;
     border: none;
     border-radius: 0.25rem;
-    border: 2px solid #fff;
   }
 }
 
@@ -250,4 +210,45 @@ body {
       width: 1rem;
     }
   }
+}
+
+.friendscode-preview {
+  display: grid;
+  justify-content: center;
+  justify-items: center;
+  grid-gap: 1rem;
+  margin-top: 2rem;
+  background-color: rgb(255, 255, 255);
+  padding-top: 2rem;
+
+  &-text {
+    text-align: center;
+    color: #000;
+    font-weight: 800;
+    font-size: 1.5rem;
+  }
+}
+// Alkim ist der Beste
+.share-buttons {
+  cursor: pointer;
+  width: 100%;
+  justify-self: center;
+  align-items: center;
+  display: grid;
+  padding: 1rem;
+  background-color: #000;
+  border-radius: 5px;
+  border: 2px solid #fff;
+  backdrop-filter: blur(8px);
+  margin-bottom: 2rem;
+}
+
+.friends-download {
+  color: #fff;
+  text-align: center;
+  font-style: normal;
+  font-weight: bold;
+  z-index: 2;
+  text-decoration: none;
+  border-radius: 0.25rem;
 }

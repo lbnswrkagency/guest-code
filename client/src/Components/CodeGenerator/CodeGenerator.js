@@ -6,15 +6,12 @@ import CodeManagement from "../CodeManagement/CodeManagement";
 
 function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
   const [name, setName] = useState("");
+  const [pax, setPax] = useState("1"); // For Table Codes
+  const [tableNumber, setTableNumber] = useState(""); // For Table Codes
   const [downloadUrl, setDownloadUrl] = useState("");
-
   const [limit, setLimit] = useState(undefined);
   const [remainingCount, setRemainingCount] = useState(undefined);
-  const [updateTrigger, setUpdateTrigger] = useState(false);
-
-  const triggerUpdate = () => {
-    setUpdateTrigger((prev) => !prev);
-  };
+  const [codes, setCodes] = useState([]);
 
   useEffect(() => {
     const newLimit =
@@ -23,76 +20,66 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
         : type === "Friends"
         ? user.friendsCodeLimit
         : undefined;
-
     setLimit(newLimit);
-    if (newLimit !== undefined && newLimit > 0) {
-      setRemainingCount(newLimit - weeklyCount);
-    } else {
-      setRemainingCount(weeklyCount);
-    }
-  }, [user, type, weeklyCount]);
-
-  const title =
-    type === "friends"
-      ? "Invite your Friends!"
-      : "Invite your Friends Backstage!";
-  const description =
-    type === "friends"
-      ? "free entrance all night."
-      : "free entrance all night & backstage pass.";
-
-  const apiUrl = type === "friends" ? "/friends/add" : "/backstage/add";
-  const conditionText =
-    type === "friends"
-      ? "FREE ENTRANCE ALL NIGHT"
-      : "BACKSTAGE ACCESS ALL NIGHT";
+    setRemainingCount(newLimit ? newLimit - weeklyCount : weeklyCount);
+  }, [user, type, weeklyCount, limit]);
 
   const handleCode = async () => {
-    if (limit !== undefined && limit > 0 && remainingCount <= 0) {
+    if (!name || (type === "Table" && (!pax || !tableNumber))) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    // Adjust logic for Table codes to bypass limit checks
+    if (
+      (type === "Friends" || type === "Backstage") &&
+      limit !== undefined &&
+      limit > 0 &&
+      remainingCount <= 0
+    ) {
       toast.error("You have reached your limit for this week.");
       return;
     }
-    let toastId = null;
-    if (!name) {
-      toast.error("Enter a Name.");
-      return;
+
+    let data = {
+      name,
+      event: user.events,
+      host: user.name,
+      condition: conditionText(type),
+      hostId: user._id,
+    };
+
+    // Include pax and tableNumber for Table codes
+    if (type === "Table") {
+      data.pax = pax;
+      data.tableNumber = tableNumber;
+    } else {
+      // Assume pax: 1 for Friends and Backstage for compatibility with previous structure
+      data.pax = 1;
+      data.paxChecked = 0;
+      data.date = new Date().toLocaleDateString("en-GB");
     }
 
-    toast.loading(
-      `Generating ${type.charAt(0).toUpperCase() + type.slice(1)} Code...`
-    );
+    toast.loading(`Generating ${type} Code...`);
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,
-        {
-          name,
-          pax: 1,
-          paxChecked: 0,
-          date: new Date().toLocaleDateString("en-GB"),
-          condition: conditionText,
-          event: user.events,
-          host: user.name,
-          hostId: user._id,
-        },
+        data,
         { responseType: "blob" }
       );
-      toast.dismiss(toastId);
-      toast.success(
-        `${type.charAt(0).toUpperCase() + type.slice(1)} Code generated!`
-      );
-      if (limit !== undefined && limit > 0) {
-        setRemainingCount((prev) => Math.max(prev - 1, 0)); // Decrease count for limited case
-      } else {
-        setRemainingCount((prev) => prev + 1); // Increase count for unlimited case
-      }
       const url = window.URL.createObjectURL(new Blob([response.data]));
       setDownloadUrl(url);
       refreshCounts();
-
-      if (limit !== undefined) {
-        setRemainingCount((prev) =>
-          prev !== undefined ? prev - 1 : undefined
-        );
+      toast.success(`${type} Code generated!`);
+      setTableNumber("");
+      toast.dismiss();
+      // Adjust remainingCount for Friends and Backstage
+      if (type === "Friends" || type === "Backstage") {
+        if (limit > 0) {
+          setRemainingCount((prev) => Math.max(prev - 1, 0));
+        } else {
+          setRemainingCount((prev) => prev + 1);
+        }
       }
     } catch (error) {
       toast.error("Error generating code.");
@@ -100,73 +87,154 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
     }
   };
 
-  const updateCount = (isDeleting = false) => {
-    setRemainingCount((currentCount) => {
-      if (limit !== undefined && limit > 0) {
-        return isDeleting
-          ? Math.min(currentCount + 1, limit)
-          : Math.max(currentCount - 1, 0);
-      } else {
-        return isDeleting ? Math.max(currentCount - 1, 0) : currentCount + 1;
-      }
-    });
+  // Helper to determine condition text based on code type
+  const conditionText = (type) => {
+    return type === "Friends"
+      ? "FREE ENTRANCE ALL NIGHT"
+      : type === "Backstage"
+      ? "BACKSTAGE ACCESS ALL NIGHT"
+      : "";
   };
 
   return (
-    <div className={`code`}>
+    <div className="code">
       <Toaster />
       <div className="login-back-arrow" onClick={onClose}>
-        <img src="/image/back-icon.svg" alt="" />
+        <img src="/image/back-icon.svg" alt="Back" />
       </div>
       <img
-        className={`code-logo`}
+        className="code-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt=""
+        alt="Logo"
       />
-      {/* <h1 className={`code-title`}>{title}</h1>
-      <p className={`code-description`}>{description}</p> */}
-      <h1 className="code-title">{`${
-        type.charAt(0).toUpperCase() + type.slice(1)
-      }-Code`}</h1>
-      <p className="code-subtitle">{description}</p>
-      {/* Adjusted logic for displaying count */}
-      <div className={`code-count`}>
-        <h4>
-          {limit && limit > 0 ? "REMAINING THIS WEEK" : "THIS WEEK'S COUNT"}
-        </h4>
-        <div className={`code-count-number`}>
+      <h1 className="code-title">{`${type}-Code`}</h1>
+      <div className="code-count">
+        <h4>{limit ? "Remaining This Week" : "This Week's Count"}</h4>
+        <div className="code-count-number">
           <p>{remainingCount}</p>
         </div>
       </div>
-
-      <div className={`code-admin`}>
+      <div className="code-admin">
         <input
-          className={`code-name`}
-          type="text"
+          className="code-input"
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button onClick={handleCode}>Generate</button>
+        {type === "Table" && (
+          <>
+            <select
+              className="code-select"
+              value={pax}
+              onChange={(e) => setPax(e.target.value)}
+            >
+              {[...Array(10).keys()].map((n) => (
+                <option key={n + 1} value={n + 1}>
+                  {n + 1} Pax
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="code-select"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+            >
+              <option value="" disabled>
+                Select Table Number
+              </option>
+              <optgroup label="Backstage Tables">
+                {["B11", "B12", "B3", "B4", "B5", "E1", "E2"].map((table) => (
+                  <option
+                    key={table}
+                    value={table}
+                    disabled={codes.some((code) => code.tableNumber === table)}
+                  >
+                    {table}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="DJ Tables">
+                {["B13", "B14"].map((table) => (
+                  <option
+                    key={table}
+                    value={table}
+                    disabled={codes.some((code) => code.tableNumber === table)}
+                  >
+                    {table}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="VIP Tables">
+                {[
+                  "K1",
+                  "K2",
+                  "K3",
+                  "K4",
+                  "K5",
+                  "K6",
+                  "K7",
+                  "K8",
+                  "K9",
+                  "K10",
+                ].map((table) => (
+                  <option
+                    key={table}
+                    value={table}
+                    disabled={codes.some((code) => code.tableNumber === table)}
+                  >
+                    {table}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Premium Tables">
+                {[
+                  "A1",
+                  "A2",
+                  "A3",
+                  "A4",
+                  "A5",
+                  "A6",
+                  "A7",
+                  "A8",
+                  "A9",
+                  "A10",
+                  "D1",
+                  "D2",
+                  "D3",
+                ].map((table) => (
+                  <option
+                    key={table}
+                    value={table}
+                    disabled={codes.some((code) => code.tableNumber === table)}
+                  >
+                    {table}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </>
+        )}
+        <button className="code-btn" onClickik={handleCode}>
+          Generate
+        </button>
       </div>
+      {/* {downloadUrl && (
+        <div className="code-preview">
+          <a href={downloadUrl} download={`${type.toLowerCase()}-code.png`}>
+            Download Code
+          </a>
+          <img src={downloadUrl} alt="Code Preview" />
+        </div>
+      )} */}
       <CodeManagement
         user={user}
         type={type}
-        triggerUpdate={triggerUpdate}
-        updateCount={updateCount}
-        limit={limit}
-        refreshCounts={refreshCounts} // Add this line
+        codes={codes}
+        setCodes={setCodes}
+        weeklyCount={weeklyCount}
+        refreshCounts={refreshCounts}
       />
-
-      {/* {downloadUrl && (
-        <div className={`${type.toLowerCase()}code-preview`}>
-          <p>SAVE IMAGE & SEND TO YOUR FRIEND</p>
-          <img src={downloadUrl} alt="Code Preview" />
-          <a href={downloadUrl} download={`${type}-code.png`}>
-            DOWNLOAD
-          </a>
-        </div>
-      )} */}
     </div>
   );
 }
