@@ -25,6 +25,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
   }, [user, type, weeklyCount, limit]);
 
   const handleCode = async () => {
+    console.log("TEST");
     if (!name || (type === "Table" && (!pax || !tableNumber))) {
       toast.error("Please fill in all required fields.");
       return;
@@ -215,7 +216,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
             </select>
           </>
         )}
-        <button className="code-btn" onClickik={handleCode}>
+        <button className="code-btn" onClick={handleCode}>
           Generate
         </button>
       </div>
