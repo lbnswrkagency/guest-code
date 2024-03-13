@@ -105,14 +105,17 @@
       max-height: 235px;
       overflow-y: auto;
 
-      background-color: #1e1e1e;
+      border-radius: 5px;
+      background: #1e1e1e;
+
+      backdrop-filter: blur(8px);
       border-radius: 5px;
       padding: 1rem;
 
       .song {
         display: grid;
         align-items: center;
-
+        z-index: 99;
         @include grid(2);
         grid-gap: 1rem;
         text-align: left;

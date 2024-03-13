@@ -9,18 +9,18 @@ import { useNavigate } from "react-router-dom";
 const DropFiles = ({ onClose, showDashboard = true }) => {
   const [file, setFile] = useState(null);
   const fileInputRef = useRef();
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const navigate = useNavigate();
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
-
   const uploadFile = async () => {
     if (!file) {
       toast.error("Please select a file before uploading.");
       return;
     }
 
-    // Display a loading toast without auto-close
     const loadingToast = toast.loading(
       "Uploading, might take a minute. Please Wait..."
     );
@@ -36,20 +36,29 @@ const DropFiles = ({ onClose, showDashboard = true }) => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          },
         }
       );
 
-      // Dismiss the loading toast and show a success message
       toast.dismiss(loadingToast);
-      toast.success("Upload successful!");
+      toast.info("Upload complete, processing now...");
+
+      // Simulate processing delay
+      setTimeout(() => {
+        toast.success("Upload successful!");
+      }, 2000); // Adjust time based on your processing time estimation
     } catch (error) {
-      // Dismiss the loading toast and show an error message
       toast.dismiss(loadingToast);
       toast.error("Upload failed. Please try again.");
     } finally {
       setFile(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset the input after upload
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -95,6 +104,7 @@ const DropFiles = ({ onClose, showDashboard = true }) => {
         Upload
       </button>
       <ToastContainer />
+
       {showDashboard && <DropFilesDashboard />}
     </div>
   );

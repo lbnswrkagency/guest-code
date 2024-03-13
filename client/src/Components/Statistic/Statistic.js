@@ -36,17 +36,11 @@ function Statistic({
       : 0;
 
   const displayDate = currentEventDate.format("DD MMM YYYY");
-
   const totalGenerated =
-    counts.friendsCounts.reduce((sum, item) => sum + item.total, 0) +
-    counts.backstageCounts.reduce((sum, item) => sum + item.total, 0) +
-    (counts.guestCounts.total || 0);
+    totalFriendsCodes + totalBackstageCodes + totalGuestCodes; // This ensures the totalGuestCodes are added correctly
 
   const totalUsed =
-    counts.friendsCounts.reduce((sum, item) => sum + item.used, 0) +
-    counts.backstageCounts.reduce((sum, item) => sum + item.used, 0) +
-    (counts.guestCounts.used || 0);
-
+    totalUsedFriendsCodes + totalUsedBackstageCodes + totalUsedGuestCodes;
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>

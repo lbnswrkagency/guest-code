@@ -320,7 +320,7 @@ const Dashboard = () => {
           </>
         )}
 
-        {/* {(user.isAdmin || user.isTable) && (
+        {(user.isAdmin || user.isTable) && (
           <>
             <button
               className="dashboard-actions-button"
@@ -329,7 +329,7 @@ const Dashboard = () => {
               Table Code
             </button>
           </>
-        )} */}
+        )}
 
         {user.isPromoter && (
           <button

@@ -25,7 +25,6 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
   }, [user, type, weeklyCount, limit]);
 
   const handleCode = async () => {
-    console.log("TEST");
     if (!name || (type === "Table" && (!pax || !tableNumber))) {
       toast.error("Please fill in all required fields.");
       return;
@@ -62,6 +61,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
     }
 
     toast.loading(`Generating ${type} Code...`);
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,

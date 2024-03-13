@@ -141,6 +141,7 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
   };
 
   console.log("TYPE", type);
+  console.log("CODES", codes);
 
   return (
     <div className="code-management">
@@ -157,102 +158,114 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
           <button onClick={() => setShowConfirmDelete(false)}>No</button>
         </div>
       )}
-      {codes.slice(0, visibleCodes).map((code) => (
-        <div
-          key={code._id}
-          className={`code-management-item ${
-            code.paxChecked === code.pax ? "code-management-item-checked" : ""
-          }`}
-        >
-          {editCodeId === code._id ? (
-            <input
-              type="text"
-              className="code-management-item-input"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
-          ) : (
-            <>
-              <span
-                className="code-name"
-                onClick={() => handleCodeClick(code._id)}
-              >
-                {code.name}
-              </span>
-              <button
-                className="code-management-item-button"
-                onClick={() => handleCodeClick(code._id)}
-              >
-                <img
-                  className="code-management-item-icon"
-                  src="/image/show-icon.svg"
-                  alt="Show"
-                />
-              </button>
-              <button
-                className="code-management-item-button"
-                onClick={() => handleDownload(code._id)}
-              >
-                <img
-                  className="code-management-item-icon"
-                  src="/image/download-icon.svg"
-                  alt="Download"
-                />
-              </button>
-            </>
-          )}
-
-          {editCodeId === code._id ? (
-            <>
-              <button
-                className="code-management-item-button check-icon"
-                onClick={handleEdit}
-              >
-                <img
-                  className="code-management-item-icon "
-                  src="/image/check-icon_w.svg"
-                  alt="Confirm"
-                />
-              </button>
-              <button
-                className="code-management-item-button cancel-icon"
-                onClick={cancelEdit}
-              >
-                <img
-                  className="code-management-item-icon"
-                  src="/image/cancel-icon_w.svg"
-                  alt="Cancel"
-                />
-              </button>
-            </>
-          ) : (
-            code.paxChecked !== code.pax && (
+      {codes.slice(0, visibleCodes).map((code) =>
+        type === "Table" ? (
+          <div key={code._id} className="code-management-item">
+            <span
+              className="code-name"
+              onClick={() => handleCodeClick(code._id)}
+            >
+              {code.name} - Table {code.tableNumber} - Pax: {code.pax}
+            </span>
+            {/* Add common buttons here as needed */}
+          </div>
+        ) : (
+          <div
+            key={code._id}
+            className={`code-management-item ${
+              code.paxChecked === code.pax ? "code-management-item-checked" : ""
+            }`}
+          >
+            {editCodeId === code._id ? (
+              <input
+                type="text"
+                className="code-management-item-input"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            ) : (
               <>
+                <span
+                  className="code-name"
+                  onClick={() => handleCodeClick(code._id)}
+                >
+                  {code.name}
+                </span>
                 <button
                   className="code-management-item-button"
-                  onClick={() => startEdit(code)}
+                  onClick={() => handleCodeClick(code._id)}
                 >
                   <img
                     className="code-management-item-icon"
-                    src="/image/edit-icon.svg"
-                    alt="Edit"
+                    src="/image/show-icon.svg"
+                    alt="Show"
                   />
                 </button>
                 <button
                   className="code-management-item-button"
-                  onClick={() => handleDeleteClick(code._id)}
+                  onClick={() => handleDownload(code._id)}
                 >
                   <img
                     className="code-management-item-icon"
-                    src="/image/delete-icon.svg"
-                    alt="Delete"
+                    src="/image/download-icon.svg"
+                    alt="Download"
                   />
                 </button>
               </>
-            )
-          )}
-        </div>
-      ))}
+            )}
+
+            {editCodeId === code._id ? (
+              <>
+                <button
+                  className="code-management-item-button check-icon"
+                  onClick={handleEdit}
+                >
+                  <img
+                    className="code-management-item-icon "
+                    src="/image/check-icon_w.svg"
+                    alt="Confirm"
+                  />
+                </button>
+                <button
+                  className="code-management-item-button cancel-icon"
+                  onClick={cancelEdit}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/cancel-icon_w.svg"
+                    alt="Cancel"
+                  />
+                </button>
+              </>
+            ) : (
+              code.paxChecked !== code.pax && (
+                <>
+                  <button
+                    className="code-management-item-button"
+                    onClick={() => startEdit(code)}
+                  >
+                    <img
+                      className="code-management-item-icon"
+                      src="/image/edit-icon.svg"
+                      alt="Edit"
+                    />
+                  </button>
+                  <button
+                    className="code-management-item-button"
+                    onClick={() => handleDeleteClick(code._id)}
+                  >
+                    <img
+                      className="code-management-item-icon"
+                      src="/image/delete-icon.svg"
+                      alt="Delete"
+                    />
+                  </button>
+                </>
+              )
+            )}
+          </div>
+        )
+      )}
       {visibleCodes < codes.length && (
         <button className="code-management-load" onClick={loadMore}>
           <img

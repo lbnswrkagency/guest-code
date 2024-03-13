@@ -61,12 +61,10 @@ const addTableCode = async (req, res) => {
     // res.sendFile(absPath);
 
     // Or if you prefer to send a JSON response:
-    res
-      .status(201)
-      .json({
-        message: "Table Code created successfully",
-        data: createdTableCode,
-      });
+    res.status(201).json({
+      message: "Table Code created successfully",
+      data: createdTableCode,
+    });
   } catch (err) {
     console.error("Error creating table code:", err);
     res
