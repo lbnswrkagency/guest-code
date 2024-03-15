@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER170324.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER17032024.png"
                 alt=""
                 className="event-page-header-image"
               />
