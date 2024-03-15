@@ -326,20 +326,24 @@ const EventPage = ({ passedEventId }) => {
                     {" "}
                     <div className="djs">
                       <p className="djs-title">DJs</p>
-                      {/* 
+
                       <div className="djs-single djs-single-guest">
-                        <img alt="" className="djs-single-image" />
-                        <p className="djs-single-name">Hendricks</p>
-                        <p className="origin">BERLIN</p>
-                      </div> */}
-                      <div className="djs-single">
+                        <img
+                          src="./image/ben.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Ben Palace</p>
+                        <p className="origin">BELGIUM</p>
+                      </div>
+                      {/* <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hulk</p>
-                      </div>
+                      </div> */}
                       <div className="djs-single">
                         <img
                           src="./image/hendricks.jpg"
