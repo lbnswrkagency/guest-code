@@ -145,9 +145,6 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
     }
   };
 
-  console.log("TYPE", type);
-  console.log("CODES", codes);
-
   return (
     <div className="code-management">
       <Toaster />
@@ -165,7 +162,10 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
       )}
       {codes.slice(0, visibleCodes).map((code) =>
         type === "Table" ? (
-          <div key={code._id} className="code-management-item">
+          <div
+            key={code._id}
+            className="code-management-item code-management-item-table"
+          >
             {editCodeId === code._id ? (
               <>
                 <input
@@ -189,12 +189,18 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
               </>
             ) : (
               <>
-                <span
-                  className="code-name"
-                  onClick={() => handleCodeClick(code._id)}
-                >
-                  {code.name} - Table {code.tableNumber} - People: {code.pax}
-                </span>
+                <div className="code-management-info">
+                  <span onClick={() => handleCodeClick(code._id)}>
+                    {code.tableNumber}
+                  </span>
+                  <span onClick={() => handleCodeClick(code._id)}>
+                    {code.name}
+                  </span>
+                  <span onClick={() => handleCodeClick(code._id)}>
+                    {code.pax} People
+                  </span>
+                </div>
+
                 <button
                   className="code-management-item-button"
                   onClick={() => handleCodeClick(code._id)}
@@ -243,7 +249,7 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
               </>
             ) : (
               <>
-                <button
+                {/* <button
                   className="code-management-item-button"
                   onClick={() => startEdit(code)}
                 >
@@ -252,7 +258,7 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
                     src="/image/edit-icon.svg"
                     alt="Edit"
                   />
-                </button>
+                </button> */}
                 <button
                   className="code-management-item-button"
                   onClick={() => handleDeleteClick(code._id)}

@@ -262,7 +262,7 @@ const createTicketPDF = async (
 
         <div class="event-bites">
           <h3>Line Up</h3>
-          <p>Ben palace</p
+          <p>Ben Palace</p
           <p>Hendricks</p>>
           <p>Dim Kay</p>
           <p>J Fyah</p>

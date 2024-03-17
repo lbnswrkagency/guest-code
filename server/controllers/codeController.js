@@ -215,7 +215,7 @@ const generateCodeImage = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Ben palace</p>                    
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Ben Palace</p>                    
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hendricks</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Dim Kay</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">J Fyah</p>
@@ -295,7 +295,7 @@ const generateCodeImage = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben palace</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben Palace</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
@@ -351,7 +351,7 @@ const generateCodeImage = async (req, res) => {
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
       <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Table Code</h1>
       <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
-      <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: rgb(43, 43, 43); border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
+      <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: #313D4B; border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
       
        <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: #A6965D;">Afro Spiti</h3>   
       
@@ -376,7 +376,7 @@ const generateCodeImage = async (req, res) => {
           <div> 
             <div style="margin-top: 0.5rem;">
                 <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben palace</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben Palace</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
