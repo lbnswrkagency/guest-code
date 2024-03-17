@@ -274,15 +274,28 @@ function Scanner({ onClose }) {
             >
               <h2>USED</h2> <p>{scanResult.paxChecked}</p>
             </div>
-            <div
-              className={`scanner-result-data-value ${
-                scanResult.typeOfTicket === "Guest-Code"
-                  ? "guest-code-color"
-                  : "friends-code-color"
-              }`}
-            >
-              <h2>CONDITION</h2> <p>{scanResult.condition}</p>
-            </div>
+
+            {scanResult.typeOfTicket === "Table-Code" ? (
+              <>
+                <div className={`scanner-result-data-value friends-code-color`}>
+                  <h2>TABLE</h2> <p>{scanResult.tableNumber}</p>
+                </div>
+                <div className={`scanner-result-data-value friends-code-color`}>
+                  <h2>BACKSTAGE PASS</h2>{" "}
+                  <p>{scanResult.backstagePass ? "Yes" : "No"}</p>
+                </div>
+              </>
+            ) : (
+              <div
+                className={`scanner-result-data-value ${
+                  scanResult.typeOfTicket === "Guest-Code"
+                    ? "guest-code-color"
+                    : "friends-code-color"
+                }`}
+              >
+                <h2>CONDITION</h2> <p>{scanResult.condition}</p>
+              </div>
+            )}
           </div>
           <button className="scanner-open" onClick={resetScanner}>
             SCAN GAIN
