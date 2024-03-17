@@ -48,6 +48,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       "B14",
     ].includes(tableNumber);
 
+    console.log("IS BACKSTAGE", isBackstageOrDJTable);
     let data = {
       name,
       event: user.events,

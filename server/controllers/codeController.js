@@ -24,6 +24,7 @@ const addCode = async (req, res) => {
     host,
     hostId,
     tableNumber,
+    backstagePass,
   } = req.body; // Include tableNumber for table codes
   const type = req.params.type;
 
@@ -53,6 +54,7 @@ const addCode = async (req, res) => {
       host,
       hostId,
       ...(type === "table" && { tableNumber }), // Include tableNumber for table codes
+      ...(type === "table" && { backstagePass }), // Include tableNumber for table codes
     });
 
     res.status(201).json(createdCode);
@@ -66,24 +68,27 @@ const fetchCodes = async (req, res) => {
   const userId = req.query.userId;
   const type = req.params.type;
 
-  console.log("TYPE", type);
   let model;
+  let query = {}; // Initialize query object
+
   switch (type) {
     case "friends":
       model = FriendsCode;
+      query = { hostId: userId }; // Apply userId filter
       break;
     case "backstage":
       model = BackstageCode;
+      query = { hostId: userId }; // Apply userId filter
       break;
     case "table":
-      model = TableCode;
+      model = TableCode; // For TableCodes, fetch all without filtering by userId
       break;
     default:
       return res.status(400).send("Invalid code type");
   }
 
   try {
-    const codes = await model.find({ hostId: userId });
+    const codes = await model.find(query); // Use the query object here
     res.json(codes);
   } catch (error) {
     res.status(400).send("Error fetching codes!");

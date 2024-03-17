@@ -85,16 +85,11 @@ const Dashboard = () => {
   };
 
   const getThisWeeksTableCount = () => {
-    // Assuming counts.tableCounts is an array similar to friendsCounts and backstageCounts
-    // and contains an object with _id matching user._id and a total for the count
-    const filteredCounts = counts.tableCounts.filter((count) => {
-      return count._id === user._id; // Ensure the comparison is correct for your data structure
-    });
-
-    const total = filteredCounts.reduce((acc, curr) => acc + curr.total, 0);
-
-    return total;
+    // Just count each table code entry as 1
+    const totalTables = counts.tableCounts ? counts.tableCounts.length : 0;
+    return totalTables;
   };
+
   const fetchCounts = async () => {
     try {
       const { startDate, endDate } = dataInterval;
