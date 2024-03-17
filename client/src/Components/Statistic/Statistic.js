@@ -35,12 +35,24 @@ function Statistic({
       ? counts.guestCounts[0].used
       : 0;
 
+  const totalTableCodes = counts.tableCounts
+    ? counts.tableCounts.reduce((acc, curr) => acc + curr.total, 0)
+    : 0;
+  const totalUsedTableCodes = counts.tableCounts
+    ? counts.tableCounts.reduce((acc, curr) => acc + curr.used, 0)
+    : 0;
+
   const displayDate = currentEventDate.format("DD MMM YYYY");
+
   const totalGenerated =
-    totalFriendsCodes + totalBackstageCodes + totalGuestCodes; // This ensures the totalGuestCodes are added correctly
+    totalFriendsCodes + totalBackstageCodes + totalGuestCodes + totalTableCodes;
 
   const totalUsed =
-    totalUsedFriendsCodes + totalUsedBackstageCodes + totalUsedGuestCodes;
+    totalUsedFriendsCodes +
+    totalUsedBackstageCodes +
+    totalUsedGuestCodes +
+    totalUsedTableCodes;
+  console.log("COUNT", counts);
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
@@ -112,6 +124,30 @@ function Statistic({
           )}
         </div>
       </div>
+
+      {/* TableCodes Section */}
+      <div className="statistic-parent">
+        <h2 className="statistic-parent-title">TableCodes</h2>
+        {(user.isAdmin || user.isDeveloper) &&
+          counts.tableCounts &&
+          counts.tableCounts.map((count) => (
+            <div key={count._id} className="statistic-parent-group">
+              <p>
+                {count.table} - {count.host}
+              </p>
+              <p>{count.total}</p>
+              <p>{count.used}</p>
+            </div>
+          ))}
+        {(user.isAdmin || user.isDeveloper) && (
+          <div className="statistic-parent-group total">
+            <p>Total</p>
+            <p>{totalTableCodes}</p>
+            <p>{totalUsedTableCodes}</p>
+          </div>
+        )}
+      </div>
+
       <div className="statistc-parent">
         <div className="statistic-parent-group total">
           <p>TOTAL</p>

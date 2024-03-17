@@ -78,6 +78,15 @@ const increasePax = async (req, res) => {
     }
 
     if (!ticket) {
+      // Check for TableCode
+      ticket = await TableCode.findByIdAndUpdate(
+        ticketId,
+        { $inc: { paxChecked: 1 } },
+        { new: true }
+      );
+    }
+
+    if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
@@ -106,6 +115,14 @@ const decreasePax = async (req, res) => {
 
     if (!ticket) {
       ticket = await BackstageCode.findByIdAndUpdate(
+        ticketId,
+        { $inc: { paxChecked: -1 } },
+        { new: true }
+      );
+    }
+
+    if (!ticket) {
+      ticket = await TableCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: -1 } },
         { new: true }
@@ -209,7 +226,6 @@ const getCounts = async (req, res) => {
         $group: {
           _id: "$hostId",
           total: { $sum: 1 },
-          // Assuming 'paxChecked' exists in TableCode and you want to sum it up like the others
           used: { $sum: "$paxChecked" },
         },
       },
@@ -223,11 +239,22 @@ const getCounts = async (req, res) => {
       },
       { $unwind: "$user_info" },
       {
+        $lookup: {
+          from: "tablecodes", // Ensure this is the correct collection name for TableCode documents
+          localField: "_id",
+          foreignField: "hostId",
+          as: "table_info",
+        },
+      },
+      { $unwind: "$table_info" },
+      {
         $project: {
-          name: "$user_info.name",
+          name: "$user_info.name", // User's name
           avatar: "$user_info.avatar",
-          total: 1,
-          used: 1,
+          total: "$table_info.pax",
+          table: "$table_info.tableNumber",
+          used: "$table_info.paxChecked",
+          host: "$table_info.name",
         },
       },
     ]);

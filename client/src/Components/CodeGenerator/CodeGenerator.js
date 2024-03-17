@@ -90,7 +90,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       ? "FREE ENTRANCE ALL NIGHT"
       : type === "Backstage"
       ? "BACKSTAGE ACCESS ALL NIGHT"
-      : "";
+      : "TABLE RESERVATION";
   };
 
   return (

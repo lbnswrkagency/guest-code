@@ -10,7 +10,8 @@ const TableCodeSchema = new Schema(
     paxChecked: { type: Number, required: true },
     tableNumber: { type: String, required: true },
     hostId: { type: Schema.Types.ObjectId, ref: "User" },
-    backstagePass: { type: Boolean, default: false }, // Added field
+    backstagePass: { type: Boolean, default: false },
+    condition: { type: String, required: true },
   },
   {
     timestamps: true,
