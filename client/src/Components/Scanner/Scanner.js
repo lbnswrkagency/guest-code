@@ -247,6 +247,7 @@ function Scanner({ onClose }) {
             >
               <h2>TYPE</h2> <p>{scanResult.typeOfTicket}</p>
             </div>
+
             <div
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
@@ -256,6 +257,7 @@ function Scanner({ onClose }) {
             >
               <h2>NAME</h2> <p>{scanResult.name}</p>
             </div>
+
             <div
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
@@ -265,6 +267,7 @@ function Scanner({ onClose }) {
             >
               <h2>ALLOWED</h2> <p>{scanResult.pax}</p>
             </div>
+
             <div
               className={`scanner-result-data-value ${
                 scanResult.typeOfTicket === "Guest-Code"
@@ -287,7 +290,7 @@ function Scanner({ onClose }) {
               </>
             ) : (
               <div
-                className={`scanner-result-data-value ${
+                className={`scanner-result-data-value condition ${
                   scanResult.typeOfTicket === "Guest-Code"
                     ? "guest-code-color"
                     : "friends-code-color"

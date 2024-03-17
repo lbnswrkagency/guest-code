@@ -45,7 +45,7 @@
     justify-self: center;
     justify-content: center;
     justify-items: center;
-    :nth-of-type(5) {
+    .condition {
       grid-row: 3/4;
       grid-column: 1/3;
     }
