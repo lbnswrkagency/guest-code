@@ -3,6 +3,8 @@ import moment from "moment";
 
 const startingEventString = "14012024";
 const startingEventDate = moment(startingEventString, "DDMMYYYY");
+const eventStartTime = { hour: 23, minute: 0 }; // Sunday at 11 PM
+const eventEndTime = { hour: 6, minute: 0 }; // Monday at 6 AM
 
 export const useCurrentEvent = () => {
   const [currentDate, setCurrentDate] = useState(moment());
@@ -10,16 +12,20 @@ export const useCurrentEvent = () => {
   const findNextEventDate = (date) => {
     let nextEventDate = startingEventDate.clone();
     while (true) {
-      // Check if nextEventDate is strictly after today (not considering hours for this check)
-      if (nextEventDate.isAfter(date, "day")) {
-        break;
-      }
-      // If it's the same day, ensure we only move to the next event if it's past the event switch time
-      if (nextEventDate.isSame(date, "day") && date.hour() < 6) {
+      let eventEndDateTime = nextEventDate.clone().add(1, "days").set({
+        hour: eventEndTime.hour,
+        minute: eventEndTime.minute,
+      });
+      if (date.isBefore(eventEndDateTime)) {
         break;
       }
       nextEventDate.add(1, "weeks");
     }
+    nextEventDate.set({
+      hour: eventStartTime.hour,
+      minute: eventStartTime.minute,
+      second: 0,
+    });
     return nextEventDate;
   };
 

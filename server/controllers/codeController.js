@@ -151,7 +151,6 @@ const editCode = async (req, res) => {
 const generateCodeImage = async (req, res) => {
   const { type, codeId } = req.params;
 
-  console.log("REQ PARAMS", req.params);
   try {
     let model;
     switch (type) {
@@ -216,7 +215,7 @@ const generateCodeImage = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hulk</p>                    
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Ben palace</p>                    
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Hendricks</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Dim Kay</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">J Fyah</p>
@@ -296,7 +295,7 @@ const generateCodeImage = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben palace</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
@@ -350,7 +349,7 @@ const generateCodeImage = async (req, res) => {
       <link href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" rel="stylesheet">
       <body
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
-      <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Backstage Code</h1>
+      <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Table Code</h1>
       <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
       <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: rgb(43, 43, 43); border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
       
@@ -366,7 +365,7 @@ const generateCodeImage = async (req, res) => {
             <div>
               <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Sunday</p>
-                            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">18.02.2024</p>
+                            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">17.03.2024</p>
                      <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11 PM</p>
             </div>
         </div>
@@ -377,7 +376,7 @@ const generateCodeImage = async (req, res) => {
           <div> 
             <div style="margin-top: 0.5rem;">
                 <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben palace</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
@@ -402,24 +401,86 @@ const generateCodeImage = async (req, res) => {
       
         <div style="margin-top: 1.313rem; margin-bottom: .3rem; margin-left: 2.438rem; border: 1px solid #A6965D; width: 15.5rem;"></div>
 
-        <div style="position: relative;"> 
-            <div style="margin-top: 0.75rem; left: 2.438rem; position: absolute;">
+        <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
+            <div style="margin-top: 0.75rem;">
                 <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Name</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${code.name}</p>        
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                  code.name
+                }</p>        
             </div>
 
-
+            <div style="margin-top: 0.75rem;">
+                <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                  code.pax
+                }</p>        
+            </div>
         </div>
       </div>
-      <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
-          
-          <div style="justify-self: center;">
-              <p style="margin: 0; font-weight: 700; font-size: .90rem; line-height: 1.5rem;">BACKSTAGE VIP</p>
-              <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">ALL NIGHT</p>
+      <div style="grid-gap: 2rem; color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); justify-items: center; justify-content: center; align-content: center; align-items: center;">
+          <div
+            style="
+              justify-self: center;
+              display: grid;
+              grid-template-columns: repeat(2,minmax(min-content,max-content));
+              grid-gap: .5rem;         
+            "
+          >
+            <div>
+              <p
+                style="
+                  margin: 0;
+                  font-weight: 700;
+                  font-size: 1rem;
+                  line-height: 1.5rem;
+                "
+              >
+                Table
+              </p>
+
+              <p
+                style="
+                  margin: 0;
+                  font-weight: 700;
+                  font-size: 1rem;
+                  line-height: 1.5rem;
+                "
+              >
+                Backstage
+              </p>
+            </div>
+            <div>
+              <p
+                style="
+                  margin: 0;
+                  font-weight: 700;
+                  font-size: 1.35rem;
+                  line-height: 1.5rem;
+                "
+              >
+                ${code.tableNumber}
+              </p>
+
+              <p
+                style="
+                  margin: 0;
+                  font-weight: 700;
+                  font-size: 1.35rem;
+                  line-height: 1.5rem;
+                "
+              >
+                ${code.backstagePass ? "Yes" : "No"}
+              </p>
+            </div>
           </div>
-          <div style="justify-self: center;">
+
+
+
+          <div>
               <img style="background-color: white; width: 8rem; height: 8rem; " src=${bufferImage}></img>
-              <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${code._id}</p>        
+              <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${
+                code._id
+              }</p>        
            </div>
       </div>
       </body>

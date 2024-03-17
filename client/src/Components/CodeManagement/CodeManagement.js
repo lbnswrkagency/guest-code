@@ -7,6 +7,8 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
+  const [editPax, setEditPax] = useState("");
+  const [editTableNumber, setEditTableNumber] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteCodeId, setDeleteCodeId] = useState(null);
   const [codeViewUrl, setCodeViewUrl] = useState("");
@@ -65,6 +67,8 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
   const startEdit = (code) => {
     setEditCodeId(code._id);
     setEditName(code.name);
+    setEditPax(code.pax); // Set the initial value for editing
+    setEditTableNumber(code.tableNumber); // Set the initial value for editing
   };
 
   const handleEdit = async () => {
@@ -76,7 +80,8 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
         }/code/${type.toLowerCase()}/edit/${editCodeId}`,
         {
           name: editName,
-          // Add other fields if needed
+          // pax: editPax, // Assuming you have this state
+          // tableNumber: editTableNumber, // Assuming you have this state
         }
       );
       toast.dismiss();
@@ -161,13 +166,105 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
       {codes.slice(0, visibleCodes).map((code) =>
         type === "Table" ? (
           <div key={code._id} className="code-management-item">
-            <span
-              className="code-name"
-              onClick={() => handleCodeClick(code._id)}
-            >
-              {code.name} - Table {code.tableNumber} - Pax: {code.pax}
-            </span>
-            {/* Add common buttons here as needed */}
+            {editCodeId === code._id ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+                {/* <input
+                  type="number"
+                  placeholder="People (Pax)"
+                  value={editPax}
+                  onChange={(e) => setEditPax(e.target.value)} // Correctly handle state update
+                />
+                <input
+                  type="text"
+                  placeholder="Table Number"
+                  value={editTableNumber}
+                  onChange={(e) => setEditTableNumber(e.target.value)} // Correctly handle state update
+                /> */}
+              </>
+            ) : (
+              <>
+                <span
+                  className="code-name"
+                  onClick={() => handleCodeClick(code._id)}
+                >
+                  {code.name} - Table {code.tableNumber} - People: {code.pax}
+                </span>
+                <button
+                  className="code-management-item-button"
+                  onClick={() => handleCodeClick(code._id)}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/show-icon.svg"
+                    alt="Show"
+                  />
+                </button>
+                <button
+                  className="code-management-item-button"
+                  onClick={() => handleDownload(code._id)}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/download-icon.svg"
+                    alt="Download"
+                  />
+                </button>
+              </>
+            )}
+
+            {editCodeId === code._id ? (
+              <>
+                <button
+                  className="code-management-item-button check-icon"
+                  onClick={handleEdit}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/check-icon_w.svg"
+                    alt="Confirm"
+                  />
+                </button>
+                <button
+                  className="code-management-item-button cancel-icon"
+                  onClick={cancelEdit}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/cancel-icon_w.svg"
+                    alt="Cancel"
+                  />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="code-management-item-button"
+                  onClick={() => startEdit(code)}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/edit-icon.svg"
+                    alt="Edit"
+                  />
+                </button>
+                <button
+                  className="code-management-item-button"
+                  onClick={() => handleDeleteClick(code._id)}
+                >
+                  <img
+                    className="code-management-item-icon"
+                    src="/image/delete-icon.svg"
+                    alt="Delete"
+                  />
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div

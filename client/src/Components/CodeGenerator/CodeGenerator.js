@@ -30,16 +30,23 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       return;
     }
 
-    // Adjust logic for Table codes to bypass limit checks
-    if (
-      (type === "Friends" || type === "Backstage") &&
-      limit !== undefined &&
-      limit > 0 &&
-      remainingCount <= 0
-    ) {
-      toast.error("You have reached your limit for this week.");
-      return;
-    }
+    // Determine if the selected table is a Backstage or DJ table and should have a backstage pass
+    const isBackstageOrDJTable = [
+      "B1",
+      "B2",
+      "B3",
+      "B4",
+      "B5",
+      "B6",
+      "B7",
+      "B8",
+      "B9",
+      "B10",
+      "B11",
+      "B12",
+      "B13",
+      "B14",
+    ].includes(tableNumber);
 
     let data = {
       name,
@@ -47,18 +54,13 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       host: user.name,
       condition: conditionText(type),
       hostId: user._id,
+      // If it's a table code, include pax and tableNumber; additionally check for backstage pass
+      ...(type === "Table" && {
+        pax,
+        tableNumber,
+        backstagePass: isBackstageOrDJTable, // Add backstagePass boolean for qualifying tables
+      }),
     };
-
-    // Include pax and tableNumber for Table codes
-    if (type === "Table") {
-      data.pax = pax;
-      data.tableNumber = tableNumber;
-    } else {
-      // Assume pax: 1 for Friends and Backstage for compatibility with previous structure
-      data.pax = 1;
-      data.paxChecked = 0;
-      data.date = new Date().toLocaleDateString("en-GB");
-    }
 
     toast.loading(`Generating ${type} Code...`);
 
@@ -72,16 +74,8 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       setDownloadUrl(url);
       refreshCounts();
       toast.success(`${type} Code generated!`);
-      setTableNumber("");
+      setTableNumber(""); // Reset table number selection
       toast.dismiss();
-      // Adjust remainingCount for Friends and Backstage
-      if (type === "Friends" || type === "Backstage") {
-        if (limit > 0) {
-          setRemainingCount((prev) => Math.max(prev - 1, 0));
-        } else {
-          setRemainingCount((prev) => prev + 1);
-        }
-      }
     } catch (error) {
       toast.error("Error generating code.");
       console.error("Code generation error:", error);
@@ -131,7 +125,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
             >
               {[...Array(10).keys()].map((n) => (
                 <option key={n + 1} value={n + 1}>
-                  {n + 1} Pax
+                  {n + 1} People
                 </option>
               ))}
             </select>
@@ -145,7 +139,20 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
                 Select Table Number
               </option>
               <optgroup label="Backstage Tables">
-                {["B11", "B12", "B3", "B4", "B5", "E1", "E2"].map((table) => (
+                {[
+                  "B1",
+                  "B2",
+                  "B3",
+                  "B4",
+                  "B5",
+                  "B6",
+                  "B7",
+                  "B8",
+                  "B9",
+                  "B10",
+                  "B11",
+                  "B12",
+                ].map((table) => (
                   <option
                     key={table}
                     value={table}
@@ -178,6 +185,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
                   "K8",
                   "K9",
                   "K10",
+                  "K11",
                 ].map((table) => (
                   <option
                     key={table}
