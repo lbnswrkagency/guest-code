@@ -54,6 +54,8 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       host: user.name,
       condition: conditionText(type),
       hostId: user._id,
+      pax,
+      paxChecked: 0,
       // If it's a table code, include pax and tableNumber; additionally check for backstage pass
       ...(type === "Table" && {
         pax,

@@ -84,6 +84,17 @@ const Dashboard = () => {
     return total;
   };
 
+  const getThisWeeksTableCount = () => {
+    // Assuming counts.tableCounts is an array similar to friendsCounts and backstageCounts
+    // and contains an object with _id matching user._id and a total for the count
+    const filteredCounts = counts.tableCounts.filter((count) => {
+      return count._id === user._id; // Ensure the comparison is correct for your data structure
+    });
+
+    const total = filteredCounts.reduce((acc, curr) => acc + curr.total, 0);
+
+    return total;
+  };
   const fetchCounts = async () => {
     try {
       const { startDate, endDate } = dataInterval;
@@ -155,8 +166,8 @@ const Dashboard = () => {
     return (
       <TableCode
         user={user}
-        onClose={() => setShowBackstageCode(false)}
-        weeklyBackstageCount={getThisWeeksBackstageCount()}
+        onClose={() => setShowTableCode(false)}
+        weeklyTableCount={getThisWeeksTableCount()} // Adjusted to use the new function
         refreshCounts={refreshCounts}
       />
     );
@@ -170,7 +181,9 @@ const Dashboard = () => {
         weeklyCount={
           codeType === "Friends"
             ? getThisWeeksFriendsCount()
-            : getThisWeeksBackstageCount()
+            : codeType === "Backstage"
+            ? getThisWeeksBackstageCount()
+            : getThisWeeksTableCount() // Added condition for Table codes
         }
         refreshCounts={refreshCounts}
         type={codeType}

@@ -1,30 +1,41 @@
 const FriendsCode = require("../models/FriendsCode");
 const BackstageCode = require("../models/BackstageCode");
 const GuestCode = require("../models/GuestCode");
+const TableCode = require("../models/TableCode");
 const User = require("../models/User");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
+
 const validateTicket = async (req, res) => {
   try {
     const ticketId = req.body.ticketId;
     let ticket;
     let typeOfTicket;
 
+    // Checking for FriendsCode
     const friendsCodeTicket = await FriendsCode.findById(ticketId);
     if (friendsCodeTicket) {
       ticket = friendsCodeTicket;
       typeOfTicket = "Friends-Code";
     } else {
+      // Checking for GuestCode
       const guestCodeTicket = await GuestCode.findById(ticketId);
       if (guestCodeTicket) {
         ticket = guestCodeTicket;
         typeOfTicket = "Guest-Code";
       } else {
-        // Add the check for BackstageCode here
+        // Checking for BackstageCode
         const backstageCodeTicket = await BackstageCode.findById(ticketId);
         if (backstageCodeTicket) {
           ticket = backstageCodeTicket;
           typeOfTicket = "Backstage-Code";
+        } else {
+          // Checking for TableCode - adding this check
+          const tableCodeTicket = await TableCode.findById(ticketId);
+          if (tableCodeTicket) {
+            ticket = tableCodeTicket;
+            typeOfTicket = "Table-Code";
+          }
         }
       }
     }
@@ -33,8 +44,9 @@ const validateTicket = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Add the typeOfTicket to the ticket object before sending it
-    res.json({ ...ticket.toObject(), typeOfTicket });
+    // Ensure ticket data is correctly formatted before sending
+    const ticketData = ticket.toObject ? ticket.toObject() : ticket;
+    res.json({ ...ticketData, typeOfTicket });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -191,7 +203,36 @@ const getCounts = async (req, res) => {
       },
     ]);
 
-    res.json({ friendsCounts, guestCounts, backstageCounts });
+    const tableCounts = await TableCode.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: "$hostId",
+          total: { $sum: 1 },
+          // Assuming 'paxChecked' exists in TableCode and you want to sum it up like the others
+          used: { $sum: "$paxChecked" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      { $unwind: "$user_info" },
+      {
+        $project: {
+          name: "$user_info.name",
+          avatar: "$user_info.avatar",
+          total: 1,
+          used: 1,
+        },
+      },
+    ]);
+
+    res.json({ friendsCounts, guestCounts, backstageCounts, tableCounts });
   } catch (error) {
     console.error("Error fetching counts", error);
     res.status(500).json({ message: error.message });

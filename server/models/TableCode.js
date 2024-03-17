@@ -7,6 +7,7 @@ const TableCodeSchema = new Schema(
     name: { type: String, required: true },
     host: { type: String, required: true },
     pax: { type: Number, required: true },
+    paxChecked: { type: Number, required: true },
     tableNumber: { type: String, required: true },
     hostId: { type: Schema.Types.ObjectId, ref: "User" },
     backstagePass: { type: Boolean, default: false }, // Added field
