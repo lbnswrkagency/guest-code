@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER17032024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER24032024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -333,7 +333,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Ben Palace</p>
+                        <p className="djs-single-name">Maro</p>
                         <p className="origin">BELGIUM</p>
                       </div>
                       {/* <div className="djs-single">
@@ -382,7 +382,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 17 MAR 2024</p>
+                    <p>SUN 24 MAR 2024</p>
                   </div>
                   <img
                     src="./image/arrowup.svg"
@@ -470,7 +470,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 17.03.2024 · 11 PM
+                Sunday · 24.03.2024 · 11 PM
               </p>
 
               <div

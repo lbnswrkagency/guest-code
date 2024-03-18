@@ -369,6 +369,7 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
           </div>
         )
       )}
+
       {visibleCodes < codes.length && (
         <button className="code-management-load" onClick={loadMore}>
           <img
