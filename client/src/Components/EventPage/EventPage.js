@@ -329,7 +329,7 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single djs-single-guest">
                         <img
-                          src="./image/ben.png"
+                          src="./image/maro.png"
                           alt=""
                           className="djs-single-image"
                         />
