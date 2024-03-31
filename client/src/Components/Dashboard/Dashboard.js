@@ -21,9 +21,6 @@ import DropFiles from "../DropFiles/DropFiles";
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
   const [showSettings, setShowSettings] = useState(false);
-  const [showFriendsCode, setShowFriendsCode] = useState(false);
-  const [showTableCode, setShowTableCode] = useState(false);
-  const [showBackstageCode, setShowBackstageCode] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
@@ -135,39 +132,6 @@ const Dashboard = () => {
     return <p>Loading...</p>;
   }
 
-  if (showFriendsCode) {
-    return (
-      <FriendsCode
-        user={user}
-        onClose={() => setShowFriendsCode(false)}
-        weeklyFriendsCount={getThisWeeksFriendsCount()}
-        refreshCounts={refreshCounts}
-      />
-    );
-  }
-
-  if (showBackstageCode) {
-    return (
-      <BackstageCode
-        user={user}
-        onClose={() => setShowBackstageCode(false)}
-        weeklyBackstageCount={getThisWeeksBackstageCount()}
-        refreshCounts={refreshCounts}
-      />
-    );
-  }
-
-  if (showTableCode) {
-    return (
-      <TableCode
-        user={user}
-        onClose={() => setShowTableCode(false)}
-        weeklyTableCount={getThisWeeksTableCount()} // Adjusted to use the new function
-        refreshCounts={refreshCounts}
-      />
-    );
-  }
-
   if (codeType) {
     return (
       <CodeGenerator
@@ -182,6 +146,10 @@ const Dashboard = () => {
         }
         refreshCounts={refreshCounts}
         type={codeType}
+        currentEventDate={currentEventDate}
+        onPrevWeek={handlePrevWeek}
+        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+        onNextWeek={handleNextWeek}
       />
     );
   }

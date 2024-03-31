@@ -65,33 +65,38 @@ const addCode = async (req, res) => {
 };
 
 const fetchCodes = async (req, res) => {
-  const userId = req.query.userId;
+  const { userId, startDate, endDate } = req.query;
   const type = req.params.type;
 
   let model;
-  let query = {}; // Initialize query object
+  let query = { hostId: userId }; // Default query includes hostId
 
   switch (type) {
     case "friends":
       model = FriendsCode;
-      query = { hostId: userId }; // Apply userId filter
       break;
     case "backstage":
       model = BackstageCode;
-      query = { hostId: userId }; // Apply userId filter
       break;
     case "table":
-      model = TableCode; // For TableCodes, fetch all without filtering by userId
+      model = TableCode;
+      if (startDate && endDate) {
+        // Apply date filtering only for table codes when dates are provided
+        query.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
       break;
     default:
       return res.status(400).send("Invalid code type");
   }
 
   try {
-    const codes = await model.find(query); // Use the query object here
+    const codes = await model.find(query).sort({ createdAt: -1 });
     res.json(codes);
   } catch (error) {
-    res.status(400).send("Error fetching codes!");
+    res.status(500).send("Error fetching codes!");
   }
 };
 

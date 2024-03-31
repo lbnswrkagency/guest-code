@@ -3,11 +3,22 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "./CodeGenerator.scss";
 import CodeManagement from "../CodeManagement/CodeManagement";
+import TableLayout from "../TableLayout/TableLayout";
 
-function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
+function CodeGenerator({
+  user,
+  onClose,
+  type,
+  weeklyCount,
+  refreshCounts,
+  currentEventDate,
+  onPrevWeek,
+  onNextWeek,
+  isStartingEvent,
+}) {
   const [name, setName] = useState("");
-  const [pax, setPax] = useState("1"); // For Table Codes
-  const [tableNumber, setTableNumber] = useState(""); // For Table Codes
+  const [pax, setPax] = useState("1");
+  const [tableNumber, setTableNumber] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [limit, setLimit] = useState(undefined);
   const [remainingCount, setRemainingCount] = useState(undefined);
@@ -48,7 +59,6 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       "B14",
     ].includes(tableNumber);
 
-    console.log("IS BACKSTAGE", isBackstageOrDJTable);
     let data = {
       name,
       event: user.events,
@@ -94,12 +104,25 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
       : "TABLE RESERVATION";
   };
 
+  const renderNavigation = () => {
+    return type === "Table" ? (
+      <div className="code-navigation">
+        <button onClick={onPrevWeek} disabled={isStartingEvent}>
+          &#8592; Prev Week
+        </button>
+        <span>{currentEventDate.format("DD MMM YYYY")}</span>
+        <button onClick={onNextWeek}>Next Week &#8594;</button>
+      </div>
+    ) : null;
+  };
+
   return (
     <div className="code">
       <Toaster />
       <div className="login-back-arrow" onClick={onClose}>
         <img src="/image/back-icon.svg" alt="Back" />
       </div>
+      {renderNavigation()}
       <img
         className="code-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
@@ -225,6 +248,7 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
                 ))}
               </optgroup>
             </select>
+            <TableLayout />
           </>
         )}
         <button className="code-btn" onClick={handleCode}>
@@ -246,6 +270,10 @@ function CodeGenerator({ user, onClose, type, weeklyCount, refreshCounts }) {
         setCodes={setCodes}
         weeklyCount={weeklyCount}
         refreshCounts={refreshCounts}
+        currentEventDate={currentEventDate}
+        onPrevWeek={onPrevWeek}
+        onNextWeek={onNextWeek}
+        isStartingEvent={isStartingEvent}
       />
     </div>
   );

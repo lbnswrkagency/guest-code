@@ -2,8 +2,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./CodeManagement.scss";
 import toast, { Toaster } from "react-hot-toast";
+import moment from "moment";
 
-function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
+function CodeManagement({
+  user,
+  type,
+  setCodes,
+  codes,
+  refreshCounts,
+  currentEventDate,
+  onPrevWeek,
+  onNextWeek,
+  isStartingEvent,
+}) {
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -20,7 +31,13 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
         const apiUrl = `/code/${type.toLowerCase()}/codes`;
         const response = await axios.get(
           `${process.env.REACT_APP_API_BASE_URL}${apiUrl}`,
-          { params: { userId: user._id } }
+          {
+            params: {
+              userId: user._id,
+              startDate: moment(currentEventDate).startOf("week").toISOString(), // Adjust according to your week start day
+              endDate: moment(currentEventDate).endOf("week").toISOString(),
+            },
+          }
         );
 
         setCodes(
@@ -34,7 +51,7 @@ function CodeManagement({ user, type, setCodes, codes, refreshCounts }) {
     };
 
     fetchCodes();
-  }, [user._id, type, refreshCounts]);
+  }, [user._id, type, refreshCounts, currentEventDate]);
 
   const loadMore = () => {
     setVisibleCodes((prevVisible) => prevVisible + 10);

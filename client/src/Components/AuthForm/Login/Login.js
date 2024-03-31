@@ -62,7 +62,7 @@ const Login = () => {
       </div>
       <img className="login-logo" src="/image/logo.svg" alt="" />
 
-      <h2 className="login-title">Login</h2>
+      <h2 className="login-title">Member Area</h2>
       <form className="login-form" onSubmit={handleSubmit}>
         <input
           className="login-form-name"
