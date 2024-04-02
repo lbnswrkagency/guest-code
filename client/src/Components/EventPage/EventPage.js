@@ -311,7 +311,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER04072024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER07042024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -329,7 +329,7 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single djs-single-guest">
                         <img
-                          src="./image/robin.png"
+                          src="./image/silence.png"
                           alt=""
                           className="djs-single-image"
                         />
@@ -384,6 +384,7 @@ const EventPage = ({ passedEventId }) => {
                     <h4 className="lineup-event">Afro Spiti</h4>
                     <p>SUN 07 APR 2024</p>
                   </div>
+
                   <img
                     src="./image/arrowup.svg"
                     alt=""
@@ -470,7 +471,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 31.03.2024 · 11 PM
+                Sunday · 07.04.2024 · 11 PM
               </p>
 
               <div
