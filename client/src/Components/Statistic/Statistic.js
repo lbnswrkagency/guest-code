@@ -133,7 +133,7 @@ function Statistic({
           counts.tableCounts.map((count) => (
             <div key={count._id} className="statistic-parent-group">
               <p>
-                {count.table} - {count.host}
+                {count.table} - {count.name}
               </p>
               <p>{count.total}</p>
               <p>{count.used}</p>
