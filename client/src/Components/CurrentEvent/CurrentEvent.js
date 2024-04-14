@@ -36,24 +36,30 @@ export const useCurrentEvent = () => {
   }, []);
 
   const getCurrentEventDate = useCallback(() => {
-    // Use 'currentDate' to determine the "view" date, not necessarily today's date
-    let viewDate = currentDate;
+    let viewDate = currentDate.clone().set({ second: 0, millisecond: 0 }); // Normalize seconds and milliseconds
     let nextEventDate = startingEventDate.clone();
-
-    // Iterate to find the next event date considering the end time at 6 AM relative to the viewDate
     while (true) {
-      let eventEndTime = nextEventDate.clone().add(1, "days").hour(6);
-      if (eventEndTime.isAfter(viewDate, "day")) {
-        // Compare strictly by day to allow for navigation logic
-        break; // Found the next event that hasn't ended yet according to the viewDate
+      let eventStartDateTime = nextEventDate.clone().set({
+        hour: eventStartTime.hour,
+        minute: eventStartTime.minute,
+      });
+      let eventEndDateTime = eventStartDateTime.clone().add(1, "days").set({
+        hour: eventEndTime.hour,
+        minute: eventEndTime.minute,
+      });
+
+      // Check if the current view date is before the end of the event period
+      if (viewDate.isBefore(eventEndDateTime)) {
+        // This ensures that until the event's end time is reached, the event week doesn't advance
+        break;
       }
       nextEventDate.add(1, "weeks");
     }
-
-    // Set the event start time to 11 PM for the found date
-    nextEventDate.hour(23).minute(0).second(0);
-
-    return nextEventDate;
+    return nextEventDate.set({
+      hour: eventStartTime.hour,
+      minute: eventStartTime.minute,
+      second: 0,
+    });
   }, [currentDate]); // Ensure this recalculates when currentDate changes due to navigation
 
   const calculateDataInterval = (eventDate) => {
@@ -83,18 +89,18 @@ export const useCurrentEvent = () => {
     [currentEventDate]
   );
 
-  // console.log(
-  //   "Current Event Date:",
-  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval Start:",
-  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval End:",
-  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
+  console.log(
+    "Current Event Date:",
+    currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
+  console.log(
+    "Data Interval Start:",
+    dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
+  console.log(
+    "Data Interval End:",
+    dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
+  );
 
   return {
     currentEventDate,
