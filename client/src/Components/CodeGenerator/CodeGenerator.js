@@ -184,7 +184,9 @@ function CodeGenerator({
                   <option
                     key={table}
                     value={table}
-                    disabled={codes.some((code) => code.tableNumber === table)}
+                    disabled={counts.tableCounts.some(
+                      (code) => code.table === table
+                    )}
                   >
                     {table}
                   </option>
@@ -195,7 +197,9 @@ function CodeGenerator({
                   <option
                     key={table}
                     value={table}
-                    disabled={codes.some((code) => code.tableNumber === table)}
+                    disabled={counts.tableCounts.some(
+                      (code) => code.table === table
+                    )}
                   >
                     {table}
                   </option>
@@ -217,7 +221,9 @@ function CodeGenerator({
                   <option
                     key={table}
                     value={table}
-                    disabled={codes.some((code) => code.tableNumber === table)}
+                    disabled={counts.tableCounts.some(
+                      (code) => code.table === table
+                    )}
                   >
                     {table}
                   </option>
@@ -242,7 +248,9 @@ function CodeGenerator({
                   <option
                     key={table}
                     value={table}
-                    disabled={codes.some((code) => code.tableNumber === table)}
+                    disabled={counts.tableCounts.some(
+                      (code) => code.table === table
+                    )}
                   >
                     {table}
                   </option>
