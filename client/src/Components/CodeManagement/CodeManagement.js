@@ -181,7 +181,9 @@ function CodeManagement({
         type === "Table" ? (
           <div
             key={code._id}
-            className="code-management-item code-management-item-table"
+            className={`code-management-item code-management-item-table ${
+              code.paxChecked ? "code-management-item-checked" : ""
+            }`}
           >
             {editCodeId === code._id ? (
               <>
