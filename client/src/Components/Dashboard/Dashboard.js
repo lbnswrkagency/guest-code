@@ -159,6 +159,7 @@ const Dashboard = () => {
         onPrevWeek={handlePrevWeek}
         isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
         onNextWeek={handleNextWeek}
+        counts={counts}
       />
     );
   }

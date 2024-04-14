@@ -223,39 +223,23 @@ const getCounts = async (req, res) => {
     const tableCounts = await TableCode.aggregate([
       { $match: matchCondition },
       {
-        $group: {
-          _id: "$hostId",
-          total: { $sum: 1 },
-          used: { $sum: "$paxChecked" },
-        },
-      },
-      {
         $lookup: {
-          from: "users",
-          localField: "_id",
+          from: "users", // Assuming "users" is your user collection name
+          localField: "hostId",
           foreignField: "_id",
           as: "user_info",
         },
       },
-      { $unwind: "$user_info" },
-      {
-        $lookup: {
-          from: "tablecodes", // Ensure this is the correct collection name for TableCode documents
-          localField: "_id",
-          foreignField: "hostId",
-          as: "table_info",
-        },
-      },
-      { $unwind: "$table_info" },
+      { $unwind: { path: "$user_info", preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          name: "$user_info.name", // User's name
-          avatar: "$user_info.avatar",
-          total: "$table_info.pax",
-          table: "$table_info.tableNumber",
-          used: "$table_info.paxChecked",
-          host: "$table_info.name",
-          createdAt: "$table_info.createdAt",
+          name: 1, // Assuming this is the name of the event or table code
+          host: "$user_info.name", // User's name from the joined user document
+          avatar: "$user_info.avatar", // User's avatar from the joined user document
+          total: "$pax",
+          used: "$paxChecked",
+          table: "$tableNumber",
+          createdAt: 1, // Include the createdAt field from the TableCode schema
         },
       },
     ]);

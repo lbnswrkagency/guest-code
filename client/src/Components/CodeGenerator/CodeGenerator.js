@@ -15,6 +15,7 @@ function CodeGenerator({
   onPrevWeek,
   onNextWeek,
   isStartingEvent,
+  counts,
 }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState("1");
@@ -280,6 +281,7 @@ function CodeGenerator({
         onPrevWeek={onPrevWeek}
         onNextWeek={onNextWeek}
         isStartingEvent={isStartingEvent}
+        counts={counts}
       />
     </div>
   );
