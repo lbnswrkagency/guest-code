@@ -257,6 +257,7 @@ function CodeGenerator({
         {type === "Table" && (
           <TableLayout
             codes={codes}
+            counts={counts}
             tableNumber={tableNumber}
             setTableNumber={setTableNumber}
           />

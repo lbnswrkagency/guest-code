@@ -1,9 +1,10 @@
 import React from "react";
 import "./TableLayout.scss"; // Ensure the CSS file exists and is correctly linked
 
-const TableLayout = ({ codes, tableNumber, setTableNumber }) => {
+const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
   // This function checks if a specific table is booked
-  const isBooked = (table) => codes.some((code) => code.tableNumber === table);
+  const isBooked = (table) =>
+    counts.tableCounts.some((code) => code.table === table);
 
   // Function to determine CSS classes for each table
   const getClass = (table, baseClass) => {
@@ -19,6 +20,8 @@ const TableLayout = ({ codes, tableNumber, setTableNumber }) => {
     }
   };
 
+  console.log("TABLE LAYOUT CODES", codes);
+  console.log("TABLE LAYOUT COUNTS", counts);
   return (
     <div className="table-layout">
       <div className="tables table-layout-01">
