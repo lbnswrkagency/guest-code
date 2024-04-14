@@ -329,7 +329,7 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single djs-single-guest">
                         <img
-                          src="./image/hulk.png"
+                          src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
                         />
@@ -346,11 +346,11 @@ const EventPage = ({ passedEventId }) => {
                       </div> */}
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.jpg"
+                          src="./image/tune.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Tune</p>
                       </div>
 
                       <div className="djs-single">
@@ -626,7 +626,7 @@ const EventPage = ({ passedEventId }) => {
             </footer>
           </>
         ) : (
-          <p></p> // Placeholder for when event data is not available
+          <p></p>
         )}
       </div>
     </div>
