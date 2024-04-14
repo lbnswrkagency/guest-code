@@ -87,6 +87,7 @@ function TableCode({
         <button onClick={onNextWeek}>Next Week &#8594;</button>
       </div>
       <h1 className="tablecode-title">Reserve a Table for Your Friends!</h1>
+
       <div className="tablecode-form">
         <input
           className="tablecode-input"
@@ -118,9 +119,6 @@ function TableCode({
             </option>
           ))}
         </select>
-        <button className="tablecode-button" onClick={handleTableCode}>
-          Generate Table Code
-        </button>
       </div>
       {downloadUrl && (
         <div className="tablecode-preview">

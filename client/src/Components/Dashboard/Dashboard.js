@@ -80,10 +80,19 @@ const Dashboard = () => {
 
     return total;
   };
-
   const getThisWeeksTableCount = () => {
-    // Just count each table code entry as 1
-    const totalTables = counts.tableCounts ? counts.tableCounts.length : 0;
+    // Ensure counts.tableCounts includes date information
+
+    const totalTables = counts.tableCounts.filter((table) => {
+      const reservationDate = moment(table.createdAt); // assuming table reservations have a 'createdAt' field
+      return reservationDate.isBetween(
+        dataInterval.startDate,
+        dataInterval.endDate,
+        undefined,
+        "[]"
+      ); // '[]' includes the bounds
+    }).length;
+
     return totalTables;
   };
 

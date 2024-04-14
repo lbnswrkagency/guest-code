@@ -52,7 +52,7 @@ function Statistic({
     totalUsedBackstageCodes +
     totalUsedGuestCodes +
     totalUsedTableCodes;
-  console.log("COUNT", currentEventDate);
+
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>

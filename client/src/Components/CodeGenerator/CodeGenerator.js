@@ -24,6 +24,8 @@ function CodeGenerator({
   const [remainingCount, setRemainingCount] = useState(undefined);
   const [codes, setCodes] = useState([]);
 
+  const [selectedTable, setSelectedTable] = useState("");
+
   useEffect(() => {
     const newLimit =
       type === "Backstage"
@@ -55,8 +57,6 @@ function CodeGenerator({
       "B10",
       "B11",
       "B12",
-      "B13",
-      "B14",
     ].includes(tableNumber);
 
     let data = {
@@ -104,25 +104,13 @@ function CodeGenerator({
       : "TABLE RESERVATION";
   };
 
-  const renderNavigation = () => {
-    return type === "Table" ? (
-      <div className="code-navigation">
-        <button onClick={onPrevWeek} disabled={isStartingEvent}>
-          &#8592; Prev Week
-        </button>
-        <span>{currentEventDate.format("DD MMM YYYY")}</span>
-        <button onClick={onNextWeek}>Next Week &#8594;</button>
-      </div>
-    ) : null;
-  };
-
   return (
     <div className="code">
       <Toaster />
       <div className="login-back-arrow" onClick={onClose}>
         <img src="/image/back-icon.svg" alt="Back" />
       </div>
-      {renderNavigation()}
+
       <img
         className="code-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
@@ -135,6 +123,19 @@ function CodeGenerator({
           <p>{remainingCount}</p>
         </div>
       </div>
+      {type === "Table" && (
+        <div className="statistic-navigation code-navigation">
+          <button
+            onClick={onPrevWeek}
+            disabled={isStartingEvent}
+            style={{ opacity: isStartingEvent ? 0 : 1 }}
+          >
+            &#8592;
+          </button>
+          <p>{currentEventDate.format("DD MMM YYYY")}</p>
+          <button onClick={onNextWeek}>&#8594;</button>
+        </div>
+      )}
       <div className="code-admin">
         <input
           className="code-input"
@@ -189,7 +190,7 @@ function CodeGenerator({
                 ))}
               </optgroup>
               <optgroup label="DJ Tables">
-                {["B13", "B14"].map((table) => (
+                {["B11", "B12"].map((table) => (
                   <option
                     key={table}
                     value={table}
@@ -211,7 +212,6 @@ function CodeGenerator({
                   "K8",
                   "K9",
                   "K10",
-                  "K11",
                 ].map((table) => (
                   <option
                     key={table}
@@ -248,12 +248,18 @@ function CodeGenerator({
                 ))}
               </optgroup>
             </select>
-            <TableLayout />
           </>
         )}
         <button className="code-btn" onClick={handleCode}>
           Generate
         </button>
+        {type === "Table" && (
+          <TableLayout
+            codes={codes}
+            tableNumber={tableNumber}
+            setTableNumber={setTableNumber}
+          />
+        )}
       </div>
       {/* {downloadUrl && (
         <div className="code-preview">

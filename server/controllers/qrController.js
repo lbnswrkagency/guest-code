@@ -255,6 +255,7 @@ const getCounts = async (req, res) => {
           table: "$table_info.tableNumber",
           used: "$table_info.paxChecked",
           host: "$table_info.name",
+          createdAt: "$table_info.createdAt",
         },
       },
     ]);
