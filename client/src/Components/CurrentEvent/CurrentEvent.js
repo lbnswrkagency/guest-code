@@ -16,6 +16,7 @@ export const useCurrentEvent = () => {
         hour: eventEndTime.hour,
         minute: eventEndTime.minute,
       });
+
       if (date.isBefore(eventEndDateTime)) {
         break;
       }
@@ -89,18 +90,18 @@ export const useCurrentEvent = () => {
     [currentEventDate]
   );
 
-  console.log(
-    "Current Event Date:",
-    currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
-  console.log(
-    "Data Interval Start:",
-    dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
-  console.log(
-    "Data Interval End:",
-    dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  );
+  // console.log(
+  //   "Current Event Date:",
+  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval Start:",
+  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
+  // console.log(
+  //   "Data Interval End:",
+  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
+  // );
 
   return {
     currentEventDate,
