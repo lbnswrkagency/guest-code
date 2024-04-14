@@ -183,7 +183,9 @@ function CodeManagement({
         ? counts.tableCounts.slice(0, visibleCodes).map((code) => (
             <div
               key={code._id}
-              className="code-management-item code-management-item-table"
+              className={`code-management-item code-management-item-table ${
+                code.used ? "code-management-item-checked" : ""
+              }`}
             >
               {editCodeId === code._id ? (
                 <>
