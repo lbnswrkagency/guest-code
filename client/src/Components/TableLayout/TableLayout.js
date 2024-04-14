@@ -20,11 +20,8 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
     }
   };
 
-  console.log("TABLE LAYOUT CODES", codes);
-  console.log("TABLE LAYOUT COUNTS", counts);
   return (
     <div className="table-layout">
-      <h1 className="table-layout-title">BACKSTAGE</h1>
       <div className="tables table-layout-01">
         <div className="bar-area-backstage">
           <p>BAR</p>
