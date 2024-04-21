@@ -3,6 +3,7 @@ import axios from "axios";
 import "./CodeManagement.scss";
 import toast, { Toaster } from "react-hot-toast";
 import moment from "moment";
+import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 
 function CodeManagement({
   user,
@@ -16,6 +17,7 @@ function CodeManagement({
   onNextWeek,
   isStartingEvent,
 }) {
+  const { dataInterval } = useCurrentEvent();
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -35,24 +37,51 @@ function CodeManagement({
           {
             params: {
               userId: user._id,
-              startDate: moment(currentEventDate).startOf("week").toISOString(), // Adjust according to your week start day
-              endDate: moment(currentEventDate).endOf("week").toISOString(),
+              startDate: dataInterval.startDate.toISOString(),
+              endDate: dataInterval.endDate.toISOString(),
             },
           }
         );
+        if (type.toLowerCase() === "table") {
+          setCodes(
+            response.data.sort((a, b) => {
+              const groupA = a.tableNumber[0];
+              const groupB = b.tableNumber[0];
+              const numberA = parseInt(a.tableNumber.substring(1), 10);
+              const numberB = parseInt(b.tableNumber.substring(1), 10);
 
-        setCodes(
-          response.data.sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-          )
-        );
+              if (groupA === groupB) {
+                return numberA - numberB; // Sort by number within the same group
+              }
+
+              // B always comes first, then K, then A
+              if (groupA === "B") return -1;
+              if (groupB === "B") return 1;
+              if (groupA === "K") return -1;
+              if (groupB === "K") return 1;
+              return numberA - numberB; // Default to numerical sort if A group
+            })
+          );
+        } else {
+          setCodes(
+            response.data.sort(
+              (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            )
+          );
+        }
       } catch (error) {
         console.error("Error fetching codes", error);
       }
     };
 
     fetchCodes();
-  }, [user._id, type, refreshCounts, currentEventDate]);
+  }, [
+    user._id,
+    type,
+    refreshCounts,
+    dataInterval.startDate,
+    dataInterval.endDate,
+  ]);
 
   const loadMore = () => {
     setVisibleCodes((prevVisible) => prevVisible + 10);
@@ -392,6 +421,7 @@ function CodeManagement({
               )}
             </div>
           ))}
+
       {visibleCodes < codes.length && (
         <button className="code-management-load" onClick={loadMore}>
           <img

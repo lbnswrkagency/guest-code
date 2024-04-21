@@ -69,19 +69,20 @@ const fetchCodes = async (req, res) => {
   const type = req.params.type;
 
   let model;
-  let query = { hostId: userId }; // Default query includes hostId
+  let query = {};
 
   switch (type) {
     case "friends":
       model = FriendsCode;
+      query.hostId = userId;
       break;
     case "backstage":
       model = BackstageCode;
+      query.hostId = userId;
       break;
     case "table":
       model = TableCode;
       if (startDate && endDate) {
-        // Apply date filtering only for table codes when dates are provided
         query.createdAt = {
           $gte: new Date(startDate),
           $lte: new Date(endDate),
@@ -94,6 +95,7 @@ const fetchCodes = async (req, res) => {
 
   try {
     const codes = await model.find(query).sort({ createdAt: -1 });
+
     res.json(codes);
   } catch (error) {
     res.status(500).send("Error fetching codes!");
