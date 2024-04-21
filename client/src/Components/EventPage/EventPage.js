@@ -350,7 +350,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Tune</p>
+                        <p className="djs-single-name">Hendricks</p>
                       </div>
 
                       <div className="djs-single">
