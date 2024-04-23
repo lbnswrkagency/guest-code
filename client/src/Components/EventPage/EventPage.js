@@ -292,18 +292,22 @@ const EventPage = ({ passedEventId }) => {
             <header className="event-page-header">
               <div className="event-page-header-navigation">
                 <img
-                  src={isNavVisible ? "./image/close.svg" : "./image/menu.svg"}
+                  src={
+                    isNavVisible
+                      ? "./image/close.svg"
+                      : "./image/menu_black.svg"
+                  }
                   alt={isNavVisible ? "Close" : "Menu"}
                   className="event-page-header-navigation-burger"
                   onClick={toggleNav}
                 />
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
                 <img
-                  src="./image/login.svg"
+                  src="./image/login_black.svg"
                   alt=""
                   className="event-page-header-navigation-login"
                   onClick={() => navigate("/login")}
@@ -311,7 +315,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER21042024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER27042024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -327,15 +331,16 @@ const EventPage = ({ passedEventId }) => {
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
-                      <div className="djs-single djs-single-guest">
+                      {/* <div className="djs-single djs-single-guest">
                         <img
                           src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hulk</p>
-                        {/* <p className="origin">BELGIUM</p> */}
+                     <p className="origin">BELGIUM</p> 
                       </div>
+                       */}
                       {/* <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -351,6 +356,22 @@ const EventPage = ({ passedEventId }) => {
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hendricks</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/silence.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Silence</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/tune.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Tune</p>
                       </div>
 
                       <div className="djs-single">
@@ -382,7 +403,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 21 APR 2024</p>
+                    <p>SAT 27 APR 2024</p>
                   </div>
 
                   <img
@@ -471,7 +492,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 21.04.2024 · 11 PM
+                Saturday · 27.04.2024 · 11 PM
               </p>
 
               <div

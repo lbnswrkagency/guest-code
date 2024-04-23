@@ -45,8 +45,9 @@ function CodeManagement({
         if (type.toLowerCase() === "table") {
           setCodes(
             response.data.sort((a, b) => {
-              const groupA = a.tableNumber[0];
-              const groupB = b.tableNumber[0];
+              const groupOrder = { B: 1, K: 2, A: 3 };
+              const groupA = groupOrder[a.tableNumber[0]];
+              const groupB = groupOrder[b.tableNumber[0]];
               const numberA = parseInt(a.tableNumber.substring(1), 10);
               const numberB = parseInt(b.tableNumber.substring(1), 10);
 
@@ -54,12 +55,7 @@ function CodeManagement({
                 return numberA - numberB; // Sort by number within the same group
               }
 
-              // B always comes first, then K, then A
-              if (groupA === "B") return -1;
-              if (groupB === "B") return 1;
-              if (groupA === "K") return -1;
-              if (groupB === "K") return 1;
-              return numberA - numberB; // Default to numerical sort if A group
+              return groupA - groupB; // Sort groups B, then K, then A
             })
           );
         } else {
