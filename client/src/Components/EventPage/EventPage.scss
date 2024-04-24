@@ -98,9 +98,9 @@
   &-header {
     position: relative;
     display: grid;
-    height: 100%;
     grid-column: 1/2;
     grid-row: 1/2;
+    min-height: 100vh;
 
     @include mq(laptop) {
       max-height: 100vh;

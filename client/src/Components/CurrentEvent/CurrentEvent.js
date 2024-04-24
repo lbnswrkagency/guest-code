@@ -3,8 +3,8 @@ import moment from "moment";
 
 const startingEventString = "14012024";
 const startingEventDate = moment(startingEventString, "DDMMYYYY");
-const eventStartTime = { hour: 23, minute: 0 }; // Saturday at 11 PM
-const eventEndTime = { hour: 6, minute: 0 }; // Monday at 6 AM
+const eventStartTime = { hour: 23, minute: 0 };
+const eventEndTime = { hour: 6, minute: 0 };
 
 export const useCurrentEvent = () => {
   const [currentDate, setCurrentDate] = useState(moment());
