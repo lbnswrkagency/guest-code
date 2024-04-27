@@ -42,17 +42,32 @@ function Statistic({
     ? counts.tableCounts.reduce((acc, curr) => acc + curr.used, 0)
     : 0;
 
+  const totalInvitationCodes =
+    counts.invitationCounts && counts.invitationCounts.length > 0
+      ? counts.invitationCounts[0].total
+      : 0;
+  const totalUsedInvitationCodes =
+    counts.invitationCounts && counts.invitationCounts.length > 0
+      ? counts.invitationCounts[0].used
+      : 0;
+
   const displayDate = currentEventDate.format("DD MMM YYYY");
 
   const totalGenerated =
-    totalFriendsCodes + totalBackstageCodes + totalGuestCodes + totalTableCodes;
+    totalFriendsCodes +
+    totalBackstageCodes +
+    totalGuestCodes +
+    totalTableCodes +
+    totalInvitationCodes;
 
   const totalUsed =
     totalUsedFriendsCodes +
     totalUsedBackstageCodes +
     totalUsedGuestCodes +
-    totalUsedTableCodes;
+    totalUsedTableCodes +
+    totalUsedInvitationCodes;
 
+  console.log("COUNTS", counts);
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
@@ -80,6 +95,16 @@ function Statistic({
             <p>Total</p>
             <p>{totalGuestCodes}</p>
             <p>{totalUsedGuestCodes}</p>
+          </div>
+        </div>
+
+        {/* InvitationCodes Section */}
+        <div className="statistc-parent">
+          <h2 className="statistic-parent-title">InvitationCodes [BETA]</h2>
+          <div className="statistic-parent-group total">
+            <p>Total</p>
+            <p>{totalInvitationCodes}</p>
+            <p>{totalUsedInvitationCodes}</p>
           </div>
         </div>
 
