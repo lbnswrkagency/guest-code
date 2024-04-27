@@ -70,12 +70,12 @@ const createTicketPDF = async (
         height: 100vh;
         box-sizing: border-box;
         background-color: black;
-        font-size: 16px;
+        font-size: 18px;
       }
 
       h3 {
         font-weight: 600;
-        color: #999999;
+        color: #A6965D;
       }
 
       h2 {
@@ -99,7 +99,7 @@ const createTicketPDF = async (
         font-family: "Manrope";
         width: 100%;
         height: 100%;
-        color: white;
+        color: black;
         display: grid;
         grid-template-rows: 12.5% 55% 25%;
       }
@@ -112,7 +112,7 @@ const createTicketPDF = async (
 
       .header {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: .75fr .25fr;
       padding-right: 10%;
       padding-left: 10%;
       align-content: center;
@@ -124,8 +124,7 @@ const createTicketPDF = async (
         align-self: center;
       }
       .event {
-        background: #EDEDED;
-
+        background: #FAE28C;
         border-radius: 28px;
         width: 80%;
         height: 100%;
@@ -155,6 +154,10 @@ const createTicketPDF = async (
       }
 
       .event-bites {
+ 
+        p {
+          font-size: 18px;
+        }
       }
 
       .event-location {
@@ -182,6 +185,7 @@ const createTicketPDF = async (
         grid-column: 1/3;
         align-self: start;
         margin-top: 3% !important;
+   
       }
 
 
@@ -190,7 +194,6 @@ const createTicketPDF = async (
         width: 80%;
         background: #ffffff;
         border-radius:28px;
-
         align-self: end;
         justify-self: center;
         display: grid;
@@ -199,7 +202,7 @@ const createTicketPDF = async (
         justify-content: center;
       }
 
-          .qrcode-data {
+      .qrcode-data {
          justify-self: center;
       }
 
@@ -210,10 +213,8 @@ const createTicketPDF = async (
       }
 
       .qrcode-text {
-   
         justify-self: center;
         align-self: center;
-  
       }
 
       .qrcode-text > h2 {
@@ -232,6 +233,7 @@ const createTicketPDF = async (
         width: 200px;
       }
 
+  
 
 
     </style>
@@ -239,12 +241,12 @@ const createTicketPDF = async (
   <body>
     <div class="ticket">
       <div class="header">
-        <h1 class="header-title">Guest Code</h1>
+        <h1 class="header-title">Invitation Code</h1>
         <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" alt="" class="header-logo" />
       </div>
 
       <div class="event">
-        <h1 class="event-title">${event.title}</h1>
+        <h1 class="event-title">Afro Spiti</h1>
 
         <div class="event-date">
           <h3>Date</h3>
@@ -258,8 +260,8 @@ const createTicketPDF = async (
 
         <div class="event-bites">
           <h3>Line Up</h3>
+          <p>Silence</p>
           <p>Tune</p>
-          <p>Silence</p
           <p>Hendricks</p>
           <p>Dim Kay</p>
           <p>J Fyah</p>
@@ -283,7 +285,7 @@ const createTicketPDF = async (
           class="event-divider"
           ;
         >
-          <line y1="0.5" x2="248" y2="0.5" stroke="#DEDEDE" />
+          <line y1="0.5" x2="248" y2="0.5" stroke="#A6965D" />
         </svg>
 
         <div class="event-name">
@@ -295,7 +297,7 @@ const createTicketPDF = async (
       <div class="qrcode">
         <div class="qrcode-text">
           <h2>FREE ENTRANCE</h3>
-          <p>UNTIL MIDNIGHT</p>
+          <p>ALL NIGHT</p>
         </div>
 
         <div class="qrcode-data">

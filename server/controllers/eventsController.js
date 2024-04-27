@@ -1,10 +1,14 @@
 const Event = require("../models/eventsModel");
 const User = require("../models/User");
 const GuestCode = require("../models/GuestCode");
+const InvitationCode = require("../models/InvitationModel");
+const mongoose = require("mongoose");
 const QRCode = require("qrcode");
 const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
+const { sendQRCodeInvitation } = require("../utils/email");
+
 const {
   uploadToS3,
   listFilesFromS3,
@@ -189,11 +193,9 @@ exports.generateGuestCode = async (req, res) => {
     ); // Adjust to your week start (Saturday or Monday)
 
     if (existingGuestCode && existingGuestCode.createdAt >= startOfWeek) {
-      return res
-        .status(400)
-        .json({
-          error: "You still have a usable Guest Code for this Saturday.",
-        });
+      return res.status(400).json({
+        error: "You still have a usable Guest Code for this Saturday.",
+      });
     }
 
     const guestCode = new GuestCode({
@@ -226,6 +228,74 @@ exports.generateGuestCode = async (req, res) => {
   } catch (error) {
     console.error("Error generating guest code:", error);
     res.status(500).json({ error: "Error generating guest code." });
+  }
+};
+// Connect to MongoDB
+async function connectToDatabase() {
+  const dbUri = process.env.MONGODB_URI; // Make sure your MongoDB URI is correctly configured in your environment variables
+  try {
+    await mongoose.connect(dbUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("Connected to MongoDB successfully");
+  } catch (error) {
+    console.error("Failed to connect to MongoDB", error);
+    process.exit(1);
+  }
+}
+exports.generateInvitationCode = async (req, res) => {
+  console.log("Processing Invitation Code Generation");
+  console.log("Request Body", req.body);
+
+  try {
+    // Ensure database is connected
+    await connectToDatabase();
+
+    const { name, email, condition, pax, style } = req.body;
+
+    // Format name to have each word capitalized
+    const formattedName = name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+
+    // Create an InvitationCode instance
+    const invitationCode = new InvitationCode({
+      name: formattedName,
+      email: email.toLowerCase(),
+      condition,
+      event: new mongoose.Types.ObjectId("654d4bf7b3cceeb4f02c13b5"),
+      pax,
+      paxChecked: 0,
+      style,
+    });
+
+    // Save the InvitationCode to the database
+    await invitationCode.save();
+    console.log("Invitation code saved successfully");
+
+    // Generate a QR code data URL for the invitation
+    const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, {
+      errorCorrectionLevel: "L",
+    });
+
+    // Send an invitation email with the QR code
+    await sendQRCodeInvitation(
+      formattedName,
+      email,
+      condition,
+      pax,
+      qrCodeDataURL,
+      { _id: "654d4bf7b3cceeb4f02c13b5" } // Dummy event object with only _id for the purpose of the email function
+    );
+
+    res
+      .status(201)
+      .json({ message: "Check your email (including Spam). Thank you 🤝" });
+  } catch (error) {
+    console.error("Error generating invitation code:", error);
+    res.status(500).json({ error: "Error generating invitation code." });
   }
 };
 
