@@ -5,6 +5,7 @@ const TableCode = require("../models/TableCode");
 const User = require("../models/User");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
+const InvitationCode = require("../models/InvitationModel"); // Ensure this path is correct
 
 const validateTicket = async (req, res) => {
   try {
@@ -12,29 +13,33 @@ const validateTicket = async (req, res) => {
     let ticket;
     let typeOfTicket;
 
-    // Checking for FriendsCode
     const friendsCodeTicket = await FriendsCode.findById(ticketId);
     if (friendsCodeTicket) {
       ticket = friendsCodeTicket;
       typeOfTicket = "Friends-Code";
     } else {
-      // Checking for GuestCode
       const guestCodeTicket = await GuestCode.findById(ticketId);
       if (guestCodeTicket) {
         ticket = guestCodeTicket;
         typeOfTicket = "Guest-Code";
       } else {
-        // Checking for BackstageCode
         const backstageCodeTicket = await BackstageCode.findById(ticketId);
         if (backstageCodeTicket) {
           ticket = backstageCodeTicket;
           typeOfTicket = "Backstage-Code";
         } else {
-          // Checking for TableCode - adding this check
           const tableCodeTicket = await TableCode.findById(ticketId);
           if (tableCodeTicket) {
             ticket = tableCodeTicket;
             typeOfTicket = "Table-Code";
+          } else {
+            const invitationCodeTicket = await InvitationCode.findById(
+              ticketId
+            );
+            if (invitationCodeTicket) {
+              ticket = invitationCodeTicket;
+              typeOfTicket = "Invitation-Code";
+            }
           }
         }
       }
@@ -44,7 +49,6 @@ const validateTicket = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Ensure ticket data is correctly formatted before sending
     const ticketData = ticket.toObject ? ticket.toObject() : ticket;
     res.json({ ...ticketData, typeOfTicket });
   } catch (error) {
@@ -78,8 +82,15 @@ const increasePax = async (req, res) => {
     }
 
     if (!ticket) {
-      // Check for TableCode
       ticket = await TableCode.findByIdAndUpdate(
+        ticketId,
+        { $inc: { paxChecked: 1 } },
+        { new: true }
+      );
+    }
+
+    if (!ticket) {
+      ticket = await InvitationCode.findByIdAndUpdate(
         ticketId,
         { $inc: { paxChecked: 1 } },
         { new: true }
@@ -130,6 +141,14 @@ const decreasePax = async (req, res) => {
     }
 
     if (!ticket) {
+      ticket = await InvitationCode.findByIdAndUpdate(
+        ticketId,
+        { $inc: { paxChecked: -1 } },
+        { new: true }
+      );
+    }
+
+    if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
@@ -151,7 +170,17 @@ const getCounts = async (req, res) => {
       matchCondition.createdAt = matchCondition.createdAt || {};
       matchCondition.createdAt.$lte = new Date(endDate);
     }
-
+    // New InvitationCode aggregation
+    const invitationCounts = await InvitationCode.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: null, // Group by null to count all, or adjust to group by a meaningful field
+          total: { $sum: 1 },
+          used: { $sum: "$paxChecked" },
+        },
+      },
+    ]);
     const friendsCounts = await FriendsCode.aggregate([
       { $match: matchCondition },
       {
@@ -244,7 +273,13 @@ const getCounts = async (req, res) => {
       },
     ]);
 
-    res.json({ friendsCounts, guestCounts, backstageCounts, tableCounts });
+    res.json({
+      friendsCounts,
+      guestCounts,
+      backstageCounts,
+      tableCounts,
+      invitationCounts,
+    });
   } catch (error) {
     console.error("Error fetching counts", error);
     res.status(500).json({ message: error.message });
