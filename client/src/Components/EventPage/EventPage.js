@@ -315,7 +315,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER27042024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER04052024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -331,16 +331,26 @@ const EventPage = ({ passedEventId }) => {
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
-                      {/* <div className="djs-single djs-single-guest">
+                      <div className="djs-single djs-single-guest">
                         <img
                           src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hulk</p>
-                     <p className="origin">BELGIUM</p> 
+                        <p className="origin">BELGIUM</p>
                       </div>
-                       */}
+
+                      <div className="djs-single djs-single-guest">
+                        <img
+                          src="./image/hendricks.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hendricks</p>
+                        <p className="origin">BERLIN</p>
+                      </div>
+
                       {/* <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -349,13 +359,13 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hulk</p>
                       </div> */}
-                      <div className="djs-single">
+                      {/* <div className="djs-single">
                         <img
                           src="./image/hendricks.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Hulk</p>
                       </div>
                       <div className="djs-single">
                         <img
@@ -365,15 +375,6 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Silence</p>
                       </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/tune.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Tune</p>
-                      </div>
-
                       <div className="djs-single">
                         <img
                           src="./image/dimkay.jpg"
@@ -392,7 +393,7 @@ const EventPage = ({ passedEventId }) => {
                           className="mc-single-image"
                         />
                         <p className="mc-single-name">J Fyah</p>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -403,7 +404,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SAT 27 APR 2024</p>
+                    <p>SAT 04 MAY 2024</p>
                   </div>
 
                   <img
@@ -492,7 +493,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Saturday · 27.04.2024 · 11 PM
+                Saturday · 04.05.2024 · 11 PM
               </p>
 
               <div
