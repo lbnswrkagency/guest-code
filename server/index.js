@@ -64,6 +64,7 @@ app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
 // Connect to MongoDB
+
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
