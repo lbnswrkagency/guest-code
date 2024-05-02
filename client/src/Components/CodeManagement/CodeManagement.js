@@ -301,7 +301,7 @@ function CodeManagement({
                 >
                   <img
                     className="code-management-item-icon"
-                    src="/image/edit-icon.svg"
+                    src="/image/edit-icon2.svg"
                     alt="Edit"
                   />
                 </button> */}
@@ -398,7 +398,7 @@ function CodeManagement({
                     >
                       <img
                         className="code-management-item-icon"
-                        src="/image/edit-icon.svg"
+                        src="/image/edit-icon2.svg"
                         alt="Edit"
                       />
                     </button>

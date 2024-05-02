@@ -5,49 +5,62 @@ const { validationResult } = require("express-validator");
 const { sendVerificationEmail } = require("../utils/email");
 
 exports.register = async (req, res) => {
-  const errors = validationResult(req);
+  const { username, email, password, firstName, lastName, birthday } = req.body;
 
-  console.log("HELLO");
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { name, email, password } = req.body;
-
+  console.log("Received registration request with body:", req.body);
   try {
-    let user = await User.findOne({ email });
+    console.log("Checking for existing user with email or username...");
+    let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
+      console.log("User found with same email or username:", {
+        email: user.email,
+        username: user.username,
+      });
       return res
         .status(400)
-        .json({ message: "User with this email already exists." });
+        .json({ message: "Username or email already exists." });
     }
 
+    console.log("No existing user found. Generating salt...");
     const salt = await bcrypt.genSalt(10);
+    console.log("Salt generated. Hashing password...");
     const hashedPassword = await bcrypt.hash(password, salt);
+    console.log("Password hashed. Creating user...");
 
     user = new User({
-      name,
+      username,
+      firstName,
+      lastName,
       email,
+      birthday,
       password: hashedPassword,
     });
 
+    console.log("Saving user...");
     await user.save();
+    console.log("User saved successfully. Generating JWT...");
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+    console.log("JWT generated. Sending verification email...");
+
     await sendVerificationEmail(user.email, token);
 
+    console.log("Verification email sent. Responding with success.");
     res.json({
       success: true,
       message:
         "User registered successfully. Please check your email for verification.",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    console.error("Registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 

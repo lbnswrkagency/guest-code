@@ -11,8 +11,6 @@ const {
   refreshAccessToken,
   logout,
 } = require("../controllers/authController");
-
-// Middleware to log incoming requests
 router.use((req, res, next) => {
   next();
 });
@@ -20,37 +18,14 @@ router.use((req, res, next) => {
 // Refresh token route
 router.post("/refresh_token", refreshAccessToken);
 
-// Register route
-router.post(
-  "/register",
-  [
-    check("email", "Email is required").isEmail(),
-    check(
-      "password",
-      "Password is required and should be at least 6 characters long"
-    ).isLength({ min: 6 }),
-  ],
-  register
-);
+// Register route (no validations here)
+router.post("/register", register);
 
 // Email verification route
 router.get("/verify/:token", verifyEmail);
 
 // Login route
-router.post(
-  "/login",
-  [
-    check("identifier", "Identifier is required").notEmpty(),
-    check("password", "Password is required").notEmpty(),
-  ],
-  (req, res, next) => {
-    next();
-  },
-  login,
-  (req, res, next) => {
-    next();
-  }
-);
+router.post("/login", login);
 
 // User data route
 router.get("/user", authenticate, getUserData);
