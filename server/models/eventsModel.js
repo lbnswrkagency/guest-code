@@ -27,6 +27,50 @@ const EventSchema = new Schema({
   link: { type: String, required: true, unique: true },
 
   guestCodeCondition: { type: String, default: "" },
+  logo: { type: String },
+
+  // New Page Content Structure
+  page: {
+    navigation: {
+      activated: { type: Boolean, default: false },
+    },
+    header: {
+      activated: { type: Boolean, default: false },
+    },
+    lineup: {
+      activated: { type: Boolean, default: false },
+    },
+    event: {
+      activated: { type: Boolean, default: false },
+    },
+    explain: {
+      activated: { type: Boolean, default: false },
+    },
+    slider: {
+      activated: { type: Boolean, default: false },
+    },
+    guestcode: {
+      activated: { type: Boolean, default: false },
+    },
+    aboutus: {
+      activated: { type: Boolean, default: false },
+    },
+    social: {
+      activated: { type: Boolean, default: false },
+      instagram: { type: String },
+      tiktok: { type: String },
+      title: { type: String },
+    },
+    location: {
+      activated: { type: Boolean, default: false },
+    },
+    spotify: {
+      activated: { type: Boolean, default: false },
+    },
+    contact: {
+      activated: { type: Boolean, default: false },
+    },
+  },
 });
 
 module.exports = mongoose.model("Event", EventSchema);

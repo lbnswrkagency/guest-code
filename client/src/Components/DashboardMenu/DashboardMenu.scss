@@ -1,0 +1,37 @@
+@import "../../_variables";
+
+.menuDashboard {
+  @include grid-row(2);
+  grid-template-columns: repeat(3, 1fr);
+
+  margin-top: 0.5rem;
+  justify-self: center;
+  justify-items: center;
+
+  &-button {
+    @include grid-row(2);
+    // width: 3.125rem;
+    margin-top: 1rem;
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      background: linear-gradient(321deg, #d1a300 14.75%, #ffc807 84.81%);
+      filter: blur(0.5px);
+      width: 3.125rem;
+      height: 3.125rem;
+      justify-self: center;
+    }
+
+    &-title {
+      color: #fff;
+      font-family: Lato;
+      font-size: 0.9375rem;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+      margin-top: 0.5rem;
+    }
+  }
+}

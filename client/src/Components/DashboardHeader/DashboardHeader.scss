@@ -1,0 +1,230 @@
+@import "../../_variables";
+
+.headerDashboard {
+  margin-top: 01rem;
+  display: grid;
+
+  &-avatar {
+    position: relative;
+    margin-bottom: 1rem;
+    display: grid;
+    &-wrapper {
+      @include grid(3);
+      grid-gap: 0.25rem;
+      justify-self: center;
+
+      .share-icon {
+        align-self: end;
+      }
+
+      .edit-icon {
+        align-self: end;
+      }
+
+      .profile-icon {
+        justify-self: center;
+        border-radius: 50%;
+        width: 5.125rem;
+      }
+    }
+
+    .avatar-icon {
+      width: 1.5rem;
+      cursor: pointer;
+    }
+
+    .avatar-cancel-icon {
+      justify-self: center;
+    }
+
+    .avatar-controls {
+      cursor: pointer;
+      width: 2.5rem;
+      margin: 0.5rem;
+    }
+
+    .profileApp {
+      width: 5.125rem;
+      justify-self: center;
+
+      .image-upload-file {
+        display: none;
+      }
+    }
+
+    .avatar-crop {
+      display: grid;
+      grid-gap: 1rem;
+      justify-content: center;
+      &-controls {
+        display: grid;
+
+        &-range {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 8px;
+          background: #f4c430; /* Gold background */
+          outline: none;
+          opacity: 0.75;
+          -webkit-transition: 0.2s;
+          transition: opacity 0.2s;
+
+          &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #ffd700; /* Solid gold color */
+            cursor: pointer;
+            border-radius: 50%;
+          }
+
+          &::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #ffd700; /* Solid gold color */
+            cursor: pointer;
+            border-radius: 50%;
+          }
+
+          &:focus::-webkit-slider-thumb {
+            background: #b8860b; /* Darker gold tone on focus */
+          }
+
+          &:focus::-moz-range-thumb {
+            background: #b8860b; /* Darker gold tone on focus */
+          }
+        }
+      }
+    }
+  }
+
+  &-name {
+    color: #fff;
+    font-size: 1.5rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+  }
+
+  &-image {
+    width: 7rem;
+    justify-self: center;
+  }
+  &-subtitle {
+    color: #fff;
+    text-align: center;
+    font-family: Manrope;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    color: #fff;
+    font-family: Manrope;
+
+    font-style: normal;
+    font-weight: 700;
+    line-height: 20px; /* 142.857% */
+    letter-spacing: 4.2px;
+    text-transform: uppercase;
+  }
+
+  &-price {
+    font-style: italic;
+    text-align: center;
+    color: #ffd700;
+    font-weight: 600;
+  }
+  &-email {
+    font-style: italic;
+  }
+
+  &-info {
+    @include grid-row(3);
+    margin-top: 1rem;
+
+    &-greeting {
+      color: #d6d6d6;
+      text-align: center;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 300;
+      line-height: 1.5rem;
+      font-family: Lato;
+    }
+
+    &-name {
+      color: #fff;
+      text-align: center;
+      font-family: Lato;
+      font-size: 1rem;
+      font-style: normal;
+      line-height: 1.5rem;
+    }
+
+    &-username {
+      color: #fff;
+      font-size: 1.25rem;
+      font-style: normal;
+      line-height: normal;
+    }
+
+    &-role {
+      color: #d6d6d6;
+      text-align: center;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 300;
+      line-height: 1.5rem;
+      font-family: Lato;
+    }
+  }
+
+  &-selection {
+    width: 12.5rem;
+    height: 2.5rem;
+    padding: 0.25rem 0rem;
+    border-radius: 1.5625rem;
+    background: #000;
+    gap: 0.625rem;
+    justify-self: center;
+    margin-top: 0.5rem;
+
+    &-event {
+      display: grid;
+      grid-template-columns: 0.25fr 0.5fr 0.25fr;
+      &-image {
+        display: grid;
+        background: linear-gradient(180deg, #656565 0%, #161616 100%);
+        width: 1.9375rem;
+        height: 1.9375rem;
+        border-radius: 50%;
+        justify-self: center;
+
+        img {
+          width: 1.6rem;
+          align-self: center;
+          justify-self: center;
+        }
+      }
+
+      &-name {
+        color: #fff;
+        font-family: Lato;
+        font-size: 1.125rem;
+        font-style: normal;
+        font-weight: 600;
+        line-height: normal;
+        align-self: center;
+        text-align: center;
+      }
+
+      &-dropdown {
+        align-self: center;
+        justify-self: center;
+      }
+    }
+  }
+}

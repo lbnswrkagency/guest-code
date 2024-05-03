@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Statistic.scss";
 import moment from "moment";
+import Navigation from "../Navigation/Navigation";
 
 function Statistic({
   counts,
@@ -51,6 +52,8 @@ function Statistic({
       ? counts.invitationCounts[0].used
       : 0;
 
+  const [detailsVisible, setDetailsVisible] = useState(false);
+
   const displayDate = currentEventDate.format("DD MMM YYYY");
 
   const totalGenerated =
@@ -67,40 +70,65 @@ function Statistic({
     totalUsedTableCodes +
     totalUsedInvitationCodes;
 
-  console.log("COUNTS", counts);
+  const toggleDetailsVisibility = () => {
+    if (user.isAdmin) {
+      setDetailsVisible(!detailsVisible);
+    }
+  };
+
   return (
     <div className="statistic">
-      <div className="login-back-arrow" onClick={onClose}>
-        <img src="/image/back-icon.svg" alt="" />
-      </div>
-      <img className="logo-global" src="/image/logo.svg" alt="" />
-      <h1 className="dashboard-header-title">Statistic</h1>
+      <Navigation />
+
+      <h1 className="statistic-title">Statistic</h1>
+
       <div className="statistic-container">
         <div className="statistic-navigation">
           <button
+            className="statistic-navigation-button"
             onClick={onPrevWeek}
             disabled={isStartingEvent}
             style={{ opacity: isStartingEvent ? 0 : 1 }}
           >
-            &#8592;
+            <img
+              src="/image/arrow-left.svg"
+              alt=""
+              className="statistic-navigation-arrow-left"
+            />
           </button>
-          <p>{displayDate}</p>
-          <button onClick={onNextWeek}>&#8594;</button>
+          <p className="statistic-navigation-date">{displayDate}</p>
+          <button className="statistic-navigation-button" onClick={onNextWeek}>
+            {" "}
+            <img
+              src="/image/arrow-right.svg"
+              alt=""
+              className="statistic-navigation-arrow-right"
+            />
+          </button>
         </div>
+
+        <img className="statistic-logo" src="/image/logo.svg" alt="" />
 
         {/* GuestCodes Section */}
         <div className="statistc-parent">
-          <h2 className="statistic-parent-title">GuestCodes</h2>
+          <h2 className="statistic-parent-title">Guest Codes</h2>
+
           <div className="statistic-parent-group total">
-            <p>Total</p>
-            <p>{totalGuestCodes}</p>
-            <p>{totalUsedGuestCodes}</p>
+            <p className="statistic-parent-group-title">Total</p>
+
+            <p className="statistic-parent-group-generated">
+              {totalGuestCodes}
+            </p>
+
+            <p className="statistic-parent-group-checked">
+              {totalUsedGuestCodes}
+            </p>
           </div>
         </div>
 
         {/* InvitationCodes Section */}
         <div className="statistc-parent">
-          <h2 className="statistic-parent-title">InvitationCodes [BETA]</h2>
+          <h2 className="statistic-parent-title">Invitation Codes [BETA]</h2>
           <div className="statistic-parent-group total">
             <p>Total</p>
             <p>{totalInvitationCodes}</p>
@@ -109,23 +137,84 @@ function Statistic({
         </div>
 
         {/* FriendsCodes Section */}
-        <div className="statistic-parent">
-          <h2>FriendsCodes</h2>
-          {(user.isDeveloper || user.isStaff) &&
-            counts.friendsCounts.map((count) => (
-              <div key={count._id} className="statistic-parent-group">
-                <p>{count.name}</p>
-                <p>{count.total}</p>
-                <p>{count.used}</p>
+
+        <div className="statistic-code">
+          <h2 className="statistic-code-title">Friends Codes</h2>
+
+          <div
+            className="statistic-code-container"
+            onClick={toggleDetailsVisibility}
+          >
+            <div className="statistic-code-container-header">
+              <div className="statistic-code-container-header-title">
+                <img src="/image/generate.svg" alt="" />
+                <h2>Generate</h2>
               </div>
-            ))}
-          {(user.isAdmin || user.isDeveloper) && (
-            <div className="statistic-parent-group total">
-              <p>Total</p>
-              <p>{totalFriendsCodes}</p>
-              <p>{totalUsedFriendsCodes}</p>
+
+              <div className="statistic-code-container-header-title">
+                <img src="/image/checked.svg" alt="" />
+                <h2>Check-In</h2>
+              </div>
             </div>
-          )}
+            {detailsVisible && (
+              <div className="statistic-code-details ">
+                <div className="statistic-code-details-more">
+                  {(user.isDeveloper || user.isStaff) &&
+                    counts.friendsCounts.map((count) => (
+                      <div
+                        key={count._id}
+                        className="statistic-code-details-more-wrapper"
+                      >
+                        <div className="statistic-code-details-more-wrapper-generated">
+                          <p className="name">{count.name}</p>
+
+                          <div>
+                            <img src="/image/generate.svg" alt="" />
+                            <p className="generated">{count.total}</p>
+                          </div>
+                        </div>
+
+                        <p className="statistic-code-details-more-wrapper-checked">
+                          <img src="/image/checked.svg" alt="" />
+                          <p className="checked">{count.used}</p>
+                        </p>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="statistic-code-details-footer">
+                  <div className="statistic-code-details-footer-wrapper">
+                    <img src="/image/generate.svg" alt="" />
+                    <h2>Total</h2>
+                  </div>
+
+                  <div className="statistic-code-details-footer-wrapper">
+                    <img src="/image/checked.svg" alt="" />
+                    <h2>Total</h2>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="statistic-code-container-footer">
+              <div className="statistic-code-container-footer-wrapper">
+                <img src="/image/generate.svg" alt="" />
+                <p>{totalFriendsCodes} </p>
+              </div>
+
+              <div className="statistic-code-container-footer-wrapper">
+                <img src="/image/checked.svg" alt="" />
+                <p className="checked">{totalUsedFriendsCodes}</p>
+              </div>
+            </div>
+            <img
+              src="/image/arrow-up.svg"
+              alt=""
+              className={`statistic-code-details-arrow ${
+                !detailsVisible ? "rotated" : ""
+              }`}
+              onClick={toggleDetailsVisibility}
+            />
+          </div>
         </div>
 
         {/* BackstageCodes Section */}
@@ -140,6 +229,7 @@ function Statistic({
                 <p>{count.used}</p>
               </div>
             ))}
+
           {(user.isAdmin || user.isDeveloper) && (
             <div className="statistic-parent-group total">
               <p>Total</p>
@@ -148,36 +238,36 @@ function Statistic({
             </div>
           )}
         </div>
-      </div>
 
-      {/* TableCodes Section */}
-      <div className="statistic-parent">
-        <h2 className="statistic-parent-title">TableCodes</h2>
-        {(user.isAdmin || user.isDeveloper) &&
-          counts.tableCounts &&
-          counts.tableCounts.map((count) => (
-            <div key={count._id} className="statistic-parent-group">
-              <p>
-                {count.table} - {count.name}
-              </p>
-              <p>{count.total}</p>
-              <p>{count.used}</p>
+        {/* TableCodes Section */}
+        <div className="statistic-parent">
+          <h2 className="statistic-parent-title">TableCodes</h2>
+          {(user.isAdmin || user.isDeveloper) &&
+            counts.tableCounts &&
+            counts.tableCounts.map((count) => (
+              <div key={count._id} className="statistic-parent-group">
+                <p>
+                  {count.table} - {count.name}
+                </p>
+                <p>{count.total}</p>
+                <p>{count.used}</p>
+              </div>
+            ))}
+          {(user.isAdmin || user.isDeveloper) && (
+            <div className="statistic-parent-group total">
+              <p>Total</p>
+              <p>{totalTableCodes}</p>
+              <p>{totalUsedTableCodes}</p>
             </div>
-          ))}
-        {(user.isAdmin || user.isDeveloper) && (
-          <div className="statistic-parent-group total">
-            <p>Total</p>
-            <p>{totalTableCodes}</p>
-            <p>{totalUsedTableCodes}</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      <div className="statistc-parent">
-        <div className="statistic-parent-group total">
-          <p>TOTAL</p>
-          <p>{totalGenerated}</p>
-          <p>{totalUsed}</p>
+        <div className="statistc-parent">
+          <div className="statistic-parent-group total">
+            <p>TOTAL</p>
+            <p>{totalGenerated}</p>
+            <p>{totalUsed}</p>
+          </div>
         </div>
       </div>
     </div>

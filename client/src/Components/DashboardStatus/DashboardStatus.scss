@@ -1,0 +1,49 @@
+@import "../../_variables";
+
+.statusDashboard {
+  border-radius: 1.25rem;
+  border: 2px solid #424750;
+  background: linear-gradient(180deg, #444 -56.47%, #1b1a16 100%);
+  min-width: 20.375rem;
+  min-height: 5.25rem;
+  justify-self: center;
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+
+  &-point {
+    justify-self: center;
+    @include grid-row(2);
+    grid-gap: 0.5rem;
+
+    &-wrapper {
+      @include grid(2);
+      align-items: center;
+      grid-gap: 0.25rem;
+
+      &-icon {
+      }
+
+      &-name {
+        color: #7f8489;
+        text-align: center;
+        font-family: Lato;
+        font-size: 1.125rem;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+      }
+    }
+
+    &-value {
+      color: #fff;
+      text-align: center;
+      font-family: Lato;
+      font-size: 1.125rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+    }
+  }
+}
