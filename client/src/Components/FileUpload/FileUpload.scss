@@ -1,19 +1,62 @@
 @import "../../_variables";
 @import "../../_animations";
 
-.file-upload {
+.fileUpload {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
   color: $text-color;
 
-  & .format-buttons {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
+  &-title {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-family: Poppins;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+  }
+
+  &-group {
+    @include grid(3);
+    align-items: center;
+    justify-self: center;
+    justify-content: center;
+    grid-gap: 0.75rem;
     width: 100%;
-    margin-bottom: 1rem;
+    text-align: center;
+    font-weight: 600;
+    &-container {
+      border-radius: 0.3125rem;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      backdrop-filter: blur(8px);
+      display: grid;
+    }
+
+    &-instagramStory {
+      display: grid;
+      align-items: center;
+      width: 45px;
+      height: 80px;
+      align-self: center;
+    }
+
+    &-squareFormat {
+      display: grid;
+      align-items: center;
+      width: 45px;
+      height: 45px;
+      align-self: center;
+    }
+
+    &-landscape {
+      display: grid;
+      align-items: center;
+      width: 80px;
+      height: 45px;
+    }
   }
 
   .format-button {
@@ -21,24 +64,6 @@
 
     width: 100%;
     margin-bottom: 0.5rem;
-  }
-
-  .aspect-ratio-example {
-    width: 50px;
-    background-color: $secondary-color;
-    margin-bottom: 1rem;
-
-    &.aspect-ratio-instagram {
-      height: 88px;
-    }
-
-    &.aspect-ratio-square {
-      height: 50px;
-    }
-
-    &.aspect-ratio-landscape {
-      height: 28px;
-    }
   }
 }
 
@@ -57,6 +82,5 @@
 }
 
 .validated {
-  background-color: green;
-  color: white;
+  color: #000;
 }
