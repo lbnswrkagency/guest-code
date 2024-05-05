@@ -216,7 +216,7 @@ const generateCodeImage = async (req, res) => {
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Saturday</p>
-                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">04.05.2024</p>
+                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">11.05.2024</p>
                          <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">11 PM</p>
                 </div>
             </div>
@@ -294,7 +294,7 @@ const generateCodeImage = async (req, res) => {
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Saturday</p>
-                                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">04.05.2024</p>
+                                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11.05.2024</p>
                          <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11 PM</p>
                 </div>
             </div>
@@ -373,7 +373,7 @@ const generateCodeImage = async (req, res) => {
             <div>
               <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Saturday</p>
-                            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">04.05.2024</p>
+                            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11.05.2024</p>
                      <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11 PM</p>
             </div>
         </div>
