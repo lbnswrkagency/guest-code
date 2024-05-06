@@ -10,6 +10,7 @@ import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import "react-clock/dist/Clock.css";
 import "./EventForm.scss";
+import LineUp from "../Topic/LineUp";
 
 const EventForm = ({
   initialEventData,
@@ -48,6 +49,8 @@ const EventForm = ({
     onEventDataChange({ ...eventData, text: value });
   };
 
+  console.log("INITIAL EVENT DATA", initialEventData);
+
   return (
     <form
       className="eventForm"
@@ -70,14 +73,7 @@ const EventForm = ({
         placeholder="Subtitle"
       />
 
-      {/* <input
-        type="message"
-        name="description"
-        className="eventForm-description"
-        value={eventData.text}
-        onChange={handleChange}
-        placeholder="Description"
-      /> */}
+      <LineUp />
 
       <FileUpload
         handleUpload={onFileUpload}

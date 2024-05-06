@@ -427,9 +427,11 @@ const EventPage = ({ passedEventId }) => {
                   >
                     Generate GuestCode
                   </button>
+
                   <p>free entrance til midnight</p>
                 </div>
               </div>
+
               {isNavVisible && (
                 <div className="navigation-overlay">
                   <ul className="navigation-list">
@@ -486,7 +488,6 @@ const EventPage = ({ passedEventId }) => {
               )}
               {/* <img src={qrCode} alt="" className="event-page-header-qr" /> */}
             </header>
-
             <div ref={dateRef} className="event-page-banner">
               <h1 className="event-page-banner-title">Afro Spiti</h1>
               <h3 className="event-page-banner-subtitle">
@@ -507,9 +508,7 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
-
             <Explain />
-
             <div className="event-page-slider">
               {isLoading ? (
                 <div>Loading...</div>
@@ -524,7 +523,6 @@ const EventPage = ({ passedEventId }) => {
                 </>
               )}
             </div>
-
             {event.guestCode && (
               <form
                 ref={guestCodeRef}
@@ -558,6 +556,44 @@ const EventPage = ({ passedEventId }) => {
               </form>
             )}
 
+            <form
+              ref={guestCodeRef}
+              className="event-page-guestcode"
+              onSubmit={handleGuestCodeFormSubmit}
+            >
+              <h1 className="event-page-guestcode-title">
+                EARLY BIRD - GUEST CODE
+              </h1>
+
+              <p className="event-page-guestcode-title">100 LEFT</p>
+              <div className="event-page-guestcode-form">
+                <p>Opening Bolivar 15 MAY 2024</p>
+
+                <p className="event-page-guestcode-condition">
+                  free entrance until midnight
+                </p>
+
+                <input
+                  type="text"
+                  className="event-page-guestcode-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name"
+                  required
+                />
+                <input
+                  type="email"
+                  className="event-page-guestcode-form-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
+                />
+              </div>
+              <button type="submit" className="event-page-guestcode-button">
+                Generate GuestCode
+              </button>
+            </form>
+
             <div ref={eventRef} className="event-page-info">
               <div className="event-page-info-wrapper">
                 <h2 className="event-page-info-subtitle">EVENT</h2>
@@ -578,9 +614,7 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
-
             <Instagram />
-
             <div ref={locationRef} className="event-page-location">
               <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
               <h1 className="event-page-location-title">BABY DISCO</h1>
@@ -609,9 +643,7 @@ const EventPage = ({ passedEventId }) => {
                 </button>
               </div>
             </div>
-
             <Spotify />
-
             <div className="event-page-contact" ref={contactRef}>
               <h2 className="event-page-contact-title">Contact Us</h2>
               <h4 className="event-page-contact-subtitle">Support</h4>
@@ -642,7 +674,6 @@ const EventPage = ({ passedEventId }) => {
                 <button type="submit">Send</button>
               </form>
             </div>
-
             <footer className="event-page__footer">
               <img src={logo_w} alt="" />
             </footer>

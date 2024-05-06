@@ -19,6 +19,7 @@ const codeRoutes = require("./routes/api/codeRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 const avatarRoutes = require("./routes/api/avatarRoutes");
+const lineupRoutes = require("./routes/api/lineupRoutes");
 
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
@@ -63,6 +64,7 @@ app.use("/api/code", codeRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
+app.use("/api/lineup", lineupRoutes);
 // Connect to MongoDB
 
 mongoose
