@@ -589,6 +589,11 @@ const EventPage = ({ passedEventId }) => {
               <img
                 src="/image/bolivar.svg"
                 alt=""
+                className="event-page-location-logo"
+              />
+              <img
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BOLIVAR.png"
+                alt=""
                 className="event-page-location-image"
               />
 
