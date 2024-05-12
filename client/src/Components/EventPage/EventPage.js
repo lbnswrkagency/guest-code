@@ -67,8 +67,11 @@ const EventPage = ({ passedEventId }) => {
   const locationRef = useRef(null);
 
   const dateRef = useRef(null);
-  const address = "Dekeleon 26, Athens 11854";
-  const googleMapsUrl = `geo:0,0?q=${encodeURIComponent(address)}`;
+
+  const address = "Bolivar Beach Bar";
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    address
+  )}`;
 
   const [copied, setCopied] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(false);
@@ -78,7 +81,7 @@ const EventPage = ({ passedEventId }) => {
   };
 
   const handleInstagramClick = () => {
-    window.open("https://www.instagram.com/babydisco24/", "_blank");
+    window.open("https://www.instagram.com/bolivarbeachbar/", "_blank");
   };
 
   const copyAddressToClipboard = async (text) => {
@@ -315,7 +318,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER11052024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER15052024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -327,11 +330,21 @@ const EventPage = ({ passedEventId }) => {
                   }`}
                 >
                   <div className="lineup">
-                    {" "}
+                    <div className="mc">
+                      <p className="mc-title">MC</p>
+                      <div className="mc-single">
+                        <img
+                          src="./image/jfyah.jpg"
+                          alt=""
+                          className="mc-single-image"
+                        />
+                        <p className="mc-single-name">J Fyah</p>
+                      </div>
+                    </div>
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
-                      <div className="djs-single djs-single-guest">
+                      {/* <div className="djs-single djs-single-guest">
                         <img
                           src="./image/hulk.jpg"
                           alt=""
@@ -349,19 +362,11 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hendricks</p>
                         <p className="origin">BERLIN</p>
-                      </div>
+                      </div> */}
 
-                      {/* <div className="djs-single">
+                      <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hulk</p>
-                      </div> */}
-                      {/* <div className="djs-single">
-                        <img
-                          src="./image/hendricks.jpg"
                           alt=""
                           className="djs-single-image"
                         />
@@ -369,11 +374,19 @@ const EventPage = ({ passedEventId }) => {
                       </div>
                       <div className="djs-single">
                         <img
-                          src="./image/silence.png"
+                          src="./image/hendricks.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Silence</p>
+                        <p className="djs-single-name">Hendricks</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/paco.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Paco</p>
                       </div>
                       <div className="djs-single">
                         <img
@@ -384,17 +397,6 @@ const EventPage = ({ passedEventId }) => {
                         <p className="djs-single-name">Dim Kay</p>
                       </div>
                     </div>
-                    <div className="mc">
-                      <p className="mc-title">MC</p>
-                      <div className="mc-single">
-                        <img
-                          src="./image/jfyah.jpg"
-                          alt=""
-                          className="mc-single-image"
-                        />
-                        <p className="mc-single-name">J Fyah</p>
-                      </div> */}
-                    </div>
                   </div>
                 </div>
 
@@ -404,7 +406,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SAT 11 MAY 2024</p>
+                    <p>WED 15 MAY 2024</p>
                   </div>
 
                   <img
@@ -494,7 +496,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Saturday · 11.05.2024 · 11 PM
+                Saturday · 15.05.2024 · 09 PM
               </p>
 
               <div
@@ -504,7 +506,7 @@ const EventPage = ({ passedEventId }) => {
                 <img src="./image/location.svg" alt="" />
 
                 <p>
-                  <b>Baby Disco</b> · Dekeleon 26 · Athens 118 54
+                  <b>Bolivar</b> · Leof. Poseidonos · Alimos 174 55
                 </p>
               </div>
             </div>
@@ -532,8 +534,9 @@ const EventPage = ({ passedEventId }) => {
                 <h1 className="event-page-guestcode-title">GUEST CODE</h1>
                 <div className="event-page-guestcode-form">
                   <p className="event-page-guestcode-condition">
-                    free entrance until midnight
+                    free entrance until 11 PM
                   </p>
+                  <p>BOLIVAR - Wednesdasy - 15.05.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
@@ -617,9 +620,13 @@ const EventPage = ({ passedEventId }) => {
             <Instagram />
             <div ref={locationRef} className="event-page-location">
               <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
-              <h1 className="event-page-location-title">BABY DISCO</h1>
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BabyDisco_Spin.png"
+                src="/image/bolivar.svg"
+                alt=""
+                className="event-page-location-logo"
+              />
+              <img
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BOLIVAR.png"
                 alt=""
                 className="event-page-location-image"
               />
@@ -639,7 +646,7 @@ const EventPage = ({ passedEventId }) => {
                   onClick={handleInstagramClick}
                 >
                   <img src="./image/ig_button.svg" alt="" />
-                  <p>@Babydisco24</p>
+                  <p>@bolivarbeachbar</p>
                 </button>
               </div>
             </div>

@@ -72,7 +72,7 @@ function Scanner({ onClose }) {
   const checkTimeLimit = () => {
     const now = new Date();
     const timeLimit = new Date();
-    timeLimit.setHours(24, 0, 0, 0); // Set time limit to 11 PM
+    timeLimit.setHours(24, 0, 0, 0); // Set time limit to 09 PM
 
     return now > timeLimit;
   };

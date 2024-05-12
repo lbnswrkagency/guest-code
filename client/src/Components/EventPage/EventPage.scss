@@ -608,7 +608,6 @@
     &-image {
       margin-top: 1rem;
       margin-bottom: 1rem;
-      width: 15rem;
     }
 
     &-text {
@@ -626,10 +625,17 @@
     font-style: italic;
     display: grid;
     width: 100%;
+    text-align: center;
+    padding-top: 2rem;
+    &-logo {
+      justify-self: center;
+      width: 5rem;
+      margin-top: 2rem;
+    }
 
     &-image {
-      justify-self: center;
-      width: 80%;
+      width: 100%;
+      margin-top: 2rem;
     }
 
     &-button {
