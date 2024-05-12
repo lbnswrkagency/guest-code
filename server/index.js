@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
+const session = require("express-session"); // Import session middleware
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
 const path = require("path");
@@ -19,7 +20,7 @@ const codeRoutes = require("./routes/api/codeRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 const avatarRoutes = require("./routes/api/avatarRoutes");
-
+const dropboxRoutes = require("./routes/api/dropboxRoutes");
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -36,7 +37,7 @@ const corsOptions = {
     "https://afrospiti.com",
     "https://www.afrospiti.com",
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Include 'PATCH' here
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
@@ -46,6 +47,16 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET, // Choose a secret for encrypting the session
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === "production" }, // Cookie secure flag in production
+  })
+);
+
 app.use((req, res, next) => {
   next();
 });
@@ -63,8 +74,9 @@ app.use("/api/code", codeRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
-// Connect to MongoDB
+app.use("/api/dropbox", dropboxRoutes);
 
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,

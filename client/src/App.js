@@ -15,6 +15,7 @@ import EventDetails from "./Components/EventDetails/EventDetails";
 import EventPage from "./Components/EventPage/EventPage";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
+import Dropbox from "./Components/Dropbox/Dropbox";
 // import FriendsCode from './Components/FriendsCode/FriendsCode';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/events/page/:eventId" element={<EventPage />} />
           <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
           <Route path="/upload" element={<DropFiles showDashboard={false} />} />
+          <Route path="/share" element={<Dropbox />} />
         </Routes>
       </AuthProvider>
     </Router>
