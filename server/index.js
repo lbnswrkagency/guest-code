@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const session = require("express-session"); // Import session middleware
+const MongoStore = require("connect-mongo");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
 const path = require("path");
@@ -50,17 +51,48 @@ app.use(cookieParser());
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET, // Choose a secret for encrypting the session
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // Cookie secure flag in production
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // Secure cookies in production only
+      httpOnly: true,
+      sameSite: "lax",
+    },
   })
 );
+// Log session and cookie details
+app.use(
+  (req, res, next) => {
+    console.log("Pre-action Session ID:", req.session.id);
+    console.log("Pre-action Session Data:", req.session);
+    next();
+  },
+  (req, res, next) => {
+    console.log("Pre-action Cookies:", req.cookies);
+    next();
+  }
+);
 
+// Example of setting something in the session
+// app.get("/set-session", (req, res) => {
+//   req.session.accessToken = "example_token_here"; // Example setting a token
+//   console.log("AccessToken set in session");
+//   res.send("Session data set");
+// });
+
+// Middleware to log session after setting token
 app.use((req, res, next) => {
+  console.log("Post-action Session ID:", req.session.id);
+  console.log("Post-action Session Data:", req.session);
   next();
 });
 
+// Example rout
 // Route setup
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
