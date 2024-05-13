@@ -23,6 +23,8 @@ const avatarRoutes = require("./routes/api/avatarRoutes");
 const lineupRoutes = require("./routes/api/lineupRoutes");
 
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
+const fileUpload = require("express-fileupload");
+
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -49,20 +51,7 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET, // Choose a secret for encrypting the session
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // Cookie secure flag in production
-  })
-);
-
-app.use((req, res, next) => {
-  next();
-});
-
+app.use(fileUpload());
 // Route setup
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

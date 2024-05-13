@@ -1,32 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import moment from "moment";
 
-const startingEventString = "14012024";
+const startingEventString = "15052024"; // Date of the first event
 const startingEventDate = moment(startingEventString, "DDMMYYYY");
-const eventStartTime = { hour: 23, minute: 0 };
-const eventEndTime = { hour: 6, minute: 0 };
+const eventStartTime = { hour: 21, minute: 0 }; // Event starts at 9 PM
+const eventEndTime = { hour: 6, minute: 0 }; // Event ends at 6 AM the next day
 
 export const useCurrentEvent = () => {
   const [currentDate, setCurrentDate] = useState(moment());
 
   const findNextEventDate = (date) => {
     let nextEventDate = startingEventDate.clone();
-    while (true) {
-      let eventEndDateTime = nextEventDate.clone().add(1, "days").set({
-        hour: eventEndTime.hour,
-        minute: eventEndTime.minute,
-      });
-
-      if (date.isBefore(eventEndDateTime)) {
-        break;
-      }
+    while (nextEventDate.isBefore(date)) {
       nextEventDate.add(1, "weeks");
     }
-    nextEventDate.set({
-      hour: eventStartTime.hour,
-      minute: eventStartTime.minute,
-      second: 0,
-    });
     return nextEventDate;
   };
 
@@ -37,42 +24,24 @@ export const useCurrentEvent = () => {
   }, []);
 
   const getCurrentEventDate = useCallback(() => {
-    let viewDate = currentDate.clone().set({ second: 0, millisecond: 0 }); // Normalize seconds and milliseconds
-    let nextEventDate = startingEventDate.clone();
-    while (true) {
-      let eventStartDateTime = nextEventDate.clone().set({
-        hour: eventStartTime.hour,
-        minute: eventStartTime.minute,
-      });
-      let eventEndDateTime = eventStartDateTime.clone().add(1, "days").set({
-        hour: eventEndTime.hour,
-        minute: eventEndTime.minute,
-      });
-
-      // Check if the current view date is before the end of the event period
-      if (viewDate.isBefore(eventEndDateTime)) {
-        // This ensures that until the event's end time is reached, the event week doesn't advance
-        break;
-      }
-      nextEventDate.add(1, "weeks");
-    }
-    return nextEventDate.set({
-      hour: eventStartTime.hour,
-      minute: eventStartTime.minute,
-      second: 0,
-    });
-  }, [currentDate]); // Ensure this recalculates when currentDate changes due to navigation
+    return findNextEventDate(currentDate);
+  }, [currentDate]);
 
   const calculateDataInterval = (eventDate) => {
-    let startDate = eventDate
-      .clone()
-      .subtract(1, "weeks")
-      .day("Monday")
-      .hour(6);
-    let endDate = eventDate.clone().add(1, "days").hour(6);
+    let startDate;
+    let endDate = eventDate.clone().add(1, "days").set(eventEndTime);
+
+    if (eventDate.isSame(startingEventDate)) {
+      // Special case for the starting event date
+      startDate = eventDate.clone().day(1).hour(6); // Set to Monday at 6 AM
+    } else {
+      // Normal weekly interval for other events
+      startDate = eventDate.clone().subtract(1, "weeks").set(eventStartTime);
+    }
+
     return { startDate, endDate };
   };
-  // useCallback to memoize handlePrevWeek and handleNextWeek
+
   const handlePrevWeek = useCallback(() => {
     setCurrentDate((prev) => prev.clone().subtract(1, "weeks"));
   }, []);
@@ -81,27 +50,24 @@ export const useCurrentEvent = () => {
     setCurrentDate((prev) => prev.clone().add(1, "weeks"));
   }, []);
 
-  // useMemo to memoize currentEventDate
   const currentEventDate = useMemo(() => getCurrentEventDate(), [currentDate]);
-
-  // useMemo to memoize dataInterval
   const dataInterval = useMemo(
     () => calculateDataInterval(currentEventDate),
     [currentEventDate]
   );
 
-  // console.log(
-  //   "Current Event Date:",
-  //   currentEventDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval Start:",
-  //   dataInterval.startDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
-  // console.log(
-  //   "Data Interval End:",
-  //   dataInterval.endDate.format("dddd, MMMM Do YYYY, h:mm a")
-  // );
+  console.log(
+    "Current Event Date:",
+    currentEventDate.format("YYYY-MM-DD HH:mm")
+  );
+  console.log(
+    "Data Interval Start:",
+    dataInterval.startDate.format("YYYY-MM-DD HH:mm")
+  );
+  console.log(
+    "Data Interval End:",
+    dataInterval.endDate.format("YYYY-MM-DD HH:mm")
+  );
 
   return {
     currentEventDate,

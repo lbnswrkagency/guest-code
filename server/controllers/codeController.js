@@ -209,15 +209,15 @@ const generateCodeImage = async (req, res) => {
             <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
                 <div>
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Baby Disco</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">Dekeleon 26</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Gazi, Athens</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Bolivar</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">Leof. Poseidonos</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Alimos 174 55</p>
                 </div>
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
-                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Saturday</p>
+                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Wednesday</p>
                              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">15.05.2024</p>
-                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">11 PM</p>
+                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">09 PM</p>
                 </div>
             </div>
           
@@ -229,8 +229,9 @@ const generateCodeImage = async (req, res) => {
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>                 
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Hulk</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Hendricks</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Haven Nile</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Tokyo</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Paco</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">Dim Kay</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem;  line-height: 1.25rem;">J Fyah</p>
                 </div>
 
               </div>
@@ -289,15 +290,15 @@ const generateCodeImage = async (req, res) => {
             <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
                 <div>
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Baby Disco</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">Dekeleon 26</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Gazi, Athens</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Bolivar</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">Leof. Poseidonos</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Alimos 174 55</p>
                 </div>
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
-                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Saturday</p>
+                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Wednesday</p>
                                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">15.05.2024</p>
-                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11 PM</p>
+                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">09 PM</p>
                 </div>
             </div>
           
@@ -371,15 +372,15 @@ const generateCodeImage = async (req, res) => {
         <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
             <div>
                 <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Baby Disco</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">Dekeleon 26</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Gazi, Athens</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Bolivar</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">Leof. Poseidonos</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Alimos 174 55</p>
             </div>
             <div>
               <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Saturday</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Wednesday</p>
                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">15.05.2024</p>
-                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">11 PM</p>
+                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">09 PM</p>
             </div>
         </div>
       

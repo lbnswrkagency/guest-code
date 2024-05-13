@@ -156,6 +156,7 @@ function Statistic({
                 <h2>Check-In</h2>
               </div>
             </div>
+
             {detailsVisible && (
               <div className="statistic-code-details ">
                 <div className="statistic-code-details-more">
@@ -195,6 +196,7 @@ function Statistic({
                 </div>
               </div>
             )}
+
             <div className="statistic-code-container-footer">
               <div className="statistic-code-container-footer-wrapper">
                 <img src="/image/generate.svg" alt="" />

@@ -57,7 +57,7 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  const startingEventString = "14012024";
+  const startingEventString = "15052024";
   const startingEventDate = moment(startingEventString, "DDMMYYYY");
 
   const handleCropModeToggle = (isInCropMode) => {

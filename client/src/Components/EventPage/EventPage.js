@@ -496,7 +496,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Saturday · 15.05.2024 · 09 PM
+                Wednesday · 15.05.2024 · 09 PM
               </p>
 
               <div
@@ -534,7 +534,7 @@ const EventPage = ({ passedEventId }) => {
                 <h1 className="event-page-guestcode-title">GUEST CODE</h1>
                 <div className="event-page-guestcode-form">
                   <p className="event-page-guestcode-condition">
-                    free entrance until 11 PM
+                    free entrance until 09 PM
                   </p>
                   <p>BOLIVAR - Wednesdasy - 15.05.2024</p>
                   <input

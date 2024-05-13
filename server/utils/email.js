@@ -85,7 +85,7 @@ const sendQRCodeEmail = async (
         <td align="left" style="font-family: Arial, sans-serif; color: #333333;">
           <h2 style="font-size: 22px; margin-top: 0;">Hey ${name},</h2>
           <p style="font-size: 16px;">Thank you for getting your Guest Code. With this code, enjoy a special offer:</p>
-          <h3 style="font-size: 18px;">FREE ENTRANCE, valid until 11 PM every Saturday at Afro Spiti, Bolivar.</h3>
+          <h3 style="font-size: 18px;">FREE ENTRANCE, valid until 09 PM every Wednesday at Afro Spiti, Bolivar.</h3>
           <p style="font-size: 16px;">Please show the attached Guest Code at the entrance for it to be scanned when you order.</p>
           <p style="font-size: 16px;">Remember, your Guest Code can be used once.</p>
           <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>
@@ -150,7 +150,7 @@ const sendQRCodeInvitation = async (
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">
         <h1 style="font-size: 24px;">Hey ${name},</h1>
-        <p style="font-size: 16px;">This is your personal invitation for tonight. Afro Spiti has moved to Saturday, and we wanted to thank you for checking in with us the past season.</p>
+        <p style="font-size: 16px;">This is your personal invitation for tonight. Afro Spiti has moved to Wednesday, and we wanted to thank you for checking in with us the past season.</p>
         <h2 style="font-size: 18px;">You have free entrance all night with this invitation code.</h2>
         <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned when you order.</p>
         <p style="font-size: 16px;">Remember, your Invitation Code can be used once.</p>
