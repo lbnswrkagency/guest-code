@@ -21,6 +21,7 @@ const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 const avatarRoutes = require("./routes/api/avatarRoutes");
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
+const MongoStore = require("connect-mongo");
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -53,7 +54,7 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: Mongostore.create({
+    store: MongoStore.create({
       mongoUrl: process.env.MONGODB_URI,
       collectionName: "sessions",
     }),
