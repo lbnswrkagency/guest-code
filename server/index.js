@@ -47,17 +47,33 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
-
+// Existing Middleware for session
 app.use(
   session({
-    secret: process.env.SESSION_SECRET, // Choose a secret for encrypting the session
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // Cookie secure flag in production
+    store: Mongostore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+    },
   })
 );
 
+// Session logging middleware
 app.use((req, res, next) => {
+  console.log("Pre-action Session ID:", req.session.id);
+  console.log("Pre-action Session Data:", req.session);
+  console.log("Pre-action Cookies:", req.cookies);
+  res.on("finish", () => {
+    console.log("Post-action Session ID:", req.session.id);
+    console.log("Post-action Session Data:", req.session);
+  });
   next();
 });
 
