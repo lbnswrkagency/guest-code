@@ -48,6 +48,7 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
 // Existing Middleware for session
 app.use(
   session({
@@ -59,7 +60,7 @@ app.use(
       collectionName: "sessions",
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // Secure cookies in production only
       httpOnly: true,
       sameSite: "lax",
     },
