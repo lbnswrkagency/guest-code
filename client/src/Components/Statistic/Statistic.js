@@ -67,7 +67,8 @@ function Statistic({
     totalUsedTableCodes +
     totalUsedInvitationCodes;
 
-  console.log("COUNTS", counts);
+  console.log("is starting Event", isStartingEvent);
+  console.log("current evnet", currentEventDate);
   return (
     <div className="statistic">
       <div className="login-back-arrow" onClick={onClose}>
