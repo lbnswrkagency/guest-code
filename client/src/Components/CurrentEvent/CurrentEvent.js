@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import moment from "moment";
 
-const startingEventString = "14012024";
+const startingEventString = "1505024";
 const startingEventDate = moment(startingEventString, "DDMMYYYY");
 const eventStartTime = { hour: 23, minute: 0 };
 const eventEndTime = { hour: 6, minute: 0 };
