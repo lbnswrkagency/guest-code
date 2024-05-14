@@ -1,0 +1,248 @@
+@import "../../_variables";
+
+.eventForm {
+  justify-self: center;
+  @include grid(2);
+  grid-gap: 1rem;
+  padding: 0.5rem;
+  z-index: 2;
+  border-radius: 0rem 0rem 0.9375rem 0.9375rem;
+  padding-bottom: 4rem;
+  input {
+    height: 3rem;
+    border-radius: 0.3125rem;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    font-family: Manrope;
+    font-size: 1rem;
+
+    font-weight: 700;
+    line-height: normal;
+    color: #fff;
+    text-align: center;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      font-family: Poppins;
+      font-size: 1rem;
+
+      font-weight: 700;
+      line-height: normal;
+      letter-spacing: 0.06rem;
+      text-transform: uppercase;
+    }
+  }
+
+  &-title {
+    grid-column: 1/3;
+    grid-row: 1/2;
+  }
+
+  &-subtitle {
+    grid-column: 1/3;
+    grid-row: 2/3;
+  }
+
+  .flyer {
+    display: grid;
+    grid-column: 1/3;
+  }
+
+  &-date {
+    grid-column: 1/3;
+    justify-self: center;
+  }
+
+  &-location {
+    grid-column: 1/3;
+  }
+
+  &-startTime,
+  &-endTime {
+    grid-row: 5/6;
+
+    &-title {
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      font-family: Poppins;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+      letter-spacing: 0.06rem;
+      text-transform: uppercase;
+    }
+  }
+
+  &-description {
+    grid-column: 1/3;
+    grid-row: 6/7;
+    min-height: 8rem;
+    color: #fff;
+    margin-bottom: 3rem;
+    margin-top: 2rem;
+  }
+
+  &-submit {
+    border-radius: 0.3125rem;
+    background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+    backdrop-filter: blur(8px);
+    border: none;
+
+    height: 3.5rem;
+    grid-column: 1/3;
+
+    color: #000;
+    font-family: Manrope;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+  }
+
+  &-soon {
+    position: relative;
+
+    ::after {
+      content: "COMING SOON";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(
+        0,
+        0,
+        0,
+        0.7
+      ); /* semi-transparent black background */
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      z-index: 10;
+      opacity: 0.1;
+      border-radius: 0.5rem;
+    }
+  }
+}
+.time-picker {
+  display: grid !important;
+
+  justify-content: center;
+}
+.react-time-picker__wrapper {
+}
+
+.react-time-picker__wrapper,
+.react-time-picker__inputGroup__input,
+.react-time-picker__button {
+  border-color: #ffc807;
+}
+
+.react-time-picker__inputGroup__input:focus,
+.react-time-picker__button:enabled:hover,
+.react-time-picker__button:enabled:focus {
+  border-color: #ffc807;
+  box-shadow: 0 0 5px #ffc807;
+}
+
+/* Changing the background of the button when active */
+.react-time-picker__button:active {
+  background-color: #ffc807;
+  color: #ffffff; /* Ensures text inside the button is visible */
+}
+
+/* Adjusting the clock provided by react-time-picker */
+.react-clock {
+  background: transparent !important;
+}
+
+.react-clock__mark__body {
+  background-color: #ffc807; /* Accent color for the clock marks */
+}
+
+/* Ensure the clock's hands use the accent color */
+.react-clock__hand__body {
+  background-color: #ffc807;
+}
+
+.react-time-picker__wrapper {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(min-content, max-content));
+  width: 100%;
+  border: none !important;
+}
+
+.react-time-picker__inputGroup {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(min-content, max-content));
+  justify-self: center;
+  grid-column: 2/3;
+  grid-gap: 0.5rem;
+  align-items: center;
+}
+
+.react-time-picker__clear-button {
+}
+.react-time-picker__clear-button__icon {
+  fill: #fff !important;
+  background-color: white;
+  border-radius: 0.5rem;
+  display: none !important;
+}
+
+.react-time-picker__clock-button__icon {
+  fill: #fff !important;
+  width: 1.75rem !important;
+  height: auto;
+  display: none !important;
+}
+
+.react-time-picker__clock-button {
+  grid-row: 1/2;
+  grid-column: 1/2;
+  padding: 0 !important;
+}
+
+.react-time-picker__inputGroup__input {
+  width: 3rem !important;
+  color: #ffc807 !important;
+  background: none !important;
+  text-align: center;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  &::placeholder {
+    color: #ffc807 !important;
+  }
+}
+
+.react-time-picker__inputGroup__leadingZero {
+  display: none !important;
+}
+
+.react-time-picker__clock {
+  border: none !important;
+  background: none !important;
+}
+
+.date-picker {
+}
+
+.date-picker::placeholder {
+  color: #fff !important;
+}
+
+.my-today {
+  color: #d1a300;
+}
+
+.my-selected {
+  color: #000;
+  font-weight: 600;
+  background: #d1a300 !important;
+}

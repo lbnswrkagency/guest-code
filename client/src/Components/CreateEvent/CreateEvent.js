@@ -1,17 +1,22 @@
-// CreateEvent.js
-import React, { useState, useContext } from "react"; // Add useContext
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "./CreateEvent.scss";
-import { createEvent, compressAndOptimizeFiles } from "../../utils/apiClient"; // Updated import
+import { createEvent, compressAndOptimizeFiles } from "../../utils/apiClient";
 import BackButton from "../BackButton/BackButton";
-import AuthContext from "../../contexts/AuthContext"; // Add import
+import AuthContext from "../../contexts/AuthContext";
 import EventForm from "../EventForm/EventForm";
+import Footer from "../Footer/Footer";
+import Navigation from "../Navigation/Navigation";
 
 const CreateEvent = () => {
   const [eventData, setEventData] = useState({
     title: "",
     subTitle: "",
     text: "",
+    date: new Date(),
+    startTime: "10:00",
+    endTime: "20:00",
+    location: "",
     flyer: {
       instagramStory: "",
       squareFormat: "",
@@ -22,85 +27,54 @@ const CreateEvent = () => {
       squareFormat: "",
       landscape: "",
     },
-    date: "",
-    time: "",
-    location: "",
-    guestCode: false,
-    friendsCode: false,
-    ticketCode: false,
-    tableCode: false,
-    carousel: false,
   });
 
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext); // Add this line to access the user from the context
+  const { user } = useContext(AuthContext);
 
-  const handleSubmit = async (event, eventData) => {
+  const handleEventDataChange = (updatedEventData) => {
+    setEventData(updatedEventData);
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
     try {
-      // Compress and optimize files on the server-side
       const optimizedEventData = await compressAndOptimizeFiles(
         eventData,
         user._id
       );
-
-      // Call the API to create the event and pass optimizedEventData along with the user ID
-      await createEvent({ ...optimizedEventData, user: user._id }); // Add the user ID to the eventData
-      // After successfully creating the event, navigate back to the events page
+      await createEvent({ ...optimizedEventData, user: user._id });
       navigate("/events");
-
-      // Reset eventData to its initial values
-      setEventData({
-        title: "",
-        subTitle: "",
-        text: "",
-        flyer: {
-          instagramStory: "",
-          squareFormat: "",
-          landscape: "",
-        },
-        video: {
-          instagramStory: "",
-          squareFormat: "",
-          landscape: "",
-        },
-        date: "",
-        time: "",
-        location: "",
-        guestCode: false,
-        friendsCode: false,
-        ticketCode: false,
-        tableCode: false,
-        carousel: false,
-      });
     } catch (error) {
       console.error("Error submitting event:", error);
     }
   };
 
   const handleFileUpload = (file, selectedRatio, uploadType) => {
-    // Update eventData based on selectedRatio and uploadType
-    setEventData({
-      ...eventData,
+    setEventData((prev) => ({
+      ...prev,
       [uploadType]: {
-        ...eventData[uploadType],
+        ...prev[uploadType],
         [selectedRatio]: file,
       },
-    });
+    }));
   };
 
+  console.log("EVENT DATA", eventData);
+
   return (
-    <div className="create-event">
-      <BackButton />
-      <h1>Create Event</h1>
+    <div className="createEvent">
+      <Navigation />
+      {/* <BackButton /> */}
+      <h1 className="createEvent-title">Create Event</h1>
       <EventForm
         initialEventData={eventData}
+        onEventDataChange={handleEventDataChange}
         onSubmit={handleSubmit}
-        onFileUpload={handleFileUpload}
         isEditing={false}
         onCancel={() => navigate(-1)}
       />
+      <Footer />
     </div>
   );
 };

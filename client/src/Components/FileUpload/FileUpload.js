@@ -78,20 +78,26 @@ const FileUpload = ({ handleUpload, uploadType }) => {
     });
     return promise;
   };
+
   return (
-    <div className={`file-upload ${uploadType}`}>
-      {/* ... rest of your component code */}
-      <div className="format-buttons">
+    <div className={`fileUpload ${uploadType}`}>
+      <h1 className="fileUpload-title">{uploadType}</h1>
+
+      <div className="fileUpload-group">
         {Object.keys(aspectRatios).map((ratio) => (
-          <div className="format-container" key={ratio}>
+          <div
+            className={`fileUpload-group-container fileUpload-group-${ratio}  }`}
+            key={ratio}
+          >
             <label
-              className={`format-button aspect-ratio-${ratio} ${
+              className={`fileUpload-group-container-label ${
                 validatedButtons[ratio] ? "validated" : ""
               }`}
             >
               <input
                 ref={fileInputRef} // Add ref to the file input
                 type="file"
+                className="fileUpload-group-container-button"
                 name={uploadType}
                 onChange={(e) => handleFileChange(e, ratio)}
                 accept={uploadType === "flyer" ? "image/*" : "video/*"}

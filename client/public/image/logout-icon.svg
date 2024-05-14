@@ -1,0 +1,17 @@
+<svg width="33" height="30" viewBox="0 0 33 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icon open-account-logout" filter="url(#filter0_d_654_1588)">
+<path d="M13.2679 0V3.0893H25.625V18.5358H13.2679V21.6251H28.7143V0H13.2679ZM10.1786 6.17859L4 10.8125L10.1786 15.4465V12.3572H22.5357V9.26789H10.1786V6.17859Z" fill="white"/>
+</g>
+<defs>
+<filter id="filter0_d_654_1588" x="0" y="0" width="32.7144" height="29.625" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="4"/>
+<feGaussianBlur stdDeviation="2"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_654_1588"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_654_1588" result="shape"/>
+</filter>
+</defs>
+</svg>

@@ -17,6 +17,11 @@ import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import Ranking from "../Ranking/Ranking";
 import DropFiles from "../DropFiles/DropFiles";
+import Footer from "../Footer/Footer";
+import Navigation from "../Navigation/Navigation";
+import DashboardStatus from "../DashboardStatus/DashboardStatus";
+import DashboardHeader from "../DashboardHeader/DashboardHeader";
+import DashboardMenu from "../DashboardMenu/DashboardMenu";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -24,6 +29,7 @@ const Dashboard = () => {
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
+  const [userCounts, setUserCounts] = useState({});
   const [showRanking, setShowRanking] = useState(false);
   const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
@@ -118,12 +124,39 @@ const Dashboard = () => {
     }
   };
 
+  const fetchUserSpecificCounts = async () => {
+    if (!user || !user._id) {
+      console.error("User is undefined or User ID is undefined");
+      return;
+    }
+
+    console.log("USER ID", user._id);
+
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/qr/user-counts`,
+        {
+          params: { userId: user._id },
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
+      );
+
+      setUserCounts({
+        totalGenerated: response.data.totalGenerated,
+        totalChecked: response.data.totalChecked,
+      });
+    } catch (error) {
+      console.error("Error fetching user-specific counts", error);
+    }
+  };
+
   useEffect(() => {
     if (user?.avatar) {
       setIsEditingAvatar(false); // Resets editing state when a new avatar URL is detected.
     }
-    if (user) {
+    if (user && user._id) {
       fetchCounts();
+      fetchUserSpecificCounts();
     }
   }, [currentEventDate, user]);
 
@@ -217,148 +250,63 @@ const Dashboard = () => {
     return <Settings />;
   }
 
+  const handleBack = () => {
+    // Close components in the reverse order they might be opened
+    if (showSettings) {
+      setShowSettings(false);
+    } else if (showStatistic) {
+      setShowStatistic(false);
+    } else if (showScanner) {
+      setShowScanner(false);
+    } else if (showDropFiles) {
+      setShowDropFiles(false);
+    } else {
+      // If no specific component screen is active, navigate to root or log out
+      logout();
+      setUser(null);
+      navigate("/");
+    }
+  };
+
+  console.log("userCounts", userCounts);
+
   return (
     <div className="dashboard">
-      <div className="login-back-arrow" onClick={() => navigate("/")}>
-        <img src="/image/back-icon.svg" alt="" />
-      </div>
-      <img className="dashboard-logo" src="/image/logo.svg" alt="" />
-      <div className="dashboard-header">
-        <h1 className="dashboard-header-title">Member Area</h1>
-        <div className="user-info">
-          <div className="dashboard-header-avatar">
-            {!isEditingAvatar && user.avatar && (
-              <>
-                <img
-                  src={user.avatar}
-                  alt="Profile"
-                  className="dashboard-header-avatar-picture"
-                />
-                <img
-                  src="/image/edit-icon_w.svg" // Path to your edit icon
-                  alt="Edit Avatar"
-                  className="avatar-edit-icon avatar-icon"
-                  onClick={toggleEditAvatar}
-                />
-              </>
-            )}
-            {(isEditingAvatar || !user.avatar) && (
-              <>
-                <AvatarUpload
-                  user={user}
-                  setUser={setUser}
-                  setImageSwitch={setImageSwitch}
-                  onCropModeChange={handleCropModeToggle} // Pass this prop to AvatarUpload
-                />
+      <div className="dashboard-wrapper">
+        <Navigation onBack={handleBack} />
 
-                {user.avatar && !isCropMode && (
-                  <img
-                    src="/image/cancel-icon_w.svg"
-                    alt="Cancel Edit"
-                    className="avatar-cancel-icon avatar-icon"
-                    onClick={toggleEditAvatar}
-                  />
-                )}
-              </>
-            )}
-          </div>
+        <DashboardHeader
+          user={user}
+          isEditingAvatar={isEditingAvatar}
+          toggleEditAvatar={toggleEditAvatar}
+          setIsCropMode={setIsCropMode}
+          isCropMode={isCropMode}
+        />
 
-          <p className="dashboard-header-name">{user.name}</p>
-          {/* <p className="dashboard-header-email">{user.email}</p> */}
+        <DashboardStatus userCounts={userCounts} />
+
+        <DashboardMenu
+          user={user}
+          setShowSettings={setShowSettings}
+          setShowStatistic={setShowStatistic}
+          setShowScanner={setShowScanner}
+          setShowDropFiles={setShowDropFiles}
+          setCodeType={setCodeType}
+        />
+
+        <div className="dashboard-logout">
+          <button className="dashboard-logout-button" onClick={handleLogout}>
+            <img
+              src="/image/logout-icon.svg"
+              alt=""
+              className="dashboard-button-icon"
+            />
+          </button>
+          <p className="dashboard-button-title">Logout</p>
         </div>
       </div>
-      <div className="dashboard-actions">
-        {user.isDeveloper && (
-          <>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => navigate("/events")}
-            >
-              Events
-            </button>
-            {/* <button
-              className="dashboard-actions-button"
-              onClick={() => setShowSettings(true)}
-            >
-              Settings
-            </button> */}
-          </>
-        )}
 
-        {user.isAdmin && (
-          <>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => setShowStatistic(true)}
-            >
-              Statistic
-            </button>
-          </>
-        )}
-        {(user.isAdmin || user.isBackstage) && (
-          <>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => setCodeType("Backstage")}
-            >
-              Backstage Code
-            </button>
-          </>
-        )}
-
-        {(user.isAdmin || user.isTable) && (
-          <>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => setCodeType("Table")}
-            >
-              Table Code
-            </button>
-          </>
-        )}
-
-        {user.isPromoter && (
-          <button
-            className="dashboard-actions-button"
-            onClick={() => setCodeType("Friends")}
-          >
-            Friends Code
-          </button>
-        )}
-        {/* {user.isPromoter && (
-          <button
-            className="dashboard-actions-button"
-            onClick={() => setShowRanking(true)}
-          >
-            Ranking
-          </button>
-        )} */}
-
-        {user.isAdmin && (
-          <>
-            <button
-              className="dashboard-actions-button"
-              onClick={() => setShowDropFiles(true)}
-            >
-              Dropped Files
-            </button>
-          </>
-        )}
-        {user.isScanner && (
-          <button
-            className="dashboard-actions-button"
-            onClick={() => setShowScanner(true)}
-          >
-            Scanner
-          </button>
-        )}
-        <button
-          className="dashboard-actions-button-logout"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </div>
+      <Footer />
     </div>
   );
 };

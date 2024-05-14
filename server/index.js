@@ -20,6 +20,8 @@ const codeRoutes = require("./routes/api/codeRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
 const avatarRoutes = require("./routes/api/avatarRoutes");
+const lineupRoutes = require("./routes/api/lineupRoutes");
+
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
 const fileUpload = require("express-fileupload");
 
@@ -63,6 +65,8 @@ app.use("/api/code", codeRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
+app.use("/api/lineup", lineupRoutes);
+// Connect to MongoDB
 app.use("/api/dropbox", dropboxRoutes);
 
 // Connect to MongoDB
