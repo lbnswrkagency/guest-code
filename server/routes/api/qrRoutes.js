@@ -13,5 +13,6 @@ router.put("/increase/:ticketId", authenticate, qrController.increasePax);
 router.put("/decrease/:ticketId", authenticate, qrController.decreasePax);
 
 router.get("/counts", authenticate, qrController.getCounts);
+router.get("/user-counts", authenticate, qrController.getUserSpecificCounts);
 
 module.exports = router;

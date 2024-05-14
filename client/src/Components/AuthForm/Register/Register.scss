@@ -67,7 +67,9 @@ $breakpoints: (
 
     &-submit {
       border-radius: 5px;
-      background: #fff;
+
+      border-radius: 0.3125rem;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%), #fff;
       backdrop-filter: blur(8px);
       display: flex;
       width: 100%;

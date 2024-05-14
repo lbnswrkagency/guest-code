@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { AuthProvider } from "./contexts/AuthContext";
@@ -41,11 +41,21 @@ function App() {
           <Route path="/events/page/:eventId" element={<EventPage />} />
           <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
           <Route path="/upload" element={<DropFiles showDashboard={false} />} />
-          <Route path="/share" element={<Dropbox />} />
+
+          <Route path="/share" element={<RedirectToDropbox />} />
         </Routes>
       </AuthProvider>
     </Router>
   );
 }
+
+const RedirectToDropbox = () => {
+  useEffect(() => {
+    window.location.href =
+      "https://www.dropbox.com/scl/fo/zc0xkjehm2mvvc2ghvcd0/ABs7kH9Qc7gOATiWFgrtPaI?rlkey=9qlurwsjbgcy4srvek6nxxen3&st=nempmga1&dl=0";
+  }, []);
+
+  return null; // Return null since no UI is rendered
+};
 
 export default App;

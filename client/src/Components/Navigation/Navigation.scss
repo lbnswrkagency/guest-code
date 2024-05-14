@@ -27,5 +27,10 @@
 
   &-inbox {
     width: 1.5rem;
+    visibility: hidden;
+  }
+
+  &-menu {
+    visibility: hidden;
   }
 }

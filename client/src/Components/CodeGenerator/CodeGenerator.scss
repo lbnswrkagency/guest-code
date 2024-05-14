@@ -17,7 +17,6 @@ $breakpoints: (
   midlarge: 1500px,
   large: 2000px,
 );
-
 @mixin mq($key) {
   $size: map-get($breakpoints, $key);
   @media (min-width: $size) {
@@ -42,6 +41,25 @@ body {
   overflow: hidden;
   justify-self: center;
 
+  border-right: 1px solid #504f4f;
+  border-bottom: 1px solid #504f4f;
+  border-left: 1px solid #504f4f;
+  background: linear-gradient(180deg, #1c1c1c 0%, #1c1c1c 50%, #000 100%);
+  box-shadow: 0px 21px 17.3px 3px rgba(0, 0, 0, 0.25);
+
+  &-wrapper {
+    border-radius: 0rem 0rem 0.9375rem 0.9375rem;
+    border: 1px solid #504f4f;
+    background: linear-gradient(180deg, #1c1c1c 0%, #1c1c1c 50%, #000 100%);
+    box-shadow: 0px 21px 17.3px 3px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+    display: grid;
+  }
+
+  &-nav {
+    margin-top: 1.88rem;
+  }
+
   &-navigation {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
@@ -49,27 +67,38 @@ body {
 
   &-btn {
     justify-self: center;
+    border-radius: 0.3125rem;
+    background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+    backdrop-filter: blur(8px);
+    color: #000 !important;
+    width: 100% !important;
+    font-weight: 700;
   }
   &-select {
     // width: 20.375rem;
     height: 3.5rem;
-    font-style: normal;
-
+    color: #fff;
+    font-family: Manrope;
     font-size: 1rem;
-    line-height: 1.375rem;
-    color: #000;
-
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
     border-radius: 5px;
     border: 2px solid #fff;
     background: #fff;
     backdrop-filter: blur(8px);
     padding-left: 1rem;
     text-align: center;
+
+    border-radius: 0.3125rem;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
   }
 
   &-count {
     display: grid;
-    margin-top: 1rem;
+    margin-top: 1.88rem;
     h4 {
       font-size: 0.75rem;
       text-align: center;
@@ -82,15 +111,21 @@ body {
       border-radius: 50%;
       display: grid;
       justify-self: center;
-      margin-top: 0.5rem;
+      margin-top: 0.65rem;
       position: relative;
+      fill: linear-gradient(314deg, #d1a300 0%, #ffc807 100%), #d9d9d9;
+      background-color: #ffc807;
       p {
         align-self: center;
         justify-self: center;
-        font-weight: 600;
 
         color: #000;
-        font-size: 1.5rem;
+
+        font-family: Lato;
+        font-size: 2rem;
+
+        font-weight: 700;
+        line-height: 1.5rem;
       }
     }
   }
@@ -100,24 +135,16 @@ body {
   }
 
   &-title {
-    color: #fff;
+    color: rgba(255, 255, 255, 0.7);
     text-align: center;
-    font-family: Manrope;
-    font-size: 20px;
+    font-family: Poppins;
+    font-size: 1rem;
     font-style: normal;
     font-weight: 700;
     line-height: normal;
+    letter-spacing: 0.06rem;
     text-transform: uppercase;
-    margin-bottom: 2rem;
-    color: #fff;
-    font-family: Manrope;
-
-    font-style: normal;
-    font-weight: 700;
-    line-height: 20px; /* 142.857% */
-    letter-spacing: 4.2px;
-    text-transform: uppercase;
-    margin-top: 1rem;
+    margin-top: 1.88rem;
   }
 
   &-subtitle {
@@ -148,8 +175,8 @@ body {
 
     animation: 3s ease-out 0s 1 LogoRotate;
     justify-self: center;
-    margin-bottom: 1rem;
-    margin-top: 7rem;
+
+    margin-top: 1.88rem;
   }
 
   &-sub {
@@ -168,11 +195,10 @@ body {
   display: grid;
   grid-template-rows: repeat(auto, 1fr);
   grid-gap: 0.5rem;
-  width: 90%;
-  aspect-ratio: 1 1;
+  width: 100% !important;
+
   justify-content: center;
   padding-bottom: 2rem;
-
   justify-self: center;
   border-radius: 5px;
 
@@ -193,13 +219,11 @@ body {
   }
 
   input {
-    // width: 20.375rem;
+    width: 100% !important;
     height: 3.5rem;
     font-style: normal;
-
     font-size: 1rem;
     line-height: 1.375rem;
-    color: #000;
     margin-top: 1rem;
     border-radius: 5px;
     border: 2px solid #fff;
@@ -207,14 +231,24 @@ body {
     backdrop-filter: blur(8px);
     padding-left: 1rem;
     text-align: center;
+    border-radius: 0.3125rem;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    color: #fff;
+
     &::placeholder {
-      text-align: center;
-      color: #000;
+      font-family: Manrope;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: normal;
+      color: #fff;
     }
   }
 
   button {
-    width: 20.375rem;
+    width: 20.375rem !important;
     height: 3.5rem;
     font-style: normal;
     font-weight: 800;

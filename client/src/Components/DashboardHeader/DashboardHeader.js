@@ -10,6 +10,7 @@ const DashboardHeader = ({
   setIsCropMode,
   isCropMode,
 }) => {
+  console.log("USER", user);
   return (
     <div className="headerDashboard">
       <div className="headerDashboard-avatar">
@@ -49,11 +50,9 @@ const DashboardHeader = ({
       </div>
 
       <div className="headerDashboard-info">
-        <p className="headerDashboard-info-name">
-          {user.firstName} {user.lastName}
-        </p>
-        <p className="headerDashboard-info-username">@{user.username}</p>
-        <p className="headerDashboard-info-role">Event Host</p>
+        <p className="headerDashboard-info-name">{user.name}</p>
+        {/* <p className="headerDashboard-info-username">@{user.username}</p> */}
+        {/* <p className="headerDashboard-info-role">Event Host</p> */}
       </div>
 
       <div className="headerDashboard-selection">

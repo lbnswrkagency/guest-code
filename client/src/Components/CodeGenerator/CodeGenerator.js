@@ -4,6 +4,8 @@ import toast, { Toaster } from "react-hot-toast";
 import "./CodeGenerator.scss";
 import CodeManagement from "../CodeManagement/CodeManagement";
 import TableLayout from "../TableLayout/TableLayout";
+import Navigation from "../Navigation/Navigation";
+import Footer from "../Footer/Footer";
 
 function CodeGenerator({
   user,
@@ -105,173 +107,192 @@ function CodeGenerator({
       : "TABLE RESERVATION";
   };
 
+  const displayDate = currentEventDate.format("DD MMM YYYY");
+
   return (
     <div className="code">
-      <Toaster />
-      <div className="login-back-arrow" onClick={onClose}>
-        <img src="/image/back-icon.svg" alt="Back" />
-      </div>
+      <div className="code-wrapper">
+        <Toaster />
 
-      <img
-        className="code-logo"
-        src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt="Logo"
-      />
-      <h1 className="code-title">{`${type}-Code`}</h1>
-      <div className="code-count">
-        <h4>{limit ? "Remaining This Week" : "This Week's Count"}</h4>
-        <div className="code-count-number">
-          <p>{remainingCount}</p>
-        </div>
-      </div>
-      {type === "Table" && (
-        <div className="statistic-navigation code-navigation">
-          <button
-            onClick={onPrevWeek}
-            disabled={isStartingEvent}
-            style={{ opacity: isStartingEvent ? 0 : 1 }}
-          >
-            &#8592;
-          </button>
-          <p>{currentEventDate.format("DD MMM YYYY")}</p>
-          <button onClick={onNextWeek}>&#8594;</button>
-        </div>
-      )}
-      <div className="code-admin">
-        <input
-          className="code-input"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+        <Navigation onBack={onClose} />
+        <h1 className="code-title">{`${type} Code`}</h1>
+
+        {type === "Table" && (
+          <div className="statistic-navigation code-nav">
+            <button
+              className="statistic-navigation-button"
+              onClick={onPrevWeek}
+              disabled={isStartingEvent}
+              style={{ opacity: isStartingEvent ? 0 : 1 }}
+            >
+              <img
+                src="/image/arrow-left.svg"
+                alt=""
+                className="statistic-navigation-arrow-left"
+              />
+            </button>
+            <p className="statistic-navigation-date">{displayDate}</p>
+            <button
+              className="statistic-navigation-button"
+              onClick={onNextWeek}
+            >
+              <img
+                src="/image/arrow-right.svg"
+                alt=""
+                className="statistic-navigation-arrow-right"
+              />
+            </button>
+          </div>
+        )}
+
+        <img
+          className="code-logo"
+          src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
+          alt="Logo"
         />
-        {type === "Table" && (
-          <>
-            <select
-              className="code-select"
-              value={pax}
-              onChange={(e) => setPax(e.target.value)}
-            >
-              {[...Array(10).keys()].map((n) => (
-                <option key={n + 1} value={n + 1}>
-                  {n + 1} People
-                </option>
-              ))}
-            </select>
 
-            <select
-              className="code-select"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
-            >
-              <option value="" disabled>
-                Select Table Number
-              </option>
-              <optgroup label="Backstage Tables">
-                {[
-                  "B1",
-                  "B2",
-                  "B3",
-                  "B4",
-                  "B5",
-                  "B6",
-                  "B7",
-                  "B8",
-                  "B9",
-                  "B10",
-                  "B11",
-                  "B12",
-                ].map((table) => (
-                  <option
-                    key={table}
-                    value={table}
-                    disabled={counts.tableCounts.some(
-                      (code) => code.table === table
-                    )}
-                  >
-                    {table}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="DJ Tables">
-                {["B11", "B12"].map((table) => (
-                  <option
-                    key={table}
-                    value={table}
-                    disabled={counts.tableCounts.some(
-                      (code) => code.table === table
-                    )}
-                  >
-                    {table}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="VIP Tables">
-                {[
-                  "K1",
-                  "K2",
-                  "K3",
-                  "K4",
-                  "K5",
-                  "K6",
-                  "K7",
-                  "K8",
-                  "K9",
-                  "K10",
-                ].map((table) => (
-                  <option
-                    key={table}
-                    value={table}
-                    disabled={counts.tableCounts.some(
-                      (code) => code.table === table
-                    )}
-                  >
-                    {table}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Premium Tables">
-                {[
-                  "A1",
-                  "A2",
-                  "A3",
-                  "A4",
-                  "A5",
-                  "A6",
-                  "A7",
-                  "A8",
-                  "A9",
-                  "A10",
-                  "D1",
-                  "D2",
-                  "D3",
-                ].map((table) => (
-                  <option
-                    key={table}
-                    value={table}
-                    disabled={counts.tableCounts.some(
-                      (code) => code.table === table
-                    )}
-                  >
-                    {table}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </>
-        )}
-        <button className="code-btn" onClick={handleCode}>
-          Generate
-        </button>
-        {type === "Table" && (
-          <TableLayout
-            codes={codes}
-            counts={counts}
-            tableNumber={tableNumber}
-            setTableNumber={setTableNumber}
+        <div className="code-count">
+          <h4>{limit ? "Remaining This Week" : "This Week's Count"}</h4>
+          <div className="code-count-number">
+            <p>{remainingCount}</p>
+          </div>
+        </div>
+
+        <div className="code-admin">
+          <input
+            className="code-input"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
-        )}
-      </div>
-      {/* {downloadUrl && (
+          {type === "Table" && (
+            <>
+              <select
+                className="code-select"
+                value={pax}
+                onChange={(e) => setPax(e.target.value)}
+              >
+                {[...Array(10).keys()].map((n) => (
+                  <option key={n + 1} value={n + 1}>
+                    {n + 1} People
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="code-select"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+              >
+                <option value="" disabled>
+                  Select Table Number
+                </option>
+                <optgroup label="Backstage Tables">
+                  {[
+                    "B1",
+                    "B2",
+                    "B3",
+                    "B4",
+                    "B5",
+                    "B6",
+                    "B7",
+                    "B8",
+                    "B9",
+                    "B10",
+                    "B11",
+                    "B12",
+                  ].map((table) => (
+                    <option
+                      key={table}
+                      value={table}
+                      disabled={counts.tableCounts.some(
+                        (code) => code.table === table
+                      )}
+                    >
+                      {table}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="DJ Tables">
+                  {["B11", "B12"].map((table) => (
+                    <option
+                      key={table}
+                      value={table}
+                      disabled={counts.tableCounts.some(
+                        (code) => code.table === table
+                      )}
+                    >
+                      {table}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="VIP Tables">
+                  {[
+                    "K1",
+                    "K2",
+                    "K3",
+                    "K4",
+                    "K5",
+                    "K6",
+                    "K7",
+                    "K8",
+                    "K9",
+                    "K10",
+                  ].map((table) => (
+                    <option
+                      key={table}
+                      value={table}
+                      disabled={counts.tableCounts.some(
+                        (code) => code.table === table
+                      )}
+                    >
+                      {table}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Premium Tables">
+                  {[
+                    "A1",
+                    "A2",
+                    "A3",
+                    "A4",
+                    "A5",
+                    "A6",
+                    "A7",
+                    "A8",
+                    "A9",
+                    "A10",
+                    "D1",
+                    "D2",
+                    "D3",
+                  ].map((table) => (
+                    <option
+                      key={table}
+                      value={table}
+                      disabled={counts.tableCounts.some(
+                        (code) => code.table === table
+                      )}
+                    >
+                      {table}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </>
+          )}
+          <button className="code-btn" onClick={handleCode}>
+            Generate
+          </button>
+          {type === "Table" && (
+            <TableLayout
+              codes={codes}
+              counts={counts}
+              tableNumber={tableNumber}
+              setTableNumber={setTableNumber}
+            />
+          )}
+        </div>
+        {/* {downloadUrl && (
         <div className="code-preview">
           <a href={downloadUrl} download={`${type.toLowerCase()}-code.png`}>
             Download Code
@@ -279,19 +300,21 @@ function CodeGenerator({
           <img src={downloadUrl} alt="Code Preview" />
         </div>
       )} */}
-      <CodeManagement
-        user={user}
-        type={type}
-        codes={codes}
-        setCodes={setCodes}
-        weeklyCount={weeklyCount}
-        refreshCounts={refreshCounts}
-        currentEventDate={currentEventDate}
-        onPrevWeek={onPrevWeek}
-        onNextWeek={onNextWeek}
-        isStartingEvent={isStartingEvent}
-        counts={counts}
-      />
+        <CodeManagement
+          user={user}
+          type={type}
+          codes={codes}
+          setCodes={setCodes}
+          weeklyCount={weeklyCount}
+          refreshCounts={refreshCounts}
+          currentEventDate={currentEventDate}
+          onPrevWeek={onPrevWeek}
+          onNextWeek={onNextWeek}
+          isStartingEvent={isStartingEvent}
+          counts={counts}
+        />
+      </div>
+      <Footer />
     </div>
   );
 }

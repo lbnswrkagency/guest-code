@@ -9,7 +9,7 @@
   justify-self: center;
   margin-top: 2rem;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   align-items: center;
 
   &-point {
@@ -45,5 +45,9 @@
       font-weight: 700;
       line-height: normal;
     }
+  }
+
+  .check-in {
+    color: #ffc807;
   }
 }

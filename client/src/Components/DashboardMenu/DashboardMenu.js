@@ -54,7 +54,7 @@ const DashboardMenu = ({
         </div>
       )}
 
-      {(user.isAdmin || user.isTable) && (
+      {/* {(user.isAdmin || user.isTable) && (
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Table")}>
             <img
@@ -65,7 +65,7 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Table Code</p>
         </div>
-      )}
+      )} */}
 
       {user.isPromoter && (
         <div className="menuDashboard-button">
@@ -79,7 +79,7 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Friends Code</p>
         </div>
       )}
-
+      {/* 
       {user.isAdmin && (
         <div className="menuDashboard-button">
           <button onClick={() => setShowDropFiles(true)}>
@@ -91,8 +91,8 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Dropped Files</p>
         </div>
-      )}
-
+      )} */}
+      {/* 
       {user.isScanner && (
         <div className="menuDashboard-button">
           <button onClick={() => setShowScanner(true)}>
@@ -104,7 +104,7 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Scanner</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

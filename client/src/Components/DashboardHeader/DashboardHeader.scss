@@ -15,6 +15,7 @@
 
       .share-icon {
         align-self: end;
+        visibility: hidden;
       }
 
       .edit-icon {
@@ -156,11 +157,12 @@
     }
 
     &-name {
-      color: #fff;
+      olor: #fff;
       text-align: center;
       font-family: Lato;
-      font-size: 1rem;
+      font-size: 1.25rem;
       font-style: normal;
+      font-weight: 800;
       line-height: 1.5rem;
     }
 

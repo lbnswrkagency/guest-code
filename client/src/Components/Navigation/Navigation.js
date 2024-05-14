@@ -1,26 +1,25 @@
 // Navigation.js
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import "./Navigation.scss";
 
-const Navigation = () => {
-  const navigate = useNavigate();
-
+const Navigation = ({ onBack }) => {
   return (
     <div className="navigation">
-      <div className="login-back-arrow" onClick={() => navigate("/")}>
-        <img src="/image/back-icon.svg" alt="" />
+      <div className="login-back-arrow" onClick={onBack}>
+        <img src="/image/back-icon.svg" alt="Back" />
       </div>
 
-      <img src="/image/inbox.svg" alt="" className="navigation-inbox" />
+      <img src="/image/inbox.svg" alt="Inbox" className="navigation-inbox" />
 
       <h1 className="navigation-title">Member Area</h1>
 
-      <img src="/image/bell.svg" alt="" className="navigation-bell" />
+      <img
+        src="/image/bell.svg"
+        alt="Notifications"
+        className="navigation-bell"
+      />
 
-      <img src="/image/menu.svg" alt="" className="navigation-menu" />
-
-      {/* <img className="logo" src="/image/logo.svg" alt="" /> */}
+      <img src="/image/menu.svg" alt="Menu" className="navigation-menu" />
     </div>
   );
 };

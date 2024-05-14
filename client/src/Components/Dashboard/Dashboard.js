@@ -29,7 +29,7 @@ const Dashboard = () => {
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showStatistic, setShowStatistic] = useState(false);
-
+  const [userCounts, setUserCounts] = useState({});
   const [showRanking, setShowRanking] = useState(false);
   const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
@@ -124,12 +124,39 @@ const Dashboard = () => {
     }
   };
 
+  const fetchUserSpecificCounts = async () => {
+    if (!user || !user._id) {
+      console.error("User is undefined or User ID is undefined");
+      return;
+    }
+
+    console.log("USER ID", user._id);
+
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/qr/user-counts`,
+        {
+          params: { userId: user._id },
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
+      );
+
+      setUserCounts({
+        totalGenerated: response.data.totalGenerated,
+        totalChecked: response.data.totalChecked,
+      });
+    } catch (error) {
+      console.error("Error fetching user-specific counts", error);
+    }
+  };
+
   useEffect(() => {
     if (user?.avatar) {
       setIsEditingAvatar(false); // Resets editing state when a new avatar URL is detected.
     }
-    if (user) {
+    if (user && user._id) {
       fetchCounts();
+      fetchUserSpecificCounts();
     }
   }, [currentEventDate, user]);
 
@@ -223,12 +250,31 @@ const Dashboard = () => {
     return <Settings />;
   }
 
-  console.log("USER", user);
+  const handleBack = () => {
+    // Close components in the reverse order they might be opened
+    if (showSettings) {
+      setShowSettings(false);
+    } else if (showStatistic) {
+      setShowStatistic(false);
+    } else if (showScanner) {
+      setShowScanner(false);
+    } else if (showDropFiles) {
+      setShowDropFiles(false);
+    } else {
+      // If no specific component screen is active, navigate to root or log out
+      logout();
+      setUser(null);
+      navigate("/");
+    }
+  };
+
+  console.log("userCounts", userCounts);
 
   return (
     <div className="dashboard">
       <div className="dashboard-wrapper">
-        <Navigation />
+        <Navigation onBack={handleBack} />
+
         <DashboardHeader
           user={user}
           isEditingAvatar={isEditingAvatar}
@@ -237,7 +283,8 @@ const Dashboard = () => {
           isCropMode={isCropMode}
         />
 
-        <DashboardStatus />
+        <DashboardStatus userCounts={userCounts} />
+
         <DashboardMenu
           user={user}
           setShowSettings={setShowSettings}

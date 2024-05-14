@@ -6,6 +6,7 @@ const User = require("../models/User");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
 const InvitationCode = require("../models/InvitationModel"); // Ensure this path is correct
+const mongoose = require("mongoose");
 
 const validateTicket = async (req, res) => {
   try {
@@ -160,8 +161,13 @@ const decreasePax = async (req, res) => {
 
 const getCounts = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, userId } = req.query;
     const matchCondition = {};
+
+    // Adding user filter if userId is provided
+    if (userId) {
+      matchCondition.userId = mongoose.Types.ObjectId(userId);
+    }
 
     if (startDate) {
       matchCondition.createdAt = { $gte: new Date(startDate) };
@@ -170,17 +176,26 @@ const getCounts = async (req, res) => {
       matchCondition.createdAt = matchCondition.createdAt || {};
       matchCondition.createdAt.$lte = new Date(endDate);
     }
-    // New InvitationCode aggregation
+
     const invitationCounts = await InvitationCode.aggregate([
       { $match: matchCondition },
       {
         $group: {
-          _id: null, // Group by null to count all, or adjust to group by a meaningful field
-          total: { $sum: 1 },
-          used: { $sum: "$paxChecked" },
+          _id: "$name", // Group by name to differentiate different invitations
+          totalPax: { $sum: "$pax" }, // Sum of all pax for this invitation
+          totalPaxChecked: { $sum: "$paxChecked" }, // Sum of all checked-in pax
+        },
+      },
+      {
+        $project: {
+          name: "$_id",
+          total: "$totalPax",
+          used: "$totalPaxChecked",
+          _id: 0, // Omit the _id in the output
         },
       },
     ]);
+
     const friendsCounts = await FriendsCode.aggregate([
       { $match: matchCondition },
       {
@@ -242,9 +257,17 @@ const getCounts = async (req, res) => {
       { $match: matchCondition },
       {
         $group: {
-          _id: null,
-          total: { $sum: 1 },
-          used: { $sum: "$paxChecked" },
+          _id: "$name", // Group by name to differentiate different guests
+          totalPax: { $sum: "$pax" }, // Sum of all pax for this guest
+          totalPaxChecked: { $sum: "$paxChecked" }, // Sum of all checked-in pax
+        },
+      },
+      {
+        $project: {
+          name: "$_id",
+          total: "$totalPax",
+          used: "$totalPaxChecked",
+          _id: 0, // Omit the _id in the output
         },
       },
     ]);
@@ -286,9 +309,55 @@ const getCounts = async (req, res) => {
   }
 };
 
+const getUserSpecificCounts = async (req, res) => {
+  const userId = req.query.userId; // Ensure the userID is passed as a query parameter
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  try {
+    // Correctly instantiate ObjectId
+    const objectId = new mongoose.Types.ObjectId(userId);
+    const aggregateQuery = [
+      { $match: { hostId: objectId } },
+      {
+        $group: {
+          _id: null,
+          totalGenerated: { $sum: { $ifNull: ["$pax", 0] } }, // Using $ifNull to handle missing values
+          totalChecked: { $sum: { $ifNull: ["$paxChecked", 0] } },
+        },
+      },
+    ];
+
+    const friendsCounts = await FriendsCode.aggregate(aggregateQuery);
+    const backstageCounts = await BackstageCode.aggregate(aggregateQuery);
+    const tableCounts = await TableCode.aggregate(aggregateQuery);
+
+    // Calculate total generated and checked-in counts
+    const totalGenerated =
+      (friendsCounts[0]?.totalGenerated || 0) +
+      (backstageCounts[0]?.totalGenerated || 0) +
+      (tableCounts[0]?.totalGenerated || 0);
+
+    const totalChecked =
+      (friendsCounts[0]?.totalChecked || 0) +
+      (backstageCounts[0]?.totalChecked || 0) +
+      (tableCounts[0]?.totalChecked || 0);
+
+    res.json({
+      totalGenerated,
+      totalChecked,
+    });
+  } catch (error) {
+    console.error("Error fetching user-specific counts", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 module.exports = {
   validateTicket,
   increasePax,
   decreasePax,
   getCounts,
+  getUserSpecificCounts,
 };
