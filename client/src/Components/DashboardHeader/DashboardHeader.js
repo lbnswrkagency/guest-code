@@ -50,7 +50,10 @@ const DashboardHeader = ({
       </div>
 
       <div className="headerDashboard-info">
-        <p className="headerDashboard-info-name">{user.name}</p>
+        <p className="headerDashboard-info-name">
+          {user.name ? user.name : `@${user.username}`}
+        </p>
+
         {/* <p className="headerDashboard-info-username">@{user.username}</p> */}
         {/* <p className="headerDashboard-info-role">Event Host</p> */}
       </div>
