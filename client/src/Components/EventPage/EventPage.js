@@ -559,44 +559,6 @@ const EventPage = ({ passedEventId }) => {
               </form>
             )}
 
-            <form
-              ref={guestCodeRef}
-              className="event-page-guestcode"
-              onSubmit={handleGuestCodeFormSubmit}
-            >
-              <h1 className="event-page-guestcode-title">
-                EARLY BIRD - GUEST CODE
-              </h1>
-
-              <p className="event-page-guestcode-title">100 LEFT</p>
-              <div className="event-page-guestcode-form">
-                <p>Opening Bolivar 15 MAY 2024</p>
-
-                <p className="event-page-guestcode-condition">
-                  free entrance until 23H
-                </p>
-
-                <input
-                  type="text"
-                  className="event-page-guestcode-form-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
-                  required
-                />
-                <input
-                  type="email"
-                  className="event-page-guestcode-form-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email Address"
-                />
-              </div>
-              <button type="submit" className="event-page-guestcode-button">
-                Generate GuestCode
-              </button>
-            </form>
-
             <div ref={eventRef} className="event-page-info">
               <div className="event-page-info-wrapper">
                 <h2 className="event-page-info-subtitle">EVENT</h2>

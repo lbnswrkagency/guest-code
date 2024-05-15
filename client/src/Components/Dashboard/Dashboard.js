@@ -130,8 +130,6 @@ const Dashboard = () => {
       return;
     }
 
-    console.log("USER ID", user._id);
-
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/qr/user-counts`,
@@ -267,8 +265,6 @@ const Dashboard = () => {
       navigate("/");
     }
   };
-
-  console.log("userCounts", userCounts);
 
   return (
     <div className="dashboard">

@@ -10,7 +10,6 @@ const DashboardHeader = ({
   setIsCropMode,
   isCropMode,
 }) => {
-  console.log("USER", user);
   return (
     <div className="headerDashboard">
       <div className="headerDashboard-avatar">

@@ -60,8 +60,6 @@ const CreateEvent = () => {
     }));
   };
 
-  console.log("EVENT DATA", eventData);
-
   return (
     <div className="createEvent">
       <Navigation />

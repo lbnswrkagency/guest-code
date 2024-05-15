@@ -53,6 +53,7 @@ const sendQRCodeEmail = async (
   console.debug("Preparing QR code email for:", email);
   try {
     console.debug("Creating ticket PDF...");
+
     const ticketPdfBuffer = await createTicketPDF(
       event,
       qrCodeDataURL,

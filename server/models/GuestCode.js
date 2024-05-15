@@ -9,6 +9,8 @@ const GuestCodeSchema = new Schema(
     condition: { type: String, required: true },
     pax: { type: Number, required: true },
     paxChecked: { type: Number, required: true },
+    invited: { type: Number, default: 0 }, // Number of times an invitation has been sent
+    inviteCreated: { type: Boolean, default: false }, // Whether the invite PDF has been created
   },
   {
     timestamps: true,

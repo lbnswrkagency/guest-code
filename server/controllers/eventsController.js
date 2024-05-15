@@ -8,6 +8,7 @@ const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
 const { sendQRCodeInvitation } = require("../utils/email");
+const { createTicketPDF } = require("../utils/pdf-invite");
 
 const {
   uploadToS3,
@@ -230,72 +231,54 @@ exports.generateGuestCode = async (req, res) => {
     res.status(500).json({ error: "Error generating guest code." });
   }
 };
-// Connect to MongoDB
-async function connectToDatabase() {
-  const dbUri = process.env.MONGODB_URI; // Make sure your MongoDB URI is correctly configured in your environment variables
-  try {
-    await mongoose.connect(dbUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB successfully");
-  } catch (error) {
-    console.error("Failed to connect to MongoDB", error);
-    process.exit(1);
+
+exports.generateInvitationCode = async (guestCode) => {
+  console.log("Processing Invitation Code Generation for:", guestCode.email);
+
+  if (!guestCode) {
+    console.error("No guestCode provided to generateInvitationCode function");
+    return;
   }
-}
-exports.generateInvitationCode = async (req, res) => {
-  console.log("Processing Invitation Code Generation");
-  console.log("Request Body", req.body);
 
   try {
-    // Ensure database is connected
-    await connectToDatabase();
-
-    const { name, email, condition, pax, style } = req.body;
-
-    // Format name to have each word capitalized
-    const formattedName = name
+    // Formatting the name
+    const formattedName = guestCode.name
       .split(" ")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
 
-    // Create an InvitationCode instance
+    // Create an InvitationCode instance if needed
     const invitationCode = new InvitationCode({
       name: formattedName,
-      email: email.toLowerCase(),
-      condition,
-      event: new mongoose.Types.ObjectId("654d4bf7b3cceeb4f02c13b5"),
-      pax,
+      email: guestCode.email.toLowerCase(),
+      condition: guestCode.condition,
+      event: guestCode.event,
+      pax: guestCode.pax,
       paxChecked: 0,
-      style,
     });
 
     // Save the InvitationCode to the database
     await invitationCode.save();
     console.log("Invitation code saved successfully");
 
-    // Generate a QR code data URL for the invitation
-    const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, {
-      errorCorrectionLevel: "L",
-    });
-
-    // Send an invitation email with the QR code
-    await sendQRCodeInvitation(
+    // Assuming you don't need a QR code URL for PDF creation, proceed directly to PDF generation
+    const pdfBuffer = await createTicketPDF(
+      guestCode.event, // Directly passing event ID
       formattedName,
-      email,
-      condition,
-      pax,
-      qrCodeDataURL,
-      { _id: "654d4bf7b3cceeb4f02c13b5" } // Dummy event object with only _id for the purpose of the email function
+      guestCode.email,
+      guestCode.condition,
+      guestCode.pax
     );
 
-    res
-      .status(201)
-      .json({ message: "Check your email (including Spam). Thank you 🤝" });
+    // Mark the guest code as invite created
+    guestCode.inviteCreated = true;
+    await guestCode.save();
+    console.log("Guest code updated with invite created.");
+
+    return pdfBuffer; // Optionally return buffer if you need to use it immediately after
   } catch (error) {
-    console.error("Error generating invitation code:", error);
-    res.status(500).json({ error: "Error generating invitation code." });
+    console.error("Error during invitation code generation:", error);
+    throw error; // Rethrow to handle upstream
   }
 };
 

@@ -3,7 +3,6 @@ import React from "react";
 import "./DashboardStatus.scss";
 
 const DashboardStatus = ({ userCounts }) => {
-  console.log("USER COUNTS STATUS", userCounts);
   return (
     <div className="statusDashboard">
       <div className="statusDashboard-point">

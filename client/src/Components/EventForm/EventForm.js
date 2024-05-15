@@ -49,8 +49,6 @@ const EventForm = ({
     onEventDataChange({ ...eventData, text: value });
   };
 
-  console.log("INITIAL EVENT DATA", initialEventData);
-
   return (
     <form
       className="eventForm"
