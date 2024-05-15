@@ -107,18 +107,22 @@ exports.login = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
+  console.log("REQ BODY", req.body);
   const { identifier, password } = req.body;
+
   try {
     let user;
     if (identifier.includes("@")) {
       user = await User.findOne({ email: identifier.toLowerCase() });
     } else {
-      // Convert both inputted username and stored username to lower case
+      // Adjust to search for username instead of name
       user = await User.findOne({
-        name: { $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i") },
+        username: {
+          $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
+        },
       });
     }
+
     if (!user) {
       return res
         .status(404)
@@ -144,6 +148,7 @@ exports.login = async (req, res) => {
     const payload = {
       userId: user._id,
       email: user.email,
+      username: user.username, // Optionally add username to payload if needed
     };
 
     // Generate Access Token
@@ -163,7 +168,6 @@ exports.login = async (req, res) => {
     });
 
     // Return Access Token
-
     res.json({ success: true, accessToken });
   } catch (error) {
     console.error(error);

@@ -4,6 +4,7 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "./Scanner.scss";
 import jsQR from "jsqr";
+import Navigation from "../Navigation/Navigation";
 
 function Scanner({ onClose }) {
   let isScanning = true;
@@ -188,17 +189,16 @@ function Scanner({ onClose }) {
 
   return (
     <div className="scanner">
-      <div className="login-back-arrow" onClick={onClose}>
-        <img src="/image/back-icon.svg" alt="" />
-      </div>
+      <ToastContainer />
+      <Navigation onBack={onClose} />
+
+      <h1 className="scanner-title">SCANNER</h1>
 
       <img
         className="scanner-logo"
         src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
         alt=""
       />
-
-      <ToastContainer />
 
       <div
         id="qr-reader-container"

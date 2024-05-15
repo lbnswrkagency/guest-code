@@ -8,13 +8,12 @@ const eventEndTime = { hour: 6, minute: 0 }; // Event ends at 6 AM the next day
 
 export const useCurrentEvent = () => {
   const [currentDate, setCurrentDate] = useState(moment());
-
   const findNextEventDate = (date) => {
-    let nextEventDate = startingEventDate.clone();
-    while (nextEventDate.isBefore(date)) {
-      nextEventDate.add(1, "weeks");
+    let eventDate = startingEventDate.clone();
+    while (eventDate.add(7, "days").isBefore(date, "day")) {
+      // Loop until the event date is not past the given date
     }
-    return nextEventDate;
+    return eventDate.subtract(7, "days"); // Subtract the last added week to get the correct event date
   };
 
   const resetEventDateToToday = useCallback(() => {
@@ -56,18 +55,18 @@ export const useCurrentEvent = () => {
     [currentEventDate]
   );
 
-  // console.log(
-  //   "Current Event Date:",
-  //   currentEventDate.format("YYYY-MM-DD HH:mm")
-  // );
-  // console.log(
-  //   "Data Interval Start:",
-  //   dataInterval.startDate.format("YYYY-MM-DD HH:mm")
-  // );
-  // console.log(
-  //   "Data Interval End:",
-  //   dataInterval.endDate.format("YYYY-MM-DD HH:mm")
-  // );
+  console.log(
+    "Current Event Date:",
+    currentEventDate.format("YYYY-MM-DD HH:mm")
+  );
+  console.log(
+    "Data Interval Start:",
+    dataInterval.startDate.format("YYYY-MM-DD HH:mm")
+  );
+  console.log(
+    "Data Interval End:",
+    dataInterval.endDate.format("YYYY-MM-DD HH:mm")
+  );
 
   return {
     currentEventDate,

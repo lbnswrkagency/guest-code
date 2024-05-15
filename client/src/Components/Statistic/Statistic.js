@@ -80,12 +80,6 @@ function Statistic({
     const hasCounts = !!counts[type];
     const hasData = counts[type]?.length > 0;
 
-    console.log(`Checking permissions for type: ${type}`);
-    console.log(`Has permissions defined: ${hasPermissionsDefined}`);
-    console.log(`Has user permission: ${hasUserPermission}`);
-    console.log(`Has counts object: ${hasCounts}`);
-    console.log(`Has data to display: ${hasData}`);
-
     return hasPermissionsDefined && hasUserPermission && hasCounts && hasData;
   };
 

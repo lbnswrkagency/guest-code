@@ -92,7 +92,7 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Dropped Files</p>
         </div>
       )} */}
-      {/* 
+
       {user.isScanner && (
         <div className="menuDashboard-button">
           <button onClick={() => setShowScanner(true)}>
@@ -104,7 +104,7 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Scanner</p>
         </div>
-      )} */}
+      )}
     </div>
   );
 };
