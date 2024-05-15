@@ -7,18 +7,41 @@ export default function Footer() {
       <h2 className="footer-title">Socials</h2>
 
       <div className="footer-links">
-        <a href="" className="footer-link">
-          <img src="/image/tiktok.svg" alt="" className="footer-link-image" />
-        </a>
-        <a href="" className="footer-link">
+        <a
+          href="https://www.tiktok.com/@afrospiti"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
           <img
-            src="/image/instagram.svg"
-            alt=""
+            src="/image/tiktok.svg"
+            alt="TikTok"
             className="footer-link-image"
           />
         </a>
-        <a href="" className="footer-link">
-          <img src="/image/facebook.svg" alt="" className="footer-link-image" />
+        <a
+          href="https://www.instagram.com/afrospiti/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
+          <img
+            src="/image/instagram.svg"
+            alt="Instagram"
+            className="footer-link-image"
+          />
+        </a>
+        <a
+          href="https://www.facebook.com/profile.php?id=61552703249997"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
+          <img
+            src="/image/facebook.svg"
+            alt="Facebook"
+            className="footer-link-image"
+          />
         </a>
       </div>
     </div>

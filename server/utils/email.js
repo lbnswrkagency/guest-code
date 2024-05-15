@@ -85,7 +85,7 @@ const sendQRCodeEmail = async (
         <td align="left" style="font-family: Arial, sans-serif; color: #333333;">
           <h2 style="font-size: 22px; margin-top: 0;">Hey ${name},</h2>
           <p style="font-size: 16px;">Thank you for getting your Guest Code. With this code, enjoy a special offer:</p>
-          <h3 style="font-size: 18px;">FREE ENTRANCE, valid until 09 PM every Wednesday at Afro Spiti, Bolivar.</h3>
+          <h3 style="font-size: 18px;">FREE ENTRANCE, valid until 23 PM every Wednesday at Afro Spiti, Bolivar.</h3>
           <p style="font-size: 16px;">Please show the attached Guest Code at the entrance for it to be scanned when you order.</p>
           <p style="font-size: 16px;">Remember, your Guest Code can be used once.</p>
           <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>

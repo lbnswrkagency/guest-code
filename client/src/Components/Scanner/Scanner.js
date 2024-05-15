@@ -265,7 +265,7 @@ function Scanner({ onClose }) {
                   : "friends-code-color"
               }`}
             >
-              <h2>ALLOWED</h2> <p>{scanResult.pax}</p>
+              <h2>USED</h2> <p>{scanResult.paxChecked}</p>
             </div>
 
             <div
@@ -275,7 +275,7 @@ function Scanner({ onClose }) {
                   : "friends-code-color"
               }`}
             >
-              <h2>USED</h2> <p>{scanResult.paxChecked}</p>
+              <h2>ALLOWED</h2> <p>{scanResult.pax}</p>
             </div>
 
             {scanResult.typeOfTicket === "Table-Code" ? (
@@ -310,8 +310,10 @@ function Scanner({ onClose }) {
             >
               -
             </button>
-
-            <span>{scanResult.paxChecked}</span>
+            <div className="scanner-options-value">
+              <p>People</p>
+              <span>{scanResult.paxChecked}</span>
+            </div>
 
             <button
               onClick={() => updatePax(true)}

@@ -295,7 +295,7 @@ const createTicketPDF = async (
       <div class="qrcode">
         <div class="qrcode-text">
           <h2>FREE ENTRANCE</h3>
-          <p>UNTIL MIDNIGHT</p>
+          <p>UNTIL 23H</p>
         </div>
 
         <div class="qrcode-data">
