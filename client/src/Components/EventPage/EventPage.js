@@ -573,7 +573,7 @@ const EventPage = ({ passedEventId }) => {
                 <p>Opening Bolivar 15 MAY 2024</p>
 
                 <p className="event-page-guestcode-condition">
-                  free entrance until midnight
+                  free entrance until 23H
                 </p>
 
                 <input
