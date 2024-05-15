@@ -115,11 +115,19 @@ exports.login = async (req, res) => {
     if (identifier.includes("@")) {
       user = await User.findOne({ email: identifier.toLowerCase() });
     } else {
-      // Adjust to search for username instead of name
       user = await User.findOne({
-        username: {
-          $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
-        },
+        $or: [
+          {
+            username: {
+              $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
+            },
+          },
+          {
+            name: {
+              $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
+            },
+          },
+        ],
       });
     }
 
