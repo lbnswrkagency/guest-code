@@ -32,7 +32,7 @@ const DashboardMenu = ({
         <div className="menuDashboard-button">
           <button onClick={() => setShowStatistic(true)}>
             <img
-              src="/image/event-icon.svg"
+              src="/image/statistic-icon.svg"
               alt=""
               className="menuDashboard-button-icon"
             />
@@ -45,7 +45,7 @@ const DashboardMenu = ({
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Backstage")}>
             <img
-              src="/image/event-icon.svg"
+              src="/image/backstage-icon.svg"
               alt=""
               className="menuDashboard-button-icon"
             />
