@@ -54,3 +54,6 @@ script.js
 correction.js
 send-invites.js
 statistic.js
+send-invites-email.js
+clean-invites.js
+/invites

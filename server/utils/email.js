@@ -122,24 +122,10 @@ const sendQRCodeEmail = async (
   }
 };
 
-const sendQRCodeInvitation = async (
-  name,
-  email,
-  condition,
-  pax,
-  qrCodeDataURL,
-  event
-) => {
+const sendQRCodeInvitation = async (name, email, pdfPath) => {
   console.debug("Preparing QR code invitation email for:", email);
   try {
-    const ticketPdfBuffer = await createTicketPDFInvitation(
-      event,
-      qrCodeDataURL,
-      name,
-      email,
-      condition,
-      pax
-    );
+    const pdfData = fs.readFileSync(pdfPath);
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
@@ -164,8 +150,8 @@ const sendQRCodeInvitation = async (
 
     sendSmtpEmail.attachment = [
       {
-        content: ticketPdfBuffer.toString("base64"),
-        name: `${name.replace(/\s+/g, "_")}_invitation.pdf`,
+        content: pdfData.toString("base64"),
+        name: path.basename(pdfPath),
         type: "application/pdf",
       },
     ];

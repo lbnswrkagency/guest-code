@@ -9,10 +9,13 @@ const InvitationCodeSchema = new Schema(
     condition: { type: String, required: true },
     pax: { type: Number, required: true },
     paxChecked: { type: Number, required: true, default: 0 },
+    guestCode: {
+      type: Schema.Types.ObjectId,
+      ref: "GuestCode",
+      required: true,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("InvitationCode", InvitationCodeSchema);

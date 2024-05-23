@@ -1,10 +1,11 @@
-// pdf.js
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
+
 const logoPath = path.join(__dirname, "logo_w.svg");
 const logoData = fs.readFileSync(logoPath, { encoding: "base64" });
 const logoBase64 = `data:image/svg+xml;base64,${logoData}`;
+
 require("dotenv").config;
 
 function formatDate(dateString) {
@@ -22,15 +23,17 @@ function formatDate(dateString) {
     .replace(".", "");
 }
 
-const createTicketPDF = async (
+const createTicketPDFInvitation = async (
   event,
   qrCodeDataURL,
   name,
   email,
   condition,
-  pax
+  pax,
+  pdfPath
 ) => {
   const browser = await puppeteer.launch({
+    headless: "new",
     args: [
       "--disable-setuid-sandbox",
       "--no-sandbox",
@@ -43,9 +46,6 @@ const createTicketPDF = async (
         : puppeteer.executablePath(),
   });
   const page = await browser.newPage();
-
-  // headless: true, // Enable headless mode
-  // args: ["--no-sandbox", "--disable-setuid-sandbox"], // Add arguments
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -250,7 +250,7 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Wednesday, 22.05.2024</p>
+          <p>Wednesday, 27.05.2024</p>
         </div>
 
         <div class="event-beats">
@@ -313,10 +313,8 @@ const createTicketPDF = async (
   `;
 
   await page.setContent(htmlContent);
-  const pdfBuffer = await page.pdf({ format: "A6", printBackground: true });
-
+  await page.pdf({ path: pdfPath, format: "A6", printBackground: true });
   await browser.close();
-  return pdfBuffer;
 };
 
-module.exports = createTicketPDF;
+module.exports = createTicketPDFInvitation;
