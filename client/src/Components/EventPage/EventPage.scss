@@ -289,18 +289,17 @@
         align-self: center;
         justify-self: center;
         width: 1.5rem;
-        fill: #000;
       }
 
       &-logo {
         z-index: 2;
-        width: 9rem;
+        width: 13rem;
         justify-self: center;
         align-self: center;
         grid-column: 2/3;
         grid-row: 1/2;
         @include mq(phone) {
-          width: 12rem;
+          width: 13rem;
         }
 
         @include mq(tablet) {

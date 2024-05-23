@@ -305,12 +305,12 @@ const EventPage = ({ passedEventId }) => {
                   onClick={toggleNav}
                 />
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo_w.svg"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
                 <img
-                  src="./image/login_black.svg"
+                  src="./image/login.svg"
                   alt=""
                   className="event-page-header-navigation-login"
                   onClick={() => navigate("/login")}
@@ -318,7 +318,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER27052024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER29052024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -406,7 +406,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>WED 27 MAY 2024</p>
+                    <p>WED 29 MAY 2024</p>
                   </div>
 
                   <img
@@ -496,7 +496,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 27.05.2024 · 09 PM
+                Wednesday · 29.05.2024 · 09 PM
               </p>
 
               <div
@@ -536,7 +536,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 22H
                   </p>
-                  <p>BOLIVAR - Wednesdasy - 27.05.2024</p>
+                  <p>BOLIVAR - Wednesdasy - 29.05.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
