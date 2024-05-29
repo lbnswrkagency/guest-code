@@ -28,6 +28,8 @@ const addCode = async (req, res) => {
   } = req.body; // Include tableNumber for table codes
   const type = req.params.type;
 
+  console.log("REQ", req.body);
+
   let CodeModel;
   switch (type) {
     case "friends":

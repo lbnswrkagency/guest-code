@@ -61,11 +61,10 @@ function CodeGenerator({
       "B11",
       "B12",
     ].includes(tableNumber);
-
     let data = {
       name,
       event: user.events,
-      host: user.name,
+      host: user.name || user.firstName, // Use user.name if it exists, otherwise use user.userName
       condition: conditionText(type),
       hostId: user._id,
       pax,
@@ -108,7 +107,7 @@ function CodeGenerator({
   };
 
   const displayDate = currentEventDate.format("DD MMM YYYY");
-
+  console.log("USER", user);
   return (
     <div className="code">
       <div className="code-wrapper">
