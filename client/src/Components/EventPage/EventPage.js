@@ -305,7 +305,7 @@ const EventPage = ({ passedEventId }) => {
                   onClick={toggleNav}
                 />
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo_w.svg"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
@@ -318,7 +318,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER05062024.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER19062024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -406,7 +406,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>WED 05 JUNE 2024</p>
+                    <p>WED 19 JUNE 2024</p>
                   </div>
 
                   <img
@@ -430,7 +430,7 @@ const EventPage = ({ passedEventId }) => {
                     Generate GuestCode
                   </button>
 
-                  <p>free entrance til 22H</p>
+                  <p>free entrance til 23H</p>
                 </div>
               </div>
 
@@ -496,7 +496,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 05.06.2024 · 09 PM
+                Wednesday · 19.06.2024 · 09 PM
               </p>
 
               <div
@@ -534,9 +534,9 @@ const EventPage = ({ passedEventId }) => {
                 <h1 className="event-page-guestcode-title">GUEST CODE</h1>
                 <div className="event-page-guestcode-form">
                   <p className="event-page-guestcode-condition">
-                    free entrance until 22H
+                    free entrance until 23H
                   </p>
-                  <p>BOLIVAR - Wednesdasy - 05.06.2024</p>
+                  <p>BOLIVAR - Wednesdasy - 19.06.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"

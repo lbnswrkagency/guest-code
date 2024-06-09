@@ -248,7 +248,7 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Wednesday, 05.06.2024</p>
+          <p>Wednesday, 19.06.2024</p>
         </div>
 
         <div class="event-beats">
@@ -295,7 +295,7 @@ const createTicketPDF = async (
       <div class="qrcode">
         <div class="qrcode-text">
           <h2>FREE ENTRANCE</h3>
-          <p>UNTIL 22H</p>
+          <p>UNTIL 23H</p>
         </div>
 
         <div class="qrcode-data">
