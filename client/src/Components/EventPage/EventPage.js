@@ -37,7 +37,7 @@ const EventPage = ({ passedEventId }) => {
   const s3ImageUrls = Array.from(
     { length: 20 },
     (_, i) =>
-      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-${String(
+      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-bolivar-${String(
         i + 1
       ).padStart(2, "0")}.jpg`
   );
