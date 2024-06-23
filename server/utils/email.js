@@ -133,11 +133,12 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
       name: "Afro Spiti",
       email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
     };
-    sendSmtpEmail.subject = "Afro Spiti - Personal Invitation - Tonight";
+    sendSmtpEmail.subject =
+      "Afro Spiti - Personal Invitation - Wednesday - Bolivar";
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">
         <h1 style="font-size: 24px;">Hey ${name},</h1>
-        <p style="font-size: 16px;">This is your personal invitation for tonight. We wanted to thank you for checking in with us the past season.</p>
+        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti at Bolivar, this Wednesday.</p>
         <h2 style="font-size: 18px;">You have free entrance all night with this invitation code.</h2>
         <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned when you order.</p>
         <p style="font-size: 16px;">Remember, your Invitation Code can be used once.</p>
