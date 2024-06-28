@@ -25,10 +25,8 @@ const EventPage = ({ passedEventId }) => {
   const [nextImageIndex, setNextImageIndex] = useState(1);
   const [imageOpacity, setImageOpacity] = useState(1);
   const [isHiddenVisible, setIsHiddenVisible] = useState(false);
-
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [areImagesLoaded, setAreImagesLoaded] = useState(false);
-
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
@@ -496,7 +494,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 03.07.2024.2024 · 09 PM
+                Wednesday · 03.07.2024 · 09 PM
               </p>
 
               <div
@@ -536,7 +534,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 23H
                   </p>
-                  <p>BOLIVAR - Wednesdasy - 03.07.2024.2024</p>
+                  <p>BOLIVAR - Wednesday - 03.07.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
@@ -564,7 +562,7 @@ const EventPage = ({ passedEventId }) => {
                 <h2 className="event-page-info-subtitle">EVENT</h2>
                 <h1 className="event-page-info-title">Afro Spiti</h1>
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/general.png"
+                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/FEEL.png"
                   alt=""
                   className="event-page-info-image"
                 />
@@ -588,7 +586,7 @@ const EventPage = ({ passedEventId }) => {
                 className="event-page-location-logo"
               />
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/BOLIVAR.png"
+                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/LOCATION.png"
                 alt=""
                 className="event-page-location-image"
               />
