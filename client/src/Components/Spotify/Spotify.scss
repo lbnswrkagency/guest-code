@@ -13,7 +13,7 @@
   justify-items: center;
   padding-top: 2rem;
   padding-bottom: 2rem;
-
+  min-width: 100%;
   &-image {
     position: absolute;
 
@@ -52,11 +52,12 @@
 
   &-playlist {
     display: grid;
+    min-width: 20rem;
 
     z-index: 1;
     .playlist-cover {
       width: 100%;
-      max-width: 300px;
+      // max-width: 300px;
       border-radius: 8px;
       margin-bottom: 1.5rem;
       justify-self: center;
