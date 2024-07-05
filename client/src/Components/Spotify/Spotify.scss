@@ -16,8 +16,6 @@
   min-width: 100%;
   &-image {
     position: absolute;
-
-    position: absolute;
     right: 0; /* Align to the right edge of the parent */
     top: 50%; /* Start at the vertical center of the parent */
     transform: translateY(-50%);
@@ -53,8 +51,8 @@
   &-playlist {
     display: grid;
     min-width: 20rem;
-
     z-index: 1;
+
     .playlist-cover {
       width: 100%;
       // max-width: 300px;
