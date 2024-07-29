@@ -171,7 +171,7 @@ const EventPage = ({ passedEventId }) => {
       isMounted = false;
       clearTimeout(loadTimeout);
     };
-  }, [eventLink, allImageUrls]);
+  }, [eventLink, allImageUrls, criticalResources]);
 
   useEffect(() => {
     const progress = Math.min((loadedResources / totalResources) * 100, 100);
@@ -217,6 +217,16 @@ const EventPage = ({ passedEventId }) => {
     allImageUrls.length,
     criticalResources.length,
   ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [tempCarouselImages.length]);
 
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
@@ -564,7 +574,7 @@ const EventPage = ({ passedEventId }) => {
               ) : (
                 <>
                   <img
-                    data-src={tempCarouselImages[currentImageIndex]}
+                    src={tempCarouselImages[currentImageIndex]}
                     alt={`Flyer ${currentImageIndex + 1}`}
                     className="event-page-slider-carousel"
                     style={{ opacity: imageOpacity }}
