@@ -33,48 +33,21 @@ const EventPage = ({ passedEventId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadedResources, setLoadedResources] = useState(0);
 
-  const [criticalResourcesLoaded, setCriticalResourcesLoaded] = useState(false);
-  const [nonCriticalResourcesLoaded, setNonCriticalResourcesLoaded] =
-    useState(0);
-
-  const s3ImageUrls = Array.from(
-    { length: 20 },
+  const sliderImages = Array.from(
+    { length: 10 },
     (_, i) =>
-      `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-bolivar-${String(
-        i + 1
-      ).padStart(2, "0")}.jpg`
+      `/pageContent/slider/header-bolivar-${String(i + 1).padStart(2, "0")}.jpg`
   );
 
-  const tempCarouselImages = s3ImageUrls;
-
-  const allImageUrls = [
-    ...tempCarouselImages,
-    "https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header.png",
-  ];
-
-  const totalResources = allImageUrls.length + 1;
+  const tempCarouselImages = sliderImages;
 
   const criticalResources = [
-    ...Array.from(
-      { length: 20 },
-      (_, i) =>
-        `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-bolivar-${String(
-          i + 1
-        ).padStart(2, "0")}.jpg`
-    ),
-    "https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header.png",
-    "https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER31072024.png",
-    "https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png",
-    "https://guest-code.s3.eu-north-1.amazonaws.com/server/FEEL.png",
-    "https://guest-code.s3.eu-north-1.amazonaws.com/server/LOCATION.png",
+    ...sliderImages,
+    "/pageContent/header/HEADER31072024.png",
+    "/pageContent/header/spiti3d.png",
+    "/pageContent/rest/FEEL.png",
+    "/pageContent/rest/LOCATION.png",
   ];
-
-  // Update totalResources
-
-  // State to track each image load status
-  const [imagesLoaded, setImagesLoaded] = useState(
-    new Array(allImageUrls.length).fill(false)
-  );
 
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
@@ -131,19 +104,12 @@ const EventPage = ({ passedEventId }) => {
       });
     };
 
-    const loadCriticalResources = async () => {
-      await Promise.all(criticalResources.map(loadImage));
-      if (isMounted) setCriticalResourcesLoaded(true);
-    };
-
-    const loadNonCriticalImages = async () => {
-      for (const src of allImageUrls.filter(
-        (url) => !criticalResources.includes(url)
-      )) {
+    const loadAllResources = async () => {
+      for (const src of criticalResources) {
         if (!isMounted) break;
         await loadImage(src);
         if (isMounted) {
-          setNonCriticalResourcesLoaded((prev) => prev + 1);
+          setLoadedResources((prev) => prev + 1);
         }
       }
     };
@@ -163,60 +129,25 @@ const EventPage = ({ passedEventId }) => {
       }
     };
 
-    loadCriticalResources();
-    loadNonCriticalImages();
+    loadAllResources();
     fetchEvent();
 
     return () => {
       isMounted = false;
       clearTimeout(loadTimeout);
     };
-  }, [eventLink, allImageUrls, criticalResources]);
+  }, [eventLink]);
 
   useEffect(() => {
-    const progress = Math.min((loadedResources / totalResources) * 100, 100);
-    setLoadingProgress(progress);
-    if (progress === 100) {
-      setIsLoading(false);
-    }
-  }, [loadedResources, totalResources]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          img.src = img.dataset.src;
-          observer.unobserve(img);
-        }
-      });
-    });
-
-    document
-      .querySelectorAll("img[data-src]")
-      .forEach((img) => observer.observe(img));
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const criticalProgress = criticalResourcesLoaded ? 50 : 0;
-    const nonCriticalProgress =
-      (nonCriticalResourcesLoaded /
-        (allImageUrls.length - criticalResources.length)) *
-      50;
-    const progress = Math.min(criticalProgress + nonCriticalProgress, 100);
+    const progress = Math.min(
+      (loadedResources / (criticalResources.length + 1)) * 100,
+      100
+    );
     setLoadingProgress(progress);
     if (progress === 100 && event) {
       setIsLoading(false);
     }
-  }, [
-    criticalResourcesLoaded,
-    nonCriticalResourcesLoaded,
-    event,
-    allImageUrls.length,
-    criticalResources.length,
-  ]);
+  }, [loadedResources, criticalResources.length, event]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -361,11 +292,13 @@ const EventPage = ({ passedEventId }) => {
                   className="event-page-header-navigation-burger"
                   onClick={toggleNav}
                 />
+
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png"
+                  src="/pageContent/header/spiti3d.png"
                   alt=""
                   className="event-page-header-navigation-logo"
                 />
+
                 <img
                   src="./image/login.svg"
                   alt=""
@@ -375,7 +308,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER31072024.png"
+                src="/pageContent/header/HEADER31072024.png"
                 alt=""
                 className="event-page-header-image"
               />
@@ -621,7 +554,7 @@ const EventPage = ({ passedEventId }) => {
                 <h2 className="event-page-info-subtitle">EVENT</h2>
                 <h1 className="event-page-info-title">Afro Spiti</h1>
                 <img
-                  src="https://guest-code.s3.eu-north-1.amazonaws.com/server/FEEL.png"
+                  src="/pageContent/rest/FEEL.png"
                   alt=""
                   className="event-page-info-image"
                 />
@@ -645,7 +578,7 @@ const EventPage = ({ passedEventId }) => {
                 className="event-page-location-logo"
               />
               <img
-                src="https://guest-code.s3.eu-north-1.amazonaws.com/server/LOCATION.png"
+                src="/pageContent/rest/LOCATION.png"
                 alt=""
                 className="event-page-location-image"
               />
