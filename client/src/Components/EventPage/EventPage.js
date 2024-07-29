@@ -19,18 +19,23 @@ const EventPage = ({ passedEventId }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [loadingProgress, setLoadingProgress] = useState(0); // New state for loading progress
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [nextImageIndex, setNextImageIndex] = useState(1);
+
   const [imageOpacity, setImageOpacity] = useState(1);
   const [isHiddenVisible, setIsHiddenVisible] = useState(false);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [areImagesLoaded, setAreImagesLoaded] = useState(false);
+
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadedResources, setLoadedResources] = useState(0);
+
+  const [criticalResourcesLoaded, setCriticalResourcesLoaded] = useState(false);
+  const [nonCriticalResourcesLoaded, setNonCriticalResourcesLoaded] =
+    useState(0);
 
   const s3ImageUrls = Array.from(
     { length: 20 },
@@ -47,14 +52,29 @@ const EventPage = ({ passedEventId }) => {
     "https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header.png",
   ];
 
+  const totalResources = allImageUrls.length + 1;
+
+  const criticalResources = [
+    ...Array.from(
+      { length: 20 },
+      (_, i) =>
+        `https://guest-code.s3.eu-north-1.amazonaws.com/server/header-bolivar-${String(
+          i + 1
+        ).padStart(2, "0")}.jpg`
+    ),
+    "https://guest-code.s3.eu-north-1.amazonaws.com/flyers/header.png",
+    "https://guest-code.s3.eu-north-1.amazonaws.com/server/HEADER31072024.png",
+    "https://guest-code.s3.eu-north-1.amazonaws.com/server/spiti3d.png",
+    "https://guest-code.s3.eu-north-1.amazonaws.com/server/FEEL.png",
+    "https://guest-code.s3.eu-north-1.amazonaws.com/server/LOCATION.png",
+  ];
+
   // Update totalResources
 
   // State to track each image load status
   const [imagesLoaded, setImagesLoaded] = useState(
     new Array(allImageUrls.length).fill(false)
   );
-
-  const totalResources = allImageUrls.length + 1; // +1 for event data
 
   const navigate = useNavigate();
   const guestCodeRef = useRef(null);
@@ -95,79 +115,108 @@ const EventPage = ({ passedEventId }) => {
   };
 
   useEffect(() => {
-    allImageUrls.forEach((src, index) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        setImagesLoaded((prev) => {
-          const newLoaded = [...prev];
-          newLoaded[index] = true;
-          return newLoaded;
-        });
-      };
-    });
-  }, []);
+    let isMounted = true;
+    const loadTimeout = setTimeout(() => {
+      if (isMounted && isLoading) {
+        setIsLoading(false);
+      }
+    }, 15000); // 15 seconds timeout
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === tempCarouselImages.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 3000); // Change image every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [tempCarouselImages.length]);
-
-  useEffect(() => {
-    const allImagesLoaded = imagesLoaded.every(Boolean);
-    if (allImagesLoaded && event) {
-      setIsLoading(false);
-    } else {
-      const loadedCount = imagesLoaded.filter(Boolean).length;
-      setLoadingProgress((loadedCount / totalResources) * 100);
-    }
-  }, [imagesLoaded, event]);
-
-  useEffect(() => {
-    let isMounted = true; // Flag to track mounting
-
-    tempCarouselImages.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        if (isMounted) {
-          setLoadedResources((prev) => prev + 1);
-        }
-      };
-    });
-
-    return () => {
-      isMounted = false; // Clean up the flag on unmount
+    const loadImage = (src) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = resolve;
+        img.onerror = resolve; // Count error as loaded to avoid getting stuck
+      });
     };
-  }, []); // Run only once when the component mounts
 
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        const response = await getEventByLink(eventLink);
-        setEvent(response.event);
-      } catch (error) {
-        console.error("Error fetching event:", error);
-      } finally {
-        setLoadedResources((prev) => prev + 1);
+    const loadCriticalResources = async () => {
+      await Promise.all(criticalResources.map(loadImage));
+      if (isMounted) setCriticalResourcesLoaded(true);
+    };
+
+    const loadNonCriticalImages = async () => {
+      for (const src of allImageUrls.filter(
+        (url) => !criticalResources.includes(url)
+      )) {
+        if (!isMounted) break;
+        await loadImage(src);
+        if (isMounted) {
+          setNonCriticalResourcesLoaded((prev) => prev + 1);
+        }
       }
     };
 
+    const fetchEvent = async () => {
+      try {
+        const response = await getEventByLink(eventLink);
+        if (isMounted) {
+          setEvent(response.event);
+          setLoadedResources((prev) => prev + 1);
+        }
+      } catch (error) {
+        console.error("Error fetching event:", error);
+        if (isMounted) {
+          setLoadedResources((prev) => prev + 1); // Count error as loaded
+        }
+      }
+    };
+
+    loadCriticalResources();
+    loadNonCriticalImages();
     fetchEvent();
-  }, [eventLink]);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(loadTimeout);
+    };
+  }, [eventLink, allImageUrls]);
 
   useEffect(() => {
-    if (loadedResources === totalResources) {
+    const progress = Math.min((loadedResources / totalResources) * 100, 100);
+    setLoadingProgress(progress);
+    if (progress === 100) {
       setIsLoading(false);
-    } else {
-      setLoadingProgress((loadedResources / totalResources) * 100);
     }
   }, [loadedResources, totalResources]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          observer.unobserve(img);
+        }
+      });
+    });
+
+    document
+      .querySelectorAll("img[data-src]")
+      .forEach((img) => observer.observe(img));
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const criticalProgress = criticalResourcesLoaded ? 50 : 0;
+    const nonCriticalProgress =
+      (nonCriticalResourcesLoaded /
+        (allImageUrls.length - criticalResources.length)) *
+      50;
+    const progress = Math.min(criticalProgress + nonCriticalProgress, 100);
+    setLoadingProgress(progress);
+    if (progress === 100 && event) {
+      setIsLoading(false);
+    }
+  }, [
+    criticalResourcesLoaded,
+    nonCriticalResourcesLoaded,
+    event,
+    allImageUrls.length,
+    criticalResources.length,
+  ]);
 
   const handleGuestCodeFormSubmit = async (e) => {
     e.preventDefault();
@@ -279,10 +328,10 @@ const EventPage = ({ passedEventId }) => {
         {isLoading ? (
           <div className="event-page-loading">
             <p>AFRO SPITI</p>
-            <div class="loader">
-              <div class="box1"></div>
-              <div class="box2"></div>
-              <div class="box3"></div>
+            <div className="loader">
+              <div className="box1"></div>
+              <div className="box2"></div>
+              <div className="box3"></div>
             </div>
             <p style={{ color: "white", marginTop: "20px" }}>
               loading... {Math.round(loadingProgress)}%
@@ -515,7 +564,7 @@ const EventPage = ({ passedEventId }) => {
               ) : (
                 <>
                   <img
-                    src={tempCarouselImages[currentImageIndex]}
+                    data-src={tempCarouselImages[currentImageIndex]}
                     alt={`Flyer ${currentImageIndex + 1}`}
                     className="event-page-slider-carousel"
                     style={{ opacity: imageOpacity }}
