@@ -43,7 +43,7 @@ const EventPage = ({ passedEventId }) => {
 
   const criticalResources = [
     ...sliderImages,
-    "/pageContent/header/HEADER31072024.png",
+    "/pageContent/header/HEADER08072024.png",
     "/pageContent/header/spiti3d.png",
     "/pageContent/rest/FEEL.png",
     "/pageContent/rest/LOCATION.png",
@@ -308,7 +308,7 @@ const EventPage = ({ passedEventId }) => {
               </div>
 
               <img
-                src="/pageContent/header/HEADER31072024.png"
+                src="/pageContent/header/HEADER08072024.png"
                 alt=""
                 className="event-page-header-image"
               />
