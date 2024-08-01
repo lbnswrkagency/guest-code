@@ -216,7 +216,7 @@ const getCounts = async (req, res) => {
       { $unwind: "$user_info" },
       {
         $project: {
-          name: "$user_info.name",
+          name: "$user_info.firstName",
           avatar: "$user_info.avatar",
           total: 1,
           used: 1,
@@ -244,7 +244,7 @@ const getCounts = async (req, res) => {
       { $unwind: "$user_info" },
       {
         $project: {
-          name: "$user_info.name",
+          name: "$user_info.firstName",
           avatar: "$user_info.avatar",
           total: 1,
           used: 1,
@@ -286,7 +286,7 @@ const getCounts = async (req, res) => {
       {
         $project: {
           name: 1, // Assuming this is the name of the event or table code
-          host: "$user_info.name", // User's name from the joined user document
+          host: "$user_info.firstName", // User's name from the joined user document
           avatar: "$user_info.avatar", // User's avatar from the joined user document
           total: "$pax",
           used: "$paxChecked",

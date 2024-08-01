@@ -31,8 +31,14 @@ function Statistic({
 
   // Function to calculate total generated and used codes for a specific type
   const calculateTotals = (type) => {
-    const total = counts[type]?.reduce((acc, curr) => acc + curr.total, 0) || 0;
-    const used = counts[type]?.reduce((acc, curr) => acc + curr.used, 0) || 0;
+    if (!Array.isArray(counts[type])) {
+      return { total: 0, used: 0 };
+    }
+    const total = counts[type].reduce(
+      (acc, curr) => acc + (curr.total || 0),
+      0
+    );
+    const used = counts[type].reduce((acc, curr) => acc + (curr.used || 0), 0);
     return { total, used };
   };
 
