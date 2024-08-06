@@ -123,7 +123,7 @@ exports.login = async (req, res) => {
             },
           },
           {
-            name: {
+            firstName: {
               $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
             },
           },
