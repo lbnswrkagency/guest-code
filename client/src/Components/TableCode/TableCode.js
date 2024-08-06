@@ -50,7 +50,7 @@ function TableCode({
             pax,
             tableNumber,
             event: user.events,
-            host: user.name,
+            host: user.firstName,
             date: currentEventDate.format("YYYY-MM-DD"),
           },
           { responseType: "blob" }

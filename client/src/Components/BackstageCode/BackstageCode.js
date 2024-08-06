@@ -46,7 +46,7 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
             paxChecked: 0,
             condition: "BACKSTAGE ACCESS ALL NIGHT",
             event: user.events,
-            host: user.name,
+            host: user.firstName,
           },
           { responseType: "blob" }
         )

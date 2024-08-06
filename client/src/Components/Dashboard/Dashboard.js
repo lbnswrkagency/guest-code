@@ -77,7 +77,7 @@ const Dashboard = () => {
   };
 
   const getThisWeeksBackstageCount = () => {
-    // Use user.name for comparison as per your current requirement
+    // Use user.firstName for comparison as per your current requirement
     const filteredCounts = counts.backstageCounts.filter((count) => {
       return count._id === user._id; // Make sure this comparison is correct as per your data
     });

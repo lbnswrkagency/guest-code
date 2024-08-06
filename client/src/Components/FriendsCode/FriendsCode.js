@@ -32,7 +32,7 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
             paxChecked: 0,
             condition: "FREE ENTRANCE ALL NIGHT",
             event: user.events,
-            host: user.name,
+            host: user.firstName,
           },
           { responseType: "blob" }
         )

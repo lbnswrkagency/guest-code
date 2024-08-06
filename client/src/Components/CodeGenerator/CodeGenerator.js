@@ -64,7 +64,7 @@ function CodeGenerator({
     let data = {
       name,
       event: user.events,
-      host: user.name || user.firstName, // Use user.name if it exists, otherwise use user.userName
+      host: user.firstName || user.firstName, // Use user.firstName if it exists, otherwise use user.userName
       condition: conditionText(type),
       hostId: user._id,
       pax,

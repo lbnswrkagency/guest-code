@@ -28,7 +28,7 @@ async function transferNameToFirstName() {
       const result = await User.findByIdAndUpdate(
         user._id,
         {
-          $set: { firstName: user.name },
+          $set: { firstName: user.firstName },
           $unset: { name: "" },
         },
         { runValidators: false, new: true }
@@ -36,11 +36,11 @@ async function transferNameToFirstName() {
 
       if (result) {
         console.log(
-          `Updated user: ${user.name} -> firstName set and name removed`
+          `Updated user: ${user.firstName} -> firstName set and name removed`
         );
         updatedCount++;
       } else {
-        console.log(`Failed to update user: ${user.name}`);
+        console.log(`Failed to update user: ${user.firstName}`);
       }
     }
 
