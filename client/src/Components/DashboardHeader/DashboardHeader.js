@@ -50,7 +50,7 @@ const DashboardHeader = ({
 
       <div className="headerDashboard-info">
         <p className="headerDashboard-info-name">
-          {user.name ? user.name : `@${user.username}`}
+          {user.firstName ? `${user.firstName}` : `@${user.username}`}
         </p>
 
         {/* <p className="headerDashboard-info-username">@{user.username}</p> */}
