@@ -56,7 +56,12 @@ const BattleSign = forwardRef((props, ref) => {
         data
       );
       toast.dismiss(loadingToast);
-      toast.success("Application submitted successfully!");
+      toast.success(
+        "Application submitted successfully! You will be contacted soon.",
+        {
+          duration: 4000, // Display the success message for 4 seconds
+        }
+      );
       // Reset form fields here if needed
       setName("");
       setPhone("");
