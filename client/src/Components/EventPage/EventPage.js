@@ -11,6 +11,7 @@ import logo_w from "./carousel/logo_w.svg";
 import Spotify from "../Spotify/Spotify";
 import Instagram from "../Instagram/Instagram";
 import Explain from "../Explain/Explain";
+import BattleSign from "../BattleSign/BattleSign";
 
 const EventPage = ({ passedEventId }) => {
   const location = useLocation();
@@ -500,6 +501,7 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
+            <BattleSign />
             <Explain />
             <div className="event-page-slider">
               {isLoading ? (

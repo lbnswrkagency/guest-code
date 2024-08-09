@@ -1,37 +1,169 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 import "./BattleSign.scss";
 
 function BattleSign() {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [categories, setCategories] = useState({
+    allStyles: false,
+    afroStyles: false,
+    dancehall: false,
+  });
+
+  const battleCategories = [
+    { id: "allStyles", label: "All Styles" },
+    { id: "afroStyles", label: "Afro Styles" },
+    { id: "dancehall", label: "Dancehall" },
+  ];
+
+  const handleCategoryChange = (category) => {
+    setCategories((prev) => ({ ...prev, [category]: !prev[category] }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !name ||
+      !phone ||
+      !email ||
+      !Object.values(categories).some((v) => v)
+    ) {
+      toast.error(
+        "Please fill in all required fields and select at least one category."
+      );
+      return;
+    }
+
+    const data = {
+      name,
+      phone,
+      email,
+      message,
+      categories: Object.keys(categories).filter((k) => categories[k]),
+    };
+
+    const loadingToast = toast.loading("Submitting your application...");
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/battleSign/add`,
+        data
+      );
+      toast.dismiss(loadingToast);
+      toast.success("Application submitted successfully!");
+      // Reset form fields here if needed
+      setName("");
+      setPhone("");
+      setEmail("");
+      setMessage("");
+      setCategories({
+        allStyles: false,
+        afroStyles: false,
+        dancehall: false,
+      });
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error("Error submitting application. Please try again.");
+      console.error("Application submission error:", error);
+    }
+  };
+
   return (
     <div className="battleSign">
+      <Toaster />
+
       <h1 className="battleSign-title">SPITIX BEACH BATTLE</h1>
-      <p className="battleSign-text">
-        Sign up for our Urban Dance Battle at the beach. Each Categories winner
-        wins 333€, the crowed decides the winner!
-      </p>
+      <div className="battleSign-info">
+        <p className="battleSign-text">
+          Join the 1 vs 1 Dance Battles at the beach! The crowd picks the
+          winner!
+        </p>
+        <div className="battleSign-event-details">
+          <p className="battleSign-date">04.09.2024</p>
+          <p className="battleSign-day">Wednesday</p>
+          <p className="battleSign-time">START 8 PM</p>
+          <p className="battleSign-prize">333 € CASH PRIZE</p>
+          <p className="battleSign-prize-subtext">for each category</p>
+        </div>
+      </div>
 
-      <div className="battleSign-form">
-        <ratio>All Styles</ratio>
-        <ratio>Afro Styles</ratio>
-        <ratio>Dancehall</ratio>
+      <form onSubmit={handleSubmit} className="battleSign-form">
+        <h2 className="battleSign-form-title">Sign Up for the Battle</h2>
 
-        <input type="text" placeholder="" className="battleSign-form-name" />
+        <div className="battleSign-form-categories">
+          {battleCategories.map((category) => (
+            <label key={category.id} className="battleSign-form-category">
+              <input
+                type="checkbox"
+                checked={categories[category.id]}
+                onChange={() => handleCategoryChange(category.id)}
+              />
+              {category.label}
+            </label>
+          ))}
+        </div>
+
+        <div className="battleSign-form-prize">
+          <p>Prize for each category:</p>
+          <p>
+            <span className="prize-amount">333 €</span> CASH
+          </p>
+        </div>
+
         <input
           type="text"
-          placeholder="Phone"
-          className="battleSign-form-phone"
+          placeholder="Your Name"
+          className="battleSign-form-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
         />
         <input
-          type="text"
-          placeholder="Email"
+          type="tel"
+          placeholder="Your Phone Number"
+          className="battleSign-form-phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+        />
+        <input
+          type="email"
+          placeholder="Your Email"
           className="battleSign-form-email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <textarea
-          name=""
-          id=""
-          placeholder="Anything else you want us to know?"
+          placeholder="Anything you want us to know? or ask us"
           className="battleSign-form-text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
         ></textarea>
+
+        <button type="submit" className="battleSign-form-submit">
+          Join the Battle
+        </button>
+      </form>
+
+      <div className="battleSign-footer">
+        <p>Hosted by:</p>
+        <img
+          src="/path-to-afro-spiti-logo.png"
+          alt="Afro Spiti"
+          className="battleSign-footer-logo"
+        />
+        <img
+          src="/path-to-bolivar-logo.png"
+          alt="Bolivar"
+          className="battleSign-footer-logo"
+        />
       </div>
     </div>
   );
