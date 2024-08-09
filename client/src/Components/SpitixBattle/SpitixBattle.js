@@ -63,7 +63,7 @@ function SpitixBattle({ user, onClose }) {
                 className="spitixBattle-category-count"
                 onClick={() => toggleCategory(category)}
               >
-                Total Signups: {getCategoryCount(category)}
+                Total {getCategoryCount(category)}
                 <img
                   src="/image/arrow-up.svg"
                   alt=""
