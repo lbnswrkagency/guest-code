@@ -1,0 +1,53 @@
+.floating-battle {
+  position: fixed;
+  left: 20px;
+  bottom: 50px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease;
+  animation: float 2s ease-in-out infinite;
+  z-index: 1000;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &-text {
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+
+  &-arrow {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(1px);
+  }
+}

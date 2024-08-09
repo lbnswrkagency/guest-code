@@ -4,7 +4,6 @@ exports.createLineUp = async (req, res) => {
   const { name, role, title, event } = req.body;
   const avatar = req.file ? req.file.path : undefined; // Only set avatar if file is present
 
-  console.log("REQ BODY CREATE", req.body);
   try {
     const newLineUp = new LineUp({
       name,

@@ -12,6 +12,7 @@ import Spotify from "../Spotify/Spotify";
 import Instagram from "../Instagram/Instagram";
 import Explain from "../Explain/Explain";
 import BattleSign from "../BattleSign/BattleSign";
+import FloatingBattle from "../FloatingBattle/FloatingBattle";
 
 const EventPage = ({ passedEventId }) => {
   const location = useLocation();
@@ -20,6 +21,7 @@ const EventPage = ({ passedEventId }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const battleSignRef = useRef(null);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -262,6 +264,14 @@ const EventPage = ({ passedEventId }) => {
     }
   };
 
+  const scrollToBattleSign = () => {
+    if (battleSignRef.current) {
+      battleSignRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  };
   return (
     <div className="event-page-container">
       <p className="smartphone-message">USE YOUR SMARTPHONE</p>
@@ -282,6 +292,7 @@ const EventPage = ({ passedEventId }) => {
         ) : event ? (
           <>
             <header className="event-page-header">
+              <FloatingBattle onClick={scrollToBattleSign} />
               <div className="event-page-header-navigation">
                 <img
                   src={
@@ -501,7 +512,7 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
-            <BattleSign />
+
             <Explain />
             <div className="event-page-slider">
               {isLoading ? (
@@ -571,6 +582,7 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
+            <BattleSign ref={battleSignRef} />
             <Instagram />
             <div ref={locationRef} className="event-page-location">
               <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>

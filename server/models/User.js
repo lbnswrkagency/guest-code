@@ -16,6 +16,7 @@ const UserSchema = new Schema({
   isStaff: { type: Boolean, default: false },
   isDeveloper: { type: Boolean, default: false },
   isBackstage: { type: Boolean, default: false },
+  isSpitixBattle: { type: Boolean, default: false },
   isTable: { type: Boolean, default: false },
   backstageCodeLimit: { type: Number, default: false },
   friendsCodeLimit: { type: Number, default: false },

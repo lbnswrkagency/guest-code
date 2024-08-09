@@ -8,6 +8,7 @@ const DashboardMenu = ({
   setShowSettings,
   setShowStatistic,
   setShowScanner,
+  setShowSpitixBattle,
   setShowDropFiles,
   setCodeType,
 }) => {
@@ -103,6 +104,19 @@ const DashboardMenu = ({
             />
           </button>
           <p className="menuDashboard-button-title">Scanner</p>
+        </div>
+      )}
+
+      {user.isSpitixBattle && (
+        <div className="menuDashboard-button">
+          <button onClick={() => setShowSpitixBattle(true)}>
+            <img
+              src="/image/statistic-icon.svg"
+              alt=""
+              className="menuDashboard-button-icon"
+            />
+          </button>
+          <p className="menuDashboard-button-title">Spitix Battle</p>
         </div>
       )}
     </div>

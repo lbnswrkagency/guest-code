@@ -22,6 +22,7 @@ import Navigation from "../Navigation/Navigation";
 import DashboardStatus from "../DashboardStatus/DashboardStatus";
 import DashboardHeader from "../DashboardHeader/DashboardHeader";
 import DashboardMenu from "../DashboardMenu/DashboardMenu";
+import SpitixBattle from "../SpitixBattle/SpitixBattle";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -31,6 +32,7 @@ const Dashboard = () => {
   const [showStatistic, setShowStatistic] = useState(false);
   const [userCounts, setUserCounts] = useState({});
   const [showRanking, setShowRanking] = useState(false);
+  const [showSpitixBattle, setShowSpitixBattle] = useState(false);
   const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
   const [isCropMode, setIsCropMode] = useState(false);
@@ -199,6 +201,12 @@ const Dashboard = () => {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
 
+  if (showSpitixBattle) {
+    return (
+      <SpitixBattle user={user} onClose={() => setShowSpitixBattle(false)} />
+    );
+  }
+
   if (showStatistic) {
     return (
       <Statistic
@@ -287,6 +295,7 @@ const Dashboard = () => {
           setShowStatistic={setShowStatistic}
           setShowScanner={setShowScanner}
           setShowDropFiles={setShowDropFiles}
+          setShowSpitixBattle={setShowSpitixBattle}
           setCodeType={setCodeType}
         />
 

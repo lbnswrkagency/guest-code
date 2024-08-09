@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "./BattleSign.scss";
 
-function BattleSign() {
+const BattleSign = forwardRef((props, ref) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -75,7 +75,7 @@ function BattleSign() {
   };
 
   return (
-    <div className="battleSign">
+    <div ref={ref} className="battleSign">
       <Toaster />
 
       <h1 className="battleSign-title">SPITIX BEACH BATTLE</h1>
@@ -155,18 +155,18 @@ function BattleSign() {
       <div className="battleSign-footer">
         <p>Hosted by:</p>
         <img
-          src="/path-to-afro-spiti-logo.png"
+          src="/image/logo.svg"
           alt="Afro Spiti"
           className="battleSign-footer-logo"
         />
         <img
-          src="/path-to-bolivar-logo.png"
+          src="/image/bolivar.svg"
           alt="Bolivar"
           className="battleSign-footer-logo"
         />
       </div>
     </div>
   );
-}
+});
 
 export default BattleSign;
