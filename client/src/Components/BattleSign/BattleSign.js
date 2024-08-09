@@ -79,6 +79,14 @@ const BattleSign = forwardRef((props, ref) => {
       <Toaster />
 
       <h1 className="battleSign-title">SPITIX BEACH BATTLE</h1>
+      <div className="battleSign-flyer">
+        <img
+          src="/image/battle.png"
+          alt="Beach Battle Flyer"
+          className="battleSign-flyer-image"
+        />
+        <div className="battleSign-flyer-overlay"></div>
+      </div>
       <div className="battleSign-info">
         <p className="battleSign-text">
           Join the 1 vs 1 Dance Battles at the beach! The crowd picks the
@@ -88,6 +96,7 @@ const BattleSign = forwardRef((props, ref) => {
           <p className="battleSign-date">04.09.2024</p>
           <p className="battleSign-day">Wednesday</p>
           <p className="battleSign-time">START 8 PM</p>
+          <p className="battleSign-day">AT BOLIVAR BEACH BAR</p>
           <p className="battleSign-prize">333 € CASH PRIZE</p>
           <p className="battleSign-prize-subtext">for each category</p>
         </div>
