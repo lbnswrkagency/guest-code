@@ -93,17 +93,35 @@ const BattleSign = forwardRef((props, ref) => {
         <div className="battleSign-flyer-overlay"></div>
       </div>
       <div className="battleSign-info">
-        <p className="battleSign-text">
-          Join the 1 vs 1 Dance Battles at the beach! The crowd picks the
-          winner!
-        </p>
-        <div className="battleSign-event-details">
-          <p className="battleSign-date">04.09.2024</p>
-          <p className="battleSign-day">Wednesday</p>
-          <p className="battleSign-time">START 8 PM</p>
-          <p className="battleSign-day">AT BOLIVAR BEACH BAR</p>
-          <p className="battleSign-prize">333 € CASH PRIZE</p>
-          <p className="battleSign-prize-subtext">for each category</p>
+        <div className="battleSign-info-main">
+          <h2 className="battleSign-info-title">1 vs 1 Dance Battles</h2>
+          <p className="battleSign-info-subtitle">
+            The crowd picks the winner!
+          </p>
+        </div>
+        <div className="battleSign-info-details">
+          <div className="battleSign-info-col">
+            <span className="battleSign-info-label">Date</span>
+            <span className="battleSign-info-value">04.09.2024</span>
+            <span className="battleSign-info-subvalue">Wednesday</span>
+          </div>
+          <div className="battleSign-info-col">
+            <span className="battleSign-info-label">Time</span>
+            <span className="battleSign-info-value">20:00</span>
+            <span className="battleSign-info-subvalue">H</span>
+          </div>
+          <div className="battleSign-info-col">
+            <span className="battleSign-info-label">Venue</span>
+            <span className="battleSign-info-value">Bolivar</span>
+            <span className="battleSign-info-subvalue">Beach Bar</span>
+          </div>
+        </div>
+        <div className="battleSign-info-prize">
+          <span className="battleSign-info-prize-label">Cash Prize</span>
+          <span className="battleSign-info-prize-value">333 €</span>
+          <span className="battleSign-info-prize-subvalue">
+            for each category
+          </span>
         </div>
       </div>
 
