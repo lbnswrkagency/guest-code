@@ -1,0 +1,6 @@
+1.) User und User Rollen definieren, konzipieren
+--- Jeder User kann events angehören und hat für diese Events unterschiedliche Rechte
+--- Jeder User kann brands folgen/angehören(?)
+
+2.) Brand/Event Creation finalisieren, konzipieren
+--- Jeder User kann ein Brand erstellen unter der die Events laufen
