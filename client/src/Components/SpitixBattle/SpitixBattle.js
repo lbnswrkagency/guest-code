@@ -3,6 +3,8 @@ import axios from "axios";
 import moment from "moment";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
+import ActionButtons from "../ActionButtons/ActionButtons";
+import { toast, Toaster } from "react-hot-toast";
 import "./SpitixBattle.scss";
 
 function SpitixBattle({ user, onClose }) {
@@ -34,9 +36,23 @@ function SpitixBattle({ user, onClose }) {
 
   const categories = ["allStyles", "afroStyles", "dancehall"];
 
+  const confirmRoute = (id) =>
+    `${process.env.REACT_APP_API_BASE_URL}/battleSign/confirm/${id}`;
+  const declineRoute = (id) =>
+    `${process.env.REACT_APP_API_BASE_URL}/battleSign/decline/${id}`;
+  const resetRoute = (id) =>
+    `${process.env.REACT_APP_API_BASE_URL}/battleSign/reset/${id}`;
+
   const getCategoryCount = (category) => {
     return battleSignups.filter((signup) =>
       signup.categories.includes(category)
+    ).length;
+  };
+
+  const getConfirmedCount = (category) => {
+    return battleSignups.filter(
+      (signup) =>
+        signup.categories.includes(category) && signup.status === "confirmed"
     ).length;
   };
 
@@ -44,11 +60,46 @@ function SpitixBattle({ user, onClose }) {
     setExpandedCategory(expandedCategory === category ? null : category);
   };
 
+  const handleConfirm = (updatedSignup) => {
+    const category = updatedSignup.categories[0]; // Assuming each signup is for one category
+    const confirmedCount = getConfirmedCount(category);
+
+    if (confirmedCount >= 16) {
+      toast.error(
+        `Maximum limit reached for ${category}. Cannot confirm more.`
+      );
+      return;
+    }
+
+    setBattleSignups(
+      battleSignups.map((signup) =>
+        signup._id === updatedSignup._id ? updatedSignup : signup
+      )
+    );
+  };
+
+  const handleDecline = (updatedSignup) => {
+    setBattleSignups(
+      battleSignups.map((signup) =>
+        signup._id === updatedSignup._id ? updatedSignup : signup
+      )
+    );
+  };
+
+  const handleReset = (updatedSignup) => {
+    setBattleSignups(
+      battleSignups.map((signup) =>
+        signup._id === updatedSignup._id ? updatedSignup : signup
+      )
+    );
+  };
+
   if (loading) return <div className="spitixBattle-loading">Loading...</div>;
   if (error) return <div className="spitixBattle-error">{error}</div>;
 
   return (
     <div className="spitixBattle">
+      <Toaster />
       <div className="spitixBattle-wrapper">
         <Navigation onBack={onClose} />
         <h1 className="spitixBattle-title">Spitix Beach Battle</h1>
@@ -58,9 +109,12 @@ function SpitixBattle({ user, onClose }) {
             <div key={category} className="spitixBattle-category">
               <h2 className="spitixBattle-category-title">
                 {category.charAt(0).toUpperCase() + category.slice(1)}
+                <span className="spitixBattle-category-count">
+                  {getConfirmedCount(category)}/16
+                </span>
               </h2>
               <div
-                className="spitixBattle-category-count"
+                className="spitixBattle-category-total"
                 onClick={() => toggleCategory(category)}
               >
                 Total {getCategoryCount(category)}
@@ -89,6 +143,22 @@ function SpitixBattle({ user, onClose }) {
                             {signup.message}
                           </p>
                         )}
+                        <p className="spitixBattle-signup-status">
+                          Status: {signup.status || "pending"}
+                        </p>
+                        <ActionButtons
+                          item={signup}
+                          onConfirm={handleConfirm}
+                          onDecline={handleDecline}
+                          onReset={handleReset}
+                          token={user.token}
+                          confirmRoute={confirmRoute}
+                          declineRoute={declineRoute}
+                          resetRoute={resetRoute}
+                          confirmLabel="Approve"
+                          declineLabel="Reject"
+                          resetLabel="Reset"
+                        />
                       </div>
                     ))}
                 </div>

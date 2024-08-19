@@ -10,6 +10,11 @@ const BattleSignSchema = new Schema(
     categories: [
       { type: String, enum: ["allStyles", "afroStyles", "dancehall"] },
     ],
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "declined"],
+      default: "pending",
+    },
   },
   {
     timestamps: true,

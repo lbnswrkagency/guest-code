@@ -274,7 +274,7 @@ const createTicketPDFInvitation = async (
 
         <div class="event-location">
           <h3>Location</h3>
-          <p>Bolivar<br />Leof. Poseidonos<br />Alimos 174 55<br /></p>
+          <p>Bolivar<br />Leof. Poseidonos<br />174 55, Athens<br /></p>
         </div>
         <svg
           width="248"
