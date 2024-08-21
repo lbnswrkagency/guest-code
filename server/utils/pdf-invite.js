@@ -262,7 +262,7 @@ const createTicketPDFInvitation = async (
           <h3>Line Up</h3>
           <p>Hulk</p>
           <p>Hendricks</p>
-          <p>Paco</p>
+          <p>Chris K (Berlin)</p>
           <p>Dim Kay</p>
           <p>J Fyah</p>
         </div>
