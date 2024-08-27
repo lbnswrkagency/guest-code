@@ -21,9 +21,11 @@ const FloatingBattle = ({ onClick }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="floating-battle" onClick={onClick}>
-      <span className="floating-battle-text">Beach Battle Sign Up</span>
-      <div className="floating-battle-arrow"></div>
+    <div className="floating-battle-container">
+      <div className="floating-battle" onClick={onClick}>
+        <span className="floating-battle-text">Beach Battle Sign Up</span>
+        <div className="floating-battle-arrow"></div>
+      </div>
     </div>
   );
 };
