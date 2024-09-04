@@ -388,7 +388,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Paco</p>
+                        <p className="djs-single-name">Dim Kay</p>
                       </div>
                       {/* <div className="djs-single">
                         <img
@@ -408,7 +408,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>WED 28 AUGUST 2024</p>
+                    <p>WED 09 SEPUST 2024</p>
                   </div>
 
                   <img
@@ -498,7 +498,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 28.08.2024 · 09 PM
+                Wednesday · 04.09.2024 · 09 PM
               </p>
 
               <div
@@ -539,7 +539,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 23H
                   </p>
-                  <p>BOLIVAR - Wednesday - 28.08.2024</p>
+                  <p>BOLIVAR - Wednesday - 04.09.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
