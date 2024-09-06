@@ -388,7 +388,11 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
+<<<<<<< HEAD
                         <p className="djs-single-name">Deeze (Cyprus)</p>
+=======
+                        <p className="djs-single-name">Dim Kay</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                       </div>
                       {/* <div className="djs-single">
                         <img
@@ -408,7 +412,11 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
+<<<<<<< HEAD
                     <p>WED 11 SEP 2024</p>
+=======
+                    <p>WED 09 SEPUST 2024</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                   </div>
 
                   <img
@@ -498,7 +506,11 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
+<<<<<<< HEAD
                 Wednesday · 11.09.2024 · 09 PM
+=======
+                Wednesday · 04.09.2024 · 09 PM
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
               </p>
 
               <div
@@ -539,7 +551,11 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 23H
                   </p>
+<<<<<<< HEAD
                   <p>BOLIVAR - Wednesday - 11.09.2024</p>
+=======
+                  <p>BOLIVAR - Wednesday - 04.09.2024</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"

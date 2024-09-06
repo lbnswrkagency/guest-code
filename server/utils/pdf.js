@@ -248,7 +248,11 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
+<<<<<<< HEAD
           <p>Wednesday, 11.09.2024</p>
+=======
+          <p>Wednesday, 04.09.2024</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
         </div>
 
         <div class="event-beats">
@@ -260,7 +264,11 @@ const createTicketPDF = async (
           <h3>Line Up</h3>
           <p>Hulk</p>
           <p>Hendricks</p>
+<<<<<<< HEAD
           <p>Deeze (Cyprus)</p>
+=======
+          <p>Dim Kay</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
           <p>J Fyah</p>
         </div>
 

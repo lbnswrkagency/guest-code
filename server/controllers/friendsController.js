@@ -65,7 +65,11 @@ const addFriendsCode = async (req, res) => {
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Wednesday</p>
+<<<<<<< HEAD
                              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">11.09.2024</p>
+=======
+                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">04.09.2024</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                          <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">09 PM</p>
                 </div>
             </div>
@@ -78,7 +82,11 @@ const addFriendsCode = async (req, res) => {
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
+<<<<<<< HEAD
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Deeze (Cyprus)</p>
+=======
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
+>>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                     </div>
 
               </div>
