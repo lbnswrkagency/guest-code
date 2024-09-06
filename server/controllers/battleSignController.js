@@ -2,7 +2,9 @@ const BattleSign = require("../models/battleSignModel");
 
 const addBattleSign = async (req, res) => {
   const { name, phone, email, message, categories } = req.body;
+
   console.log("REQ BODY", req.body);
+
   try {
     const createdBattleSign = await BattleSign.create({
       name,
