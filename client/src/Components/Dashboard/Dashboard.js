@@ -201,11 +201,11 @@ const Dashboard = () => {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
 
-  if (showSpitixBattle) {
-    return (
-      <SpitixBattle user={user} onClose={() => setShowSpitixBattle(false)} />
-    );
-  }
+  // if (showSpitixBattle) {
+  //   return (
+  //     <SpitixBattle user={user} onClose={() => setShowSpitixBattle(false)} />
+  //   );
+  // }
 
   if (showStatistic) {
     return (
@@ -295,7 +295,7 @@ const Dashboard = () => {
           setShowStatistic={setShowStatistic}
           setShowScanner={setShowScanner}
           setShowDropFiles={setShowDropFiles}
-          setShowSpitixBattle={setShowSpitixBattle}
+          // setShowSpitixBattle={setShowSpitixBattle}
           setCodeType={setCodeType}
         />
 

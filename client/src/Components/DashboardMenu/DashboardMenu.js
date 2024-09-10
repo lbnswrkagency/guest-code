@@ -107,7 +107,7 @@ const DashboardMenu = ({
         </div>
       )}
 
-      {user.isSpitixBattle && (
+      {/* {user.isSpitixBattle && (
         <div className="menuDashboard-button">
           <button onClick={() => setShowSpitixBattle(true)}>
             <img
@@ -118,7 +118,7 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Spitix Battle</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
