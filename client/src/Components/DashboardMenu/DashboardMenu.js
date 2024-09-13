@@ -8,8 +8,8 @@ const DashboardMenu = ({
   setShowSettings,
   setShowStatistic,
   setShowScanner,
-  setShowSpitixBattle,
-  setShowDropFiles,
+  // setShowSpitixBattle,
+  // setShowDropFiles,
   setCodeType,
 }) => {
   const navigate = useNavigate();

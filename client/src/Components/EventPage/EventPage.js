@@ -362,7 +362,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Dim Kay</p>
                         <p className="origin">BERLIN</p>
                       </div> */}
 
@@ -376,15 +376,15 @@ const EventPage = ({ passedEventId }) => {
                       </div>
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.jpg"
+                          src="./image/Dim Kay.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Dim Kay</p>
                       </div>
                       <div className="djs-single">
                         <img
-                          src="./image/Deeze (Cyprus).png"
+                          src="./image/Gelo.png"
                           alt=""
                           className="djs-single-image"
                         />
@@ -396,7 +396,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Deeze (Cyprus)</p>
+                        <p className="djs-single-name">Gelo</p>
                       </div> */}
                     </div>
                   </div>
@@ -408,7 +408,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>WED 11 SEP 2024</p>
+                    <p>WED 18 SEP 2024</p>
                   </div>
 
                   <img
@@ -498,7 +498,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 11.09.2024 · 09 PM
+                Wednesday · 18.092024 · 09 PM
               </p>
 
               <div
@@ -539,7 +539,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 23H
                   </p>
-                  <p>BOLIVAR - Wednesday - 11.09.2024</p>
+                  <p>BOLIVAR - Wednesday - 18.092024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
