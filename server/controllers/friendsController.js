@@ -66,7 +66,7 @@ const addFriendsCode = async (req, res) => {
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Wednesday</p>
 <<<<<<< HEAD
-                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">18.092024</p>
+                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">25.09.2024</p>
 =======
                              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">04.09.2024</p>
 >>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
@@ -81,11 +81,11 @@ const addFriendsCode = async (req, res) => {
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
 <<<<<<< HEAD
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Gelo</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Ben Palace (Belgium)</p>
 =======
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
 >>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
                     </div>
 
