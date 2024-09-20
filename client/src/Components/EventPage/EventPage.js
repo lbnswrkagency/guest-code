@@ -355,17 +355,17 @@ const EventPage = ({ passedEventId }) => {
                         <p className="djs-single-name">Hulk</p>
                         <p className="origin">BELGIUM</p>
                       </div>
+                      */}
 
                       <div className="djs-single djs-single-guest">
                         <img
-                          src="./image/hendricks.jpg"
+                          src="./image/ben.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
-                        <p className="origin">BERLIN</p>
-                      </div> */}
-
+                        <p className="djs-single-name">Ben Palace</p>
+                        <p className="origin">BELGIUM</p>
+                      </div>
                       <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -382,14 +382,7 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hendricks</p>
                       </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/Ben Palace (Belgium).png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hendricks</p>
-                      </div>
+
                       {/* <div className="djs-single">
                         <img
                           src="./image/dimkay.jpg"
