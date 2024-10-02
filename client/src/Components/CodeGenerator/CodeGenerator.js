@@ -41,11 +41,22 @@ function CodeGenerator({
   }, [user, type, weeklyCount, limit]);
 
   const handleCode = async () => {
+    console.log(
+      "Attempting to generate code. Current remaining count:",
+      remainingCount
+    );
+    console.log("Current limit:", limit);
+
     if (!name || (type === "Table" && (!pax || !tableNumber))) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
+    if (limit !== undefined && remainingCount <= 0) {
+      console.log("Limit reached. Cannot generate more codes.");
+      toast.error(`You've reached your ${type} code limit for this week.`);
+      return;
+    }
     // Determine if the selected table is a Backstage or DJ table and should have a backstage pass
     const isBackstageOrDJTable = [
       "B1",
@@ -90,6 +101,16 @@ function CodeGenerator({
       refreshCounts();
       toast.success(`${type} Code generated!`);
       setTableNumber(""); // Reset table number selection
+
+      // Update remaining count
+      if (limit !== undefined) {
+        setRemainingCount((prevCount) => {
+          const newCount = prevCount - 1;
+          console.log("Updated remaining count:", newCount);
+          return newCount;
+        });
+      }
+
       toast.dismiss();
     } catch (error) {
       toast.error("Error generating code.");
