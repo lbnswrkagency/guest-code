@@ -62,7 +62,7 @@ const EventPage = ({ passedEventId }) => {
 
   const dateRef = useRef(null);
 
-  const address = "Bolivar Beach Bar";
+  const address = "Studio 24 Baby Disco";
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     address
   )}`;
@@ -75,7 +75,7 @@ const EventPage = ({ passedEventId }) => {
   };
 
   const handleInstagramClick = () => {
-    window.open("https://www.instagram.com/bolivarbeachbar/", "_blank");
+    window.open("https://www.instagram.com/babydisco24/", "_blank");
   };
 
   const copyAddressToClipboard = async (text) => {
@@ -353,19 +353,10 @@ const EventPage = ({ passedEventId }) => {
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hulk</p>
-                        <p className="origin">BELGIUM</p>
+                        <p className="origin"></p>
                       </div>
                       */}
 
-                      <div className="djs-single djs-single-guest">
-                        <img
-                          src="./image/ben.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Ben Palace</p>
-                        <p className="origin">BELGIUM</p>
-                      </div>
                       <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -382,14 +373,22 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hendricks</p>
                       </div>
-
+                      <div className="djs-single djs-single-guest">
+                        <img
+                          src="./image/dimkay.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Dim Kay</p>
+                        <p className="origin"></p>
+                      </div>
                       {/* <div className="djs-single">
                         <img
                           src="./image/dimkay.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Ben Palace (Belgium)</p>
+                        <p className="djs-single-name">Dim Kay </p>
                       </div> */}
                     </div>
                   </div>
@@ -401,7 +400,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>WED 25 SEP 2024</p>
+                    <p>SUN 13 OCT 2024</p>
                   </div>
 
                   <img
@@ -425,7 +424,7 @@ const EventPage = ({ passedEventId }) => {
                     Generate GuestCode
                   </button>
 
-                  <p>free entrance til 23H</p>
+                  <p>free entrance until 00:30 H</p>
                 </div>
               </div>
 
@@ -491,7 +490,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Wednesday · 25.09.2024 · 09 PM
+                Sunday · 13.10.2024 · 23:00 H
               </p>
 
               <div
@@ -501,7 +500,7 @@ const EventPage = ({ passedEventId }) => {
                 <img src="./image/location.svg" alt="" />
 
                 <p>
-                  <b>Bolivar</b> · Leof. Poseidonos · Alimos 174 55
+                  <b>Studio 24</b> · Dekeleon 26 · Athens · 118 54
                 </p>
               </div>
             </div>
@@ -530,9 +529,9 @@ const EventPage = ({ passedEventId }) => {
                 <h1 className="event-page-guestcode-title">GUEST CODE</h1>
                 <div className="event-page-guestcode-form">
                   <p className="event-page-guestcode-condition">
-                    free entrance until 23H
+                    free entrance until 00:30 H
                   </p>
-                  <p>BOLIVAR - Wednesday - 25.09.2024</p>
+                  <p>Studio 24 - Sunday - 13.10.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
@@ -578,14 +577,16 @@ const EventPage = ({ passedEventId }) => {
             {/* <BattleSign ref={battleSignRef} /> */}
             <Instagram />
             <div ref={locationRef} className="event-page-location">
-              <h2 className="event-page-location-subtitle">MAIN LOCATION</h2>
+              <h2 className="event-page-location-subtitle">
+                WINTER SEASON LOCATION
+              </h2>
               <img
-                src="/image/bolivar.svg"
+                src="/image/studio.svg"
                 alt=""
                 className="event-page-location-logo"
               />
               <img
-                src="/pageContent/rest/LOCATION.png"
+                src="/pageContent/rest/studio.svg"
                 alt=""
                 className="event-page-location-image"
               />
@@ -605,7 +606,7 @@ const EventPage = ({ passedEventId }) => {
                   onClick={handleInstagramClick}
                 >
                   <img src="./image/ig_button.svg" alt="" />
-                  <p>@bolivarbeachbar</p>
+                  <p>@babydisco24</p>
                 </button>
               </div>
             </div>

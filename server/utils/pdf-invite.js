@@ -250,11 +250,7 @@ const createTicketPDFInvitation = async (
 
         <div class="event-date">
           <h3>Date</h3>
-<<<<<<< HEAD
-          <p>Wednesday, 25.09.2024</p>
-=======
-          <p>Wednesday, 04.09.2024</p>
->>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
+          <p>Sunday, 13.10.2024</p>
         </div>
 
         <div class="event-beats">
@@ -266,22 +262,18 @@ const createTicketPDFInvitation = async (
           <h3>Line Up</h3>
           <p>Hulk</p>
           <p>Hendricks</p>
-<<<<<<< HEAD
-          <p>Ben Palace (Belgium)</p>
-=======
-          <p>Hendricks</p>
->>>>>>> a69bb9eafd235099c60a167f5fbe9e2a732fadd9
+          <p>Dim Kay </p>
           <p>J Fyah</p>
         </div>
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>09 PM</p>
+          <p>23:00 H</p>
         </div>
 
         <div class="event-location">
           <h3>Location</h3>
-          <p>Bolivar<br />Leof. Poseidonos<br />174 55, Athens<br /></p>
+          <p>Studio 24<br />Dekeleon 26<br />188 54, Athens<br /></p>
         </div>
         <svg
           width="248"

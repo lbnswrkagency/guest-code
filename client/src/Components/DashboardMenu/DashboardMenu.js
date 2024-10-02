@@ -54,8 +54,8 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Backstage Code</p>
         </div>
       )}
-
-      {/* {(user.isAdmin || user.isTable) && (
+      {/* 
+      {(user.isAdmin || user.isTable) && (
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Table")}>
             <img

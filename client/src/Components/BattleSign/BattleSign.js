@@ -102,8 +102,8 @@ const BattleSign = forwardRef((props, ref) => {
         <div className="battleSign-info-details">
           <div className="battleSign-info-col">
             <span className="battleSign-info-label">Date</span>
-            <span className="battleSign-info-value">25.09.2024</span>
-            <span className="battleSign-info-subvalue">Wednesday</span>
+            <span className="battleSign-info-value">13.10.2024</span>
+            <span className="battleSign-info-subvalue">Sunday</span>
           </div>
           <div className="battleSign-info-col">
             <span className="battleSign-info-label">Time</span>
@@ -112,8 +112,8 @@ const BattleSign = forwardRef((props, ref) => {
           </div>
           <div className="battleSign-info-col">
             <span className="battleSign-info-label">Venue</span>
-            <span className="battleSign-info-value">Bolivar</span>
-            <span className="battleSign-info-subvalue">Beach Bar</span>
+            <span className="battleSign-info-value">Studio 24</span>
+            <span className="battleSign-info-subvalue">Baby Disco</span>
           </div>
         </div>
         <div className="battleSign-info-prize">
@@ -192,8 +192,8 @@ const BattleSign = forwardRef((props, ref) => {
           className="battleSign-footer-logo"
         />
         <img
-          src="/image/bolivar.svg"
-          alt="Bolivar"
+          src="/image/studio.svg"
+          alt="Studio 24"
           className="battleSign-footer-logo"
         />
       </div>

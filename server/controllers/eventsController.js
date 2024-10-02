@@ -191,11 +191,11 @@ exports.generateGuestCode = async (req, res) => {
       startOfWeek.getDate() -
         startOfWeek.getDay() +
         (startOfWeek.getDay() === 0 ? -6 : 1)
-    ); // Adjust to your week start (Wednesday or Monday)
+    ); // Adjust to your week start (Sunday or Monday)
 
     if (existingGuestCode && existingGuestCode.createdAt >= startOfWeek) {
       return res.status(400).json({
-        error: "You still have a usable Guest Code for this Wednesday.",
+        error: "You still have a usable Guest Code for this Sunday.",
       });
     }
 
