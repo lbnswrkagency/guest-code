@@ -367,7 +367,7 @@ const EventPage = ({ passedEventId }) => {
                       </div>
                       <div className="djs-single">
                         <img
-                          src="./image/Hendricks.jpg"
+                          src="./image/hendricks.jpg"
                           alt=""
                           className="djs-single-image"
                         />
@@ -585,11 +585,11 @@ const EventPage = ({ passedEventId }) => {
                 alt=""
                 className="event-page-location-logo"
               />
-              <img
+              {/* <img
                 src="/pageContent/rest/studio.svg"
                 alt=""
                 className="event-page-location-image"
-              />
+              /> */}
 
               <div className="event-page-location-button">
                 <button
