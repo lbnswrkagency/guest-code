@@ -36,27 +36,45 @@ function CodeGenerator({
         : type === "Friends"
         ? user.friendsCodeLimit
         : undefined;
-    setLimit(newLimit);
-    setRemainingCount(newLimit ? newLimit - weeklyCount : weeklyCount);
-  }, [user, type, weeklyCount, limit]);
+
+    // If newLimit is 0, treat it as undefined (no limit)
+    setLimit(newLimit === 0 ? undefined : newLimit);
+
+    // If newLimit is 0 or undefined, just use weeklyCount, otherwise calculate remaining
+    setRemainingCount(
+      newLimit === 0 || newLimit === undefined
+        ? weeklyCount
+        : newLimit - weeklyCount
+    );
+
+    console.log("Type:", type);
+    console.log("New limit set:", newLimit === 0 ? "No limit" : newLimit);
+    console.log("Weekly count:", weeklyCount);
+    console.log(
+      "New remaining count set:",
+      newLimit === 0 ? "No limit" : newLimit - weeklyCount
+    );
+  }, [user, type, weeklyCount]);
 
   const handleCode = async () => {
     console.log(
       "Attempting to generate code. Current remaining count:",
       remainingCount
     );
-    console.log("Current limit:", limit);
+    console.log("Current limit:", limit === undefined ? "No limit" : limit);
 
     if (!name || (type === "Table" && (!pax || !tableNumber))) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    if (limit !== undefined && remainingCount <= 0) {
+    // Only check limit if it's defined and not zero
+    if (limit !== undefined && limit !== 0 && remainingCount <= 0) {
       console.log("Limit reached. Cannot generate more codes.");
       toast.error(`You've reached your ${type} code limit for this week.`);
       return;
     }
+
     // Determine if the selected table is a Backstage or DJ table and should have a backstage pass
     const isBackstageOrDJTable = [
       "B1",
@@ -102,11 +120,18 @@ function CodeGenerator({
       toast.success(`${type} Code generated!`);
       setTableNumber(""); // Reset table number selection
 
-      // Update remaining count
-      if (limit !== undefined) {
+      // Update remaining count only if there's a limit
+      if (limit !== undefined && limit !== 0) {
         setRemainingCount((prevCount) => {
           const newCount = prevCount - 1;
           console.log("Updated remaining count:", newCount);
+          return newCount;
+        });
+      } else {
+        // If no limit, just increment the count
+        setRemainingCount((prevCount) => {
+          const newCount = prevCount + 1;
+          console.log("Updated count (no limit):", newCount);
           return newCount;
         });
       }
@@ -172,7 +197,11 @@ function CodeGenerator({
         />
 
         <div className="code-count">
-          <h4>{limit ? "Remaining This Week" : "This Week's Count"}</h4>
+          <h4>
+            {limit === undefined || limit === 0
+              ? "This Week's Count"
+              : "Remaining This Week"}
+          </h4>
           <div className="code-count-number">
             <p>{remainingCount}</p>
           </div>

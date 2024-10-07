@@ -58,3 +58,4 @@ send-invites-email.js
 clean-invites.js
 /invites
 outputFile.txt
+summary.js

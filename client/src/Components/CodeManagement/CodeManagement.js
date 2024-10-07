@@ -173,10 +173,20 @@ function CodeManagement({
         }/code/${type.toLowerCase()}/code/${codeId}`,
         { responseType: "blob" }
       );
+
+      // Find the code object
+      const code = codes.find((c) => c._id === codeId);
+
+      // Create a filename based on the code's name and type
+      let filename = `${code.name}-${type}Code.png`;
+
+      // Replace any characters that might not be valid in filenames
+      filename = filename.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `code-${codeId}.png`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
