@@ -9,7 +9,7 @@
   width: 100%;
 
   display: grid;
-  grid-template-columns: 0.15fr 0.15fr 0.4fr 0.15fr 0.15fr;
+  grid-template-columns: repeat(3, 1fr);
   justify-items: center;
   align-items: center;
 
@@ -32,5 +32,9 @@
 
   &-menu {
     visibility: hidden;
+  }
+
+  &-arrow {
+    fill: white;
   }
 }

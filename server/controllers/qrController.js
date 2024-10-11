@@ -345,9 +345,6 @@ const getUserSpecificCounts = async (req, res) => {
       (backstageCounts[0]?.totalChecked || 0) +
       (tableCounts[0]?.totalChecked || 0);
 
-    // console.log("TOTAL GENERATED", totalGenerated);
-    // console.log("TOTAL CHECKED", totalChecked);
-
     res.json({
       totalGenerated,
       totalChecked,

@@ -90,10 +90,11 @@ function CodeGenerator({
       "B11",
       "B12",
     ].includes(tableNumber);
+
     let data = {
       name,
       event: user.events,
-      host: user.firstName || user.firstName, // Use user.firstName if it exists, otherwise use user.userName
+      host: user.firstName || user.userName, // Use user.firstName if it exists, otherwise use user.userName
       condition: conditionText(type),
       hostId: user._id,
       pax,
@@ -109,12 +110,24 @@ function CodeGenerator({
     toast.loading(`Generating ${type} Code...`);
 
     try {
-      const response = await axios.post(
+      // First, create the code
+      const createResponse = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,
-        data,
+        data
+      );
+
+      const createdCode = createResponse.data; // This is your created code object
+      const codeId = createdCode._id;
+
+      // Now, request the image
+      const imageResponse = await axios.get(
+        `${
+          process.env.REACT_APP_API_BASE_URL
+        }/code/${type.toLowerCase()}/code/${codeId}`,
         { responseType: "blob" }
       );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      const url = window.URL.createObjectURL(new Blob([imageResponse.data]));
       setDownloadUrl(url);
       refreshCounts();
       toast.success(`${type} Code generated!`);

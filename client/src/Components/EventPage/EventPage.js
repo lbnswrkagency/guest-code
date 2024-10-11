@@ -11,6 +11,7 @@ import logo_w from "./carousel/logo_w.svg";
 import Spotify from "../Spotify/Spotify";
 import Instagram from "../Instagram/Instagram";
 import Explain from "../Explain/Explain";
+import RegisterBanner from "../RegisterBanner/RegisterBanner";
 // import BattleSign from "../BattleSign/BattleSign";
 // import FloatingBattle from "../FloatingBattle/FloatingBattle";
 
@@ -504,6 +505,8 @@ const EventPage = ({ passedEventId }) => {
                 </p>
               </div>
             </div>
+
+            {/* <RegisterBanner /> */}
 
             <Explain />
             <div className="event-page-slider">

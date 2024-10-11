@@ -17,28 +17,38 @@ const sendVerificationEmail = async (to, token) => {
   try {
     console.debug("Preparing verification email...");
 
-    // Configure the verification email
+    const verificationLink = `http://localhost:3000/verify/${token}`;
+
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: to }];
     sendSmtpEmail.sender = {
       name: "Afro Spiti",
       email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
     };
-    sendSmtpEmail.subject = "Guest Code - Email Verification";
-    sendSmtpEmail.htmlContent = `<h2>Welcome to Guest Code!</h2><p>Please verify your email by clicking on the link below:</p><a href="http://localhost:3000/verify/${token}">Verify Email</a>`;
+    sendSmtpEmail.subject = "Welcome to Afro Spiti - Verify Your Email";
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <img src="${logoBase64}" alt="Afro Spiti Logo" style="display: block; margin: 20px auto; max-width: 150px;">
+        <h1 style="color: #333; text-align: center;">Welcome to Afro Spiti!</h1>
+        <p style="color: #666; font-size: 16px; line-height: 1.5;">Thank you for joining our community. To complete your registration and access all features, please verify your email address by clicking the button below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationLink}" style="background-color: #ffc807; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
+        </div>
+        <p style="color: #666; font-size: 14px;">If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${verificationLink}</p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
+        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; font-size: 12px; color: #999;">
+          <p>© 2023 Afro Spiti. All rights reserved.</p>
+        </div>
+      </div>
+    `;
 
-    // Send the email
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    apiInstance.sendTransacEmail(sendSmtpEmail).then(
-      function (data) {
-        console.debug("Verification email sent successfully to:", to);
-      },
-      function (error) {
-        console.error("Error sending verification email:", error);
-      }
-    );
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.debug("Verification email sent successfully to:", to);
   } catch (error) {
-    console.error("Error preparing verification email:", error);
+    console.error("Error sending verification email:", error);
+    throw error; // Rethrow the error to be caught in the registration process
   }
 };
 
@@ -138,10 +148,11 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">
         <h1 style="font-size: 24px;">Hey ${name},</h1>
-        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti at Studio 24, this Sunday.</p>
+           <p style="font-size: 16px;">We wanted to say thank you for joining us in the past.</p>
+        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti - Winter Season Opening at Studio 24, this Sunday.</p>
         <h2 style="font-size: 18px;">You have free entrance all night with this invitation code.</h2>
-        <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned when you order.</p>
-        <p style="font-size: 16px;">Remember, your Invitation Code can be used once.</p>
+        <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
+        <p style="font-size: 16px;">Remember, your Invitation Code can only be used once.</p>
         <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>
         <p style="font-size: 16px; margin-bottom: 0;">Sincerely,</p>
         <br />

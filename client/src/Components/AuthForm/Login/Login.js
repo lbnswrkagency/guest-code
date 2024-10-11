@@ -1,14 +1,21 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../../../contexts/AuthContext";
-import "../AuthForm.scss";
-import AuthForm from "../AuthForm";
+import "./Login.scss";
+import { motion } from "framer-motion";
 
 const Login = () => {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
+  const [isFormValid, setIsFormValid] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
+
+  useEffect(() => {
+    setIsFormValid(
+      formData.identifier.trim() !== "" && formData.password.trim() !== ""
+    );
+  }, [formData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,11 +23,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid) return;
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
         formData,
-        { withCredentials: true } // Include this line
+        { withCredentials: true }
       );
 
       const { accessToken } = response.data;
@@ -56,16 +65,43 @@ const Login = () => {
   };
 
   return (
-    <AuthForm>
-      <div className="login-back-arrow" onClick={() => navigate("/")}>
-        <img src="/image/back-icon.svg" alt="" />
-      </div>
-      <img className="login-logo" src="/image/logo.svg" alt="" />
+    <div className="login-container">
+      <motion.div
+        className="login-back-arrow login-back-arrow-absolute"
+        onClick={() => navigate("/")}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <img src="/image/back-icon.svg" alt="Back" />
+      </motion.div>
 
-      <h2 className="login-title">Member Area</h2>
-      <form className="login-form" onSubmit={handleSubmit}>
+      <motion.img
+        className="login-logo"
+        src="/image/logo.svg"
+        alt="Logo"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      />
+
+      <motion.h2
+        className="login-title"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        Member Area
+      </motion.h2>
+
+      <motion.form
+        className="login-form"
+        onSubmit={handleSubmit}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
         <input
-          className="login-form-name"
+          className="login-input"
           type="text"
           name="identifier"
           placeholder="Username or Email"
@@ -73,21 +109,37 @@ const Login = () => {
           onChange={handleChange}
         />
         <input
-          className="login-form-password"
+          className="login-input"
           type="password"
           name="password"
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
         />
-        <button className="login-form-submit" type="submit">
+        <motion.button
+          className={`login-submit ${isFormValid ? "active" : "disabled"}`}
+          type="submit"
+          disabled={!isFormValid}
+          whileHover={isFormValid ? { scale: 1.05 } : {}}
+          whileTap={isFormValid ? { scale: 0.95 } : {}}
+        >
           Login
-        </button>
-      </form>
-      {/* <p>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p> */}
-    </AuthForm>
+        </motion.button>
+      </motion.form>
+
+      {/*
+      <motion.p
+        className="login-register-link"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.5 }}
+      >
+        Not a member yet?{" "}
+        <span onClick={() => navigate("/register")}>Register here</span>
+      </motion.p>
+
+*/}
+    </div>
   );
 };
 

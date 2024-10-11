@@ -28,73 +28,151 @@ $breakpoints: (
 }
 
 .register {
-  @include grid-row(2);
-  padding: 2rem;
-  margin-top: 10rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
   position: relative;
+  overflow: hidden;
+  background: #000;
+
+  &-logo {
+    position: absolute;
+    top: 7rem;
+    width: 7.5rem;
+  }
+
+  &-container {
+    background: #111;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
 
   &-title {
     text-align: center;
-    font-size: 20px;
-    font-style: normal;
+    font-size: 24px;
     font-weight: 700;
-    line-height: normal;
+    margin-bottom: 1.5rem;
+    color: #ffc807;
     text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   &-form {
-    @include grid-row(3);
-    grid-gap: 1rem;
-    margin-top: 2rem;
-    input {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .input-row {
       display: flex;
+      gap: 0.5rem;
+    }
+
+    .register-input {
       width: 100%;
-      height: 3rem;
-      padding: 16px 32px;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      border-radius: 5px;
-      border: 2px solid #fff;
-      background-color: #000 !important;
-      backdrop-filter: blur(8px);
+      padding: 10px 12px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background-color: #222;
       color: #fff;
+      font-size: 14px;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #ffc807;
+        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.1);
+      }
 
       &::placeholder {
-        color: #fff;
+        color: #666;
+      }
+    }
+
+    .birthday-input {
+      color: #fff;
+
+      &::-webkit-calendar-picker-indicator {
+        filter: invert(1);
       }
     }
 
     &-submit {
-      border-radius: 5px;
-
-      border-radius: 0.3125rem;
-      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%), #fff;
-      backdrop-filter: blur(8px);
-      display: flex;
-      width: 100%;
-      height: 3rem;
-      padding: 16px 32px;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
+      background: #ffc807;
       color: #000;
-      font-family: Manrope;
-      font-size: 16px;
-      font-style: normal;
-      font-weight: 700;
-      line-height: normal;
       border: none;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 0.5rem;
+
+      &.active {
+        &:hover {
+          background: #d1a300;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(255, 200, 7, 0.2);
+        }
+      }
+
+      &.disabled {
+        background: #444;
+        color: #888;
+        cursor: not-allowed;
+      }
     }
   }
 }
+
+// .login-back-arrow {
+//   position: absolute;
+//   top: 20px;
+//   left: 20px;
+//   color: #fff;
+//   cursor: pointer;
+//   font-size: 14px;
+//   display: flex;
+//   align-items: center;
+//   transition: all 0.2s ease;
+
+//   .arrow {
+//     margin-right: 6px;
+//     font-size: 18px;
+//   }
+
+//   &:hover {
+//     color: #ffc807;
+//   }
+// }
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px black inset !important;
-  box-shadow: 0 0 0 30px black inset !important;
+  -webkit-box-shadow: 0 0 0 30px #222 inset !important;
   -webkit-text-fill-color: white !important;
+}
+
+.register-login-link {
+  margin-top: 1rem;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+
+  span {
+    color: #ffc807;
+    cursor: pointer;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: darken(#ffc807, 10%);
+      text-decoration: underline;
+    }
+  }
 }

@@ -7,26 +7,20 @@ const { sendVerificationEmail } = require("../utils/email");
 exports.register = async (req, res) => {
   const { username, email, password, firstName, lastName, birthday } = req.body;
 
-  console.log("Received registration request with body:", req.body);
   try {
-    console.log("Checking for existing user with email or username...");
+    console.log("Checking for existing user...");
     let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
-      console.log("User found with same email or username:", {
-        email: user.email,
-        username: user.username,
-      });
+      console.log("User already exists");
       return res
         .status(400)
-        .json({ message: "Username or email already exists." });
+        .json({ success: false, message: "Username or email already exists." });
     }
 
-    console.log("No existing user found. Generating salt...");
+    console.log("Creating new user...");
     const salt = await bcrypt.genSalt(10);
-    console.log("Salt generated. Hashing password...");
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log("Password hashed. Creating user...");
 
     user = new User({
       username,
@@ -35,20 +29,23 @@ exports.register = async (req, res) => {
       email,
       birthday,
       password: hashedPassword,
+      events: ["654d4bf7b3cceeb4f02c13b5"], // Afro Spiti event ID
+      isPromoter: true,
+      friendsCodeLimit: 2,
     });
 
     console.log("Saving user...");
     await user.save();
-    console.log("User saved successfully. Generating JWT...");
 
+    console.log("Generating token...");
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log("JWT generated. Sending verification email...");
 
+    console.log("Sending verification email...");
     await sendVerificationEmail(user.email, token);
 
-    console.log("Verification email sent. Responding with success.");
+    console.log("Registration successful");
     res.json({
       success: true,
       message:
@@ -58,12 +55,11 @@ exports.register = async (req, res) => {
     console.error("Registration error:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error.",
+      message: "Registration failed. Please try again later.",
       error: error.message,
     });
   }
 };
-
 exports.verifyEmail = async (req, res) => {
   try {
     const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET);

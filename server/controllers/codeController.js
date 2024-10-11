@@ -159,7 +159,6 @@ const editCode = async (req, res) => {
   }
 };
 
-// New function for on-demand QR code generation
 const generateCodeImage = async (req, res) => {
   const { type, codeId } = req.params;
 
@@ -173,12 +172,10 @@ const generateCodeImage = async (req, res) => {
         model = BackstageCode;
         break;
       case "table":
-        model = TableCode; // Replace with your actual table code model
+        model = TableCode;
         break;
       default:
-        // Handle unknown type or return an error
-        res.status(400).send("Invalid code type!");
-        return;
+        return res.status(400).send("Invalid code type!");
     }
 
     const code = await model.findById(codeId);
@@ -189,8 +186,6 @@ const generateCodeImage = async (req, res) => {
 
     // Generate QR code
     const bufferImage = await QRCode.toDataURL(code._id.toString(), qrOption);
-
-    // Determine HTML template based on 'type'
 
     let htmlTemplate;
     if (type === "friends") {
@@ -500,15 +495,31 @@ const generateCodeImage = async (req, res) => {
       </html>`;
     }
 
-    // Generate image using nodeHtmlToImage
+    // Generate image with correct encoding
     const image = await nodeHtmlToImage({
       html: htmlTemplate,
       puppeteerArgs: { headless: true, args: ["--no-sandbox"] },
+      encoding: "buffer", // Ensure the image is returned as a Buffer
     });
 
-    // Return image as response
+    // Prepare filename
+    const filename = `${code.name
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase()}_${type}_code.png`;
+
+    // Set appropriate headers for file download
     res.setHeader("Content-Type", "image/png");
-    res.send(image);
+    res.setHeader("Content-Length", image.length);
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(
+        filename
+      )}`
+    );
+
+    // Send the image as response
+    res.end(image); // Buffer is sent directly
   } catch (error) {
     console.error("Error generating code image:", error);
     res.status(500).send("Internal Server Error");

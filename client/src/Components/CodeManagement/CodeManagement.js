@@ -180,10 +180,21 @@ function CodeManagement({
       // Create a filename based on the code's name and type
       let filename = `${code.name}-${type}Code.png`;
 
-      // Replace any characters that might not be valid in filenames
-      filename = filename.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      // Separate the filename and extension
+      const dotIndex = filename.lastIndexOf(".");
+      const namePart = filename.substring(0, dotIndex);
+      const extensionPart = filename.substring(dotIndex);
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Replace invalid characters in namePart
+      const sanitizedFilename = namePart
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+
+      // Reconstruct the full filename
+      filename = sanitizedFilename + extensionPart;
+
+      // Use response.data directly as it's already a Blob
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", filename);

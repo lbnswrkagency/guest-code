@@ -25,10 +25,13 @@ a:hover {
   display: grid;
 }
 
+.login-back-arrow-absolute {
+  position: absolute;
+  top: 3rem;
+  left: 3rem;
+}
+
 .login-back-arrow {
-  // position: absolute;
-  // top: 3rem;
-  // left: 3rem;
   z-index: 99;
   cursor: pointer;
 
