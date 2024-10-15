@@ -1,25 +1,39 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const FriendsCode = require("./models/FriendsCode"); // Update the path according to your folder structure
+const GuestCode = require("./models/GuestCode"); // Ensure the path is correct
 
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(async () => {
+async function updateLatestGuestCodesCondition() {
+  try {
+    // Connect to MongoDB
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log("Connected to MongoDB");
 
-    const result = await FriendsCode.updateMany(
-      {}, // Empty filter to match all documents
-      { $set: { condition: "FREE ENTRANCE ALL NIGHT" } }
+    // Fetch the latest 120 GuestCodes
+    const latestGuestCodes = await GuestCode.find()
+      .sort({ createdAt: -1 }) // Sort by creation date descending
+      .limit(120)
+      .select("_id"); // Select only the _id field
+
+    // Extract the IDs of these GuestCodes
+    const guestCodeIds = latestGuestCodes.map((guestCode) => guestCode._id);
+
+    // Update the condition field for these GuestCodes
+    const result = await GuestCode.updateMany(
+      { _id: { $in: guestCodeIds } },
+      { $set: { condition: "FREE ENTRANCE UNTIL 00:30H" } }
     );
 
-    console.log(`Updated ${result.nModified} FriendsCode(s)`);
-  })
-  .then(() => {
-    mongoose.disconnect();
-  })
-  .catch((err) => {
-    console.error("Database connection error:", err);
-  });
+    console.log(`Updated ${result.nModified} GuestCode(s)`);
+  } catch (err) {
+    console.error("Error updating GuestCodes:", err);
+  } finally {
+    // Disconnect from MongoDB
+    await mongoose.disconnect();
+    console.log("Disconnected from MongoDB");
+  }
+}
+
+updateLatestGuestCodesCondition();

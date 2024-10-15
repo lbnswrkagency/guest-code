@@ -380,7 +380,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Dim Kay</p>
+                        <p className="djs-single-name">Gelo</p>
                         <p className="origin"></p>
                       </div>
                       {/* <div className="djs-single">
@@ -389,7 +389,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Dim Kay </p>
+                        <p className="djs-single-name">Gelo </p>
                       </div> */}
                     </div>
                   </div>
@@ -401,7 +401,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 13 OCT 2024</p>
+                    <p>SUN 20 OCT 2024</p>
                   </div>
 
                   <img
@@ -491,7 +491,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 13.10.2024 · 23:00 H
+                Sunday · 20.10.2024 · 23:00 H
               </p>
 
               <div
@@ -534,7 +534,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 00:30 H
                   </p>
-                  <p>Studio 24 - Sunday - 13.10.2024</p>
+                  <p>Studio 24 - Sunday - 20.10.2024</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
