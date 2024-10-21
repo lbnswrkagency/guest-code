@@ -11,6 +11,7 @@ const DashboardMenu = ({
   // setShowSpitixBattle,
   // setShowDropFiles,
   setCodeType,
+  setShowTableSystem,
 }) => {
   const navigate = useNavigate();
 
@@ -54,7 +55,7 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Backstage Code</p>
         </div>
       )}
-      {/* 
+
       {(user.isAdmin || user.isTable) && (
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Table")}>
@@ -66,7 +67,7 @@ const DashboardMenu = ({
           </button>
           <p className="menuDashboard-button-title">Table Code</p>
         </div>
-      )} */}
+      )}
 
       {user.isPromoter && (
         <div className="menuDashboard-button">

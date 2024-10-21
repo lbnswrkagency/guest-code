@@ -1,4 +1,12 @@
 @import "../../_variables";
+// Update these variables at the top of your TableLayout.scss file
+$background-color: #1a1a1a;
+$text-color: #ffffff;
+$vip-color: #ffd700; // Gold for VIP tables
+$backstage-color: #80221c; // Rich, deeper red for backstage
+$regular-table-color: #4a90e2; // Keep the blue for regular tables
+$border-color: #333333;
+$accent-color: #8a2be2; // Deep purple for accents
 
 .table-layout {
   display: grid;
@@ -6,6 +14,7 @@
   margin-top: 2rem;
   justify-self: center;
   position: relative;
+  width: 360px;
 
   &-title {
     position: absolute;
@@ -31,24 +40,21 @@
     .b2 {
       grid-column: 4/5;
     }
-    .b3 {
+    .p1 {
       grid-row: 2/3;
       grid-column: 3/4;
+      justify-self: center;
     }
-    .b4 {
-      grid-column: 4/5;
+    .p2 {
+      grid-column: 4/6;
       grid-row: 2/3;
+      justify-self: center;
     }
 
-    .b5 {
-      grid-row: 2/3;
-      grid-column: 5/6;
-    }
-
-    .b6 {
+    .p3 {
       grid-row: 2/4;
-      grid-column: 6/7;
-      justify-self: start;
+      grid-column: 6/8;
+      justify-self: center;
       z-index: 1;
     }
 
@@ -62,7 +68,8 @@
       grid-row: 1/3;
       grid-column: 1/2;
       z-index: 0;
-
+      position: absolute;
+      top: 2rem;
       p {
         align-self: end;
         padding-bottom: 2rem;
@@ -76,67 +83,85 @@
     grid-template-columns: repeat(6, 1fr);
     @include grid-row(2);
     justify-self: end;
-    border-bottom: 1px solid rgb(212, 184, 29);
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.75rem;
+    // border-bottom: 1px solid rgb(212, 184, 29);
+    // margin-bottom: 0.5rem;
+    // padding-bottom: 0.75rem;
+    position: relative;
     .dj-area {
       display: grid;
       border-left: 1px solid rgb(212, 184, 29);
       border-right: 1px solid rgb(212, 184, 29);
       border-bottom: 1px solid rgb(212, 184, 29);
       border-radius: 1.5rem;
-      grid-row: 1/3;
+      grid-row: 2/5;
       grid-column: 3/5;
       z-index: 0;
-
+      position: absolute;
+      // margin-top: 1.5rem;
+      width: 6rem;
+      // height: 3rem;
+      top: 1.5rem;
       p {
-        align-self: end;
-        padding-bottom: 2rem;
+        align-self: center;
+        padding-bottom: 1rem;
       }
     }
 
     .a9 {
       grid-row: 2/3;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
 
     .a10 {
       grid-row: 1/2;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
-    .b7 {
+    .p4 {
       grid-row: 1/2;
-      grid-column: 6/7;
-      justify-self: start;
+      grid-column: 6/8;
+      justify-self: center;
     }
 
-    .b8 {
+    .p5 {
       grid-row: 2/3;
-      grid-column: 6/7;
-      justify-self: start;
+      grid-column: 6/8;
+      justify-self: center;
     }
 
-    .b9 {
-      grid-row: 2/3;
-      grid-column: 5/6;
+    .p6 {
+      grid-row: 3/4;
+      grid-column: 6/8;
+      justify-self: center;
     }
 
-    .b10 {
-      grid-row: 1/2;
-      grid-column: 5/6;
-    }
-
-    .b11 {
-      grid-column: 4/5;
-      grid-row: 1/2;
-      z-index: 1;
-    }
-    .b12 {
+    .b1 {
       grid-column: 3/4;
       grid-row: 1/2;
       z-index: 2;
+      justify-self: center;
+    }
+    .b2 {
+      grid-column: 4/5;
+      grid-row: 1/2;
+      z-index: 1;
+      justify-self: center;
+    }
+    .b3 {
+      grid-row: 1/2;
+      grid-column: 5/6;
+      justify-self: end;
+    }
+
+    .b4 {
+      grid-row: 2/3;
+      grid-column: 5/7;
+    }
+
+    .b5 {
+      grid-row: 3/4;
+      grid-column: 5/7;
     }
   }
 
@@ -147,18 +172,30 @@
     @include grid-row(2);
     justify-self: end;
     width: 100%;
-    .a7,
+    margin-top: 8px;
+
+    .k2 {
+      grid-row: 2/3;
+      grid-column: 1/2;
+      justify-self: center;
+    }
+    .k4 {
+      grid-row: 2/3;
+      grid-column: 1/2;
+      justify-self: center;
+    }
+
     .a5 {
       grid-row: 2/3;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
 
     .a8,
     .a6 {
       grid-row: 1/2;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
 
     .d1,
@@ -180,29 +217,51 @@
       justify-self: end;
     }
 
-    .k8,
-    .k10 {
-      grid-row: 2/3;
-      grid-column: 5/6;
-    }
-
-    .k5,
-    .k3 {
-      grid-row: 2/3;
-      grid-column: 6/7;
-      justify-self: start;
-    }
-
-    .k6,
-    .k4 {
+    .f1 {
       grid-row: 1/2;
-      grid-column: 6/7;
-      justify-self: start;
+      grid-column: 6/8;
+      justify-self: center;
     }
-    .k7,
+
+    .f2 {
+      grid-row: 2/3;
+      grid-column: 6/8;
+      justify-self: center;
+    }
+
+    .f4 {
+      grid-row: 2/3;
+      grid-column: 6/8;
+      justify-self: center;
+    }
+
+    .f3 {
+      grid-row: 1/2;
+      grid-column: 6/8;
+      justify-self: center;
+    }
+
     .k9 {
       grid-row: 1/2;
       grid-column: 5/6;
+    }
+
+    .a1 {
+      grid-row: 1/2;
+      grid-column: 5/6;
+      margin-top: -0.5rem;
+    }
+
+    .a2 {
+      grid-row: 2/3;
+      grid-column: 5/6;
+      margin-top: -0.5rem;
+    }
+
+    .a3 {
+      grid-row: 1/2;
+      grid-column: 5/6;
+      margin-top: -0.5rem;
     }
   }
 
@@ -215,25 +274,19 @@
 
     .k1 {
       grid-row: 2/3;
-      grid-column: 6/7;
-      justify-self: start;
-    }
-
-    .k2 {
-      grid-row: 1/2;
-      grid-column: 6/7;
-      justify-self: start;
+      grid-column: 6/8;
+      justify-self: center;
     }
 
     .a4 {
       grid-row: 1/2;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
     .a3 {
       grid-row: 2/3;
       grid-column: 1/2;
-      justify-self: start;
+      justify-self: center;
     }
     .a2 {
       grid-row: 2/3;
@@ -255,13 +308,31 @@
       border-right: 1px solid rgb(212, 184, 29);
       border-top: 1px solid rgb(212, 184, 29);
       border-radius: 1.5rem;
-      grid-row: 1/3;
-      grid-column: 3/5;
+      grid-row: 3/4;
+      grid-column: 1/3;
       z-index: 0;
-      margin-bottom: 2rem;
+      margin-top: 4rem;
+      align-self: start;
       p {
         align-self: end;
-        padding-bottom: 2rem;
+        padding-bottom: 0.5rem;
+      }
+    }
+
+    .sound-area {
+      display: grid;
+      border-left: 1px solid rgb(212, 184, 29);
+      border-right: 1px solid rgb(212, 184, 29);
+      border-top: 1px solid rgb(212, 184, 29);
+      border-radius: 1.5rem;
+      grid-row: 3/4;
+      grid-column: 6/8;
+      z-index: 0;
+      margin-top: 4rem;
+      align-self: start;
+      p {
+        align-self: center;
+        padding-bottom: 0.5rem;
       }
     }
   }
@@ -277,6 +348,8 @@
 
 .tables {
   gap: 8px;
+  grid-template-columns: repeat(8, 45px);
+  display: grid;
 }
 
 .table {
@@ -298,6 +371,10 @@
   width: 30px !important;
   height: 30px !important;
   border-radius: 50%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
   cursor: pointer;
   p {
     align-self: center;
@@ -307,22 +384,30 @@
 }
 
 .table-vertical {
-  width: 30px;
-  height: 50px;
   border: 2px solid #000;
   font-weight: bold;
   cursor: pointer;
-  justify-self: end;
+  justify-self: center;
+  width: 35px !important;
+  height: 35px !important;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .red-table {
-  background-color: red;
+  background-color: $backstage-color;
+  border: 2px solid #ff6b6b; // Lighter red border for contrast
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); // Subtle text glow
 }
 
 .exit {
   background-color: #333;
-  grid-column: 5/6;
-  grid-row: 2/3;
+  grid-column: 4/6;
+  grid-row: 3/4;
+  justify-self: center;
   align-self: end;
 }
 
@@ -334,11 +419,14 @@
 }
 
 .blue-table {
-  background-color: blue;
+  background-color: $regular-table-color;
+  border: 2px solid #74b9ff;
 }
 
 .green-table {
-  background-color: green;
+  background-color: $vip-color;
+  color: #000000;
+  border: 2px solid #ffeaa7; // Light golden border
 }
 
 .dj-table {
@@ -364,4 +452,20 @@
 .table-booked {
   cursor: not-allowed;
   opacity: 0.5; /* Example styling for booked tables */
+}
+
+.bar-area,
+.bar-area-backstage,
+.sound-area,
+.dj-area {
+  border: 2px solid $accent-color;
+  background-color: rgba(138, 43, 226, 0.2); // Matching the new accent color
+  border-radius: 15px;
+  padding: 10px;
+
+  p {
+    font-weight: bold;
+    text-transform: uppercase;
+    color: $accent-color; // Text color matching the border
+  }
 }

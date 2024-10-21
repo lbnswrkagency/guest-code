@@ -120,7 +120,7 @@
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.5s ease-out;
-
+        width: 100%;
         .lineup {
           max-height: 15rem;
           overflow: auto;

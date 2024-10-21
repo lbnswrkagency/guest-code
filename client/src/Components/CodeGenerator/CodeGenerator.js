@@ -27,8 +27,6 @@ function CodeGenerator({
   const [remainingCount, setRemainingCount] = useState(undefined);
   const [codes, setCodes] = useState([]);
 
-  const [selectedTable, setSelectedTable] = useState("");
-
   useEffect(() => {
     const newLimit =
       type === "Backstage"
@@ -75,35 +73,33 @@ function CodeGenerator({
       return;
     }
 
-    // Determine if the selected table is a Backstage or DJ table and should have a backstage pass
-    const isBackstageOrDJTable = [
+    // Determine if the selected table is a Backstage table
+    const isBackstageTable = [
       "B1",
       "B2",
       "B3",
       "B4",
       "B5",
-      "B6",
-      "B7",
-      "B8",
-      "B9",
-      "B10",
-      "B11",
-      "B12",
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
     ].includes(tableNumber);
 
     let data = {
       name,
       event: user.events,
-      host: user.firstName || user.userName, // Use user.firstName if it exists, otherwise use user.userName
+      host: user.firstName || user.userName,
       condition: conditionText(type),
       hostId: user._id,
       pax,
       paxChecked: 0,
-      // If it's a table code, include pax and tableNumber; additionally check for backstage pass
       ...(type === "Table" && {
         pax,
         tableNumber,
-        backstagePass: isBackstageOrDJTable, // Add backstagePass boolean for qualifying tables
+        backstagePass: isBackstageTable,
       }),
     };
 
@@ -116,7 +112,7 @@ function CodeGenerator({
         data
       );
 
-      const createdCode = createResponse.data; // This is your created code object
+      const createdCode = createResponse.data;
       const codeId = createdCode._id;
 
       // Now, request the image
@@ -256,27 +252,13 @@ function CodeGenerator({
                     "B3",
                     "B4",
                     "B5",
-                    "B6",
-                    "B7",
-                    "B8",
-                    "B9",
-                    "B10",
-                    "B11",
-                    "B12",
+                    "P1",
+                    "P2",
+                    "P3",
+                    "P4",
+                    "P5",
+                    "P6",
                   ].map((table) => (
-                    <option
-                      key={table}
-                      value={table}
-                      disabled={counts.tableCounts.some(
-                        (code) => code.table === table
-                      )}
-                    >
-                      {table}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="DJ Tables">
-                  {["B11", "B12"].map((table) => (
                     <option
                       key={table}
                       value={table}
@@ -289,18 +271,7 @@ function CodeGenerator({
                   ))}
                 </optgroup>
                 <optgroup label="VIP Tables">
-                  {[
-                    "K1",
-                    "K2",
-                    "K3",
-                    "K4",
-                    "K5",
-                    "K6",
-                    "K7",
-                    "K8",
-                    "K9",
-                    "K10",
-                  ].map((table) => (
+                  {["A1", "A2", "A3", "F1", "F2", "F3", "F4"].map((table) => (
                     <option
                       key={table}
                       value={table}
@@ -313,21 +284,7 @@ function CodeGenerator({
                   ))}
                 </optgroup>
                 <optgroup label="Premium Tables">
-                  {[
-                    "A1",
-                    "A2",
-                    "A3",
-                    "A4",
-                    "A5",
-                    "A6",
-                    "A7",
-                    "A8",
-                    "A9",
-                    "A10",
-                    "D1",
-                    "D2",
-                    "D3",
-                  ].map((table) => (
+                  {["K1", "K2", "K3", "K4"].map((table) => (
                     <option
                       key={table}
                       value={table}
@@ -354,14 +311,6 @@ function CodeGenerator({
             />
           )}
         </div>
-        {/* {downloadUrl && (
-        <div className="code-preview">
-          <a href={downloadUrl} download={`${type.toLowerCase()}-code.png`}>
-            Download Code
-          </a>
-          <img src={downloadUrl} alt="Code Preview" />
-        </div>
-      )} */}
         <CodeManagement
           user={user}
           type={type}
