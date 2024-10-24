@@ -112,9 +112,6 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
         <div className="dj-area premium-zone">
           <p>DJ</p>
         </div>
-        <div className="dj-area">
-          <p>DJ</p>
-        </div>
       </div>
 
       {/* Table Layout 03 */}
