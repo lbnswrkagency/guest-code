@@ -170,3 +170,15 @@
     transform: translate(-50%, -50%);
   }
 }
+
+/* Additional CSS styles */
+.minimum-spend {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #ffd700;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import "./TableBookingPopup.scss";
+
 const TableBookingPopup = ({
   isOpen,
   onClose,
@@ -38,6 +39,17 @@ const TableBookingPopup = ({
     return "";
   };
 
+  // Helper function to get minimum spend based on table type
+  const getMinimumSpend = (tableType) => {
+    const minimumSpends = {
+      Backstage: "170€",
+      VIP: "100€",
+      Premium: "100€",
+      "": "$800", // Default tables
+    };
+    return minimumSpends[tableType];
+  };
+
   useEffect(() => {
     if (isOpen) {
       setName("");
@@ -48,10 +60,11 @@ const TableBookingPopup = ({
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    onSubmit({ name, pax, tableNumber }); // Just pass the table number directly
+    onSubmit({ name, pax, tableNumber });
   };
 
   const tableType = getTableType(tableNumber);
+  const minimumSpend = getMinimumSpend(tableType);
 
   return (
     <div
@@ -70,6 +83,7 @@ const TableBookingPopup = ({
             {tableType && `${tableType} `}Table {tableNumber}
           </h3>
           <p>Enter booking details</p>
+          <div className="minimum-spend">Minimum Spend: {minimumSpend}</div>
         </div>
 
         <div className="popup-form">
