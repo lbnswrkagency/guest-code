@@ -297,7 +297,7 @@ function TableSystem({
 
         {/* Table Reservation Form */}
         <div className="table-system-form">
-          <div className="input-group">
+          {/* <div className="input-group">
             <input
               id="name"
               className="table-system-input"
@@ -364,7 +364,7 @@ function TableSystem({
               : user.isAdmin
               ? "Book Reservation"
               : "Request Reservation"}
-          </button>
+          </button> */}
           <TableBookingPopup
             isOpen={isPopupOpen}
             onClose={() => {
