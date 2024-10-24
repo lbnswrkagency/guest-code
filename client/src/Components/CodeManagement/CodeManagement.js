@@ -322,9 +322,11 @@ function CodeManagement({
             code.paxChecked === code.pax ? "code-management-item-checked" : ""
           }`}
         >
-          <div className="inline-qr-code">
-            <img src={code.qrCode} alt="QR Code" />
-          </div>
+          {editCodeId !== code._id && (
+            <div className="inline-qr-code">
+              <img src={code.qrCode} alt="QR Code" />
+            </div>
+          )}
           {editCodeId === code._id ? (
             <div className="edit-form">
               <input

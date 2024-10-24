@@ -192,11 +192,11 @@ function Scanner({ onClose }) {
 
       <div className="scanner-header">
         <h1 className="scanner-header-title">Scanner</h1>
-        <img
+        {/* <img
           className="scanner-header-logo"
           src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
           alt="Logo"
-        />
+        /> */}
       </div>
 
       <div className="scanner-content">
