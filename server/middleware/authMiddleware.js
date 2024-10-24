@@ -12,10 +12,16 @@ const authenticate = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    req.user = decoded;
+    // Handle both old and new token structures
+    req.user = {
+      _id: decoded._id || decoded.userId, // Accept either format
+      email: decoded.email,
+      username: decoded.username,
+    };
+
     next();
   } catch (error) {
-    // Return 401 for any token verification error
+    console.error("Token verification error:", error);
     res.status(401).json({ msg: "Token is not valid" });
   }
 };

@@ -192,138 +192,160 @@ function Scanner({ onClose }) {
       <ToastContainer />
       <Navigation onBack={onClose} />
 
-      <h1 className="scanner-title">SCANNER</h1>
-
-      <img
-        className="scanner-logo"
-        src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt=""
-      />
-
-      <div
-        id="qr-reader-container"
-        style={{
-          width: "500px",
-          display: scanning && !scanResult ? "grid" : "none",
-        }}
-      >
-        {scannerError ? (
-          <div className="scanner-error">
-            <p>Scanner error. Please ensure your device has a webcam.</p>
-          </div>
-        ) : (
-          <div className="scanner-reader">
-            <video
-              ref={videoRef}
-              style={{ display: "none" }}
-              playsInline
-              muted
-            ></video>
-            <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
-          </div>
-        )}
-
-        <input
-          className="scanner-manual"
-          type="text"
-          value={manualId}
-          onChange={(e) => setManualId(e.target.value)}
-          placeholder="PLAN-B: TYPE IN ID"
+      <div className="scanner-header">
+        <h1 className="scanner-header-title">Scanner</h1>
+        <img
+          className="scanner-header-logo"
+          src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
+          alt="Logo"
         />
-        <button className="scanner-manuel-submit" onClick={handleManualSubmit}>
-          SUBMIT ID
-        </button>
       </div>
 
-      {scanResult && (
-        <div className="scanner-result">
-          <div className="scanner-result-data">
-            <div
-              className={`scanner-result-data-value ${
-                scanResult.typeOfTicket === "Guest-Code"
-                  ? "guest-code-color"
-                  : "friends-code-color"
-              }`}
-            >
-              <h2>TYPE</h2> <p>{scanResult.typeOfTicket}</p>
-            </div>
-
-            <div
-              className={`scanner-result-data-value ${
-                scanResult.typeOfTicket === "Guest-Code"
-                  ? "guest-code-color"
-                  : "friends-code-color"
-              }`}
-            >
-              <h2>NAME</h2> <p>{scanResult.name}</p>
-            </div>
-
-            <div
-              className={`scanner-result-data-value ${
-                scanResult.typeOfTicket === "Guest-Code"
-                  ? "guest-code-color"
-                  : "friends-code-color"
-              }`}
-            >
-              <h2>USED</h2> <p>{scanResult.paxChecked}</p>
-            </div>
-
-            <div
-              className={`scanner-result-data-value ${
-                scanResult.typeOfTicket === "Guest-Code"
-                  ? "guest-code-color"
-                  : "friends-code-color"
-              }`}
-            >
-              <h2>ALLOWED</h2> <p>{scanResult.pax}</p>
-            </div>
-
-            {scanResult.typeOfTicket === "Table-Code" ? (
-              <>
-                <div className={`scanner-result-data-value friends-code-color`}>
-                  <h2>TABLE</h2> <p>{scanResult.tableNumber}</p>
+      <div className="scanner-content">
+        {scanning && !scanResult && (
+          <>
+            <div className="scanner-reader-container">
+              {!scannerError ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <canvas ref={canvasRef} style={{ display: "none" }} />
+                </>
+              ) : (
+                <div className="scanner-error">
+                  <p>Scanner error. Please ensure your device has a webcam.</p>
                 </div>
-                <div className={`scanner-result-data-value friends-code-color`}>
-                  <h2>BACKSTAGE PASS</h2>{" "}
-                  <p>{scanResult.backstagePass ? "Yes" : "No"}</p>
-                </div>
-              </>
-            ) : (
+              )}
+            </div>
+
+            <div className="scanner-manual">
+              <input
+                className="scanner-manual-input"
+                type="text"
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                placeholder="Plan B: Enter Code ID"
+              />
+              <button
+                className="scanner-manual-submit"
+                onClick={handleManualSubmit}
+              >
+                Validate
+              </button>
+            </div>
+          </>
+        )}
+
+        {scanResult && (
+          <div className="scanner-result">
+            <div className="scanner-result-data">
               <div
-                className={`scanner-result-data-value condition ${
+                className={`scanner-result-data-item ${
                   scanResult.typeOfTicket === "Guest-Code"
-                    ? "guest-code-color"
-                    : "friends-code-color"
+                    ? "guest-code"
+                    : "friends-code"
                 }`}
               >
-                <h2>CONDITION</h2> <p>{scanResult.condition}</p>
+                <h2>Type</h2>
+                <p>{scanResult.typeOfTicket}</p>
               </div>
-            )}
-          </div>
-          <button className="scanner-open" onClick={resetScanner}>
-            SCAN GAIN
-          </button>
-          <div className="scanner-options">
-            <button
-              onClick={() => updatePax(false)}
-              disabled={scanResult.paxChecked <= 0}
-            >
-              -
-            </button>
-            <div className="scanner-options-value">
-              <p>People</p>
-              <span>{scanResult.paxChecked}</span>
+
+              <div
+                className={`scanner-result-data-item ${
+                  scanResult.typeOfTicket === "Guest-Code"
+                    ? "guest-code"
+                    : "friends-code"
+                }`}
+              >
+                <h2>Name</h2>
+                <p>{scanResult.name}</p>
+              </div>
+
+              <div
+                className={`scanner-result-data-item ${
+                  scanResult.typeOfTicket === "Guest-Code"
+                    ? "guest-code"
+                    : "friends-code"
+                }`}
+              >
+                <h2>Used</h2>
+                <p>{scanResult.paxChecked}</p>
+              </div>
+
+              <div
+                className={`scanner-result-data-item ${
+                  scanResult.typeOfTicket === "Guest-Code"
+                    ? "guest-code"
+                    : "friends-code"
+                }`}
+              >
+                <h2>Allowed</h2>
+                <p>{scanResult.pax}</p>
+              </div>
+
+              {scanResult.typeOfTicket === "Table-Code" ? (
+                <>
+                  <div className="scanner-result-data-item friends-code">
+                    <h2>Table</h2>
+                    <p>{scanResult.tableNumber}</p>
+                  </div>
+                  <div className="scanner-result-data-item friends-code">
+                    <h2>Backstage Pass</h2>
+                    <p>{scanResult.backstagePass ? "Yes" : "No"}</p>
+                  </div>
+                </>
+              ) : (
+                <div
+                  className={`scanner-result-data-item condition ${
+                    scanResult.typeOfTicket === "Guest-Code"
+                      ? "guest-code"
+                      : "friends-code"
+                  }`}
+                >
+                  <h2>Condition</h2>
+                  <p>{scanResult.condition}</p>
+                </div>
+              )}
             </div>
 
-            <button
-              onClick={() => updatePax(true)}
-              disabled={scanResult.paxChecked >= scanResult.pax}
-            >
-              +
-            </button>
+            <div className="scanner-result-controls">
+              <div className="scanner-result-controls-counter">
+                <button
+                  onClick={() => updatePax(false)}
+                  disabled={scanResult.paxChecked <= 0}
+                >
+                  -
+                </button>
+                <div className="scanner-result-controls-counter-value">
+                  <p>People</p>
+                  <span>{scanResult.paxChecked}</span>
+                </div>
+                <button
+                  onClick={() => updatePax(true)}
+                  disabled={scanResult.paxChecked >= scanResult.pax}
+                >
+                  +
+                </button>
+              </div>
+
+              <button
+                className="scanner-result-controls-scan"
+                onClick={resetScanner}
+              >
+                Scan Again
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,12 @@ import "./TableLayout.scss"; // Ensure the CSS file exists and is correctly link
 const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
   // This function checks if a specific table is booked
   const isBooked = (table) =>
-    counts.tableCounts.some((code) => code.table === table);
+    counts.tableCounts.some(
+      (code) =>
+        code.table === table &&
+        code.status !== "declined" &&
+        code.status !== "cancelled"
+    );
 
   // Function to determine CSS classes for each table
   const getClass = (table, baseClass) => {
@@ -22,6 +27,7 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
 
   return (
     <div className="table-layout">
+      <div className="table-guide">Click a Table</div>
       <div className="tables table-layout-01">
         <div className="bar-area-backstage">
           <p>BAR</p>

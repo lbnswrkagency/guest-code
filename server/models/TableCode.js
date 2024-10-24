@@ -1,3 +1,4 @@
+// TableCodeSchema.js
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
@@ -12,6 +13,11 @@ const TableCodeSchema = new Schema(
     hostId: { type: Schema.Types.ObjectId, ref: "User" },
     backstagePass: { type: Boolean, default: false },
     condition: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "declined", "cancelled"],
+      default: "pending",
+    },
   },
   {
     timestamps: true,

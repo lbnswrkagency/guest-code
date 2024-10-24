@@ -56,19 +56,6 @@ const DashboardMenu = ({
         </div>
       )}
 
-      {(user.isAdmin || user.isTable) && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setCodeType("Table")}>
-            <img
-              src="/image/table-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Table Code</p>
-        </div>
-      )}
-
       {user.isPromoter && (
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Friends")}>
@@ -81,6 +68,20 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Friends Code</p>
         </div>
       )}
+
+      {user.isPromoter && (
+        <div className="menuDashboard-button">
+          <button onClick={() => setCodeType("Table")}>
+            <img
+              src="/image/table-icon.svg"
+              alt=""
+              className="menuDashboard-button-icon"
+            />
+          </button>
+          <p className="menuDashboard-button-title">Table Code</p>
+        </div>
+      )}
+
       {/* 
       {user.isAdmin && (
         <div className="menuDashboard-button">
@@ -118,6 +119,19 @@ const DashboardMenu = ({
             />
           </button>
           <p className="menuDashboard-button-title">Spitix Battle</p>
+        </div>
+      )} */}
+
+      {/* {(user.isAdmin || user.isTable) && (
+        <div className="menuDashboard-button">
+          <button onClick={() => setShowTableSystem(true)}>
+            <img
+              src="/image/table-icon.svg"
+              alt=""
+              className="menuDashboard-button-icon"
+            />
+          </button>
+          <p className="menuDashboard-button-title">Table System</p>
         </div>
       )} */}
     </div>

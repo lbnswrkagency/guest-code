@@ -276,7 +276,7 @@ const getCounts = async (req, res) => {
       { $match: matchCondition },
       {
         $lookup: {
-          from: "users", // Assuming "users" is your user collection name
+          from: "users",
           localField: "hostId",
           foreignField: "_id",
           as: "user_info",
@@ -285,13 +285,14 @@ const getCounts = async (req, res) => {
       { $unwind: { path: "$user_info", preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          name: 1, // Assuming this is the name of the event or table code
-          host: "$user_info.firstName", // User's name from the joined user document
-          avatar: "$user_info.avatar", // User's avatar from the joined user document
+          name: 1,
+          host: "$user_info.firstName",
+          avatar: "$user_info.avatar",
           total: "$pax",
           used: "$paxChecked",
           table: "$tableNumber",
-          createdAt: 1, // Include the createdAt field from the TableCode schema
+          status: 1, // Add this line to include the status field
+          createdAt: 1,
         },
       },
     ]);

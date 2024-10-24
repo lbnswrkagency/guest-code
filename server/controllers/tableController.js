@@ -13,23 +13,45 @@ const qrOption = {
 };
 
 const addTableCode = async (req, res) => {
-  const { name, pax, tableNumber, event, host, hostId } = req.body;
+  const {
+    name,
+    pax,
+    tableNumber,
+    event,
+    host,
+    hostId,
+    condition,
+    backstagePass,
+    paxChecked,
+    isAdmin,
+  } = req.body;
+
+  // Ensure that the user is authenticated
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
 
   try {
-    const createdTableCode = await TableCode.create({
+    const tableCodeData = {
       name,
       pax,
       tableNumber,
       event,
       host,
       hostId,
-    });
+      condition: condition || "TABLE RESERVATION", // Default value
+      paxChecked: paxChecked || 0, // Default value
+      backstagePass: backstagePass || false,
+      status: req.body.isAdmin ? "confirmed" : "pending",
+      createdAt: new Date(),
+    };
+
+    const createdTableCode = await TableCode.create(tableCodeData);
 
     const bufferImage = await QRCode.toDataURL(
       createdTableCode._id.toString(),
       qrOption
     );
-
     let myImage = await nodeHtmlToImage({
       output: "./table-image.png",
       html: `

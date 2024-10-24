@@ -23,6 +23,7 @@ import DashboardStatus from "../DashboardStatus/DashboardStatus";
 import DashboardHeader from "../DashboardHeader/DashboardHeader";
 import DashboardMenu from "../DashboardMenu/DashboardMenu";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
+import TableSystem from "../TableSystem/TableSystem";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -36,6 +37,7 @@ const Dashboard = () => {
   const [codeType, setCodeType] = useState("");
   const [imageSwitch, setImageSwitch] = useState(false);
   const [isCropMode, setIsCropMode] = useState(false);
+  const [showTableSystem, setShowTableSystem] = useState(false);
   const [counts, setCounts] = useState({
     friendsCounts: [],
     backstageCounts: [],
@@ -103,6 +105,12 @@ const Dashboard = () => {
 
     return totalTables;
   };
+
+  useEffect(() => {
+    if (codeType) {
+      resetEventDateToToday();
+    }
+  }, [codeType]);
 
   const fetchCounts = async () => {
     try {
@@ -173,8 +181,22 @@ const Dashboard = () => {
   if (loading || !user) {
     return <p>Loading...</p>;
   }
-
-  if (codeType) {
+  // Dashboard.js (Relevant Portion)
+  if (codeType === "Table") {
+    return (
+      <TableSystem
+        user={user}
+        onClose={() => setCodeType("")}
+        currentEventDate={currentEventDate}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
+        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+        counts={counts}
+        refreshCounts={refreshCounts}
+        dataInterval={dataInterval}
+      />
+    );
+  } else if (codeType) {
     return (
       <CodeGenerator
         user={user}
@@ -184,7 +206,9 @@ const Dashboard = () => {
             ? getThisWeeksFriendsCount()
             : codeType === "Backstage"
             ? getThisWeeksBackstageCount()
-            : getThisWeeksTableCount() // Added condition for Table codes
+            : codeType === "Table"
+            ? getThisWeeksTableCount()
+            : 0
         }
         refreshCounts={refreshCounts}
         type={codeType}
@@ -193,10 +217,10 @@ const Dashboard = () => {
         isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
         onNextWeek={handleNextWeek}
         counts={counts}
+        dataInterval={dataInterval}
       />
     );
   }
-
   if (showScanner) {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
@@ -223,6 +247,24 @@ const Dashboard = () => {
       />
     );
   }
+
+  if (showTableSystem) {
+    return (
+      <TableSystem
+        user={user}
+        onClose={() => setShowTableSystem(false)}
+        weeklyCount={getThisWeeksTableCount()}
+        refreshCounts={refreshCounts}
+        currentEventDate={currentEventDate}
+        onPrevWeek={handlePrevWeek}
+        onNextWeek={handleNextWeek}
+        isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
+        counts={counts}
+        dataInterval={dataInterval}
+      />
+    );
+  }
+
   // if (showRanking) {
   //   return (
   //     <Ranking
@@ -256,7 +298,6 @@ const Dashboard = () => {
   }
 
   const handleBack = () => {
-    // Close components in the reverse order they might be opened
     if (showSettings) {
       setShowSettings(false);
     } else if (showStatistic) {
@@ -265,8 +306,9 @@ const Dashboard = () => {
       setShowScanner(false);
     } else if (showDropFiles) {
       setShowDropFiles(false);
+    } else if (showTableSystem) {
+      setShowTableSystem(false);
     } else {
-      // If no specific component screen is active, navigate to root or log out
       logout();
       setUser(null);
       navigate("/");
@@ -294,10 +336,9 @@ const Dashboard = () => {
           setShowStatistic={setShowStatistic}
           setShowScanner={setShowScanner}
           setShowDropFiles={setShowDropFiles}
-          // setShowSpitixBattle={setShowSpitixBattle}
           setCodeType={setCodeType}
+          setShowTableSystem={setShowTableSystem} // Add this line
         />
-
         <div className="dashboard-logout">
           <button className="dashboard-logout-button" onClick={handleLogout}>
             <img

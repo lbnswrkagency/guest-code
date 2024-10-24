@@ -13,75 +13,117 @@ const qrOption = {
     light: "#ffffff", // White background
   },
 };
+
 const addCode = async (req, res) => {
-  const {
-    name,
-    pax,
-    condition,
-    date,
-    paxChecked,
-    event,
-    host,
-    hostId,
-    tableNumber,
-    backstagePass,
-  } = req.body; // Include tableNumber for table codes
   const type = req.params.type;
 
-  let CodeModel;
+  try {
+    let model;
+    const codeData = {
+      ...req.body,
+      hostId: req.user._id, // Use _id instead of userId
+      status: type === "table" ? "pending" : "active", // Default status for table codes
+      createdAt: new Date(),
+    };
+
+    switch (type) {
+      case "friends":
+        model = FriendsCode;
+        break;
+      case "backstage":
+        model = BackstageCode;
+        break;
+      case "table":
+        model = TableCode;
+        break;
+      default:
+        return res.status(400).send("Invalid code type");
+    }
+
+    const code = new model(codeData);
+    await code.save();
+
+    res.json(code);
+  } catch (error) {
+    console.error("Error adding code:", error);
+    res.status(500).send("Error creating code!");
+  }
+};
+
+// codeController.js
+const updateCodeStatus = async (req, res) => {
+  const { type, codeId } = req.params;
+  const { status } = req.body;
+
+  let model;
   switch (type) {
     case "friends":
-      CodeModel = FriendsCode;
+      model = FriendsCode;
       break;
     case "backstage":
-      CodeModel = BackstageCode;
+      model = BackstageCode;
       break;
     case "table":
-      CodeModel = TableCode; // Assign TableCode model for table type
+      model = TableCode;
       break;
     default:
-      return res.status(400).send("Invalid code type");
+      return res.status(400).json({
+        error: "Invalid code type",
+        details: `Received type: ${type}`,
+      });
   }
 
   try {
-    const createdCode = await CodeModel.create({
-      name,
-      pax,
-      condition,
-      date,
-      paxChecked,
-      event,
-      host,
-      hostId,
-      ...(type === "table" && { tableNumber }), // Include tableNumber for table codes
-      ...(type === "table" && { backstagePass }), // Include tableNumber for table codes
-    });
+    const updatedCode = await model.findByIdAndUpdate(
+      codeId,
+      { status },
+      { new: true }
+    );
 
-    res.status(201).json(createdCode);
+    if (!updatedCode) {
+      return res.status(404).json({
+        error: "Code not found",
+        codeId,
+      });
+    }
+
+    res.json(updatedCode);
   } catch (error) {
-    console.log(error);
-    res.status(400).send("Error adding code: " + error.message);
+    res.status(500).json({
+      error: "Error updating status",
+      details: error.message,
+    });
   }
 };
 
 const fetchCodes = async (req, res) => {
-  const { userId, startDate, endDate } = req.query;
+  const { startDate, endDate } = req.query;
   const type = req.params.type;
 
   let model;
   let query = {};
+  if (!startDate || !endDate) {
+    return res.status(400).send("Start date and end date are required");
+  }
+  query = {
+    createdAt: {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate),
+    },
+  };
 
   switch (type) {
     case "friends":
       model = FriendsCode;
-      query.hostId = userId;
+      query.hostId = req.user._id; // Non-admins see only their codes
       break;
     case "backstage":
       model = BackstageCode;
-      query.hostId = userId;
+      query.hostId = req.user._id;
       break;
     case "table":
       model = TableCode;
+
       if (startDate && endDate) {
         query.createdAt = {
           $gte: new Date(startDate),
@@ -95,7 +137,6 @@ const fetchCodes = async (req, res) => {
 
   try {
     const codes = await model.find(query).sort({ createdAt: -1 });
-
     res.json(codes);
   } catch (error) {
     res.status(500).send("Error fetching codes!");
@@ -114,23 +155,50 @@ const deleteCode = async (req, res) => {
       model = BackstageCode;
       break;
     case "table":
-      model = TableCode; // Add support for table type
+      model = TableCode;
       break;
     default:
-      return res.status(400).send("Invalid code type");
+      return res.status(400).json({
+        error: "Invalid code type",
+        details: `Received type: ${type}`,
+      });
   }
 
   try {
-    await model.findByIdAndDelete(codeId);
-    res.send("Code deleted successfully");
+    const deletedCode = await model.findByIdAndDelete(codeId);
+
+    if (!deletedCode) {
+      return res.status(404).json({
+        error: "Code not found",
+        codeId,
+      });
+    }
+
+    res.json({
+      message: "Code deleted successfully",
+      deletedCode: {
+        id: deletedCode._id,
+        type,
+        name: deletedCode.name,
+      },
+    });
   } catch (error) {
-    res.status(400).send("Error deleting code: " + error.message);
+    console.error("❌ Error in deleteCode:", {
+      message: error.message,
+      stack: error.stack,
+      type,
+      codeId,
+    });
+    res.status(500).json({
+      error: "Error deleting code",
+      details: error.message,
+    });
   }
 };
 
 const editCode = async (req, res) => {
   const { type, codeId } = req.params;
-  const { name, ...otherData } = req.body;
+  const updateData = req.body;
 
   let model;
   switch (type) {
@@ -141,24 +209,72 @@ const editCode = async (req, res) => {
       model = BackstageCode;
       break;
     case "table":
-      model = TableCode; // Add support for table type
+      model = TableCode;
       break;
     default:
-      return res.status(400).send("Invalid code type");
+      return res.status(400).json({
+        error: "Invalid code type",
+        details: `Received type: ${type}`,
+      });
   }
 
   try {
     const updatedCode = await model.findByIdAndUpdate(
       codeId,
-      { name, ...otherData },
-      { new: true }
+      { $set: updateData },
+      { new: true, runValidators: true }
     );
+
+    if (!updatedCode) {
+      return res.status(404).json({
+        error: "Code not found",
+        codeId,
+      });
+    }
+
     res.json(updatedCode);
   } catch (error) {
-    res.status(400).send("Error updating code: " + error.message);
+    res.status(500).json({
+      error: "Error updating code",
+      details: error.message,
+    });
   }
 };
 
+const formatCondition = (condition) => {
+  // Special case for price conditions
+  if (condition.includes("€")) {
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">
+          ${condition.split(" ")[0]} <!-- "5€" -->
+        </p>
+        <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">
+          ${condition.split(" ").slice(1).join(" ")} <!-- "ALL NIGHT" -->
+        </p>
+      </div>
+    `;
+  }
+
+  // Original format for "FREE ENTRANCE ALL NIGHT"
+  if (condition.includes("FREE")) {
+    return `
+      <p style="margin: 0; font-weight: 700; font-size: .85rem; line-height: 1.5rem;">
+        FREE ENTRANCE
+      </p>
+      <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">
+        ALL NIGHT
+      </p>
+    `;
+  }
+
+  // Default case
+  return `
+    <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">
+      ${condition}
+    </p>
+  `;
+};
 const generateCodeImage = async (req, res) => {
   const { type, codeId } = req.params;
 
@@ -204,7 +320,7 @@ const generateCodeImage = async (req, res) => {
             <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
                 <div>
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Studio 24 / Babydisco</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Studio 24</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">Dekeleon 26</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">188 54, Athens</p>
                 </div>
@@ -245,26 +361,39 @@ const generateCodeImage = async (req, res) => {
           
             <div style="margin-top: 1.313rem; margin-bottom: .3rem; margin-left: 2.438rem; border: 1px solid #E6CF81; width: 15.5rem;"></div>
 
-            <div style="position: relative;"> 
-                <div style="margin-top: 0.75rem; left: 2.438rem; position: absolute;">
+
+        <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
+                  <div style="margin-top: 0.75rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Name</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${code.name}</p>        
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">${
+                      code.name
+                    }</p>        
                 </div>
 
+
+                
+           <div style="margin-top: 0.75rem;">
+                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">${
+                      code.pax
+                    }</p>        
+                </div>
     
             </div>
+
           </div>
-          <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
-              
-              <div style="justify-self: center;">
-                  <p style="margin: 0; font-weight: 700; font-size: .85rem; line-height: 1.5rem;">FREE ENTRANCE</p>
-                  <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">ALL NIGHT</p>
-              </div>
-              <div style="justify-self: center;">
-                  <img style="background-color: white; width: 8rem; height: 8rem; " src=${bufferImage}></img>
-                  <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${code._id}</p>        
-               </div>
-          </div>
+<div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
+    <div style="justify-self: center; text-align: center; width: 100%;">
+        ${formatCondition(code.condition)}
+    </div>
+    
+    <div style="justify-self: center;">
+        <img style="background-color: white; width: 8rem; height: 8rem;" src=${bufferImage}></img>
+        <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${
+          code._id
+        }</p>        
+    </div>
+</div>
           </body>
           </html>`; // Your Friends Code HTML here
     } else if (type === "backstage") {
@@ -326,14 +455,21 @@ const generateCodeImage = async (req, res) => {
           
             <div style="margin-top: 1.313rem; margin-bottom: .3rem; margin-left: 2.438rem; border: 1px solid #A6965D; width: 15.5rem;"></div>
 
-            <div style="position: relative;"> 
-                <div style="margin-top: 0.75rem; left: 2.438rem; position: absolute;">
+        <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
+                  <div style="margin-top: 0.75rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Name</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${code.name}</p>        
                 </div>
 
+
+                
+           <div style="margin-top: 0.75rem;">
+                    <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${code.pax}</p>        
+                </div>
     
             </div>
+
           </div>
           <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
               
@@ -364,7 +500,7 @@ const generateCodeImage = async (req, res) => {
         <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
             <div>
                 <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Studio 24 / Babydisco</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Studio 24</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">Dekeleon 26</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">188 54, Athens</p>
             </div>
@@ -529,4 +665,5 @@ module.exports = {
   editCode,
   addCode,
   generateCodeImage,
+  updateCodeStatus,
 };

@@ -83,19 +83,19 @@ export const useCurrentEvent = () => {
     [currentDate, calculateDataInterval]
   );
 
-  console.log("Current Date:", currentDate.format("YYYY-MM-DD HH:mm"));
-  console.log(
-    "Current Event Date:",
-    currentEventDate.format("YYYY-MM-DD HH:mm")
-  );
-  console.log(
-    "Data Interval Start:",
-    dataInterval.startDate.format("YYYY-MM-DD HH:mm")
-  );
-  console.log(
-    "Data Interval End:",
-    dataInterval.endDate.format("YYYY-MM-DD HH:mm")
-  );
+  // console.log("Current Date:", currentDate.format("YYYY-MM-DD HH:mm"));
+  // console.log(
+  //   "Current Event Date:",
+  //   currentEventDate.format("YYYY-MM-DD HH:mm")
+  // );
+  // console.log(
+  //   "Data Interval Start:",
+  //   dataInterval.startDate.format("YYYY-MM-DD HH:mm")
+  // );
+  // console.log(
+  //   "Data Interval End:",
+  //   dataInterval.endDate.format("YYYY-MM-DD HH:mm")
+  // );
 
   return {
     currentEventDate,

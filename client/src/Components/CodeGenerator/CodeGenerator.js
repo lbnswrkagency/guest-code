@@ -3,9 +3,9 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "./CodeGenerator.scss";
 import CodeManagement from "../CodeManagement/CodeManagement";
-import TableLayout from "../TableLayout/TableLayout";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
+import CodeSettings from "../CodeSettings/CodeSettings";
 
 function CodeGenerator({
   user,
@@ -17,187 +17,152 @@ function CodeGenerator({
   onPrevWeek,
   onNextWeek,
   isStartingEvent,
+  dataInterval,
   counts,
 }) {
   const [name, setName] = useState("");
-  const [pax, setPax] = useState("1");
+  const [pax, setPax] = useState(1);
+  const [condition, setCondition] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [limit, setLimit] = useState(undefined);
   const [remainingCount, setRemainingCount] = useState(undefined);
   const [codes, setCodes] = useState([]);
+  const [totalPaxUsed, setTotalPaxUsed] = useState(0);
 
+  // Calculate total pax used whenever codes change
+  useEffect(() => {
+    const calculateTotalPax = () => {
+      const total = codes.reduce((sum, code) => sum + (code.pax || 1), 0);
+      setTotalPaxUsed(total);
+    };
+    calculateTotalPax();
+  }, [codes]);
+
+  // Update limits based on user type and total pax used
   useEffect(() => {
     const newLimit =
       type === "Backstage"
         ? user.backstageCodeLimit
         : type === "Friends"
         ? user.friendsCodeLimit
+        : type === "Table"
+        ? user.tableCodeLimit
         : undefined;
 
-    // If newLimit is 0, treat it as undefined (no limit)
     setLimit(newLimit === 0 ? undefined : newLimit);
 
-    // If newLimit is 0 or undefined, just use weeklyCount, otherwise calculate remaining
+    // Calculate remaining count based on total pax used instead of weeklyCount
     setRemainingCount(
       newLimit === 0 || newLimit === undefined
         ? weeklyCount
-        : newLimit - weeklyCount
+        : newLimit - totalPaxUsed
     );
-
-    console.log("Type:", type);
-    console.log("New limit set:", newLimit === 0 ? "No limit" : newLimit);
-    console.log("Weekly count:", weeklyCount);
-    console.log(
-      "New remaining count set:",
-      newLimit === 0 ? "No limit" : newLimit - weeklyCount
-    );
-  }, [user, type, weeklyCount]);
+  }, [user, type, weeklyCount, totalPaxUsed]);
 
   const handleCode = async () => {
-    console.log(
-      "Attempting to generate code. Current remaining count:",
-      remainingCount
-    );
-    console.log("Current limit:", limit === undefined ? "No limit" : limit);
-
-    if (!name || (type === "Table" && (!pax || !tableNumber))) {
-      toast.error("Please fill in all required fields.");
+    if (!name) {
+      toast.error("Please enter a name.");
       return;
     }
 
-    // Only check limit if it's defined and not zero
-    if (limit !== undefined && limit !== 0 && remainingCount <= 0) {
-      console.log("Limit reached. Cannot generate more codes.");
-      toast.error(`You've reached your ${type} code limit for this week.`);
+    // Enforce maximum pax of 5
+    if (pax > 5) {
+      toast.error("Maximum 5 people allowed.");
       return;
     }
 
-    // Determine if the selected table is a Backstage table
-    const isBackstageTable = [
-      "B1",
-      "B2",
-      "B3",
-      "B4",
-      "B5",
-      "P1",
-      "P2",
-      "P3",
-      "P4",
-      "P5",
-      "P6",
-    ].includes(tableNumber);
-
-    let data = {
-      name,
-      event: user.events,
-      host: user.firstName || user.userName,
-      condition: conditionText(type),
-      hostId: user._id,
-      pax,
-      paxChecked: 0,
-      ...(type === "Table" && {
-        pax,
-        tableNumber,
-        backstagePass: isBackstageTable,
-      }),
-    };
+    // Check against remaining count using pax
+    if (limit !== undefined && limit !== 0) {
+      const willExceedLimit = totalPaxUsed + pax > limit;
+      if (willExceedLimit) {
+        toast.error(
+          `Cannot generate code for ${pax} people. Only ${remainingCount} spots remaining.`
+        );
+        return;
+      }
+    }
 
     toast.loading(`Generating ${type} Code...`);
 
     try {
-      // First, create the code
-      const createResponse = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,
-        data
-      );
+      const data = {
+        name,
+        event: user.events,
+        host: user.firstName || user.username,
+        hostId: user._id,
+        condition: conditionText(type, condition),
+        pax: pax,
+        paxChecked: 0,
+        ...(type === "Table" && { tableNumber }),
+      };
 
-      const createdCode = createResponse.data;
-      const codeId = createdCode._id;
-
-      // Now, request the image
-      const imageResponse = await axios.get(
-        `${
-          process.env.REACT_APP_API_BASE_URL
-        }/code/${type.toLowerCase()}/code/${codeId}`,
-        { responseType: "blob" }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([imageResponse.data]));
-      setDownloadUrl(url);
-      refreshCounts();
-      toast.success(`${type} Code generated!`);
-      setTableNumber(""); // Reset table number selection
-
-      // Update remaining count only if there's a limit
-      if (limit !== undefined && limit !== 0) {
-        setRemainingCount((prevCount) => {
-          const newCount = prevCount - 1;
-          console.log("Updated remaining count:", newCount);
-          return newCount;
-        });
-      } else {
-        // If no limit, just increment the count
-        setRemainingCount((prevCount) => {
-          const newCount = prevCount + 1;
-          console.log("Updated count (no limit):", newCount);
-          return newCount;
-        });
+      if (type === "Table") {
+        const isBackstageTable = [
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "P1",
+          "P2",
+          "P3",
+          "P4",
+          "P5",
+          "P6",
+        ].includes(tableNumber);
+        data.backstagePass = isBackstageTable;
       }
 
-      toast.dismiss();
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data) {
+        refreshCounts();
+        toast.dismiss();
+        toast.success(`${type} Code generated!`);
+
+        // Reset form fields
+        setName("");
+        setPax(1);
+        setCondition("");
+        if (type === "Table") {
+          setTableNumber("");
+        }
+      }
     } catch (error) {
-      toast.error("Error generating code.");
-      console.error("Code generation error:", error);
+      toast.dismiss();
+      console.error("Code generation error:", error.response?.data || error);
+      toast.error(error.response?.data?.message || "Error generating code.");
     }
   };
 
-  // Helper to determine condition text based on code type
-  const conditionText = (type) => {
-    return type === "Friends"
-      ? "FREE ENTRANCE ALL NIGHT"
-      : type === "Backstage"
-      ? "BACKSTAGE ACCESS ALL NIGHT"
-      : "TABLE RESERVATION";
+  const conditionText = (type, condition) => {
+    if (type === "Friends") {
+      return condition || "STANDARD ENTRANCE";
+    } else if (type === "Backstage") {
+      return "BACKSTAGE ACCESS ALL NIGHT";
+    } else if (type === "Table") {
+      return "TABLE RESERVATION";
+    } else {
+      return "CODE CONDITION";
+    }
   };
 
-  const displayDate = currentEventDate.format("DD MMM YYYY");
-  console.log("USER", user);
   return (
     <div className="code">
       <div className="code-wrapper">
         <Toaster />
-
         <Navigation onBack={onClose} />
         <h1 className="code-title">{`${type} Code`}</h1>
-
-        {type === "Table" && (
-          <div className="statistic-navigation code-nav">
-            <button
-              className="statistic-navigation-button"
-              onClick={onPrevWeek}
-              disabled={isStartingEvent}
-              style={{ opacity: isStartingEvent ? 0 : 1 }}
-            >
-              <img
-                src="/image/arrow-left.svg"
-                alt=""
-                className="statistic-navigation-arrow-left"
-              />
-            </button>
-            <p className="statistic-navigation-date">{displayDate}</p>
-            <button
-              className="statistic-navigation-button"
-              onClick={onNextWeek}
-            >
-              <img
-                src="/image/arrow-right.svg"
-                alt=""
-                className="statistic-navigation-arrow-right"
-              />
-            </button>
-          </div>
-        )}
 
         <img
           className="code-logo"
@@ -217,100 +182,23 @@ function CodeGenerator({
         </div>
 
         <div className="code-admin">
-          <input
-            className="code-input"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+          <CodeSettings
+            codeType={type}
+            name={name}
+            setName={setName}
+            pax={pax}
+            setPax={setPax}
+            condition={condition}
+            setCondition={setCondition}
+            tableNumber={tableNumber}
+            setTableNumber={setTableNumber}
+            counts={counts}
           />
-          {type === "Table" && (
-            <>
-              <select
-                className="code-select"
-                value={pax}
-                onChange={(e) => setPax(e.target.value)}
-              >
-                {[...Array(10).keys()].map((n) => (
-                  <option key={n + 1} value={n + 1}>
-                    {n + 1} People
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="code-select"
-                value={tableNumber}
-                onChange={(e) => setTableNumber(e.target.value)}
-              >
-                <option value="" disabled>
-                  Select Table Number
-                </option>
-                <optgroup label="Backstage Tables">
-                  {[
-                    "B1",
-                    "B2",
-                    "B3",
-                    "B4",
-                    "B5",
-                    "P1",
-                    "P2",
-                    "P3",
-                    "P4",
-                    "P5",
-                    "P6",
-                  ].map((table) => (
-                    <option
-                      key={table}
-                      value={table}
-                      disabled={counts.tableCounts.some(
-                        (code) => code.table === table
-                      )}
-                    >
-                      {table}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="VIP Tables">
-                  {["A1", "A2", "A3", "F1", "F2", "F3", "F4"].map((table) => (
-                    <option
-                      key={table}
-                      value={table}
-                      disabled={counts.tableCounts.some(
-                        (code) => code.table === table
-                      )}
-                    >
-                      {table}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Premium Tables">
-                  {["K1", "K2", "K3", "K4"].map((table) => (
-                    <option
-                      key={table}
-                      value={table}
-                      disabled={counts.tableCounts.some(
-                        (code) => code.table === table
-                      )}
-                    >
-                      {table}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </>
-          )}
           <button className="code-btn" onClick={handleCode}>
             Generate
           </button>
-          {type === "Table" && (
-            <TableLayout
-              codes={codes}
-              counts={counts}
-              tableNumber={tableNumber}
-              setTableNumber={setTableNumber}
-            />
-          )}
         </div>
+
         <CodeManagement
           user={user}
           type={type}
@@ -323,6 +211,7 @@ function CodeGenerator({
           onNextWeek={onNextWeek}
           isStartingEvent={isStartingEvent}
           counts={counts}
+          dataInterval={dataInterval}
         />
       </div>
       <Footer />

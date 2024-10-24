@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
     "/events/create",
     "/events/:eventId",
     "/guest-code-settings",
-    // "/login",
     "/register",
     "/registration-success",
     "/verify/:token",
@@ -25,47 +24,81 @@ export const AuthProvider = ({ children }) => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        return;
+      }
+
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
       );
       setUser(response.data);
     } catch (error) {
       console.error("Error fetching user data:", error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        setUser(null);
+        navigate("/login");
+      }
       throw error;
     }
   };
 
+  // Setup axios interceptor for token refresh
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     const setupAxiosInterceptors = () => {
       const interceptor = axios.interceptors.response.use(
         (response) => response,
         async (error) => {
           const originalRequest = error.config;
+
+          // Only attempt refresh if:
+          // 1. Error is 401
+          // 2. We haven't tried to refresh yet
+          // 3. This isn't the refresh token request itself
+          // 4. We have a refresh token cookie
           if (
-            error.response &&
-            error.response.status === 401 &&
+            error.response?.status === 401 &&
             !originalRequest._retry &&
             !originalRequest.url.includes("/auth/refresh_token")
           ) {
             originalRequest._retry = true;
+
             try {
               const response = await axios.post(
                 `${process.env.REACT_APP_API_BASE_URL}/auth/refresh_token`,
-                {}, // Empty data object, as this POST doesn't require data
-                { withCredentials: true } // This is the correct place for withCredentials
+                {},
+                {
+                  withCredentials: true,
+                  headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                  },
+                }
               );
 
-              const { accessToken } = response.data;
-              localStorage.setItem("token", accessToken);
-              originalRequest.headers[
-                "Authorization"
-              ] = `Bearer ${accessToken}`;
-              return axios(originalRequest);
+              if (response.data.accessToken) {
+                localStorage.setItem("token", response.data.accessToken);
+
+                // Update authorization header
+                originalRequest.headers[
+                  "Authorization"
+                ] = `Bearer ${response.data.accessToken}`;
+
+                // Update default axios header for subsequent requests
+                axios.defaults.headers.common[
+                  "Authorization"
+                ] = `Bearer ${response.data.accessToken}`;
+
+                return axios(originalRequest);
+              }
             } catch (refreshError) {
+              console.error("Token refresh failed:", refreshError);
+              localStorage.removeItem("token");
               setUser(null);
               navigate("/login");
               return Promise.reject(refreshError);
@@ -78,16 +111,36 @@ export const AuthProvider = ({ children }) => {
     };
 
     const interceptor = setupAxiosInterceptors();
-
     return () => axios.interceptors.response.eject(interceptor);
   }, [navigate]);
 
+  // Check auth state when path changes
   useEffect(() => {
-    if (pathsRequiringAuth.includes(location.pathname)) {
-      setLoading(true);
-      fetchUserData().finally(() => setLoading(false));
-    }
+    const checkAuthState = async () => {
+      if (pathsRequiringAuth.includes(location.pathname)) {
+        setLoading(true);
+        try {
+          await fetchUserData();
+        } catch (error) {
+          console.error("Auth state check failed:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    checkAuthState();
   }, [location.pathname]);
+
+  // Set up default axios headers
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>

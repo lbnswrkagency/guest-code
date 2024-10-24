@@ -1,0 +1,196 @@
+@import "../../_variables";
+
+.table-system {
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
+
+  &-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #111;
+    border-radius: 16px;
+
+    display: grid;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  &-logo {
+    width: 5rem;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  &-title {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-family: Poppins;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+    margin-top: 1.5rem;
+  }
+
+  &-count {
+    text-align: center;
+
+    h4 {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1rem;
+    }
+
+    &-number {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: #ffc807;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      p {
+        color: #000;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+    }
+  }
+  &-form {
+    display: grid;
+    gap: 1rem;
+
+    .input-group {
+      justify-self: center;
+      width: 100%;
+      display: grid;
+    }
+
+    input,
+    select {
+      width: 90%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 1rem;
+      justify-self: center;
+      &::placeholder {
+        color: #666;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #ffc807;
+        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.1);
+      }
+    }
+
+    select {
+      cursor: pointer;
+
+      option {
+        background: #1a1a1a;
+        color: #fff;
+        padding: 0.5rem;
+      }
+
+      optgroup {
+        font-weight: bold;
+        color: #ffc807;
+      }
+    }
+  }
+
+  &-btn {
+    width: 90%;
+    padding: 0.75rem;
+    background: #ffc807;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    margin-top: 0.5rem;
+    justify-self: center;
+    &:not(:disabled):hover {
+      background: darken(#ffc807, 10%);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+  }
+
+  .table-navigation {
+    @include grid(3);
+
+    justify-self: center;
+    grid-gap: 1rem;
+    background-color: #000;
+    border-radius: 1rem;
+    padding: 0.25rem 0.25rem;
+
+    &-button {
+      background: none;
+      border: none;
+      font-weight: 800;
+      color: #fff;
+      font-size: 1.5rem;
+      align-self: center;
+      display: grid;
+
+      img {
+        align-self: center;
+      }
+    }
+
+    button:nth-child(1) {
+      justify-self: start;
+    }
+
+    &-date {
+      justify-self: center;
+      align-self: center;
+      text-transform: uppercase;
+    }
+
+    button:nth-child(3) {
+      justify-self: end;
+    }
+  }
+
+  &-download {
+    text-align: center;
+
+    &-link {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #28a745;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: darken(#28a745, 10%);
+        transform: translateY(-1px);
+      }
+    }
+  }
+}
+
+// Remove all table layout styles as they're in TableLayout.scss

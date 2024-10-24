@@ -1,0 +1,350 @@
+.table-code-management {
+  padding: 1rem;
+  color: #fff;
+
+  .table-category {
+    margin-bottom: 2rem;
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .reservation-item {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    margin-bottom: 1rem;
+
+    &.pending {
+      border-left: 4px solid #ffc807;
+    }
+
+    &.confirmed {
+      border-left: 4px solid #28a745;
+    }
+
+    &.declined {
+      border-left: 4px solid #dc3545;
+    }
+
+    &.cancelled {
+      border-left: 4px solid #6c757d;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .reservation-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .reservation-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .table-number {
+      font-weight: 600;
+      font-size: 1.1rem;
+      min-width: 2.5rem;
+    }
+
+    .guest-name {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .pax-count {
+      color: #888;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+
+      &.pending {
+        background: rgba(255, 200, 7, 0.15);
+        color: #ffc807;
+      }
+
+      &.confirmed {
+        background: rgba(40, 167, 69, 0.15);
+        color: #28a745;
+      }
+
+      &.declined {
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+      }
+
+      &.cancelled {
+        background: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+      }
+    }
+
+    .host-name {
+      color: #888;
+      font-size: 0.9rem;
+    }
+  }
+
+  .reservation-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.view {
+        background: rgba(51, 102, 204, 0.2); // Blue-ish
+        &:hover {
+          background: rgba(51, 102, 204, 0.3);
+        }
+      }
+
+      &.download {
+        background: rgba(40, 167, 69, 0.2); // Green
+        &:hover {
+          background: rgba(40, 167, 69, 0.3);
+        }
+      }
+
+      &.edit {
+        background: rgba(0, 123, 255, 0.2); // Bright blue
+        &:hover {
+          background: rgba(0, 123, 255, 0.3);
+        }
+      }
+
+      &.delete {
+        background: rgba(220, 53, 69, 0.2); // Red
+        &:hover {
+          background: rgba(220, 53, 69, 0.3);
+        }
+      }
+
+      &.confirm {
+        background: rgba(40, 167, 69, 0.2); // Green
+        &:hover {
+          background: rgba(40, 167, 69, 0.3);
+        }
+      }
+
+      &.decline {
+        background: rgba(220, 53, 69, 0.2); // Red
+        &:hover {
+          background: rgba(220, 53, 69, 0.3);
+        }
+      }
+
+      &.cancel {
+        background: rgba(108, 117, 125, 0.2); // Gray
+        &:hover {
+          background: rgba(108, 117, 125, 0.3);
+        }
+      }
+
+      &.reset {
+        background: rgba(255, 193, 7, 0.2); // Warning yellow
+        &:hover {
+          background: rgba(255, 193, 7, 0.3);
+        }
+      }
+
+      img {
+        width: 1.25rem;
+        height: 1.25rem;
+        opacity: 0.8;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+        img {
+          opacity: 1;
+        }
+      }
+    }
+  }
+
+  .edit-form {
+    margin-top: 1rem;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+
+    input,
+    select {
+      background: #222;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 0.5rem;
+      border-radius: 4px;
+      width: 100%;
+
+      &:focus {
+        outline: none;
+        border-color: #ffc807;
+      }
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 0.5rem;
+
+      button {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+
+        img {
+          width: 1rem;
+          height: 1rem;
+        }
+
+        &:first-child {
+          background: rgba(40, 167, 69, 0.2);
+          color: #28a745;
+          &:hover {
+            background: rgba(40, 167, 69, 0.3);
+          }
+        }
+
+        &:last-child {
+          background: rgba(108, 117, 125, 0.2);
+          color: #6c757d;
+          &:hover {
+            background: rgba(108, 117, 125, 0.3);
+          }
+        }
+      }
+    }
+  }
+
+  .code-view-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    cursor: pointer;
+
+    .code-view-content {
+      max-width: 90%;
+      max-height: 90%;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+    }
+  }
+
+  .delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .delete-modal-content {
+      background: #1a1a1a;
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 90%;
+      width: 400px;
+
+      .delete-modal-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        justify-content: center;
+
+        button {
+          padding: 0.5rem 1.5rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          img {
+            width: 1rem;
+            height: 1rem;
+          }
+
+          &.confirm-btn {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            &:hover {
+              background: rgba(220, 53, 69, 0.3);
+              transform: translateY(-1px);
+            }
+          }
+
+          &.cancel-btn {
+            background: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+            &:hover {
+              background: rgba(108, 117, 125, 0.3);
+              transform: translateY(-1px);
+            }
+          }
+        }
+      }
+    }
+  }
+}

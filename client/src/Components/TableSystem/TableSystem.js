@@ -2,38 +2,31 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import "./TableSystem.scss";
 import TableLayout from "../TableLayout/TableLayout";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
-import CodeGenerator from "../CodeGenerator/CodeGenerator";
-import "./TableSystem.scss";
+import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 
 function TableSystem({
   user,
   onClose,
+  refreshCounts,
   currentEventDate,
   onPrevWeek,
   onNextWeek,
+  dataInterval,
   isStartingEvent,
   counts,
-  refreshCounts,
 }) {
   const [name, setName] = useState("");
-  const [pax, setPax] = useState("1");
+  const [pax, setPax] = useState(1);
   const [tableNumber, setTableNumber] = useState("");
-  const [showCodeGenerator, setShowCodeGenerator] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [codes, setCodes] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Function to handle code generation
-  const handleGenerateCode = async () => {
-    if (!name || !pax || !tableNumber) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-
-    // Determine if the selected table is a Backstage table
-    const isBackstageTable = [
+  // Updated table categories
+  const tableCategories = {
+    backstage: [
       "B1",
       "B2",
       "B3",
@@ -45,50 +38,105 @@ function TableSystem({
       "P4",
       "P5",
       "P6",
-    ].includes(tableNumber);
+    ],
+    vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4"],
+    premium: ["K1", "K2", "K3", "K4"],
+  };
 
-    const data = {
-      name,
-      event: user.events,
-      host: user.firstName || user.userName,
-      condition: "TABLE RESERVATION",
-      hostId: user._id,
-      pax,
-      paxChecked: 0,
-      tableNumber,
-      backstagePass: isBackstageTable,
-    };
+  // Compute total tables
+  const totalTables = Object.values(tableCategories).reduce(
+    (sum, tables) => sum + tables.length,
+    0
+  );
 
-    toast.loading(`Generating Table Code...`);
+  // Compute number of booked tables
+  const bookedTables = counts.tableCounts.filter(
+    (code) => code.status !== "declined" && code.status !== "cancelled"
+  );
+
+  const uniqueBookedTableNumbers = [
+    ...new Set(bookedTables.map((code) => code.table)),
+  ];
+
+  const remainingTables = totalTables - uniqueBookedTableNumbers.length;
+
+  const handleTableSelection = (table) => {
+    setTableNumber(table);
+  };
+
+  const isTableBooked = (table) => {
+    return counts.tableCounts.some(
+      (code) =>
+        code.table === table &&
+        code.status !== "declined" &&
+        code.status !== "cancelled"
+    );
+  };
+
+  const handleTableBooking = async () => {
+    if (!name || !pax || !tableNumber) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    if (remainingTables <= 0) {
+      toast.error("All tables have been booked.");
+      return;
+    }
+
+    const isBackstageTable = tableCategories.backstage.includes(tableNumber);
+
+    setIsSubmitting(true);
+    toast.loading(
+      user.isAdmin
+        ? "Booking table reservation..."
+        : "Submitting table reservation request..."
+    );
 
     try {
-      // Create the code
-      const createResponse = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/add`,
-        data
+      const bookingData = {
+        name,
+        event: user.events,
+
+        host: user.firstName || user.userName,
+        condition: "TABLE RESERVATION",
+        hostId: user._id,
+        pax,
+        tableNumber,
+        backstagePass: isBackstageTable,
+        paxChecked: 0,
+        status: user.isAdmin ? "confirmed" : "pending",
+        isAdmin: user.isAdmin,
+      };
+
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/table/add`,
+        bookingData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
-
-      const createdCode = createResponse.data;
-      const codeId = createdCode._id;
-
-      // Request the image
-      const imageResponse = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/code/${codeId}`,
-        { responseType: "blob" }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([imageResponse.data]));
-      setDownloadUrl(url);
-      refreshCounts();
-      toast.success(`Table Code generated!`);
-      setTableNumber(""); // Reset table number selection
-      setName("");
-      setPax("1");
 
       toast.dismiss();
+      toast.success(
+        user.isAdmin
+          ? "Table reservation booked successfully!"
+          : "Table reservation request submitted!"
+      );
+
+      setName("");
+      setTableNumber("");
+      setPax(1);
+      setIsSubmitting(false);
+
+      // Refresh counts to get updated table counts
+      refreshCounts();
     } catch (error) {
-      toast.error("Error generating code.");
-      console.error("Code generation error:", error);
+      console.error("Table booking error:", error);
+      toast.error("Error submitting table reservation request.");
+      setIsSubmitting(false);
     }
   };
 
@@ -96,63 +144,127 @@ function TableSystem({
 
   return (
     <div className="table-system">
-      <Toaster />
-      <Navigation onBack={onClose} />
-      <h1 className="table-system-title">Table Booking</h1>
+      <div className="table-system-wrapper">
+        <Toaster />
+        <Navigation onBack={onClose} />
 
-      <div className="statistic-navigation code-nav">
-        <button
-          className="statistic-navigation-button"
-          onClick={onPrevWeek}
-          disabled={isStartingEvent}
-          style={{ opacity: isStartingEvent ? 0 : 1 }}
-        >
-          <img
-            src="/image/arrow-left.svg"
-            alt=""
-            className="statistic-navigation-arrow-left"
-          />
-        </button>
-        <p className="statistic-navigation-date">{displayDate}</p>
-        <button className="statistic-navigation-button" onClick={onNextWeek}>
-          <img
-            src="/image/arrow-right.svg"
-            alt=""
-            className="statistic-navigation-arrow-right"
-          />
-        </button>
-      </div>
+        <h1 className="table-system-title">Table Booking</h1>
 
-      <div className="table-system-content">
-        <div className="table-system-form">
-          <input
-            className="code-input"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <select
-            className="code-select"
-            value={pax}
-            onChange={(e) => setPax(e.target.value)}
+        <div className="table-navigation">
+          <button
+            className="table-navigation-button"
+            onClick={onPrevWeek}
+            disabled={isStartingEvent}
+            style={{ opacity: isStartingEvent ? 0 : 1 }}
           >
-            {[...Array(10).keys()].map((n) => (
-              <option key={n + 1} value={n + 1}>
-                {n + 1} People
-              </option>
-            ))}
-          </select>
-          <button className="code-btn" onClick={handleGenerateCode}>
-            Generate Code
+            <img
+              src="/image/arrow-left.svg"
+              alt=""
+              className="table-navigation-arrow-left"
+            />
+          </button>
+          <p className="table-navigation-date">{displayDate}</p>
+          <button className="table-navigation-button" onClick={onNextWeek}>
+            <img
+              src="/image/arrow-right.svg"
+              alt=""
+              className="table-navigation-arrow-right"
+            />
           </button>
         </div>
-        <TableLayout
-          counts={counts}
-          tableNumber={tableNumber}
-          setTableNumber={setTableNumber}
+        <div className="table-system-count">
+          <h4>Remaining Tables</h4>
+          <div className="table-system-count-number">
+            <p>{remainingTables}</p>
+          </div>
+        </div>
+
+        {/* Table Reservation Form */}
+        <div className="table-system-form">
+          <div className="input-group">
+            <input
+              id="name"
+              className="table-system-input"
+              placeholder="Enter guest name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div className="input-group">
+            <select
+              className="table-system-select"
+              value={pax}
+              onChange={(e) => setPax(parseInt(e.target.value))}
+            >
+              {[...Array(5)].map((_, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {index + 1} People
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <select
+              className="table-system-select"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+            >
+              <option value="">Select a table</option>
+              {Object.entries(tableCategories).map(([category, tables]) => (
+                <optgroup key={category} label={category.toUpperCase()}>
+                  {tables.map((table) => {
+                    const booked = isTableBooked(table);
+                    return (
+                      <option
+                        key={table}
+                        value={table}
+                        disabled={booked}
+                        style={
+                          booked
+                            ? { color: "#666", backgroundColor: "#1a1a1a" }
+                            : {}
+                        }
+                      >
+                        {table} {booked ? "(Unavailable)" : ""}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className="table-system-btn"
+            onClick={handleTableBooking}
+            disabled={isSubmitting || !name || !tableNumber}
+          >
+            {isSubmitting
+              ? user.isAdmin
+                ? "Booking..."
+                : "Submitting..."
+              : user.isAdmin
+              ? "Book Reservation"
+              : "Request Reservation"}
+          </button>
+
+          <TableLayout
+            counts={counts}
+            tableNumber={tableNumber}
+            setTableNumber={handleTableSelection}
+          />
+        </div>
+
+        {/* Table Reservations List */}
+        <TableCodeManagement
+          user={user}
+          refreshCounts={refreshCounts}
+          dataInterval={dataInterval}
+          tableCategories={tableCategories}
         />
       </div>
-
       <Footer />
     </div>
   );

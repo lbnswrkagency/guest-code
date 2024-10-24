@@ -58,7 +58,7 @@ const addFriendsCode = async (req, res) => {
             <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
                 <div>
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Location</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Studio 24 / Babydisco</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Studio 24</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">Dekeleon 26</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">188 54, Athens</p>
                 </div>

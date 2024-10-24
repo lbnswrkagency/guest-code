@@ -8,17 +8,14 @@ exports.register = async (req, res) => {
   const { username, email, password, firstName, lastName, birthday } = req.body;
 
   try {
-    console.log("Checking for existing user...");
     let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
-      console.log("User already exists");
       return res
         .status(400)
         .json({ success: false, message: "Username or email already exists." });
     }
 
-    console.log("Creating new user...");
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -34,18 +31,14 @@ exports.register = async (req, res) => {
       friendsCodeLimit: 2,
     });
 
-    console.log("Saving user...");
     await user.save();
 
-    console.log("Generating token...");
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    console.log("Sending verification email...");
     await sendVerificationEmail(user.email, token);
 
-    console.log("Registration successful");
     res.json({
       success: true,
       message:
@@ -150,19 +143,19 @@ exports.login = async (req, res) => {
 
     // Payload for the tokens
     const payload = {
-      userId: user._id,
+      _id: user._id,
       email: user.email,
       username: user.username, // Optionally add username to payload if needed
     };
 
     // Generate Access Token
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "15m", // short-lived access token
+      expiresIn: "15m",
     });
 
-    // Generate Refresh Token
+    // Generate Refresh Token with the same payload structure
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: "7d", // long-lived refresh token
+      expiresIn: "7d",
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -181,7 +174,7 @@ exports.login = async (req, res) => {
 
 exports.getUserData = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password");
+    const user = await User.findById(req.user._id).select("-password");
 
     if (!user) {
       return res
@@ -198,7 +191,6 @@ exports.getUserData = async (req, res) => {
 
 exports.refreshAccessToken = async (req, res) => {
   if (!req.cookies || !req.cookies.refreshToken) {
-    console.log("No refresh token found in cookies");
     return res.status(403).json({ message: "No refresh token" });
   }
 
@@ -207,7 +199,16 @@ exports.refreshAccessToken = async (req, res) => {
   try {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    const payload = { userId: decoded.userId, email: decoded.email };
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const payload = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+    };
 
     const newAccessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
       expiresIn: "15m",
@@ -219,7 +220,6 @@ exports.refreshAccessToken = async (req, res) => {
     res.status(403).json({ message: "Invalid refresh token" });
   }
 };
-
 exports.logout = (req, res) => {
   res.clearCookie("refreshToken"); // Clear the refresh token cookie
   res.json({ success: true, message: "Logged out successfully" });

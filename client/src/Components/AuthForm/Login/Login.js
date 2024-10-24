@@ -35,13 +35,19 @@ const Login = () => {
       const { accessToken } = response.data;
       if (accessToken) {
         localStorage.setItem("token", accessToken);
-        await fetchUserData();
-        navigate("/dashboard");
+        try {
+          await fetchUserData();
+          navigate("/dashboard");
+        } catch (error) {
+          console.error("Error fetching user data after login:", error);
+          // Handle the error appropriately
+        }
       } else {
         console.error("No access token received");
       }
     } catch (error) {
-      console.error("Error during login:", error);
+      console.error("Login error:", error.response?.data || error.message);
+      // Show error to user
     }
   };
 
@@ -54,16 +60,26 @@ const Login = () => {
 
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
-        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
       );
 
-      setUser(response.data);
+      if (response.data) {
+        setUser(response.data);
+      } else {
+        throw new Error("No user data received");
+      }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error(
+        "Error fetching user data:",
+        error.response?.data || error.message
+      );
+      localStorage.removeItem("token"); // Clear invalid token
       throw error;
     }
   };
-
   return (
     <div className="login-container">
       <motion.div
