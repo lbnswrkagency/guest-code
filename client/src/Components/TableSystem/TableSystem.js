@@ -31,19 +31,8 @@ function TableSystem({
   const [selectedTable, setSelectedTable] = useState(null);
   // Updated table categories
   const tableCategories = {
-    backstage: [
-      "B1",
-      "B2",
-      "B3",
-      "B4",
-      "B5",
-      "P1",
-      "P2",
-      "P3",
-      "P4",
-      "P5",
-      "P6",
-    ],
+    djarea: ["B1", "B2", "B3", "B4", "B5"],
+    backstage: ["P1", "P2", "P3", "P4", "P5", "P6"],
     vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4"],
     premium: ["K1", "K2", "K3", "K4"],
   };

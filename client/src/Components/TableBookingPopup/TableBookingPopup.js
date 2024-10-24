@@ -17,21 +17,8 @@ const TableBookingPopup = ({
 
   // Helper function to determine table type
   const getTableType = (number) => {
-    if (
-      [
-        "B1",
-        "B2",
-        "B3",
-        "B4",
-        "B5",
-        "P1",
-        "P2",
-        "P3",
-        "P4",
-        "P5",
-        "P6",
-      ].includes(number)
-    )
+    if (["B1", "B2", "B3", "B4", "B5"].includes(number)) return "DJ Area"; // New category for B tables
+    if (["P1", "P2", "P3", "P4", "P5", "P6"].includes(number))
       return "Backstage";
     if (["A1", "A2", "A3", "F1", "F2", "F3", "F4"].includes(number))
       return "VIP";
@@ -42,10 +29,11 @@ const TableBookingPopup = ({
   // Helper function to get minimum spend based on table type
   const getMinimumSpend = (tableType) => {
     const minimumSpends = {
+      "DJ Area": "340€", // New premium pricing for DJ Area
       Backstage: "170€",
       VIP: "100€",
       Premium: "100€",
-      "": "$800", // Default tables
+      "": "100€", // Default tables
     };
     return minimumSpends[tableType];
   };
@@ -90,7 +78,7 @@ const TableBookingPopup = ({
           <input
             type="text"
             className="popup-input"
-            placeholder="Guest Name"
+            placeholder="Guset Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />

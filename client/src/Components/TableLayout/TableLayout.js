@@ -80,34 +80,37 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
           P6
         </div>
         <div
-          className={getClass("B4", "table-vertical red-table b4")}
+          className={getClass("B4", "table-vertical gold-table b4")}
           onClick={(e) => handleTableClick("B4", e)}
         >
           B4
         </div>
         <div
-          className={getClass("B5", "table-vertical red-table b5")}
+          className={getClass("B5", "table-vertical gold-table b5")}
           onClick={(e) => handleTableClick("B5", e)}
         >
           B5
         </div>
         <div
-          className={getClass("B3", "table-vertical red-table b3")}
+          className={getClass("B3", "table-vertical gold-table b3")}
           onClick={(e) => handleTableClick("B3", e)}
         >
           B3
         </div>
         <div
-          className={getClass("B2", "table-round red-table b2")}
+          className={getClass("B2", "table-round gold-table b2")}
           onClick={(e) => handleTableClick("B2", e)}
         >
           B2
         </div>
         <div
-          className={getClass("B1", "table-round red-table b1")}
+          className={getClass("B1", "table-round gold-table b1")}
           onClick={(e) => handleTableClick("B1", e)}
         >
           B1
+        </div>
+        <div className="dj-area premium-zone">
+          <p>DJ</p>
         </div>
         <div className="dj-area">
           <p>DJ</p>

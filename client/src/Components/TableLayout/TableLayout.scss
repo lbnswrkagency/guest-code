@@ -1,5 +1,5 @@
 @import "../../_variables";
-// Update these variables at the top of your TableLayout.scss file
+
 $background-color: #1a1a1a;
 $text-color: #ffffff;
 $vip-color: #ffd700; // Gold for VIP tables
@@ -7,6 +7,11 @@ $backstage-color: #80221c; // Rich, deeper red for backstage
 $regular-table-color: #4a90e2; // Keep the blue for regular tables
 $border-color: #333333;
 $accent-color: #8a2be2; // Deep purple for accents
+$premium-green: #2e8b57; // Premium emerald green for A tables
+$premium-green-border: #3cb371; // Lighter green for border contrast
+
+$dj-area-color: #ffd700; // Premium gold color
+$dj-area-glow: rgba(255, 215, 0, 0.3);
 
 .table-layout {
   display: grid;
@@ -191,10 +196,18 @@ $accent-color: #8a2be2; // Deep purple for accents
       justify-self: center;
       height: 3.5rem;
       width: 6rem;
-
       top: 1.5rem;
-      p {
-        align-self: center;
+
+      &.premium-zone {
+        border: 2px solid $dj-area-color !important;
+        background: rgba(255, 215, 0, 0.1) !important;
+        box-shadow: 0 0 15px $dj-area-glow;
+
+        p {
+          color: $dj-area-color !important;
+          font-weight: bold;
+          text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
       }
     }
 
@@ -518,15 +531,29 @@ $accent-color: #8a2be2; // Deep purple for accents
   text-align: center;
 }
 
+.gold-table {
+  background: linear-gradient(145deg, #ffd700, #ffa500);
+  border: 2px solid #ffd700;
+  color: #000000;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 15px $dj-area-glow;
+
+  &:hover {
+    background: linear-gradient(145deg, #ffa500, #ffd700);
+    box-shadow: 0 0 20px $dj-area-glow;
+  }
+}
+
 .blue-table {
   background-color: $regular-table-color;
   border: 2px solid #74b9ff;
 }
 
 .green-table {
-  background-color: $vip-color;
-  color: #000000;
-  border: 2px solid #ffeaa7; // Light golden border
+  background-color: $premium-green;
+  border: 2px solid $premium-green-border; // Keeping the light golden border as per your original
+  color: #ffffff; // Changed to white for better contrast against the dark green
 }
 
 .dj-table {

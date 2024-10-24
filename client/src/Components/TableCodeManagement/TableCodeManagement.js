@@ -25,35 +25,19 @@ function TableCodeManagement({
   const [tablesBookedCount, setTablesBookedCount] = useState(0);
 
   const tableColors = {
+    djarea: "#ffd700", // Gold for DJ Area tables
     backstage: "#80221c", // Rich red for backstage
-    vip: "#ffd700", // Gold for VIP
+    vip: "#1b5e20", // Your new green for VIP
     premium: "#4a90e2", // Blue for premium
   };
 
-  tableCategories = tableCategories || {
-    backstage: [
-      "B1",
-      "B2",
-      "B3",
-      "B4",
-      "B5",
-      "P1",
-      "P2",
-      "P3",
-      "P4",
-      "P5",
-      "P6",
-    ],
-    vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4"],
-    premium: ["K1", "K2", "K3", "K4"],
-  };
-
   // Define the desired category order
-  const categoryOrder = ["backstage", "vip", "premium"];
+  const categoryOrder = ["djarea", "backstage", "vip", "premium"];
 
-  // Function to determine the category of a table based on its number
   const getCategoryForTable = (tableNumber) => {
-    if (tableNumber.startsWith("B") || tableNumber.startsWith("P")) {
+    if (tableNumber.startsWith("B")) {
+      return "djarea";
+    } else if (tableNumber.startsWith("P")) {
       return "backstage";
     } else if (tableNumber.startsWith("A") || tableNumber.startsWith("F")) {
       return "vip";
@@ -176,14 +160,16 @@ function TableCodeManagement({
 
   const renderCategoryTitle = (category) => {
     const counts = getCategoryCounts(category);
-    const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+    // Format the display name properly for DJ Area
+    const displayName =
+      category === "djarea"
+        ? "DJ Area"
+        : category.charAt(0).toUpperCase() + category.slice(1);
 
     return (
       <div className="category-header">
         <h3>
-          <span style={{ color: tableColors[category] }}>
-            {displayName} Tables
-          </span>
+          <span style={{ color: tableColors[category] }}>{displayName}</span>
           <div className="category-counts">
             {user.isAdmin ? (
               <>
