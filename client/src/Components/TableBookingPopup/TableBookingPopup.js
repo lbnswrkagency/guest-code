@@ -90,10 +90,9 @@ const TableBookingPopup = ({
           <input
             type="text"
             className="popup-input"
-            placeholder="Enter guest name"
+            placeholder="Guest Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            autoFocus
           />
 
           <select
