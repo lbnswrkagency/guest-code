@@ -97,7 +97,6 @@ function TableSystem({
       const bookingData = {
         name,
         event: user.events,
-
         host: user.firstName || user.userName,
         condition: "TABLE RESERVATION",
         hostId: user._id,
@@ -133,6 +132,19 @@ function TableSystem({
 
       // Refresh counts to get updated table counts
       refreshCounts();
+
+      // Scroll to TableCodeManagement after successful booking
+      setTimeout(() => {
+        const tableManagement = document.querySelector(
+          ".table-code-management"
+        );
+        if (tableManagement) {
+          tableManagement.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 500); // Small delay to ensure DOM updates
     } catch (error) {
       console.error("Table booking error:", error);
       toast.error("Error submitting table reservation request.");

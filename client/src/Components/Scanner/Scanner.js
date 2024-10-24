@@ -79,13 +79,22 @@ function Scanner({ onClose }) {
   // Function to handle QR code data
   const handleQRCode = async (data) => {
     setIsProcessing(true);
+    if (!data || data.trim() === "") {
+      toast.error("Invalid QR code content", {
+        toastId: "invalid-qr",
+      });
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       await validateTicket(data);
+    } catch (error) {
+      console.error("QR processing error:", error);
     } finally {
       setIsProcessing(false);
     }
   };
-
   // Clean up function
   const cleanupCamera = () => {
     if (animationFrameRef.current) {
@@ -120,10 +129,20 @@ function Scanner({ onClose }) {
       setScanning(false);
       cleanupCamera();
     } catch (error) {
-      console.error("Validation error:", error);
-      toast.error(error.response?.data?.message || "Invalid ticket", {
-        toastId: "validation-error", // Prevent duplicate toasts
+      // More user-friendly error messages based on error type
+      const errorMessage =
+        error.response?.status === 404
+          ? "Invalid ticket code"
+          : error.response?.status === 400
+          ? "Invalid QR code format"
+          : error.response?.data?.message || "Error validating ticket";
+
+      // Use toastId to prevent duplicate toasts
+      toast.error(errorMessage, {
+        toastId: "validation-error",
+        autoClose: 2000,
       });
+
       setIsProcessing(false);
     }
   };

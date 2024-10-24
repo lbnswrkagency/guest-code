@@ -11,6 +11,11 @@ const mongoose = require("mongoose");
 const validateTicket = async (req, res) => {
   try {
     const ticketId = req.body.ticketId;
+
+    if (!mongoose.Types.ObjectId.isValid(ticketId)) {
+      return res.status(400).json({ message: "Invalid ticket code" });
+    }
+
     let ticket;
     let typeOfTicket;
 
