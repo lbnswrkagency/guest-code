@@ -68,7 +68,7 @@ const TableBookingPopup = ({
 
         <div className="popup-header">
           <h3>
-            {tableType && `${tableType} `}Table {tableNumber}
+            {tableType && `${tableType} `} - {tableNumber}
           </h3>
           <p>Enter booking details</p>
           <div className="minimum-spend">Minimum Spend: {minimumSpend}</div>
