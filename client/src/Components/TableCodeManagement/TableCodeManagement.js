@@ -152,6 +152,61 @@ function TableCodeManagement({
     }
   };
 
+  // ✨ **Change Made Here:** Set total to the total number of tables in the category
+  const getCategoryCounts = (category) => {
+    const categoryItems =
+      codesByCategory[category]?.filter(
+        (code) => user.isAdmin || code.hostId === user._id
+      ) || [];
+
+    const totalTablesInCategory = tableCategories[category].length; // Total tables available in the category
+    const acceptedCount = categoryItems.filter(
+      (code) => code.status === "confirmed"
+    ).length;
+    const pendingCount = categoryItems.filter(
+      (code) => code.status === "pending"
+    ).length;
+
+    return {
+      total: totalTablesInCategory, // Updated to reflect total tables
+      accepted: acceptedCount,
+      pending: pendingCount,
+    };
+  };
+
+  const renderCategoryTitle = (category) => {
+    const counts = getCategoryCounts(category);
+    const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+
+    return (
+      <div className="category-header">
+        <h3>
+          <span style={{ color: tableColors[category] }}>
+            {displayName} Tables
+          </span>
+          <div className="category-counts">
+            {user.isAdmin ? (
+              <>
+                {counts.pending > 0 && (
+                  <span className="count-pending">
+                    {counts.pending} Pending
+                  </span>
+                )}
+                <span className="count-total">
+                  {counts.accepted}/{counts.total} Reserved
+                </span>
+              </>
+            ) : (
+              <span className="count-total">
+                {counts.accepted}/{counts.total} Confirmed
+              </span>
+            )}
+          </div>
+        </h3>
+      </div>
+    );
+  };
+
   const handleStatusChange = async (codeId, newStatus) => {
     try {
       toast.loading("Updating status...");
@@ -541,12 +596,9 @@ function TableCodeManagement({
             (code) => user.isAdmin || code.hostId === user._id
           );
 
-          // Only render category if it has items
           return categoryItems?.length > 0 ? (
             <div key={category} className="table-category">
-              <h3 style={{ color: tableColors[category] }}>
-                {category.charAt(0).toUpperCase() + category.slice(1)} Tables
-              </h3>
+              {renderCategoryTitle(category)}
               {categoryItems.map((code) => renderCodeItem(code))}
             </div>
           ) : null;
