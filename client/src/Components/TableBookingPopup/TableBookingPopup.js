@@ -78,7 +78,7 @@ const TableBookingPopup = ({
           <input
             type="text"
             className="popup-input"
-            placeholder="Guset Name"
+            placeholder="Guest Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
