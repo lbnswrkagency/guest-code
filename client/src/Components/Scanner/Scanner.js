@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "./Scanner.scss";
@@ -7,76 +6,109 @@ import jsQR from "jsqr";
 import Navigation from "../Navigation/Navigation";
 
 function Scanner({ onClose }) {
-  let isScanning = true;
-
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(true);
   const [scannerError, setScannerError] = useState(false);
-  const [toastShown, setToastShown] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [isTicketValidated, setIsTicketValidated] = useState(false);
+  const animationFrameRef = useRef(null);
+  const streamRef = useRef(null);
 
-  const handleScan = (decodedText, decodedResult) => {
-    if (isScanning) {
-      isScanning = false; // Prevents multiple scans
-      qrCodeScanner.pause(); // Immediately pause scanner
-      validateTicket(decodedText).finally(() => {
-        isScanning = true; // Reset for next scan
-        qrCodeScanner.resume(); // Resume scanner after processing
+  // Function to initialize camera
+  const initializeCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
       });
-    }
-  };
 
-  let qrCodeScanner;
-
-  const handleError = (err) => {
-    console.error(err);
-    if (!isScanning) return; // Prevents multiple error toasts
-    isScanning = false; // Set to false to prevent further scans
-
-    // Example: Check for specific error types before setting scannerError
-    if (err.name === "NotAllowedError" || err.name === "NotFoundError") {
-      setScannerError(true);
-      toast.error("Scanning error. Please ensure your device has a webcam.");
-      if (qrCodeScanner) {
-        qrCodeScanner.clear();
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        streamRef.current = stream;
+        startScanning();
       }
-    } else {
-      // Handle non-critical errors differently
-      console.log("Non-critical error: ", err.message);
-    }
-
-    setTimeout(() => (isScanning = true), 2000); // Reset flag after a delay
-  };
-
-  const processVideo = (videoElement) => {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, canvas.width, canvas.height);
-
-    if (code) {
-      validateTicket(code.data);
+    } catch (err) {
+      console.error("Camera initialization error:", err);
+      setScannerError(true);
+      toast.error(
+        "Failed to access camera. Please ensure camera permissions are granted."
+      );
     }
   };
 
-  const stopVideoStream = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach((track) => track.stop());
+  // Function to handle QR code scanning
+  const startScanning = () => {
+    const tick = () => {
+      if (
+        videoRef.current?.readyState === videoRef.current?.HAVE_ENOUGH_DATA &&
+        !isProcessing
+      ) {
+        const canvasElement = canvasRef.current;
+        const context = canvasElement.getContext("2d");
+        canvasElement.width = videoRef.current.videoWidth;
+        canvasElement.height = videoRef.current.videoHeight;
+        context.drawImage(
+          videoRef.current,
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+
+        const imageData = context.getImageData(
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code && !isProcessing) {
+          handleQRCode(code.data);
+        }
+      }
+      animationFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    tick();
+  };
+
+  // Function to handle QR code data
+  const handleQRCode = async (data) => {
+    setIsProcessing(true);
+    try {
+      await validateTicket(data);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const checkTimeLimit = () => {
-    const now = new Date();
-    const timeLimit = new Date();
-    timeLimit.setHours(24, 0, 0, 0); // Set time limit to 23:00 H
+  // Clean up function
+  const cleanupCamera = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
 
-    return now > timeLimit;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   };
+
+  // Initialize camera on mount
+  useEffect(() => {
+    if (scanning && !scanResult) {
+      initializeCamera();
+    }
+
+    return () => cleanupCamera();
+  }, [scanning, scanResult]);
 
   const validateTicket = async (ticketId) => {
     try {
@@ -85,16 +117,14 @@ function Scanner({ onClose }) {
         { ticketId }
       );
       setScanResult(response.data);
-      setIsTicketValidated(true); // Set the flag to true on successful validation
-      stopVideoStream(); // Stop the video stream
-      setScanning(false); // Update the scanning state
+      setScanning(false);
+      cleanupCamera();
     } catch (error) {
-      // Handle the error case as needed
-      if (!toastShown) {
-        toast.error("Error validating ticket", { autoClose: 2000 });
-        setToastShown(true);
-        setTimeout(() => setToastShown(false), 2000); // Reset the toast shown state
-      }
+      console.error("Validation error:", error);
+      toast.error(error.response?.data?.message || "Invalid ticket", {
+        toastId: "validation-error", // Prevent duplicate toasts
+      });
+      setIsProcessing(false);
     }
   };
 
@@ -108,9 +138,12 @@ function Scanner({ onClose }) {
       setScanResult({ ...scanResult, paxChecked: response.data.paxChecked });
       toast.success(`Checked ${increment ? "in" : "out"} successfully`, {
         autoClose: 2000,
+        toastId: "pax-update", // Prevent duplicate toasts
       });
     } catch (error) {
-      toast.error(`Error ${increment ? "increasing" : "decreasing"} pax`);
+      toast.error(`Error ${increment ? "increasing" : "decreasing"} pax`, {
+        toastId: "pax-error", // Prevent duplicate toasts
+      });
     }
   };
 
@@ -118,73 +151,19 @@ function Scanner({ onClose }) {
     if (manualId) {
       validateTicket(manualId);
       setManualId("");
-      setToastShown(false);
+    } else {
+      toast.error("Please enter a code ID", {
+        toastId: "manual-input-error", // Prevent duplicate toasts
+      });
     }
   };
 
-  useEffect(() => {
-    let isMounted = true; // To check if the component is still mounted
-
-    const tick = () => {
-      if (
-        isMounted &&
-        videoRef.current &&
-        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
-      ) {
-        const canvasElement = canvasRef.current;
-        const context = canvasElement.getContext("2d");
-        canvasElement.width = videoRef.current.videoWidth;
-        canvasElement.height = videoRef.current.videoHeight;
-        context.drawImage(
-          videoRef.current,
-          0,
-          0,
-          canvasElement.width,
-          canvasElement.height
-        );
-        const imageData = context.getImageData(
-          0,
-          0,
-          canvasElement.width,
-          canvasElement.height
-        );
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code) {
-          validateTicket(code.data);
-        }
-      }
-      requestAnimationFrame(tick);
-    };
-
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: "environment" } })
-      .then(function (stream) {
-        if (isMounted) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          tick();
-        }
-      })
-      .catch(function (err) {
-        if (isMounted) {
-          console.error(err);
-          setScannerError(true);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
-    };
-  }, [scanning, scannerError]); // Dependencies array
-
   const resetScanner = () => {
-    setScanning(true);
+    cleanupCamera();
     setScanResult(null);
-    setToastShown(false);
+    setScanning(true);
+    setIsProcessing(false);
+    setScannerError(false);
   };
 
   return (

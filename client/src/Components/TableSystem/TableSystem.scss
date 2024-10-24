@@ -82,8 +82,24 @@
       color: #fff;
       font-size: 1rem;
       justify-self: center;
+      -webkit-appearance: none; // Removes iOS default styling
+      -moz-appearance: none;
+      appearance: none;
+      margin: 0; // Removes iOS default margin
+
+      // iOS specific text color fix
+      &:not([type="submit"]):not([type="button"]) {
+        -webkit-text-fill-color: #fff;
+      }
+
+      // Fix for iOS zoom on focus
+      @supports (-webkit-touch-callout: none) {
+        font-size: 16px; // Prevents zoom on iOS
+      }
+
       &::placeholder {
         color: #666;
+        opacity: 1; // Fixes iOS opacity
       }
 
       &:focus {
@@ -93,8 +109,19 @@
       }
     }
 
+    // Specific select styling
     select {
       cursor: pointer;
+      padding-right: 2rem; // Space for custom arrow
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1rem;
+
+      // Remove default arrow in IE/Edge
+      &::-ms-expand {
+        display: none;
+      }
 
       option {
         background: #1a1a1a;
@@ -107,9 +134,30 @@
         color: #ffc807;
       }
     }
+
+    // iOS specific dark mode fix
+    @media (prefers-color-scheme: dark) {
+      input,
+      select {
+        background: #1a1a1a !important;
+      }
+    }
   }
 
+  // Add specific iOS input reset styles
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select {
+      border-radius: 8px !important;
+      -webkit-border-radius: 8px !important;
+    }
+  }
+
+  // Add specific button reset for iOS
   &-btn {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     width: 90%;
     padding: 0.75rem;
     background: #ffc807;
