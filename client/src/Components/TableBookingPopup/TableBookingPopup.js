@@ -87,7 +87,7 @@ const TableBookingPopup = ({
             value={pax}
             onChange={(e) => setPax(parseInt(e.target.value))}
           >
-            {[...Array(5)].map((_, index) => (
+            {[...Array(10)].map((_, index) => (
               <option key={index + 1} value={index + 1}>
                 {index + 1} People
               </option>

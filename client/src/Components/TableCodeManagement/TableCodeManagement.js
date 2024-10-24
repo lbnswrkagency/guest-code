@@ -298,9 +298,10 @@ function TableCodeManagement({
               value={editPax}
               onChange={(e) => setEditPax(e.target.value)}
             >
-              {[1, 2, 3, 4, 5].map((num) => (
-                <option key={num} value={num}>
-                  {num} People
+              {/* Changed options from 1-5 to 1-10 */}
+              {[...Array(10)].map((_, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {index + 1} People
                 </option>
               ))}
             </select>

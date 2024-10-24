@@ -9,6 +9,7 @@ const DashboardHeader = ({
   toggleEditAvatar,
   setIsCropMode,
   isCropMode,
+  setUser,
 }) => {
   return (
     <div className="headerDashboard">
@@ -34,7 +35,12 @@ const DashboardHeader = ({
 
         {(isEditingAvatar || !user.avatar) && (
           <>
-            <AvatarUpload user={user} setIsCropMode={setIsCropMode} />
+            <AvatarUpload
+              user={user}
+              setUser={setUser} // Make sure this prop is passed
+              setIsCropMode={setIsCropMode}
+              onCropModeChange={() => {}} // Add if needed
+            />
 
             {user.avatar && !isCropMode && (
               <img

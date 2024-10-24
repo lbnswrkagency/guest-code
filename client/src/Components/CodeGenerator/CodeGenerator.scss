@@ -294,12 +294,8 @@ body {
 }
 
 .code {
-  // ... existing base styles ...
-
   &-wrapper {
     max-width: 25rem; // More specific width control
-
-    margin: 0 auto;
   }
 
   &-admin {

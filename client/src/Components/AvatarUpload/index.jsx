@@ -5,8 +5,8 @@ import AvatarImageCrop from "./components/AvatarImageCrop";
 import UploadIcon from "./svg/UploadIcon";
 
 class AvatarUpload extends Component {
-  constructor(props, context) {
-    super(props, context);
+  constructor(props) {
+    super(props);
 
     this.state = {
       editor: null,
@@ -15,8 +15,6 @@ class AvatarUpload extends Component {
       profileCheck: props.profileCheck,
       selectedFile: null,
       user: props.user,
-      setUser: props.setUser,
-      setImageSwitch: props.setImageSwitch,
     };
   }
 
@@ -29,12 +27,13 @@ class AvatarUpload extends Component {
       this.setState({ selectedFile: file });
     }
     this.setState({ cropMode: true });
-    this.state.setImageSwitch(true);
+    this.props.setIsCropMode(true); // Use prop directly instead of state
     this.props.onCropModeChange(true);
   };
 
   onCrop = () => {
-    const { editor, selectedFile, user } = this.state;
+    const { editor, selectedFile } = this.state;
+    const { user, setUser } = this.props; // Get from props
 
     if (editor && selectedFile) {
       let canvas = editor.getImageScaledToCanvas().toDataURL("image/png");
@@ -50,7 +49,6 @@ class AvatarUpload extends Component {
       let file = new File([u8arr], "avatar.png", { type: "image/jpeg" });
 
       const data = new FormData();
-
       data.append("profileImage", file);
       data.append("userId", user._id);
 
@@ -62,28 +60,23 @@ class AvatarUpload extends Component {
             headers: {
               accept: "application/json",
               "Accept-Language": "en-US,en;q=0.8",
-              // The Content-Type is set automatically by Axios for FormData
             },
           }
         )
         .then((response) => {
           if (response.status === 200) {
-            // Update global user state with new avatar URL
             const updatedUser = {
-              ...this.props.user,
+              ...user,
               avatar: response.data.imageUrl,
             };
 
-            this.props.setUser(updatedUser); // Assuming setUser updates global state
-            // Reset local state to exit crop mode
+            setUser(updatedUser);
             this.setState({ cropMode: false });
-            this.state.setImageSwitch(false);
+            this.props.setIsCropMode(false); // Use prop directly
             this.props.onCropModeChange(false);
           }
         })
-
         .catch((error) => {
-          // Handle any other errors
           this.ocShowAlert(`Error: ${error.message}`, "red");
         });
     } else {
@@ -93,7 +86,7 @@ class AvatarUpload extends Component {
 
   onCancel = () => {
     this.setState({ cropMode: false });
-    this.state.setImageSwitch(false);
+    this.props.setIsCropMode(false); // Use prop directly
     this.props.onCropModeChange(false);
   };
 
@@ -102,7 +95,6 @@ class AvatarUpload extends Component {
     this.setState({ scaleValue });
   };
 
-  // ShowAlert Function
   ocShowAlert = (message, background = "#3089cf") => {
     let alertContainer = document.querySelector("#oc-alert-container"),
       alertEl = document.createElement("div"),

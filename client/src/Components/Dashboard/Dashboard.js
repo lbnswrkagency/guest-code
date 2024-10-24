@@ -326,6 +326,7 @@ const Dashboard = () => {
           toggleEditAvatar={toggleEditAvatar}
           setIsCropMode={setIsCropMode}
           isCropMode={isCropMode}
+          setUser={setUser}
         />
 
         <DashboardStatus userCounts={userCounts} />
