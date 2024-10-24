@@ -100,45 +100,54 @@ const fetchCodes = async (req, res) => {
   const { startDate, endDate } = req.query;
   const type = req.params.type;
 
-  let model;
-  let query = {};
-  if (!startDate || !endDate) {
-    return res.status(400).send("Start date and end date are required");
-  }
-  query = {
-    createdAt: {
-      $gte: new Date(startDate),
-      $lte: new Date(endDate),
-    },
-  };
-
-  switch (type) {
-    case "friends":
-      model = FriendsCode;
-      query.hostId = req.user._id; // Non-admins see only their codes
-      break;
-    case "backstage":
-      model = BackstageCode;
-      query.hostId = req.user._id;
-      break;
-    case "table":
-      model = TableCode;
-
-      if (startDate && endDate) {
-        query.createdAt = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
-        };
-      }
-      break;
-    default:
-      return res.status(400).send("Invalid code type");
-  }
-
   try {
+    let model;
+    let query = {};
+
+    if (!startDate || !endDate) {
+      return res.status(400).send("Start date and end date are required");
+    }
+
+    query = {
+      createdAt: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      },
+    };
+
+    switch (type) {
+      case "friends":
+        model = FriendsCode;
+        query.hostId = req.user._id;
+        break;
+      case "backstage":
+        model = BackstageCode;
+        query.hostId = req.user._id;
+        break;
+      case "table":
+        model = TableCode;
+        break;
+      default:
+        return res.status(400).send("Invalid code type");
+    }
+
     const codes = await model.find(query).sort({ createdAt: -1 });
-    res.json(codes);
+
+    // Generate QR codes for each code
+    const codesWithQR = await Promise.all(
+      codes.map(async (code) => {
+        const qrBuffer = await QRCode.toDataURL(code._id.toString(), qrOption);
+        const codeObject = code.toObject();
+        return {
+          ...codeObject,
+          qrCode: qrBuffer, // Add QR code to each code object
+        };
+      })
+    );
+
+    res.json(codesWithQR);
   } catch (error) {
+    console.error("Error fetching codes:", error);
     res.status(500).send("Error fetching codes!");
   }
 };

@@ -19,100 +19,93 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
     return classes;
   };
 
-  const handleTableClick = (table) => {
+  const handleTableClick = (table, event) => {
     if (!isBooked(table)) {
-      setTableNumber(table);
+      const rect = event.target.getBoundingClientRect();
+      setTableNumber(table, {
+        x: rect.left + rect.width / 2,
+        y: rect.bottom,
+      });
     }
   };
 
   return (
     <div className="table-layout">
       <div className="table-guide">Click a Table</div>
+
+      {/* Table Layout 01 */}
       <div className="tables table-layout-01">
         <div className="bar-area-backstage">
           <p>BAR</p>
         </div>
         <div className="table wc">WC</div>
-        {/* <div
-          className={getClass("B1", "table red-table b1")}
-          onClick={() => handleTableClick("B1")}
-        >
-          B1
-        </div>
-        <div
-          className={getClass("B2", "table red-table b2")}
-          onClick={() => handleTableClick("B2")}
-        >
-          B2
-        </div> */}
         <div
           className={getClass("P1", "table-round red-table p1")}
-          onClick={() => handleTableClick("P1")}
+          onClick={(e) => handleTableClick("P1", e)}
         >
           P1
         </div>
         <div
           className={getClass("P2", "table-round red-table p2")}
-          onClick={() => handleTableClick("P2")}
+          onClick={(e) => handleTableClick("P2", e)}
         >
           P2
         </div>
-
         <div
           className={getClass("P3", "table-round red-table p3")}
-          onClick={() => handleTableClick("P3")}
+          onClick={(e) => handleTableClick("P3", e)}
         >
           P3
         </div>
       </div>
 
+      {/* Table Layout 02 */}
       <div className="tables table-layout-02">
         <div
           className={getClass("P4", "table-vertical red-table p4")}
-          onClick={() => handleTableClick("P4")}
+          onClick={(e) => handleTableClick("P4", e)}
         >
           P4
         </div>
         <div
           className={getClass("P5", "table-vertical red-table p5")}
-          onClick={() => handleTableClick("P5")}
+          onClick={(e) => handleTableClick("P5", e)}
         >
           P5
         </div>
         <div
           className={getClass("P6", "table-vertical red-table p6")}
-          onClick={() => handleTableClick("P6")}
+          onClick={(e) => handleTableClick("P6", e)}
         >
           P6
         </div>
         <div
           className={getClass("B4", "table-vertical red-table b4")}
-          onClick={() => handleTableClick("B4")}
+          onClick={(e) => handleTableClick("B4", e)}
         >
           B4
         </div>
         <div
           className={getClass("B5", "table-vertical red-table b5")}
-          onClick={() => handleTableClick("B5")}
+          onClick={(e) => handleTableClick("B5", e)}
         >
           B5
         </div>
-
         <div
           className={getClass("B3", "table-vertical red-table b3")}
-          onClick={() => handleTableClick("B3")}
+          onClick={(e) => handleTableClick("B3", e)}
         >
           B3
         </div>
         <div
           className={getClass("B2", "table-round red-table b2")}
-          onClick={() => handleTableClick("B2")}
+          onClick={(e) => handleTableClick("B2", e)}
         >
           B2
         </div>
         <div
           className={getClass("B1", "table-round red-table b1")}
-          onClick={() => handleTableClick("B1")}
+          onClick={(e) => handleTableClick("B1", e)}
         >
           B1
         </div>
@@ -121,83 +114,81 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
         </div>
       </div>
 
+      {/* Table Layout 03 */}
       <div className="tables table-layout-03">
         <div
           className={getClass("K1", "table-vertical blue-table k1")}
-          onClick={() => handleTableClick("K1")}
+          onClick={(e) => handleTableClick("K1", e)}
         >
           K1
         </div>
         <div
           className={getClass("K2", "table-vertical blue-table k2")}
-          onClick={() => handleTableClick("K2")}
+          onClick={(e) => handleTableClick("K2", e)}
         >
           K2
         </div>
-
         <div
           className={getClass("F2", "table-vertical green-table f2")}
-          onClick={() => handleTableClick("F2")}
+          onClick={(e) => handleTableClick("F2", e)}
         >
           F2
         </div>
         <div
           className={getClass("F1", "table-vertical green-table f1")}
-          onClick={() => handleTableClick("F1")}
+          onClick={(e) => handleTableClick("F1", e)}
         >
           F1
         </div>
         <div
           className={getClass("A1", "table-vertical green-table a1")}
-          onClick={() => handleTableClick("A1")}
+          onClick={(e) => handleTableClick("A1", e)}
         >
           A1
         </div>
         <div
           className={getClass("A2", "table-vertical green-table a2")}
-          onClick={() => handleTableClick("A2")}
+          onClick={(e) => handleTableClick("A2", e)}
         >
           A2
         </div>
       </div>
 
+      {/* Additional Tables in Table Layout 03 */}
       <div className="tables table-layout-03">
         <div
           className={getClass("K3", "table-vertical blue-table k3")}
-          onClick={() => handleTableClick("K3")}
+          onClick={(e) => handleTableClick("K3", e)}
         >
           K3
         </div>
         <div
           className={getClass("K4", "table-vertical blue-table k4")}
-          onClick={() => handleTableClick("K4")}
+          onClick={(e) => handleTableClick("K4", e)}
         >
           K4
         </div>
-
         <div
           className={getClass("F4", "table-vertical green-table f4")}
-          onClick={() => handleTableClick("F4")}
+          onClick={(e) => handleTableClick("F4", e)}
         >
           F4
         </div>
         <div
           className={getClass("F3", "table-vertical green-table f3")}
-          onClick={() => handleTableClick("F3")}
+          onClick={(e) => handleTableClick("F3", e)}
         >
           F3
         </div>
-
         <div
           className={getClass("A3", "table-vertical green-table a3")}
-          onClick={() => handleTableClick("A3")}
+          onClick={(e) => handleTableClick("A3", e)}
         >
           A3
         </div>
       </div>
 
-      <div className="tables table-layout-03"></div>
-
+      {/* Table Layout 04 */}
       <div className="tables table-layout-04">
         <div className="bar-area">
           <p>BAR</p>

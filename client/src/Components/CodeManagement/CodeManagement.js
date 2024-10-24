@@ -31,6 +31,7 @@ function CodeManagement({
   const [limit, setLimit] = useState(undefined); // Add limit state
   const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [currentEditingCodePax, setCurrentEditingCodePax] = useState(0);
+
   useEffect(() => {
     const fetchCodes = async () => {
       try {
@@ -321,6 +322,9 @@ function CodeManagement({
             code.paxChecked === code.pax ? "code-management-item-checked" : ""
           }`}
         >
+          <div className="inline-qr-code">
+            <img src={code.qrCode} alt="QR Code" />
+          </div>
           {editCodeId === code._id ? (
             <div className="edit-form">
               <input
@@ -382,6 +386,7 @@ function CodeManagement({
                     alt="Show"
                   />
                 </button>
+
                 <button
                   className="action-btn download"
                   onClick={() => handleDownload(code._id)}

@@ -241,4 +241,44 @@
   }
 }
 
-// Remove all table layout styles as they're in TableLayout.scss
+.refresh-button {
+  display: flex;
+  justify-content: flex-end;
+  margin: 10px 0;
+  justify-self: center;
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    transition: opacity 0.2s ease;
+
+    &:disabled {
+      cursor: default;
+    }
+
+    img {
+      width: 36px;
+      height: 36px;
+      transition: transform 0.1s ease;
+    }
+
+    &:hover:not(:disabled) img {
+      opacity: 0.8;
+    }
+
+    &.spinning img {
+      animation: doubleSpinRefresh 1s ease-in-out;
+    }
+  }
+}
+
+@keyframes doubleSpinRefresh {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}

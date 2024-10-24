@@ -10,6 +10,7 @@ function TableCodeManagement({
   refreshCounts,
   dataInterval,
   tableCategories,
+  refreshTrigger,
 }) {
   const [codes, setCodes] = useState([]);
   const [codesByCategory, setCodesByCategory] = useState({});
@@ -112,6 +113,7 @@ function TableCodeManagement({
     dataInterval.startDate.toISOString(),
     dataInterval.endDate.toISOString(),
     refreshCounts,
+    refreshTrigger,
   ]);
 
   // Compute total tables and tables left
