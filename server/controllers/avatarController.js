@@ -1,80 +1,77 @@
 const path = require("path");
-const url = require("url");
 const User = require("../models/User");
-const aws = require("aws-sdk");
 const { uploadToS3, deleteExistingAvatar } = require("../utils/s3Uploader");
+const { optimizeImage } = require("../utils/imageOptimizer");
+const chalk = require("chalk");
 
-// AWS S3 Configuration
-aws.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
-
-const s3 = new aws.S3({
-  Bucket: process.env.AWS_S3_BUCKET_NAME,
-});
-
-function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb("Error: Images Only!");
-  }
-}
-
-// Existing addAvatar function
 const addAvatar = async (req, res) => {
-  const data = req.body;
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.body.userId,
+      { $set: { avatar: req.body.avatar } },
+      { new: true }
+    );
 
-  User.findByIdAndUpdate(
-    data.userId,
-    { $set: { avatar: data.avatar } },
-    { new: true },
-    (err, user) => {
-      if (err) {
-        res.sendStatus(404);
-      } else {
-        res.status(200).json(user.avatar);
-      }
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-  );
+
+    res.status(200).json(user.avatar);
+  } catch (err) {
+    console.error(chalk.red("Avatar update error:"), err);
+    res.status(500).json({ error: "Server error" });
+  }
 };
 
 const uploadAvatar = async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
-
-  const userId = req.body.userId;
-  const user = await User.findById(userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  // Correctly extract file extension and construct the new filename
-  const originalName = req.file.originalname;
-  const fileExtension = originalName.substring(originalName.lastIndexOf("."));
-  const fileName = `avatar-${userId}${fileExtension}`; // Correct format for filename
-
-  const folder = "server"; // Your S3 folder
-  const mimetype = req.file.mimetype;
-
   try {
-    // First, try deleting any existing avatar for the user
-    await deleteExistingAvatar(folder, fileName);
+    if (!req.file?.buffer || !req.body.userId) {
+      return res.status(400).json({ error: "Invalid request" });
+    }
 
-    // Then, upload the new avatar
+    const user = await User.findById(req.body.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const optimizedBuffer = await optimizeImage(req.file.buffer, {
+      maxWidth: 500,
+      maxHeight: 500,
+      quality: 80,
+      maxSizeKB: 200,
+    });
+
+    let oldAvatarKey = null;
+    if (user.avatar) {
+      const avatarUrl = new URL(user.avatar);
+      oldAvatarKey = avatarUrl.pathname.substring(1);
+    }
+
+    const fileName = `avatar-${user._id}.jpg`;
     const imageUrl = await uploadToS3(
-      req.file.buffer,
-      folder,
+      optimizedBuffer,
+      "avatars",
       fileName,
-      mimetype
+      "image/jpeg"
     );
-    user.avatar = imageUrl;
-    await user.save();
-    res.json({ success: true, imageUrl });
+
+    if (oldAvatarKey) {
+      await deleteExistingAvatar("avatars", oldAvatarKey).catch(() => {});
+    }
+
+    await User.findByIdAndUpdate(
+      user._id,
+      { $set: { avatar: imageUrl } },
+      { new: true, runValidators: false }
+    );
+
+    res.status(200).json({ success: true, imageUrl });
   } catch (error) {
-    console.error("Error uploading avatar:", error);
-    res.status(500).json({ error: "Failed to upload avatar" });
+    console.error(chalk.red("Upload error:"), error);
+    res.status(500).json({
+      error: "Upload failed",
+      details: error.message,
+    });
   }
 };
 

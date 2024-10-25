@@ -12,7 +12,7 @@ import Scanner from "../Scanner/Scanner";
 import axios from "axios";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
-import AvatarUpload from "../AvatarUpload/index";
+
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import Ranking from "../Ranking/Ranking";

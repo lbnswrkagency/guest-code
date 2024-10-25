@@ -1,6 +1,6 @@
 // DashboardHeader.js
 import React from "react";
-import AvatarUpload from "../AvatarUpload/index";
+import AvatarUpload from "../AvatarUpload/AvatarUpload.";
 import "./DashboardHeader.scss";
 
 const DashboardHeader = ({

@@ -149,7 +149,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
       <div style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">
         <h1 style="font-size: 24px;">Hey ${name},</h1>
            <p style="font-size: 16px;">We wanted to say thank you for joining us in the past.</p>
-        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti - Winter Season Opening at Studio 24, this Sunday.</p>
+        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti - at Studio 24, Athens this Sunday.</p>
         <h2 style="font-size: 18px;">You have free entrance all night with this invitation code.</h2>
         <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
         <p style="font-size: 16px;">Remember, your Invitation Code can only be used once.</p>

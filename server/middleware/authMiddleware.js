@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const chalk = require("chalk");
 
 const authenticate = (req, res, next) => {
   const authHeader = req.header("Authorization");
@@ -7,21 +8,20 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ msg: "No token, authorization denied" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
+    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    // Handle both old and new token structures
+    // Support both old and new token structures
     req.user = {
-      _id: decoded._id || decoded.userId, // Accept either format
+      _id: decoded._id || decoded.userId,
       email: decoded.email,
       username: decoded.username,
     };
 
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
+    console.error(chalk.red("Auth error:"), error.message);
     res.status(401).json({ msg: "Token is not valid" });
   }
 };
