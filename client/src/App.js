@@ -17,6 +17,8 @@ import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings"
 import DropFiles from "./Components/DropFiles/DropFiles";
 import Dropbox from "./Components/Dropbox/Dropbox";
 // import FriendsCode from './Components/FriendsCode/FriendsCode';
+import Inbox from "./Components/Inbox/Inbox";
+import PersonalChat from "./Components/PersonalChat/PersonalChat";
 
 function App() {
   const eventId = "31vp88ph";
@@ -28,8 +30,9 @@ function App() {
           <Route path="/" element={<EventPage passedEventId={eventId} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* <Route path="/dashboard/friendscode" element={<FriendsCode />} /> */}
+          <Route path="/dashboard/*" element={<Dashboard />}>
+            <Route path="chat/:chatId" element={<PersonalChat />} />
+          </Route>
           <Route
             path="/registration-success"
             element={<RegistrationSuccess />}
@@ -41,7 +44,6 @@ function App() {
           <Route path="/events/page/:eventId" element={<EventPage />} />
           <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
           <Route path="/upload" element={<DropFiles showDashboard={false} />} />
-
           <Route path="/share" element={<RedirectToDropbox />} />
         </Routes>
       </AuthProvider>

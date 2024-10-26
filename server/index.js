@@ -3,11 +3,16 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-const session = require("express-session"); // Import session middleware
+const session = require("express-session");
 const moment = require("moment-timezone");
-moment.tz.setDefault("Europe/Athens");
+const http = require("http");
 const path = require("path");
 const fs = require("fs");
+
+// Import setupSocket
+const setupSocket = require("./socket");
+
+// Route imports
 const authRoutes = require("./routes/auth");
 const spotifyRoutes = require("./routes/api/spotifyRoutes");
 const userRoutes = require("./routes/api/users");
@@ -23,8 +28,10 @@ const avatarRoutes = require("./routes/api/avatarRoutes");
 const lineupRoutes = require("./routes/api/lineupRoutes");
 const battleSignRoutes = require("./routes/api/battleSignRoutes");
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
-const fileUpload = require("express-fileupload");
+const chatRoutes = require("./routes/chatRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
+// Directory setup
 const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -32,7 +39,9 @@ if (!fs.existsSync(tempDir)) {
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 
+// CORS setup
 const corsOptions = {
   origin: [
     "http://localhost:3000",
@@ -50,7 +59,7 @@ const corsOptions = {
     "X-Requested-With",
   ],
   credentials: true,
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
 };
 
 // Cookie settings
@@ -58,7 +67,7 @@ const cookieSettings = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 7 * 24 * 60 * 60 * 1000,
   path: "/",
 };
 
@@ -67,7 +76,7 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
-// app.use(fileUpload());
+
 // Route setup
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -83,10 +92,11 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
 app.use("/api/lineup", lineupRoutes);
 app.use("/api/battleSign", battleSignRoutes);
-// Connect to MongoDB
 app.use("/api/dropbox", dropboxRoutes);
+app.use("/api/chats", chatRoutes);
+app.use("/api/messages", messageRoutes);
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -100,8 +110,12 @@ app.get("/", (req, res) => {
   res.send("Welcome to GUEST CODE backend!");
 });
 
-// Start the server
+// Initialize Socket.IO
+const io = setupSocket(server);
+app.set("io", io);
+
+// Start server
 const port = process.env.PORT || 5001;
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });

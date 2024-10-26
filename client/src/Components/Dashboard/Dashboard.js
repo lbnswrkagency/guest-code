@@ -1,6 +1,6 @@
 // Dashboard.js
 import React, { useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Route, Routes, Outlet } from "react-router-dom";
 import AuthContext from "../../contexts/AuthContext";
 import { logout } from "../AuthForm/Login/LoginFunction";
 import "./Dashboard.scss";
@@ -24,6 +24,9 @@ import DashboardHeader from "../DashboardHeader/DashboardHeader";
 import DashboardMenu from "../DashboardMenu/DashboardMenu";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
 import TableSystem from "../TableSystem/TableSystem";
+import Inbox from "../Inbox/Inbox";
+import PersonalChat from "../PersonalChat/PersonalChat";
+import GlobalChat from "../GlobalChat/GlobalChat";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -177,6 +180,8 @@ const Dashboard = () => {
   const refreshCounts = () => {
     fetchCounts();
   };
+
+  const [showGlobalChat, setShowGlobalChat] = useState(false);
 
   if (loading || !user) {
     return <p>Loading...</p>;
@@ -338,7 +343,8 @@ const Dashboard = () => {
           setShowScanner={setShowScanner}
           setShowDropFiles={setShowDropFiles}
           setCodeType={setCodeType}
-          setShowTableSystem={setShowTableSystem} // Add this line
+          setShowTableSystem={setShowTableSystem}
+          setShowGlobalChat={setShowGlobalChat}
         />
         <div className="dashboard-logout">
           <button className="dashboard-logout-button" onClick={handleLogout}>
@@ -352,7 +358,13 @@ const Dashboard = () => {
         </div>
       </div>
 
+      <Outlet />
+
       <Footer />
+
+      {showGlobalChat && (
+        <GlobalChat onClose={() => setShowGlobalChat(false)} user={user} />
+      )}
     </div>
   );
 };

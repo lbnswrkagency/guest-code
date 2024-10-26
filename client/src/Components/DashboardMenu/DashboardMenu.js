@@ -8,10 +8,9 @@ const DashboardMenu = ({
   setShowSettings,
   setShowStatistic,
   setShowScanner,
-  // setShowSpitixBattle,
-  // setShowDropFiles,
   setCodeType,
   setShowTableSystem,
+  setShowGlobalChat,
 }) => {
   const navigate = useNavigate();
 
@@ -69,7 +68,7 @@ const DashboardMenu = ({
         </div>
       )}
 
-      {user.isPromoter && (
+      {user.isStaff && (
         <div className="menuDashboard-button">
           <button onClick={() => setCodeType("Table")}>
             <img
@@ -134,6 +133,13 @@ const DashboardMenu = ({
           <p className="menuDashboard-button-title">Table System</p>
         </div>
       )} */}
+
+      {/* <div className="menuDashboard-button">
+        <button onClick={() => setShowGlobalChat(true)}>
+          <img src="/image/chat-icon.svg" alt="Chat" />
+        </button>
+        <p className="menuDashboard-button-title">Global Chat</p>
+      </div> */}
     </div>
   );
 };

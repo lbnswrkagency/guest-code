@@ -70,6 +70,7 @@ exports.verifyEmail = async (req, res) => {
     const payload = {
       userId: user._id,
       email: user.email,
+      username: user.username,
     };
 
     const newToken = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -141,11 +142,13 @@ exports.login = async (req, res) => {
         .json({ success: false, message: "Invalid password." });
     }
 
+    console.log("USER DATA ALL AUTH CONTROLLER", user);
+
     // Payload for the tokens
     const payload = {
       _id: user._id,
       email: user.email,
-      username: user.username, // Optionally add username to payload if needed
+      username: user.username,
     };
 
     // Generate Access Token
