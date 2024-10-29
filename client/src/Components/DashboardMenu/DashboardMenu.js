@@ -11,6 +11,7 @@ const DashboardMenu = ({
   setCodeType,
   setShowTableSystem,
   setShowGlobalChat,
+  isOnline, // Add this prop
 }) => {
   const navigate = useNavigate();
 
@@ -118,19 +119,6 @@ const DashboardMenu = ({
             />
           </button>
           <p className="menuDashboard-button-title">Spitix Battle</p>
-        </div>
-      )} */}
-
-      {/* {(user.isAdmin || user.isTable) && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setShowTableSystem(true)}>
-            <img
-              src="/image/table-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Table System</p>
         </div>
       )} */}
 

@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const chalk = require("chalk");
 
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const authHeader = req.header("Authorization");
 
   if (!authHeader) {

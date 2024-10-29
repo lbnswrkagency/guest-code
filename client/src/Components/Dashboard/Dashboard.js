@@ -28,8 +28,28 @@ import Inbox from "../Inbox/Inbox";
 import PersonalChat from "../PersonalChat/PersonalChat";
 import GlobalChat from "../GlobalChat/GlobalChat";
 
+import { SocketProvider, useSocket } from "../../contexts/SocketContext";
+
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
+
+  if (loading || !user) {
+    return <p>Loading...</p>;
+  }
+
+  // We first wrap everything with SocketProvider
+  return (
+    <SocketProvider user={user}>
+      <DashboardContent user={user} setUser={setUser} />
+    </SocketProvider>
+  );
+};
+
+// Second part - all your existing code moves here
+const DashboardContent = ({ user, setUser }) => {
+  // NOW we can use useSocket because we're inside SocketProvider
+  const { isConnected, socket } = useSocket();
+
   const [showSettings, setShowSettings] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -46,7 +66,6 @@ const Dashboard = () => {
     backstageCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
-
   const {
     currentEventDate,
     dataInterval,
@@ -57,11 +76,6 @@ const Dashboard = () => {
 
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
-  // Toggle function to switch between edit and view mode
-  const toggleEditAvatar = () => {
-    setIsEditingAvatar(!isEditingAvatar);
-  };
-
   const navigate = useNavigate();
 
   const startingEventString = "15052024";
@@ -70,6 +84,7 @@ const Dashboard = () => {
   const handleCropModeToggle = (isInCropMode) => {
     setIsCropMode(isInCropMode);
   };
+
   const getThisWeeksFriendsCount = () => {
     const filteredFriendsCounts = counts.friendsCounts.filter((count) => {
       return count._id === user._id;
@@ -163,7 +178,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user?.avatar) {
-      setIsEditingAvatar(false); // Resets editing state when a new avatar URL is detected.
+      setIsEditingAvatar(false);
     }
     if (user && user._id) {
       fetchCounts();
@@ -183,10 +198,48 @@ const Dashboard = () => {
 
   const [showGlobalChat, setShowGlobalChat] = useState(false);
 
-  if (loading || !user) {
-    return <p>Loading...</p>;
-  }
-  // Dashboard.js (Relevant Portion)
+  // New state for online users
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [onlineCount, setOnlineCount] = useState(0);
+
+  // New useEffect for socket status logging
+  useEffect(() => {
+    console.group("[Dashboard:Socket]");
+    console.log("Connected:", isConnected);
+    console.log("Online users:", onlineUsers);
+    console.log(
+      "Current user status:",
+      user?._id ? isConnected : "Not logged in"
+    );
+    console.groupEnd();
+  }, [isConnected, onlineUsers, user]);
+
+  // Update this useEffect to handle online users
+  useEffect(() => {
+    if (socket) {
+      socket.on("initial_online_users", (users) => {
+        setOnlineUsers(users);
+        setOnlineCount(users.length);
+      });
+
+      socket.on("user_status", ({ userId, status }) => {
+        setOnlineUsers((prevUsers) => {
+          if (status === "online" && !prevUsers.includes(userId)) {
+            return [...prevUsers, userId];
+          } else if (status === "offline") {
+            return prevUsers.filter((id) => id !== userId);
+          }
+          return prevUsers;
+        });
+      });
+
+      return () => {
+        socket.off("initial_online_users");
+        socket.off("user_status");
+      };
+    }
+  }, [socket]);
+
   if (codeType === "Table") {
     return (
       <TableSystem
@@ -230,12 +283,6 @@ const Dashboard = () => {
     return <Scanner user={user} onClose={() => setShowScanner(false)} />;
   }
 
-  // if (showSpitixBattle) {
-  //   return (
-  //     <SpitixBattle user={user} onClose={() => setShowSpitixBattle(false)} />
-  //   );
-  // }
-
   if (showStatistic) {
     return (
       <Statistic
@@ -246,7 +293,7 @@ const Dashboard = () => {
         isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
         onClose={() => {
           setShowStatistic(false);
-          resetEventDateToToday(); // Reset event date to today
+          resetEventDateToToday();
         }}
         user={user}
       />
@@ -269,23 +316,6 @@ const Dashboard = () => {
       />
     );
   }
-
-  // if (showRanking) {
-  //   return (
-  //     <Ranking
-  //       counts={counts}
-  //       currentEventDate={currentEventDate}
-  //       onPrevWeek={handlePrevWeek}
-  //       onNextWeek={handleNextWeek}
-  //       isStartingEvent={currentEventDate.isSame(startingEventDate, "day")}
-  //       onClose={() => {
-  //         setShowRanking(false);
-  //         resetEventDateToToday(); // Reset event date to today
-  //       }}
-  //       user={user}
-  //     />
-  //   );
-  // }
 
   if (showDropFiles) {
     return (
@@ -320,6 +350,8 @@ const Dashboard = () => {
     }
   };
 
+  console.log("ONLINE", isConnected);
+
   return (
     <div className="dashboard">
       <div className="dashboard-wrapper">
@@ -328,10 +360,11 @@ const Dashboard = () => {
         <DashboardHeader
           user={user}
           isEditingAvatar={isEditingAvatar}
-          toggleEditAvatar={toggleEditAvatar}
+          toggleEditAvatar={() => setIsEditingAvatar(!isEditingAvatar)}
           setIsCropMode={setIsCropMode}
           isCropMode={isCropMode}
           setUser={setUser}
+          isOnline={isConnected}
         />
 
         <DashboardStatus userCounts={userCounts} />
@@ -345,6 +378,8 @@ const Dashboard = () => {
           setCodeType={setCodeType}
           setShowTableSystem={setShowTableSystem}
           setShowGlobalChat={setShowGlobalChat}
+          isOnline={isConnected}
+          onlineCount={onlineCount}
         />
         <div className="dashboard-logout">
           <button className="dashboard-logout-button" onClick={handleLogout}>
@@ -363,7 +398,12 @@ const Dashboard = () => {
       <Footer />
 
       {showGlobalChat && (
-        <GlobalChat onClose={() => setShowGlobalChat(false)} user={user} />
+        <GlobalChat
+          onClose={() => setShowGlobalChat(false)}
+          user={user}
+          socket={socket}
+          onlineUsers={onlineUsers}
+        />
       )}
     </div>
   );

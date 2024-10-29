@@ -22,6 +22,7 @@
     "canvas": "^2.11.0",
     "chalk": "^4.1.2",
     "connect-mongo": "^5.1.0",
+    "connect-redis": "^7.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -32,6 +33,7 @@
     "express-validator": "^6.15.0",
     "fluent-ffmpeg": "^2.1.2",
     "fs": "^0.0.1-security",
+    "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.0",
     "jspdf": "^2.5.1",
     "moment-timezone": "^0.5.44",
@@ -49,7 +51,8 @@
     "redis": "^4.7.0",
     "sharp": "^0.32.6",
     "sib-api-v3-sdk": "^8.5.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "socket.io-redis": "^6.1.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

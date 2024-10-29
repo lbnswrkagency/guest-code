@@ -1,5 +1,5 @@
 // DashboardHeader.js
-import React from "react";
+import React, { useEffect } from "react";
 import AvatarUpload from "../AvatarUpload/AvatarUpload.";
 import "./DashboardHeader.scss";
 
@@ -10,7 +10,12 @@ const DashboardHeader = ({
   setIsCropMode,
   isCropMode,
   setUser,
+  isOnline,
 }) => {
+  useEffect(() => {
+    console.log("[DashboardHeader] Online status updated:", isOnline);
+  }, [isOnline]);
+
   return (
     <div className="headerDashboard">
       <div className="headerDashboard-avatar">
@@ -30,6 +35,9 @@ const DashboardHeader = ({
               className="edit-icon"
               onClick={toggleEditAvatar}
             />
+            {/* <span
+              className={`online-status-dot ${isOnline ? "online" : "offline"}`}
+            /> */}
           </div>
         )}
 
@@ -37,9 +45,9 @@ const DashboardHeader = ({
           <>
             <AvatarUpload
               user={user}
-              setUser={setUser} // Make sure this prop is passed
+              setUser={setUser}
               setIsCropMode={setIsCropMode}
-              onCropModeChange={() => {}} // Add if needed
+              onCropModeChange={() => {}}
             />
 
             {user.avatar && !isCropMode && (
@@ -58,9 +66,6 @@ const DashboardHeader = ({
         <p className="headerDashboard-info-name">
           {user.firstName ? `${user.firstName}` : `@${user.username}`}
         </p>
-
-        {/* <p className="headerDashboard-info-username">@{user.username}</p> */}
-        {/* <p className="headerDashboard-info-role">Event Host</p> */}
       </div>
 
       <div className="headerDashboard-selection">

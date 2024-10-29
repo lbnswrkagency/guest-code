@@ -1,92 +1,87 @@
+// GlobalChat.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Send, X } from "lucide-react";
 import axios from "axios";
-import io from "socket.io-client";
 import "./GlobalChat.scss";
+import { getToken } from "../../utils/authUtils";
+import { useSocket } from "../../contexts/SocketContext";
 
 const GlobalChat = ({ onClose, user }) => {
+  const { socket, isConnected } = useSocket();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [socket, setSocket] = useState(null);
   const [error, setError] = useState(null);
   const [isSending, setIsSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState(new Set());
-  const [onlineUsers, setOnlineUsers] = useState({});
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  const addMessage = useCallback((message) => {
+    setMessages((prevMessages) => {
+      const messageExists = prevMessages.some((msg) => msg._id === message._id);
+      if (!messageExists) {
+        return [...prevMessages, message];
+      }
+      return prevMessages;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("new_message", (message) => {
+      console.log("[GlobalChat] New message received:", message);
+      addMessage(message);
+    });
+
+    socket.on("user_typing", (userId) => {
+      console.log("[GlobalChat] User typing:", userId);
+      if (userId !== user._id) {
+        setTypingUsers((prevUsers) => new Set(prevUsers).add(userId));
+      }
+    });
+
+    socket.on("user_stop_typing", (userId) => {
+      console.log("[GlobalChat] User stopped typing:", userId);
+      setTypingUsers((prevUsers) => {
+        const newUsers = new Set(prevUsers);
+        newUsers.delete(userId);
+        return newUsers;
+      });
+    });
+
+    return () => {
+      socket.off("new_message");
+      socket.off("user_typing");
+      socket.off("user_stop_typing");
+    };
+  }, [socket, user._id, addMessage]);
+
   const fetchMessages = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      console.log("[GlobalChat] Fetching messages");
+      const token = await getToken();
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/messages/global`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log(
+        "[GlobalChat] Fetched messages count:",
+        response.data.messages.length
+      );
       setMessages(response.data.messages);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      console.error("[GlobalChat] Error fetching messages:", error);
       setError("Failed to fetch messages. Please try again later.");
     }
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const newSocket = io(process.env.REACT_APP_API_BASE_URL, {
-      query: { token },
-      withCredentials: true,
-    });
-
-    newSocket.on("connect", () => {
-      console.log("Connected to socket");
-    });
-
-    newSocket.on("new_message", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-
-    newSocket.on("typing", ({ userId }) => {
-      if (userId !== user._id) {
-        setTypingUsers((prevUsers) => new Set(prevUsers).add(userId));
-      }
-    });
-
-    newSocket.on("stop_typing", ({ userId }) => {
-      if (userId !== user._id) {
-        setTypingUsers((prevUsers) => {
-          const newUsers = new Set(prevUsers);
-          newUsers.delete(userId);
-          return newUsers;
-        });
-      }
-    });
-
-    newSocket.on("user_status", ({ userId, status }) => {
-      setOnlineUsers((prev) => ({
-        ...prev,
-        [userId]: status === "online",
-      }));
-    });
-
-    newSocket.on("error", (error) => {
-      console.error("Socket error:", error);
-    });
-
-    setSocket(newSocket);
-
     fetchMessages();
-
-    return () => {
-      newSocket.off("new_message");
-      newSocket.off("typing");
-      newSocket.off("stop_typing");
-      newSocket.off("user_status");
-      newSocket.close();
-    };
-  }, [user._id, fetchMessages]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -96,25 +91,28 @@ const GlobalChat = ({ onClose, user }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleTyping = useCallback(
-    (e) => {
-      if (!socket) return;
+  const handleTyping = (e) => {
+    // Set the new message value first
+    setNewMessage(e.target.value);
 
-      const value = e.target.value;
-      setNewMessage(value);
+    // Only emit typing events if socket exists
+    if (!socket) return;
 
-      socket.emit("typing", { chatId: "global" });
+    // Emit typing event
+    socket.emit("user_typing");
 
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout for stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket) {
+        socket.emit("user_stop_typing");
       }
-
-      typingTimeoutRef.current = setTimeout(() => {
-        socket.emit("stop_typing", { chatId: "global" });
-      }, 2000);
-    },
-    [socket]
-  );
+    }, 2000);
+  };
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -122,23 +120,34 @@ const GlobalChat = ({ onClose, user }) => {
 
     try {
       setIsSending(true);
-      const token = localStorage.getItem("token");
-      await axios.post(
+      const token = await getToken();
+      const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/messages`,
-        { content: newMessage, chatId: "global" },
+        { content: newMessage },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      // Only emit if socket exists
+      if (socket) {
+        socket.emit("send_message", response.data);
+      }
+
+      // Add message locally
+      addMessage(response.data);
+
       setNewMessage("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "40px";
       }
+
+      // Only emit stop typing if socket exists
       if (socket) {
-        socket.emit("stop_typing", { chatId: "global" });
+        socket.emit("user_stop_typing");
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("[GlobalChat] Error sending message:", error);
       setError("Failed to send message. Please try again.");
     } finally {
       setIsSending(false);
@@ -157,6 +166,11 @@ const GlobalChat = ({ onClose, user }) => {
       <div className="global-chat">
         <div className="chat-header">
           <h2>Global Chat</h2>
+          <span
+            className={`connection-status-indicator ${
+              isConnected ? "connected" : "disconnected"
+            }`}
+          />
           <button className="close-button" onClick={onClose}>
             <X size={18} />
           </button>
@@ -179,13 +193,17 @@ const GlobalChat = ({ onClose, user }) => {
                 <div className="message-bubble">
                   <div className="sender">
                     {message.sender.username}
-                    <span
+                    {/* <span
                       className={`user-status ${
-                        onlineUsers[message.sender._id] ? "online" : "offline"
+                        onlineUsers.has(message.sender._id)
+                          ? "online"
+                          : "offline"
                       }`}
                     >
-                      {onlineUsers[message.sender._id] ? "Online" : "Offline"}
-                    </span>
+                      {onlineUsers.has(message.sender._id)
+                        ? "Online"
+                        : "Offline"}
+                    </span> */}
                   </div>
                   <div className="content">{message.content}</div>
                   <div className="message-time">

@@ -77,6 +77,20 @@ app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser());
 
+// Session setup
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    },
+  })
+);
+
 // Route setup
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -102,8 +116,10 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("MongoDB connected successfully!"))
-  .catch((error) => console.log(`Error connecting to MongoDB: ${error}`));
+  .then(() => console.log("[Server] MongoDB connected successfully!"))
+  .catch((error) =>
+    console.log(`[Server] Error connecting to MongoDB:`, error)
+  );
 
 // Root route
 app.get("/", (req, res) => {
@@ -111,11 +127,29 @@ app.get("/", (req, res) => {
 });
 
 // Initialize Socket.IO
+console.log("[Server] Initializing Socket.IO");
 const io = setupSocket(server);
 app.set("io", io);
 
 // Start server
 const port = process.env.PORT || 5001;
 server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`[Server] Server running on port ${port}`);
+  console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
+  console.log(
+    `[Server] MongoDB connected: ${mongoose.connection.readyState === 1}`
+  );
+  console.log(`[Server] Socket.IO initialized`);
+  console.log(
+    `[Server] CORS origin: ${process.env.CLIENT_URL || "http://localhost:3000"}`
+  );
+});
+
+// Error handling
+server.on("error", (error) => {
+  console.error("[Server] Server error:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[Server] Unhandled Rejection at:", promise, "reason:", reason);
 });

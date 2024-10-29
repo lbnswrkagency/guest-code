@@ -64,6 +64,23 @@
         transform: rotate(90deg);
       }
     }
+
+    .connection-status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 10px;
+      display: inline-block;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+
+      &.connected {
+        background: radial-gradient(circle at 30% 30%, #4cd137, #44bd32);
+      }
+
+      &.disconnected {
+        background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5253);
+      }
+    }
   }
 
   .chat-messages {
@@ -154,20 +171,21 @@
           align-items: center;
           gap: 0.5rem;
 
-          .user-status {
-            font-size: 0.75rem;
-            padding: 0.125rem 0.5rem;
-            border-radius: 12px;
-            font-weight: normal;
+          .user-status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+            vertical-align: middle;
 
             &.online {
-              background: rgba(46, 213, 115, 0.15);
-              color: #2ed573;
+              background: radial-gradient(circle at 30% 30%, #4cd137, #44bd32);
             }
 
             &.offline {
-              background: rgba(255, 71, 87, 0.15);
-              color: #ff4757;
+              background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5253);
             }
           }
         }

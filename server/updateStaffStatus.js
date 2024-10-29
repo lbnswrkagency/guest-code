@@ -29,7 +29,9 @@ async function connectToDatabase() {
 async function updateStaffStatus() {
   const spinner = ora("Fetching non-staff users...").start();
   try {
-    const nonStaffUsers = await User.find({ isStaff: false });
+    const nonStaffUsers = await User.find({
+      $or: [{ isStaff: false }, { isStaff: { $exists: false } }],
+    });
     spinner.succeed(
       chalk.green(`Found ${nonStaffUsers.length} non-staff users`)
     );
@@ -40,6 +42,13 @@ async function updateStaffStatus() {
       console.log(chalk.yellow(`Username: ${user.username}`));
       console.log(chalk.yellow(`Email: ${user.email}`));
       console.log(chalk.yellow(`Created At: ${user.createdAt}`));
+      console.log(
+        chalk.yellow(
+          `Current isStaff status: ${
+            user.isStaff === undefined ? "Not set" : user.isStaff
+          }`
+        )
+      );
 
       const answer = await new Promise((resolve) => {
         rl.question(chalk.magenta("Make this user staff? (y/n): "), resolve);
@@ -49,7 +58,12 @@ async function updateStaffStatus() {
         await User.updateOne({ _id: user._id }, { $set: { isStaff: true } });
         console.log(chalk.green("User updated to staff status."));
       } else {
-        console.log(chalk.blue("User remains non-staff."));
+        if (user.isStaff === undefined) {
+          await User.updateOne({ _id: user._id }, { $set: { isStaff: false } });
+          console.log(chalk.blue("User's isStaff field set to false."));
+        } else {
+          console.log(chalk.blue("User remains non-staff."));
+        }
       }
     }
 

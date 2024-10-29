@@ -4,8 +4,10 @@ const mongoose = require("mongoose");
 
 exports.getGlobalMessages = async (req, res) => {
   try {
+    console.log("[MessageController] Fetching global messages");
     const globalChat = await Chat.findOne({ type: "global" });
     if (!globalChat) {
+      console.log("[MessageController] Global chat not found");
       return res.status(404).json({ message: "Global chat not found" });
     }
 
@@ -22,6 +24,8 @@ exports.getGlobalMessages = async (req, res) => {
       .limit(maxLimit)
       .populate("sender", "username avatar");
 
+    console.log("[MessageController] Fetched messages count:", messages.length);
+
     const hasMore = messages.length === maxLimit;
     const newCursor =
       messages.length > 0 ? messages[messages.length - 1]._id : null;
@@ -32,7 +36,7 @@ exports.getGlobalMessages = async (req, res) => {
       hasMore,
     });
   } catch (error) {
-    console.error("Error in getGlobalMessages:", error);
+    console.error("[MessageController] Error in getGlobalMessages:", error);
     res.status(500).json({
       message: "Error fetching global messages",
       error: error.message,
@@ -42,46 +46,42 @@ exports.getGlobalMessages = async (req, res) => {
 
 exports.sendMessage = async (req, res) => {
   try {
-    const { content, chatId } = req.body;
+    console.log("[MessageController] Sending new message");
+    const { content } = req.body;
     const senderId = req.user._id;
 
-    let chatIdToUse = chatId;
-    if (chatId === "global") {
-      const globalChat = await Chat.findOne({ type: "global" });
-      if (!globalChat) {
-        return res.status(400).json({ message: "Global chat not found" });
-      }
-      chatIdToUse = globalChat._id;
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(chatIdToUse)) {
-      return res.status(400).json({ message: "Invalid chatId" });
+    const globalChat = await Chat.findOne({ type: "global" });
+    if (!globalChat) {
+      console.log("[MessageController] Global chat not found");
+      return res.status(400).json({ message: "Global chat not found" });
     }
 
     const newMessage = new Message({
       content,
       sender: senderId,
-      chat: chatIdToUse,
+      chat: globalChat._id,
     });
 
     await newMessage.save();
+    console.log("[MessageController] New message saved:", newMessage._id);
 
     const populatedMessage = await Message.findById(newMessage._id)
       .populate("sender", "username avatar")
       .populate("chat", "type");
 
-    if (chatId !== "global") {
-      await Chat.findByIdAndUpdate(chatIdToUse, {
-        lastMessage: newMessage._id,
-      });
-    }
-
-    const io = req.app.get("io");
-    io.to("global").emit("new_message", populatedMessage);
-
+    // Send response first
     res.status(201).json(populatedMessage);
+
+    // Then broadcast to all clients
+    const io = req.app.get("io");
+    if (io) {
+      io.to("global").emit("new_message", populatedMessage);
+      console.log("[MessageController] Broadcasted new message to global room");
+    } else {
+      console.log("[MessageController] Warning: io instance not found");
+    }
   } catch (error) {
-    console.error("Error in sendMessage:", error);
+    console.error("[MessageController] Error in sendMessage:", error);
     res
       .status(500)
       .json({ message: "Error sending message", error: error.message });
