@@ -37,9 +37,13 @@ function TableCodeManagement({
   const getCategoryForTable = (tableNumber) => {
     if (tableNumber.startsWith("B")) {
       return "djarea";
-    } else if (tableNumber.startsWith("P")) {
+    } else if (tableNumber.startsWith("P") || tableNumber.startsWith("E")) {
       return "backstage";
-    } else if (tableNumber.startsWith("A") || tableNumber.startsWith("F")) {
+    } else if (
+      tableNumber.startsWith("A") ||
+      tableNumber.startsWith("F") ||
+      tableNumber.startsWith("R")
+    ) {
       return "vip";
     } else if (tableNumber.startsWith("K")) {
       return "premium";

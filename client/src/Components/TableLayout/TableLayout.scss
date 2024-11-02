@@ -13,6 +13,10 @@ $premium-green-border: #3cb371; // Lighter green for border contrast
 $dj-area-color: #ffd700; // Premium gold color
 $dj-area-glow: rgba(255, 215, 0, 0.3);
 
+$anthracite-bg: #2d2d2d;
+$anthracite-border: #626262;
+$anthracite-hover: #252525;
+
 .table-layout {
   display: grid;
   grid-gap: 0.1rem;
@@ -132,6 +136,17 @@ $dj-area-glow: rgba(255, 215, 0, 0.3);
     }
     .b2 {
       grid-column: 4/5;
+    }
+
+    .e1 {
+      grid-row: 1/2;
+      grid-column: 3/4;
+      justify-self: center;
+    }
+    .e2 {
+      grid-column: 4/6;
+      grid-row: 1/2;
+      justify-self: center;
     }
     .p1 {
       grid-row: 2/3;
@@ -523,6 +538,15 @@ $dj-area-glow: rgba(255, 215, 0, 0.3);
   text-align: center;
 }
 
+.r1 {
+  background-color: #333;
+  grid-column: 3/5;
+  grid-row: 2/3;
+  justify-self: center;
+  // align-self: end;
+  text-align: center;
+}
+
 .wc {
   background-color: #333;
   grid-column: 2/3;
@@ -553,6 +577,12 @@ $dj-area-glow: rgba(255, 215, 0, 0.3);
 .green-table {
   background-color: $premium-green;
   border: 2px solid $premium-green-border; // Keeping the light golden border as per your original
+  color: #ffffff; // Changed to white for better contrast against the dark green
+}
+
+.black-table {
+  background-color: $anthracite-bg;
+  border: 3px solid $anthracite-border; // Keeping the light golden border as per your original
   color: #ffffff; // Changed to white for better contrast against the dark green
 }
 

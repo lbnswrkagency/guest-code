@@ -38,7 +38,22 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
         <div className="bar-area-backstage">
           <p>BAR</p>
         </div>
+
         <div className="table wc">WC</div>
+
+        <div
+          className={getClass("E1", "table-round black-table e1")}
+          onClick={(e) => handleTableClick("E1", e)}
+        >
+          E1
+        </div>
+        <div
+          className={getClass("E2", "table-round black-table e2")}
+          onClick={(e) => handleTableClick("E2", e)}
+        >
+          E2
+        </div>
+
         <div
           className={getClass("P1", "table-round red-table p1")}
           onClick={(e) => handleTableClick("P1", e)}
@@ -190,6 +205,12 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
 
       {/* Table Layout 04 */}
       <div className="tables table-layout-04">
+        <div
+          className={getClass("R1", "table-vertical black-table r1")}
+          onClick={(e) => handleTableClick("R1", e)}
+        >
+          R1
+        </div>
         <div className="bar-area">
           <p>BAR</p>
         </div>

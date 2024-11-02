@@ -3,7 +3,6 @@ import { useDropzone } from "react-dropzone";
 import Cropper from "react-easy-crop";
 import axios from "axios";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import "./AvatarUpload.scss";
 
 const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
@@ -13,18 +12,15 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Handle file drop
   const onDrop = useCallback(
     (acceptedFiles) => {
       if (acceptedFiles && acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
         const reader = new FileReader();
-
         reader.onload = () => {
           setImageSrc(reader.result);
           setIsCropMode(true);
         };
-
         reader.readAsDataURL(file);
       }
     },
@@ -151,69 +147,102 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
 
   return (
     <div className="avatar-upload">
-      {!imageSrc ? (
+      {!user.avatar && !imageSrc ? (
         <div
           {...getRootProps()}
           className={`dropzone ${isDragActive ? "active" : ""}`}
         >
           <input {...getInputProps()} />
           <div className="dropzone-content">
-            <img src="/image/upload-icon.svg" alt="Upload" />
-            <p>
-              {isDragActive
-                ? "Drop image here"
-                : "Drag image here or click to select"}
-            </p>
+            {isDragActive ? (
+              <>
+                <img src="/image/upload-icon.svg" alt="Upload" />
+                <p>Drop image here</p>
+              </>
+            ) : (
+              <>
+                <img src="/image/profile-icon.svg" alt="Default profile" />
+              </>
+            )}
           </div>
         </div>
-      ) : (
-        <div className="cropper-container">
-          <div className="cropper-wrapper">
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-              cropShape="round"
-              showGrid={false}
-            />
-          </div>
+      ) : imageSrc ? (
+        <>
+          <div className="modal-overlay" onClick={handleCancel} />
+          <div className="cropper-container">
+            <div className="cropper-wrapper">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+                cropShape="round"
+                showGrid={false}
+              />
+            </div>
 
-          <div className="controls">
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.1}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="zoom-slider"
-            />
+            <div className="controls">
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="zoom-slider"
+              />
 
-            <div className="buttons">
-              <button
-                onClick={handleCancel}
-                className="cancel-btn"
-                disabled={isUploading}
-              >
-                <img src="/image/cancel-icon_w.svg" alt="Cancel" />
-              </button>
-              <button
-                onClick={handleSave}
-                className="save-btn"
-                disabled={isUploading}
-              >
-                <img src="/image/check-icon_w.svg" alt="Save" />
-              </button>
+              <div className="buttons">
+                <button
+                  onClick={handleCancel}
+                  className="cancel-btn"
+                  disabled={isUploading}
+                >
+                  <img src="/image/cancel-icon_w.svg" alt="Cancel" />
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="save-btn"
+                  disabled={isUploading}
+                >
+                  <img
+                    src={
+                      isUploading
+                        ? "/image/loading-icon.svg"
+                        : "/image/check-icon_w.svg"
+                    }
+                    alt={isUploading ? "Uploading..." : "Save"}
+                    className={isUploading ? "rotating" : ""}
+                  />
+                </button>
+              </div>
             </div>
           </div>
+        </>
+      ) : (
+        // Show existing avatar with edit overlay on hover
+        <div className="avatar-display" onClick={() => setImageSrc(null)}>
+          <img
+            src={user.avatar}
+            alt="Profile avatar"
+            className="profile-image"
+          />
+          <div className="edit-overlay">
+            <img src="/image/edit-icon.svg" alt="Edit" className="edit-icon" />
+          </div>
         </div>
+      )}
+
+      {/* Online status indicator */}
+      {user.online !== undefined && (
+        <div
+          className={`online-status-dot ${user.online ? "online" : "offline"}`}
+        />
       )}
     </div>
   );
 };
-
 export default AvatarUpload;

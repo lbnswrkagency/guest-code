@@ -18,9 +18,9 @@ const TableBookingPopup = ({
   // Helper function to determine table type
   const getTableType = (number) => {
     if (["B1", "B2", "B3", "B4", "B5"].includes(number)) return "DJ Area"; // New category for B tables
-    if (["P1", "P2", "P3", "P4", "P5", "P6"].includes(number))
+    if (["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"].includes(number))
       return "Backstage";
-    if (["A1", "A2", "A3", "F1", "F2", "F3", "F4"].includes(number))
+    if (["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"].includes(number))
       return "VIP";
     if (["K1", "K2", "K3", "K4"].includes(number)) return "Premium";
     return "";
