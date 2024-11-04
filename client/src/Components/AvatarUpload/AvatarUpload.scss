@@ -5,6 +5,7 @@ $avatar-background: rgba(26, 26, 26, 0.95);
 $avatar-border: rgba(255, 255, 255, 0.1);
 $avatar-accent: #ffd700;
 $avatar-glow: rgba(255, 215, 0, 0.3);
+
 .avatar-upload {
   position: relative;
   width: 5.125rem; // Match profile-icon width
@@ -153,5 +154,32 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
   }
   50% {
     transform: scale(1.02);
+  }
+}
+
+.cancel-edit-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
   }
 }

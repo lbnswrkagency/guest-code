@@ -19,7 +19,7 @@ const DashboardHeader = ({
   return (
     <div className="headerDashboard">
       <div className="headerDashboard-avatar">
-        {!isEditingAvatar && user.avatar && (
+        {!isEditingAvatar ? (
           <div className="headerDashboard-avatar-wrapper">
             <img
               src="/image/share-icon.svg"
@@ -27,7 +27,6 @@ const DashboardHeader = ({
               className="share-icon"
               onClick={toggleEditAvatar}
             />
-
             <img src={user.avatar} alt="Profile" className="profile-icon" />
             <img
               src="/image/edit-icon2.svg"
@@ -35,22 +34,16 @@ const DashboardHeader = ({
               className="edit-icon"
               onClick={toggleEditAvatar}
             />
-            {/* <span
-              className={`online-status-dot ${isOnline ? "online" : "offline"}`}
-            /> */}
           </div>
-        )}
-
-        {(isEditingAvatar || !user.avatar) && (
+        ) : (
           <>
             <AvatarUpload
               user={user}
               setUser={setUser}
               setIsCropMode={setIsCropMode}
-              onCropModeChange={() => {}}
+              toggleEditAvatar={toggleEditAvatar}
             />
-
-            {user.avatar && !isCropMode && (
+            {!isCropMode && (
               <img
                 src="/image/cancel-icon_w.svg"
                 alt="Cancel Edit"

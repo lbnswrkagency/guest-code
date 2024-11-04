@@ -11,6 +11,7 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
   const [imageSrc, setImageSrc] = useState(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -49,6 +50,16 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
       image.addEventListener("error", (error) => reject(error));
       image.src = url;
     });
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setImageSrc(null);
+    if (toggleEditAvatar) toggleEditAvatar();
+  };
 
   const getCroppedImg = async (imageSrc, pixelCrop) => {
     const image = await createImage(imageSrc);
@@ -147,7 +158,7 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
 
   return (
     <div className="avatar-upload">
-      {!user.avatar && !imageSrc ? (
+      {(!user.avatar || isEditing) && !imageSrc ? (
         <div
           {...getRootProps()}
           className={`dropzone ${isDragActive ? "active" : ""}`}
@@ -162,6 +173,17 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
             ) : (
               <>
                 <img src="/image/profile-icon.svg" alt="Default profile" />
+                {isEditing && (
+                  <button
+                    className="cancel-edit-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelEdit();
+                    }}
+                  >
+                    <img src="/image/cancel-icon_w.svg" alt="Cancel edit" />
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -223,20 +245,18 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
           </div>
         </>
       ) : (
-        // Show existing avatar with edit overlay on hover
-        <div className="avatar-display" onClick={() => setImageSrc(null)}>
+        <div className="avatar-display">
           <img
             src={user.avatar}
             alt="Profile avatar"
             className="profile-image"
           />
-          <div className="edit-overlay">
+          <div className="edit-overlay" onClick={handleEditClick}>
             <img src="/image/edit-icon.svg" alt="Edit" className="edit-icon" />
           </div>
         </div>
       )}
 
-      {/* Online status indicator */}
       {user.online !== undefined && (
         <div
           className={`online-status-dot ${user.online ? "online" : "offline"}`}
@@ -245,4 +265,5 @@ const AvatarUpload = ({ user, setUser, setIsCropMode, toggleEditAvatar }) => {
     </div>
   );
 };
+
 export default AvatarUpload;
