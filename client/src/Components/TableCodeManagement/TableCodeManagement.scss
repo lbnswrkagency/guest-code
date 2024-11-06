@@ -154,6 +154,51 @@
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
+    &.checked-in {
+      position: relative;
+      overflow: hidden;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 2.5rem 2.5rem 0;
+        border-color: transparent rgba(40, 167, 69, 0.3) transparent transparent;
+        z-index: 1;
+      }
+
+      .reservation-info {
+        .pax-count {
+          position: relative;
+          background: rgba(40, 167, 69, 0.15);
+          color: #28a745;
+
+          &::after {
+            content: "✓";
+            margin-left: 0.5rem;
+            font-weight: bold;
+          }
+        }
+      }
+
+      // Add subtle glow effect
+      box-shadow: inset 0 0 20px rgba(40, 167, 69, 0.1);
+    }
+
+    // Update existing confirmed style to work with checked-in
+    &.confirmed.checked-in {
+      border-left: 4px solid #1a8d3c; // Slightly darker green for contrast
+      background: linear-gradient(
+        90deg,
+        rgba(40, 167, 69, 0.05) 0%,
+        rgba(26, 26, 26, 1) 100%
+      );
+    }
   }
 
   .reservation-details {
@@ -186,6 +231,12 @@
       padding: 0.25rem 0.75rem;
       border-radius: 12px;
       font-size: 0.85rem;
+
+      .checked-count {
+        margin-left: 0.25rem;
+        font-size: 0.8em;
+        opacity: 0.8;
+      }
     }
 
     .status-badge {

@@ -330,7 +330,12 @@ function TableCodeManagement({
 
   const renderCodeItem = (code) => {
     return (
-      <div key={code._id} className={`reservation-item ${code.status}`}>
+      <div
+        key={code._id}
+        className={`reservation-item ${code.status} ${
+          code.paxChecked > 0 ? "checked-in" : ""
+        }`}
+      >
         {editCodeId === code._id ? (
           <div className="edit-form">
             <input
@@ -390,7 +395,14 @@ function TableCodeManagement({
                 {code.tableNumber}
               </span>
               <span className="guest-name">{code.name}</span>
-              <span className="pax-count">{code.pax} People</span>
+              <span className="pax-count">
+                {code.pax} People
+                {code.paxChecked > 0 && (
+                  <span className="checked-count">
+                    ({code.paxChecked}/{code.pax} in)
+                  </span>
+                )}
+              </span>
               <span className={`status-badge ${code.status}`}>
                 {code.status}
               </span>
