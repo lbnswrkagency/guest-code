@@ -464,6 +464,13 @@ function TableCodeManagement({
                         <img src="/image/download-icon.svg" alt="Download" />
                       </button>
                       <button
+                        className="action-btn edit"
+                        onClick={() => startEdit(code)}
+                        title="Edit"
+                      >
+                        <img src="/image/edit-icon.svg" alt="Edit" />
+                      </button>
+                      <button
                         className="action-btn cancel"
                         onClick={() =>
                           handleStatusChange(code._id, "cancelled")
@@ -501,14 +508,14 @@ function TableCodeManagement({
                       {code.status === "pending" && (
                         <>
                           <button
-                            className="action-btn"
+                            className="action-btn edit"
                             onClick={() => startEdit(code)}
                             title="Edit"
                           >
                             <img src="/image/edit-icon.svg" alt="Edit" />
                           </button>
                           <button
-                            className="action-btn"
+                            className="action-btn delete"
                             onClick={() => handleDeleteClick(code._id)}
                             title="Delete"
                           >
