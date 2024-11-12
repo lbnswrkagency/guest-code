@@ -260,7 +260,7 @@ const createTicketPDF = async (
           <h3>Line Up</h3>
           <p>Hulk</p>
           <p>Hendricks</p>
-          <p>Tokyo</p>
+          <p>Dazedboi</p>
           <p>J Fyah</p>
         </div>
 

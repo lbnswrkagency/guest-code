@@ -380,7 +380,7 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Tokyo</p>
+                        <p className="djs-single-name">Dazedboi</p>
                       </div>
                     </div>
                   </div>
