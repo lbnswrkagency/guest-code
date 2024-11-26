@@ -181,6 +181,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
     console.error("Error preparing QR code invitation email:", error);
   }
 };
+
 module.exports = {
   sendVerificationEmail,
   sendQRCodeEmail,
