@@ -16,6 +16,7 @@ function Register({ onRegisterSuccess }) {
     birthday: "",
   });
   const [isFormValid, setIsFormValid] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,34 +40,67 @@ function Register({ onRegisterSuccess }) {
     }
 
     try {
-      console.log("Sending registration request...");
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/register`,
         formData
       );
-      console.log("Registration response:", response);
 
       if (response.data.success) {
-        console.log("Registration successful");
-        toast.success(
-          "Registration successful! Please check your email (including spam folder) to verify your account."
-        );
-        onRegisterSuccess(response.data);
-      } else {
-        console.error("Registration failed with success: false", response.data);
-        toast.error(
-          response.data.message || "Registration failed. Please try again."
-        );
+        setRegistrationComplete(true);
+        toast.success("Registration successful!", {
+          duration: 6000,
+        });
       }
     } catch (error) {
       console.error("Registration error:", error);
-      console.error("Error response:", error.response);
-      toast.error(
+
+      // Handle specific error cases
+      const errorMessage =
         error.response?.data?.message ||
-          "Registration failed. Please try again."
-      );
+        "Registration failed. Please try again.";
+      toast.error(errorMessage, {
+        duration: 4000,
+      });
+
+      // Prevent any success message if there's an error
+      return;
     }
   };
+
+  if (registrationComplete) {
+    return (
+      <div className="register">
+        <motion.img
+          className="register-logo"
+          src="/image/logo.svg"
+          alt="Logo"
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+        <motion.div
+          className="register-container"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="verification-status success">
+            <div className="success-icon">✓</div>
+            <h2>Registration Successful!</h2>
+            <p>Please check your email to verify your account.</p>
+            <motion.button
+              onClick={() => navigate("/login")}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="register-form-submit active"
+            >
+              Go to Login
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="register">
@@ -108,24 +142,30 @@ function Register({ onRegisterSuccess }) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
-          <input
-            className="register-input"
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="register-input"
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+          <div className="input-group username-group">
+            <input
+              className="register-input username-input"
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <input
+              className="register-input"
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
           <div className="input-row">
             <input
               className="register-input"
@@ -146,45 +186,56 @@ function Register({ onRegisterSuccess }) {
               required
             />
           </div>
-          <input
-            className="register-input birthday-input"
-            type="date"
-            name="birthday"
-            placeholder="Birthday"
-            value={formData.birthday}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="register-input"
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="register-input"
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
+
+          <div className="input-group">
+            <input
+              className="register-input"
+              type="date"
+              name="birthday"
+              placeholder="Birthday"
+              value={formData.birthday}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <input
+              className="register-input"
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <input
+              className="register-input"
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
           <motion.button
             className={`register-form-submit ${
               isFormValid ? "active" : "disabled"
             }`}
             type="submit"
             disabled={!isFormValid}
-            whileHover={isFormValid ? { scale: 1.05 } : {}}
-            whileTap={isFormValid ? { scale: 0.95 } : {}}
+            whileHover={isFormValid ? { scale: 1.02 } : {}}
+            whileTap={isFormValid ? { scale: 0.98 } : {}}
           >
             Register
           </motion.button>
         </motion.form>
+
         <motion.p
           className="register-login-link"
           initial={{ opacity: 0 }}

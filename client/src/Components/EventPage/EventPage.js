@@ -380,7 +380,15 @@ const EventPage = ({ passedEventId }) => {
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Tokyo</p>
+                        <p className="djs-siwngle-name">Dim Kay</p>
+                      </div>
+                      <div className="djs-single">
+                        <img
+                          src="./image/dimkay.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Maro</p>
                       </div>
                     </div>
                   </div>
@@ -392,7 +400,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 05 JAN 2024</p>
+                    <p>SUN 12 JAN 2024</p>
                   </div>
 
                   <img
@@ -482,7 +490,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 05.01.2025 · 23:00 H
+                Sunday · 12.01.2025 · 23:00 H
               </p>
 
               <div
@@ -525,7 +533,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 00:30 H
                   </p>
-                  <p>Studio 24 - Sunday - 05.01.2025</p>
+                  <p>Studio 24 - Sunday - 12.01.2025</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"

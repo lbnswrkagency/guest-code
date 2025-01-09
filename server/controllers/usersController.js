@@ -10,9 +10,11 @@ exports.getUser = async (req, res) => {
         .json({ success: false, message: "User not found." });
     }
 
-    res.json({ success: true, user });
+    return res.json({ success: true, user });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    console.error("Get user error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error." });
   }
 };
