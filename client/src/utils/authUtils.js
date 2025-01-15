@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosInstance from "./axiosConfig";
 
 let isRefreshing = false;
 let refreshSubscribers = [];
@@ -19,57 +20,21 @@ const isTokenExpired = () => {
   return new Date().getTime() > parseInt(expiration) - 10000;
 };
 
-export const getToken = async () => {
-  let token = localStorage.getItem("accessToken");
-
-  // Check if token exists and is expired
-  if (!token || isTokenExpired()) {
-    console.log("[AuthUtils] Token expired or missing, refreshing...");
-    try {
-      const refreshResult = await refreshToken();
-      token = refreshResult.accessToken;
-    } catch (error) {
-      console.error("[AuthUtils] Token refresh failed:", error);
-      throw error;
-    }
-  }
+export const getToken = () => {
+  // Get token from cookie
+  const token = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("token="))
+    ?.split("=")[1];
 
   return token;
 };
 
 export const refreshToken = async () => {
-  // Prevent multiple simultaneous refresh attempts
-  if (isRefreshing) {
-    return new Promise((resolve) => {
-      subscribeTokenRefresh((token) => {
-        resolve(token);
-      });
-    });
-  }
-
-  isRefreshing = true;
-
   try {
-    const response = await axios.post(
-      `${process.env.REACT_APP_API_BASE_URL}/auth/refresh_token`,
-      {},
-      { withCredentials: true }
-    );
-
-    const { accessToken, expiresIn } = response.data;
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem(
-      "tokenExpiration",
-      new Date().getTime() + expiresIn * 1000
-    );
-
-    onTokenRefreshed(response.data);
-    isRefreshing = false;
-
-    console.log("[AuthUtils] Token refreshed successfully");
+    const response = await axiosInstance.post("/auth/refresh_token");
     return response.data;
   } catch (error) {
-    isRefreshing = false;
     console.error("[AuthUtils] Token refresh failed:", error);
     throw error;
   }

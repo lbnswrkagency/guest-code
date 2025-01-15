@@ -9,9 +9,8 @@ const defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications["api-key"];
 apiKey.apiKey = process.env.BREVO_API_KEY;
 
-const logoPath = path.join(__dirname, "logo.png"); // or 'logo.svg'
-const logoData = fs.readFileSync(logoPath, { encoding: "base64" });
-const logoBase64 = `data:image/png;base64,${logoData}`; // use 'image/svg+xml' for SVG
+const logoUrl =
+  "https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"; // Use the same URL as in your other emails
 
 const sendVerificationEmail = async (to, token) => {
   try {
@@ -28,7 +27,7 @@ const sendVerificationEmail = async (to, token) => {
     sendSmtpEmail.subject = "Welcome to Afro Spiti - Verify Your Email";
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${logoBase64}" alt="Afro Spiti Logo" style="display: block; margin: 20px auto; max-width: 150px;">
+        <img src="${logoUrl}" alt="Afro Spiti Logo" style="display: block; margin: 20px auto; max-width: 150px;">
         <h1 style="color: #333; text-align: center;">Welcome to Afro Spiti!</h1>
         <p style="color: #666; font-size: 16px; line-height: 1.5;">Thank you for joining our community. To complete your registration and access all features, please verify your email address by clicking the button below:</p>
         <div style="text-align: center; margin: 30px 0;">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Dropbox.scss";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 
 const Dropbox = () => {
   const [files, setFiles] = useState([]);
@@ -41,10 +42,18 @@ const Dropbox = () => {
 
   const handleUpload = async (event) => {
     event.preventDefault();
+
+    if (!file) {
+      console.error("No file selected");
+      return;
+    }
+
+    console.log("Attempting to upload file:", file.name);
     const formData = new FormData();
     formData.append("uploadedFile", file);
 
     try {
+      console.log("Sending upload request to server...");
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/dropbox/upload`,
         formData,
@@ -52,13 +61,37 @@ const Dropbox = () => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          // Add this to see the upload progress
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            console.log(`Upload progress: ${percentCompleted}%`);
+          },
         }
       );
-      console.log("File uploaded successfully:", response.data);
-      // Optionally reset file input
+
+      console.log("Server response:", response.data);
+
+      if (response.data.path) {
+        console.log("File uploaded to Dropbox path:", response.data.path);
+        toast.success("File uploaded successfully!");
+      } else {
+        throw new Error("No path returned from server");
+      }
+
       setFile(null);
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Upload error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+
+      toast.error(
+        error.response?.data?.message ||
+          "Error uploading file. Please try again."
+      );
     }
   };
 

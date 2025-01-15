@@ -26,6 +26,9 @@ const UserSchema = new Schema({
     type: String,
     default: "",
   },
+  refreshToken: {
+    type: String,
+  },
 });
 
 UserSchema.methods.comparePassword = function (candidatePassword) {

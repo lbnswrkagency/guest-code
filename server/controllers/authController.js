@@ -95,74 +95,89 @@ exports.verifyEmail = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { identifier, password } = req.body;
-
   try {
-    let user;
-    if (identifier.includes("@")) {
-      user = await User.findOne({ email: identifier.toLowerCase() });
-    } else {
-      user = await User.findOne({
-        $or: [
-          {
-            username: {
-              $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
-            },
-          },
-          {
-            firstName: {
-              $regex: new RegExp("^" + identifier.toLowerCase() + "$", "i"),
-            },
-          },
-        ],
-      });
-    }
+    const { email, password } = req.body;
+    console.log("Login attempt with body:", req.body);
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
-    }
-
-    if (!user.isVerified) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Email not verified. Please check your email for verification.",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid password." });
+        .json({ message: "Email and password are required" });
     }
 
-    const payload = {
-      _id: user._id,
-      email: user.email,
-      username: user.username,
-    };
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      console.log("User not found:", email);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1h",
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log("Invalid password for:", email);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Generate tokens
+    console.log("[Auth:Login] Using secrets:", {
+      access: process.env.JWT_ACCESS_SECRET?.substring(0, 10) + "...",
+      refresh: process.env.JWT_REFRESH_SECRET?.substring(0, 10) + "...",
+    });
+
+    const accessToken = jwt.sign(
+      { _id: user._id, email: user.email, username: user.username },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { _id: user._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    console.log("[Auth:Login] Tokens generated for user:", user._id);
+    console.log("[Auth:Login] Token structure:", {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+    });
+
+    // Set cookies and send response
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+      domain:
+        process.env.NODE_ENV === "production" ? ".afrospiti.com" : "localhost",
+    });
+
+    console.log("[Auth:Login] Cookie being set:", {
+      name: "refreshToken",
+      value: refreshToken.substring(0, 20) + "...",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      },
     });
 
     res.json({
-      success: true,
-      accessToken,
-      userId: user._id,
-      expiresIn: 3600,
+      user: {
+        _id: user._id,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatar: user.avatar,
+      },
+      token: accessToken,
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    console.error("[Auth:Login] Error:", error.message);
+    res.status(500).json({ message: "Server error during login" });
   }
 };
 
@@ -184,38 +199,55 @@ exports.getUserData = async (req, res) => {
 };
 
 exports.refreshAccessToken = async (req, res) => {
-  if (!req.cookies || !req.cookies.refreshToken) {
-    return res.status(403).json({ message: "No refresh token" });
-  }
-
-  const refreshToken = req.cookies.refreshToken;
-
   try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const user = await User.findById(decoded._id);
-    if (!user) {
-      return res.status(403).json({ message: "Invalid refresh token" });
+    const refreshToken = req.cookies.refreshToken;
+    console.log("[Auth:Refresh] Request cookies:", {
+      allCookies: req.cookies,
+      cookieNames: Object.keys(req.cookies),
+      refreshTokenExists: !!refreshToken,
+    });
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "No refresh token" });
     }
 
-    const payload = {
-      _id: user._id,
-      email: user.email,
-      username: user.username,
-    };
+    // Log the token before verification
+    console.log(
+      "[Auth:Refresh] Token before verify:",
+      refreshToken.substring(0, 20) + "..."
+    );
 
-    const newAccessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1h",
-    });
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    console.log("[Auth:Refresh] Decoded token payload:", decoded);
 
-    res.json({
-      success: true,
-      accessToken: newAccessToken,
-      userId: user._id,
-      expiresIn: 3600,
-    });
+    const userId = decoded._id;
+    if (!userId) {
+      console.log("[Auth:Refresh] No userId in decoded token");
+      return res.status(403).json({ message: "Invalid token structure" });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log("[Auth:Refresh] User not found for id:", userId);
+      return res.status(403).json({ message: "User not found" });
+    }
+
+    // Generate new access token
+    const accessToken = jwt.sign(
+      { _id: user._id, email: user.email, username: user.username },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    console.log("[Auth:Refresh] New token generated for user:", userId);
+    res.json({ token: accessToken });
   } catch (error) {
-    console.error("Refresh token error:", error);
-    res.status(403).json({ message: "Invalid refresh token" });
+    console.log("[Auth:Refresh] Error details:", {
+      name: error.name,
+      message: error.message,
+    });
+    res.status(401).json({ message: "Invalid refresh token" });
   }
 };
 

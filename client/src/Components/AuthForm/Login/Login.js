@@ -1,161 +1,119 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import AuthContext from "../../../contexts/AuthContext";
+import { login } from "./LoginFunction";
+import toast from "react-hot-toast";
 import "./Login.scss";
-import { motion } from "framer-motion";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ identifier: "", password: "" });
-  const [isFormValid, setIsFormValid] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
-
-  useEffect(() => {
-    setIsFormValid(
-      formData.identifier.trim() !== "" && formData.password.trim() !== ""
-    );
-  }, [formData]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    setLoading(true);
+
+    const loadingToast = toast.loading("Logging in...");
 
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
-        formData,
-        { withCredentials: true }
-      );
+      const response = await login(formData);
+      localStorage.setItem("token", response.user.token);
+      setUser(response.user);
 
-      const { accessToken } = response.data;
-      if (accessToken) {
-        localStorage.setItem("token", accessToken);
-        try {
-          await fetchUserData();
-          navigate("/dashboard");
-        } catch (error) {
-          console.error("Error fetching user data after login:", error);
-          // Handle the error appropriately
-        }
-      } else {
-        console.error("No access token received");
-      }
+      toast.dismiss(loadingToast);
+      toast.success("Welcome back! 👋", {
+        duration: 3000,
+        icon: "🎉",
+      });
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      // Show error to user
-    }
-  };
+      toast.dismiss(loadingToast);
 
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No token found");
-      }
-
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
-      );
-
-      if (response.data) {
-        setUser(response.data);
+      if (error.response?.status === 401) {
+        toast.error("Invalid email or password", {
+          icon: "🔐",
+        });
+      } else if (error.response?.status === 403) {
+        toast.error("Please verify your email first", {
+          icon: "✉️",
+        });
       } else {
-        throw new Error("No user data received");
+        toast.error(
+          error.message || "Something went wrong. Please try again.",
+          {
+            icon: "❌",
+          }
+        );
       }
-    } catch (error) {
-      console.error(
-        "Error fetching user data:",
-        error.response?.data || error.message
-      );
-      localStorage.removeItem("token"); // Clear invalid token
-      throw error;
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <motion.div
+    <div className="login">
+      <div
         className="login-back-arrow login-back-arrow-absolute"
         onClick={() => navigate("/")}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
       >
         <img src="/image/back-icon.svg" alt="Back" />
-      </motion.div>
+      </div>
 
-      <motion.img
-        className="login-logo"
-        src="/image/logo.svg"
-        alt="Logo"
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      />
+      <img className="login-logo" src="/image/logo.svg" alt="Logo" />
 
-      <motion.h2
-        className="login-title"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-      >
-        Member Area
-      </motion.h2>
+      <div className="login-container">
+        <h1 className="login-title">Member Area</h1>
 
-      <motion.form
-        className="login-form"
-        onSubmit={handleSubmit}
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <input
-          className="login-input"
-          type="text"
-          name="identifier"
-          placeholder="Username or Email"
-          value={formData.identifier}
-          onChange={handleChange}
-        />
-        <input
-          className="login-input"
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-        />
-        <motion.button
-          className={`login-submit ${isFormValid ? "active" : "disabled"}`}
-          type="submit"
-          disabled={!isFormValid}
-          whileHover={isFormValid ? { scale: 1.05 } : {}}
-          whileTap={isFormValid ? { scale: 0.95 } : {}}
-        >
-          Login
-        </motion.button>
-      </motion.form>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <input
+              className="login-input"
+              type="text"
+              name="email"
+              placeholder="Username or Email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
+            />
+          </div>
 
-      {/*
-      <motion.p
-        className="login-register-link"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7, duration: 0.5 }}
-      >
-        Not a member yet?{" "}
-        <span onClick={() => navigate("/register")}>Register here</span>
-      </motion.p>
+          <div className="input-group">
+            <input
+              className="login-input"
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              required
+            />
+          </div>
 
-*/}
+          <button
+            className={`login-submit ${loading ? "disabled" : "active"}`}
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        <p className="login-register-link">
+          Not a member yet?{" "}
+          <span onClick={() => navigate("/register")}>Register here</span>
+        </p>
+      </div>
     </div>
   );
 };

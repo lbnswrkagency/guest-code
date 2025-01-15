@@ -72,6 +72,24 @@ const EventSchema = new Schema({
       activated: { type: Boolean, default: false },
     },
   },
+
+  brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
+  location: { type: Schema.Types.ObjectId, ref: "Location", required: true },
+  series: {
+    isRecurring: { type: Boolean, default: false },
+    parentEvent: { type: Schema.Types.ObjectId, ref: "Event" },
+    recurrencePattern: {
+      frequency: { type: String, enum: ["daily", "weekly", "monthly"] },
+      dayOfWeek: { type: Number }, // 0-6 for Sunday-Saturday
+      endDate: { type: Date },
+    },
+  },
+  team: [
+    {
+      user: { type: Schema.Types.ObjectId, ref: "User" },
+      role: { type: String, enum: ["host", "promoter", "staff", "security"] },
+    },
+  ],
 });
 
 module.exports = mongoose.model("Event", EventSchema);

@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { SocketProvider } from "./contexts/SocketContext";
 
 import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
@@ -19,6 +21,8 @@ import Dropbox from "./Components/Dropbox/Dropbox";
 // import FriendsCode from './Components/FriendsCode/FriendsCode';
 import Inbox from "./Components/Inbox/Inbox";
 import PersonalChat from "./Components/PersonalChat/PersonalChat";
+import Brands from "./Components/Brands/Brands";
+import Locations from "./Components/Locations/Locations";
 
 function App() {
   const eventId = "31vp88ph";
@@ -26,26 +30,38 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<EventPage passedEventId={eventId} />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard/*" element={<Dashboard />}>
-            <Route path="chat/:chatId" element={<PersonalChat />} />
-          </Route>
-          <Route
-            path="/registration-success"
-            element={<RegistrationSuccess />}
-          />
-          <Route path="/verify/:token" element={<EmailVerification />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/events/create" element={<CreateEvent />} />
-          <Route path="/events/:eventId" element={<EventDetails />} />
-          <Route path="/events/page/:eventId" element={<EventPage />} />
-          <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
-          <Route path="/upload" element={<DropFiles showDashboard={false} />} />
-          <Route path="/share" element={<RedirectToDropbox />} />
-        </Routes>
+        <SocketProvider>
+          <NotificationProvider>
+            <Routes>
+              <Route path="/" element={<EventPage passedEventId={eventId} />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard/*" element={<Dashboard />}>
+                <Route path="chat/:chatId" element={<PersonalChat />} />
+              </Route>
+              <Route
+                path="/registration-success"
+                element={<RegistrationSuccess />}
+              />
+              <Route path="/verify/:token" element={<EmailVerification />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/create" element={<CreateEvent />} />
+              <Route path="/events/:eventId" element={<EventDetails />} />
+              <Route path="/events/page/:eventId" element={<EventPage />} />
+              <Route
+                path="/guest-code-settings"
+                element={<GuestCodeSettings />}
+              />
+              <Route
+                path="/upload"
+                element={<DropFiles showDashboard={false} />}
+              />
+              <Route path="/share" element={<RedirectToDropbox />} />
+              <Route path="/brands" element={<Brands />} />
+              <Route path="/locations" element={<Locations />} />
+            </Routes>
+          </NotificationProvider>
+        </SocketProvider>
       </AuthProvider>
     </Router>
   );

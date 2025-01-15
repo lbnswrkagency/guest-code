@@ -102,7 +102,7 @@ const BattleSign = forwardRef((props, ref) => {
         <div className="battleSign-info-details">
           <div className="battleSign-info-col">
             <span className="battleSign-info-label">Date</span>
-            <span className="battleSign-info-value">12.01.2025</span>
+            <span className="battleSign-info-value">19.01.2025</span>
             <span className="battleSign-info-subvalue">Sunday</span>
           </div>
           <div className="battleSign-info-col">

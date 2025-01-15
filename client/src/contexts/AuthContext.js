@@ -1,8 +1,16 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -55,6 +63,11 @@ export const AuthProvider = ({ children }) => {
         (response) => response,
         async (error) => {
           const originalRequest = error.config;
+          console.log("[Auth:Flow] Request failed:", {
+            status: error.response?.status,
+            url: originalRequest.url,
+            hasAuthHeader: !!originalRequest.headers["Authorization"],
+          });
 
           // Only attempt refresh if:
           // 1. Error is 401
@@ -64,13 +77,13 @@ export const AuthProvider = ({ children }) => {
           if (
             error.response?.status === 401 &&
             !originalRequest._retry &&
-            !originalRequest.url.includes("/auth/refresh_token")
+            !originalRequest.url.includes("/auth/refresh-token")
           ) {
             originalRequest._retry = true;
 
             try {
               const response = await axios.post(
-                `${process.env.REACT_APP_API_BASE_URL}/auth/refresh_token`,
+                `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
                 {},
                 {
                   withCredentials: true,
@@ -81,19 +94,14 @@ export const AuthProvider = ({ children }) => {
                 }
               );
 
-              if (response.data.accessToken) {
-                localStorage.setItem("token", response.data.accessToken);
-
-                // Update authorization header
+              if (response.data.token) {
+                localStorage.setItem("token", response.data.token);
                 originalRequest.headers[
                   "Authorization"
-                ] = `Bearer ${response.data.accessToken}`;
-
-                // Update default axios header for subsequent requests
+                ] = `Bearer ${response.data.token}`;
                 axios.defaults.headers.common[
                   "Authorization"
-                ] = `Bearer ${response.data.accessToken}`;
-
+                ] = `Bearer ${response.data.token}`;
                 return axios(originalRequest);
               }
             } catch (refreshError) {
@@ -142,11 +150,80 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const login = async (credentials) => {
+    try {
+      console.log("[Auth:Flow] Starting login");
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
+        credentials,
+        { withCredentials: true }
+      );
+
+      console.log("[Auth:Flow] Login response:", {
+        hasUser: !!response.data.user,
+        hasToken: !!response.data.token,
+      });
+
+      const { user, token } = response.data;
+      localStorage.setItem("token", token);
+      console.log("[Auth:Flow] Token stored:", token.substring(0, 20) + "...");
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      console.log("[Auth:Flow] Authorization header set");
+
+      setUser(user);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("[Auth:Flow] Login error:", error.message);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+      localStorage.removeItem("token");
+      setUser(null);
+      navigate("/login");
+    } catch (error) {
+      console.error("[Auth] Logout error:", error.message);
+    }
+  };
+
+  const getNewToken = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        return response.data.token;
+      }
+    } catch (error) {
+      console.error("[Auth] Token refresh error:", error.message);
+      logout();
+      throw error;
+    }
+  };
+
+  // Update the value object to include all needed functions
+  const value = {
+    user,
+    setUser,
+    loading,
+    login,
+    logout,
+    getNewToken,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;

@@ -1,0 +1,404 @@
+@import "../../_variables";
+
+.brand-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.brand-form {
+  background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+  border-radius: 1.5rem;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 200, 7, 0.1);
+  animation: slideUp 0.3s ease;
+  padding: 1rem;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ffc807;
+    border-radius: 4px;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    z-index: 2;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: #ffc807;
+      transform: rotate(90deg);
+    }
+  }
+
+  h2 {
+    color: #fff;
+    text-align: center;
+    padding: 1.5rem;
+    margin: 0;
+    border-bottom: 1px solid rgba(255, 200, 7, 0.1);
+  }
+
+  form {
+    padding: 1.5rem;
+  }
+
+  .form-header {
+    margin-bottom: 2rem;
+
+    .cover-upload {
+      width: 100%;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 1rem;
+      position: relative;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 1rem;
+
+      input {
+        display: none;
+      }
+
+      label {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.7);
+        }
+
+        svg {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          color: #ffc807;
+        }
+      }
+    }
+
+    .logo-upload {
+      width: 100px;
+      height: 100px;
+      margin: -50px auto 0;
+      position: relative;
+
+      input {
+        display: none;
+      }
+
+      label {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #ffc807;
+        background: #1a1a1a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        overflow: hidden;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: scale(1.05);
+        }
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        svg {
+          font-size: 1.5rem;
+          color: #ffc807;
+          margin-bottom: 0.25rem;
+        }
+
+        span {
+          font-size: 0.75rem;
+          color: #fff;
+          text-align: center;
+        }
+      }
+    }
+  }
+
+  .form-section {
+    margin-top: 2rem;
+
+    h3 {
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 200, 7, 0.1);
+    }
+
+    .social-links {
+      display: grid;
+      gap: 0.75rem;
+
+      .social-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 200, 7, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+        min-width: 0;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 200, 7, 0.3);
+        }
+
+        svg {
+          font-size: 1.2rem;
+          color: #ffc807;
+          min-width: 24px;
+          flex-shrink: 0;
+          margin-right: 0.5rem;
+        }
+
+        .social-prefix {
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.8rem;
+          margin: 0 0.3rem;
+          font-family: monospace;
+          flex-shrink: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          min-width: 0;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 200, 7, 0.3);
+          }
+        }
+
+        input {
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          font-size: 0.85rem;
+          width: 100%;
+          flex-grow: 1;
+          min-width: 0;
+
+          &:focus {
+            outline: none;
+            background: none;
+          }
+        }
+      }
+    }
+
+    .contact-info {
+      display: grid;
+      gap: 0.75rem;
+
+      .contact-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 200, 7, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 200, 7, 0.3);
+        }
+
+        svg {
+          font-size: 1.2rem;
+          color: #ffc807;
+          margin-right: 0.75rem;
+        }
+
+        input {
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          width: 100%;
+
+          &:focus {
+            outline: none;
+            background: none;
+          }
+        }
+      }
+    }
+  }
+
+  .form-fields {
+    display: grid;
+    gap: 1rem;
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 200, 7, 0.1);
+      border-radius: 0.5rem;
+      color: #fff;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #ffc807;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .submit-button {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #ffc807;
+      border: none;
+      border-radius: 0.5rem;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-form {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    margin: 0;
+    padding: 1rem;
+
+    .form-header {
+      .cover-upload {
+        height: 120px;
+      }
+
+      .logo-upload {
+        width: 80px;
+        height: 80px;
+        margin: -40px auto 0;
+      }
+    }
+
+    .form-section {
+      .social-links {
+        .social-input-wrapper {
+          padding: 0.4rem;
+
+          svg {
+            font-size: 1rem;
+          }
+
+          .social-prefix {
+            font-size: 0.75rem;
+            margin: 0 0.3rem;
+          }
+
+          input {
+            font-size: 0.85rem;
+          }
+        }
+      }
+    }
+
+    h2 {
+      font-size: 1.25rem;
+    }
+
+    .close-button {
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+  }
+}

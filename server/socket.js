@@ -16,35 +16,22 @@ const setupSocket = (server) => {
 
   const onlineUsers = new Map();
 
-  io.use(async (socket, next) => {
-    console.log("[Socket:Auth] New connection attempt");
-
-    if (!socket.handshake.query?.token) {
-      return next(new Error("No token provided"));
-    }
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token || socket.handshake.query.token;
+    if (!token) return next(new Error("Authentication failed"));
 
     try {
-      const token = socket.handshake.query.token;
-      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-      const user = await User.findById(decoded._id);
-
-      if (!user) {
-        return next(new Error("User not found"));
-      }
-
-      socket.user = user;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.userId = decoded._id;
       next();
-    } catch (error) {
-      if (error.name === "TokenExpiredError") {
-        socket.auth = false;
-        return next(new Error("Token expired"));
-      }
+    } catch (err) {
       next(new Error("Authentication failed"));
     }
   });
 
   io.on("connection", (socket) => {
-    console.log("[Socket] New connection established:", socket.user._id);
+    const userId = socket.userId;
+    console.log("[Socket] User connected:", userId);
 
     onlineUsers.set(socket.user._id.toString(), socket.id);
     console.log(
@@ -103,7 +90,7 @@ const setupSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("[Socket] User disconnected:", socket.user._id);
+      console.log("[Socket] User disconnected:", userId);
       onlineUsers.delete(socket.user._id.toString());
       io.emit("user_status", {
         userId: socket.user._id,

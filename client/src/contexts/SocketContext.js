@@ -6,7 +6,6 @@ import React, {
   useCallback,
 } from "react";
 import io from "socket.io-client";
-import { getToken } from "../utils/authUtils";
 
 const SocketContext = createContext();
 
@@ -21,7 +20,7 @@ export const useSocket = () => {
 export const SocketProvider = ({ children, user }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState(new Map()); // Using Map to store user details
+  const [onlineUsers, setOnlineUsers] = useState(new Map());
   const [connectionError, setConnectionError] = useState(null);
 
   useEffect(() => {
@@ -34,11 +33,12 @@ export const SocketProvider = ({ children, user }) => {
 
     const connectSocket = async () => {
       try {
-        const token = await getToken();
-        console.log(
-          "[Socket:Setup] Starting connection with token:",
-          token.substring(0, 20) + "..."
-        );
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("[Socket] No token found, skipping connection");
+          return;
+        }
+
         const socketUrl = process.env.REACT_APP_API_BASE_URL.replace(
           /\/api$/,
           ""
@@ -46,14 +46,10 @@ export const SocketProvider = ({ children, user }) => {
         console.log("[Socket:Setup] Connecting to:", socketUrl);
 
         socketInstance = io(socketUrl, {
-          query: { token },
+          path: "/socket.io",
           transports: ["websocket", "polling"],
-          reconnection: true,
-          reconnectionAttempts: 3,
-          reconnectionDelay: 2000,
-          auth: {
-            token,
-          },
+          auth: { token },
+          query: { token },
         });
 
         console.log("[Socket:Setup] Socket instance created");
@@ -63,6 +59,7 @@ export const SocketProvider = ({ children, user }) => {
           console.log("[Socket] Connected successfully");
           setIsConnected(true);
           setConnectionError(null);
+          socketInstance.emit("authenticate", { id: user._id });
         });
 
         socketInstance.on("disconnect", () => {
@@ -114,9 +111,18 @@ export const SocketProvider = ({ children, user }) => {
           });
         });
 
+        // Add notification event listeners
+        socketInstance.on("new_notification", (notification) => {
+          console.log("[Socket] New notification received:", notification);
+        });
+
+        socketInstance.on("notification_updated", (notification) => {
+          console.log("[Socket] Notification updated:", notification);
+        });
+
         setSocket(socketInstance);
       } catch (error) {
-        console.error("[Socket] Setup error:", error);
+        console.error("[Socket] Setup error:", error.message);
         setConnectionError(error.message);
       }
     };

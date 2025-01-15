@@ -9,7 +9,7 @@ import FriendsCode from "../FriendsCode/FriendsCode";
 import BackstageCode from "../BackstageCode/BackstageCode";
 import TableCode from "../TableCode/TableCode";
 import Scanner from "../Scanner/Scanner";
-import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
 
@@ -29,15 +29,27 @@ import PersonalChat from "../PersonalChat/PersonalChat";
 import GlobalChat from "../GlobalChat/GlobalChat";
 
 import { SocketProvider, useSocket } from "../../contexts/SocketContext";
+import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
+import Loader from "../Loader/Loader";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  if (loading || !user) {
-    return <p>Loading...</p>;
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [loading, user, navigate]);
+
+  if (loading) {
+    return <Loader />;
   }
 
-  // We first wrap everything with SocketProvider
+  if (!user) {
+    return null;
+  }
+
   return (
     <SocketProvider user={user}>
       <DashboardContent user={user} setUser={setUser} />
@@ -141,10 +153,7 @@ const DashboardContent = ({ user, setUser }) => {
       }
       params.endDate = endDate.format("YYYY-MM-DDTHH:mm:ss");
 
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
-        { params }
-      );
+      const response = await axiosInstance.get("/qr/counts", { params });
 
       setCounts(response.data);
     } catch (error) {
@@ -159,13 +168,10 @@ const DashboardContent = ({ user, setUser }) => {
     }
 
     try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/qr/user-counts`,
-        {
-          params: { userId: user._id },
-          headers: { Authorization: `Bearer ${user.token}` },
-        }
-      );
+      const response = await axiosInstance.get(`/qr/user-counts`, {
+        params: { userId: user._id },
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
 
       setUserCounts({
         totalGenerated: response.data.totalGenerated,
@@ -202,18 +208,6 @@ const DashboardContent = ({ user, setUser }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [onlineCount, setOnlineCount] = useState(0);
 
-  // New useEffect for socket status logging
-  useEffect(() => {
-    console.group("[Dashboard:Socket]");
-    console.log("Connected:", isConnected);
-    console.log("Online users:", onlineUsers);
-    console.log(
-      "Current user status:",
-      user?._id ? isConnected : "Not logged in"
-    );
-    console.groupEnd();
-  }, [isConnected, onlineUsers, user]);
-
   // Update this useEffect to handle online users
   useEffect(() => {
     if (socket) {
@@ -239,6 +233,8 @@ const DashboardContent = ({ user, setUser }) => {
       };
     }
   }, [socket]);
+
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
 
   if (codeType === "Table") {
     return (
@@ -350,12 +346,13 @@ const DashboardContent = ({ user, setUser }) => {
     }
   };
 
-  console.log("ONLINE", isConnected);
-
   return (
     <div className="dashboard">
       <div className="dashboard-wrapper">
-        <Navigation onBack={handleBack} />
+        <Navigation
+          onBack={handleBack}
+          onMenuClick={() => setIsNavigationOpen(true)}
+        />
 
         <DashboardHeader
           user={user}
@@ -405,6 +402,12 @@ const DashboardContent = ({ user, setUser }) => {
           onlineUsers={onlineUsers}
         />
       )}
+
+      <DashboardNavigation
+        isOpen={isNavigationOpen}
+        onClose={() => setIsNavigationOpen(false)}
+        currentUser={user}
+      />
     </div>
   );
 };

@@ -16,7 +16,7 @@ router.use((req, res, next) => {
 });
 
 // Refresh token route
-router.post("/refresh_token", refreshAccessToken);
+router.post("/refresh-token", refreshAccessToken);
 
 // Register route (no validations here)
 router.post("/register", register);

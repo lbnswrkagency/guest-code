@@ -1,0 +1,128 @@
+@import "../../_variables";
+
+.locations {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  &-header {
+    margin-bottom: 2rem;
+    text-align: left;
+
+    h1 {
+      font-size: 2.5rem;
+      color: $primary-text-color;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: $secondary-text-color;
+      font-size: 1.1rem;
+    }
+  }
+
+  &-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 1rem 0;
+  }
+}
+
+.location-card {
+  background: $light-color;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: $box-shadow;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $box-shadow-hover;
+  }
+
+  &-header {
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+
+    .location-cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &-content {
+    padding: 1.5rem;
+    position: relative;
+
+    .location-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid $light-color;
+      margin-top: -45px;
+      margin-bottom: 1rem;
+      background: $light-color;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      color: $primary-text-color;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: $secondary-text-color;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .location-details {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: $secondary-text-color;
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        &:before {
+          content: "•";
+          color: $primary-color;
+        }
+      }
+    }
+  }
+
+  &.add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    border: 2px dashed $border-color;
+    background: transparent;
+
+    &:hover {
+      border-color: $primary-color;
+      background: rgba($primary-color, 0.05);
+    }
+
+    .add-icon {
+      font-size: 3rem;
+      color: $primary-color;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: $secondary-text-color;
+      font-size: 1.1rem;
+    }
+  }
+}

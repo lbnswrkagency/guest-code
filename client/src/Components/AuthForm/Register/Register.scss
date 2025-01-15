@@ -39,8 +39,11 @@ $breakpoints: (
 
   &-logo {
     position: absolute;
-    top: 7rem;
-    width: 7.5rem;
+    top: 2rem;
+    width: 120px;
+    height: auto;
+    filter: drop-shadow(0 0 10px rgba(255, 200, 7, 0.2));
+    z-index: 10;
   }
 
   &-container {
@@ -51,6 +54,8 @@ $breakpoints: (
     max-width: 420px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 200, 7, 0.1);
+    position: relative;
+    z-index: 1;
   }
 
   &-title {
@@ -154,26 +159,24 @@ $breakpoints: (
   }
 }
 
-// .login-back-arrow {
-//   position: absolute;
-//   top: 20px;
-//   left: 20px;
-//   color: #fff;
-//   cursor: pointer;
-//   font-size: 14px;
-//   display: flex;
-//   align-items: center;
-//   transition: all 0.2s ease;
+.login-back-arrow {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  cursor: pointer;
+  z-index: 10;
 
-//   .arrow {
-//     margin-right: 6px;
-//     font-size: 18px;
-//   }
+  img {
+    width: 24px;
+    height: 24px;
+    filter: invert(1);
+    transition: transform 0.3s ease;
+  }
 
-//   &:hover {
-//     color: #ffc807;
-//   }
-// }
+  &:hover img {
+    transform: scale(1.1);
+  }
+}
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

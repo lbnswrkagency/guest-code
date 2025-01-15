@@ -1,29 +1,38 @@
 const jwt = require("jsonwebtoken");
-const chalk = require("chalk");
 
-const authenticate = async (req, res, next) => {
-  const authHeader = req.header("Authorization");
-
-  if (!authHeader) {
-    return res.status(401).json({ msg: "No token, authorization denied" });
-  }
-
+exports.authenticate = (req, res, next) => {
   try {
+    const authHeader = req.headers.authorization;
+    console.log("[Auth:Middleware] Headers:", {
+      hasAuthHeader: !!authHeader,
+      headerValue: authHeader?.substring(0, 20) + "...",
+    });
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
     const token = authHeader.split(" ")[1];
+    console.log(
+      "[Auth:Middleware] Using secret:",
+      process.env.JWT_ACCESS_SECRET?.substring(0, 10) + "..."
+    );
+
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-
-    // Support both old and new token structures
-    req.user = {
-      _id: decoded._id || decoded.userId,
+    console.log("[Auth:Middleware] Token verified, payload:", {
+      userId: decoded._id,
       email: decoded.email,
-      username: decoded.username,
-    };
+    });
 
+    req.user = decoded;
     next();
   } catch (error) {
-    console.error(chalk.red("Auth error:"), error.message);
-    res.status(401).json({ msg: "Token is not valid" });
+    if (error.name !== "JsonWebTokenError") {
+      console.error("[Auth:Middleware] Error:", {
+        name: error.name,
+        message: error.message,
+      });
+    }
+    res.status(401).json({ message: "Authentication failed" });
   }
 };
-
-module.exports = { authenticate };

@@ -1,0 +1,286 @@
+@import "../../_variables";
+
+.location-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($black-color, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.location-form {
+  background: $background-color;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+
+  .close-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: $light-color;
+    cursor: pointer;
+    z-index: 2;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  form {
+    padding: 2rem;
+
+    .form-header {
+      margin: -2rem -2rem 2rem -2rem;
+
+      .cover-upload {
+        height: 200px;
+        background-color: darken($background-color, 3%);
+        background-size: cover;
+        background-position: center;
+        position: relative;
+
+        input {
+          display: none;
+        }
+
+        label {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: rgba($black-color, 0.3);
+          color: $light-color;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+
+          &:hover {
+            background: rgba($black-color, 0.5);
+          }
+
+          svg {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+          }
+        }
+      }
+
+      .logo-upload {
+        width: 100px;
+        height: 100px;
+        margin: -50px auto 0;
+        position: relative;
+
+        input {
+          display: none;
+        }
+
+        label {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          border: 3px solid $background-color;
+          background: darken($background-color, 3%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          overflow: hidden;
+          box-shadow: 0 2px 4px rgba($black-color, 0.3);
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          svg {
+            font-size: 1.5rem;
+            color: $light-color;
+            margin-bottom: 0.25rem;
+          }
+
+          span {
+            font-size: 0.75rem;
+            color: $light-color;
+          }
+        }
+      }
+    }
+
+    h2 {
+      text-align: center;
+      color: $light-color;
+      margin: 1.5rem 0;
+      font-size: 1.5rem;
+    }
+
+    .form-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid $border-color;
+        border-radius: 4px;
+        font-size: 14px;
+        background: darken($background-color, 3%);
+        color: $light-color;
+        transition: border-color 0.3s ease;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+        }
+
+        &::placeholder {
+          color: rgba($light-color, 0.5);
+        }
+      }
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .form-section {
+        h3 {
+          color: $light-color;
+          margin-bottom: 1rem;
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 1rem;
+
+          .feature-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: $light-color;
+            cursor: pointer;
+            font-size: 14px;
+
+            input[type="checkbox"] {
+              width: auto;
+              cursor: pointer;
+              accent-color: $primary-color;
+            }
+
+            &:hover {
+              color: $primary-color;
+            }
+          }
+        }
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2rem;
+      gap: 1rem;
+
+      button {
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &.submit-button {
+          background: $primary-color;
+          color: $light-color;
+          border: none;
+          flex: 1;
+
+          &:hover {
+            background: darken($primary-color, 10%);
+          }
+
+          &:disabled {
+            background: $gray-color;
+            cursor: not-allowed;
+          }
+        }
+
+        &.delete-button {
+          background: none;
+          border: 1px solid $instagram-color;
+          color: $instagram-color;
+          padding: 12px 20px;
+
+          &:hover {
+            background: $instagram-color;
+            color: $light-color;
+          }
+        }
+      }
+    }
+  }
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: darken($background-color, 3%);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: lighten($background-color, 10%);
+    border-radius: 4px;
+
+    &:hover {
+      background: lighten($background-color, 15%);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .location-form {
+    width: 95%;
+    margin: 1rem;
+    max-height: 95vh;
+
+    form {
+      padding: 1rem;
+
+      .form-header {
+        margin: -1rem -1rem 1rem -1rem;
+      }
+
+      .form-actions {
+        flex-direction: column;
+
+        button {
+          width: 100%;
+        }
+      }
+    }
+  }
+}

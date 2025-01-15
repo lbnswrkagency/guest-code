@@ -14,38 +14,39 @@ axios.interceptors.request.use(
   }
 );
 
-export const loginUser = async (identifier, password) => {
+const loginUser = async (credentials) => {
   try {
+    // Extract email and password directly from credentials
+    const { email, password } = credentials;
+
     const response = await axios.post(
       `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
+      { email, password }, // Send email and password directly
       {
-        identifier,
-        password,
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
+
     return response.data;
   } catch (error) {
-    console.error("Error during login: ", error.response.data);
-    throw error;
+    console.error(
+      "Error during login: ",
+      error.response?.data || error.message
+    );
+    throw error.response?.data || error;
   }
 };
 
-export const login = async (identifier, password, navigate, setUser) => {
+export const login = async (formData) => {
   try {
-    const { token } = await loginUser(identifier, password);
-
-    if (token) {
-      localStorage.setItem("token", token); // Save the token in the local storage
-
-      const userData = await fetchUserData(); // Fetch the user data
-
-      setUser(userData); // Set the user state after a successful login
-      navigate("/dashboard");
-    } else {
-      throw new Error("No token received");
-    }
+    const response = await loginUser(formData);
+    return response;
   } catch (error) {
     console.error("Error during login: ", error);
+    throw error;
   }
 };
 

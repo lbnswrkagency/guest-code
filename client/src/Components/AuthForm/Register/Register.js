@@ -133,7 +133,7 @@ function Register({ onRegisterSuccess }) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          Join the Community
+          Become a Member
         </motion.h1>
         <motion.form
           className="register-form"

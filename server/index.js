@@ -30,6 +30,9 @@ const battleSignRoutes = require("./routes/api/battleSignRoutes");
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const brandRoutes = require("./routes/api/brandRoutes");
+const locationRoutes = require("./routes/api/locationRoutes");
+const notificationRoutes = require("./routes/api/notificationRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -37,6 +40,13 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 dotenv.config();
+
+console.log("[Server:Init] Environment check:", {
+  hasAccessSecret: !!process.env.JWT_ACCESS_SECRET,
+  hasRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
+  accessSecretStart: process.env.JWT_ACCESS_SECRET?.substring(0, 10) + "...",
+  refreshSecretStart: process.env.JWT_REFRESH_SECRET?.substring(0, 10) + "...",
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -111,6 +121,9 @@ app.use("/api/battleSign", battleSignRoutes);
 app.use("/api/dropbox", dropboxRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/locations", locationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // MongoDB connection
 mongoose

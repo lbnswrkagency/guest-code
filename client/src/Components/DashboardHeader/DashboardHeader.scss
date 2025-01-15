@@ -45,6 +45,29 @@
           background-color: #c23616;
         }
       }
+
+      .profile-icon-placeholder {
+        justify-self: center;
+        width: 5.125rem;
+        height: 5.125rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+        color: #ffc807;
+        font-size: 3.5rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+          transform: scale(1.02);
+        }
+
+        svg {
+          filter: drop-shadow(0 2px 4px rgba(255, 200, 7, 0.2));
+        }
+      }
     }
 
     .avatar-icon {
@@ -254,6 +277,31 @@
       }
     }
   }
+
+  &-test-notification {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(45deg, #ffc807, #ff9d00);
+    border: none;
+    border-radius: 12px;
+    color: #151515;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 10rem;
+    justify-self: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 .dashboard-header {
@@ -297,5 +345,26 @@
 
   &.offline {
     background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5253);
+  }
+}
+
+.menu-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #ffc807;
+    transform: scale(1.1);
   }
 }
