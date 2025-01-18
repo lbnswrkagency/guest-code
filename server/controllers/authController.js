@@ -96,6 +96,13 @@ exports.verifyEmail = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    console.log("[Auth:Login] Request from origin:", req.headers.origin);
+    console.log("[Auth:Login] Credentials:", {
+      hasEmail: !!req.body.email,
+      emailLength: req.body.email?.length,
+      hasPassword: !!req.body.password,
+    });
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -158,6 +165,17 @@ exports.login = async (req, res) => {
           : "localhost",
     });
 
+    console.log("[Auth:Login] Setting cookie with options:", {
+      domain:
+        process.env.NODE_ENV === "production"
+          ? process.env.COOKIE_DOMAIN
+          : "localhost",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    console.log("[Auth:Login] Cookie set, sending response");
+
     res.json({
       user: {
         _id: user._id,
@@ -170,6 +188,11 @@ exports.login = async (req, res) => {
       token: accessToken,
     });
   } catch (error) {
+    console.error("[Auth:Login] Error:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split("\n")[0],
+    });
     res.status(500).json({
       message: "Server error during login",
       details: "Please try again later",
@@ -195,6 +218,10 @@ exports.getUserData = async (req, res) => {
 };
 
 exports.refreshAccessToken = async (req, res) => {
+  console.log("[Auth:Refresh] Cookies received:", {
+    hasRefreshToken: !!req.cookies.refreshToken,
+    cookieNames: Object.keys(req.cookies),
+  });
   try {
     const refreshToken = req.cookies.refreshToken;
 
