@@ -186,8 +186,6 @@ exports.login = async (req, res) => {
       sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
-      domain:
-        process.env.NODE_ENV === "production" ? ".onrender.com" : "localhost",
     });
 
     console.log("[Auth:Login] Setting cookie with options:", {
