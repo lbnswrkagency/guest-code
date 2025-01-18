@@ -152,11 +152,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      console.log("[Auth:Client] Starting login request:", {
+        baseURL: axios.defaults.baseURL,
+        withCredentials: axios.defaults.withCredentials,
+        hasAuthHeader: !!axios.defaults.headers.common["Authorization"],
+      });
+
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
         credentials,
         { withCredentials: true }
       );
+
+      console.log("[Auth:Client] Login response:", {
+        hasUser: !!response.data.user,
+        hasToken: !!response.data.token,
+        tokenFragment: response.data.token
+          ? response.data.token.substring(0, 20) + "..."
+          : "Missing",
+      });
 
       const { user, token } = response.data;
       localStorage.setItem("token", token);
@@ -166,6 +180,17 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       navigate("/dashboard");
     } catch (error) {
+      console.error("[Auth:Client] Login error details:", {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        hasResponse: !!error.response,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          withCredentials: error.config?.withCredentials,
+        },
+      });
       throw error;
     }
   };

@@ -52,25 +52,39 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS setup
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "https://guestcode-client.onrender.com",
-    "https://afrospiti.com",
-    "https://www.afrospiti.com",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "Access-Control-Allow-Headers",
-    "Access-Control-Allow-Origin",
-    "Access-Control-Allow-Methods",
-    "X-Requested-With",
-  ],
-  credentials: true,
-  maxAge: 86400,
-};
+app.use((req, res, next) => {
+  console.log("[Server:CORS] Request details:", {
+    origin: req.headers.origin,
+    method: req.method,
+    path: req.path,
+    hasAuthHeader: !!req.headers.authorization,
+    cookies: Object.keys(req.cookies || {}),
+  });
+  next();
+});
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://guestcode.vercel.app",
+        "https://www.guestcode.vercel.app",
+        "https://afrospiti.com",
+        "https://www.afrospiti.com",
+        "https://guestcode-client.onrender.com",
+      ];
+      console.log("[Server:CORS] Origin check:", {
+        requestOrigin: origin,
+        isAllowed: allowedOrigins.includes(origin),
+      });
+      callback(null, allowedOrigins.includes(origin) ? origin : false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Cookie settings
 const cookieSettings = {
@@ -84,23 +98,6 @@ const cookieSettings = {
 // Middleware setup
 app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? [
-            "https://guestcode.vercel.app",
-            "https://www.guestcode.vercel.app",
-            "https://afrospiti.com",
-            "https://www.afrospiti.com",
-          ]
-        : "http://localhost:3000",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["set-cookie"],
-  })
-);
 
 // Make sure this comes after CORS
 app.use(cookieParser());

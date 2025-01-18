@@ -96,7 +96,16 @@ exports.verifyEmail = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    console.log("[Auth:Login] Request from origin:", req.headers.origin);
+    console.log("[Auth:Login] Full request details:", {
+      origin: req.headers.origin,
+      method: req.method,
+      cookies: req.cookies,
+      headers: {
+        ...req.headers,
+        authorization: req.headers.authorization ? "Present" : "Missing",
+      },
+    });
+
     console.log("[Auth:Login] Credentials:", {
       hasEmail: !!req.body.email,
       emailLength: req.body.email?.length,
@@ -153,6 +162,24 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    console.log("[Auth:Login] Token generation:", {
+      accessTokenLength: accessToken.length,
+      refreshTokenLength: refreshToken.length,
+      tokenPayload: { userId: user._id, email: user.email },
+    });
+
+    console.log("[Auth:Login] Setting cookie with full config:", {
+      token: refreshToken.substring(0, 20) + "...",
+      options: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        domain:
+          process.env.NODE_ENV === "production" ? ".onrender.com" : "localhost",
+        path: "/",
+      },
+    });
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
@@ -186,10 +213,12 @@ exports.login = async (req, res) => {
       token: accessToken,
     });
   } catch (error) {
-    console.error("[Auth:Login] Error:", {
+    console.error("[Auth:Login] Detailed error:", {
       name: error.name,
       message: error.message,
-      stack: error.stack?.split("\n")[0],
+      stack: error.stack,
+      requestOrigin: req.headers.origin,
+      path: req.path,
     });
     res.status(500).json({
       message: "Server error during login",
@@ -216,10 +245,18 @@ exports.getUserData = async (req, res) => {
 };
 
 exports.refreshAccessToken = async (req, res) => {
-  console.log("[Auth:Refresh] Cookies received:", {
+  console.log("[Auth:Refresh] Full request details:", {
+    cookies: req.cookies,
     hasRefreshToken: !!req.cookies.refreshToken,
-    cookieNames: Object.keys(req.cookies),
+    tokenFragment: req.cookies.refreshToken
+      ? req.cookies.refreshToken.substring(0, 20) + "..."
+      : "Missing",
+    headers: {
+      ...req.headers,
+      authorization: req.headers.authorization ? "Present" : "Missing",
+    },
   });
+
   try {
     const refreshToken = req.cookies.refreshToken;
 
@@ -247,6 +284,11 @@ exports.refreshAccessToken = async (req, res) => {
 
     res.json({ token: accessToken });
   } catch (error) {
+    console.error("[Auth:Refresh] Token verification failed:", {
+      error: error.message,
+      tokenPresent: !!req.cookies.refreshToken,
+      errorName: error.name,
+    });
     res.status(401).json({ message: "Invalid refresh token" });
   }
 };
