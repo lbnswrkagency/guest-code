@@ -88,11 +88,17 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://guestcode.vercel.app", "https://www.guestcode.vercel.app"] // Add your frontend domain
+        ? [
+            "https://guestcode.vercel.app",
+            "https://www.guestcode.vercel.app",
+            "https://afrospiti.com",
+            "https://www.afrospiti.com",
+          ]
         : "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["set-cookie"],
   })
 );
 

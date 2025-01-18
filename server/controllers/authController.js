@@ -105,11 +105,17 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({
+      $or: [
+        { email: new RegExp(`^${email.trim()}$`, "i") },
+        { username: new RegExp(`^${email.trim()}$`, "i") },
+      ],
+    });
+
     if (!user) {
       return res.status(401).json({
         message: "Invalid credentials",
-        details: "No account found with this email",
+        details: "No account found with this email or username",
       });
     }
 
@@ -147,7 +153,9 @@ exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
       domain:
-        process.env.NODE_ENV === "production" ? ".onrender.com" : "localhost",
+        process.env.NODE_ENV === "production"
+          ? process.env.COOKIE_DOMAIN
+          : "localhost",
     });
 
     res.json({

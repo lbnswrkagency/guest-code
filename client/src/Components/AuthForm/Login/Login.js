@@ -137,6 +137,7 @@ const Login = () => {
               type="password"
               name="password"
               placeholder="Password"
+              autoComplete="current-password"
               value={formData.password}
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
