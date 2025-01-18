@@ -214,6 +214,22 @@ export const AuthProvider = ({ children }) => {
     getNewToken,
   };
 
+  axios.defaults.withCredentials = true;
+
+  // Add this interceptor
+  axios.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

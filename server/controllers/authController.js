@@ -147,7 +147,7 @@ exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
       domain:
-        process.env.NODE_ENV === "production" ? ".afrospiti.com" : "localhost",
+        process.env.NODE_ENV === "production" ? ".onrender.com" : "localhost",
     });
 
     res.json({
