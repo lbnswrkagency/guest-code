@@ -42,10 +42,36 @@ const loginUser = async (credentials) => {
 
 export const login = async (formData) => {
   try {
-    const response = await loginUser(formData);
-    return response;
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
+      formData,
+      { withCredentials: true }
+    );
+    return response.data;
   } catch (error) {
-    console.error("Error during login: ", error);
+    // Transform error to be more user-friendly
+    if (error.response) {
+      // Server responded with error
+      if (error.response.status === 401) {
+        // Check specific error message from server
+        if (error.response.data.details?.includes("password")) {
+          throw {
+            response: {
+              status: 401,
+              data: { details: "Incorrect password" },
+            },
+          };
+        } else if (error.response.data.details?.includes("email")) {
+          throw {
+            response: {
+              status: 401,
+              data: { details: "No account found with this email" },
+            },
+          };
+        }
+      }
+    }
+    // If not handled above, pass the error through
     throw error;
   }
 };

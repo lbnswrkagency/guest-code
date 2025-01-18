@@ -152,29 +152,20 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log("[Auth:Flow] Starting login");
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
         credentials,
         { withCredentials: true }
       );
 
-      console.log("[Auth:Flow] Login response:", {
-        hasUser: !!response.data.user,
-        hasToken: !!response.data.token,
-      });
-
       const { user, token } = response.data;
       localStorage.setItem("token", token);
-      console.log("[Auth:Flow] Token stored:", token.substring(0, 20) + "...");
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      console.log("[Auth:Flow] Authorization header set");
 
       setUser(user);
       navigate("/dashboard");
     } catch (error) {
-      console.error("[Auth:Flow] Login error:", error.message);
       throw error;
     }
   };

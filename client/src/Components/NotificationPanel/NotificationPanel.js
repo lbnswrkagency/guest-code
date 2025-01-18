@@ -102,13 +102,18 @@ const NotificationPanel = () => {
     }
   };
 
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
     <div className="notification-panel">
       <button
         className={`notification-panel-trigger ${
           hasNotifications ? "has-notification" : ""
         }`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleClick}
       >
         <RiBellLine />
         {unreadCount > 0 && (

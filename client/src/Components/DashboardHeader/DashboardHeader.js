@@ -18,9 +18,7 @@ const DashboardHeader = ({
 }) => {
   const { getNewToken } = useAuth();
 
-  useEffect(() => {
-    console.log("[DashboardHeader] Online status updated:", isOnline);
-  }, [isOnline]);
+  useEffect(() => {}, [isOnline]);
 
   const createTestNotification = async () => {
     try {
@@ -134,12 +132,12 @@ const DashboardHeader = ({
         <p className="headerDashboard-info-name">
           {user.firstName ? `${user.firstName}` : `@${user.username}`}
         </p>
-        <button
+        {/* <button
           className="headerDashboard-test-notification"
           onClick={createTestNotification}
         >
           Test Notification
-        </button>
+        </button> */}
       </div>
 
       <div className="headerDashboard-selection">

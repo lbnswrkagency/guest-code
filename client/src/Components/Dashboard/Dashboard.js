@@ -9,9 +9,9 @@ import FriendsCode from "../FriendsCode/FriendsCode";
 import BackstageCode from "../BackstageCode/BackstageCode";
 import TableCode from "../TableCode/TableCode";
 import Scanner from "../Scanner/Scanner";
-import axiosInstance from "../../utils/axiosConfig";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
+import axios from "axios";
 
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
@@ -145,15 +145,22 @@ const DashboardContent = ({ user, setUser }) => {
   const fetchCounts = async () => {
     try {
       const { startDate, endDate } = dataInterval;
-
       let params = {};
-
       if (startDate) {
         params.startDate = startDate.format("YYYY-MM-DDTHH:mm:ss");
       }
       params.endDate = endDate.format("YYYY-MM-DDTHH:mm:ss");
 
-      const response = await axiosInstance.get("/qr/counts", { params });
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/qr/counts`,
+        {
+          params,
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       setCounts(response.data);
     } catch (error) {
@@ -168,10 +175,16 @@ const DashboardContent = ({ user, setUser }) => {
     }
 
     try {
-      const response = await axiosInstance.get(`/qr/user-counts`, {
-        params: { userId: user._id },
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/qr/user-counts`,
+        {
+          params: { userId: user._id },
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       setUserCounts({
         totalGenerated: response.data.totalGenerated,

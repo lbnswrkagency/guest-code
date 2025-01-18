@@ -18,40 +18,85 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const loadingToast = toast.loading("Logging in...");
+    const loadingToast = toast.loading("Logging in...", {
+      style: {
+        background: "#333",
+        color: "#fff",
+      },
+    });
 
     try {
       const response = await login(formData);
-      localStorage.setItem("token", response.user.token);
-      setUser(response.user);
-
       toast.dismiss(loadingToast);
-      toast.success("Welcome back! 👋", {
-        duration: 3000,
-        icon: "🎉",
-      });
 
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 100);
+      if (response?.user) {
+        localStorage.setItem("token", response.user.token);
+        setUser(response.user);
+
+        toast.success(
+          `Welcome back${
+            response.user.firstName ? `, ${response.user.firstName}` : ""
+          }! 👋`,
+          {
+            duration: 3000,
+            icon: "🎉",
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          }
+        );
+
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      }
     } catch (error) {
       toast.dismiss(loadingToast);
 
-      if (error.response?.status === 401) {
-        toast.error("Invalid email or password", {
-          icon: "🔐",
-        });
-      } else if (error.response?.status === 403) {
-        toast.error("Please verify your email first", {
-          icon: "✉️",
-        });
-      } else {
-        toast.error(
-          error.message || "Something went wrong. Please try again.",
-          {
+      // More specific error handling
+      const errorMessage = error.response?.data?.details;
+
+      switch (error.response?.status) {
+        case 400:
+          toast.error(errorMessage || "Please fill in all fields", {
+            duration: 3000,
+            icon: "⚠️",
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          });
+          break;
+        case 401:
+          toast.error(errorMessage || "Invalid email or password", {
+            duration: 3000,
+            icon: "🔐",
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          });
+          break;
+        case 403:
+          toast.error(errorMessage || "Please verify your email first", {
+            duration: 3000,
+            icon: "✉️",
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          });
+          break;
+        default:
+          toast.error("Connection error. Please try again later.", {
+            duration: 3000,
             icon: "❌",
-          }
-        );
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          });
       }
       setLoading(false);
     }

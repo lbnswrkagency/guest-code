@@ -25,7 +25,6 @@ export const SocketProvider = ({ children, user }) => {
 
   useEffect(() => {
     if (!user?._id) {
-      console.log("[Socket] No user, skipping connection");
       return;
     }
 
@@ -35,7 +34,6 @@ export const SocketProvider = ({ children, user }) => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          console.log("[Socket] No token found, skipping connection");
           return;
         }
 
@@ -43,7 +41,6 @@ export const SocketProvider = ({ children, user }) => {
           /\/api$/,
           ""
         );
-        console.log("[Socket:Setup] Connecting to:", socketUrl);
 
         socketInstance = io(socketUrl, {
           path: "/socket.io",
@@ -52,24 +49,18 @@ export const SocketProvider = ({ children, user }) => {
           query: { token },
         });
 
-        console.log("[Socket:Setup] Socket instance created");
-
         // Connection events
         socketInstance.on("connect", () => {
-          console.log("[Socket] Connected successfully");
           setIsConnected(true);
           setConnectionError(null);
           socketInstance.emit("authenticate", { id: user._id });
         });
 
         socketInstance.on("disconnect", () => {
-          console.log("[Socket] Disconnected");
           setIsConnected(false);
         });
 
         socketInstance.on("connect_error", (error) => {
-          console.error("[Socket:Error] Connection error:", error.message);
-
           if (
             error.message.includes("Token expired") ||
             error.message.includes("Authentication failed")
@@ -84,7 +75,6 @@ export const SocketProvider = ({ children, user }) => {
 
         // User status events
         socketInstance.on("initial_online_users", (users) => {
-          console.log("[Socket] Received initial online users:", users);
           const userMap = new Map();
           users.forEach((user) => {
             if (user.userId && user.userData) {
@@ -95,11 +85,6 @@ export const SocketProvider = ({ children, user }) => {
         });
 
         socketInstance.on("user_status", ({ userId, status, userData }) => {
-          console.log("[Socket] User status update:", {
-            userId,
-            status,
-            userData,
-          });
           setOnlineUsers((prev) => {
             const newUsers = new Map(prev);
             if (status === "online" && userData) {
@@ -112,17 +97,12 @@ export const SocketProvider = ({ children, user }) => {
         });
 
         // Add notification event listeners
-        socketInstance.on("new_notification", (notification) => {
-          console.log("[Socket] New notification received:", notification);
-        });
+        socketInstance.on("new_notification", (notification) => {});
 
-        socketInstance.on("notification_updated", (notification) => {
-          console.log("[Socket] Notification updated:", notification);
-        });
+        socketInstance.on("notification_updated", (notification) => {});
 
         setSocket(socketInstance);
       } catch (error) {
-        console.error("[Socket] Setup error:", error.message);
         setConnectionError(error.message);
       }
     };
@@ -131,7 +111,6 @@ export const SocketProvider = ({ children, user }) => {
 
     return () => {
       if (socketInstance) {
-        console.log("[Socket] Cleaning up connection");
         socketInstance.disconnect();
         setSocket(null);
         setIsConnected(false);

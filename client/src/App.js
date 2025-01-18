@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -32,6 +33,8 @@ function App() {
       <AuthProvider>
         <SocketProvider>
           <NotificationProvider>
+            <Toaster position="top-center" />
+
             <Routes>
               <Route path="/" element={<EventPage passedEventId={eventId} />} />
               <Route path="/login" element={<Login />} />
