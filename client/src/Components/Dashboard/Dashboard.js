@@ -143,6 +143,13 @@ const DashboardContent = ({ user, setUser }) => {
   }, [codeType]);
 
   const fetchCounts = async () => {
+    console.log("[Dashboard:Init] Starting data fetch with auth:", {
+      hasAuthHeader: !!axios.defaults.headers.common["Authorization"],
+      headerValue:
+        axios.defaults.headers.common["Authorization"]?.substring(0, 20) +
+        "...",
+    });
+
     try {
       const { startDate, endDate } = dataInterval;
       let params = {};
@@ -164,7 +171,11 @@ const DashboardContent = ({ user, setUser }) => {
 
       setCounts(response.data);
     } catch (error) {
-      console.error("Error fetching counts", error);
+      console.error("[Dashboard:Error] Fetch failed:", {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        hasAuthHeader: !!error.config?.headers?.Authorization,
+      });
     }
   };
 

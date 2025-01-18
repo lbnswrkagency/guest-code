@@ -96,20 +96,13 @@ exports.verifyEmail = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    console.log("[Auth:Login] Full request details:", {
-      origin: req.headers.origin,
-      method: req.method,
-      cookies: req.cookies,
-      headers: {
-        ...req.headers,
-        authorization: req.headers.authorization ? "Present" : "Missing",
-      },
-    });
-
-    console.log("[Auth:Login] Credentials:", {
+    console.log("[Auth:Login] Processing login request:", {
       hasEmail: !!req.body.email,
       emailLength: req.body.email?.length,
-      hasPassword: !!req.body.password,
+      headers: {
+        auth: req.headers.authorization || "none",
+        contentType: req.headers["content-type"],
+      },
     });
 
     const { email, password } = req.body;
@@ -162,42 +155,17 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    console.log("[Auth:Login] Token generation:", {
+    console.log("[Auth:Login] Generated tokens:", {
       accessTokenLength: accessToken.length,
       refreshTokenLength: refreshToken.length,
-      tokenPayload: { userId: user._id, email: user.email },
+      userEmail: user.email,
     });
 
-    console.log("[Auth:Login] Setting cookie with full config:", {
-      token: refreshToken.substring(0, 20) + "...",
-      options: {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        domain:
-          process.env.NODE_ENV === "production" ? ".onrender.com" : "localhost",
-        path: "/",
-      },
+    console.log("[Auth:Login] Sending response with:", {
+      hasUser: true,
+      tokenStart: accessToken.substring(0, 20) + "...",
+      refreshTokenStart: refreshToken.substring(0, 20) + "...",
     });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
-
-    console.log("[Auth:Login] Setting cookie with options:", {
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : "localhost",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    });
-
-    console.log("[Auth:Login] Cookie set, sending response");
 
     res.json({
       user: {
@@ -209,15 +177,9 @@ exports.login = async (req, res) => {
         avatar: user.avatar,
       },
       token: accessToken,
+      refreshToken: refreshToken,
     });
   } catch (error) {
-    console.error("[Auth:Login] Detailed error:", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      requestOrigin: req.headers.origin,
-      path: req.path,
-    });
     res.status(500).json({
       message: "Server error during login",
       details: "Please try again later",
@@ -243,20 +205,8 @@ exports.getUserData = async (req, res) => {
 };
 
 exports.refreshAccessToken = async (req, res) => {
-  console.log("[Auth:Refresh] Full request details:", {
-    cookies: req.cookies,
-    hasRefreshToken: !!req.cookies.refreshToken,
-    tokenFragment: req.cookies.refreshToken
-      ? req.cookies.refreshToken.substring(0, 20) + "..."
-      : "Missing",
-    headers: {
-      ...req.headers,
-      authorization: req.headers.authorization ? "Present" : "Missing",
-    },
-  });
-
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.headers.authorization?.split(" ")[1];
 
     if (!refreshToken) {
       return res.status(401).json({ message: "No refresh token" });
@@ -282,16 +232,10 @@ exports.refreshAccessToken = async (req, res) => {
 
     res.json({ token: accessToken });
   } catch (error) {
-    console.error("[Auth:Refresh] Token verification failed:", {
-      error: error.message,
-      tokenPresent: !!req.cookies.refreshToken,
-      errorName: error.name,
-    });
     res.status(401).json({ message: "Invalid refresh token" });
   }
 };
 
 exports.logout = (req, res) => {
-  res.clearCookie("refreshToken");
   res.json({ success: true, message: "Logged out successfully" });
 };

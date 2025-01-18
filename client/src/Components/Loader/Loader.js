@@ -6,7 +6,6 @@ const Loader = () => {
     <div className="loader-container">
       <div className="loader">
         <div className="spinner"></div>
-        <p>Loading your dashboard...</p>
       </div>
     </div>
   );

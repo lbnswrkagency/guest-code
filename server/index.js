@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
 const moment = require("moment-timezone");
 const http = require("http");
 const path = require("path");
@@ -52,17 +51,6 @@ const app = express();
 const server = http.createServer(app);
 
 // CORS setup
-app.use((req, res, next) => {
-  console.log("[Server:CORS] Request details:", {
-    origin: req.headers.origin,
-    method: req.method,
-    path: req.path,
-    hasAuthHeader: !!req.headers.authorization,
-    cookies: Object.keys(req.cookies || {}),
-  });
-  next();
-});
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -74,10 +62,6 @@ app.use(
         "https://www.afrospiti.com",
         "https://guestcode-client.onrender.com",
       ];
-      console.log("[Server:CORS] Origin check:", {
-        requestOrigin: origin,
-        isAllowed: allowedOrigins.includes(origin),
-      });
       callback(null, allowedOrigins.includes(origin) ? origin : false);
     },
     credentials: true,
@@ -86,37 +70,12 @@ app.use(
   })
 );
 
-// Cookie settings
-const cookieSettings = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/",
-};
-
 // Middleware setup
 app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 
 // Make sure this comes after CORS
 app.use(cookieParser());
-
-// Session setup
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    },
-    name: "sessionId", // Change default cookie name for better security
-  })
-);
 
 // Route setup
 app.use("/api/auth", authRoutes);

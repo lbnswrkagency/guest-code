@@ -26,11 +26,25 @@ const Login = () => {
     });
 
     try {
+      console.log("[Login:Submit] Attempting login with:", {
+        emailLength: formData.email?.length,
+        hasPassword: !!formData.password,
+      });
+
       const response = await login(formData);
+      console.log("[Login:Submit] Login response:", {
+        hasUser: !!response.user,
+        hasToken: !!response.token,
+        hasRefreshToken: !!response.refreshToken,
+        tokenStart: response.token?.substring(0, 20) + "...",
+        refreshTokenStart: response.refreshToken?.substring(0, 20) + "...",
+      });
       toast.dismiss(loadingToast);
 
       if (response?.user) {
-        localStorage.setItem("token", response.user.token);
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("refreshToken", response.refreshToken);
+
         setUser(response.user);
 
         toast.success(

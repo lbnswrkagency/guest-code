@@ -145,6 +145,11 @@ export const AuthProvider = ({ children }) => {
   // Set up default axios headers
   useEffect(() => {
     const token = localStorage.getItem("token");
+    console.log("[Auth:Context] Initial token check:", {
+      hasToken: !!token,
+      tokenStart: token ? token.substring(0, 20) + "..." : "none",
+    });
+
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
@@ -152,57 +157,28 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log("[Auth:Client] Starting login request:", {
-        baseURL: axios.defaults.baseURL,
-        withCredentials: axios.defaults.withCredentials,
-        hasAuthHeader: !!axios.defaults.headers.common["Authorization"],
-      });
-
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
-        credentials,
-        { withCredentials: true }
+        credentials
       );
 
-      console.log("[Auth:Client] Login response:", {
-        hasUser: !!response.data.user,
-        hasToken: !!response.data.token,
-        tokenFragment: response.data.token
-          ? response.data.token.substring(0, 20) + "..."
-          : "Missing",
-      });
-
-      const { user, token } = response.data;
+      const { user, token, refreshToken } = response.data;
       localStorage.setItem("token", token);
+      localStorage.setItem("refreshToken", refreshToken);
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       setUser(user);
       navigate("/dashboard");
     } catch (error) {
-      console.error("[Auth:Client] Login error details:", {
-        status: error.response?.status,
-        message: error.response?.data?.message || error.message,
-        hasResponse: !!error.response,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          baseURL: error.config?.baseURL,
-          withCredentials: error.config?.withCredentials,
-        },
-      });
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/logout`,
-        {},
-        { withCredentials: true }
-      );
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/auth/logout`);
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       setUser(null);
       navigate("/login");
     } catch (error) {
@@ -212,19 +188,33 @@ export const AuthProvider = ({ children }) => {
 
   const getNewToken = async () => {
     try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        throw new Error("No refresh token found");
+      }
+
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
         {},
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        return response.data.token;
+        const newToken = response.data.token;
+        localStorage.setItem("token", newToken);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+        return newToken;
       }
     } catch (error) {
       console.error("[Auth] Token refresh error:", error.message);
-      logout();
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      setUser(null);
       throw error;
     }
   };
@@ -238,22 +228,6 @@ export const AuthProvider = ({ children }) => {
     logout,
     getNewToken,
   };
-
-  axios.defaults.withCredentials = true;
-
-  // Add this interceptor
-  axios.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
