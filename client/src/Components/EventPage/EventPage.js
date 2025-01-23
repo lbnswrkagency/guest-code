@@ -374,21 +374,14 @@ const EventPage = ({ passedEventId }) => {
                         />
                         <p className="djs-single-name">Hendricks</p>
                       </div> */}
+
                       <div className="djs-single">
                         <img
-                          src="./image/dimkay.jpg"
+                          src="./image/hendricks.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-siwngle-name">Lazaro (Piano)</p>
-                      </div>
-                      <div className="djs-single">
-                        <img
-                          src="./image/maro.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Dazedboi</p>
+                        <p className="djs-single-name">Hendricks</p>
                       </div>
                     </div>
                   </div>
@@ -400,7 +393,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 19 JAN 2025</p>
+                    <p>SUN 26 JAN 2025</p>
                   </div>
 
                   <img
@@ -490,7 +483,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 19.01.2025 · 23:00 H
+                Sunday · 26.01.2025 · 23:00 H
               </p>
 
               <div
@@ -533,7 +526,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 00:30 H
                   </p>
-                  <p>Studio 24 - Sunday - 19.01.2025</p>
+                  <p>Studio 24 - Sunday - 26.01.2025</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
