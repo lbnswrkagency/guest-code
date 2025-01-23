@@ -132,12 +132,12 @@ const DashboardHeader = ({
         <p className="headerDashboard-info-name">
           {user.firstName ? `${user.firstName}` : `@${user.username}`}
         </p>
-        {/* <button
+        <button
           className="headerDashboard-test-notification"
           onClick={createTestNotification}
         >
           Test Notification
-        </button> */}
+        </button>
       </div>
 
       <div className="headerDashboard-selection">

@@ -197,10 +197,7 @@ export const AuthProvider = ({ children }) => {
         `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${refreshToken}` },
         }
       );
 
@@ -211,7 +208,6 @@ export const AuthProvider = ({ children }) => {
         return newToken;
       }
     } catch (error) {
-      console.error("[Auth] Token refresh error:", error.message);
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);

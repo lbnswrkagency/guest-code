@@ -96,15 +96,6 @@ exports.verifyEmail = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    console.log("[Auth:Login] Processing login request:", {
-      hasEmail: !!req.body.email,
-      emailLength: req.body.email?.length,
-      headers: {
-        auth: req.headers.authorization || "none",
-        contentType: req.headers["content-type"],
-      },
-    });
-
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -154,18 +145,6 @@ exports.login = async (req, res) => {
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: "7d" }
     );
-
-    console.log("[Auth:Login] Generated tokens:", {
-      accessTokenLength: accessToken.length,
-      refreshTokenLength: refreshToken.length,
-      userEmail: user.email,
-    });
-
-    console.log("[Auth:Login] Sending response with:", {
-      hasUser: true,
-      tokenStart: accessToken.substring(0, 20) + "...",
-      refreshTokenStart: refreshToken.substring(0, 20) + "...",
-    });
 
     res.json({
       user: {

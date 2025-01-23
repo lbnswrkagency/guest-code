@@ -49,6 +49,24 @@
         border: 2px solid #151515;
       }
     }
+
+    .notification-count {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ffc807;
+      color: #151515;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 10px;
+      border: 2px solid #151515;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
   }
 
   .login-back-arrow {

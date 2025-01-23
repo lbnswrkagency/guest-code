@@ -7,8 +7,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import AuthContext from "../../contexts/AuthContext";
 import { useNotificationDot } from "../../hooks/useNotificationDot";
 
-const NotificationPanel = () => {
-  const [isOpen, setIsOpen] = useState(false);
+const NotificationPanel = ({ onClose }) => {
   const {
     notifications,
     unreadCount,
@@ -65,7 +64,7 @@ const NotificationPanel = () => {
   const handleClearAll = async () => {
     try {
       await clearAll();
-      setIsOpen(false);
+      onClose();
     } catch (error) {
       console.error("Error clearing notifications:", error);
     }
@@ -98,120 +97,91 @@ const NotificationPanel = () => {
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
-      setIsOpen(false);
+      onClose();
     }
   };
 
-  const handleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
   return (
-    <div className="notification-panel">
-      <button
-        className={`notification-panel-trigger ${
-          hasNotifications ? "has-notification" : ""
-        }`}
-        onClick={handleClick}
+    <>
+      <motion.div
+        className="notification-panel-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleOverlayClick}
+      />
+      <motion.div
+        className="notification-panel-content open"
+        initial={{
+          opacity: 0,
+          y: window.innerWidth <= 768 ? "100%" : -20,
+          scale: window.innerWidth <= 768 ? 1 : 0.95,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+        }}
+        exit={{
+          opacity: 0,
+          y: window.innerWidth <= 768 ? "100%" : -20,
+          scale: window.innerWidth <= 768 ? 1 : 0.95,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        <RiBellLine />
-        {unreadCount > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="notification-panel-badge"
-          >
-            {unreadCount}
-          </motion.span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              className="notification-panel-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleOverlayClick}
-            />
-            <motion.div
-              className={`notification-panel-content ${isOpen ? "open" : ""}`}
-              initial={{
-                opacity: 0,
-                y: window.innerWidth <= 768 ? "100%" : -20,
-                scale: window.innerWidth <= 768 ? 1 : 0.95,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                y: window.innerWidth <= 768 ? "100%" : -20,
-                scale: window.innerWidth <= 768 ? 1 : 0.95,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        <div className="notification-panel-header">
+          <h3>Notifications</h3>
+          {notifications.length > 0 && (
+            <button
+              className="notification-panel-clear"
+              onClick={handleClearAll}
             >
-              <div className="notification-panel-header">
-                <h3>Notifications</h3>
-                {notifications.length > 0 && (
+              Clear All
+            </button>
+          )}
+        </div>
+
+        <div className="notification-panel-list">
+          {notifications.length === 0 ? (
+            <div className="notification-panel-empty">
+              <p>No notifications yet</p>
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <motion.div
+                key={notification._id}
+                className={`notification-panel-item ${
+                  !notification.read ? "unread" : ""
+                }`}
+                layout
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+              >
+                <div className="notification-panel-item-icon">
+                  {getNotificationIcon(notification.type)}
+                </div>
+                <div className="notification-panel-item-content">
+                  <h4>{notification.title}</h4>
+                  <p>{notification.message}</p>
+                  <span className="notification-panel-item-time">
+                    {getTimeAgo(notification.createdAt)}
+                  </span>
+                </div>
+                {!notification.read && (
                   <button
-                    className="notification-panel-clear"
-                    onClick={handleClearAll}
+                    className="notification-panel-item-mark-read"
+                    onClick={() => handleMarkAsRead(notification._id)}
                   >
-                    Clear All
+                    <RiCheckLine />
                   </button>
                 )}
-              </div>
-
-              <div className="notification-panel-list">
-                {notifications.length === 0 ? (
-                  <div className="notification-panel-empty">
-                    <p>No notifications yet</p>
-                  </div>
-                ) : (
-                  notifications.map((notification) => (
-                    <motion.div
-                      key={notification._id}
-                      className={`notification-panel-item ${
-                        !notification.read ? "unread" : ""
-                      }`}
-                      layout
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                    >
-                      <div className="notification-panel-item-icon">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="notification-panel-item-content">
-                        <h4>{notification.title}</h4>
-                        <p>{notification.message}</p>
-                        <span className="notification-panel-item-time">
-                          {getTimeAgo(notification.createdAt)}
-                        </span>
-                      </div>
-                      {!notification.read && (
-                        <button
-                          className="notification-panel-item-mark-read"
-                          onClick={() => handleMarkAsRead(notification._id)}
-                        >
-                          <RiCheckLine />
-                        </button>
-                      )}
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </motion.div>
+    </>
   );
 };
 
