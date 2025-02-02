@@ -360,28 +360,56 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single">
                         <img
+                          src="./image/hendricks.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Hendricks (Bday)</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
                           src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hulk</p>
                       </div>
-                      {/* <div className="djs-single">
-                        <img
-                          src="./image/hendricks.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hendricks</p>
-                      </div> */}
 
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.png"
+                          src="./image/klou.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Klou</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/maro.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Maro</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/dimkay.png"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Dim Kay</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/jfyah.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">J Fyah</p>
                       </div>
                     </div>
                   </div>
