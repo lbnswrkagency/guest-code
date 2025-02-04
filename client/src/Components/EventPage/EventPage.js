@@ -360,15 +360,6 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hendricks (Bday)</p>
-                      </div>
-
-                      <div className="djs-single">
-                        <img
                           src="./image/hulk.jpg"
                           alt=""
                           className="djs-single-image"
@@ -378,29 +369,20 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single">
                         <img
-                          src="./image/klou.png"
+                          src="./image/hendricks.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Klou</p>
+                        <p className="djs-single-name">Hendricks</p>
                       </div>
 
                       <div className="djs-single">
                         <img
-                          src="./image/maro.png"
+                          src="./image/tokyo.png"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Maro</p>
-                      </div>
-
-                      <div className="djs-single">
-                        <img
-                          src="./image/dimkay.png"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Dim Kay</p>
+                        <p className="djs-single-name">Tokyo</p>
                       </div>
 
                       <div className="djs-single">
@@ -421,7 +403,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 02 FEB 2025</p>
+                    <p>SUN 09 FEB 2025</p>
                   </div>
 
                   <img
@@ -511,7 +493,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 02.02.2025 · 23:00 H
+                Sunday · 09.02.2025 · 23:00 H
               </p>
 
               <div
@@ -554,7 +536,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 00:30 H
                   </p>
-                  <p>Studio 24 - Sunday - 02.02.2025</p>
+                  <p>Studio 24 - Sunday - 09.02.2025</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
