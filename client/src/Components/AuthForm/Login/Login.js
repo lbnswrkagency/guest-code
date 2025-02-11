@@ -1,181 +1,152 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import AuthContext from "../../../contexts/AuthContext";
-import { login } from "./LoginFunction";
-import toast from "react-hot-toast";
+import { motion } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
 import "./Login.scss";
+import { login } from "./LoginFunction";
+import AuthContext from "../../../contexts/AuthContext";
+import Navigation from "../../Home/Navigation/Navigation";
 
-const Login = () => {
-  const navigate = useNavigate();
-  const { setUser } = useContext(AuthContext);
+function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    const loadingToast = toast.loading("Logging in...", {
-      style: {
-        background: "#333",
-        color: "#fff",
-      },
-    });
+    setIsLoading(true);
+    console.log("🚀 Login attempt started...", { email: formData.email });
 
     try {
-      console.log("[Login:Submit] Attempting login with:", {
-        emailLength: formData.email?.length,
-        hasPassword: !!formData.password,
-      });
-
+      console.log("📤 Sending login request to server...");
       const response = await login(formData);
-      console.log("[Login:Submit] Login response:", {
+      console.log("📥 Server response received:", {
+        success: response.success,
         hasUser: !!response.user,
         hasToken: !!response.token,
-        hasRefreshToken: !!response.refreshToken,
-        tokenStart: response.token?.substring(0, 20) + "...",
-        refreshTokenStart: response.refreshToken?.substring(0, 20) + "...",
       });
-      toast.dismiss(loadingToast);
 
-      if (response?.user) {
-        localStorage.setItem("token", response.token);
-        localStorage.setItem("refreshToken", response.refreshToken);
-
+      if (response.success) {
+        console.log("✅ Login successful, setting user in context...");
         setUser(response.user);
-
-        toast.success(
-          `Welcome back${
-            response.user.firstName ? `, ${response.user.firstName}` : ""
-          }! 👋`,
-          {
-            duration: 3000,
-            icon: "🎉",
-            style: {
-              background: "#333",
-              color: "#fff",
-            },
-          }
-        );
-
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1500);
+        toast.success("Welcome back!", { duration: 3000 });
+        console.log("🔄 Navigating to dashboard...");
+        navigate("/dashboard");
       }
     } catch (error) {
-      toast.dismiss(loadingToast);
-
-      // More specific error handling
-      const errorMessage = error.response?.data?.details;
-
-      switch (error.response?.status) {
-        case 400:
-          toast.error(errorMessage || "Please fill in all fields", {
-            duration: 3000,
-            icon: "⚠️",
-            style: {
-              background: "#333",
-              color: "#fff",
-            },
-          });
-          break;
-        case 401:
-          toast.error(errorMessage || "Invalid email or password", {
-            duration: 3000,
-            icon: "🔐",
-            style: {
-              background: "#333",
-              color: "#fff",
-            },
-          });
-          break;
-        case 403:
-          toast.error(errorMessage || "Please verify your email first", {
-            duration: 3000,
-            icon: "✉️",
-            style: {
-              background: "#333",
-              color: "#fff",
-            },
-          });
-          break;
-        default:
-          toast.error("Connection error. Please try again later.", {
-            duration: 3000,
-            icon: "❌",
-            style: {
-              background: "#333",
-              color: "#fff",
-            },
-          });
-      }
-      setLoading(false);
+      console.error("❌ Login error:", {
+        status: error.response?.status,
+        message: error.response?.data?.details || error.response?.data?.message,
+        error: error.message,
+      });
+      const errorMessage =
+        error.response?.data?.details ||
+        error.response?.data?.message ||
+        "Login failed. Please try again.";
+      toast.error(errorMessage, {
+        duration: 4000,
+        position: "top-center",
+      });
+    } finally {
+      console.log("🏁 Login attempt completed");
+      setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    // For now, just show a toast. We'll implement this functionality later
+    toast.info("Forgot password functionality coming soon!", {
+      duration: 4000,
+      position: "top-center",
+    });
   };
 
   return (
     <div className="login">
-      <div
-        className="login-back-arrow login-back-arrow-absolute"
-        onClick={() => navigate("/")}
+      <Navigation />
+      <Toaster />
+
+      <motion.div
+        className="login-container"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        <img src="/image/back-icon.svg" alt="Back" />
-      </div>
+        <motion.h1
+          className="login-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          Welcome Back
+        </motion.h1>
 
-      <img className="login-logo" src="/image/logo.svg" alt="Logo" />
-
-      <div className="login-container">
-        <h1 className="login-title">Member Area</h1>
-
-        <form className="login-form" onSubmit={handleSubmit}>
+        <motion.form
+          className="login-form"
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
           <div className="input-group">
             <input
-              className="login-input"
               type="text"
               name="email"
-              placeholder="Username or Email"
+              placeholder="Email or Username"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={handleChange}
               required
+              className="login-input"
             />
           </div>
 
           <div className="input-group">
             <input
-              className="login-input"
               type="password"
               name="password"
               placeholder="Password"
-              autoComplete="current-password"
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={handleChange}
               required
+              className="login-input"
             />
           </div>
 
-          <button
-            className={`login-submit ${loading ? "disabled" : "active"}`}
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+          <div className="forgot-password">
+            <span onClick={handleForgotPassword}>Forgot Password?</span>
+          </div>
 
-        <p className="login-register-link">
-          Not a member yet?{" "}
-          <span onClick={() => navigate("/register")}>Register here</span>
-        </p>
-      </div>
+          <motion.button
+            type="submit"
+            className={`login-submit ${isLoading ? "loading" : ""}`}
+            disabled={isLoading}
+            whileHover={!isLoading ? { scale: 1.02 } : {}}
+            whileTap={!isLoading ? { scale: 0.98 } : {}}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </motion.button>
+        </motion.form>
+
+        <motion.p
+          className="login-register-link"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+        >
+          Don't have an account?{" "}
+          <span onClick={() => navigate("/register")}>Sign up here</span>
+        </motion.p>
+      </motion.div>
     </div>
   );
-};
+}
 
 export default Login;

@@ -31,6 +31,7 @@ import GlobalChat from "../GlobalChat/GlobalChat";
 import { SocketProvider, useSocket } from "../../contexts/SocketContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import Loader from "../Loader/Loader";
+import DashboardFeed from "../DashboardFeed/DashboardFeed";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useContext(AuthContext);
@@ -362,12 +363,13 @@ const DashboardContent = ({ user, setUser }) => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-wrapper">
-        <Navigation
-          onBack={handleBack}
-          onMenuClick={() => setIsNavigationOpen(true)}
-        />
+      <Navigation
+        onBack={handleBack}
+        onMenuClick={() => setIsNavigationOpen(true)}
+        onLogout={handleLogout}
+      />
 
+      <div className="dashboard-content">
         <DashboardHeader
           user={user}
           isEditingAvatar={isEditingAvatar}
@@ -377,8 +379,6 @@ const DashboardContent = ({ user, setUser }) => {
           setUser={setUser}
           isOnline={isConnected}
         />
-
-        <DashboardStatus userCounts={userCounts} />
 
         <DashboardMenu
           user={user}
@@ -390,23 +390,16 @@ const DashboardContent = ({ user, setUser }) => {
           setShowTableSystem={setShowTableSystem}
           setShowGlobalChat={setShowGlobalChat}
           isOnline={isConnected}
-          onlineCount={onlineCount}
         />
-        <div className="dashboard-logout">
-          <button className="dashboard-logout-button" onClick={handleLogout}>
-            <img
-              src="/image/logout-icon.svg"
-              alt=""
-              className="dashboard-button-icon"
-            />
-          </button>
-          <p className="dashboard-button-title">Logout</p>
-        </div>
+
+        <DashboardFeed />
+
+        {/* <DashboardStatus userCounts={userCounts} /> */}
       </div>
 
       <Outlet />
 
-      <Footer />
+      {/* <Footer /> */}
 
       {showGlobalChat && (
         <GlobalChat

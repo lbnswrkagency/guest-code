@@ -1,101 +1,151 @@
 @import "../../_variables";
 
-.navigation {
-  border-radius: 0rem 0rem 0.9375rem 0.9375rem;
-  background: #151515;
-  box-shadow: 0px 4px 4px 0px rgba(104, 104, 104, 0.25);
-  height: 5.5rem;
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  justify-items: center;
-  align-items: center;
+.app-navigation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 0;
 
-  .icon {
-    font-size: 1.5rem;
-    color: rgba(255, 255, 255, 0.7);
-    transition: all 0.3s ease;
+  .nav-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-left {
+    .nav-brand {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+  }
+
+  .nav-right {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
 
   .nav-icon-wrapper {
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 200, 7, 0.1);
-      .icon {
-        color: #ffc807;
-        transform: scale(1.1);
-      }
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 200, 7, 0.3);
+    }
+
+    .icon {
+      font-size: 1.25rem;
+      color: rgba(255, 255, 255, 0.8);
     }
 
     &.has-notification {
-      position: relative;
-
-      &::after {
-        content: "";
+      .notification-dot {
         position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 8px;
-        height: 8px;
+        top: -2px;
+        right: -2px;
+        width: 10px;
+        height: 10px;
         background: #ffc807;
         border-radius: 50%;
-        border: 2px solid #151515;
+        border: 2px solid rgba(0, 0, 0, 0.85);
+      }
+
+      .notification-count {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ffc807;
+        color: #000;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 5px;
+        border-radius: 10px;
+        border: 2px solid rgba(0, 0, 0, 0.85);
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .app-navigation {
+    padding: 0.5rem 0;
+
+    .nav-content {
+      padding: 0 1rem;
+    }
+
+    .nav-left {
+      .nav-brand {
+        font-size: 1.25rem;
       }
     }
 
-    .notification-count {
-      position: absolute;
-      top: -5px;
-      right: -5px;
-      background: #ffc807;
-      color: #151515;
-      font-size: 0.75rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 10px;
-      border: 2px solid #151515;
-      min-width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
+    .nav-right {
+      gap: 0.35rem;
     }
-  }
 
-  .login-back-arrow {
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
+    .nav-icon-wrapper {
+      width: 2.25rem;
+      height: 2.25rem;
 
-    &:hover {
-      background: rgba(255, 200, 7, 0.1);
       .icon {
-        color: #ffc807;
-        transform: scale(1.1);
+        font-size: 1.1rem;
       }
     }
   }
+}
 
-  &-title {
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
-    font-size: 1rem;
-    font-style: normal;
-    font-weight: 700;
-    line-height: normal;
-    letter-spacing: 0.06rem;
-    text-transform: uppercase;
-    font-family: Poppins;
+@media (max-width: 480px) {
+  .app-navigation {
+    .nav-content {
+      padding: 0 0.75rem;
+    }
+
+    .nav-left {
+      .nav-brand {
+        font-size: 1.1rem;
+      }
+    }
+
+    .nav-right {
+      gap: 0.25rem;
+    }
+
+    .nav-icon-wrapper {
+      width: 2rem;
+      height: 2rem;
+
+      .icon {
+        font-size: 1rem;
+      }
+    }
   }
 }

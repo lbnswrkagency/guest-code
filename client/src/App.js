@@ -26,8 +26,6 @@ import Brands from "./Components/Brands/Brands";
 import Locations from "./Components/Locations/Locations";
 
 function App() {
-  const eventId = "31vp88ph";
-
   return (
     <Router>
       <AuthProvider>
@@ -36,7 +34,7 @@ function App() {
             <Toaster position="top-center" />
 
             <Routes>
-              <Route path="/" element={<EventPage passedEventId={eventId} />} />
+              <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard/*" element={<Dashboard />}>

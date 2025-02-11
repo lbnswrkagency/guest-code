@@ -11,9 +11,14 @@ exports.register = async (req, res) => {
     let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Username or email already exists." });
+      return res.status(400).json({
+        success: false,
+        message: "Registration failed",
+        details:
+          user.email === email
+            ? "This email is already registered"
+            : "This username is already taken",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -26,9 +31,6 @@ exports.register = async (req, res) => {
       email,
       birthday,
       password: hashedPassword,
-      events: ["654d4bf7b3cceeb4f02c13b5"], // Afro Spiti event ID
-      isPromoter: true,
-      friendsCodeLimit: 2,
     });
 
     await user.save();
@@ -41,15 +43,15 @@ exports.register = async (req, res) => {
 
     res.json({
       success: true,
-      message:
-        "User registered successfully. Please check your email for verification.",
+      message: "Registration successful",
+      details: "Please check your email for verification.",
     });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
       success: false,
-      message: "Registration failed. Please try again later.",
-      error: error.message,
+      message: "Registration failed",
+      details: "An unexpected error occurred. Please try again later.",
     });
   }
 };
@@ -60,51 +62,51 @@ exports.verifyEmail = async (req, res) => {
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Verification failed",
+        details: "User not found.",
+      });
     }
 
     user.isVerified = true;
     await user.save();
 
-    const payload = {
-      _id: user._id,
-      email: user.email,
-      username: user.username,
-    };
-
-    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1h",
-    });
-
     res.json({
       success: true,
-      message: "Email verified successfully.",
-      accessToken,
-      userId: user._id,
-      expiresIn: 3600,
+      message: "Email verified successfully",
+      details: "You can now log in to your account.",
     });
   } catch (error) {
     console.error("Email verification error:", error);
     res.status(500).json({
       success: false,
-      message: "Invalid token or internal server error.",
+      message: "Verification failed",
+      details: "Invalid or expired verification link.",
     });
   }
 };
 
 exports.login = async (req, res) => {
+  console.log("🔐 Login request received", {
+    email: req.body.email,
+    hasPassword: !!req.body.password,
+  });
+
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.log("❌ Missing credentials");
       return res.status(400).json({
-        message: "Missing credentials",
-        details: "Email and password are required",
+        success: false,
+        message: "Login failed",
+        details: "Email/username and password are required",
       });
     }
 
+    console.log("🔍 Searching for user...");
+    // Try to find user by email or username
     const user = await User.findOne({
       $or: [
         { email: new RegExp(`^${email.trim()}$`, "i") },
@@ -113,27 +115,36 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
+      console.log("❌ User not found");
       return res.status(401).json({
-        message: "Invalid credentials",
-        details: "No account found with this email or username",
+        success: false,
+        message: "Login failed",
+        details: "Invalid email/username or password",
       });
     }
 
+    console.log("👤 User found, checking verification status...");
     if (!user.isVerified) {
+      console.log("❌ User not verified");
       return res.status(403).json({
-        message: "Email not verified",
-        details: "Please check your email for verification link",
+        success: false,
+        message: "Login failed",
+        details: "Please verify your email before logging in",
       });
     }
 
+    console.log("🔑 Checking password...");
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("❌ Invalid password");
       return res.status(401).json({
-        message: "Invalid credentials",
-        details: "Incorrect password",
+        success: false,
+        message: "Login failed",
+        details: "Invalid email/username or password",
       });
     }
 
+    console.log("✅ Password valid, generating tokens...");
     const accessToken = jwt.sign(
       { _id: user._id, email: user.email, username: user.username },
       process.env.JWT_ACCESS_SECRET,
@@ -146,7 +157,9 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    console.log("🎉 Login successful, sending response...");
     res.json({
+      success: true,
       user: {
         _id: user._id,
         email: user.email,
@@ -159,9 +172,11 @@ exports.login = async (req, res) => {
       refreshToken: refreshToken,
     });
   } catch (error) {
+    console.error("❌ Server error during login:", error);
     res.status(500).json({
-      message: "Server error during login",
-      details: "Please try again later",
+      success: false,
+      message: "Login failed",
+      details: "An unexpected error occurred. Please try again later.",
     });
   }
 };

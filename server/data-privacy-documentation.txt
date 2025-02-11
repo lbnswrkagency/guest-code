@@ -1,0 +1,171 @@
+Datenschutzdokumentation - Afro Spiti Event Management System
+Stand: Februar 2024
+
+1. ÜBERBLICK DER DATENVERARBEITUNG
+
+1.1 Arten der verarbeiteten Daten:
+- Personenbezogene Daten (Name, E-Mail-Adresse)
+- Authentifizierungsdaten (gehashte Passwörter)
+- Event-bezogene Daten (Veranstaltungsinformationen, Tickets, QR-Codes)
+- Nutzungsdaten (Teilnahme an Events, Check-in-Status)
+- Zahlungsinformationen (für zukünftiges Ticketing-System)
+- Telefonnummern (optional für Guest-Code-Generierung)
+- Einlass-Statistiken und Check-in-Daten
+- Unsubscribe-Listen für E-Mail-Marketing
+
+1.2 Speicherort und Sicherheit:
+- Primäre Datenspeicherung: MongoDB Atlas (Cloud-basiert)
+- Verschlüsselte Datenübertragung via HTTPS
+- Passwörter werden mit modernen Hashing-Algorithmen gesichert
+- AWS S3 für Medien-Assets (Logos, Bilder)
+- Temporäre Dateispeicherung für PDF-Generierung
+- Brevo (ehemals Sendinblue) für E-Mail-Versand
+
+2. DETAILLIERTE DATENERFASSUNG
+
+2.1 Benutzerkonten:
+- E-Mail-Adresse (für Authentifizierung und Kommunikation)
+- Name (für Personalisierung)
+- Gehashtes Passwort
+- Erstellungsdatum
+- Verifizierungsstatus
+- Benutzerrolle (Admin, Event-Organisator, Gast)
+- Letzte Anmeldezeit
+- IP-Adresse bei Registrierung
+
+2.2 Event-Daten:
+- Veranstaltungsinformationen (Titel, Datum, Ort)
+- Teilnehmerlisten
+- QR-Codes für Einlass
+- Gästelisten und Einlass-Statistiken
+- Event-spezifische Bedingungen (z.B. Einlasszeiten)
+- Line-Up Informationen
+- Veranstaltungsort-Details
+
+2.3 Code-Systeme:
+- Friends Codes (personalisierte Einladungen)
+- Backstage Codes (VIP-Zugang)
+- Table Codes (Tischreservierungen)
+- Guest Codes (allgemeiner Einlass)
+- Status und Nutzungshistorie der Codes
+
+2.4 Ticket-System (geplant):
+- Tickettypen und Preise
+- Käuferinformationen
+- Transaktionshistorie
+- Zahlungsdaten (werden nicht gespeichert, nur bei Payment-Provider)
+- Stornierungen und Rückerstattungen
+
+3. DATENVERARBEITUNGSPROZESSE
+
+3.1 Registrierung und Authentifizierung:
+- E-Mail-Verifikation
+- Passwort-Hashing mit sicheren Algorithmen
+- JWT-basierte Authentifizierung
+- Session-Management
+- IP-basierte Zugriffskontrolle
+- Automatische Sperrung nach fehlgeschlagenen Anmeldeversuchen
+
+3.2 Event-Management:
+- Erstellung und Verwaltung von Events
+- Generierung von QR-Codes
+- Check-in-System
+- Gästelisten-Management
+- Automatisierte PDF-Generierung
+- Statistik und Reporting
+
+3.3 E-Mail-Kommunikation:
+- Versand von Verifizierungs-E-Mails
+- Event-Einladungen
+- QR-Code-Versand
+- System-Benachrichtigungen
+- Opt-out Möglichkeit
+- Unsubscribe-Tracking
+
+3.4 Dateiverarbeitung:
+- Temporäre Speicherung von generierten PDFs
+- Automatische Löschung nach Versand
+- Bildkomprimierung für Upload
+- Virus-Scan für Uploads
+
+4. DATENSCHUTZMASSNAHMEN
+
+4.1 Technische Maßnahmen:
+- SSL/TLS-Verschlüsselung
+- Sichere Passwort-Hashing-Verfahren
+- Zugriffskontrollen und Berechtigungssystem
+- Regelmäßige Sicherheits-Updates
+- Rate-Limiting für API-Anfragen
+
+4.2 Organisatorische Maßnahmen:
+- Zugriffsbeschränkungen für Administratoren
+- Logging von sicherheitsrelevanten Aktivitäten
+- Regelmäßige Überprüfung der Zugriffsrechte
+- Dokumentation von Datenverarbeitungsprozessen
+
+5. DATENLÖSCHUNG UND AUFBEWAHRUNG
+
+5.1 Aktive Daten:
+- Benutzerkonten bleiben aktiv bis zur Löschung
+- Event-Daten werden nach dem Event archiviert
+- QR-Codes werden nach Verwendung deaktiviert
+
+5.2 Aufbewahrungsfristen:
+- Benutzerkonten: Bis zur Löschung durch Nutzer
+- Event-Daten: 6 Monate nach Veranstaltung
+- Zahlungsdaten: Gemäß gesetzlicher Aufbewahrungsfristen
+- Log-Daten: 30 Tage
+
+6. ZUKÜNFTIGE ENTWICKLUNGEN
+
+6.1 Geplantes Ticketing-System:
+- Integration von Zahlungsdienstleistern
+- Sichere Speicherung von Transaktionsdaten
+- Automatisierte Ticket-Generierung
+- Rückerstattungsprozesse
+
+6.2 Erforderliche zusätzliche Maßnahmen:
+- PCI-DSS Compliance für Zahlungsverarbeitung
+- Erweiterte Verschlüsselung für Finanzdaten
+- Audit-Logging für Transaktionen
+- Erweitertes Backup-System
+
+7. EMPFEHLUNGEN FÜR VERBESSERUNGEN
+
+7.1 Kurzfristig:
+- Implementierung von 2-Faktor-Authentifizierung
+- Erweiterte Protokollierung von Systemzugriffen
+- Regelmäßige Sicherheits-Audits
+- Automatisierte Backup-Validierung
+
+7.2 Langfristig:
+- ISO 27001 Zertifizierung
+- Implementierung eines SIEM-Systems
+- Erweitertes Monitoring
+- Regelmäßige Penetrationstests
+
+8. DATENSCHUTZ-FOLGENABSCHÄTZUNG
+
+8.1 Risikobewertung:
+- Unbefugter Zugriff auf Benutzerdaten
+- Manipulation von Event-Daten
+- Missbrauch von QR-Codes
+- Datenverlust
+
+8.2 Schutzmaßnahmen:
+- Regelmäßige Sicherheitsüberprüfungen
+- Verschlüsselung sensibler Daten
+- Zugriffskontrolle und Authentifizierung
+- Backup-Strategien
+
+9. KONTAKT UND VERANTWORTLICHKEITEN
+
+Technischer Ansprechpartner:
+[Name des technischen Verantwortlichen]
+E-Mail: [Kontakt-E-Mail]
+
+Datenschutzbeauftragter:
+[Name des Datenschutzbeauftragten]
+E-Mail: [Datenschutz-E-Mail]
+
+Diese Dokumentation wird regelmäßig aktualisiert und erweitert, insbesondere im Hinblick auf die geplante Einführung des Ticketing-Systems. 

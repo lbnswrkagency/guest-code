@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./BrandForm.scss";
+import ImageUploader from "../../utils/ImageUploader";
 import {
   RiCloseLine,
   RiUpload2Line,
@@ -17,6 +18,8 @@ import {
   RiMailLine,
   RiPhoneLine,
   RiMapPinLine,
+  RiArrowDownSLine,
+  RiAddLine,
 } from "react-icons/ri";
 
 const BrandForm = ({ brand, onClose, onSave }) => {
@@ -41,20 +44,32 @@ const BrandForm = ({ brand, onClose, onSave }) => {
         spotify: "",
         soundcloud: "",
         linkedin: "",
-        website: "",
-        whatsapp: "",
         telegram: "",
       },
       contact: {
         email: "",
         phone: "",
         address: "",
+        website: "",
+        whatsapp: "",
       },
     }
   );
 
+  const [logoFile, setLogoFile] = useState(null);
+  const [coverFile, setCoverFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(brand?.logo || null);
   const [coverPreview, setCoverPreview] = useState(brand?.coverImage || null);
+  const [showAllSocial, setShowAllSocial] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  // Validate form
+  React.useEffect(() => {
+    const isValid =
+      formData.name && formData.username && (logoPreview || brand?.logo);
+    setIsFormValid(isValid);
+  }, [formData.name, formData.username, logoPreview, brand?.logo]);
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
@@ -63,19 +78,49 @@ const BrandForm = ({ brand, onClose, onSave }) => {
       reader.onloadend = () => {
         if (type === "logo") {
           setLogoPreview(reader.result);
-          setFormData((prev) => ({ ...prev, logo: file }));
+          setLogoFile(file);
         } else {
           setCoverPreview(reader.result);
-          setFormData((prev) => ({ ...prev, coverImage: file }));
+          setCoverFile(file);
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    if (!isFormValid) return;
+
+    setIsUploading(true);
+    try {
+      let updatedFormData = { ...formData };
+
+      // Upload logo if changed
+      if (logoFile) {
+        const logoUrl = await ImageUploader.upload(
+          logoFile,
+          ImageUploader.folders.BRAND_LOGOS
+        );
+        updatedFormData.logo = logoUrl;
+      }
+
+      // Upload cover if changed
+      if (coverFile) {
+        const coverUrl = await ImageUploader.upload(
+          coverFile,
+          ImageUploader.folders.BRAND_COVERS
+        );
+        updatedFormData.coverImage = coverUrl;
+      }
+
+      onSave(updatedFormData);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      // Handle error (show notification, etc.)
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const socialInputs = [
@@ -83,59 +128,71 @@ const BrandForm = ({ brand, onClose, onSave }) => {
       name: "instagram",
       icon: <RiInstagramLine />,
       prefix: "instagram.com/",
+      placeholder: "username",
+      priority: 1,
     },
     {
       name: "tiktok",
       icon: <RiTiktokLine />,
       prefix: "tiktok.com/@",
+      placeholder: "username",
+      priority: 2,
     },
     {
       name: "facebook",
       icon: <RiFacebookBoxLine />,
       prefix: "facebook.com/",
+      placeholder: "username or page name",
+      priority: 3,
     },
     {
       name: "twitter",
       icon: <RiTwitterXLine />,
       prefix: "twitter.com/",
+      placeholder: "username",
+      priority: 4,
     },
     {
       name: "youtube",
       icon: <RiYoutubeLine />,
       prefix: "youtube.com/@",
+      placeholder: "channel name",
+      priority: 5,
     },
     {
       name: "spotify",
       icon: <RiSpotifyLine />,
       prefix: "open.spotify.com/artist/",
+      placeholder: "artist name",
+      priority: 6,
     },
     {
       name: "soundcloud",
       icon: <RiSoundcloudLine />,
       prefix: "soundcloud.com/",
+      placeholder: "profile name",
+      priority: 7,
     },
     {
       name: "linkedin",
       icon: <RiLinkedinBoxLine />,
       prefix: "linkedin.com/company/",
-    },
-    {
-      name: "website",
-      icon: <RiGlobalLine />,
-      placeholder: "Website URL",
-    },
-    {
-      name: "whatsapp",
-      icon: <RiWhatsappLine />,
-      prefix: "+",
-      placeholder: "Phone Number",
+      placeholder: "company name",
+      priority: 8,
     },
     {
       name: "telegram",
       icon: <RiTelegramLine />,
       prefix: "t.me/",
+      placeholder: "username",
+      priority: 9,
     },
   ];
+
+  // Sort social inputs by priority and filter based on showAllSocial
+  const visibleSocialInputs = socialInputs
+    .sort((a, b) => a.priority - b.priority)
+    .filter((_, index) => showAllSocial || index < 5);
 
   return (
     <div className="brand-form-overlay">
@@ -159,23 +216,33 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                 onChange={(e) => handleFileChange(e, "cover")}
                 accept="image/*"
                 id="cover-upload"
+                disabled={isUploading}
               />
               <label htmlFor="cover-upload">
-                <RiUpload2Line />
-                <span>Upload Cover Image</span>
+                {isUploading ? (
+                  <span className="uploading">Uploading...</span>
+                ) : (
+                  <>
+                    <RiUpload2Line />
+                    <span>Upload Cover Image</span>
+                  </>
+                )}
               </label>
             </div>
 
-            <div className="logo-upload">
+            <div className="logo-upload required">
               <input
                 type="file"
                 onChange={(e) => handleFileChange(e, "logo")}
                 accept="image/*"
                 id="logo-upload"
+                disabled={isUploading}
               />
               <label htmlFor="logo-upload">
                 {logoPreview ? (
                   <img src={logoPreview} alt="logo preview" />
+                ) : isUploading ? (
+                  <span className="uploading">Uploading...</span>
                 ) : (
                   <>
                     <RiUpload2Line />
@@ -187,25 +254,37 @@ const BrandForm = ({ brand, onClose, onSave }) => {
           </div>
 
           <div className="form-fields">
-            <input
-              type="text"
-              placeholder="Brand Name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
-              required
-            />
+            <div className="input-group required">
+              <input
+                type="text"
+                placeholder="Brand Name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                required
+              />
+            </div>
 
-            <input
-              type="text"
-              placeholder="Username"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, username: e.target.value }))
-              }
-              required
-            />
+            <div className="input-group username-group required">
+              <div className="username-wrapper">
+                <span className="username-prefix">@</span>
+                <input
+                  className="username-input"
+                  type="text"
+                  placeholder="Choose your username"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      username: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <p className="input-hint">This will be your unique identifier</p>
+            </div>
 
             <textarea
               placeholder="Description"
@@ -218,38 +297,63 @@ const BrandForm = ({ brand, onClose, onSave }) => {
               }
             />
 
-            <div className="form-section">
+            <div className="form-section social-section">
               <h3>Social Media</h3>
-              <div className="social-links">
-                {socialInputs.map((social) => (
-                  <div key={social.name} className="social-input-wrapper">
-                    {social.icon}
-                    {social.prefix && (
+              <div className="social-inputs">
+                {visibleSocialInputs.map((social) => (
+                  <div key={social.name} className="social-input-group">
+                    <div className="input-wrapper">
+                      <div className="social-icon">{social.icon}</div>
                       <span className="social-prefix">{social.prefix}</span>
-                    )}
-                    <input
-                      type="text"
-                      placeholder={social.placeholder}
-                      value={formData.social[social.name]}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          social: {
-                            ...prev.social,
-                            [social.name]: e.target.value,
-                          },
-                        }))
-                      }
-                    />
+                      <input
+                        type="text"
+                        placeholder={social.placeholder}
+                        value={formData.social[social.name]}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            social: {
+                              ...prev.social,
+                              [social.name]: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
+
+              {socialInputs.length > 5 && (
+                <button
+                  type="button"
+                  className={`show-more ${showAllSocial ? "expanded" : ""}`}
+                  onClick={() => setShowAllSocial(!showAllSocial)}
+                >
+                  {showAllSocial ? "Show Less" : "Show More"}
+                  <RiArrowDownSLine />
+                </button>
+              )}
             </div>
 
             <div className="form-section">
               <h3>Contact Information</h3>
               <div className="contact-info">
-                <div className="contact-input-wrapper">
+                <div className="input-wrapper">
+                  <RiGlobalLine />
+                  <input
+                    type="url"
+                    placeholder="Website URL"
+                    value={formData.contact.website}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        contact: { ...prev.contact, website: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="input-wrapper">
                   <RiMailLine />
                   <input
                     type="email"
@@ -263,7 +367,7 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                     }
                   />
                 </div>
-                <div className="contact-input-wrapper">
+                <div className="input-wrapper">
                   <RiPhoneLine />
                   <input
                     type="tel"
@@ -277,7 +381,21 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                     }
                   />
                 </div>
-                <div className="contact-input-wrapper">
+                <div className="input-wrapper">
+                  <RiWhatsappLine />
+                  <input
+                    type="tel"
+                    placeholder="WhatsApp"
+                    value={formData.contact.whatsapp}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        contact: { ...prev.contact, whatsapp: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="input-wrapper">
                   <RiMapPinLine />
                   <input
                     type="text"
@@ -294,9 +412,19 @@ const BrandForm = ({ brand, onClose, onSave }) => {
               </div>
             </div>
 
-            <button type="submit" className="submit-button">
-              {brand ? "Save Changes" : "Create Brand"}
-            </button>
+            <div className="form-actions">
+              <button
+                type="submit"
+                className={`save-button ${!isFormValid ? "disabled" : ""}`}
+                disabled={!isFormValid || isUploading}
+              >
+                {isUploading
+                  ? "Uploading..."
+                  : brand
+                  ? "Save Changes"
+                  : "Create Brand"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

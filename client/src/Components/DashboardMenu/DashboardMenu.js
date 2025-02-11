@@ -1,6 +1,15 @@
 // DashboardMenu.js
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  RiToolsFill,
+  RiBarChartFill,
+  RiQrCodeFill,
+  RiVipCrownFill,
+  RiGroupFill,
+  RiTableFill,
+} from "react-icons/ri";
 import "./DashboardMenu.scss";
 
 const DashboardMenu = ({
@@ -13,121 +22,119 @@ const DashboardMenu = ({
   setShowGlobalChat,
   isOnline, // Add this prop
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
+  const handleClickOutside = (e) => {
+    if (!e.target.closest(".menuDashboard")) {
+      setIsOpen(false);
+    }
+  };
+
+  React.useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
   return (
-    <div className="menuDashboard">
-      {user.isDeveloper && (
-        <div className="menuDashboard-button">
-          <button onClick={() => navigate("/events")}>
-            <img
-              src="/image/event-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Events</p>
-        </div>
-      )}
+    <div className={`menuDashboard ${isOpen ? "open" : ""}`}>
+      <motion.button
+        className="menu-trigger"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <RiToolsFill className="trigger-icon" />
+      </motion.button>
 
-      {user.isAdmin && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setShowStatistic(true)}>
-            <img
-              src="/image/statistic-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Statistic</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="menu-items"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="menu-grid">
+              {user.isDeveloper && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/events")}
+                >
+                  <RiVipCrownFill />
+                  <span>Events</span>
+                </motion.div>
+              )}
 
-      {(user.isAdmin || user.isBackstage) && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setCodeType("Backstage")}>
-            <img
-              src="/image/backstage-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Backstage Code</p>
-        </div>
-      )}
+              {user.isAdmin && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowStatistic(true)}
+                >
+                  <RiBarChartFill />
+                  <span>Stats</span>
+                </motion.div>
+              )}
 
-      {user.isPromoter && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setCodeType("Friends")}>
-            <img
-              src="/image/friends-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Friends Code</p>
-        </div>
-      )}
+              {(user.isAdmin || user.isBackstage) && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCodeType("Backstage")}
+                >
+                  <RiQrCodeFill />
+                  <span>Backstage</span>
+                </motion.div>
+              )}
 
-      {user.isStaff && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setCodeType("Table")}>
-            <img
-              src="/image/table-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Table Code</p>
-        </div>
-      )}
+              {user.isPromoter && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCodeType("Friends")}
+                >
+                  <RiGroupFill />
+                  <span>Friends</span>
+                </motion.div>
+              )}
 
-      {/* 
-      {user.isAdmin && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setShowDropFiles(true)}>
-            <img
-              src="/image/dropped-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Dropped Files</p>
-        </div>
-      )} */}
+              {user.isStaff && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCodeType("Table")}
+                >
+                  <RiTableFill />
+                  <span>Tables</span>
+                </motion.div>
+              )}
 
-      {user.isScanner && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setShowScanner(true)}>
-            <img
-              src="/image/scanner-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Scanner</p>
-        </div>
-      )}
-
-      {/* {user.isSpitixBattle && (
-        <div className="menuDashboard-button">
-          <button onClick={() => setShowSpitixBattle(true)}>
-            <img
-              src="/image/statistic-icon.svg"
-              alt=""
-              className="menuDashboard-button-icon"
-            />
-          </button>
-          <p className="menuDashboard-button-title">Spitix Battle</p>
-        </div>
-      )} */}
-
-      {/* <div className="menuDashboard-button">
-        <button onClick={() => setShowGlobalChat(true)}>
-          <img src="/image/chat-icon.svg" alt="Chat" />
-        </button>
-        <p className="menuDashboard-button-title">Global Chat</p>
-      </div> */}
+              {user.isScanner && (
+                <motion.div
+                  className="menu-item"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowScanner(true)}
+                >
+                  <RiQrCodeFill />
+                  <span>Scanner</span>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

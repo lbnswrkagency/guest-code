@@ -32,6 +32,7 @@ const messageRoutes = require("./routes/messageRoutes");
 const brandRoutes = require("./routes/api/brandRoutes");
 const locationRoutes = require("./routes/api/locationRoutes");
 const notificationRoutes = require("./routes/api/notificationRoutes");
+const uploadRoutes = require("./routes/api/uploadRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -98,6 +99,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/brands", brandRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // MongoDB connection
 mongoose

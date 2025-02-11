@@ -2,15 +2,35 @@ import axios from "axios";
 
 // Keep only one interceptor (move it to axiosConfig.js)
 
-export const login = async (credentials) => {
+export const login = async (formData) => {
+  console.log("🔄 LoginFunction: Starting login request...");
   try {
     const response = await axios.post(
       `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
-      credentials,
-      { withCredentials: false }
+      formData
     );
-    return response.data;
+
+    console.log("✅ LoginFunction: Received successful response", {
+      hasToken: !!response.data.token,
+      hasUser: !!response.data.user,
+    });
+
+    // Store the tokens in localStorage
+    localStorage.setItem("token", response.data.token);
+    localStorage.setItem("refreshToken", response.data.refreshToken);
+
+    console.log("💾 LoginFunction: Tokens stored in localStorage");
+    return {
+      success: true,
+      user: response.data.user,
+      token: response.data.token,
+    };
   } catch (error) {
+    console.error("❌ LoginFunction: Error during login", {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      details: error.response?.data?.details,
+    });
     throw error;
   }
 };
