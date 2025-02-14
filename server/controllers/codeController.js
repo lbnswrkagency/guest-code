@@ -4,6 +4,7 @@ const TableCode = require("../models/TableCode"); // Assuming you've created a T
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
 const path = require("path");
+const fs = require("fs").promises;
 
 const qrOption = {
   margin: 1,
@@ -12,6 +13,14 @@ const qrOption = {
     dark: "#000000", // Black dots
     light: "#ffffff", // White background
   },
+};
+
+const getLogoBase64 = async () => {
+  const logoPath = path.join(__dirname, "../utils/logo_w.svg");
+  const logoData = await fs.readFile(logoPath, "utf8");
+  return `data:image/svg+xml;base64,${Buffer.from(logoData).toString(
+    "base64"
+  )}`;
 };
 
 const addCode = async (req, res) => {
@@ -309,8 +318,11 @@ const generateCodeImage = async (req, res) => {
       return res.status(404).send("Code not found");
     }
 
-    // Generate QR code
-    const bufferImage = await QRCode.toDataURL(code._id.toString(), qrOption);
+    // Generate QR code and get logo
+    const [bufferImage, logoBase64] = await Promise.all([
+      QRCode.toDataURL(code._id.toString(), qrOption),
+      getLogoBase64(),
+    ]);
 
     let htmlTemplate;
     if (type === "friends") {
@@ -321,7 +333,7 @@ const generateCodeImage = async (req, res) => {
           <body
           style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
           <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Friends Code</h1>
-          <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
+          <img src="${logoBase64}" style="position: absolute; top: 2rem; right: 2.313rem; width: 8rem;">
           <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: #FAE28C; border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
           
            <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem;">Afro Spiti</h3>   
@@ -347,11 +359,11 @@ const generateCodeImage = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>                 
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Deeze (Cyprus)</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Baghdad</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
-                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">Deeze (Cyprus)</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">Baghdad</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">Hulk</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">Hendricks</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #000; line-height: 1.25rem;">J Fyah</p>
                 </div>
                 
               </div>
@@ -411,7 +423,7 @@ const generateCodeImage = async (req, res) => {
           <body
           style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
           <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Backstage Code</h1>
-          <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
+          <img src="${logoBase64}" style="position: absolute; top: 1rem; right: 0rem; width: 9.5rem;">
           <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: rgb(43, 43, 43); border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
           
            <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: #A6965D;">Afro Spiti</h3>   
@@ -501,7 +513,7 @@ const generateCodeImage = async (req, res) => {
       <body
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
       <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Table Code</h1>
-      <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
+      <img src="${logoBase64}" style="position: absolute; top: 1rem; right: 0rem; width: 9.5rem;">
       <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: #313D4B; border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
       
        <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: #A6965D;">Afro Spiti</h3>   

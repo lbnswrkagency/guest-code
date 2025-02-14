@@ -72,11 +72,7 @@ const DropFiles = ({ onClose, showDashboard = true }) => {
         <img src="/image/back-icon.svg" alt="" />
       </div>
 
-      <img
-        className="dropfiles-logo"
-        src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt=""
-      />
+      <img className="dropfiles-logo" src="public/limage/logo.svg" alt="" />
 
       <p className="dropfiles-text">Drop your Spiti Memories</p>
       <div className="dropfiles-upload">

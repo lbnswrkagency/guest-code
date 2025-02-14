@@ -171,12 +171,10 @@ body {
     width: 80%;
   }
   &-logo {
-    width: 5rem;
+    width: 10rem;
 
     animation: 3s ease-out 0s 1 LogoRotate;
     justify-self: center;
-
-    margin-top: 1.88rem;
   }
 
   &-sub {
@@ -401,7 +399,7 @@ body {
   // Counter styling
   &-count {
     text-align: center;
-
+    margin-top: -0.75rem;
     h4 {
       font-size: 0.875rem;
       color: rgba(255, 255, 255, 0.7);

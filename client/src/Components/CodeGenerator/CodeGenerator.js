@@ -164,11 +164,7 @@ function CodeGenerator({
         <Navigation onBack={onClose} />
         <h1 className="code-title">{`${type} Code`}</h1>
 
-        <img
-          className="code-logo"
-          src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-          alt="Logo"
-        />
+        <img className="code-logo" src="/image/logo_w.svg" alt="Logo" />
 
         <div className="code-count">
           <h4>

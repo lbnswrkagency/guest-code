@@ -73,11 +73,7 @@ function BackstageCode({ user, onClose, weeklyBackstageCount, refreshCounts }) {
       <div className="login-back-arrow" onClick={onClose}>
         ← Back
       </div>
-      <img
-        className="backstagecode-logo"
-        src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt=""
-      />
+      <img className="backstagecode-logo" src="/image/logo_w.svg" alt="" />
       <h1 className="backstagecode-title">Invite your Friends Backstage!</h1>
       <p className="backstagecode-description">
         with this Backstage Code you get free entrance all night and Backstage

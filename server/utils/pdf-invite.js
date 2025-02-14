@@ -242,7 +242,7 @@ const createTicketPDFInvitation = async (
     <div class="ticket">
       <div class="header">
         <h1 class="header-title">Invitation Code</h1>
-        <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" alt="" class="header-logo" />
+        <img src="/image/logo_w.svg" alt="" class="header-logo" />
       </div>
 
       <div class="event">
