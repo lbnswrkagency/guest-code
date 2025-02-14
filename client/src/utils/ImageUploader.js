@@ -71,19 +71,75 @@ const deleteImage = async (imageUrl) => {
   }
 };
 
+const folders = {
+  BRAND_LOGOS: "brands/logos",
+  BRAND_COVERS: "brands/covers",
+};
+
+async function uploadMultipleResolutions(
+  processedFiles,
+  folder,
+  fileName,
+  onProgress,
+  signal
+) {
+  try {
+    // Check if already aborted
+    if (signal?.aborted) {
+      throw new Error("Upload was cancelled");
+    }
+
+    const formData = new FormData();
+    formData.append("folder", folder);
+    formData.append("fileName", fileName);
+
+    // Add each resolution to form data
+    Object.entries(processedFiles).forEach(([quality, data]) => {
+      formData.append(quality, data.file);
+    });
+
+    // Get token from localStorage
+    const token = localStorage.getItem("token");
+
+    // Use axios instead of fetch
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/upload/multiple`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+        signal, // Pass the abort signal
+        onUploadProgress: (progressEvent) => {
+          if (onProgress) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress(percentCompleted);
+          }
+        },
+      }
+    );
+
+    return response.data.urls;
+  } catch (error) {
+    // Don't log aborted requests as errors
+    if (error.name === "AbortError" || error.code === "ERR_CANCELED") {
+      console.log("[ImageUploader] Upload cancelled");
+      return null;
+    }
+    console.error("[ImageUploader] Upload failed:", error);
+    throw new Error(error.response?.data?.message || error.message);
+  }
+}
+
 const ImageUploader = {
   upload: uploadImage,
   delete: deleteImage,
-
-  // Predefined folder paths
-  folders: {
-    PROFILE_PICTURES: "profile-pictures",
-    BRAND_LOGOS: "brand-logos",
-    BRAND_COVERS: "brand-covers",
-    EVENT_IMAGES: "event-images",
-    LOCATION_IMAGES: "location-images",
-    FEED_POSTS: "feed-posts",
-  },
+  folders,
+  uploadMultipleResolutions,
 };
 
 export default ImageUploader;

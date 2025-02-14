@@ -1,0 +1,31 @@
+.error-boundary {
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 8px;
+  margin: 1rem;
+
+  h3 {
+    color: #ff4444;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: rgba(255, 68, 68, 0.8);
+    margin-bottom: 1.5rem;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    background: #ff4444;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}

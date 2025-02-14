@@ -1,6 +1,7 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
+const { uploadToS3 } = require("../utils/s3Uploader");
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
@@ -100,7 +101,68 @@ const handleImageDelete = async (req, res) => {
   }
 };
 
+// Handle multiple resolution upload
+const handleMultipleUpload = async (req, res) => {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit per file
+    },
+  }).fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "medium", maxCount: 1 },
+    { name: "full", maxCount: 1 },
+  ]);
+
+  upload(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res
+            .status(413)
+            .json({
+              message: "File is too large. Maximum size is 10MB per file.",
+            });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      return res.status(400).json({ message: err.message });
+    }
+
+    try {
+      const { folder, fileName } = req.body;
+      if (!folder || !fileName) {
+        return res
+          .status(400)
+          .json({ message: "Folder and fileName are required" });
+      }
+
+      const urls = {};
+      for (const [quality, files] of Object.entries(req.files)) {
+        if (files && files[0]) {
+          const file = files[0];
+          const key = `${folder}/${quality}/${fileName}`;
+          const url = await uploadToS3(
+            file.buffer,
+            key,
+            file.mimetype,
+            quality
+          );
+          urls[quality] = url;
+        }
+      }
+
+      res.json({ urls });
+    } catch (error) {
+      console.error("[UploadController] Multiple upload error:", error);
+      res.status(500).json({ message: "Upload failed", error: error.message });
+    }
+  });
+};
+
 module.exports = {
   handleImageUpload,
   handleImageDelete,
+  handleMultipleUpload,
 };

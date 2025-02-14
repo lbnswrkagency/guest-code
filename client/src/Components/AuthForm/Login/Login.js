@@ -1,11 +1,22 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import toast, { Toaster } from "react-hot-toast";
 import "./Login.scss";
-import { login } from "./LoginFunction";
 import AuthContext from "../../../contexts/AuthContext";
-import Navigation from "../../Home/Navigation/Navigation";
+import Navigation from "../../Navigation/Navigation";
+import { useToast } from "../../Toast/ToastContext";
+import toast from "react-hot-toast";
+
+// Debug logging utility
+const debugLog = (area, message, data = null) => {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[Auth:${area}] ${message}`;
+  if (data) {
+    console.log(logMessage, { ...data, timestamp });
+  } else {
+    console.log(logMessage, { timestamp });
+  }
+};
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -13,7 +24,7 @@ function Login() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { setUser } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -23,56 +34,56 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("🚀 Login attempt started...", { email: formData.email });
+
+    debugLog("Login", "Starting login process", {
+      email: formData.email,
+      hasPassword: !!formData.password,
+    });
 
     try {
-      console.log("📤 Sending login request to server...");
-      const response = await login(formData);
-      console.log("📥 Server response received:", {
-        success: response.success,
-        hasUser: !!response.user,
-        hasToken: !!response.token,
+      debugLog("Login", "Calling AuthContext login function");
+      await login(formData);
+
+      debugLog("Login", "Login successful", {
+        hasToken: !!localStorage.getItem("token"),
+        tokenLength: localStorage.getItem("token")?.length,
+        availableKeys: Object.keys(localStorage),
       });
 
-      if (response.success) {
-        console.log("✅ Login successful, setting user in context...");
-        setUser(response.user);
-        toast.success("Welcome back!", { duration: 3000 });
-        console.log("🔄 Navigating to dashboard...");
-        navigate("/dashboard");
-      }
+      toast.success("Welcome back!");
     } catch (error) {
-      console.error("❌ Login error:", {
+      debugLog("Error", "Login failed", {
         status: error.response?.status,
-        message: error.response?.data?.details || error.response?.data?.message,
-        error: error.message,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          withCredentials: error.config?.withCredentials,
+        },
       });
+
       const errorMessage =
-        error.response?.data?.details ||
-        error.response?.data?.message ||
-        "Login failed. Please try again.";
-      toast.error(errorMessage, {
-        duration: 4000,
-        position: "top-center",
-      });
+        error.response?.data?.message || "Login failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
-      console.log("🏁 Login attempt completed");
+      debugLog("Login", "Login attempt completed", {
+        success: !!localStorage.getItem("token"),
+      });
       setIsLoading(false);
     }
   };
 
   const handleForgotPassword = () => {
-    // For now, just show a toast. We'll implement this functionality later
-    toast.info("Forgot password functionality coming soon!", {
-      duration: 4000,
-      position: "top-center",
-    });
+    debugLog("Navigation", "User clicked forgot password");
+    toast.info("Forgot password functionality coming soon!");
   };
 
   return (
     <div className="login">
       <Navigation />
-      <Toaster />
 
       <motion.div
         className="login-container"
@@ -105,6 +116,7 @@ function Login() {
               onChange={handleChange}
               required
               className="login-input"
+              autoComplete="username"
             />
           </div>
 
@@ -117,6 +129,7 @@ function Login() {
               onChange={handleChange}
               required
               className="login-input"
+              autoComplete="current-password"
             />
           </div>
 

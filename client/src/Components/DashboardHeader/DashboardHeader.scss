@@ -528,6 +528,53 @@
       }
     }
   }
+
+  .notification-section {
+    position: relative;
+    margin: 0 1rem;
+
+    .notification-trigger {
+      position: relative;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba(255, 200, 7, 0.1);
+        color: #ffc807;
+      }
+
+      &.has-notification {
+        color: #ffc807;
+      }
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #ffc807;
+      color: #151515;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 10px;
+      border: 2px solid #151515;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+  }
 }
 
 @media (max-width: 768px) {
@@ -567,6 +614,21 @@
       .event-selector,
       .date-display {
         justify-content: center;
+      }
+    }
+
+    .notification-section {
+      margin: 0 0.5rem;
+
+      .notification-trigger {
+        font-size: 1.25rem;
+        padding: 0.4rem;
+      }
+
+      .notification-badge {
+        font-size: 0.7rem;
+        min-width: 18px;
+        height: 18px;
       }
     }
   }

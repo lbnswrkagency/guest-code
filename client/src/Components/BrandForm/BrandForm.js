@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import PropTypes from "prop-types";
 import "./BrandForm.scss";
 import ImageUploader from "../../utils/ImageUploader";
 import {
@@ -19,72 +20,154 @@ import {
   RiPhoneLine,
   RiMapPinLine,
   RiArrowDownSLine,
-  RiAddLine,
 } from "react-icons/ri";
+import {
+  processImage,
+  generateBlurPlaceholder,
+} from "../../utils/imageProcessor";
+import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
+import ErrorBoundary from "../ErrorBoundary/ErrorBoundary";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+import { useToast } from "../Toast/ToastContext";
 
-const BrandForm = ({ brand, onClose, onSave }) => {
-  const [formData, setFormData] = useState(
-    brand || {
-      name: "",
-      username: "",
-      description: "",
-      logo: null,
-      coverImage: null,
-      colors: {
-        primary: "#ffc807",
-        secondary: "#ffffff",
-        accent: "#000000",
-      },
-      social: {
-        instagram: "",
-        tiktok: "",
-        facebook: "",
-        twitter: "",
-        youtube: "",
-        spotify: "",
-        soundcloud: "",
-        linkedin: "",
-        telegram: "",
-      },
-      contact: {
-        email: "",
-        phone: "",
-        address: "",
-        website: "",
-        whatsapp: "",
-      },
-    }
-  );
+const BrandFormContent = ({ brand, onClose, onSave }) => {
+  const toast = useToast();
 
-  const [logoFile, setLogoFile] = useState(null);
-  const [coverFile, setCoverFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(brand?.logo || null);
-  const [coverPreview, setCoverPreview] = useState(brand?.coverImage || null);
+  const [formData, setFormData] = useState(() => ({
+    name: brand?.name || "",
+    username: brand?.username || "",
+    description: brand?.description || "",
+    logo: null,
+    coverImage: null,
+    colors: {
+      primary: brand?.colors?.primary || "#ffc807",
+      secondary: brand?.colors?.secondary || "#ffffff",
+      accent: brand?.colors?.accent || "#000000",
+    },
+    social: {
+      instagram: brand?.social?.instagram || "",
+      tiktok: brand?.social?.tiktok || "",
+      facebook: brand?.social?.facebook || "",
+      twitter: brand?.social?.twitter || "",
+      youtube: brand?.social?.youtube || "",
+      spotify: brand?.social?.spotify || "",
+      soundcloud: brand?.social?.soundcloud || "",
+      linkedin: brand?.social?.linkedin || "",
+      telegram: brand?.social?.telegram || "",
+    },
+    contact: {
+      email: brand?.contact?.email || "",
+      phone: brand?.contact?.phone || "",
+      address: brand?.contact?.address || "",
+      website: brand?.contact?.website || "",
+      whatsapp: brand?.contact?.whatsapp || "",
+    },
+  }));
+
+  const [processedFiles, setProcessedFiles] = useState({
+    logo: null,
+    cover: null,
+  });
+
+  const [previews, setPreviews] = useState(() => ({
+    logo: brand?.logo || null,
+    cover: brand?.coverImage || null,
+  }));
+
   const [showAllSocial, setShowAllSocial] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+  const [blobUrls, setBlobUrls] = useState(new Set());
+
+  const processQueue = useRef([]);
+  const abortControllerRef = useRef(null);
+
+  // Initialize only once when component mounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      // Cleanup blob URLs
+      Object.values(previews).forEach((preview) => {
+        if (preview?.urls) {
+          Object.values(preview.urls).forEach((url) => {
+            if (url && url.startsWith("blob:")) {
+              URL.revokeObjectURL(url);
+            }
+          });
+        }
+      });
+    };
+  }, []); // Empty dependency array
+
+  const initializeImagePreviews = useCallback(async () => {
+    if (!brand) return;
+    // ... rest of initialization logic
+  }, [brand]); // Only depend on brand
+
+  const createAndTrackBlobUrl = (blob) => {
+    const url = URL.createObjectURL(blob);
+    setBlobUrls((prev) => new Set([...prev, url]));
+    return url;
+  };
 
   // Validate form
-  React.useEffect(() => {
+  useEffect(() => {
     const isValid =
-      formData.name && formData.username && (logoPreview || brand?.logo);
+      formData.name &&
+      formData.username &&
+      (processedFiles.logo || brand?.logo);
     setIsFormValid(isValid);
-  }, [formData.name, formData.username, logoPreview, brand?.logo]);
+  }, [formData.name, formData.username, processedFiles.logo, brand?.logo]);
 
-  const handleFileChange = (e, type) => {
+  const handleFileChange = async (e, type) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "logo") {
-          setLogoPreview(reader.result);
-          setLogoFile(file);
-        } else {
-          setCoverPreview(reader.result);
-          setCoverFile(file);
-        }
+    if (!file) return;
+
+    const toastId = toast.showLoading("Processing image...");
+
+    try {
+      // Validate file size
+      if (file.size > 20 * 1024 * 1024) {
+        throw new Error("File size too large. Maximum size is 20MB");
+      }
+
+      const blurPlaceholder = await generateBlurPlaceholder(file);
+      const processed = await processImage(file);
+
+      // Create and track blob URLs
+      const previewUrls = {
+        thumbnail: createAndTrackBlobUrl(processed.thumbnail.file),
+        medium: createAndTrackBlobUrl(processed.medium.file),
+        full: createAndTrackBlobUrl(processed.full.file),
+        blur: createAndTrackBlobUrl(new Blob([blurPlaceholder])),
       };
-      reader.readAsDataURL(file);
+
+      // Update state
+      setProcessedFiles((prev) => ({
+        ...prev,
+        [type]: processed,
+      }));
+
+      setPreviews((prev) => ({
+        ...prev,
+        [type]: previewUrls,
+      }));
+
+      toast.updateToast(toastId, {
+        type: "success",
+        message: "Image processed successfully",
+        duration: 2000,
+      });
+    } catch (error) {
+      toast.updateToast(toastId, {
+        type: "error",
+        message: error.message,
+        duration: 5000,
+      });
+      // Clear the file input
+      e.target.value = "";
     }
   };
 
@@ -93,33 +176,66 @@ const BrandForm = ({ brand, onClose, onSave }) => {
     if (!isFormValid) return;
 
     setIsUploading(true);
+    const uploadToastId = toast.showLoading("Uploading files...");
+
+    // Initialize new AbortController for this upload
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+
     try {
       let updatedFormData = { ...formData };
 
       // Upload logo if changed
-      if (logoFile) {
-        const logoUrl = await ImageUploader.upload(
-          logoFile,
-          ImageUploader.folders.BRAND_LOGOS
+      if (processedFiles.logo) {
+        const logoUrls = await ImageUploader.uploadMultipleResolutions(
+          processedFiles.logo,
+          ImageUploader.folders.BRAND_LOGOS,
+          `${formData.username}_logo`,
+          (progress) => {
+            toast.updateToast(uploadToastId, {
+              message: `Uploading logo... ${Math.round(progress)}%`,
+            });
+          },
+          signal
         );
-        updatedFormData.logo = logoUrl;
+        updatedFormData.logo = logoUrls;
       }
 
       // Upload cover if changed
-      if (coverFile) {
-        const coverUrl = await ImageUploader.upload(
-          coverFile,
-          ImageUploader.folders.BRAND_COVERS
+      if (processedFiles.cover) {
+        const coverUrls = await ImageUploader.uploadMultipleResolutions(
+          processedFiles.cover,
+          ImageUploader.folders.BRAND_COVERS,
+          `${formData.username}_cover`,
+          (progress) => {
+            toast.updateToast(uploadToastId, {
+              message: `Uploading cover... ${Math.round(progress)}%`,
+            });
+          },
+          signal
         );
-        updatedFormData.coverImage = coverUrl;
+        updatedFormData.coverImage = coverUrls;
       }
 
-      onSave(updatedFormData);
+      await onSave(updatedFormData);
+
+      toast.updateToast(uploadToastId, {
+        type: "success",
+        message: brand
+          ? "Brand updated successfully"
+          : "Brand created successfully",
+        duration: 3000,
+      });
     } catch (error) {
-      console.error("Upload failed:", error);
-      // Handle error (show notification, etc.)
+      toast.updateToast(uploadToastId, {
+        type: "error",
+        message: `Upload failed: ${error.message}`,
+        duration: 5000,
+      });
     } finally {
       setIsUploading(false);
+      // Clean up the abort controller
+      abortControllerRef.current = null;
     }
   };
 
@@ -205,12 +321,22 @@ const BrandForm = ({ brand, onClose, onSave }) => {
 
         <form onSubmit={handleSubmit}>
           <div className="form-header">
-            <div
-              className="cover-upload"
-              style={
-                coverPreview ? { backgroundImage: `url(${coverPreview})` } : {}
-              }
-            >
+            <div className="cover-upload">
+              <div className="upload-placeholder">
+                <div className="dashed-border" />
+                <RiUpload2Line />
+                <span>Upload Cover Image</span>
+              </div>
+              {previews.cover && (
+                <ProgressiveImage
+                  thumbnailSrc={previews.cover.thumbnail}
+                  mediumSrc={previews.cover.medium}
+                  fullSrc={previews.cover.full}
+                  blurPlaceholder={previews.cover.blur}
+                  alt="Cover"
+                  className="cover-image"
+                />
+              )}
               <input
                 type="file"
                 onChange={(e) => handleFileChange(e, "cover")}
@@ -219,14 +345,8 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                 disabled={isUploading}
               />
               <label htmlFor="cover-upload">
-                {isUploading ? (
-                  <span className="uploading">Uploading...</span>
-                ) : (
-                  <>
-                    <RiUpload2Line />
-                    <span>Upload Cover Image</span>
-                  </>
-                )}
+                <RiUpload2Line />
+                <span>Upload Cover Image</span>
               </label>
             </div>
 
@@ -239,10 +359,15 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                 disabled={isUploading}
               />
               <label htmlFor="logo-upload">
-                {logoPreview ? (
-                  <img src={logoPreview} alt="logo preview" />
-                ) : isUploading ? (
-                  <span className="uploading">Uploading...</span>
+                {previews.logo ? (
+                  <ProgressiveImage
+                    thumbnailSrc={previews.logo.thumbnail}
+                    mediumSrc={previews.logo.medium}
+                    fullSrc={previews.logo.full}
+                    blurPlaceholder={previews.logo.blur}
+                    alt="Logo"
+                    className="logo-image"
+                  />
                 ) : (
                   <>
                     <RiUpload2Line />
@@ -418,11 +543,16 @@ const BrandForm = ({ brand, onClose, onSave }) => {
                 className={`save-button ${!isFormValid ? "disabled" : ""}`}
                 disabled={!isFormValid || isUploading}
               >
-                {isUploading
-                  ? "Uploading..."
-                  : brand
-                  ? "Save Changes"
-                  : "Create Brand"}
+                {isUploading ? (
+                  <span className="button-content">
+                    <LoadingSpinner size="small" color="white" />
+                    <span>Uploading...</span>
+                  </span>
+                ) : (
+                  <span className="button-content">
+                    {brand ? "Save Changes" : "Create Brand"}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -431,5 +561,44 @@ const BrandForm = ({ brand, onClose, onSave }) => {
     </div>
   );
 };
+
+BrandFormContent.propTypes = {
+  brand: PropTypes.shape({
+    name: PropTypes.string,
+    username: PropTypes.string,
+    description: PropTypes.string,
+    logo: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        thumbnail: PropTypes.string,
+        medium: PropTypes.string,
+        full: PropTypes.string,
+      }),
+    ]),
+    coverImage: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        thumbnail: PropTypes.string,
+        medium: PropTypes.string,
+        full: PropTypes.string,
+      }),
+    ]),
+    colors: PropTypes.shape({
+      primary: PropTypes.string,
+      secondary: PropTypes.string,
+      accent: PropTypes.string,
+    }),
+    social: PropTypes.object,
+    contact: PropTypes.object,
+  }),
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+};
+
+const BrandForm = (props) => (
+  <ErrorBoundary>
+    <BrandFormContent {...props} />
+  </ErrorBoundary>
+);
 
 export default BrandForm;

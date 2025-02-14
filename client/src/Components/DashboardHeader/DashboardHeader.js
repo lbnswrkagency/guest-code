@@ -1,12 +1,13 @@
 // DashboardHeader.js
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaUserCircle } from "react-icons/fa";
 import { RiCalendarEventLine, RiArrowDownSLine } from "react-icons/ri";
 import "./DashboardHeader.scss";
 import AvatarUpload from "../AvatarUpload/AvatarUpload.";
-import axios from "axios";
+import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
+import axiosInstance from "../../utils/axiosConfig";
 
 const DashboardHeader = ({
   user,
@@ -15,33 +16,28 @@ const DashboardHeader = ({
   setIsCropMode,
   isCropMode,
   setUser,
-  isOnline,
   onNotificationCreated,
 }) => {
-  const { getNewToken } = useAuth();
+  const { isConnected, onlineUsers, isUserOnline } = useSocket();
+  const { user: authUser } = useAuth();
 
   const createTestNotification = async () => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/notifications/create`,
-        {
-          userId: user._id,
-          type: "info",
-          title: "Test Notification",
-          message: "This is a test notification. Click to mark as read!",
-          metadata: {
-            timestamp: new Date().toISOString(),
-            testData: "This is some test metadata",
-          },
+      console.log("[DashboardHeader] Creating test notification");
+      const response = await axiosInstance.post("/notifications/create", {
+        userId: user._id,
+        type: "info",
+        title: "Test Notification",
+        message: "This is a test notification. Click to mark as read!",
+        metadata: {
+          timestamp: new Date().toISOString(),
+          testData: "This is some test metadata",
         },
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      });
+
+      console.log(
+        "[DashboardHeader] Test notification created:",
+        response.data
       );
 
       // Optionally refresh notifications immediately
@@ -49,37 +45,10 @@ const DashboardHeader = ({
         onNotificationCreated();
       }
     } catch (error) {
-      if (error.response?.status === 401) {
-        try {
-          await getNewToken();
-          // Retry the request with new token
-          const newToken = localStorage.getItem("token");
-          await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/notifications/create`,
-            {
-              userId: user._id,
-              type: "info",
-              title: "Test Notification",
-              message: "This is a test notification. Click to mark as read!",
-              metadata: {
-                timestamp: new Date().toISOString(),
-                testData: "This is some test metadata",
-              },
-            },
-            {
-              withCredentials: true,
-              headers: {
-                Authorization: `Bearer ${newToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        } catch (retryError) {
-          console.error("Error creating test notification:", retryError);
-        }
-      } else {
-        console.error("Error creating test notification:", error);
-      }
+      console.error(
+        "[DashboardHeader] Error creating test notification:",
+        error.message
+      );
     }
   };
 
@@ -110,7 +79,10 @@ const DashboardHeader = ({
                 )}
                 <div className="online-status">
                   <div
-                    className={`status-dot ${isOnline ? "online" : "offline"}`}
+                    className={`status-dot ${
+                      isConnected ? "online" : "offline"
+                    }`}
+                    title={isConnected ? "Online" : "Offline"}
                   />
                 </div>
               </>
@@ -133,7 +105,8 @@ const DashboardHeader = ({
               </div>
               <div className="user-stats">
                 <div className="stat-item">
-                  <span className="stat-value">2.4K</span> Friends
+                  <span className="stat-value">{onlineUsers.length}</span>{" "}
+                  Online
                 </div>
                 <div className="stat-divider">·</div>
                 <div className="stat-item">

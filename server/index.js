@@ -33,6 +33,7 @@ const brandRoutes = require("./routes/api/brandRoutes");
 const locationRoutes = require("./routes/api/locationRoutes");
 const notificationRoutes = require("./routes/api/notificationRoutes");
 const uploadRoutes = require("./routes/api/uploadRoutes");
+const searchRoutes = require("./routes/search");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -51,25 +52,35 @@ console.log("[Server:Init] Environment check:", {
 const app = express();
 const server = http.createServer(app);
 
-// CORS setup
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://guestcode.vercel.app",
-        "https://www.guestcode.vercel.app",
-        "https://afrospiti.com",
-        "https://www.afrospiti.com",
-        "https://guestcode-client.onrender.com",
-      ];
-      callback(null, allowedOrigins.includes(origin) ? origin : false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// CORS configuration
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === "production"
+      ? process.env.CLIENT_BASE_URL
+      : ["http://localhost:3000", "http://127.0.0.1:3000"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+// Add headers for better caching and performance
+app.use((req, res, next) => {
+  // Set CORS headers for images and other static assets
+  if (req.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    res.set({
+      "Access-Control-Allow-Origin": "*", // Allow images to be accessed from anywhere
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Origin, X-Requested-With, Content-Type, Accept",
+      "Access-Control-Max-Age": "86400", // 24 hours
+      "Cache-Control": "public, max-age=31536000", // 1 year
+      Vary: "Origin",
+    });
+  }
+  next();
+});
 
 // Middleware setup
 app.use(express.json({ limit: "200mb" }));
@@ -100,6 +111,7 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/search", searchRoutes);
 
 // MongoDB connection
 mongoose

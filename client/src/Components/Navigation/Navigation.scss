@@ -5,90 +5,94 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.75rem 0;
+  z-index: 100;
+  background: #151515;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
   .nav-content {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 0 1.25rem;
+    padding: 0.75rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
 
-  .nav-left {
-    .nav-brand {
-      font-size: 1.5rem;
-      font-weight: 800;
-      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
-    }
-  }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
 
-  .nav-right {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .nav-icon-wrapper {
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-    position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 200, 7, 0.3);
-    }
-
-    .icon {
-      font-size: 1.25rem;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    &.has-notification {
-      .notification-dot {
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        width: 10px;
-        height: 10px;
-        background: #ffc807;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.85);
+      .nav-brand {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffc807;
+        margin-left: 0.5rem;
       }
 
-      .notification-count {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ffc807;
-        color: #000;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 2px 5px;
-        border-radius: 10px;
-        border: 2px solid rgba(0, 0, 0, 0.85);
-        min-width: 18px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .back-button {
+        font-size: 1.5rem;
+      }
+
+      .home-button {
+        font-size: 1.25rem;
+        color: rgba(255, 255, 255, 0.7);
+
+        &:hover {
+          color: #ffc807;
+        }
+      }
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-icon-wrapper {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.7);
+      transition: all 0.2s ease;
+      position: relative;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      &.has-notification {
+        color: #ffc807;
+
+        &:hover {
+          color: #ffc807;
+        }
+
+        .notification-count {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          background: #ff3b3b;
+          color: white;
+          font-size: 0.7rem;
+          font-weight: 600;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #151515;
+        }
+      }
+
+      .icon {
+        font-size: 1.25rem;
       }
     }
   }
@@ -96,28 +100,20 @@
 
 @media (max-width: 768px) {
   .app-navigation {
-    padding: 0.5rem 0;
-
     .nav-content {
-      padding: 0 1rem;
-    }
+      padding: 0.75rem 1rem;
 
-    .nav-left {
       .nav-brand {
-        font-size: 1.25rem;
-      }
-    }
-
-    .nav-right {
-      gap: 0.35rem;
-    }
-
-    .nav-icon-wrapper {
-      width: 2.25rem;
-      height: 2.25rem;
-
-      .icon {
         font-size: 1.1rem;
+      }
+
+      .nav-icon-wrapper {
+        width: 32px;
+        height: 32px;
+
+        .icon {
+          font-size: 1.1rem;
+        }
       }
     }
   }

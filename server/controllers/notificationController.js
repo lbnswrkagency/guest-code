@@ -25,12 +25,21 @@ exports.createNotification = async (req, res) => {
     // Emit through Socket.IO if available
     const io = req.app.get("io");
     if (io) {
+      console.log("[Notification:Create] Emitting new notification", {
+        userId,
+        notificationId: savedNotification._id,
+        room: `user:${userId}`,
+        timestamp: new Date().toISOString(),
+      });
+
       io.to(`user:${userId}`).emit("new_notification", savedNotification);
+    } else {
+      console.log("[Notification:Create] Socket.IO not available");
     }
 
     res.status(201).json(savedNotification);
   } catch (error) {
-    console.error("Error creating notification:", error);
+    console.error("[Notification:Create] Error:", error);
     res.status(500).json({
       message: "Error creating notification",
       error: error.message,

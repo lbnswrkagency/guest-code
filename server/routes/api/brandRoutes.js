@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate } = require("../../middleware/authMiddleware");
+const { authenticateToken } = require("../../middleware/auth");
 const {
   createBrand,
   getAllBrands,
@@ -10,10 +10,10 @@ const {
 } = require("../../controllers/brandController");
 
 // Brand CRUD routes
-router.post("/", authenticate, createBrand);
-router.get("/", authenticate, getAllBrands);
-router.get("/:brandId", authenticate, getBrand);
-router.put("/:brandId", authenticate, updateBrand);
-router.delete("/:brandId", authenticate, deleteBrand);
+router.post("/", authenticateToken, createBrand);
+router.get("/", authenticateToken, getAllBrands);
+router.get("/:brandId", authenticateToken, getBrand);
+router.put("/:brandId", authenticateToken, updateBrand);
+router.delete("/:brandId", authenticateToken, deleteBrand);
 
 module.exports = router;

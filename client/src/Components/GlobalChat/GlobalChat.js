@@ -1,249 +1,264 @@
 // GlobalChat.js
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Send, X } from "lucide-react";
-import axios from "axios";
-import "./GlobalChat.scss";
-import { getToken } from "../../utils/authUtils";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  RiSendPlaneFill,
+  RiEmotionLine,
+  RiUserAddLine,
+  RiTeamLine,
+  RiCloseLine,
+} from "react-icons/ri";
 import { useSocket } from "../../contexts/SocketContext";
+import { useAuth } from "../../contexts/AuthContext";
+import ChatList from "../ChatList/ChatList";
+import UserSearch from "../UserSearch/UserSearch";
+import "./GlobalChat.scss";
 
-const GlobalChat = ({ onClose, user }) => {
-  const { socket, isConnected } = useSocket();
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [error, setError] = useState(null);
-  const [isSending, setIsSending] = useState(false);
-  const [typingUsers, setTypingUsers] = useState(new Set());
-  const messagesEndRef = useRef(null);
-  const textareaRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+const GlobalChat = () => {
+  const [message, setMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [globalChats, setGlobalChats] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+  const messageEndRef = useRef(null);
+  const { socket } = useSocket();
+  const { user } = useAuth();
 
-  const addMessage = useCallback((message) => {
-    setMessages((prevMessages) => {
-      const messageExists = prevMessages.some((msg) => msg._id === message._id);
-      if (!messageExists) {
-        return [...prevMessages, message];
-      }
-      return prevMessages;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("new_message", (message) => {
-      console.log("[GlobalChat] New message received:", message);
-      addMessage(message);
-    });
-
-    socket.on("user_typing", (userId) => {
-      console.log("[GlobalChat] User typing:", userId);
-      if (userId !== user._id) {
-        setTypingUsers((prevUsers) => new Set(prevUsers).add(userId));
-      }
-    });
-
-    socket.on("user_stop_typing", (userId) => {
-      console.log("[GlobalChat] User stopped typing:", userId);
-      setTypingUsers((prevUsers) => {
-        const newUsers = new Set(prevUsers);
-        newUsers.delete(userId);
-        return newUsers;
-      });
-    });
-
-    return () => {
-      socket.off("new_message");
-      socket.off("user_typing");
-      socket.off("user_stop_typing");
-    };
-  }, [socket, user._id, addMessage]);
-
-  const fetchMessages = useCallback(async () => {
-    try {
-      console.log("[GlobalChat] Fetching messages");
-      const token = await getToken();
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/messages/global`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log(
-        "[GlobalChat] Fetched messages count:",
-        response.data.messages.length
-      );
-      setMessages(response.data.messages);
-    } catch (error) {
-      console.error("[GlobalChat] Error fetching messages:", error);
-      setError("Failed to fetch messages. Please try again later.");
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [activeChat?.messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleTyping = (e) => {
-    // Set the new message value first
-    setNewMessage(e.target.value);
-
-    // Only emit typing events if socket exists
-    if (!socket) return;
-
-    // Emit typing event
-    socket.emit("user_typing");
-
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout for stop typing
-    typingTimeoutRef.current = setTimeout(() => {
-      if (socket) {
-        socket.emit("user_stop_typing");
+  // Fetch global chats
+  useEffect(() => {
+    const fetchGlobalChats = async () => {
+      try {
+        console.log("[GlobalChat] Fetching global chats");
+        // In a real app, you would fetch this from your API
+        const mockChats = [
+          {
+            _id: "global-1",
+            name: "Event: Product Launch",
+            participantCount: 45,
+            messages: [],
+            type: "global",
+          },
+          {
+            _id: "global-2",
+            name: "Event: Tech Conference",
+            participantCount: 128,
+            messages: [],
+            type: "global",
+          },
+        ];
+        setGlobalChats(mockChats);
+      } catch (error) {
+        console.error("[GlobalChat] Error fetching global chats:", error);
       }
-    }, 2000);
-  };
+    };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || isSending) return;
+    fetchGlobalChats();
+  }, []);
+
+  // Handle sending message
+  const handleSendMessage = async () => {
+    if (!message.trim() || !activeChat) return;
 
     try {
-      setIsSending(true);
-      const token = await getToken();
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/messages`,
-        { content: newMessage },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Only emit if socket exists
-      if (socket) {
-        socket.emit("send_message", response.data);
-      }
-
-      // Add message locally
-      addMessage(response.data);
-
-      setNewMessage("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "40px";
-      }
-
-      // Only emit stop typing if socket exists
-      if (socket) {
-        socket.emit("user_stop_typing");
-      }
+      socket.emit("global_message", {
+        chatId: activeChat._id,
+        content: message,
+        type: "text",
+      });
+      setMessage("");
     } catch (error) {
       console.error("[GlobalChat] Error sending message:", error);
-      setError("Failed to send message. Please try again.");
-    } finally {
-      setIsSending(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(e);
+  // Handle typing events
+  const handleTyping = () => {
+    if (!isTyping && activeChat) {
+      setIsTyping(true);
+      socket.emit("typing", { chatId: activeChat._id, chatType: "global" });
+
+      setTimeout(() => {
+        setIsTyping(false);
+        socket.emit("stop_typing", {
+          chatId: activeChat._id,
+          chatType: "global",
+        });
+      }, 2000);
+    }
+  };
+
+  // Handle user invitation
+  const handleInviteUser = async (selectedUser) => {
+    try {
+      socket.emit("invite_to_global", {
+        chatId: activeChat._id,
+        userId: selectedUser._id,
+      });
+      setShowInvite(false);
+    } catch (error) {
+      console.error("[GlobalChat] Error inviting user:", error);
     }
   };
 
   return (
-    <div className="global-chat-overlay">
-      <div className="global-chat">
-        <div className="chat-header">
-          <h2>Global Chat</h2>
-          <span
-            className={`connection-status-indicator ${
-              isConnected ? "connected" : "disconnected"
-            }`}
-          />
-          <button className="close-button" onClick={onClose}>
-            <X size={18} />
-          </button>
+    <div className="global-chat">
+      <div className="chat-sidebar">
+        <div className="sidebar-header">
+          <h2>Event Chats</h2>
         </div>
-        <div className="chat-messages">
-          {error && <div className="error-message">{error}</div>}
-          {messages.map((message) => (
-            <div
-              key={message._id}
-              className={`message ${
-                message.sender._id === user._id ? "own-message" : ""
-              }`}
-            >
-              <div className="message-content">
-                <img
-                  src={message.sender.avatar || "/default-avatar.png"}
-                  alt={message.sender.username}
-                  className="avatar"
-                />
-                <div className="message-bubble">
-                  <div className="sender">
-                    {message.sender.username}
-                    {/* <span
-                      className={`user-status ${
-                        onlineUsers.has(message.sender._id)
-                          ? "online"
-                          : "offline"
-                      }`}
-                    >
-                      {onlineUsers.has(message.sender._id)
-                        ? "Online"
-                        : "Offline"}
-                    </span> */}
-                  </div>
-                  <div className="content">{message.content}</div>
+
+        <ChatList
+          chats={globalChats}
+          activeChat={activeChat}
+          onChatSelect={setActiveChat}
+          type="global"
+        />
+      </div>
+
+      <div className="chat-main">
+        {activeChat ? (
+          <>
+            <div className="chat-header">
+              <div className="chat-info">
+                <h3>{activeChat.name}</h3>
+                <span className="participant-count">
+                  {activeChat.participantCount} participants
+                </span>
+              </div>
+              <div className="header-actions">
+                <motion.button
+                  className="action-btn"
+                  onClick={() => setShowInvite(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RiUserAddLine />
+                </motion.button>
+                <motion.button
+                  className="action-btn"
+                  onClick={() => setShowParticipants(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RiTeamLine />
+                </motion.button>
+              </div>
+            </div>
+
+            <div className="messages-container">
+              {activeChat.messages?.map((msg) => (
+                <motion.div
+                  key={msg._id}
+                  className={`message ${
+                    msg.sender._id === user._id ? "sent" : "received"
+                  }`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {msg.sender._id !== user._id && (
+                    <span className="sender-name">{msg.sender.username}</span>
+                  )}
+                  <div className="message-content">{msg.content}</div>
                   <div className="message-time">
-                    {new Date(message.createdAt).toLocaleTimeString([], {
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </div>
+                </motion.div>
+              ))}
+              <div ref={messageEndRef} />
+            </div>
+
+            <div className="chat-input">
+              <button className="emoji-btn">
+                <RiEmotionLine />
+              </button>
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  handleTyping();
+                }}
+                placeholder="Send a message to everyone..."
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+              />
+              <button
+                className="send-btn"
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+              >
+                <RiSendPlaneFill />
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="no-chat-selected">
+            <h3>Select an event chat to join the conversation</h3>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showParticipants && (
+          <motion.div
+            className="participants-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="overlay-content">
+              <div className="overlay-header">
+                <h3>Participants</h3>
+                <button onClick={() => setShowParticipants(false)}>
+                  <RiCloseLine />
+                </button>
+              </div>
+              <div className="participants-list">
+                {/* This would be populated with actual participants */}
+                <div className="participant">
+                  <div className="participant-avatar">J</div>
+                  <span className="participant-name">John Doe</span>
+                  <span className="participant-status online">Online</span>
                 </div>
               </div>
             </div>
-          ))}
-          {typingUsers.size > 0 && (
-            <div className="typing-indicator">
-              {Array.from(typingUsers).length === 1
-                ? "Someone is typing..."
-                : "Multiple people are typing..."}
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-        <form onSubmit={sendMessage} className="message-form">
-          <textarea
-            ref={textareaRef}
-            value={newMessage}
-            onChange={handleTyping}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="message-input"
-            rows="1"
-          />
-          <button
-            type="submit"
-            className={`send-button ${isSending ? "sending" : ""}`}
-            disabled={isSending}
+          </motion.div>
+        )}
+
+        {showInvite && (
+          <motion.div
+            className="invite-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <Send size={20} />
-          </button>
-        </form>
-      </div>
+            <div className="overlay-content">
+              <div className="overlay-header">
+                <h3>Invite to Event Chat</h3>
+                <button onClick={() => setShowInvite(false)}>
+                  <RiCloseLine />
+                </button>
+              </div>
+              <UserSearch
+                onSelect={handleInviteUser}
+                placeholder="Search users to invite..."
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

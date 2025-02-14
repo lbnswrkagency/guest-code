@@ -30,8 +30,16 @@ const BrandSchema = new Schema(
     ],
 
     // Brand Identity
-    logo: { type: String },
-    coverImage: { type: String },
+    logo: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
+    coverImage: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
     colors: {
       primary: { type: String, default: "#ffc807" },
       secondary: { type: String, default: "#ffffff" },

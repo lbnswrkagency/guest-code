@@ -1,107 +1,180 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import io from "socket.io-client";
+import { motion, AnimatePresence } from "framer-motion";
+import { RiSendPlaneFill, RiEditLine, RiArrowLeftLine } from "react-icons/ri";
+import { useChat } from "../../contexts/ChatContext";
+import { useSocket } from "../../contexts/SocketContext";
+import { useAuth } from "../../contexts/AuthContext";
+import UserSearch from "../UserSearch/UserSearch";
+import ChatView from "../ChatView/ChatView";
 import "./PersonalChat.scss";
-import { useParams } from "react-router-dom";
 
 const PersonalChat = () => {
-  const { chatId } = useParams();
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [socket, setSocket] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [message, setMessage] = useState("");
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const messageEndRef = useRef(null);
+  const { socket } = useSocket();
+  const { user } = useAuth();
+  const { activeChat, chats, createChat, setActiveChat, sendMessage } =
+    useChat();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const newSocket = io(process.env.REACT_APP_API_BASE_URL, {
-      query: { token },
-    });
-
-    setSocket(newSocket);
-
-    newSocket.on("new_message", (message) => {
-      if (message.chat === chatId) {
-        setMessages((prevMessages) => [...prevMessages, message]);
-      }
-    });
-
-    fetchMessages();
-
-    return () => newSocket.close();
-  }, [chatId]);
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [activeChat?.messages]);
 
-  const fetchMessages = async () => {
+  // Handle sending message
+  const handleSendMessage = async () => {
+    if (!message.trim() || !activeChat) return;
+
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/messages/${chatId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMessages(response.data);
+      console.log("[PersonalChat:handleSendMessage] Sending message:", {
+        chatId: activeChat._id,
+        content: message.trim(),
+      });
+
+      // Use the sendMessage function from ChatContext to save to DB
+      await sendMessage(message.trim());
+
+      // Clear the input after successful send
+      setMessage("");
+
+      // Scroll to bottom after sending
+      scrollToBottom();
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      console.error("[PersonalChat] Error sending message:", error);
     }
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
+  // Handle user selection from search
+  const handleUserSelect = async (selectedUser) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/messages`,
-        { content: newMessage, chatId },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setNewMessage("");
-      socket.emit("new_message", response.data);
+      const chat = await createChat(selectedUser._id);
+      setActiveChat(chat);
+      setShowUserSearch(false);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("[PersonalChat] Error creating chat:", error);
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const getParticipantName = (chat) => {
+    if (!chat?.participants?.[0]) return "Unknown User";
+    const participant = chat.participants[0];
+    return (
+      participant.username ||
+      `${participant.firstName} ${participant.lastName}`.trim() ||
+      "Unknown User"
+    );
+  };
+
+  const getParticipantAvatar = (chat) => {
+    return chat?.participants?.[0]?.avatar || null;
   };
 
   return (
     <div className="personal-chat">
-      <div className="chat-messages">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`message ${
-              message.sender._id === localStorage.getItem("userId")
-                ? "sent"
-                : "received"
-            }`}
+      <div className="chat-sidebar">
+        <div className="sidebar-header">
+          <h2>Messages</h2>
+          <button
+            className="new-chat-btn"
+            onClick={() => setShowUserSearch(true)}
           >
-            <span className="content">{message.content}</span>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+            <RiEditLine />
+          </button>
+        </div>
+
+        <div className="chat-list">
+          {chats.map((chat) => (
+            <motion.div
+              key={chat._id}
+              className={`chat-item ${
+                activeChat?._id === chat._id ? "active" : ""
+              }`}
+              onClick={() => setActiveChat(chat)}
+              whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="chat-avatar">
+                {getParticipantAvatar(chat) ? (
+                  <img
+                    src={getParticipantAvatar(chat)}
+                    alt={getParticipantName(chat)}
+                  />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {getParticipantName(chat).charAt(0)}
+                  </div>
+                )}
+                {chat.isOnline && <div className="online-indicator" />}
+              </div>
+              <div className="chat-info">
+                <span className="username">{getParticipantName(chat)}</span>
+                <span className="last-message">
+                  {chat.lastMessage?.content || "No messages yet"}
+                </span>
+              </div>
+              {chat.unreadCount > 0 && (
+                <div className="unread-count">{chat.unreadCount}</div>
+              )}
+            </motion.div>
+          ))}
+
+          {chats.length === 0 && (
+            <div className="no-chats">
+              <p>No conversations yet</p>
+            </div>
+          )}
+        </div>
       </div>
-      <form onSubmit={sendMessage} className="message-form">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="message-input"
-        />
-        <button type="submit" className="send-button">
-          Send
-        </button>
-      </form>
+
+      <div className="chat-main">
+        {activeChat ? (
+          <ChatView
+            chat={activeChat}
+            message={message}
+            setMessage={setMessage}
+            onSendMessage={handleSendMessage}
+            messageEndRef={messageEndRef}
+          />
+        ) : (
+          <div className="no-chat-selected">
+            <div className="empty-state">
+              <RiEditLine className="edit-icon" />
+              <h3>Your Messages</h3>
+              <p>Send private messages to a friend</p>
+              <button onClick={() => setShowUserSearch(true)}>
+                Send Message
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showUserSearch && (
+          <motion.div
+            className="user-search-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="search-header">
+              <button onClick={() => setShowUserSearch(false)}>
+                <RiArrowLeftLine />
+              </button>
+              <h3>New Message</h3>
+            </div>
+            <UserSearch
+              onSelect={handleUserSelect}
+              placeholder="Search for a user..."
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

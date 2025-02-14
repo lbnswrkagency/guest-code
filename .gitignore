@@ -1,0 +1,3 @@
+# CloudFront Keys
+server/keys/*.pem
+server/keys/ 

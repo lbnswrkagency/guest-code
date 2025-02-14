@@ -392,23 +392,24 @@ const DashboardContent = ({ user, setUser }) => {
           isOnline={isConnected}
         />
 
-        <DashboardFeed />
-
-        {/* <DashboardStatus userCounts={userCounts} /> */}
+        <Routes>
+          <Route index element={<DashboardFeed />} />
+          <Route
+            path="chat"
+            element={<PersonalChat user={user} socket={socket} />}
+          />
+          <Route
+            path="global-chat"
+            element={
+              <GlobalChat
+                user={user}
+                socket={socket}
+                onlineUsers={onlineUsers}
+              />
+            }
+          />
+        </Routes>
       </div>
-
-      <Outlet />
-
-      {/* <Footer /> */}
-
-      {showGlobalChat && (
-        <GlobalChat
-          onClose={() => setShowGlobalChat(false)}
-          user={user}
-          socket={socket}
-          onlineUsers={onlineUsers}
-        />
-      )}
 
       <DashboardNavigation
         isOpen={isNavigationOpen}
