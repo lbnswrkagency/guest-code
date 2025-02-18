@@ -119,11 +119,9 @@ const handleMultipleUpload = async (req, res) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === "LIMIT_FILE_SIZE") {
-          return res
-            .status(413)
-            .json({
-              message: "File is too large. Maximum size is 10MB per file.",
-            });
+          return res.status(413).json({
+            message: "File is too large. Maximum size is 10MB per file.",
+          });
         }
         return res.status(400).json({ message: err.message });
       }
@@ -161,8 +159,77 @@ const handleMultipleUpload = async (req, res) => {
   });
 };
 
+// Handle avatar upload with multiple resolutions
+const handleAvatarUpload = async (req, res) => {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter,
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+  }).single("avatar");
+
+  upload(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res
+            .status(413)
+            .json({ message: "File is too large. Maximum size is 5MB." });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      return res.status(400).json({ message: err.message });
+    }
+
+    try {
+      if (!req.file?.buffer) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Process the image for different resolutions
+      const processed = {
+        thumbnail: {
+          file: req.file.buffer,
+          contentType: req.file.mimetype,
+        },
+        medium: {
+          file: req.file.buffer,
+          contentType: req.file.mimetype,
+        },
+        full: {
+          file: req.file.buffer,
+          contentType: req.file.mimetype,
+        },
+      };
+
+      const urls = {};
+      for (const [quality, file] of Object.entries(processed)) {
+        const key = `avatars/${quality}/${userId}`;
+        const url = await uploadToS3(file.file, key, file.contentType, quality);
+        urls[quality] = url;
+      }
+
+      // Update user's avatar in the database
+      const User = require("../models/User");
+      await User.findByIdAndUpdate(userId, { avatar: urls.medium });
+
+      res.json({ urls });
+    } catch (error) {
+      console.error("[UploadController] Avatar upload error:", error);
+      res.status(500).json({ message: "Upload failed", error: error.message });
+    }
+  });
+};
+
 module.exports = {
   handleImageUpload,
   handleImageDelete,
   handleMultipleUpload,
+  handleAvatarUpload,
 };

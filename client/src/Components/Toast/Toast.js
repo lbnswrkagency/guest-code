@@ -47,27 +47,47 @@ const Toast = ({ message, type = "info", duration = 3000, onClose }) => {
     if (onClose) onClose();
   };
 
+  // Truncate long messages
+  const displayMessage =
+    typeof message === "string" && message.length > 50
+      ? message.substring(0, 50) + "..."
+      : message;
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
           className={`toast ${toastTypes[type]?.className}`}
-          initial={{ opacity: 0, y: 50, scale: 0.3 }}
+          initial={{ opacity: 0, y: 20, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+          exit={{
+            opacity: 0,
+            y: -20,
+            scale: 0.8,
+            transition: { duration: 0.15 },
+          }}
         >
           <div className="toast-content">
             <div className="toast-icon">
-              <ToastIcon />
+              {type === "loading" ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <ToastIcon />
+                </motion.div>
+              ) : (
+                <ToastIcon />
+              )}
             </div>
-            <p className="toast-message">{message}</p>
+            <p className="toast-message">{displayMessage}</p>
             {type !== "loading" && (
               <button className="toast-close" onClick={handleClose}>
                 <RiCloseLine />
               </button>
             )}
           </div>
-          {type !== "loading" && (
+          {type !== "loading" && duration && (
             <div
               className="toast-progress"
               style={{

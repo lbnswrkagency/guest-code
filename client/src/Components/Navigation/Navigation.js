@@ -3,14 +3,11 @@ import React, { useState } from "react";
 import "./Navigation.scss";
 import {
   RiArrowLeftSLine,
-  RiMailLine,
   RiMenuLine,
   RiBellLine,
   RiLogoutBoxRLine,
   RiTestTubeLine,
-  RiGlobalLine,
-  RiMessage3Line,
-  RiHome5Line,
+  RiSearchLine,
 } from "react-icons/ri";
 import NotificationPanel from "../NotificationPanel/NotificationPanel";
 import { useNotificationDot } from "../../hooks/useNotificationDot";
@@ -21,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import axiosInstance from "../../utils/axiosConfig";
+import Search from "../Search/Search";
 
 const Navigation = ({ onBack, onMenuClick, onLogout }) => {
   const navigate = useNavigate();
@@ -31,6 +29,7 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
   const { socket } = useSocket();
+  const [showSearch, setShowSearch] = useState(false);
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -67,12 +66,12 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
     if (onBack) {
       onBack();
     } else {
-      navigate("/dashboard");
+      navigate(`/@${user.username}`);
     }
   };
 
   const handleHome = () => {
-    navigate("/dashboard");
+    navigate(`/@${user.username}`);
   };
 
   const createTestNotification = async () => {
@@ -98,6 +97,14 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
     }
   };
 
+  const handleSearchClick = () => {
+    setShowSearch(true);
+  };
+
+  const handleSearchClose = () => {
+    setShowSearch(false);
+  };
+
   return (
     <motion.nav
       className="app-navigation"
@@ -117,18 +124,22 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
               <RiArrowLeftSLine className="icon" />
             </motion.div>
           )}
-          <motion.div
-            className="nav-icon-wrapper home-button"
-            onClick={handleHome}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <RiHome5Line className="icon" />
-          </motion.div>
-          <div className="nav-brand">GuestCode</div>
+          <div className="nav-brand" onClick={handleHome}>
+            GuestCode
+          </div>
         </div>
 
         <div className="nav-right">
+          {/* Search */}
+          <motion.div
+            className="nav-icon-wrapper"
+            onClick={handleSearchClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <RiSearchLine className="icon" />
+          </motion.div>
+
           {/* Test Notification Button */}
           <motion.div
             className="nav-icon-wrapper test-notification"
@@ -139,33 +150,6 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
           >
             <RiTestTubeLine className="icon" />
           </motion.div>
-
-          {/* Global Chat */}
-          {/* <motion.div
-            className="nav-icon-wrapper"
-            onClick={() => navigate("/dashboard/global-chat")}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Global Chat"
-          >
-            <RiGlobalLine className="icon" />
-          </motion.div> */}
-
-          {/* Personal Chat */}
-          {/* <motion.div
-            className={`nav-icon-wrapper ${
-              chatUnreadCount > 0 ? "has-notification" : ""
-            }`}
-            onClick={() => navigate("/dashboard/chat")}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Personal Messages"
-          >
-            <RiMessage3Line className="icon" />
-            {chatUnreadCount > 0 && (
-              <span className="notification-count">{chatUnreadCount}</span>
-            )}
-          </motion.div> */}
 
           {/* Notifications */}
           <motion.div
@@ -203,6 +187,12 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
           </motion.div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showSearch && (
+          <Search isOpen={showSearch} onClose={handleSearchClose} />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showNotifications && (

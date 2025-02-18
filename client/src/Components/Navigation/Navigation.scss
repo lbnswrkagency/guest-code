@@ -26,19 +26,13 @@
         font-size: 1.25rem;
         font-weight: 700;
         color: #ffc807;
-        margin-left: 0.5rem;
-      }
-
-      .back-button {
-        font-size: 1.5rem;
-      }
-
-      .home-button {
-        font-size: 1.25rem;
-        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
 
         &:hover {
-          color: #ffc807;
+          background: rgba(255, 200, 7, 0.1);
         }
       }
     }
@@ -103,8 +97,10 @@
     .nav-content {
       padding: 0.75rem 1rem;
 
-      .nav-brand {
-        font-size: 1.1rem;
+      .nav-left {
+        .nav-brand {
+          font-size: 1.1rem;
+        }
       }
 
       .nav-icon-wrapper {
@@ -122,25 +118,25 @@
 @media (max-width: 480px) {
   .app-navigation {
     .nav-content {
-      padding: 0 0.75rem;
-    }
+      padding: 0.5rem 0.75rem;
 
-    .nav-left {
-      .nav-brand {
-        font-size: 1.1rem;
+      .nav-left {
+        .nav-brand {
+          font-size: 1rem;
+        }
       }
-    }
 
-    .nav-right {
-      gap: 0.25rem;
-    }
+      .nav-right {
+        gap: 0.25rem;
+      }
 
-    .nav-icon-wrapper {
-      width: 2rem;
-      height: 2rem;
+      .nav-icon-wrapper {
+        width: 2rem;
+        height: 2rem;
 
-      .icon {
-        font-size: 1rem;
+        .icon {
+          font-size: 1rem;
+        }
       }
     }
   }

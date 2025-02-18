@@ -5,7 +5,6 @@ import "./Login.scss";
 import AuthContext from "../../../contexts/AuthContext";
 import Navigation from "../../Navigation/Navigation";
 import { useToast } from "../../Toast/ToastContext";
-import toast from "react-hot-toast";
 
 // Debug logging utility
 const debugLog = (area, message, data = null) => {
@@ -26,6 +25,7 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,7 +50,7 @@ function Login() {
         availableKeys: Object.keys(localStorage),
       });
 
-      toast.success("Welcome back!");
+      toast.showSuccess("Welcome back!");
     } catch (error) {
       debugLog("Error", "Login failed", {
         status: error.response?.status,
@@ -67,7 +67,7 @@ function Login() {
 
       const errorMessage =
         error.response?.data?.message || "Login failed. Please try again.";
-      toast.error(errorMessage);
+      toast.showError(errorMessage);
     } finally {
       debugLog("Login", "Login attempt completed", {
         success: !!localStorage.getItem("token"),
@@ -78,7 +78,7 @@ function Login() {
 
   const handleForgotPassword = () => {
     debugLog("Navigation", "User clicked forgot password");
-    toast.info("Forgot password functionality coming soon!");
+    toast.showInfo("Forgot password functionality coming soon!");
   };
 
   return (

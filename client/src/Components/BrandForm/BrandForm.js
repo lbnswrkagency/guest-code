@@ -29,9 +29,15 @@ import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 import ErrorBoundary from "../ErrorBoundary/ErrorBoundary";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import { useToast } from "../Toast/ToastContext";
+import axios from "axios";
 
 const BrandFormContent = ({ brand, onClose, onSave }) => {
   const toast = useToast();
+  const [errors, setErrors] = useState({
+    name: "",
+    username: "",
+    logo: "",
+  });
 
   const [formData, setFormData] = useState(() => ({
     name: brand?.name || "",
@@ -78,6 +84,7 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
   const [blobUrls, setBlobUrls] = useState(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const processQueue = useRef([]);
   const abortControllerRef = useRef(null);
@@ -125,12 +132,12 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const toastId = toast.showLoading("Processing image...");
+    const loadingToast = toast.showLoading("Processing...");
 
     try {
       // Validate file size
       if (file.size > 20 * 1024 * 1024) {
-        throw new Error("File size too large. Maximum size is 20MB");
+        throw new Error("Max: 20MB");
       }
 
       const blurPlaceholder = await generateBlurPlaceholder(file);
@@ -155,87 +162,216 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
         [type]: previewUrls,
       }));
 
-      toast.updateToast(toastId, {
-        type: "success",
-        message: "Image processed successfully",
-        duration: 2000,
-      });
+      toast.showSuccess("Done");
     } catch (error) {
-      toast.updateToast(toastId, {
-        type: "error",
-        message: error.message,
-        duration: 5000,
-      });
+      // Format error message to be more concise
+      let errorMsg = error.message;
+      if (errorMsg.includes("dimensions")) {
+        errorMsg = errorMsg.replace(/.*dimensions/i, "Min dimensions:");
+      }
+      toast.showError(errorMsg);
       // Clear the file input
       e.target.value = "";
+    } finally {
+      loadingToast.dismiss();
+    }
+  };
+
+  const handleImageUpload = async (file, type, brandId) => {
+    try {
+      const formData = new FormData();
+      formData.append(type === "logo" ? "logo" : "coverImage", file);
+
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}/${type}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      return response.data.brand;
+    } catch (error) {
+      console.error(`Error uploading ${type}:`, error);
+      throw error;
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || isSubmitting) {
+      // Show specific validation errors
+      const newErrors = {};
+      if (!formData.name) newErrors.name = "Brand name is required";
+      if (!formData.username) newErrors.username = "Username is required";
+      if (!processedFiles.logo && !brand?.logo)
+        newErrors.logo = "Logo is required";
+      setErrors(newErrors);
 
-    setIsUploading(true);
-    const uploadToastId = toast.showLoading("Uploading files...");
+      const errorMessage = Object.values(newErrors).join(", ");
+      toast.showError(errorMessage);
+      return;
+    }
 
-    // Initialize new AbortController for this upload
-    abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
+    setErrors({}); // Clear previous errors
+    const loadingToast = toast.showLoading("Saving...");
+    setIsSubmitting(true);
 
     try {
       let updatedFormData = { ...formData };
+      const token = localStorage.getItem("token");
 
-      // Upload logo if changed
+      console.log("[BrandForm] Starting brand submission:", {
+        isNewBrand: !brand?._id,
+        formData: {
+          name: formData.name,
+          username: formData.username.toLowerCase(),
+          hasLogo: !!processedFiles.logo,
+          hasCover: !!processedFiles.cover,
+        },
+      });
+
+      let brandResponse;
+      if (brand?._id) {
+        // Update existing brand
+        brandResponse = await axios.put(
+          `${process.env.REACT_APP_API_BASE_URL}/brands/${brand._id}`,
+          {
+            ...updatedFormData,
+            username: updatedFormData.username.toLowerCase(),
+          },
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("[BrandForm] Brand updated successfully:", {
+          brandId: brandResponse.data?._id,
+          name: brandResponse.data?.name,
+        });
+      } else {
+        // Create new brand
+        brandResponse = await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}/brands`,
+          {
+            ...updatedFormData,
+            username: updatedFormData.username.toLowerCase(),
+            settings: {
+              autoJoinEnabled: false,
+              defaultRole: "member",
+            },
+          },
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("[BrandForm] Brand created successfully:", {
+          brandId: brandResponse.data?._id,
+          name: brandResponse.data?.name,
+        });
+      }
+
+      let updatedBrand = brandResponse.data;
+
+      // Upload logo if exists
       if (processedFiles.logo) {
-        const logoUrls = await ImageUploader.uploadMultipleResolutions(
-          processedFiles.logo,
-          ImageUploader.folders.BRAND_LOGOS,
-          `${formData.username}_logo`,
-          (progress) => {
-            toast.updateToast(uploadToastId, {
-              message: `Uploading logo... ${Math.round(progress)}%`,
-            });
-          },
-          signal
-        );
-        updatedFormData.logo = logoUrls;
+        console.log("[BrandForm] Uploading logo...");
+        const logoFormData = new FormData();
+        logoFormData.append("logo", processedFiles.logo.full.file);
+
+        try {
+          const logoResponse = await axios.put(
+            `${process.env.REACT_APP_API_BASE_URL}/brands/${brandResponse.data._id}/logo`,
+            logoFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${token}`,
+              },
+              withCredentials: true,
+            }
+          );
+          console.log("[BrandForm] Logo uploaded successfully:", {
+            brandId: brandResponse.data._id,
+            hasLogo: !!logoResponse.data.brand.logo,
+          });
+          updatedBrand = logoResponse.data.brand;
+        } catch (error) {
+          console.error("[BrandForm] Logo upload failed:", error);
+          toast.showError("Logo upload failed, but brand was created");
+        }
       }
 
-      // Upload cover if changed
+      // Upload cover if exists
       if (processedFiles.cover) {
-        const coverUrls = await ImageUploader.uploadMultipleResolutions(
-          processedFiles.cover,
-          ImageUploader.folders.BRAND_COVERS,
-          `${formData.username}_cover`,
-          (progress) => {
-            toast.updateToast(uploadToastId, {
-              message: `Uploading cover... ${Math.round(progress)}%`,
-            });
-          },
-          signal
-        );
-        updatedFormData.coverImage = coverUrls;
+        console.log("[BrandForm] Uploading cover image...");
+        const coverFormData = new FormData();
+        coverFormData.append("coverImage", processedFiles.cover.full.file);
+
+        try {
+          const coverResponse = await axios.put(
+            `${process.env.REACT_APP_API_BASE_URL}/brands/${brandResponse.data._id}/cover`,
+            coverFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${token}`,
+              },
+              withCredentials: true,
+            }
+          );
+          console.log("[BrandForm] Cover image uploaded successfully:", {
+            brandId: brandResponse.data._id,
+            hasCover: !!coverResponse.data.brand.coverImage,
+          });
+          updatedBrand = coverResponse.data.brand;
+        } catch (error) {
+          console.error("[BrandForm] Cover upload failed:", error);
+          toast.showError("Cover image upload failed, but brand was created");
+        }
       }
 
-      await onSave(updatedFormData);
+      // Call onSave with the updated brand data
+      await onSave(updatedBrand);
 
-      toast.updateToast(uploadToastId, {
-        type: "success",
-        message: brand
-          ? "Brand updated successfully"
-          : "Brand created successfully",
-        duration: 3000,
-      });
+      // Show success message and close form
+      toast.showSuccess(
+        brand?._id
+          ? "Brand updated successfully!"
+          : "Brand created successfully!"
+      );
+      onClose();
     } catch (error) {
-      toast.updateToast(uploadToastId, {
-        type: "error",
-        message: `Upload failed: ${error.message}`,
-        duration: 5000,
+      console.error("[BrandForm] Error submitting brand:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
       });
+
+      // Clear loading toast before showing error
+      loadingToast.dismiss();
+
+      if (error.response?.data?.code === "DUPLICATE_USERNAME") {
+        setErrors({ username: "This username is already taken" });
+        toast.showError("This username is already taken");
+      } else {
+        toast.showError(
+          error.response?.data?.message || "Failed to create brand"
+        );
+      }
     } finally {
-      setIsUploading(false);
-      // Clean up the abort controller
-      abortControllerRef.current = null;
+      setIsSubmitting(false);
+      loadingToast.dismiss();
     }
   };
 
@@ -350,7 +486,9 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
               </label>
             </div>
 
-            <div className="logo-upload required">
+            <div
+              className={`logo-upload required ${errors.logo ? "error" : ""}`}
+            >
               <input
                 type="file"
                 onChange={(e) => handleFileChange(e, "logo")}
@@ -371,27 +509,43 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                 ) : (
                   <>
                     <RiUpload2Line />
-                    <span>Upload Logo</span>
+                    <span>
+                      Upload Logo{" "}
+                      {errors.logo && <span className="error-text">*</span>}
+                    </span>
                   </>
                 )}
               </label>
+              {errors.logo && (
+                <div className="error-message">{errors.logo}</div>
+              )}
             </div>
           </div>
 
           <div className="form-fields">
-            <div className="input-group required">
+            <div
+              className={`input-group required ${errors.name ? "error" : ""}`}
+            >
               <input
                 type="text"
                 placeholder="Brand Name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, name: e.target.value }));
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+                }}
                 required
               />
+              {errors.name && (
+                <div className="error-message">{errors.name}</div>
+              )}
             </div>
 
-            <div className="input-group username-group required">
+            <div
+              className={`input-group username-group required ${
+                errors.username ? "error" : ""
+              }`}
+            >
               <div className="username-wrapper">
                 <span className="username-prefix">@</span>
                 <input
@@ -399,15 +553,20 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                   type="text"
                   placeholder="Choose your username"
                   value={formData.username}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData((prev) => ({
                       ...prev,
                       username: e.target.value,
-                    }))
-                  }
+                    }));
+                    if (errors.username)
+                      setErrors((prev) => ({ ...prev, username: "" }));
+                  }}
                   required
                 />
               </div>
+              {errors.username && (
+                <div className="error-message">{errors.username}</div>
+              )}
               <p className="input-hint">This will be your unique identifier</p>
             </div>
 

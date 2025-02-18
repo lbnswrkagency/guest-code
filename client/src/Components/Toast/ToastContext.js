@@ -24,41 +24,63 @@ export const ToastProvider = ({ children }) => {
     );
   }, []);
 
-  const showLoading = useCallback(
-    (message = "Loading...") => {
-      return addToast({ message, type: "loading", duration: null });
-    },
-    [addToast]
-  );
-
-  const showSuccess = useCallback(
-    (message) => {
-      return addToast({ message, type: "success" });
-    },
-    [addToast]
-  );
-
-  const showError = useCallback(
-    (message) => {
-      return addToast({ message, type: "error", duration: 5000 });
-    },
-    [addToast]
-  );
-
-  const showInfo = useCallback(
-    (message) => {
-      return addToast({ message, type: "info" });
-    },
-    [addToast]
-  );
-
   const updateToast = useCallback((id, updates) => {
+    if (!id) return;
     setToasts((currentToasts) =>
       currentToasts.map((toast) =>
         toast.id === id ? { ...toast, ...updates } : toast
       )
     );
   }, []);
+
+  const clearLoadingToasts = useCallback(() => {
+    setToasts((currentToasts) =>
+      currentToasts.filter((toast) => toast.type !== "loading")
+    );
+  }, []);
+
+  const showSuccess = useCallback(
+    (message) => {
+      clearLoadingToasts(); // Clear any loading toasts first
+      return addToast({ message, type: "success", duration: 2000 });
+    },
+    [addToast, clearLoadingToasts]
+  );
+
+  const showError = useCallback(
+    (message) => {
+      clearLoadingToasts(); // Clear any loading toasts first
+      const truncatedMessage =
+        typeof message === "string" && message.length > 100
+          ? message.substring(0, 100) + "..."
+          : message;
+      return addToast({
+        message: truncatedMessage,
+        type: "error",
+        duration: 3000,
+      });
+    },
+    [addToast, clearLoadingToasts]
+  );
+
+  const showInfo = useCallback(
+    (message) => {
+      return addToast({ message, type: "info", duration: 2500 });
+    },
+    [addToast]
+  );
+
+  const showLoading = useCallback(
+    (message = "Loading...") => {
+      const id = addToast({ message, type: "loading", duration: null });
+      return {
+        id,
+        dismiss: () => removeToast(id),
+        update: (updates) => updateToast(id, updates),
+      };
+    },
+    [addToast, removeToast, updateToast]
+  );
 
   return (
     <ToastContext.Provider
@@ -69,6 +91,7 @@ export const ToastProvider = ({ children }) => {
         showInfo,
         removeToast,
         updateToast,
+        clearLoadingToasts,
       }}
     >
       {children}

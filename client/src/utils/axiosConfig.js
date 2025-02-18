@@ -1,10 +1,5 @@
 import axios from "axios";
 
-console.log(
-  "[AxiosConfig] Initializing with base URL:",
-  process.env.REACT_APP_API_BASE_URL
-);
-
 // Flag to track if a token refresh is in progress
 let isRefreshing = false;
 let refreshSubscribers = [];
@@ -33,13 +28,6 @@ const axiosInstance = axios.create({
 // Add request interceptor to ensure credentials are always sent
 axiosInstance.interceptors.request.use(
   (config) => {
-    console.log("[AxiosConfig] Making request:", {
-      url: config.url,
-      method: config.method,
-      withCredentials: config.withCredentials,
-      timestamp: new Date().toISOString(),
-    });
-
     // Always include the latest token from localStorage
     const token = localStorage.getItem("token");
     if (token) {
@@ -50,10 +38,6 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("[AxiosConfig] Request error:", {
-      message: error.message,
-      config: error.config,
-    });
     return Promise.reject(error);
   }
 );
@@ -73,11 +57,6 @@ axios.interceptors.request.use(
 // Add response interceptor to handle token refresh
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log("[AxiosConfig] Response received:", {
-      url: response.config.url,
-      status: response.status,
-      timestamp: new Date().toISOString(),
-    });
     return response;
   },
   async (error) => {
@@ -87,7 +66,6 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        console.log("[AxiosConfig] Attempting token refresh");
         const refreshToken = localStorage.getItem("refreshToken");
 
         if (!refreshToken) {
@@ -103,7 +81,6 @@ axiosInstance.interceptors.response.use(
         );
 
         if (response.data.token) {
-          console.log("[AxiosConfig] Token refresh successful");
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("refreshToken", response.data.refreshToken);
 
@@ -114,7 +91,6 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
-        console.error("[AxiosConfig] Token refresh failed:", refreshError);
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         window.location.href = "/login";
@@ -128,20 +104,9 @@ axiosInstance.interceptors.response.use(
 // Add response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log("[AxiosConfig] Response received:", {
-      url: response.config.url,
-      status: response.status,
-      timestamp: new Date().toISOString(),
-    });
     return response;
   },
   async (error) => {
-    console.error("[AxiosConfig] Response error:", {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      timestamp: new Date().toISOString(),
-    });
     return Promise.reject(error);
   }
 );

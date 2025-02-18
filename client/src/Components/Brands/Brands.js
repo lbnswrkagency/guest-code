@@ -16,12 +16,15 @@ import {
 } from "react-icons/fa";
 import { MdEmail, MdPhone, MdLocationOn } from "react-icons/md";
 import BrandForm from "../BrandForm/BrandForm";
+import BrandSettings from "../BrandSettings/BrandSettings";
 import Navigation from "../Navigation/Navigation";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import AuthContext from "../../contexts/AuthContext";
+import { motion } from "framer-motion";
+import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 
 const SocialIcon = ({ platform, url }) => {
   const icons = {
@@ -53,146 +56,6 @@ const ContactInfo = ({ type, value, icon: Icon }) => (
   </div>
 );
 
-const BrandCard = ({ brand, onClick }) => {
-  console.log("[BrandCard] Rendering brand:", {
-    id: brand._id,
-    name: brand.name,
-    coverImage: brand.coverImage,
-    logo: brand.logo,
-    social: brand.social,
-    contact: brand.contact,
-  });
-
-  const addCacheBuster = (url) => {
-    if (!url) return "";
-    // Add both a timestamp and a random string to defeat CloudFront caching
-    const timestamp = new Date().getTime();
-    const random = Math.random().toString(36).substring(7);
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}v=${timestamp}-${random}`;
-  };
-
-  const getImageUrl = (imageObj, size) => {
-    if (!imageObj || !imageObj[size]) return "";
-    const url = imageObj[size];
-
-    // If it's a blob URL, use it as is (temporary preview)
-    if (url.startsWith("blob:")) {
-      return url;
-    }
-
-    // Always add cache buster for CloudFront URLs
-    const timestamp = new Date().getTime();
-    const random = Math.random().toString(36).substring(7);
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}v=${timestamp}-${random}`;
-  };
-
-  const socialPlatforms = [
-    "instagram",
-    "tiktok",
-    "facebook",
-    "twitter",
-    "youtube",
-    "spotify",
-    "soundcloud",
-    "linkedin",
-    "website",
-    "whatsapp",
-    "telegram",
-  ];
-
-  const handleEditClick = (e) => {
-    e.stopPropagation();
-    onClick(brand);
-  };
-
-  const handleSettingsClick = (e) => {
-    e.stopPropagation();
-    // Will implement settings later
-    console.log("Settings clicked");
-  };
-
-  return (
-    <div className="brand-card">
-      <div className="brand-card-header">
-        {brand.coverImage && (
-          <img
-            src={getImageUrl(brand.coverImage, "medium")}
-            alt=""
-            className="brand-cover-image"
-            onError={(e) => {
-              console.error("[BrandCard] Error loading cover image:", e);
-              e.target.style.display = "none";
-            }}
-          />
-        )}
-        <div className="card-actions">
-          <button className="action-button edit" onClick={handleEditClick}>
-            <RiEditLine />
-          </button>
-          <button
-            className="action-button settings"
-            onClick={handleSettingsClick}
-          >
-            <RiSettings4Line />
-          </button>
-        </div>
-      </div>
-      <div className="brand-card-content">
-        {brand.logo && (
-          <img
-            src={getImageUrl(brand.logo, "thumbnail")}
-            alt=""
-            className="brand-logo"
-            onError={(e) => {
-              console.error("[BrandCard] Error loading logo image:", e);
-              e.target.style.display = "none";
-            }}
-          />
-        )}
-        <div className="brand-info">
-          <h3>{brand.name}</h3>
-          <span className="username">@{brand.username}</span>
-          {brand.description && (
-            <p className="description">{brand.description}</p>
-          )}
-        </div>
-
-        <div className="brand-details">
-          <div className="social-icons">
-            {socialPlatforms.map((platform) => (
-              <SocialIcon
-                key={platform}
-                platform={platform}
-                url={brand.social?.[platform]}
-              />
-            ))}
-          </div>
-
-          <div className="contact-section">
-            <ContactInfo
-              type="email"
-              value={brand.contact?.email}
-              icon={MdEmail}
-            />
-            <ContactInfo
-              type="phone"
-              value={brand.contact?.phone}
-              icon={MdPhone}
-            />
-            <ContactInfo
-              type="address"
-              value={brand.contact?.address}
-              icon={MdLocationOn}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Brands = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -201,15 +64,19 @@ const Brands = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedBrandForSettings, setSelectedBrandForSettings] =
+    useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchBrands();
   }, []);
 
   const fetchBrands = async () => {
+    const loadingToast = toast.showLoading("Loading brands...");
     try {
       console.log("[Brands] Fetching brands...");
-      toast.loading("Loading brands...");
 
       // Get current token and log it
       const token = localStorage.getItem("token");
@@ -219,12 +86,21 @@ const Brands = () => {
         tokenStart: token ? `${token.substring(0, 20)}...` : null,
       });
 
+      if (!token) {
+        console.error("[Brands] No token found in localStorage");
+        toast.showError("Authentication required");
+        setLoading(false);
+        setBrands([]);
+        return;
+      }
+
       // Log the complete URL and request config
       const url = `${process.env.REACT_APP_API_BASE_URL}/brands`;
       const config = {
         withCredentials: true,
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       };
 
@@ -268,23 +144,19 @@ const Brands = () => {
       }
 
       setLoading(false);
-      toast.remove();
     } catch (error) {
-      console.error("[Brands] Error fetching brands:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          headers: error.config?.headers,
-          withCredentials: error.config?.withCredentials,
-        },
-      });
-      toast.error("Failed to load brands");
+      console.error("[Brands] Error fetching brands:", error);
+
+      if (error.response?.status === 401) {
+        toast.showError("Session expired. Please log in again.");
+      } else {
+        toast.showError("Failed to load brands");
+      }
+
       setLoading(false);
-      setBrands([]); // Set empty array on error
+      setBrands([]);
+    } finally {
+      loadingToast.dismiss();
     }
   };
 
@@ -300,8 +172,6 @@ const Brands = () => {
 
   const handleSave = async (brandData) => {
     try {
-      toast.loading(selectedBrand ? "Updating brand..." : "Creating brand...");
-
       console.log("[Brands] Starting brand save with data:", {
         id: selectedBrand?._id,
         name: brandData.name,
@@ -310,137 +180,102 @@ const Brands = () => {
         hasCover: !!brandData.coverImage,
       });
 
-      const token = localStorage.getItem("token");
-      const config = {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      };
-
-      console.log("[Brands] Auth check for save:", {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token ? `${token.substring(0, 20)}...` : null,
-      });
-
-      // Prepare the data to send
-      const dataToSend = {
-        ...brandData,
-        logo: brandData.logo || null,
-        coverImage: brandData.coverImage || null,
-        social: {
-          ...(selectedBrand?.social || {}),
-          ...(brandData.social || {}),
-        },
-        contact: {
-          ...(selectedBrand?.contact || {}),
-          ...(brandData.contact || {}),
-        },
-      };
-
-      let response;
-      if (selectedBrand) {
-        const updateUrl = `${process.env.REACT_APP_API_BASE_URL}/brands/${selectedBrand._id}`;
-        console.log("[Brands] Updating brand:", {
-          url: updateUrl,
-          method: "PUT",
-          brandId: selectedBrand._id,
-          headers: config.headers,
-        });
-
-        response = await axios.put(updateUrl, dataToSend, config);
-
-        console.log("[Brands] Update response:", {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: {
-            id: response.data?._id,
-            name: response.data?.name,
-            hasLogo: !!response.data?.logo,
-            hasCover: !!response.data?.coverImage,
-          },
-        });
-
-        toast.success("Brand updated successfully!");
-      } else {
-        const createUrl = `${process.env.REACT_APP_API_BASE_URL}/brands`;
-        console.log("[Brands] Creating new brand:", {
-          url: createUrl,
-          method: "POST",
-          headers: config.headers,
-        });
-
-        response = await axios.post(createUrl, dataToSend, config);
-
-        console.log("[Brands] Creation response:", {
-          status: response.status,
-          statusText: response.statusText,
-          data: {
-            id: response.data?._id,
-            name: response.data?.name,
-          },
-        });
-
-        toast.success("Brand created successfully!");
-      }
-
       // Update the brands list with the new data immediately
       setBrands((prev) => {
         if (selectedBrand) {
-          return prev.map((b) =>
-            b._id === selectedBrand._id ? response.data : b
-          );
+          return prev.map((b) => (b._id === selectedBrand._id ? brandData : b));
         } else {
-          return [...prev, response.data];
+          return [...prev, brandData];
         }
       });
 
-      await fetchBrands(); // Refresh the brands list
+      // No need to fetch brands again since we've already updated the state
       handleClose();
     } catch (error) {
-      console.error("[Brands] Save error:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          baseURL: error.config?.baseURL,
-          withCredentials: error.config?.withCredentials,
-        },
-      });
-
-      toast.error(
-        selectedBrand ? "Failed to update brand" : "Failed to create brand"
-      );
+      console.error("[Brands] Save error:", error);
+      toast.showError(error.response?.data?.message || "Failed to save brand");
     }
   };
 
   const handleDelete = async (brandId) => {
-    if (window.confirm("Are you sure you want to delete this brand?")) {
-      try {
-        toast.loading("Deleting brand...");
-        await axios.delete(
-          `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
-          {
-            withCredentials: true,
-          }
-        );
-        toast.success("Brand deleted successfully!");
-        fetchBrands();
-      } catch (error) {
-        toast.error("Failed to delete brand");
-      }
+    console.log("[Brands] handleDelete triggered", {
+      brandId,
+      hasToken: !!localStorage.getItem("token"),
+    });
+
+    try {
+      const loadingToast = toast.showLoading("Deleting brand...");
+      console.log("[Brands] Sending delete request for brand:", brandId);
+
+      await axios.delete(
+        `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      console.log("[Brands] Brand deleted successfully:", brandId);
+      toast.showSuccess("Brand deleted successfully!");
+      fetchBrands();
+    } catch (error) {
+      console.error("[Brands] Error deleting brand:", {
+        brandId,
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      toast.showError("Failed to delete brand");
     }
   };
 
   const handleBack = () => {
-    navigate("/dashboard");
+    navigate(`/@${user.username}`);
+  };
+
+  const handleSettingsClick = (brand) => {
+    setSelectedBrandForSettings(brand);
+    setShowSettings(true);
+  };
+
+  const handleSettingsClose = () => {
+    setShowSettings(false);
+    setSelectedBrandForSettings(null);
+  };
+
+  const handleBrandDelete = async (brandId) => {
+    console.log("[Brands] handleBrandDelete triggered", { brandId });
+    try {
+      await handleDelete(brandId);
+      console.log("[Brands] handleDelete completed, closing settings");
+      handleSettingsClose();
+    } catch (error) {
+      console.error("[Brands] Error in handleBrandDelete:", {
+        brandId,
+        error: error.message,
+      });
+    }
+  };
+
+  const handleSettingsSave = async (settings) => {
+    try {
+      if (!selectedBrandForSettings) return;
+
+      await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/brands/${selectedBrandForSettings._id}`,
+        {
+          settings,
+        }
+      );
+
+      toast.showSuccess("Brand settings updated successfully");
+      fetchBrands();
+    } catch (error) {
+      console.error("Error updating brand settings:", error);
+      toast.showError("Failed to update brand settings");
+    }
   };
 
   return (
@@ -467,21 +302,16 @@ const Brands = () => {
             <div className="loading-state">Loading brands...</div>
           ) : brands.length > 0 ? (
             <>
-              {brands.map((brand) => {
-                console.log("[Brands] Rendering brand card:", {
-                  id: brand._id,
-                  name: brand.name,
-                  hasLogo: !!brand.logo,
-                  hasCover: !!brand.coverImage,
-                });
-                return (
-                  <BrandCard
-                    key={brand._id}
-                    brand={brand}
-                    onClick={handleBrandClick}
-                  />
-                );
-              })}
+              {brands.map((brand) => (
+                <BrandCard
+                  key={brand._id}
+                  brand={brand}
+                  onClick={handleBrandClick}
+                  onSettingsClick={handleSettingsClick}
+                  onSettingsSave={handleSettingsSave}
+                  onSettingsDelete={handleBrandDelete}
+                />
+              ))}
 
               <div
                 className="brand-card add-card"
@@ -493,15 +323,12 @@ const Brands = () => {
             </>
           ) : (
             <>
-              <div className="no-brands-message">
-                <p>No brands found. Create your first brand!</p>
-              </div>
               <div
                 className="brand-card add-card"
                 onClick={() => setShowForm(true)}
               >
                 <RiAddCircleLine className="add-icon" />
-                <p>Create New Brand</p>
+                <p>No brands found. Create your first brand!</p>
               </div>
             </>
           )}
@@ -516,6 +343,219 @@ const Brands = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const BrandCard = ({
+  brand,
+  onClick,
+  onSettingsClick,
+  onSettingsSave,
+  onSettingsDelete,
+}) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showBackContent, setShowBackContent] = useState(false);
+
+  const getImageUrl = (imageObj) => {
+    if (!imageObj) return null;
+
+    // If it's a string, it's a direct URL
+    if (typeof imageObj === "string") return imageObj;
+
+    // If it has urls object, use that
+    if (imageObj.urls) {
+      return (
+        imageObj.urls.medium || imageObj.urls.full || imageObj.urls.thumbnail
+      );
+    }
+
+    // If it has different sizes, use those
+    return (
+      imageObj.medium ||
+      imageObj.full ||
+      imageObj.thumbnail ||
+      imageObj.original
+    );
+  };
+
+  useEffect(() => {
+    if (isFlipped) {
+      // Show back content after a small delay to sync with flip
+      const timer = setTimeout(() => setShowBackContent(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowBackContent(false);
+    }
+  }, [isFlipped]);
+
+  console.log("[BrandCard] Rendering brand:", {
+    id: brand._id,
+    name: brand.name,
+    coverImage: brand.coverImage,
+    logo: brand.logo,
+    social: brand.social,
+    contact: brand.contact,
+  });
+
+  const coverImageUrl = getImageUrl(brand.coverImage);
+  const logoUrl = getImageUrl(brand.logo);
+
+  const socialPlatforms = [
+    "instagram",
+    "tiktok",
+    "facebook",
+    "twitter",
+    "youtube",
+    "spotify",
+    "soundcloud",
+    "linkedin",
+    "website",
+    "whatsapp",
+    "telegram",
+  ];
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    onClick(brand);
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    setIsFlipped(true);
+  };
+
+  const handleSettingsClose = () => {
+    setIsFlipped(false);
+  };
+
+  return (
+    <motion.div
+      className={`brand-card ${isFlipped ? "flipped" : ""}`}
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "1000px",
+      }}
+    >
+      {/* Front side */}
+      <div
+        className="card-front"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          zIndex: isFlipped ? 0 : 1,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <div className="brand-card-header">
+          <div className="brand-cover-image">
+            {coverImageUrl && (
+              <ProgressiveImage
+                thumbnailSrc={getImageUrl(brand.coverImage)}
+                mediumSrc={getImageUrl(brand.coverImage)}
+                fullSrc={getImageUrl(brand.coverImage)}
+                alt={`${brand.name} cover`}
+                className="cover-image"
+              />
+            )}
+          </div>
+          <div className="card-actions">
+            <motion.button
+              className="action-button edit"
+              onClick={handleEditClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiEditLine />
+            </motion.button>
+            <motion.button
+              className="action-button settings"
+              onClick={handleSettingsClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiSettings4Line />
+            </motion.button>
+          </div>
+        </div>
+        <div className="brand-card-content">
+          {logoUrl && (
+            <div className="brand-logo">
+              <ProgressiveImage
+                thumbnailSrc={getImageUrl(brand.logo)}
+                mediumSrc={getImageUrl(brand.logo)}
+                fullSrc={getImageUrl(brand.logo)}
+                alt={`${brand.name} logo`}
+                className="logo-image"
+              />
+            </div>
+          )}
+          <div className="brand-info">
+            <h3>{brand.name}</h3>
+            <span className="username">@{brand.username}</span>
+            {brand.description && (
+              <p className="description">{brand.description}</p>
+            )}
+          </div>
+
+          <div className="brand-details">
+            <div className="social-icons">
+              {socialPlatforms.map((platform) => (
+                <SocialIcon
+                  key={platform}
+                  platform={platform}
+                  url={brand.social?.[platform]}
+                />
+              ))}
+            </div>
+
+            <div className="contact-section">
+              <ContactInfo
+                type="email"
+                value={brand.contact?.email}
+                icon={MdEmail}
+              />
+              <ContactInfo
+                type="phone"
+                value={brand.contact?.phone}
+                icon={MdPhone}
+              />
+              <ContactInfo
+                type="address"
+                value={brand.contact?.address}
+                icon={MdLocationOn}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Back side */}
+      <div
+        className="card-back"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
+          zIndex: isFlipped ? 1 : 0,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {showBackContent && (
+          <BrandSettings
+            brand={brand}
+            onClose={() => setIsFlipped(false)}
+            onDelete={onSettingsDelete}
+            onSave={onSettingsSave}
+          />
+        )}
+      </div>
+    </motion.div>
   );
 };
 

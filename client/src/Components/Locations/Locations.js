@@ -7,7 +7,7 @@ import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../contexts/AuthContext";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 
 const Locations = () => {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ const Locations = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     fetchLocations();
@@ -24,7 +25,7 @@ const Locations = () => {
 
   const fetchLocations = async () => {
     try {
-      toast.loading("Loading locations...");
+      const loadingToastId = toast.showLoading("Loading locations...");
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/locations`,
         {
@@ -33,10 +34,10 @@ const Locations = () => {
       );
       setLocations(response.data);
       setLoading(false);
-      toast.remove();
+      toast.removeToast(loadingToastId);
     } catch (error) {
       console.error("Error fetching locations:", error);
-      toast.error("Failed to load locations");
+      toast.showError("Failed to load locations");
       setLoading(false);
     }
   };
@@ -53,7 +54,7 @@ const Locations = () => {
 
   const handleSave = async (locationData) => {
     try {
-      toast.loading(
+      const loadingToastId = toast.showLoading(
         selectedLocation ? "Updating location..." : "Creating location..."
       );
 
@@ -70,21 +71,22 @@ const Locations = () => {
           locationData,
           config
         );
-        toast.success("Location updated successfully!");
+        toast.showSuccess("Location updated successfully!");
       } else {
         await axios.post(
           `${process.env.REACT_APP_API_BASE_URL}/locations`,
           locationData,
           config
         );
-        toast.success("Location created successfully!");
+        toast.showSuccess("Location created successfully!");
       }
 
+      toast.removeToast(loadingToastId);
       fetchLocations();
       handleClose();
     } catch (error) {
       console.error("Error saving location:", error);
-      toast.error(
+      toast.showError(
         selectedLocation
           ? "Failed to update location"
           : "Failed to create location"
@@ -95,18 +97,19 @@ const Locations = () => {
   const handleDelete = async (locationId) => {
     if (window.confirm("Are you sure you want to delete this location?")) {
       try {
-        toast.loading("Deleting location...");
+        const loadingToastId = toast.showLoading("Deleting location...");
         await axios.delete(
           `${process.env.REACT_APP_API_BASE_URL}/locations/${locationId}`,
           {
             withCredentials: true,
           }
         );
-        toast.success("Location deleted successfully!");
+        toast.removeToast(loadingToastId);
+        toast.showSuccess("Location deleted successfully!");
         fetchLocations();
       } catch (error) {
         console.error("Error deleting location:", error);
-        toast.error("Failed to delete location");
+        toast.showError("Failed to delete location");
       }
     }
   };

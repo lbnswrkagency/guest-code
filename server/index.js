@@ -29,11 +29,12 @@ const battleSignRoutes = require("./routes/api/battleSignRoutes");
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const brandRoutes = require("./routes/api/brandRoutes");
+const brandRoutes = require("./routes/brandRoutes");
 const locationRoutes = require("./routes/api/locationRoutes");
-const notificationRoutes = require("./routes/api/notificationRoutes");
+const notificationRoutes = require("./routes/notificationRoute");
 const uploadRoutes = require("./routes/api/uploadRoutes");
-const searchRoutes = require("./routes/search");
+const searchRoutes = require("./routes/searchRoute");
+const roleRoutes = require("./routes/roleRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -41,13 +42,6 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 dotenv.config();
-
-console.log("[Server:Init] Environment check:", {
-  hasAccessSecret: !!process.env.JWT_ACCESS_SECRET,
-  hasRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
-  accessSecretStart: process.env.JWT_ACCESS_SECRET?.substring(0, 10) + "...",
-  refreshSecretStart: process.env.JWT_REFRESH_SECRET?.substring(0, 10) + "...",
-});
 
 const app = express();
 const server = http.createServer(app);
@@ -111,7 +105,8 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/api/search", searchRoutes);
+app.use("/api", searchRoutes);
+app.use("/api/roles", roleRoutes);
 
 // MongoDB connection
 mongoose
@@ -119,10 +114,12 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("[Server] MongoDB connected successfully!"))
-  .catch((error) =>
-    console.log(`[Server] Error connecting to MongoDB:`, error)
-  );
+  .then(() => {
+    // Silent success
+  })
+  .catch((error) => {
+    // Silent error
+  });
 
 // Root route
 app.get("/", (req, res) => {
@@ -130,29 +127,18 @@ app.get("/", (req, res) => {
 });
 
 // Initialize Socket.IO
-console.log("[Server] Initializing Socket.IO");
 const io = setupSocket(server);
 app.set("io", io);
 
 // Start server
 const port = process.env.PORT || 5001;
-server.listen(port, () => {
-  console.log(`[Server] Server running on port ${port}`);
-  console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
-  console.log(
-    `[Server] MongoDB connected: ${mongoose.connection.readyState === 1}`
-  );
-  console.log(`[Server] Socket.IO initialized`);
-  console.log(
-    `[Server] CORS origin: ${process.env.CLIENT_URL || "http://localhost:3000"}`
-  );
-});
+server.listen(port);
 
 // Error handling
 server.on("error", (error) => {
-  console.error("[Server] Server error:", error);
+  // Silent error
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("[Server] Unhandled Rejection at:", promise, "reason:", reason);
+  // Silent error
 });

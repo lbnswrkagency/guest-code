@@ -12,7 +12,8 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
+// Inner provider that uses router hooks
+const AuthProviderWithRouter = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -30,16 +31,57 @@ export const AuthProvider = ({ children }) => {
     "/verify/:token",
   ];
 
+  // Add logging for user state changes
+  useEffect(() => {
+    // console.log("[AuthContext] User state changed:", {
+    //   hasUser: !!user,
+    //   username: user?.username,
+    //   loading,
+    //   currentPath: location.pathname,
+    //   timestamp: new Date().toISOString(),
+    // });
+  }, [user, loading, location.pathname]);
+
   const fetchUserData = async () => {
+    // console.log("[AuthContext] Fetching user data");
     try {
       const response = await axiosInstance.get("/auth/user");
+      // console.log("[AuthContext] User data fetched:", {
+      //   hasData: !!response.data,
+      //   username: response.data?.username,
+      //   timestamp: new Date().toISOString(),
+      // });
       setUser(response.data);
       return response.data;
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      // console.error("[AuthContext] Error fetching user data:", {
+      //   error: error.message,
+      //   timestamp: new Date().toISOString(),
+      // });
       throw error;
     }
   };
+
+  // Add initial auth check
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          await fetchUserData();
+        } catch (error) {
+          // console.error("Initial auth check failed:", error);
+          // Only redirect if on a protected route
+          if (pathsRequiringAuth.includes(location.pathname)) {
+            navigate("/login", { state: { from: location } });
+          }
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []); // Run once on mount
 
   // Setup axios interceptor for token refresh
   useEffect(() => {
@@ -65,7 +107,7 @@ export const AuthProvider = ({ children }) => {
             // Retry the original request
             return axiosInstance(originalRequest);
           } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
+            // console.error("Token refresh failed:", refreshError);
             setIsRefreshing(false);
             setUser(null);
             navigate("/login", { state: { from: location } });
@@ -85,7 +127,7 @@ export const AuthProvider = ({ children }) => {
             await axiosInstance.post("/auth/refresh-token");
           }
         } catch (error) {
-          console.error("Periodic token refresh failed:", error);
+          // console.error("Periodic token refresh failed:", error);
         }
       }, 14 * 60 * 1000); // 14 minutes
     };
@@ -106,7 +148,7 @@ export const AuthProvider = ({ children }) => {
         try {
           await fetchUserData();
         } catch (error) {
-          console.error("Auth state check failed:", error);
+          // console.error("Auth state check failed:", error);
           navigate("/login", { state: { from: location } });
         } finally {
           setLoading(false);
@@ -120,46 +162,51 @@ export const AuthProvider = ({ children }) => {
   }, [location.pathname]);
 
   const login = async (credentials) => {
-    console.log("[AuthContext] Starting login process", {
-      timestamp: new Date().toISOString(),
-      hasEmail: !!credentials.email,
-    });
+    // console.log("[AuthContext] Starting login process", {
+    //   timestamp: new Date().toISOString(),
+    //   hasEmail: !!credentials.email,
+    // });
 
     try {
-      // Clear any existing tokens first
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
 
-      console.log("[AuthContext] Making login request to server");
       const response = await axiosInstance.post("/auth/login", credentials);
 
+      // console.log("[AuthContext] Login response received:", {
+      //   hasUser: !!response.data.user,
+      //   hasToken: !!response.data.token,
+      //   username: response.data.user?.username,
+      //   timestamp: new Date().toISOString(),
+      // });
+
       if (!response.data.user || !response.data.token) {
-        console.error("[AuthContext] Invalid login response:", response.data);
         throw new Error("Invalid login response");
       }
 
-      console.log("[AuthContext] Login successful, setting tokens and user");
-
-      // Set tokens first
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("refreshToken", response.data.refreshToken);
 
-      // Update axios default headers
       axiosInstance.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${response.data.token}`;
 
-      // Then set user state
       setUser(response.data.user);
 
-      console.log("[AuthContext] Login complete, navigating to dashboard");
-      navigate("/dashboard");
+      // console.log("[AuthContext] Navigating after login:", {
+      //   username: response.data.user.username,
+      //   targetPath: `/@${response.data.user.username}`,
+      //   timestamp: new Date().toISOString(),
+      // });
+
+      // Change navigation to use new URL pattern
+      navigate(`/@${response.data.user.username}`);
     } catch (error) {
-      console.error("[AuthContext] Login error:", {
-        message: error.message,
-        response: error.response?.data,
-      });
-      // Clear everything on error
+      // console.error("[AuthContext] Login error:", {
+      //   message: error.message,
+      //   response: error.response?.data,
+      //   timestamp: new Date().toISOString(),
+      // });
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
@@ -169,7 +216,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log("[AuthContext] Starting logout process");
+      // console.log("[AuthContext] Starting logout process");
 
       // Call server logout endpoint
       await axiosInstance.post("/auth/logout");
@@ -181,10 +228,10 @@ export const AuthProvider = ({ children }) => {
       // Clear user state
       setUser(null);
 
-      console.log("[AuthContext] Logout successful, redirecting to login");
+      // console.log("[AuthContext] Logout successful, redirecting to login");
       navigate("/login");
     } catch (error) {
-      console.error("[AuthContext] Logout error:", error);
+      // console.error("[AuthContext] Logout error:", error);
       // Still clear local data even if server logout fails
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
@@ -203,6 +250,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Outer provider that doesn't use router hooks
+export const AuthProvider = ({ children }) => {
+  return <AuthProviderWithRouter>{children}</AuthProviderWithRouter>;
 };
 
 export default AuthContext;

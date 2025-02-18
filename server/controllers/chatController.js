@@ -33,14 +33,8 @@ exports.createChat = async (req, res) => {
       .populate("participants", "username firstName lastName avatar")
       .populate("lastMessage");
 
-    console.log("[ChatController] Created new chat:", {
-      chatId: populatedChat._id,
-      participants: populatedChat.participants.map((p) => p._id),
-    });
-
     res.status(201).json(populatedChat);
   } catch (error) {
-    console.error("[ChatController] Error creating chat:", error);
     res.status(500).json({
       message: "Error creating chat",
       error: error.message,
@@ -50,7 +44,6 @@ exports.createChat = async (req, res) => {
 
 exports.getChats = async (req, res) => {
   try {
-    console.log("[ChatController] Fetching chats for user:", req.user.userId);
     const chats = await Chat.find({
       participants: req.user.userId,
     })
@@ -58,14 +51,8 @@ exports.getChats = async (req, res) => {
       .populate("lastMessage")
       .sort({ updatedAt: -1 });
 
-    console.log("[ChatController] Found chats:", {
-      count: chats.length,
-      chatIds: chats.map((chat) => chat._id),
-    });
-
     res.status(200).json(chats);
   } catch (error) {
-    console.error("[ChatController] Error in getChats:", error);
     res.status(500).json({
       message: "Error fetching chats",
       error: error.message,

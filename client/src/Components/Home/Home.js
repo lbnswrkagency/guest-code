@@ -14,7 +14,7 @@ const Home = () => {
           <div className="hero-content">
             <h1>GuestCode</h1>
             <p className="subtitle">The Future of Event Management</p>
-            <p className="alpha-badge">Alpha</p>
+            <span className="alpha-badge">Alpha</span>
             <p className="description">
               Create, manage, and grow your events with our all-in-one platform.
               Join the alpha and be among the first to revolutionize event
@@ -35,17 +35,26 @@ const Home = () => {
           <div className="feature">
             <div className="feature-icon">🎟️</div>
             <h3>QR Code Tickets</h3>
-            <p>Generate and manage digital tickets with ease</p>
+            <p>
+              Generate and manage digital tickets with ease. Streamline your
+              event entry process with modern technology.
+            </p>
           </div>
           <div className="feature">
             <div className="feature-icon">🌐</div>
             <h3>Event Pages</h3>
-            <p>Beautiful, customizable pages for your events</p>
+            <p>
+              Create beautiful, customizable pages for your events. Showcase
+              your brand and engage with your audience.
+            </p>
           </div>
           <div className="feature">
             <div className="feature-icon">📱</div>
             <h3>Social Features</h3>
-            <p>Build your community around your events</p>
+            <p>
+              Build and grow your community around your events. Connect with
+              attendees and create lasting relationships.
+            </p>
           </div>
         </section>
       </main>

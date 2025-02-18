@@ -1,55 +1,26 @@
 // DashboardHeader.js
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { FaUserCircle } from "react-icons/fa";
 import { RiCalendarEventLine, RiArrowDownSLine } from "react-icons/ri";
 import "./DashboardHeader.scss";
-import AvatarUpload from "../AvatarUpload/AvatarUpload.";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
-import axiosInstance from "../../utils/axiosConfig";
+import AvatarUpload from "../AvatarUpload/AvatarUpload";
 
-const DashboardHeader = ({
-  user,
-  isEditingAvatar,
-  toggleEditAvatar,
-  setIsCropMode,
-  isCropMode,
-  setUser,
-  onNotificationCreated,
-}) => {
-  const { isConnected, onlineUsers, isUserOnline } = useSocket();
+const DashboardHeader = ({ user, setUser }) => {
+  const { isConnected, onlineUsers } = useSocket();
   const { user: authUser } = useAuth();
+  const [isCropMode, setIsCropMode] = useState(false);
 
-  const createTestNotification = async () => {
-    try {
-      console.log("[DashboardHeader] Creating test notification");
-      const response = await axiosInstance.post("/notifications/create", {
-        userId: user._id,
-        type: "info",
-        title: "Test Notification",
-        message: "This is a test notification. Click to mark as read!",
-        metadata: {
-          timestamp: new Date().toISOString(),
-          testData: "This is some test metadata",
-        },
-      });
+  // Sample data (replace with real data later)
+  const stats = {
+    members: 25,
+    brands: 1,
+    events: 23,
+  };
 
-      console.log(
-        "[DashboardHeader] Test notification created:",
-        response.data
-      );
-
-      // Optionally refresh notifications immediately
-      if (typeof onNotificationCreated === "function") {
-        onNotificationCreated();
-      }
-    } catch (error) {
-      console.error(
-        "[DashboardHeader] Error creating test notification:",
-        error.message
-      );
-    }
+  const formatStatLabel = (value, singular, plural) => {
+    return value === 1 ? singular : plural;
   };
 
   return (
@@ -57,64 +28,34 @@ const DashboardHeader = ({
       <div className="header-content">
         {/* Profile Section */}
         <div className="profile-section">
-          <div className="avatar-container" onClick={toggleEditAvatar}>
-            {!isEditingAvatar ? (
-              <>
-                {user.avatar ? (
-                  <motion.img
-                    src={user.avatar}
-                    alt="Profile"
-                    className="avatar"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  />
-                ) : (
-                  <motion.div
-                    className="avatar-placeholder"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FaUserCircle />
-                  </motion.div>
-                )}
-                <div className="online-status">
-                  <div
-                    className={`status-dot ${
-                      isConnected ? "online" : "offline"
-                    }`}
-                    title={isConnected ? "Online" : "Offline"}
-                  />
-                </div>
-              </>
-            ) : (
-              <AvatarUpload
-                user={user}
-                setUser={setUser}
-                setIsCropMode={setIsCropMode}
-                toggleEditAvatar={toggleEditAvatar}
-              />
-            )}
-          </div>
+          <AvatarUpload
+            user={user}
+            setUser={setUser}
+            isCropMode={isCropMode}
+            setIsCropMode={setIsCropMode}
+            isOnline={isConnected}
+          />
+
           <div className="user-info">
             <div className="user-info-main">
               <div className="name-group">
-                <h1 className="display-name">
-                  {user.firstName || user.username}
-                </h1>
+                <h1 className="display-name">{user.firstName}</h1>
                 <span className="username">@{user.username}</span>
               </div>
               <div className="user-stats">
                 <div className="stat-item">
-                  <span className="stat-value">{onlineUsers.length}</span>{" "}
-                  Online
+                  <span className="stat-value">{stats.members}</span>{" "}
+                  {formatStatLabel(stats.members, "Member", "Members")}
                 </div>
                 <div className="stat-divider">·</div>
                 <div className="stat-item">
-                  <span className="stat-value">847</span> Members
+                  <span className="stat-value">{stats.brands}</span>{" "}
+                  {formatStatLabel(stats.brands, "Brand", "Brands")}
                 </div>
                 <div className="stat-divider">·</div>
                 <div className="stat-item">
-                  <span className="stat-value">23</span> Events
+                  <span className="stat-value">{stats.events}</span>{" "}
+                  {formatStatLabel(stats.events, "Event", "Events")}
                 </div>
               </div>
               <div className="user-bio">Event Manager at GuestCode 🎫</div>

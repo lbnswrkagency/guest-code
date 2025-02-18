@@ -29,46 +29,30 @@ export const NotificationProvider = ({ children }) => {
 
   const fetchNotifications = useCallback(async () => {
     if (!user?._id) {
-      console.log("[Notification] No user ID available, skipping fetch");
       return;
     }
 
     try {
-      console.log("[Notification] Fetching notifications for user:", user._id);
       const response = await axiosInstance.get(
         `/notifications/user/${user._id}`
-      );
-      console.log(
-        "[Notification] Fetched notifications:",
-        response.data.length
       );
 
       setNotifications(response.data);
       setUnreadCount(response.data.filter((n) => !n.read).length);
     } catch (error) {
-      console.error("[Notification] Error fetching:", error.message);
+      // Silent error
     }
   }, [user?._id]);
 
   useEffect(() => {
     if (!socket) return;
 
-    console.log("[Notification] Setting up socket listeners");
-
     socket.on("new_notification", (notification) => {
-      console.log(
-        "[Notification] Received new notification:",
-        notification._id
-      );
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
     });
 
     socket.on("notification_updated", (updatedNotification) => {
-      console.log(
-        "[Notification] Notification updated:",
-        updatedNotification._id
-      );
       setNotifications((prev) =>
         prev.map((notif) =>
           notif._id === updatedNotification._id ? updatedNotification : notif
@@ -80,7 +64,6 @@ export const NotificationProvider = ({ children }) => {
     });
 
     socket.on("notification_deleted", (notificationId) => {
-      console.log("[Notification] Notification deleted:", notificationId);
       setNotifications((prev) =>
         prev.filter((notif) => notif._id !== notificationId)
       );
@@ -92,7 +75,6 @@ export const NotificationProvider = ({ children }) => {
     });
 
     return () => {
-      console.log("[Notification] Cleaning up socket listeners");
       socket.off("new_notification");
       socket.off("notification_updated");
       socket.off("notification_deleted");
@@ -107,7 +89,6 @@ export const NotificationProvider = ({ children }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      console.log("[Notification] Marking as read:", notificationId);
       await axiosInstance.put(`/notifications/${notificationId}/read`);
 
       setNotifications((prev) =>
@@ -117,21 +98,17 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("[Notification] Error marking as read:", error.message);
+      // Silent error
     }
   };
 
   const clearAll = async () => {
     try {
-      console.log("[Notification] Clearing all notifications");
       await axiosInstance.delete(`/notifications/user/${user._id}/all`);
       setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
-      console.error(
-        "[Notification] Error clearing notifications:",
-        error.message
-      );
+      // Silent error
     }
   };
 

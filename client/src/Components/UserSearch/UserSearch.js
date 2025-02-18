@@ -31,7 +31,6 @@ const UserSearch = ({
       try {
         setIsLoading(true);
         setError(null);
-        console.log("[UserSearch] Searching users with query:", searchQuery);
 
         // Get fresh token from localStorage
         const token = localStorage.getItem("token");
@@ -49,13 +48,9 @@ const UserSearch = ({
           }
         );
 
-        console.log("[UserSearch] Search response:", response.data);
         setResults(response.data);
       } catch (error) {
-        console.error("[UserSearch] Search error:", error);
-
         if (error.response?.status === 401) {
-          console.log("[UserSearch] Token expired, attempting refresh");
           try {
             const refreshResponse = await axiosInstance.post(
               "/auth/refresh-token"
@@ -81,7 +76,6 @@ const UserSearch = ({
               setError(null);
             }
           } catch (refreshError) {
-            console.error("[UserSearch] Token refresh failed:", refreshError);
             setError("Session expired. Please log in again.");
             setResults([]);
           }
