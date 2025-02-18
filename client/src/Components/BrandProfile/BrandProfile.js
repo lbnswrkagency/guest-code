@@ -152,7 +152,7 @@ const BrandProfile = () => {
     try {
       const endpoint = isFollowing ? "unfollow" : "follow";
       const response = await axiosInstance.post(
-        `/brands/${brand.id}/${endpoint}`
+        `/brands/${brand._id}/${endpoint}`
       );
 
       if (response.status === 200) {
@@ -175,7 +175,9 @@ const BrandProfile = () => {
         } else {
           toast.showError("You are already following this brand");
         }
-        const response = await axiosInstance.get(`/brands/profile/${brand.id}`);
+        const response = await axiosInstance.get(
+          `/brands/profile/${brand._id}`
+        );
         setIsFollowing(response.data.userStatus?.isFollowing || false);
       } else {
         toast.showError("Failed to update follow status");
@@ -191,12 +193,12 @@ const BrandProfile = () => {
 
     try {
       if (isMember) {
-        await axiosInstance.post(`/brands/${brand.id}/leave`);
+        await axiosInstance.post(`/brands/${brand._id}/leave`);
         setIsMember(false);
         setJoinRequestStatus(null);
         toast.showSuccess("Left brand");
       } else {
-        const response = await axiosInstance.post(`/brands/${brand.id}/join`);
+        const response = await axiosInstance.post(`/brands/${brand._id}/join`);
         if (response.data.status === "joined") {
           setIsMember(true);
           setJoinRequestStatus(null);
@@ -221,7 +223,7 @@ const BrandProfile = () => {
     try {
       const endpoint = isFavorited ? "unfavorite" : "favorite";
       const response = await axiosInstance.post(
-        `/brands/${brand.id}/${endpoint}`
+        `/brands/${brand._id}/${endpoint}`
       );
 
       if (response.status === 200) {
@@ -246,7 +248,9 @@ const BrandProfile = () => {
         } else {
           toast.showError("You've already favorited this brand");
         }
-        const response = await axiosInstance.get(`/brands/profile/${brand.id}`);
+        const response = await axiosInstance.get(
+          `/brands/profile/${brand._id}`
+        );
         setIsFavorited(response.data.userStatus?.isFavorited || false);
       } else {
         toast.showError("Failed to update favorite status");
