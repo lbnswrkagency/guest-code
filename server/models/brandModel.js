@@ -12,26 +12,59 @@ const BrandSchema = new Schema(
         user: { type: Schema.Types.ObjectId, ref: "User" },
         role: {
           type: String,
-          enum: ["admin", "manager", "promoter", "staff"],
-          default: "staff",
+          enum: ["owner", "admin", "manager", "promoter", "staff", "member"],
+          default: "member",
         },
-        permissions: [
-          {
-            type: String,
-            enum: [
-              "create_events",
-              "edit_events",
-              "manage_team",
-              "view_analytics",
-            ],
+        permissions: {
+          events: {
+            create: { type: Boolean, default: false },
+            edit: { type: Boolean, default: false },
+            delete: { type: Boolean, default: false },
+            view: { type: Boolean, default: true },
           },
-        ],
+          team: {
+            manage: { type: Boolean, default: false },
+            view: { type: Boolean, default: true },
+          },
+          analytics: {
+            view: { type: Boolean, default: false },
+          },
+          codes: {
+            friends: {
+              generate: { type: Boolean, default: false },
+              limit: { type: Number, default: 0 },
+            },
+            backstage: {
+              generate: { type: Boolean, default: false },
+              limit: { type: Number, default: 0 },
+            },
+            table: {
+              generate: { type: Boolean, default: false },
+            },
+            ticket: {
+              generate: { type: Boolean, default: false },
+            },
+          },
+          scanner: {
+            use: { type: Boolean, default: false },
+          },
+        },
+        joinedAt: { type: Date, default: Date.now },
       },
     ],
+    favorites: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
     // Brand Identity
-    logo: { type: String },
-    coverImage: { type: String },
+    logo: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
+    coverImage: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
     colors: {
       primary: { type: String, default: "#ffc807" },
       secondary: { type: String, default: "#ffffff" },
@@ -88,6 +121,14 @@ const BrandSchema = new Schema(
       totalAttendees: { type: Number, default: 0 },
       averageRating: { type: Number, default: 0 },
     },
+
+    bannedMembers: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User" },
+        bannedAt: { type: Date },
+        bannedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import moment from "moment";
-import toast, { Toaster } from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 import "./TableCode.scss";
 import { useNavigate } from "react-router-dom";
 
@@ -20,6 +20,7 @@ function TableCode({
   const [downloadUrl, setDownloadUrl] = useState("");
   const [availableTables, setAvailableTables] = useState([]);
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     fetchAvailableTables();
@@ -35,13 +36,13 @@ function TableCode({
       })
       .catch((error) => {
         console.error("Error fetching available tables:", error);
-        toast.error("Error fetching available tables.");
+        toast.showError("Error fetching available tables.");
       });
   };
 
   const handleTableCode = () => {
     if (name && pax && tableNumber) {
-      toast.loading("Generating Table Code...");
+      const loadingToastId = toast.showLoading("Generating Table Code...");
       axios
         .post(
           `${process.env.REACT_APP_API_BASE_URL}/tables/add`,
@@ -56,26 +57,25 @@ function TableCode({
           { responseType: "blob" }
         )
         .then((response) => {
-          toast.remove();
-          toast.success("Table Code generated!");
+          toast.removeToast(loadingToastId);
+          toast.showSuccess("Table Code generated!");
           const url = window.URL.createObjectURL(new Blob([response.data]));
           setDownloadUrl(url);
           refreshCounts();
           fetchAvailableTables();
         })
         .catch((error) => {
-          toast.error("Error generating Table Code.");
+          toast.showError("Error generating Table Code.");
           console.error("Error generating Table Code:", error);
         });
     } else {
-      toast.error("Please fill in all fields.");
+      toast.showError("Please fill in all fields.");
     }
   };
 
   return (
     <div className="tablecode">
       <h1>HI</h1>
-      <Toaster />
       <div className="login-back-arrow" onClick={onClose}>
         ← Back
       </div>

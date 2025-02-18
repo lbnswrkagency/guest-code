@@ -2,33 +2,167 @@
 @import "../../_variables";
 
 .email-verification {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #1c1c1c 0%, #1c1c1c 50%, #000 100%);
+  color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  background-color: $background-color;
+  position: relative;
+  overflow-x: hidden;
 
-  h1 {
-    color: $primary-color;
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    animation: fadeIn 1s ease-in-out;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 200, 7, 0.15) 0%,
+      rgba(0, 0, 0, 0) 70%
+    );
+    z-index: 0;
+    pointer-events: none;
   }
 
-  p {
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    animation: fadeIn 1s ease-in-out;
+  .verification-container {
+    width: 100%;
+    max-width: 480px;
+    margin: 8rem auto 2rem;
+    padding: 2.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    z-index: 1;
+  }
+
+  .verification-status {
+    text-align: center;
+    padding: 2rem 1rem;
+
+    .loading-icon,
+    .success-icon,
+    .error-icon {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
+    }
+
+    .loading-icon {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffc807;
+    }
+
+    .success-icon {
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      color: #000;
+    }
+
+    .error-icon {
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff4444;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    button {
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.2px;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      color: #000;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
+      width: auto;
+      display: inline-block;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 200, 7, 0.35);
+      }
+    }
   }
 }
 
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
+@media (max-width: 768px) {
+  .email-verification {
+    .verification-container {
+      margin: 6rem 1rem 2rem;
+      padding: 2rem 1.5rem;
+    }
+
+    .verification-status {
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
   }
-  100% {
-    opacity: 1;
+}
+
+@media (max-width: 480px) {
+  .email-verification {
+    .verification-container {
+      margin: 4.5rem 0.75rem 1.5rem;
+      padding: 1.25rem;
+    }
+
+    .verification-status {
+      padding: 1.5rem 0.75rem;
+
+      .loading-icon,
+      .success-icon,
+      .error-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.25rem;
+      }
+
+      h2 {
+        font-size: 1.35rem;
+      }
+
+      p {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+      }
+
+      button {
+        width: 100%;
+        padding: 0.875rem;
+      }
+    }
   }
 }

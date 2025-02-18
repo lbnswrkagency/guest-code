@@ -28,99 +28,106 @@ $breakpoints: (
 }
 
 .register {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  padding: 1rem;
+  background: linear-gradient(180deg, #1c1c1c 0%, #1c1c1c 50%, #000 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   position: relative;
-  overflow: hidden;
-  background: #000;
+  overflow-x: hidden;
 
-  &-logo {
+  &::before {
+    content: "";
     position: absolute;
-    top: 2rem;
-    width: 120px;
-    height: auto;
-    filter: drop-shadow(0 0 10px rgba(255, 200, 7, 0.2));
-    z-index: 10;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 200, 7, 0.15) 0%,
+      rgba(0, 0, 0, 0) 70%
+    );
+    z-index: 0;
+    pointer-events: none;
   }
 
-  &-container {
-    background: linear-gradient(145deg, #151515, #0a0a0a);
-    border-radius: 24px;
-    padding: 2.5rem;
+  .register-container {
     width: 100%;
-    max-width: 420px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 200, 7, 0.1);
+    max-width: 480px;
+    margin: 8rem auto 2rem;
+    padding: 2.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     position: relative;
     z-index: 1;
   }
 
-  &-title {
-    text-align: center;
-    font-size: 28px;
+  .register-title {
+    font-size: 2rem;
     font-weight: 700;
+    text-align: center;
     margin-bottom: 2rem;
-    color: #ffc807;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    background: linear-gradient(45deg, #ffc807, #ff9d00);
+    background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
   }
 
-  &-form {
+  .register-form {
     display: flex;
     flex-direction: column;
-    gap: 1.2rem;
+    gap: 1rem;
 
     .input-group {
-      position: relative;
-
-      .input-icon {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #ffc807;
-        font-size: 16px;
-      }
-
-      &.username-group::before {
-        content: "@";
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #ffc807;
-        font-size: 16px;
-        z-index: 1;
-      }
-    }
-
-    .register-input {
       width: 100%;
-      padding: 14px 18px;
-      padding-left: 40px;
-      border: 2px solid #333;
-      border-radius: 12px;
-      background-color: rgba(34, 34, 34, 0.7);
-      color: #fff;
-      font-size: 15px;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(5px);
 
-      &:focus {
-        outline: none;
-        border-color: #ffc807;
-        box-shadow: 0 0 20px rgba(255, 200, 7, 0.1);
-        transform: translateY(-2px);
-      }
+      &.username-group {
+        .username-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          transition: all 0.2s ease;
 
-      &.username-input {
-        padding-left: 45px;
+          &:focus-within {
+            border-color: #ffc807;
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          .username-prefix {
+            color: #ffc807;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0 0.5rem 0 1rem;
+            user-select: none;
+          }
+
+          .username-input {
+            border: none;
+            background: transparent;
+            padding-left: 0;
+
+            &:focus {
+              border: none;
+              background: transparent;
+            }
+          }
+        }
+
+        .input-hint {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 0.5rem;
+          margin-left: 0.5rem;
+        }
       }
     }
 
@@ -128,87 +135,224 @@ $breakpoints: (
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
-
-      @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-      }
-
-      .register-input {
-        width: 100%;
-        min-width: 0;
-      }
     }
 
-    &-submit {
-      margin-top: 1rem;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      border-radius: 12px;
-      background: linear-gradient(45deg, #ffc807, #ff9d00);
-      transform-origin: center;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    .register-input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
 
-      &.active {
-        &:hover {
-          transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 10px 20px rgba(255, 200, 7, 0.2);
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #ffc807;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &[type="date"] {
+        color: rgba(255, 255, 255, 0.7);
+
+        &::-webkit-calendar-picker-indicator {
+          filter: invert(1) brightness(0.7);
+          cursor: pointer;
+
+          &:hover {
+            filter: invert(1) brightness(0.9);
+          }
         }
       }
     }
+
+    .register-form-submit {
+      margin-top: 1rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.2px;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      color: #000;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
+      width: auto;
+      display: inline-block;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 200, 7, 0.35);
+      }
+    }
   }
-}
 
-.login-back-arrow {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  cursor: pointer;
-  z-index: 10;
+  .register-login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
 
-  img {
-    width: 24px;
-    height: 24px;
-    filter: invert(1);
-    transition: transform 0.3s ease;
+    span {
+      color: #ffc807;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 
-  &:hover img {
-    transform: scale(1.1);
-  }
-}
+  .verification-status {
+    text-align: center;
+    padding: 2rem 1rem;
 
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #222 inset !important;
-  -webkit-text-fill-color: white !important;
-}
-
-.register-login-link {
-  margin-top: 1.5rem;
-  font-size: 15px;
-
-  span {
-    color: #ffc807;
-    font-weight: 600;
-    position: relative;
-
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: #ffc807;
-      transform: scaleX(0);
-      transition: transform 0.3s ease;
+    .success-icon {
+      width: 4rem;
+      height: 4rem;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 1.5rem;
+      color: #000;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
     }
 
-    &:hover::after {
-      transform: scaleX(1);
+    h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    button {
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.2px;
+      background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%);
+      color: #000;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
+      width: auto;
+      display: inline-block;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 200, 7, 0.35);
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .register {
+    .register-container {
+      margin: 6rem 1rem 2rem;
+      padding: 2rem 1.5rem;
+    }
+
+    .register-title {
+      font-size: 1.75rem;
+    }
+
+    .register-form {
+      .input-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .register {
+    .register-container {
+      margin: 4.5rem 0.75rem 1.5rem;
+      padding: 1.25rem;
+    }
+
+    .register-title {
+      font-size: 1.35rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .register-form {
+      gap: 0.75rem;
+
+      .input-group {
+        margin-bottom: 0.25rem;
+      }
+
+      .register-input {
+        padding: 0.75rem 0.875rem;
+        font-size: 0.9rem;
+      }
+
+      .register-form-submit {
+        padding: 0.875rem;
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+      }
+    }
+
+    .register-login-link {
+      margin-top: 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .verification-status {
+      padding: 1.5rem 0.75rem;
+
+      .success-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.25rem;
+        margin-bottom: 1.25rem;
+      }
+
+      h2 {
+        font-size: 1.35rem;
+      }
+
+      p {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+      }
+    }
+  }
+
+  @media (max-width: 360px) {
+    .register-container {
+      margin: 4rem 0.5rem 1rem;
+      padding: 1rem;
+    }
+
+    .register-form {
+      .register-input {
+        padding: 0.7rem 0.75rem;
+      }
     }
   }
 }

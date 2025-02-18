@@ -1,156 +1,98 @@
 // DashboardHeader.js
-import React, { useEffect } from "react";
-import AvatarUpload from "../AvatarUpload/AvatarUpload.";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { RiCalendarEventLine, RiArrowDownSLine } from "react-icons/ri";
 import "./DashboardHeader.scss";
-import { FaUserCircle } from "react-icons/fa";
-import axios from "axios";
+import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
+import AvatarUpload from "../AvatarUpload/AvatarUpload";
 
-const DashboardHeader = ({
-  user,
-  isEditingAvatar,
-  toggleEditAvatar,
-  setIsCropMode,
-  isCropMode,
-  setUser,
-  isOnline,
-  onNotificationCreated,
-}) => {
-  const { getNewToken } = useAuth();
+const DashboardHeader = ({ user, setUser }) => {
+  const { isConnected, onlineUsers } = useSocket();
+  const { user: authUser } = useAuth();
+  const [isCropMode, setIsCropMode] = useState(false);
 
-  useEffect(() => {}, [isOnline]);
+  // Sample data (replace with real data later)
+  const stats = {
+    members: 25,
+    brands: 1,
+    events: 23,
+  };
 
-  const createTestNotification = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/notifications/create`,
-        {
-          userId: user._id,
-          type: "info",
-          title: "Test Notification",
-          message: "This is a test notification. Click to mark as read!",
-          metadata: {
-            timestamp: new Date().toISOString(),
-            testData: "This is some test metadata",
-          },
-        },
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // Optionally refresh notifications immediately
-      if (typeof onNotificationCreated === "function") {
-        onNotificationCreated();
-      }
-    } catch (error) {
-      if (error.response?.status === 401) {
-        try {
-          await getNewToken();
-          // Retry the request with new token
-          const newToken = localStorage.getItem("token");
-          await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/notifications/create`,
-            {
-              userId: user._id,
-              type: "info",
-              title: "Test Notification",
-              message: "This is a test notification. Click to mark as read!",
-              metadata: {
-                timestamp: new Date().toISOString(),
-                testData: "This is some test metadata",
-              },
-            },
-            {
-              withCredentials: true,
-              headers: {
-                Authorization: `Bearer ${newToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        } catch (retryError) {
-          console.error("Error creating test notification:", retryError);
-        }
-      } else {
-        console.error("Error creating test notification:", error);
-      }
-    }
+  const formatStatLabel = (value, singular, plural) => {
+    return value === 1 ? singular : plural;
   };
 
   return (
-    <div className="headerDashboard">
-      <div className="headerDashboard-avatar">
-        {!isEditingAvatar ? (
-          <div className="headerDashboard-avatar-wrapper">
-            <img
-              src="/image/share-icon.svg"
-              alt="Edit Avatar"
-              className="share-icon"
-              onClick={toggleEditAvatar}
-            />
-            {user.avatar ? (
-              <img src={user.avatar} alt="Profile" className="profile-icon" />
-            ) : (
-              <div className="profile-icon-placeholder">
-                <FaUserCircle />
-              </div>
-            )}
-            <img
-              src="/image/edit-icon2.svg"
-              alt="Edit Avatar"
-              className="edit-icon"
-              onClick={toggleEditAvatar}
-            />
-          </div>
-        ) : (
-          <>
-            <AvatarUpload
-              user={user}
-              setUser={setUser}
-              setIsCropMode={setIsCropMode}
-              toggleEditAvatar={toggleEditAvatar}
-            />
-            {!isCropMode && (
-              <img
-                src="/image/cancel-icon_w.svg"
-                alt="Cancel Edit"
-                className="avatar-cancel-icon avatar-icon"
-                onClick={toggleEditAvatar}
-              />
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="headerDashboard-info">
-        <p className="headerDashboard-info-name">
-          {user.firstName ? `${user.firstName}` : `@${user.username}`}
-        </p>
-        <button
-          className="headerDashboard-test-notification"
-          onClick={createTestNotification}
-        >
-          Test Notification
-        </button>
-      </div>
-
-      <div className="headerDashboard-selection">
-        <div className="headerDashboard-selection-event">
-          <span className="headerDashboard-selection-event-image">
-            <img src="/image/logo.svg" alt="" />
-          </span>
-          <h2 className="headerDashboard-selection-event-name">Afro Spiti</h2>
-          <img
-            src="/image/dropdown-icon.svg"
-            alt=""
-            className="headerDashboard-selection-event-dropdown"
+    <div className="dashboard-header">
+      <div className="header-content">
+        {/* Profile Section */}
+        <div className="profile-section">
+          <AvatarUpload
+            user={user}
+            setUser={setUser}
+            isCropMode={isCropMode}
+            setIsCropMode={setIsCropMode}
+            isOnline={isConnected}
           />
+
+          <div className="user-info">
+            <div className="user-info-main">
+              <div className="name-group">
+                <h1 className="display-name">{user.firstName}</h1>
+                <span className="username">@{user.username}</span>
+              </div>
+              <div className="user-stats">
+                <div className="stat-item">
+                  <span className="stat-value">{stats.members}</span>{" "}
+                  {formatStatLabel(stats.members, "Member", "Members")}
+                </div>
+                <div className="stat-divider">·</div>
+                <div className="stat-item">
+                  <span className="stat-value">{stats.brands}</span>{" "}
+                  {formatStatLabel(stats.brands, "Brand", "Brands")}
+                </div>
+                <div className="stat-divider">·</div>
+                <div className="stat-item">
+                  <span className="stat-value">{stats.events}</span>{" "}
+                  {formatStatLabel(stats.events, "Event", "Events")}
+                </div>
+              </div>
+              <div className="user-bio">Event Manager at GuestCode 🎫</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Event Section */}
+        <div className="event-section">
+          <motion.div
+            className="event-selector"
+            whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
+          >
+            <div className="event-logo">
+              <img src="/image/logo.svg" alt="Event Logo" />
+            </div>
+            <h2 className="event-name">Afro Spiti</h2>
+            <motion.div
+              className="dropdown-icon"
+              initial={false}
+              whileHover={{ y: 2 }}
+              transition={{ duration: 0.2 }}
+            >
+              <RiArrowDownSLine />
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Date Section */}
+        <div className="date-section">
+          <motion.div
+            className="date-display"
+            whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
+          >
+            <RiCalendarEventLine className="calendar-icon" />
+            <span>23 Mar 2024</span>
+          </motion.div>
         </div>
       </div>
     </div>

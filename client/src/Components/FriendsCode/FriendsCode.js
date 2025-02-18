@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 import "./FriendsCode.scss";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +14,7 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
   const [downloadUrl, setDownloadUrl] = useState("");
   const [condition, setCondition] = useState("free");
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleCheckbox = (event) => {
     setCondition(event.target.id);
@@ -21,7 +22,7 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
 
   const handleFriendsCode = () => {
     if (name && condition) {
-      toast.loading("Generating Friends-Code...");
+      const loadingToastId = toast.showLoading("Generating Friends-Code...");
       axios
         .post(
           `${process.env.REACT_APP_API_BASE_URL}/friends/add`,
@@ -37,8 +38,8 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
           { responseType: "blob" }
         )
         .then((response) => {
-          toast.remove();
-          toast.success("Friends-Code generated!");
+          toast.removeToast(loadingToastId);
+          toast.showSuccess("Friends-Code generated!");
           const url = window.URL.createObjectURL(new Blob([response.data]));
           setDownloadUrl(url);
           refreshCounts();
@@ -46,13 +47,12 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
     }
 
     if (name === "") {
-      toast.error("Enter a Name.");
+      toast.showError("Enter a Name.");
     }
   };
 
   return (
     <div className="friendscode">
-      <Toaster />
       <div className="login-back-arrow" onClick={onClose}>
         ← Back
       </div>

@@ -1,10 +1,21 @@
-import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+  useParams,
+  useLocation,
+  matchPath,
+  Outlet,
+} from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { ToastProvider } from "./Components/Toast/ToastContext";
 
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { SocketProvider } from "./contexts/SocketContext";
+import { ChatProvider } from "./contexts/ChatContext";
 
 import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
@@ -12,71 +23,294 @@ import Login from "./Components/AuthForm/Login/Login";
 import Register from "./Components/AuthForm/Register/Register";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
 import RegistrationSuccess from "./Components/RegistrationSuccess/RegistrationSuccess";
-import Events from "./Components/Events/Events";
-import CreateEvent from "./Components/CreateEvent/CreateEvent";
 import EventDetails from "./Components/EventDetails/EventDetails";
-import EventPage from "./Components/EventPage/EventPage";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
-import Dropbox from "./Components/Dropbox/Dropbox";
-// import FriendsCode from './Components/FriendsCode/FriendsCode';
-import Inbox from "./Components/Inbox/Inbox";
-import PersonalChat from "./Components/PersonalChat/PersonalChat";
-import Brands from "./Components/Brands/Brands";
 import Locations from "./Components/Locations/Locations";
+import BrandProfile from "./Components/BrandProfile/BrandProfile";
+import Brands from "./Components/Brands/Brands";
 
+// Main routing component
+const AppRoutes = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const params = useParams();
+
+  // Pre-build the user profile route if we have a user
+  const userProfilePath = user ? `/@${user.username}` : null;
+
+  // Custom route matcher for user profiles
+  const matchUserProfile = (pattern, pathname) => {
+    const match = matchPath(
+      {
+        path: pattern,
+        end: true,
+      },
+      pathname
+    );
+
+    return match;
+  };
+
+  // Enhanced logging for route debugging
+  // console.log("[AppRoutes] Detailed route matching:", {
+  //   currentPath: location.pathname,
+  //   userProfilePath,
+  //   exactMatch: location.pathname === userProfilePath,
+  //   hasUser: !!user,
+  //   username: user?.username,
+  //   authenticatedBrandPath: user ? `${userProfilePath}/@:brandUsername` : null,
+  //   authenticatedEventPath: user
+  //     ? `${userProfilePath}/@:brandUsername/@:eventUsername`
+  //     : null,
+  //   isAuthenticatedBrandRoute:
+  //     user && location.pathname.startsWith(userProfilePath + "/@"),
+  //   pathSegments: location.pathname.split("/").filter(Boolean),
+  //   timestamp: new Date().toISOString(),
+  // });
+
+  // Log available routes
+  // console.log("[AppRoutes] Available routes:", {
+  //   authenticatedRoutes: user
+  //     ? [
+  //         userProfilePath,
+  //         `${userProfilePath}/@:brandUsername`,
+  //         `${userProfilePath}/@:brandUsername/@:eventUsername`,
+  //       ]
+  //     : [],
+  //   publicRoutes: ["/@:brandUsername", "/@:brandUsername/@:eventUsername"],
+  //   timestamp: new Date().toISOString(),
+  // });
+
+  // console.log("[AppRoutes] Route state:", {
+  //   pathname: location.pathname,
+  //   params,
+  //   userProfilePath,
+  //   timestamp: new Date().toISOString(),
+  // });
+
+  return (
+    <Routes>
+      {user ? (
+        <>
+          <Route
+            path={`${userProfilePath}/*`}
+            element={
+              <Routes>
+                <Route
+                  index
+                  element={
+                    <RouteDebug name="user-profile-index">
+                      <Dashboard />
+                    </RouteDebug>
+                  }
+                />
+                <Route
+                  path="brands"
+                  element={
+                    <RouteDebug name="user-brands">
+                      <Brands />
+                    </RouteDebug>
+                  }
+                />
+                <Route
+                  path=":brandUsername"
+                  element={
+                    <RouteDebug name="brand-profile-auth">
+                      {({ params }) => {
+                        // console.log("[AppRoutes] Brand route matched:", {
+                        //   params,
+                        //   pathname: location.pathname,
+                        //   timestamp: new Date().toISOString(),
+                        // });
+                        return <BrandProfile />;
+                      }}
+                    </RouteDebug>
+                  }
+                />
+                <Route
+                  path=":brandUsername/:eventUsername"
+                  element={
+                    <RouteDebug name="event-auth">
+                      <EventDetails />
+                    </RouteDebug>
+                  }
+                />
+              </Routes>
+            }
+          />
+        </>
+      ) : (
+        <>
+          <Route
+            path="/@:brandUsername"
+            element={
+              <RouteDebug name="brand-profile-public">
+                <BrandProfile />
+              </RouteDebug>
+            }
+          />
+          <Route
+            path="/@:brandUsername/@:eventUsername"
+            element={
+              <RouteDebug name="event-public">
+                <EventDetails />
+              </RouteDebug>
+            }
+          />
+        </>
+      )}
+
+      {/* Other routes */}
+      <Route
+        path="/"
+        element={
+          <RouteDebug name="home">
+            <Home />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <RouteDebug name="login">
+            <Login />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RouteDebug name="register">
+            <Register />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/registration-success"
+        element={
+          <RouteDebug name="registration-success">
+            <RegistrationSuccess />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/verify/:token"
+        element={
+          <RouteDebug name="verify">
+            <EmailVerification />
+          </RouteDebug>
+        }
+      />
+
+      {/* Utility routes */}
+      <Route
+        path="/guest-code-settings"
+        element={
+          <RouteDebug name="guest-code-settings">
+            <GuestCodeSettings />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/upload"
+        element={
+          <RouteDebug name="upload">
+            <DropFiles showDashboard={false} />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/locations"
+        element={
+          <RouteDebug name="locations">
+            <Locations />
+          </RouteDebug>
+        }
+      />
+    </Routes>
+  );
+};
+
+// Debug wrapper for routes
+const RouteDebug = ({ name, children }) => {
+  const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const debugInfo = {
+    name,
+    params,
+    pathname: location.pathname,
+    search: location.search,
+    hash: location.hash,
+    state: location.state,
+    matchResult: matchPath(
+      {
+        path: location.pathname,
+        end: false,
+      },
+      location.pathname
+    ),
+    parentMatch: matchPath(
+      {
+        path: `${location.pathname}/*`,
+        end: false,
+      },
+      location.pathname
+    ),
+    nestedSegments: location.pathname.split("/").filter(Boolean),
+    timestamp: new Date().toISOString(),
+  };
+
+  // console.log(`[RouteDebug:${name}] Route matched:`, debugInfo);
+
+  return typeof children === "function" ? children(debugInfo) : children;
+};
+
+// Separate component for user profile route
+const UserProfileRoute = () => {
+  const { username } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // console.log("[UserProfileRoute] Rendering:", {
+  //   username,
+  //   pathname: location.pathname,
+  //   search: location.search,
+  //   hash: location.hash,
+  //   state: location.state,
+  //   params: useParams(),
+  //   timestamp: new Date().toISOString(),
+  // });
+
+  return <Outlet />;
+};
+
+// Main App component
 function App() {
-  const eventId = "31vp88ph";
+  // console.log("[App] Initializing App component", {
+  //   timestamp: new Date().toISOString(),
+  // });
 
   return (
     <Router>
       <AuthProvider>
         <SocketProvider>
-          <NotificationProvider>
-            <Toaster position="top-center" />
-
-            <Routes>
-              <Route path="/" element={<EventPage passedEventId={eventId} />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard/*" element={<Dashboard />}>
-                <Route path="chat/:chatId" element={<PersonalChat />} />
-              </Route>
-              <Route
-                path="/registration-success"
-                element={<RegistrationSuccess />}
-              />
-              <Route path="/verify/:token" element={<EmailVerification />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/create" element={<CreateEvent />} />
-              <Route path="/events/:eventId" element={<EventDetails />} />
-              <Route path="/events/page/:eventId" element={<EventPage />} />
-              <Route
-                path="/guest-code-settings"
-                element={<GuestCodeSettings />}
-              />
-              <Route
-                path="/upload"
-                element={<DropFiles showDashboard={false} />}
-              />
-              <Route path="/share" element={<RedirectToDropbox />} />
-              <Route path="/brands" element={<Brands />} />
-              <Route path="/locations" element={<Locations />} />
-            </Routes>
-          </NotificationProvider>
+          <ChatProvider>
+            <NotificationProvider>
+              <Toaster position="top-center" />
+              <ToastProvider>
+                <div className="app">
+                  <AppRoutes />
+                </div>
+              </ToastProvider>
+            </NotificationProvider>
+          </ChatProvider>
         </SocketProvider>
       </AuthProvider>
     </Router>
   );
 }
-
-const RedirectToDropbox = () => {
-  useEffect(() => {
-    window.location.href =
-      "https://www.dropbox.com/scl/fo/zc0xkjehm2mvvc2ghvcd0/ABs7kH9Qc7gOATiWFgrtPaI?rlkey=9qlurwsjbgcy4srvek6nxxen3&st=nempmga1&dl=0";
-  }, []);
-
-  return null; // Return null since no UI is rendered
-};
 
 export default App;

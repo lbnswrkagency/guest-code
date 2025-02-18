@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axiosConfig";
 
 const AuthContext = createContext();
 
@@ -12,9 +12,11 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
+// Inner provider that uses router hooks
+const AuthProviderWithRouter = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -29,98 +31,114 @@ export const AuthProvider = ({ children }) => {
     "/verify/:token",
   ];
 
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setUser(null);
-        return;
-      }
+  // Add logging for user state changes
+  useEffect(() => {
+    // console.log("[AuthContext] User state changed:", {
+    //   hasUser: !!user,
+    //   username: user?.username,
+    //   loading,
+    //   currentPath: location.pathname,
+    //   timestamp: new Date().toISOString(),
+    // });
+  }, [user, loading, location.pathname]);
 
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/user`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
-      );
+  const fetchUserData = async () => {
+    // console.log("[AuthContext] Fetching user data");
+    try {
+      const response = await axiosInstance.get("/auth/user");
+      // console.log("[AuthContext] User data fetched:", {
+      //   hasData: !!response.data,
+      //   username: response.data?.username,
+      //   timestamp: new Date().toISOString(),
+      // });
       setUser(response.data);
+      return response.data;
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem("token");
-        setUser(null);
-        navigate("/login");
-      }
+      // console.error("[AuthContext] Error fetching user data:", {
+      //   error: error.message,
+      //   timestamp: new Date().toISOString(),
+      // });
       throw error;
     }
   };
 
-  // Setup axios interceptor for token refresh
+  // Add initial auth check
   useEffect(() => {
-    const setupAxiosInterceptors = () => {
-      const interceptor = axios.interceptors.response.use(
-        (response) => response,
-        async (error) => {
-          const originalRequest = error.config;
-          console.log("[Auth:Flow] Request failed:", {
-            status: error.response?.status,
-            url: originalRequest.url,
-            hasAuthHeader: !!originalRequest.headers["Authorization"],
-          });
-
-          // Only attempt refresh if:
-          // 1. Error is 401
-          // 2. We haven't tried to refresh yet
-          // 3. This isn't the refresh token request itself
-          // 4. We have a refresh token cookie
-          if (
-            error.response?.status === 401 &&
-            !originalRequest._retry &&
-            !originalRequest.url.includes("/auth/refresh-token")
-          ) {
-            originalRequest._retry = true;
-
-            try {
-              const response = await axios.post(
-                `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
-                {},
-                {
-                  withCredentials: true,
-                  headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-
-              if (response.data.token) {
-                localStorage.setItem("token", response.data.token);
-                originalRequest.headers[
-                  "Authorization"
-                ] = `Bearer ${response.data.token}`;
-                axios.defaults.headers.common[
-                  "Authorization"
-                ] = `Bearer ${response.data.token}`;
-                return axios(originalRequest);
-              }
-            } catch (refreshError) {
-              console.error("Token refresh failed:", refreshError);
-              localStorage.removeItem("token");
-              setUser(null);
-              navigate("/login");
-              return Promise.reject(refreshError);
-            }
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          await fetchUserData();
+        } catch (error) {
+          // console.error("Initial auth check failed:", error);
+          // Only redirect if on a protected route
+          if (pathsRequiringAuth.includes(location.pathname)) {
+            navigate("/login", { state: { from: location } });
           }
-          return Promise.reject(error);
         }
-      );
-      return interceptor;
+      }
+      setLoading(false);
     };
 
-    const interceptor = setupAxiosInterceptors();
-    return () => axios.interceptors.response.eject(interceptor);
-  }, [navigate]);
+    initializeAuth();
+  }, []); // Run once on mount
+
+  // Setup axios interceptor for token refresh
+  useEffect(() => {
+    let refreshTimeout;
+    const interceptor = axiosInstance.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Prevent infinite loops
+        if (originalRequest._retry || isRefreshing) {
+          return Promise.reject(error);
+        }
+
+        if (error.response?.status === 401) {
+          originalRequest._retry = true;
+          setIsRefreshing(true);
+
+          try {
+            // Attempt to refresh tokens
+            await axiosInstance.post("/auth/refresh-token");
+            setIsRefreshing(false);
+            // Retry the original request
+            return axiosInstance(originalRequest);
+          } catch (refreshError) {
+            // console.error("Token refresh failed:", refreshError);
+            setIsRefreshing(false);
+            setUser(null);
+            navigate("/login", { state: { from: location } });
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
+    // Set up periodic token refresh (every 14 minutes)
+    const setupRefreshTimer = () => {
+      refreshTimeout = setInterval(async () => {
+        try {
+          if (user) {
+            await axiosInstance.post("/auth/refresh-token");
+          }
+        } catch (error) {
+          // console.error("Periodic token refresh failed:", error);
+        }
+      }, 14 * 60 * 1000); // 14 minutes
+    };
+
+    setupRefreshTimer();
+
+    return () => {
+      axiosInstance.interceptors.response.eject(interceptor);
+      clearInterval(refreshTimeout);
+    };
+  }, [navigate, location, user, isRefreshing]);
 
   // Check auth state when path changes
   useEffect(() => {
@@ -130,7 +148,8 @@ export const AuthProvider = ({ children }) => {
         try {
           await fetchUserData();
         } catch (error) {
-          console.error("Auth state check failed:", error);
+          // console.error("Auth state check failed:", error);
+          navigate("/login", { state: { from: location } });
         } finally {
           setLoading(false);
         }
@@ -142,90 +161,100 @@ export const AuthProvider = ({ children }) => {
     checkAuthState();
   }, [location.pathname]);
 
-  // Set up default axios headers
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    console.log("[Auth:Context] Initial token check:", {
-      hasToken: !!token,
-      tokenStart: token ? token.substring(0, 20) + "..." : "none",
-    });
-
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
-  }, []);
-
   const login = async (credentials) => {
+    // console.log("[AuthContext] Starting login process", {
+    //   timestamp: new Date().toISOString(),
+    //   hasEmail: !!credentials.email,
+    // });
+
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/login`,
-        credentials
-      );
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
 
-      const { user, token, refreshToken } = response.data;
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
+      const response = await axiosInstance.post("/auth/login", credentials);
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      setUser(user);
-      navigate("/dashboard");
+      // console.log("[AuthContext] Login response received:", {
+      //   hasUser: !!response.data.user,
+      //   hasToken: !!response.data.token,
+      //   username: response.data.user?.username,
+      //   timestamp: new Date().toISOString(),
+      // });
+
+      if (!response.data.user || !response.data.token) {
+        throw new Error("Invalid login response");
+      }
+
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("refreshToken", response.data.refreshToken);
+
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
+
+      setUser(response.data.user);
+
+      // console.log("[AuthContext] Navigating after login:", {
+      //   username: response.data.user.username,
+      //   targetPath: `/@${response.data.user.username}`,
+      //   timestamp: new Date().toISOString(),
+      // });
+
+      // Change navigation to use new URL pattern
+      navigate(`/@${response.data.user.username}`);
     } catch (error) {
+      // console.error("[AuthContext] Login error:", {
+      //   message: error.message,
+      //   response: error.response?.data,
+      //   timestamp: new Date().toISOString(),
+      // });
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      setUser(null);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/auth/logout`);
+      // console.log("[AuthContext] Starting logout process");
+
+      // Call server logout endpoint
+      await axiosInstance.post("/auth/logout");
+
+      // Clear all auth-related data
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+
+      // Clear user state
+      setUser(null);
+
+      // console.log("[AuthContext] Logout successful, redirecting to login");
+      navigate("/login");
+    } catch (error) {
+      // console.error("[AuthContext] Logout error:", error);
+      // Still clear local data even if server logout fails
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
       navigate("/login");
-    } catch (error) {
-      console.error("[Auth] Logout error:", error.message);
     }
   };
 
-  const getNewToken = async () => {
-    try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        throw new Error("No refresh token found");
-      }
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/auth/refresh-token`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        }
-      );
-
-      if (response.data.token) {
-        const newToken = response.data.token;
-        localStorage.setItem("token", newToken);
-        axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-        return newToken;
-      }
-    } catch (error) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      setUser(null);
-      throw error;
-    }
-  };
-
-  // Update the value object to include all needed functions
   const value = {
     user,
     setUser,
     loading,
     login,
     logout,
-    getNewToken,
+    fetchUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Outer provider that doesn't use router hooks
+export const AuthProvider = ({ children }) => {
+  return <AuthProviderWithRouter>{children}</AuthProviderWithRouter>;
 };
 
 export default AuthContext;

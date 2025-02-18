@@ -1,0 +1,391 @@
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  RiAddLine,
+  RiCloseLine,
+  RiDeleteBin6Line,
+  RiRepeatFill,
+} from "react-icons/ri";
+import axiosInstance from "../../utils/axiosConfig";
+import "./RoleSetting.scss";
+
+const RoleSetting = ({ brand, onClose }) => {
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newRole, setNewRole] = useState({
+    name: "",
+    permissions: {
+      events: {
+        create: false,
+        edit: false,
+        delete: false,
+        view: true,
+      },
+      team: {
+        manage: false,
+        view: true,
+      },
+      analytics: {
+        view: false,
+      },
+      codes: {
+        friends: {
+          generate: false,
+          limit: 0,
+          unlimited: false,
+        },
+        backstage: {
+          generate: false,
+          limit: 0,
+          unlimited: false,
+        },
+        table: {
+          generate: false,
+        },
+        ticket: {
+          generate: false,
+        },
+        guest: {
+          generate: false,
+        },
+      },
+      scanner: {
+        use: false,
+      },
+    },
+  });
+
+  useEffect(() => {
+    fetchRoles();
+  }, [brand._id]);
+
+  const fetchRoles = async () => {
+    try {
+      const response = await axiosInstance.get(
+        `/roles/brands/${brand._id}/roles`
+      );
+      setRoles(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      setLoading(false);
+    }
+  };
+
+  const handleCreateRole = async () => {
+    if (!newRole.name.trim()) return;
+
+    try {
+      const response = await axiosInstance.post(
+        `/roles/brands/${brand._id}/roles`,
+        newRole
+      );
+      setRoles([...roles, response.data]);
+      setNewRole({
+        name: "",
+        permissions: {
+          events: {
+            create: false,
+            edit: false,
+            delete: false,
+            view: true,
+          },
+          team: {
+            manage: false,
+            view: true,
+          },
+          analytics: {
+            view: false,
+          },
+          codes: {
+            friends: {
+              generate: false,
+              limit: 0,
+              unlimited: false,
+            },
+            backstage: {
+              generate: false,
+              limit: 0,
+              unlimited: false,
+            },
+            table: {
+              generate: false,
+            },
+            ticket: {
+              generate: false,
+            },
+            guest: {
+              generate: false,
+            },
+          },
+          scanner: {
+            use: false,
+          },
+        },
+      });
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error("Error creating role:", error);
+    }
+  };
+
+  const handleDeleteRole = async (roleId) => {
+    try {
+      await axiosInstance.delete(`/roles/brands/${brand._id}/roles/${roleId}`);
+      setRoles(roles.filter((role) => role._id !== roleId));
+    } catch (error) {
+      console.error("Error deleting role:", error);
+    }
+  };
+
+  const handlePermissionChange = (category, key, value) => {
+    setNewRole((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [category]: {
+          ...prev.permissions[category],
+          [key]: value,
+        },
+      },
+    }));
+  };
+
+  const handleCodePermissionChange = (codeType, changes) => {
+    setNewRole((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        codes: {
+          ...prev.permissions.codes,
+          [codeType]: {
+            ...prev.permissions.codes[codeType],
+            ...changes,
+          },
+        },
+      },
+    }));
+  };
+
+  const renderPermissionItem = (title, category, key, checked) => (
+    <div className="permission-item">
+      <div className="permission-header">
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) =>
+              handlePermissionChange(category, key, e.target.checked)
+            }
+          />
+          <span className="slider"></span>
+        </label>
+        <span className="permission-title">{title}</span>
+      </div>
+    </div>
+  );
+
+  const renderCodePermission = (title, codeType) => {
+    const permission = newRole.permissions.codes[codeType];
+    const isCodeWithLimit = ["friends", "backstage"].includes(codeType);
+
+    return (
+      <div className="permission-item">
+        <div className="permission-header">
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={
+                isCodeWithLimit ? permission.generate : permission.generate
+              }
+              onChange={(e) =>
+                handleCodePermissionChange(codeType, {
+                  generate: e.target.checked,
+                })
+              }
+            />
+            <span className="slider"></span>
+          </label>
+          <span className="permission-title">{title}</span>
+        </div>
+
+        {isCodeWithLimit && permission.generate && (
+          <div className="code-limit-section">
+            <div className="limit-input-wrapper">
+              <input
+                type="number"
+                min="0"
+                value={permission.unlimited ? "∞" : permission.limit}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") return;
+                  handleCodePermissionChange(codeType, {
+                    limit: parseInt(value) || 0,
+                    unlimited: false,
+                  });
+                }}
+                disabled={permission.unlimited}
+                className="limit-input"
+              />
+            </div>
+            <button
+              className={`unlimited-btn ${
+                permission.unlimited ? "active" : ""
+              }`}
+              onClick={() =>
+                handleCodePermissionChange(codeType, {
+                  unlimited: !permission.unlimited,
+                  limit: !permission.unlimited ? 0 : permission.limit,
+                })
+              }
+            >
+              <RiRepeatFill />
+              <span>Unlimited</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return <div className="role-settings loading">Loading...</div>;
+  }
+
+  return (
+    <div className="role-settings">
+      <div className="header">
+        <h2>Role Settings</h2>
+        <motion.button
+          className="close-btn"
+          onClick={onClose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <RiCloseLine />
+        </motion.button>
+      </div>
+
+      <div className="roles-list">
+        {roles.map((role) => (
+          <div key={role._id} className="role-item">
+            <div className="role-header">
+              <h3>{role.name}</h3>
+              <motion.button
+                className="delete-btn"
+                onClick={() => handleDeleteRole(role._id)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiDeleteBin6Line />
+              </motion.button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!showCreateForm ? (
+        <motion.button
+          className="add-role-btn"
+          onClick={() => setShowCreateForm(true)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <RiAddLine />
+          <span>Add New Role</span>
+        </motion.button>
+      ) : (
+        <div className="create-role-form">
+          <h3>Create New Role</h3>
+          <input
+            type="text"
+            placeholder="Role Name"
+            value={newRole.name}
+            onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+          />
+
+          <div className="permissions-section">
+            <h4>Event Permissions</h4>
+            <div className="permission-group">
+              {renderPermissionItem(
+                "Create Events",
+                "events",
+                "create",
+                newRole.permissions.events.create
+              )}
+              {renderPermissionItem(
+                "Edit Events",
+                "events",
+                "edit",
+                newRole.permissions.events.edit
+              )}
+              {renderPermissionItem(
+                "Delete Events",
+                "events",
+                "delete",
+                newRole.permissions.events.delete
+              )}
+            </div>
+
+            <h4>Team Permissions</h4>
+            <div className="permission-group">
+              {renderPermissionItem(
+                "Manage Team",
+                "team",
+                "manage",
+                newRole.permissions.team.manage
+              )}
+            </div>
+
+            <h4>Code Permissions</h4>
+            <div className="permission-group">
+              {renderCodePermission("Friends Code", "friends")}
+              {renderCodePermission("Backstage Code", "backstage")}
+              {renderCodePermission("Table Code", "table")}
+              {renderCodePermission("Ticket Code", "ticket")}
+              {renderCodePermission("Guest Code", "guest")}
+            </div>
+
+            <h4>Other Permissions</h4>
+            <div className="permission-group">
+              {renderPermissionItem(
+                "View Analytics",
+                "analytics",
+                "view",
+                newRole.permissions.analytics.view
+              )}
+              {renderPermissionItem(
+                "Scanner Access",
+                "scanner",
+                "use",
+                newRole.permissions.scanner.use
+              )}
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <motion.button
+              className="cancel-btn"
+              onClick={() => setShowCreateForm(false)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              className="save-btn"
+              onClick={handleCreateRole}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Create Role
+            </motion.button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RoleSetting;

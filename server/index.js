@@ -29,9 +29,12 @@ const battleSignRoutes = require("./routes/api/battleSignRoutes");
 const dropboxRoutes = require("./routes/api/dropboxRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const brandRoutes = require("./routes/api/brandRoutes");
+const brandRoutes = require("./routes/brandRoutes");
 const locationRoutes = require("./routes/api/locationRoutes");
-const notificationRoutes = require("./routes/api/notificationRoutes");
+const notificationRoutes = require("./routes/notificationRoute");
+const uploadRoutes = require("./routes/api/uploadRoutes");
+const searchRoutes = require("./routes/searchRoute");
+const roleRoutes = require("./routes/roleRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -40,35 +43,38 @@ if (!fs.existsSync(tempDir)) {
 }
 dotenv.config();
 
-console.log("[Server:Init] Environment check:", {
-  hasAccessSecret: !!process.env.JWT_ACCESS_SECRET,
-  hasRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
-  accessSecretStart: process.env.JWT_ACCESS_SECRET?.substring(0, 10) + "...",
-  refreshSecretStart: process.env.JWT_REFRESH_SECRET?.substring(0, 10) + "...",
-});
-
 const app = express();
 const server = http.createServer(app);
 
-// CORS setup
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://guestcode.vercel.app",
-        "https://www.guestcode.vercel.app",
-        "https://afrospiti.com",
-        "https://www.afrospiti.com",
-        "https://guestcode-client.onrender.com",
-      ];
-      callback(null, allowedOrigins.includes(origin) ? origin : false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// CORS configuration
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === "production"
+      ? process.env.CLIENT_BASE_URL
+      : ["http://localhost:3000", "http://127.0.0.1:3000"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+// Add headers for better caching and performance
+app.use((req, res, next) => {
+  // Set CORS headers for images and other static assets
+  if (req.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    res.set({
+      "Access-Control-Allow-Origin": "*", // Allow images to be accessed from anywhere
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Origin, X-Requested-With, Content-Type, Accept",
+      "Access-Control-Max-Age": "86400", // 24 hours
+      "Cache-Control": "public, max-age=31536000", // 1 year
+      Vary: "Origin",
+    });
+  }
+  next();
+});
 
 // Middleware setup
 app.use(express.json({ limit: "200mb" }));
@@ -98,6 +104,9 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/brands", brandRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api", searchRoutes);
+app.use("/api/roles", roleRoutes);
 
 // MongoDB connection
 mongoose
@@ -105,10 +114,12 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("[Server] MongoDB connected successfully!"))
-  .catch((error) =>
-    console.log(`[Server] Error connecting to MongoDB:`, error)
-  );
+  .then(() => {
+    // Silent success
+  })
+  .catch((error) => {
+    // Silent error
+  });
 
 // Root route
 app.get("/", (req, res) => {
@@ -116,29 +127,18 @@ app.get("/", (req, res) => {
 });
 
 // Initialize Socket.IO
-console.log("[Server] Initializing Socket.IO");
 const io = setupSocket(server);
 app.set("io", io);
 
 // Start server
 const port = process.env.PORT || 5001;
-server.listen(port, () => {
-  console.log(`[Server] Server running on port ${port}`);
-  console.log(`[Server] Environment: ${process.env.NODE_ENV}`);
-  console.log(
-    `[Server] MongoDB connected: ${mongoose.connection.readyState === 1}`
-  );
-  console.log(`[Server] Socket.IO initialized`);
-  console.log(
-    `[Server] CORS origin: ${process.env.CLIENT_URL || "http://localhost:3000"}`
-  );
-});
+server.listen(port);
 
 // Error handling
 server.on("error", (error) => {
-  console.error("[Server] Server error:", error);
+  // Silent error
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("[Server] Unhandled Rejection at:", promise, "reason:", reason);
+  // Silent error
 });

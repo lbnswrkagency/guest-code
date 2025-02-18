@@ -1,6 +1,12 @@
 // Dashboard.js
 import React, { useContext, useEffect, useState } from "react";
-import { useNavigate, Route, Routes, Outlet } from "react-router-dom";
+import {
+  useNavigate,
+  Route,
+  Routes,
+  Outlet,
+  useParams,
+} from "react-router-dom";
 import AuthContext from "../../contexts/AuthContext";
 import { logout } from "../AuthForm/Login/LoginFunction";
 import "./Dashboard.scss";
@@ -12,6 +18,8 @@ import Scanner from "../Scanner/Scanner";
 import Statistic from "../Statistic/Statistic";
 import moment from "moment";
 import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
+import { useToast } from "../Toast/ToastContext";
 
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
@@ -24,23 +32,54 @@ import DashboardHeader from "../DashboardHeader/DashboardHeader";
 import DashboardMenu from "../DashboardMenu/DashboardMenu";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
 import TableSystem from "../TableSystem/TableSystem";
-import Inbox from "../Inbox/Inbox";
-import PersonalChat from "../PersonalChat/PersonalChat";
-import GlobalChat from "../GlobalChat/GlobalChat";
+// import Inbox from "../Inbox/Inbox";  // Commented out chat functionality
+// import PersonalChat from "../PersonalChat/PersonalChat";  // Commented out chat functionality
+// import GlobalChat from "../GlobalChat/GlobalChat";  // Commented out chat functionality
 
 import { SocketProvider, useSocket } from "../../contexts/SocketContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import Loader from "../Loader/Loader";
+import DashboardFeed from "../DashboardFeed/DashboardFeed";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Dashboard = () => {
-  const { user, setUser, loading } = useContext(AuthContext);
+  const { user, setUser, loading } = useAuth();
+  const { username } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
+
+  // Remove @ from username parameter
+  const cleanUsername = username?.replace("@", "");
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+
+    if (!user) {
       navigate("/login");
+      return;
     }
-  }, [loading, user, navigate]);
+
+    if (!cleanUsername) {
+      navigate(`/@${user.username}`);
+      return;
+    }
+
+    // Only redirect if we're viewing a user profile (not a brand or event)
+    // Check if the path has more segments after the username
+    const pathSegments = window.location.pathname.split("/").filter(Boolean);
+    const isViewingNestedRoute = pathSegments.length > 1;
+
+    if (!isViewingNestedRoute) {
+      // Case-insensitive comparison to check if viewing own profile
+      const isOwnProfile =
+        cleanUsername.toLowerCase() === user.username.toLowerCase();
+
+      if (!isOwnProfile) {
+        navigate(`/@${user.username}`);
+        return;
+      }
+    }
+  }, [loading, user, navigate, cleanUsername]);
 
   if (loading) {
     return <Loader />;
@@ -50,6 +89,14 @@ const Dashboard = () => {
     return null;
   }
 
+  // If it's not the user's own profile, we'll show the public view
+  // (but for now we're redirecting in the useEffect)
+  // TODO: Implement and use UserProfile component
+  // if (!isOwnProfile) {
+  //   return <UserProfile username={cleanUsername} />;
+  // }
+
+  // If it is the user's own profile, show the dashboard
   return (
     <SocketProvider user={user}>
       <DashboardContent user={user} setUser={setUser} />
@@ -57,10 +104,50 @@ const Dashboard = () => {
   );
 };
 
+// New component for public profile view
+const PublicProfileView = ({ username }) => {
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const toast = useToast();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await axiosInstance.get(`/users/profile/${username}`);
+        setProfileData(response.data);
+      } catch (error) {
+        toast.showError("Failed to load profile");
+        console.error("Error fetching profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [username]);
+
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (!profileData) {
+    return <div className="not-found">Profile not found</div>;
+  }
+
+  return (
+    <div className="public-profile">
+      {/* Public profile view - will implement later */}
+      <h1>@{username}'s Profile</h1>
+      {/* Add public profile content here */}
+    </div>
+  );
+};
+
 // Second part - all your existing code moves here
 const DashboardContent = ({ user, setUser }) => {
   // NOW we can use useSocket because we're inside SocketProvider
   const { isConnected, socket } = useSocket();
+  const toast = useToast();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
@@ -164,7 +251,6 @@ const DashboardContent = ({ user, setUser }) => {
 
       setCounts(response.data);
     } catch (error) {
-      // Keep error handling for production debugging
       console.error("Error fetching counts:", error);
     }
   };
@@ -216,39 +302,25 @@ const DashboardContent = ({ user, setUser }) => {
     fetchCounts();
   };
 
-  const [showGlobalChat, setShowGlobalChat] = useState(false);
-
-  // New state for online users
-  const [onlineUsers, setOnlineUsers] = useState([]);
-  const [onlineCount, setOnlineCount] = useState(0);
-
-  // Update this useEffect to handle online users
-  useEffect(() => {
-    if (socket) {
-      socket.on("initial_online_users", (users) => {
-        setOnlineUsers(users);
-        setOnlineCount(users.length);
-      });
-
-      socket.on("user_status", ({ userId, status }) => {
-        setOnlineUsers((prevUsers) => {
-          if (status === "online" && !prevUsers.includes(userId)) {
-            return [...prevUsers, userId];
-          } else if (status === "offline") {
-            return prevUsers.filter((id) => id !== userId);
-          }
-          return prevUsers;
-        });
-      });
-
-      return () => {
-        socket.off("initial_online_users");
-        socket.off("user_status");
-      };
-    }
-  }, [socket]);
-
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+
+  const handleDelete = async (brandId) => {
+    if (window.confirm("Are you sure you want to delete this brand?")) {
+      try {
+        toast.showLoading("Deleting brand...");
+        await axios.delete(
+          `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
+          {
+            withCredentials: true,
+          }
+        );
+        toast.showSuccess("Brand deleted successfully!");
+        fetchCounts();
+      } catch (error) {
+        toast.showError("Failed to delete brand");
+      }
+    }
+  };
 
   if (codeType === "Table") {
     return (
@@ -362,12 +434,13 @@ const DashboardContent = ({ user, setUser }) => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-wrapper">
-        <Navigation
-          onBack={handleBack}
-          onMenuClick={() => setIsNavigationOpen(true)}
-        />
+      <Navigation
+        onBack={handleBack}
+        onMenuClick={() => setIsNavigationOpen(true)}
+        onLogout={handleLogout}
+      />
 
+      <div className="dashboard-content">
         <DashboardHeader
           user={user}
           isEditingAvatar={isEditingAvatar}
@@ -378,8 +451,6 @@ const DashboardContent = ({ user, setUser }) => {
           isOnline={isConnected}
         />
 
-        <DashboardStatus userCounts={userCounts} />
-
         <DashboardMenu
           user={user}
           setShowSettings={setShowSettings}
@@ -388,34 +459,30 @@ const DashboardContent = ({ user, setUser }) => {
           setShowDropFiles={setShowDropFiles}
           setCodeType={setCodeType}
           setShowTableSystem={setShowTableSystem}
-          setShowGlobalChat={setShowGlobalChat}
+          // setShowGlobalChat={setShowGlobalChat}  // Commented out chat functionality
           isOnline={isConnected}
-          onlineCount={onlineCount}
         />
-        <div className="dashboard-logout">
-          <button className="dashboard-logout-button" onClick={handleLogout}>
-            <img
-              src="/image/logout-icon.svg"
-              alt=""
-              className="dashboard-button-icon"
-            />
-          </button>
-          <p className="dashboard-button-title">Logout</p>
-        </div>
+
+        <Routes>
+          <Route index element={<DashboardFeed />} />
+          {/* Commented out chat routes
+          <Route
+            path="chat"
+            element={<PersonalChat user={user} socket={socket} />}
+          />
+          <Route
+            path="global-chat"
+            element={
+              <GlobalChat
+                user={user}
+                socket={socket}
+                onlineUsers={onlineUsers}
+              />
+            }
+          />
+          */}
+        </Routes>
       </div>
-
-      <Outlet />
-
-      <Footer />
-
-      {showGlobalChat && (
-        <GlobalChat
-          onClose={() => setShowGlobalChat(false)}
-          user={user}
-          socket={socket}
-          onlineUsers={onlineUsers}
-        />
-      )}
 
       <DashboardNavigation
         isOpen={isNavigationOpen}
