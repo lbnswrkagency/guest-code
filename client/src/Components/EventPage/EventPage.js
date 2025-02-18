@@ -347,36 +347,6 @@ const EventPage = ({ passedEventId }) => {
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
-                      {/* <div className="djs-single djs-single-guest">
-                        <img
-                          src="./image/hulk.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hulk</p>
-                        <p className="origin"></p>
-                      </div>
-                      */}
-
-                      <div className="djs-single">
-                        <img
-                          src="./image/deeze.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Deeze</p>
-                        <p className="origin">Cyprus</p>
-                      </div>
-
-                      <div className="djs-single">
-                        <img
-                          src="./image/baghdad.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Baghdad</p>
-                      </div>
-
                       <div className="djs-single">
                         <img
                           src="./image/hulk.jpg"
@@ -388,11 +358,21 @@ const EventPage = ({ passedEventId }) => {
 
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.png"
+                          src="./image/dazedboi.jpg"
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Dazedboi</p>
+                      </div>
+
+                      <div className="djs-single">
+                        <img
+                          src="./image/lazaro.jpg"
+                          alt=""
+                          className="djs-single-image"
+                        />
+                        <p className="djs-single-name">Lazaro</p>
+                        <p className="origin">Piano</p>
                       </div>
 
                       <div className="djs-single">
@@ -402,6 +382,7 @@ const EventPage = ({ passedEventId }) => {
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">J Fyah</p>
+                        <p className="origin">MC</p>
                       </div>
                     </div>
                   </div>
@@ -413,7 +394,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 16 FEB 2025</p>
+                    <p>SUN 23 FEB 2025</p>
                   </div>
 
                   <img
@@ -503,7 +484,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 16.02.2025 · 23:00 H
+                Sunday · 23.02.2025 · 23:00 H
               </p>
 
               <div
@@ -546,7 +527,7 @@ const EventPage = ({ passedEventId }) => {
                   <p className="event-page-guestcode-condition">
                     free entrance until 00:30 H
                   </p>
-                  <p>Studio 24 - Sunday - 16.02.2025</p>
+                  <p>Studio 24 - Sunday - 23.02.2025</p>
                   <input
                     type="text"
                     className="event-page-guestcode-form-name"
