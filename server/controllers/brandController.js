@@ -10,37 +10,19 @@ const User = require("../models/User");
 
 // Create new brand
 exports.createBrand = async (req, res) => {
-  console.log("[BrandController] Starting brand creation:", {
-    user: req.user,
-    userId: req.user?._id,
-    body: {
-      name: req.body.name,
-      username: req.body.username,
-      hasLogo: !!req.body.logo,
-      hasCover: !!req.body.coverImage,
-      hasSettings: !!req.body.settings,
-    },
-  });
-
   try {
-    // Authentication check
     if (!req.user || !req.user._id) {
-      console.error(
-        "[BrandController] Create brand failed: No authenticated user"
-      );
       return res.status(401).json({
         message: "Please log in to create a brand",
         code: "AUTH_ERROR",
       });
     }
 
-    // Validate required fields
     const validationErrors = {};
     if (!req.body.name) validationErrors.name = "Brand name is required";
     if (!req.body.username) validationErrors.username = "Username is required";
 
     if (Object.keys(validationErrors).length > 0) {
-      console.log("[BrandController] Validation failed:", validationErrors);
       return res.status(400).json({
         message: "Please fill in all required fields",
         code: "VALIDATION_ERROR",
@@ -48,18 +30,11 @@ exports.createBrand = async (req, res) => {
       });
     }
 
-    // Check if username exists
     const existingBrand = await Brand.findOne({
       username: req.body.username.toLowerCase(),
     });
 
     if (existingBrand) {
-      console.log("[BrandController] Username exists check:", {
-        attemptedUsername: req.body.username.toLowerCase(),
-        existingBrandId: existingBrand._id,
-        existingBrandUsername: existingBrand.username,
-        existingBrandOwner: existingBrand.owner,
-      });
       return res.status(400).json({
         message: "This username is already taken",
         code: "DUPLICATE_USERNAME",
@@ -84,45 +59,14 @@ exports.createBrand = async (req, res) => {
       },
     };
 
-    console.log("[BrandController] Creating brand with data:", {
-      ...brandData,
-      owner: brandData.owner.toString(),
-      teamSetup: {
-        ...brandData.teamSetup,
-        userId: brandData.teamSetup.userId.toString(),
-      },
-    });
-
     const brand = new Brand(brandData);
     await brand.save();
 
-    console.log("[BrandController] Brand created successfully:", {
-      brandId: brand._id,
-      name: brand.name,
-      username: brand.username,
-      owner: brand.owner,
-    });
-
     return res.status(201).json(brand);
   } catch (error) {
-    console.error("[BrandController] Error creating brand:", {
-      error: error.message,
-      code: error.code,
-      body: {
-        name: req.body.name,
-        username: req.body.username,
-      },
-    });
-
-    // Handle MongoDB duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       const fieldName = field === "username" ? "username" : "brand name";
-      console.log("[BrandController] Duplicate key error:", {
-        error: error.message,
-        field,
-        value: error.keyValue[field],
-      });
       return res.status(400).json({
         message: `This ${fieldName} is already taken`,
         code: `DUPLICATE_${field.toUpperCase()}`,
@@ -238,14 +182,7 @@ exports.getBrandProfile = async (req, res) => {
 // Get single brand (public profile by username)
 exports.getBrandProfileByUsername = async (req, res) => {
   try {
-    console.log("[BrandController] Getting brand by username:", {
-      username: req.params.username,
-      authenticated: !!req.user,
-      userId: req.user?._id,
-    });
-
     if (!req.params.username) {
-      console.error("[BrandController] No username provided in request");
       return res.status(400).json({ message: "Username is required" });
     }
 
@@ -254,15 +191,7 @@ exports.getBrandProfileByUsername = async (req, res) => {
       .populate("team.user", "username firstName lastName avatar")
       .populate("events", "name date coverImage location");
 
-    console.log("[BrandController] Brand lookup result:", {
-      username: req.params.username,
-      found: !!brand,
-      brandId: brand?._id,
-      brandName: brand?.name,
-    });
-
     if (!brand) {
-      console.error("[BrandController] Brand not found:", req.params.username);
       return res.status(404).json({ message: "Brand not found" });
     }
 
@@ -298,12 +227,6 @@ exports.getBrandProfileByUsername = async (req, res) => {
           brand.team.find((member) => member.user._id.toString() === userId)
             ?.role || null,
       };
-
-      console.log("[BrandController] User status for brand:", {
-        userId,
-        brandId: brand._id,
-        userStatus,
-      });
     }
 
     // Format the response
@@ -314,19 +237,8 @@ exports.getBrandProfileByUsername = async (req, res) => {
       bannedMembers: undefined,
     };
 
-    console.log("[BrandController] Sending brand response:", {
-      brandId: brand._id,
-      username: brand.username,
-      hasUserStatus: !!response.userStatus,
-    });
-
     res.status(200).json(response);
   } catch (error) {
-    console.error("[BrandController] Error in getBrandProfileByUsername:", {
-      username: req.params.username,
-      error: error.message,
-      stack: error.stack,
-    });
     res.status(500).json({
       message: "Error fetching brand profile",
       error: error.message,
@@ -337,16 +249,6 @@ exports.getBrandProfileByUsername = async (req, res) => {
 // Update brand
 exports.updateBrand = async (req, res) => {
   try {
-    console.log("[BrandController] Updating brand settings:", {
-      brandId: req.params.brandId,
-      userId: req.user?._id,
-      body: {
-        name: req.body.name,
-        username: req.body.username,
-        hasSettings: !!req.body.settings,
-      },
-    });
-
     if (!req.user?._id) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -355,91 +257,57 @@ exports.updateBrand = async (req, res) => {
       return res.status(400).json({ message: "Brand ID is required" });
     }
 
-    // First get the existing brand
     const brand = await Brand.findOne({
       _id: req.params.brandId,
       owner: req.user._id,
     });
 
     if (!brand) {
-      console.log("[BrandController] Brand not found:", {
-        brandId: req.params.brandId,
-        userId: req.user._id,
-      });
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Preserve existing logo and coverImage
-    const existingLogo = brand.logo;
-    const existingCoverImage = brand.coverImage;
+    const updateData = { ...req.body };
+    delete updateData.logo;
+    delete updateData.coverImage;
 
-    // Update brand with new data while preserving logo and coverImage
     const updatedBrand = await Brand.findOneAndUpdate(
       { _id: req.params.brandId, owner: req.user._id },
-      {
-        ...req.body,
-        logo: existingLogo,
-        coverImage: existingCoverImage,
-      },
+      updateData,
       { new: true }
     ).populate("team.user", "username firstName lastName avatar");
 
-    console.log("[BrandController] Brand updated successfully:", {
-      brandId: updatedBrand._id,
-      name: updatedBrand.name,
-      username: updatedBrand.username,
-      settings: updatedBrand.settings,
-    });
-
     res.json(updatedBrand);
   } catch (error) {
-    console.error("[BrandController] Error updating brand:", {
-      error: error.message,
-      stack: error.stack,
-      brandId: req.params.brandId,
-    });
     res.status(500).json({ message: error.message });
   }
 };
 
 // Update brand logo
 exports.updateBrandLogo = async (req, res) => {
-  console.log("[BrandController] Starting logo update process:", {
-    brandId: req.params.brandId,
-    hasFile: !!req.file,
-    fileDetails: req.file
-      ? {
-          size: req.file.size,
-          mimetype: req.file.mimetype,
-          hasBuffer: !!req.file.buffer,
-        }
-      : null,
-  });
-
   try {
     const brand = await Brand.findById(req.params.brandId);
     if (!brand) {
-      console.log("[BrandController] Brand not found:", req.params.brandId);
       return res.status(404).json({ message: "Brand not found" });
     }
 
     if (!req.file || !req.file.buffer) {
-      console.log("[BrandController] No file provided for upload");
       return res.status(400).json({ message: "No file provided" });
     }
 
-    console.log("[BrandController] Preparing S3 upload:", {
-      brandId: brand._id,
-      fileSize: req.file.size,
-      mimeType: req.file.mimetype,
-    });
+    if (brand.logo) {
+      try {
+        const qualities = ["thumbnail", "medium", "full"];
+        const paths = qualities.map(
+          (quality) => `/brands/${brand._id}/logo/${quality}`
+        );
+        await invalidateCache(paths);
+      } catch (error) {
+        // Continue even if cache invalidation fails
+      }
+    }
 
-    // Prepare the file path for S3
-    const key = `brands/${brand._id}/logo`;
-    console.log("[BrandController] Generated S3 key:", key);
-
-    // Upload to S3 with multiple resolutions
-    console.log("[BrandController] Initiating S3 upload...");
+    const timestamp = Date.now();
+    const key = `brands/${brand._id}/logo/${timestamp}`;
     const urls = {};
     const qualities = ["thumbnail", "medium", "full"];
 
@@ -454,35 +322,20 @@ exports.updateBrandLogo = async (req, res) => {
       urls[quality] = url;
     }
 
-    console.log("[BrandController] S3 upload response:", {
-      success: true,
-      uploadedUrls: urls,
-    });
-
-    // Update brand with new logo URLs
-    console.log("[BrandController] Updating brand with new logo URLs");
     brand.logo = {
       thumbnail: urls.thumbnail,
       medium: urls.medium,
       full: urls.full,
+      timestamp,
     };
 
     await brand.save();
-    console.log("[BrandController] Brand updated successfully with new logo:", {
-      brandId: brand._id,
-      logoUrls: brand.logo,
-    });
 
     res.json({
       message: "Logo updated successfully",
       brand: brand,
     });
   } catch (error) {
-    console.error("[BrandController] Error in logo update:", {
-      error: error.message,
-      stack: error.stack,
-      brandId: req.params.brandId,
-    });
     res
       .status(500)
       .json({ message: "Error updating logo", error: error.message });
@@ -491,42 +344,30 @@ exports.updateBrandLogo = async (req, res) => {
 
 // Update brand cover image
 exports.updateBrandCover = async (req, res) => {
-  console.log("[BrandController] Starting cover image update process:", {
-    brandId: req.params.brandId,
-    hasFile: !!req.file,
-    fileDetails: req.file
-      ? {
-          size: req.file.size,
-          mimetype: req.file.mimetype,
-          hasBuffer: !!req.file.buffer,
-        }
-      : null,
-  });
-
   try {
     const brand = await Brand.findById(req.params.brandId);
     if (!brand) {
-      console.log("[BrandController] Brand not found:", req.params.brandId);
       return res.status(404).json({ message: "Brand not found" });
     }
 
     if (!req.file || !req.file.buffer) {
-      console.log("[BrandController] No file provided for upload");
       return res.status(400).json({ message: "No file provided" });
     }
 
-    console.log("[BrandController] Preparing S3 upload:", {
-      brandId: brand._id,
-      fileSize: req.file.size,
-      mimeType: req.file.mimetype,
-    });
+    if (brand.coverImage) {
+      try {
+        const qualities = ["thumbnail", "medium", "full"];
+        const paths = qualities.map(
+          (quality) => `/brands/${brand._id}/cover/${quality}`
+        );
+        await invalidateCache(paths);
+      } catch (error) {
+        // Continue even if cache invalidation fails
+      }
+    }
 
-    // Prepare the file path for S3
-    const key = `brands/${brand._id}/cover`;
-    console.log("[BrandController] Generated S3 key:", key);
-
-    // Upload to S3 with multiple resolutions
-    console.log("[BrandController] Initiating S3 upload...");
+    const timestamp = Date.now();
+    const key = `brands/${brand._id}/cover/${timestamp}`;
     const urls = {};
     const qualities = ["thumbnail", "medium", "full"];
 
@@ -541,38 +382,20 @@ exports.updateBrandCover = async (req, res) => {
       urls[quality] = url;
     }
 
-    console.log("[BrandController] S3 upload response:", {
-      success: true,
-      uploadedUrls: urls,
-    });
-
-    // Update brand with new cover image URLs
-    console.log("[BrandController] Updating brand with new cover image URLs");
     brand.coverImage = {
       thumbnail: urls.thumbnail,
       medium: urls.medium,
       full: urls.full,
+      timestamp,
     };
 
     await brand.save();
-    console.log(
-      "[BrandController] Brand updated successfully with new cover image:",
-      {
-        brandId: brand._id,
-        coverImageUrls: brand.coverImage,
-      }
-    );
 
     res.json({
       message: "Cover image updated successfully",
       brand: brand,
     });
   } catch (error) {
-    console.error("[BrandController] Error in cover image update:", {
-      error: error.message,
-      stack: error.stack,
-      brandId: req.params.brandId,
-    });
     res.status(500).json({
       message: "Error updating cover image",
       error: error.message,
@@ -969,7 +792,6 @@ exports.requestJoin = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error in requestJoin:", error);
     res.status(500).json({ message: "Error processing join request" });
   }
 };

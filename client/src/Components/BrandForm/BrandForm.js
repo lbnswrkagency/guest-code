@@ -197,7 +197,6 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
 
       return response.data.brand;
     } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
       throw error;
     }
   };
@@ -205,7 +204,6 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid || isSubmitting) {
-      // Show specific validation errors
       const newErrors = {};
       if (!formData.name) newErrors.name = "Brand name is required";
       if (!formData.username) newErrors.username = "Username is required";
@@ -218,23 +216,13 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
       return;
     }
 
-    setErrors({}); // Clear previous errors
+    setErrors({});
     const loadingToast = toast.showLoading("Saving...");
     setIsSubmitting(true);
 
     try {
       let updatedFormData = { ...formData };
       const token = localStorage.getItem("token");
-
-      console.log("[BrandForm] Starting brand submission:", {
-        isNewBrand: !brand?._id,
-        formData: {
-          name: formData.name,
-          username: formData.username.toLowerCase(),
-          hasLogo: !!processedFiles.logo,
-          hasCover: !!processedFiles.cover,
-        },
-      });
 
       let brandResponse;
       if (brand?._id) {
@@ -252,10 +240,6 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
             },
           }
         );
-        console.log("[BrandForm] Brand updated successfully:", {
-          brandId: brandResponse.data?._id,
-          name: brandResponse.data?.name,
-        });
       } else {
         // Create new brand
         brandResponse = await axios.post(
@@ -275,17 +259,12 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
             },
           }
         );
-        console.log("[BrandForm] Brand created successfully:", {
-          brandId: brandResponse.data?._id,
-          name: brandResponse.data?.name,
-        });
       }
 
       let updatedBrand = brandResponse.data;
 
       // Upload logo if exists
       if (processedFiles.logo) {
-        console.log("[BrandForm] Uploading logo...");
         const logoFormData = new FormData();
         logoFormData.append("logo", processedFiles.logo.full.file);
 
@@ -301,20 +280,17 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
               withCredentials: true,
             }
           );
-          console.log("[BrandForm] Logo uploaded successfully:", {
-            brandId: brandResponse.data._id,
-            hasLogo: !!logoResponse.data.brand.logo,
-          });
           updatedBrand = logoResponse.data.brand;
+
+          // Add a small delay to allow cache invalidation to complete
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
-          console.error("[BrandForm] Logo upload failed:", error);
           toast.showError("Logo upload failed, but brand was created");
         }
       }
 
       // Upload cover if exists
       if (processedFiles.cover) {
-        console.log("[BrandForm] Uploading cover image...");
         const coverFormData = new FormData();
         coverFormData.append("coverImage", processedFiles.cover.full.file);
 
@@ -330,18 +306,28 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
               withCredentials: true,
             }
           );
-          console.log("[BrandForm] Cover image uploaded successfully:", {
-            brandId: brandResponse.data._id,
-            hasCover: !!coverResponse.data.brand.coverImage,
-          });
           updatedBrand = coverResponse.data.brand;
+
+          // Add a small delay to allow cache invalidation to complete
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
-          console.error("[BrandForm] Cover upload failed:", error);
           toast.showError("Cover image upload failed, but brand was created");
         }
       }
 
-      // Call onSave with the updated brand data
+      // Fetch the latest brand data to ensure we have the most up-to-date information
+      const finalBrandResponse = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/brands/${brandResponse.data._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+      updatedBrand = finalBrandResponse.data;
+
+      // Call onSave with the final brand data that includes updated image URLs
       await onSave(updatedBrand);
 
       // Show success message and close form
@@ -352,23 +338,9 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
       );
       onClose();
     } catch (error) {
-      console.error("[BrandForm] Error submitting brand:", {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      // Clear loading toast before showing error
-      loadingToast.dismiss();
-
-      if (error.response?.data?.code === "DUPLICATE_USERNAME") {
-        setErrors({ username: "This username is already taken" });
-        toast.showError("This username is already taken");
-      } else {
-        toast.showError(
-          error.response?.data?.message || "Failed to create brand"
-        );
-      }
+      toast.showError(
+        error.response?.data?.message || "Error saving brand. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
       loadingToast.dismiss();

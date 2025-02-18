@@ -76,25 +76,15 @@ const Brands = () => {
   const fetchBrands = async () => {
     const loadingToast = toast.showLoading("Loading brands...");
     try {
-      console.log("[Brands] Fetching brands...");
-
-      // Get current token and log it
       const token = localStorage.getItem("token");
-      console.log("[Brands] Auth check:", {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token ? `${token.substring(0, 20)}...` : null,
-      });
 
       if (!token) {
-        console.error("[Brands] No token found in localStorage");
         toast.showError("Authentication required");
         setLoading(false);
         setBrands([]);
         return;
       }
 
-      // Log the complete URL and request config
       const url = `${process.env.REACT_APP_API_BASE_URL}/brands`;
       const config = {
         withCredentials: true,
@@ -104,49 +94,16 @@ const Brands = () => {
         },
       };
 
-      console.log("[Brands] Request configuration:", {
-        url,
-        method: "GET",
-        headers: config.headers,
-        withCredentials: config.withCredentials,
-      });
-
       const response = await axios.get(url, config);
-
-      console.log("[Brands] Response details:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: {
-          contentType: response.headers["content-type"],
-          authorization: response.config.headers["Authorization"],
-        },
-        data: {
-          isArray: Array.isArray(response.data),
-          length: response.data?.length || 0,
-          sample: response.data?.[0]
-            ? {
-                id: response.data[0]._id,
-                name: response.data[0].name,
-              }
-            : null,
-        },
-      });
 
       if (Array.isArray(response.data)) {
         setBrands(response.data);
-        console.log(
-          "[Brands] State updated with brands:",
-          response.data.length
-        );
       } else {
-        console.error("[Brands] Response data is not an array:", response.data);
         setBrands([]);
       }
 
       setLoading(false);
     } catch (error) {
-      console.error("[Brands] Error fetching brands:", error);
-
       if (error.response?.status === 401) {
         toast.showError("Session expired. Please log in again.");
       } else {
@@ -172,40 +129,23 @@ const Brands = () => {
 
   const handleSave = async (brandData) => {
     try {
-      console.log("[Brands] Starting brand save with data:", {
-        id: selectedBrand?._id,
-        name: brandData.name,
-        username: brandData.username,
-        hasLogo: !!brandData.logo,
-        hasCover: !!brandData.coverImage,
-      });
-
-      // Update the brands list with the new data immediately
       setBrands((prev) => {
-        if (selectedBrand) {
-          return prev.map((b) => (b._id === selectedBrand._id ? brandData : b));
-        } else {
-          return [...prev, brandData];
-        }
+        const updatedBrands = selectedBrand
+          ? prev.map((b) => (b._id === selectedBrand._id ? brandData : b))
+          : [...prev, brandData];
+
+        return updatedBrands;
       });
 
-      // No need to fetch brands again since we've already updated the state
       handleClose();
     } catch (error) {
-      console.error("[Brands] Save error:", error);
       toast.showError(error.response?.data?.message || "Failed to save brand");
     }
   };
 
   const handleDelete = async (brandId) => {
-    console.log("[Brands] handleDelete triggered", {
-      brandId,
-      hasToken: !!localStorage.getItem("token"),
-    });
-
     try {
       const loadingToast = toast.showLoading("Deleting brand...");
-      console.log("[Brands] Sending delete request for brand:", brandId);
 
       await axios.delete(
         `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
@@ -217,16 +157,9 @@ const Brands = () => {
         }
       );
 
-      console.log("[Brands] Brand deleted successfully:", brandId);
       toast.showSuccess("Brand deleted successfully!");
       fetchBrands();
     } catch (error) {
-      console.error("[Brands] Error deleting brand:", {
-        brandId,
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
       toast.showError("Failed to delete brand");
     }
   };
@@ -246,16 +179,11 @@ const Brands = () => {
   };
 
   const handleBrandDelete = async (brandId) => {
-    console.log("[Brands] handleBrandDelete triggered", { brandId });
     try {
       await handleDelete(brandId);
-      console.log("[Brands] handleDelete completed, closing settings");
       handleSettingsClose();
     } catch (error) {
-      console.error("[Brands] Error in handleBrandDelete:", {
-        brandId,
-        error: error.message,
-      });
+      // Error is already handled in handleDelete
     }
   };
 
@@ -273,7 +201,6 @@ const Brands = () => {
       toast.showSuccess("Brand settings updated successfully");
       fetchBrands();
     } catch (error) {
-      console.error("Error updating brand settings:", error);
       toast.showError("Failed to update brand settings");
     }
   };
@@ -387,15 +314,6 @@ const BrandCard = ({
       setShowBackContent(false);
     }
   }, [isFlipped]);
-
-  console.log("[BrandCard] Rendering brand:", {
-    id: brand._id,
-    name: brand.name,
-    coverImage: brand.coverImage,
-    logo: brand.logo,
-    social: brand.social,
-    contact: brand.contact,
-  });
 
   const coverImageUrl = getImageUrl(brand.coverImage);
   const logoUrl = getImageUrl(brand.logo);
