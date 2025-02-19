@@ -1144,3 +1144,76 @@ exports.unfavoriteBrand = async (req, res) => {
     res.status(500).json({ message: "Error unfavoriting brand" });
   }
 };
+
+// Update brand settings
+exports.updateBrandSettings = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { autoJoinEnabled, defaultRole } = req.body;
+
+    // Validate brandId
+    if (!brandId) {
+      return res.status(400).json({ message: "Brand ID is required" });
+    }
+
+    // Find the brand
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    // Check if user is authorized (must be OWNER)
+    const teamMember = brand.team.find(
+      (member) => member.user.toString() === req.user._id.toString()
+    );
+
+    if (!teamMember || teamMember.role !== "OWNER") {
+      return res
+        .status(403)
+        .json({ message: "Only OWNER can update settings" });
+    }
+
+    // Update settings
+    brand.settings.autoJoinEnabled = autoJoinEnabled;
+    if (defaultRole && defaultRole !== "OWNER") {
+      brand.settings.defaultRole = defaultRole;
+    }
+
+    await brand.save();
+
+    res.status(200).json({
+      message: "Settings updated successfully",
+      settings: brand.settings,
+    });
+  } catch (error) {
+    console.error("[BrandController:updateBrandSettings] Error:", error);
+    res.status(500).json({
+      message: "Error updating brand settings",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  createBrand: exports.createBrand,
+  getAllBrands: exports.getAllBrands,
+  getBrand: exports.getBrand,
+  getBrandProfile: exports.getBrandProfile,
+  getBrandProfileByUsername: exports.getBrandProfileByUsername,
+  updateBrand: exports.updateBrand,
+  updateBrandLogo: exports.updateBrandLogo,
+  updateBrandCover: exports.updateBrandCover,
+  deleteBrand: exports.deleteBrand,
+  getTeamMembers: exports.getTeamMembers,
+  updateMemberRole: exports.updateMemberRole,
+  removeMember: exports.removeMember,
+  banMember: exports.banMember,
+  followBrand: exports.followBrand,
+  unfollowBrand: exports.unfollowBrand,
+  requestJoin: exports.requestJoin,
+  processJoinRequest: exports.processJoinRequest,
+  leaveBrand: exports.leaveBrand,
+  favoriteBrand: exports.favoriteBrand,
+  unfavoriteBrand: exports.unfavoriteBrand,
+  updateBrandSettings: exports.updateBrandSettings,
+};

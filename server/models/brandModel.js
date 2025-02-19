@@ -12,8 +12,16 @@ const BrandSchema = new Schema(
         user: { type: Schema.Types.ObjectId, ref: "User" },
         role: {
           type: String,
-          enum: ["owner", "admin", "manager", "promoter", "staff", "member"],
-          default: "member",
+          enum: [
+            "OWNER",
+            "MEMBER",
+            "admin",
+            "manager",
+            "promoter",
+            "staff",
+            "member",
+          ],
+          default: "MEMBER",
         },
         permissions: {
           events: {
@@ -107,6 +115,8 @@ const BrandSchema = new Schema(
       isVerified: { type: Boolean, default: false },
       isPublic: { type: Boolean, default: true },
       allowsReviews: { type: Boolean, default: true },
+      defaultRole: { type: String, default: "MEMBER" },
+      autoJoinEnabled: { type: Boolean, default: false },
       defaultEventSettings: {
         guestCodeEnabled: { type: Boolean, default: true },
         friendsCodeEnabled: { type: Boolean, default: true },

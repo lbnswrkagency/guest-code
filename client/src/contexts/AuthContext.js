@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosConfig";
+import { cleanUsername } from "../utils/stringUtils";
 
 const AuthContext = createContext();
 
@@ -33,31 +34,29 @@ const AuthProviderWithRouter = ({ children }) => {
 
   // Add logging for user state changes
   useEffect(() => {
-    // console.log("[AuthContext] User state changed:", {
-    //   hasUser: !!user,
-    //   username: user?.username,
-    //   loading,
-    //   currentPath: location.pathname,
-    //   timestamp: new Date().toISOString(),
-    // });
-  }, [user, loading, location.pathname]);
+    console.log("[AuthContext] Auth state changed:", {
+      isAuthenticated: !!user,
+      user: user
+        ? {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+          }
+        : null,
+      timestamp: new Date().toISOString(),
+    });
+  }, [user]);
 
   const fetchUserData = async () => {
-    // console.log("[AuthContext] Fetching user data");
     try {
       const response = await axiosInstance.get("/auth/user");
-      // console.log("[AuthContext] User data fetched:", {
-      //   hasData: !!response.data,
-      //   username: response.data?.username,
-      //   timestamp: new Date().toISOString(),
-      // });
+      if (response.data) {
+        // Clean the username when fetching user data
+        response.data.username = cleanUsername(response.data.username);
+      }
       setUser(response.data);
       return response.data;
     } catch (error) {
-      // console.error("[AuthContext] Error fetching user data:", {
-      //   error: error.message,
-      //   timestamp: new Date().toISOString(),
-      // });
       throw error;
     }
   };
@@ -162,27 +161,29 @@ const AuthProviderWithRouter = ({ children }) => {
   }, [location.pathname]);
 
   const login = async (credentials) => {
-    // console.log("[AuthContext] Starting login process", {
-    //   timestamp: new Date().toISOString(),
-    //   hasEmail: !!credentials.email,
-    // });
-
     try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      console.log("[AuthContext] Login attempt:", {
+        email: credentials.email,
+        timestamp: new Date().toISOString(),
+      });
 
       const response = await axiosInstance.post("/auth/login", credentials);
 
-      // console.log("[AuthContext] Login response received:", {
-      //   hasUser: !!response.data.user,
-      //   hasToken: !!response.data.token,
-      //   username: response.data.user?.username,
-      //   timestamp: new Date().toISOString(),
-      // });
-
-      if (!response.data.user || !response.data.token) {
-        throw new Error("Invalid login response");
+      // Clean the username when logging in
+      if (response.data.user) {
+        response.data.user.username = cleanUsername(
+          response.data.user.username
+        );
       }
+
+      console.log("[AuthContext] Login successful:", {
+        userData: {
+          id: response.data.user._id,
+          username: response.data.user.username,
+          email: response.data.user.email,
+        },
+        timestamp: new Date().toISOString(),
+      });
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("refreshToken", response.data.refreshToken);
@@ -193,20 +194,14 @@ const AuthProviderWithRouter = ({ children }) => {
 
       setUser(response.data.user);
 
-      // console.log("[AuthContext] Navigating after login:", {
-      //   username: response.data.user.username,
-      //   targetPath: `/@${response.data.user.username}`,
-      //   timestamp: new Date().toISOString(),
-      // });
-
-      // Change navigation to use new URL pattern
       navigate(`/@${response.data.user.username}`);
     } catch (error) {
-      // console.error("[AuthContext] Login error:", {
-      //   message: error.message,
-      //   response: error.response?.data,
-      //   timestamp: new Date().toISOString(),
-      // });
+      console.error("[AuthContext] Login failed:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        timestamp: new Date().toISOString(),
+      });
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
@@ -216,23 +211,27 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const logout = async () => {
     try {
-      // console.log("[AuthContext] Starting logout process");
+      console.log("[AuthContext] Logout initiated", {
+        currentUser: user?.username,
+        timestamp: new Date().toISOString(),
+      });
 
-      // Call server logout endpoint
       await axiosInstance.post("/auth/logout");
 
-      // Clear all auth-related data
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
 
-      // Clear user state
       setUser(null);
-
-      // console.log("[AuthContext] Logout successful, redirecting to login");
       navigate("/login");
+
+      console.log("[AuthContext] Logout successful", {
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      // console.error("[AuthContext] Logout error:", error);
-      // Still clear local data even if server logout fails
+      console.error("[AuthContext] Logout failed:", {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);

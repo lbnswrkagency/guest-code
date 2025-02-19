@@ -341,39 +341,39 @@ const RoleSetting = ({ brand, onClose }) => {
 
       <div className="roles-list">
         {roles.map((role) => (
-          <div key={role._id} className="role-item">
-            <div className="role-header">
-              <div className="role-title">
-                <h3>{role.name}</h3>
-                {role.name === "OWNER" && (
-                  <RiLockLine
-                    className="lock-icon"
-                    title="This role cannot be modified"
-                  />
-                )}
-              </div>
-              <div className="role-actions">
-                {role.name !== "OWNER" && (
-                  <>
-                    <motion.button
-                      className="edit-btn"
-                      onClick={() => handleStartEdit(role)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <RiEditLine />
-                    </motion.button>
-                    <motion.button
-                      className="delete-btn"
-                      onClick={() => handleDeleteRole(role._id, role.name)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <RiDeleteBin6Line />
-                    </motion.button>
-                  </>
-                )}
-              </div>
+          <div
+            key={role._id}
+            className={`role-item ${role.name === "OWNER" ? "owner" : ""}`}
+          >
+            <div className="role-name">{role.name}</div>
+            <div className="role-actions">
+              {role.name === "OWNER" ? (
+                <motion.span
+                  className="action-btn lock"
+                  whileHover={{ scale: 1 }}
+                >
+                  <RiLockLine />
+                </motion.span>
+              ) : (
+                <>
+                  <motion.button
+                    className="action-btn edit"
+                    onClick={() => handleStartEdit(role)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <RiEditLine />
+                  </motion.button>
+                  <motion.button
+                    className="action-btn delete"
+                    onClick={() => handleDeleteRole(role._id, role.name)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <RiDeleteBin6Line />
+                  </motion.button>
+                </>
+              )}
             </div>
           </div>
         ))}

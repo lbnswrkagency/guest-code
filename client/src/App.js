@@ -37,57 +37,39 @@ const AppRoutes = () => {
   const params = useParams();
 
   // Pre-build the user profile route if we have a user
-  const userProfilePath = user ? `/@${user.username}` : null;
+  const userProfilePath = user ? `/@${user.username.trim()}` : null;
 
-  // Custom route matcher for user profiles
-  const matchUserProfile = (pattern, pathname) => {
-    const match = matchPath(
-      {
-        path: pattern,
-        end: true,
-      },
-      pathname
-    );
+  console.log("[AppRoutes] Route initialization:", {
+    currentPath: location.pathname,
+    userState: {
+      isAuthenticated: !!user,
+      username: user?.username.trim(),
+      userProfilePath,
+    },
+    routeParams: params,
+    pathSegments: location.pathname.split("/").filter(Boolean),
+    isAuthenticatedRoute: user && location.pathname.startsWith(userProfilePath),
+    timestamp: new Date().toISOString(),
+  });
 
-    return match;
-  };
-
-  // Enhanced logging for route debugging
-  // console.log("[AppRoutes] Detailed route matching:", {
-  //   currentPath: location.pathname,
-  //   userProfilePath,
-  //   exactMatch: location.pathname === userProfilePath,
-  //   hasUser: !!user,
-  //   username: user?.username,
-  //   authenticatedBrandPath: user ? `${userProfilePath}/@:brandUsername` : null,
-  //   authenticatedEventPath: user
-  //     ? `${userProfilePath}/@:brandUsername/@:eventUsername`
-  //     : null,
-  //   isAuthenticatedBrandRoute:
-  //     user && location.pathname.startsWith(userProfilePath + "/@"),
-  //   pathSegments: location.pathname.split("/").filter(Boolean),
-  //   timestamp: new Date().toISOString(),
-  // });
-
-  // Log available routes
-  // console.log("[AppRoutes] Available routes:", {
-  //   authenticatedRoutes: user
-  //     ? [
-  //         userProfilePath,
-  //         `${userProfilePath}/@:brandUsername`,
-  //         `${userProfilePath}/@:brandUsername/@:eventUsername`,
-  //       ]
-  //     : [],
-  //   publicRoutes: ["/@:brandUsername", "/@:brandUsername/@:eventUsername"],
-  //   timestamp: new Date().toISOString(),
-  // });
-
-  // console.log("[AppRoutes] Route state:", {
-  //   pathname: location.pathname,
-  //   params,
-  //   userProfilePath,
-  //   timestamp: new Date().toISOString(),
-  // });
+  // Enhanced logging for route matching
+  console.log("[AppRoutes] Route matching state:", {
+    authenticatedRoutes: user
+      ? [
+          userProfilePath,
+          `${userProfilePath}/*`,
+          `${userProfilePath}/brands`,
+          `${userProfilePath}/:brandUsername`,
+          `${userProfilePath}/:brandUsername/:eventUsername`,
+        ]
+      : [],
+    publicRoutes: ["/@:brandUsername", "/@:brandUsername/@:eventUsername"],
+    currentPath: location.pathname,
+    matchesAuthenticatedPath:
+      user && location.pathname.startsWith(userProfilePath),
+    matchesPublicPath: !user && location.pathname.match(/\/@[\w-]+/),
+    timestamp: new Date().toISOString(),
+  });
 
   return (
     <Routes>
@@ -118,11 +100,14 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="brand-profile-auth">
                       {({ params }) => {
-                        // console.log("[AppRoutes] Brand route matched:", {
-                        //   params,
-                        //   pathname: location.pathname,
-                        //   timestamp: new Date().toISOString(),
-                        // });
+                        console.log("[AppRoutes] Brand route matched:", {
+                          params,
+                          pathname: location.pathname,
+                          userProfilePath,
+                          isNestedUnderUserProfile:
+                            location.pathname.startsWith(userProfilePath),
+                          timestamp: new Date().toISOString(),
+                        });
                         return <BrandProfile />;
                       }}
                     </RouteDebug>
@@ -146,7 +131,14 @@ const AppRoutes = () => {
             path="/@:brandUsername"
             element={
               <RouteDebug name="brand-profile-public">
-                <BrandProfile />
+                {({ params }) => {
+                  console.log("[AppRoutes] Public brand route matched:", {
+                    params,
+                    pathname: location.pathname,
+                    timestamp: new Date().toISOString(),
+                  });
+                  return <BrandProfile />;
+                }}
               </RouteDebug>
             }
           />

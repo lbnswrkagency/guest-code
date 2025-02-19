@@ -12,6 +12,7 @@ import RoleSetting from "../RoleSetting/RoleSetting";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import "./BrandSettings.scss";
 import axiosInstance from "../../utils/axiosConfig";
+import { useToast } from "../Toast/ToastContext";
 
 const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
   const [showUserInterface, setShowUserInterface] = useState(false);
@@ -22,6 +23,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
     defaultRole: brand.settings?.defaultRole || "staff",
   });
   const [roles, setRoles] = useState([]);
+  const toast = useToast();
 
   useEffect(() => {
     console.log("[BrandSettings] Initial settings:", {
@@ -42,11 +44,11 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
       setRoles(response.data);
     } catch (error) {
       console.error("Error fetching roles:", error);
+      toast.showError("Failed to fetch roles");
     }
   };
 
   const handleSettingChange = (key, value, e) => {
-    // Prevent any event propagation if event exists
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -59,7 +61,6 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
 
     setSettings(newSettings);
 
-    // Update brand settings
     if (brand._id) {
       onSave({
         _id: brand._id,
@@ -72,96 +73,80 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
   };
 
   const handleDelete = (e) => {
-    console.log("[BrandSettings] handleDelete triggered", {
-      event: e?.type,
-      brandId: brand._id,
-      brandName: brand.name,
-      hasOnDelete: !!onDelete,
-    });
-
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    console.log("[BrandSettings] Setting showDeleteConfirm to true");
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = (e) => {
-    console.log("[BrandSettings] confirmDelete triggered", {
-      event: e?.type,
-      brandId: brand._id,
-      brandName: brand.name,
-      hasOnDelete: !!onDelete,
-    });
-
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
     if (onDelete && brand._id) {
-      console.log("[BrandSettings] Calling onDelete with brandId:", brand._id);
       onDelete(brand._id);
-    } else {
-      console.warn("[BrandSettings] Missing onDelete or brandId", {
-        hasOnDelete: !!onDelete,
-        brandId: brand._id,
-      });
     }
     setShowDeleteConfirm(false);
   };
 
-  // Prevent propagation for all clicks within BrandSettings
   const handleContainerClick = (e) => {
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
   };
 
-  const handleJoinToggle = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleJoinToggle = async () => {
+    try {
+      const response = await axiosInstance.put(
+        `/brands/${brand._id}/settings`,
+        {
+          autoJoinEnabled: !settings.autoJoinEnabled,
+          defaultRole: settings.defaultRole,
+        }
+      );
 
-    const newValue = !settings.autoJoinEnabled;
-    setSettings((prev) => ({
-      ...prev,
-      autoJoinEnabled: newValue,
-    }));
+      setSettings((prev) => ({
+        ...prev,
+        autoJoinEnabled: !prev.autoJoinEnabled,
+      }));
 
-    if (brand._id) {
-      onSave({
-        _id: brand._id,
-        settings: {
-          ...brand.settings,
-          autoJoinEnabled: newValue,
-        },
-      });
+      toast.showSuccess("Join settings updated successfully");
+    } catch (error) {
+      console.error("Error updating join settings:", error);
+      toast.showError("Failed to update join settings");
     }
   };
 
-  const handleRoleChange = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleRoleChange = async (e) => {
+    const newRole = e.target.value;
+    if (newRole === "OWNER") return;
 
-    const value = e.target.value;
-    setSettings((prev) => ({
-      ...prev,
-      defaultRole: value,
-    }));
+    try {
+      const response = await axiosInstance.put(
+        `/brands/${brand._id}/settings`,
+        {
+          autoJoinEnabled: settings.autoJoinEnabled,
+          defaultRole: newRole,
+        }
+      );
 
-    if (brand._id) {
-      onSave({
-        _id: brand._id,
-        settings: {
-          ...brand.settings,
-          defaultRole: value,
-        },
-      });
+      setSettings((prev) => ({
+        ...prev,
+        defaultRole: newRole,
+      }));
+
+      toast.showSuccess("Default role updated successfully");
+    } catch (error) {
+      console.error("Error updating default role:", error);
+      toast.showError("Failed to update default role");
     }
+  };
+
+  const handleRoleSettingsClose = () => {
+    setShowRoleSettings(false);
+    fetchRoles(); // Refresh roles when returning from role settings
   };
 
   return (
@@ -229,10 +214,11 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
                 whileTap={{ scale: 0.98 }}
               >
                 <RiUserAddLine />
-                <span>Allow users to request to join</span>
+                <span>Instant Join Access</span>
               </motion.button>
             </div>
-            <div className="setting-item">
+            <div className="setting-item role-setting">
+              <h4>Default Member Role</h4>
               <select
                 value={settings.defaultRole}
                 onChange={handleRoleChange}
@@ -240,18 +226,19 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
                 className="role-select"
               >
                 {roles.length > 0 ? (
-                  roles.map((role) => (
-                    <option key={role._id} value={role.name}>
-                      {role.name}
-                    </option>
-                  ))
+                  roles
+                    .filter((role) => role.name !== "OWNER")
+                    .map((role) => (
+                      <option key={role._id} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))
                 ) : (
                   <option value={settings.defaultRole}>
                     {settings.defaultRole}
                   </option>
                 )}
               </select>
-              <span className="select-label">Default member role</span>
             </div>
           </div>
 
@@ -295,10 +282,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
             transition={{ type: "tween", duration: 0.3 }}
             style={{ zIndex: 1100 }}
           >
-            <RoleSetting
-              brand={brand}
-              onClose={() => setShowRoleSettings(false)}
-            />
+            <RoleSetting brand={brand} onClose={handleRoleSettingsClose} />
           </motion.div>
         )}
         {showDeleteConfirm && (

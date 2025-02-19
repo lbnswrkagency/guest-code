@@ -30,13 +30,16 @@ import {
 import SocialLinks from "./SocialLinks";
 
 const BrandProfile = () => {
-  console.log("[BrandProfile] Component initialization starting", {
+  console.log("[BrandProfile] Component initialization:", {
+    params: useParams(),
+    location: useLocation(),
+    isAuthenticated: !!useAuth().user,
     timestamp: new Date().toISOString(),
   });
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { brandUsername, username } = useParams();
+  const { brandUsername } = useParams();
   const { user } = useAuth();
   const toast = useToast();
   const [brand, setBrand] = useState(null);
@@ -46,39 +49,31 @@ const BrandProfile = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [joinRequestStatus, setJoinRequestStatus] = useState(null);
   const [showActions, setShowActions] = useState(false);
-
-  console.log("[BrandProfile] Route and auth state:", {
-    params: {
-      brandUsername,
-      username,
-    },
-    location: {
-      pathname: location.pathname,
-      search: location.search,
-      hash: location.hash,
-    },
-    user: user
-      ? {
-          id: user._id,
-          username: user.username,
-        }
-      : null,
-    timestamp: new Date().toISOString(),
-  });
+  const [joinStatus, setJoinStatus] = useState(null);
 
   const cleanUsername = brandUsername?.replace("@", "");
 
-  console.log("[BrandProfile] Processed username:", {
-    original: brandUsername,
-    cleaned: cleanUsername,
-    timestamp: new Date().toISOString(),
-  });
+  useEffect(() => {
+    console.log("[BrandProfile] Profile data dependencies changed:", {
+      brandUsername,
+      cleanUsername,
+      isAuthenticated: !!user,
+      currentUser: user?.username,
+      pathname: location.pathname,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (cleanUsername) {
+      fetchBrand();
+    }
+  }, [cleanUsername, user]);
 
   const fetchBrand = async () => {
-    console.log("[BrandProfile] Attempting to fetch brand:", {
+    console.log("[BrandProfile] Fetching brand data:", {
+      brandUsername,
       cleanUsername,
-      originalUsername: brandUsername,
-      pathname: window.location.pathname,
+      isAuthenticated: !!user,
+      currentUser: user?.username,
       timestamp: new Date().toISOString(),
     });
 
@@ -88,16 +83,12 @@ const BrandProfile = () => {
         `/brands/profile/username/${cleanUsername}`
       );
 
-      console.log("[BrandProfile] Fetched brand data:", {
-        username: cleanUsername,
+      console.log("[BrandProfile] Brand data fetched:", {
+        brandId: response.data._id,
+        brandUsername: response.data.username,
+        isOwner: user?._id === response.data.owner,
         userStatus: response.data.userStatus,
-        userId: user?._id,
-        isPublicView: !user,
-        brandData: {
-          id: response.data._id,
-          name: response.data.name,
-          username: response.data.username,
-        },
+        timestamp: new Date().toISOString(),
       });
 
       setBrand(response.data);
@@ -111,33 +102,15 @@ const BrandProfile = () => {
         error: error.message,
         status: error.response?.status,
         data: error.response?.data,
-        cleanUsername,
-        pathname: window.location.pathname,
+        timestamp: new Date().toISOString(),
       });
 
-      if (error.response?.status === 401 && user) {
-        toast.showError("Session expired. Please log in again.");
-        navigate("/login");
-      } else {
-        toast.showError("Failed to load brand profile");
-        navigate("/");
-      }
+      toast.showError("Failed to load brand profile");
+      navigate("/");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    console.log("[BrandProfile] useEffect triggered:", {
-      cleanUsername,
-      hasUser: !!user,
-      timestamp: new Date().toISOString(),
-    });
-
-    if (cleanUsername) {
-      fetchBrand();
-    }
-  }, [cleanUsername, user]);
 
   const handleBack = () => {
     navigate(-1);
@@ -236,34 +209,71 @@ const BrandProfile = () => {
     }
   };
 
-  const handleJoin = async () => {
+  const handleJoinRequest = async () => {
     if (!user) {
       toast.showError("Please log in to join brands");
       return;
     }
 
     try {
-      if (isMember) {
-        await axiosInstance.post(`/brands/${brand._id}/leave`);
-        setIsMember(false);
+      // Optimistically update UI
+      setJoinRequestStatus("pending");
+
+      const response = await axiosInstance.post(`/brands/${brand._id}/join`);
+
+      if (response.data.status === "joined") {
+        setIsMember(true);
         setJoinRequestStatus(null);
-        toast.showSuccess("Left brand");
-      } else {
-        const response = await axiosInstance.post(`/brands/${brand._id}/join`);
-        if (response.data.status === "joined") {
-          setIsMember(true);
-          setJoinRequestStatus(null);
-          toast.showSuccess("Joined brand");
-        } else if (response.data.status === "pending") {
-          setJoinRequestStatus("pending");
-          toast.showSuccess("Join request sent");
-        }
+        toast.showSuccess("Joined brand");
+      } else if (response.data.status === "pending") {
+        setJoinRequestStatus("pending");
+        toast.showSuccess("Join request sent");
       }
+
+      // Refresh brand data
+      await fetchBrand();
     } catch (error) {
-      console.error("Error joining brand:", error);
-      toast.showError("Failed to update membership status");
+      // Revert optimistic update on error
+      setJoinRequestStatus(null);
+
+      if (error.response?.status === 400 && error.response.data?.message) {
+        toast.showError(error.response.data.message);
+      } else {
+        console.error("Error sending join request:", error);
+        toast.showError("Failed to send join request");
+      }
     }
   };
+
+  const handleJoinResponse = async (requestId, status) => {
+    try {
+      const response = await axiosInstance.post(
+        `/brands/join-requests/${requestId}/process`,
+        {
+          action: status,
+        }
+      );
+
+      if (response.status === 200) {
+        toast.showSuccess(
+          `Join request ${status === "accepted" ? "accepted" : "rejected"}`
+        );
+
+        // Refresh brand data
+        await fetchBrand();
+      }
+    } catch (error) {
+      console.error("Error processing join request:", error);
+      toast.showError("Failed to process join request");
+    }
+  };
+
+  // Add useEffect to persist join status
+  useEffect(() => {
+    if (brand?.userStatus?.joinStatus) {
+      setJoinRequestStatus(brand.userStatus.joinStatus);
+    }
+  }, [brand?.userStatus?.joinStatus]);
 
   const handleFavorite = async () => {
     if (!user) {
@@ -273,39 +283,37 @@ const BrandProfile = () => {
 
     try {
       const endpoint = isFavorited ? "unfavorite" : "favorite";
+
+      // Optimistically update UI
+      setIsFavorited(!isFavorited);
+      setBrand((prev) => ({
+        ...prev,
+        favorites: isFavorited
+          ? prev.favorites.filter((id) => id !== user._id)
+          : [...prev.favorites, user._id],
+      }));
+
       const response = await axiosInstance.post(
         `/brands/${brand._id}/${endpoint}`
       );
 
       if (response.status === 200) {
-        setIsFavorited(!isFavorited);
         toast.showSuccess(
           isFavorited ? "Removed from favorites" : "Added to favorites"
         );
-
-        setBrand((prev) => ({
-          ...prev,
-          favorites: isFavorited
-            ? prev.favorites.filter((id) => id !== user._id)
-            : [...prev.favorites, user._id],
-        }));
       }
     } catch (error) {
-      console.error("Error favoriting brand:", error);
+      // Revert optimistic update on error
+      setIsFavorited(!isFavorited);
+      setBrand((prev) => ({
+        ...prev,
+        favorites: isFavorited
+          ? [...prev.favorites, user._id]
+          : prev.favorites.filter((id) => id !== user._id),
+      }));
 
-      if (error.response?.status === 400) {
-        if (isFavorited) {
-          toast.showError("You haven't favorited this brand");
-        } else {
-          toast.showError("You've already favorited this brand");
-        }
-        const response = await axiosInstance.get(
-          `/brands/profile/${brand._id}`
-        );
-        setIsFavorited(response.data.userStatus?.isFavorited || false);
-      } else {
-        toast.showError("Failed to update favorite status");
-      }
+      console.error("Error favoriting brand:", error);
+      toast.showError("Failed to update favorite status");
     }
   };
 
@@ -376,7 +384,7 @@ const BrandProfile = () => {
           className={`action-button ${isMember ? "active" : ""} ${
             joinRequestStatus === "pending" ? "pending" : ""
           }`}
-          onClick={handleJoin}
+          onClick={handleJoinRequest}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={joinRequestStatus === "pending"}

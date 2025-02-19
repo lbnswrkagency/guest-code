@@ -84,50 +84,92 @@
 
   .roles-list {
     margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
 
     .role-item {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 12px;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
 
-      .role-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      &.owner {
+        order: -1;
+        background: rgba(255, 200, 7, 0.1);
+        border: 1px solid rgba(255, 200, 7, 0.2);
 
-        .role-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-
-          h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 500;
-          }
-
-          .lock-icon {
-            color: #ffc807;
-            font-size: 1rem;
-          }
+        .role-name {
+          color: #ffc807;
         }
+      }
 
-        .delete-btn {
+      .role-name {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .role-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .action-btn {
           width: 32px;
           height: 32px;
           border-radius: 50%;
           border: none;
-          background: rgba(255, 68, 68, 0.1);
-          color: #ff4444;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
 
           &:hover {
-            background: rgba(255, 68, 68, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+          }
+
+          &.edit {
+            color: #ffc807;
+            background: rgba(255, 200, 7, 0.1);
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.2);
+            }
+          }
+
+          &.delete {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+
+            &:hover {
+              background: rgba(255, 68, 68, 0.2);
+            }
+          }
+
+          &.lock {
+            color: #ffc807;
+            background: rgba(255, 200, 7, 0.1);
+            margin-left: auto;
+            cursor: not-allowed;
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.15);
+            }
+          }
+
+          svg {
+            font-size: 1.1rem;
           }
         }
       }

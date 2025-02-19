@@ -89,4 +89,7 @@ router.put(
 router.delete("/:brandId/members/:memberId", brandController.removeMember);
 router.post("/:brandId/members/:memberId/ban", brandController.banMember);
 
+// Settings management
+router.put("/:brandId/settings", brandController.updateBrandSettings);
+
 module.exports = router;
