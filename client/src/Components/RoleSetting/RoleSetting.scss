@@ -96,10 +96,21 @@
         justify-content: space-between;
         align-items: center;
 
-        h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          font-weight: 500;
+        .role-title {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+          }
+
+          .lock-icon {
+            color: #ffc807;
+            font-size: 1rem;
+          }
         }
 
         .delete-btn {
@@ -370,6 +381,159 @@
     justify-content: center;
     font-size: 1rem;
     color: rgba(255, 255, 255, 0.7);
+  }
+
+  .role-actions {
+    display: flex;
+    gap: 0.5rem;
+
+    .edit-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 200, 7, 0.1);
+      color: #ffc807;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 200, 7, 0.2);
+      }
+    }
+  }
+
+  .form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .create-role-form {
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #151515;
+      margin: 0;
+      padding: 2rem;
+
+      h3 {
+        margin: 0 0 1.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      input[type="text"] {
+        margin-bottom: 2rem;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .permissions-section {
+        h4 {
+          margin: 2rem 0 1.25rem;
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.8);
+
+          &:first-of-type {
+            margin-top: 0.5rem;
+          }
+        }
+
+        .permission-group {
+          gap: 1rem;
+        }
+
+        .permission-item {
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 8px;
+          padding: 0.75rem;
+          transition: background 0.2s ease;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.05);
+          }
+        }
+      }
+
+      .form-actions {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+
+        button {
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
+          border: none;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &.cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.15);
+            }
+          }
+
+          &.save-btn {
+            background: #ffc807;
+            color: #000;
+
+            &:hover {
+              background: #d1a300;
+            }
+          }
+        }
+      }
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+    }
   }
 }
 

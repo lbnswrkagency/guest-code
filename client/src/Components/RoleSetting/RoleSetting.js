@@ -5,6 +5,8 @@ import {
   RiCloseLine,
   RiDeleteBin6Line,
   RiRepeatFill,
+  RiEditLine,
+  RiLockLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
@@ -13,6 +15,7 @@ const RoleSetting = ({ brand, onClose }) => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
   const [newRole, setNewRole] = useState({
     name: "",
     permissions: {
@@ -130,7 +133,8 @@ const RoleSetting = ({ brand, onClose }) => {
     }
   };
 
-  const handleDeleteRole = async (roleId) => {
+  const handleDeleteRole = async (roleId, roleName) => {
+    if (roleName === "OWNER") return;
     try {
       await axiosInstance.delete(`/roles/brands/${brand._id}/roles/${roleId}`);
       setRoles(roles.filter((role) => role._id !== roleId));
@@ -166,6 +170,74 @@ const RoleSetting = ({ brand, onClose }) => {
         },
       },
     }));
+  };
+
+  const handleStartEdit = (role) => {
+    if (role.name === "OWNER") return;
+    setEditingRole(role);
+    setNewRole({
+      name: role.name,
+      permissions: {
+        events: {
+          create: role.permissions?.events?.create || false,
+          edit: role.permissions?.events?.edit || false,
+          delete: role.permissions?.events?.delete || false,
+          view: role.permissions?.events?.view || true,
+        },
+        team: {
+          manage: role.permissions?.team?.manage || false,
+          view: role.permissions?.team?.view || true,
+        },
+        analytics: {
+          view: role.permissions?.analytics?.view || false,
+        },
+        codes: {
+          friends: {
+            generate: role.permissions?.codes?.friends?.generate || false,
+            limit: role.permissions?.codes?.friends?.limit || 0,
+            unlimited: role.permissions?.codes?.friends?.unlimited || false,
+          },
+          backstage: {
+            generate: role.permissions?.codes?.backstage?.generate || false,
+            limit: role.permissions?.codes?.backstage?.limit || 0,
+            unlimited: role.permissions?.codes?.backstage?.unlimited || false,
+          },
+          table: {
+            generate: role.permissions?.codes?.table?.generate || false,
+          },
+          ticket: {
+            generate: role.permissions?.codes?.ticket?.generate || false,
+          },
+          guest: {
+            generate: role.permissions?.codes?.guest?.generate || false,
+          },
+        },
+        scanner: {
+          use: role.permissions?.scanner?.use || false,
+        },
+      },
+    });
+    setShowCreateForm(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!newRole.name.trim() || !editingRole) return;
+
+    try {
+      const response = await axiosInstance.put(
+        `/roles/brands/${brand._id}/roles/${editingRole._id}`,
+        newRole
+      );
+      setRoles(
+        roles.map((role) =>
+          role._id === editingRole._id ? response.data : role
+        )
+      );
+      setShowCreateForm(false);
+      setEditingRole(null);
+    } catch (error) {
+      console.error("Error updating role:", error);
+    }
   };
 
   const renderPermissionItem = (title, category, key, checked) => (
@@ -271,118 +343,197 @@ const RoleSetting = ({ brand, onClose }) => {
         {roles.map((role) => (
           <div key={role._id} className="role-item">
             <div className="role-header">
-              <h3>{role.name}</h3>
-              <motion.button
-                className="delete-btn"
-                onClick={() => handleDeleteRole(role._id)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <RiDeleteBin6Line />
-              </motion.button>
+              <div className="role-title">
+                <h3>{role.name}</h3>
+                {role.name === "OWNER" && (
+                  <RiLockLine
+                    className="lock-icon"
+                    title="This role cannot be modified"
+                  />
+                )}
+              </div>
+              <div className="role-actions">
+                {role.name !== "OWNER" && (
+                  <>
+                    <motion.button
+                      className="edit-btn"
+                      onClick={() => handleStartEdit(role)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <RiEditLine />
+                    </motion.button>
+                    <motion.button
+                      className="delete-btn"
+                      onClick={() => handleDeleteRole(role._id, role.name)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <RiDeleteBin6Line />
+                    </motion.button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {!showCreateForm ? (
-        <motion.button
-          className="add-role-btn"
-          onClick={() => setShowCreateForm(true)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+      <motion.button
+        className="add-role-btn"
+        onClick={() => setShowCreateForm(true)}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <RiAddLine />
+        <span>Add New Role</span>
+      </motion.button>
+
+      {showCreateForm && (
+        <motion.div
+          className="form-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
-          <RiAddLine />
-          <span>Add New Role</span>
-        </motion.button>
-      ) : (
-        <div className="create-role-form">
-          <h3>Create New Role</h3>
-          <input
-            type="text"
-            placeholder="Role Name"
-            value={newRole.name}
-            onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
-          />
+          <motion.div
+            className="create-role-form"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+          >
+            <h3>{editingRole ? "Edit Role" : "Create New Role"}</h3>
+            <input
+              type="text"
+              placeholder="Role Name"
+              value={newRole.name}
+              onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+            />
 
-          <div className="permissions-section">
-            <h4>Event Permissions</h4>
-            <div className="permission-group">
-              {renderPermissionItem(
-                "Create Events",
-                "events",
-                "create",
-                newRole.permissions.events.create
-              )}
-              {renderPermissionItem(
-                "Edit Events",
-                "events",
-                "edit",
-                newRole.permissions.events.edit
-              )}
-              {renderPermissionItem(
-                "Delete Events",
-                "events",
-                "delete",
-                newRole.permissions.events.delete
-              )}
+            <div className="permissions-section">
+              <h4>Event Permissions</h4>
+              <div className="permission-group">
+                {renderPermissionItem(
+                  "Create Events",
+                  "events",
+                  "create",
+                  newRole.permissions.events.create
+                )}
+                {renderPermissionItem(
+                  "Edit Events",
+                  "events",
+                  "edit",
+                  newRole.permissions.events.edit
+                )}
+                {renderPermissionItem(
+                  "Delete Events",
+                  "events",
+                  "delete",
+                  newRole.permissions.events.delete
+                )}
+              </div>
+
+              <h4>Team Permissions</h4>
+              <div className="permission-group">
+                {renderPermissionItem(
+                  "Manage Team",
+                  "team",
+                  "manage",
+                  newRole.permissions.team.manage
+                )}
+              </div>
+
+              <h4>Code Permissions</h4>
+              <div className="permission-group">
+                {renderCodePermission("Friends Code", "friends")}
+                {renderCodePermission("Backstage Code", "backstage")}
+                {renderCodePermission("Table Code", "table")}
+                {renderCodePermission("Ticket Code", "ticket")}
+                {renderCodePermission("Guest Code", "guest")}
+              </div>
+
+              <h4>Other Permissions</h4>
+              <div className="permission-group">
+                {renderPermissionItem(
+                  "View Analytics",
+                  "analytics",
+                  "view",
+                  newRole.permissions.analytics.view
+                )}
+                {renderPermissionItem(
+                  "Scanner Access",
+                  "scanner",
+                  "use",
+                  newRole.permissions.scanner.use
+                )}
+              </div>
             </div>
 
-            <h4>Team Permissions</h4>
-            <div className="permission-group">
-              {renderPermissionItem(
-                "Manage Team",
-                "team",
-                "manage",
-                newRole.permissions.team.manage
-              )}
+            <div className="form-actions">
+              <motion.button
+                className="cancel-btn"
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setEditingRole(null);
+                  setNewRole({
+                    name: "",
+                    permissions: {
+                      events: {
+                        create: false,
+                        edit: false,
+                        delete: false,
+                        view: true,
+                      },
+                      team: {
+                        manage: false,
+                        view: true,
+                      },
+                      analytics: {
+                        view: false,
+                      },
+                      codes: {
+                        friends: {
+                          generate: false,
+                          limit: 0,
+                          unlimited: false,
+                        },
+                        backstage: {
+                          generate: false,
+                          limit: 0,
+                          unlimited: false,
+                        },
+                        table: {
+                          generate: false,
+                        },
+                        ticket: {
+                          generate: false,
+                        },
+                        guest: {
+                          generate: false,
+                        },
+                      },
+                      scanner: {
+                        use: false,
+                      },
+                    },
+                  });
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                className="save-btn"
+                onClick={editingRole ? handleUpdateRole : handleCreateRole}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {editingRole ? "Update Role" : "Create Role"}
+              </motion.button>
             </div>
-
-            <h4>Code Permissions</h4>
-            <div className="permission-group">
-              {renderCodePermission("Friends Code", "friends")}
-              {renderCodePermission("Backstage Code", "backstage")}
-              {renderCodePermission("Table Code", "table")}
-              {renderCodePermission("Ticket Code", "ticket")}
-              {renderCodePermission("Guest Code", "guest")}
-            </div>
-
-            <h4>Other Permissions</h4>
-            <div className="permission-group">
-              {renderPermissionItem(
-                "View Analytics",
-                "analytics",
-                "view",
-                newRole.permissions.analytics.view
-              )}
-              {renderPermissionItem(
-                "Scanner Access",
-                "scanner",
-                "use",
-                newRole.permissions.scanner.use
-              )}
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <motion.button
-              className="cancel-btn"
-              onClick={() => setShowCreateForm(false)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Cancel
-            </motion.button>
-            <motion.button
-              className="save-btn"
-              onClick={handleCreateRole}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Create Role
-            </motion.button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );

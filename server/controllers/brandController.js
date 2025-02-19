@@ -7,6 +7,7 @@ const { uploadToS3 } = require("../utils/s3Uploader");
 const JoinRequest = require("../models/joinRequestModel");
 const Notification = require("../models/notificationModel");
 const User = require("../models/User");
+const roleController = require("../controllers/roleController");
 
 // Create new brand
 exports.createBrand = async (req, res) => {
@@ -47,14 +48,54 @@ exports.createBrand = async (req, res) => {
       username: req.body.username.toLowerCase(),
       description: req.body.description,
       owner: req.user._id,
-      defaultRoles: ["admin", "member"],
-      teamSetup: {
-        userId: req.user._id,
-        role: "admin",
-      },
+      team: [
+        {
+          user: req.user._id,
+          role: "OWNER",
+          permissions: {
+            events: {
+              create: true,
+              edit: true,
+              delete: true,
+              view: true,
+            },
+            team: {
+              manage: true,
+              view: true,
+            },
+            analytics: {
+              view: true,
+            },
+            codes: {
+              friends: {
+                generate: true,
+                limit: 0,
+                unlimited: true,
+              },
+              backstage: {
+                generate: true,
+                limit: 0,
+                unlimited: true,
+              },
+              table: {
+                generate: true,
+              },
+              ticket: {
+                generate: true,
+              },
+              guest: {
+                generate: true,
+              },
+            },
+            scanner: {
+              use: true,
+            },
+          },
+        },
+      ],
       settings: {
         autoJoinEnabled: false,
-        defaultRole: "member",
+        defaultRole: "MEMBER",
         ...req.body.settings,
       },
     };
@@ -62,21 +103,16 @@ exports.createBrand = async (req, res) => {
     const brand = new Brand(brandData);
     await brand.save();
 
+    // Create default roles
+    await roleController.createDefaultRoles(brand._id, req.user._id);
+
     return res.status(201).json(brand);
   } catch (error) {
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      const fieldName = field === "username" ? "username" : "brand name";
-      return res.status(400).json({
-        message: `This ${fieldName} is already taken`,
-        code: `DUPLICATE_${field.toUpperCase()}`,
-        fields: { [field]: `This ${fieldName} is already taken` },
-      });
-    }
-
+    console.error("[BrandController:createBrand] Error:", error);
     return res.status(500).json({
-      message: "An error occurred while creating the brand",
+      message: "Error creating brand",
       code: "SERVER_ERROR",
+      error: error.message,
     });
   }
 };
@@ -740,18 +776,14 @@ exports.unfollowBrand = async (req, res) => {
   }
 };
 
-// Request to join a brand
+// Process join request
 exports.requestJoin = async (req, res) => {
   try {
     const { brandId } = req.params;
-
-    if (!req.user?._id) {
-      return res.status(401).json({ message: "User not authenticated" });
-    }
-
     const userId = req.user._id;
 
-    const brand = await Brand.findById(brandId).populate("owner");
+    // Check if brand exists
+    const brand = await Brand.findById(brandId);
     if (!brand) {
       return res.status(404).json({ message: "Brand not found" });
     }
@@ -766,29 +798,78 @@ exports.requestJoin = async (req, res) => {
         .json({ message: "Already a member of this brand" });
     }
 
-    // Check if there's already a pending request
-    const existingRequest = await JoinRequest.findOne({
+    // Check if user is banned
+    const isBanned = brand.bannedMembers.some(
+      (member) => member.user.toString() === userId.toString()
+    );
+    if (isBanned) {
+      return res
+        .status(403)
+        .json({ message: "You are banned from this brand" });
+    }
+
+    // Check if there's a pending request
+    const pendingRequest = await JoinRequest.findOne({
       user: userId,
       brand: brandId,
       status: "pending",
     });
-
-    if (existingRequest) {
-      return res.status(400).json({ message: "Join request already pending" });
+    if (pendingRequest) {
+      return res
+        .status(400)
+        .json({ message: "You already have a pending request" });
     }
 
     if (brand.settings?.autoJoinEnabled) {
       // Auto-join enabled - add user directly to team
       brand.team.push({
         user: userId,
-        role: brand.settings?.defaultRole || "staff",
-        joinedAt: new Date(),
+        role: brand.settings?.defaultRole || "MEMBER",
+        permissions: {
+          events: {
+            create: false,
+            edit: false,
+            delete: false,
+            view: true,
+          },
+          team: {
+            manage: false,
+            view: true,
+          },
+          analytics: {
+            view: false,
+          },
+          codes: {
+            friends: {
+              generate: true,
+              limit: 10,
+              unlimited: false,
+            },
+            backstage: {
+              generate: false,
+              limit: 0,
+              unlimited: false,
+            },
+            table: {
+              generate: false,
+            },
+            ticket: {
+              generate: false,
+            },
+            guest: {
+              generate: false,
+            },
+          },
+          scanner: {
+            use: false,
+          },
+        },
       });
       await brand.save();
 
       // Create notification for brand owner
       await Notification.create({
-        userId: brand.owner._id,
+        userId: brand.owner,
         type: "info",
         title: "New Team Member",
         message: `@${req.user.username} joined your brand`,
@@ -818,7 +899,7 @@ exports.requestJoin = async (req, res) => {
 
       // Create notification for brand owner
       await Notification.create({
-        userId: brand.owner._id,
+        userId: brand.owner,
         type: "join_request",
         title: "New Join Request",
         message: `@${req.user.username} wants to join your brand`,
@@ -840,6 +921,7 @@ exports.requestJoin = async (req, res) => {
       });
     }
   } catch (error) {
+    console.error("[BrandController:requestJoin] Error:", error);
     res.status(500).json({ message: "Error processing join request" });
   }
 };
@@ -864,18 +946,56 @@ exports.processJoinRequest = async (req, res) => {
     const isAdmin = brand.team.some(
       (member) =>
         member.user.toString() === adminId.toString() &&
-        (member.role === "admin" || member.role === "owner")
+        (member.role === "OWNER" || member.role === "admin")
     );
     if (!isAdmin) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
     if (action === "accept") {
-      // Add user to team
+      // Add user to team with default role
       brand.team.push({
         user: joinRequest.user._id,
-        role: brand.settings?.defaultRole || "staff",
-        permissions: {}, // Default permissions will be set based on the role
+        role: brand.settings?.defaultRole || "MEMBER",
+        permissions: {
+          events: {
+            create: false,
+            edit: false,
+            delete: false,
+            view: true,
+          },
+          team: {
+            manage: false,
+            view: true,
+          },
+          analytics: {
+            view: false,
+          },
+          codes: {
+            friends: {
+              generate: true,
+              limit: 10,
+              unlimited: false,
+            },
+            backstage: {
+              generate: false,
+              limit: 0,
+              unlimited: false,
+            },
+            table: {
+              generate: false,
+            },
+            ticket: {
+              generate: false,
+            },
+            guest: {
+              generate: false,
+            },
+          },
+          scanner: {
+            use: false,
+          },
+        },
       });
       await brand.save();
 
@@ -906,6 +1026,7 @@ exports.processJoinRequest = async (req, res) => {
 
     res.status(200).json({ message: `Join request ${action}ed successfully` });
   } catch (error) {
+    console.error("[BrandController:processJoinRequest] Error:", error);
     res.status(500).json({ message: "Error processing join request" });
   }
 };
