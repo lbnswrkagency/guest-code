@@ -51,36 +51,56 @@ const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
       ? process.env.CLIENT_BASE_URL
-      : ["http://localhost:3000", "http://127.0.0.1:3000"],
+      : [
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:5001",
+        ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
+  exposedHeaders: ["set-cookie"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400,
 };
 
+// Apply CORS before any other middleware
 app.use(cors(corsOptions));
 
-// Add headers for better caching and performance
+// Enable pre-flight requests for all routes
+app.options("*", cors(corsOptions));
+
+// Global middleware to ensure CORS headers are always set
 app.use((req, res, next) => {
-  // Set CORS headers for images and other static assets
-  if (req.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-    res.set({
-      "Access-Control-Allow-Origin": "*", // Allow images to be accessed from anywhere
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "Origin, X-Requested-With, Content-Type, Accept",
-      "Access-Control-Max-Age": "86400", // 24 hours
-      "Cache-Control": "public, max-age=31536000", // 1 year
-      Vary: "Origin",
-    });
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.status(204).send();
+    return;
   }
   next();
 });
 
-// Middleware setup
+// Then continue with other middleware
 app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
-
-// Make sure this comes after CORS
 app.use(cookieParser());
 
 // Route setup
@@ -132,13 +152,17 @@ app.set("io", io);
 
 // Start server
 const port = process.env.PORT || 5001;
-server.listen(port);
+server.listen(port, () => {
+  console.log(`\n[Server] Running on port ${port}`);
+  console.log(`[Server] Access via http://localhost:${port}`);
+  console.log(`[Server] CORS enabled for origins:`, corsOptions.origin);
+});
 
 // Error handling
 server.on("error", (error) => {
-  // Silent error
+  console.error("[Server] Error:", error.message);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  // Silent error
+  console.error("[Server] Unhandled Rejection:", reason);
 });

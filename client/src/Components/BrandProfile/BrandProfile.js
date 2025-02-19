@@ -145,40 +145,91 @@ const BrandProfile = () => {
 
   const handleFollow = async () => {
     if (!user) {
+      console.log("[BrandProfile:handleFollow] No user logged in");
       toast.showError("Please log in to follow brands");
       return;
     }
 
+    console.log(
+      "[BrandProfile:handleFollow] Starting follow/unfollow action:",
+      {
+        isCurrentlyFollowing: isFollowing,
+        brandId: brand._id,
+        userId: user._id,
+        currentFollowers: brand.followers,
+        timestamp: new Date().toISOString(),
+      }
+    );
+
     try {
       const endpoint = isFollowing ? "unfollow" : "follow";
+      console.log(
+        `[BrandProfile:handleFollow] Making ${endpoint} request to:`,
+        {
+          url: `/brands/${brand._id}/${endpoint}`,
+          method: "POST",
+        }
+      );
+
       const response = await axiosInstance.post(
         `/brands/${brand._id}/${endpoint}`
       );
 
-      if (response.status === 200) {
-        setIsFollowing(!isFollowing);
-        toast.showSuccess(isFollowing ? "Unfollowed brand" : "Following brand");
+      console.log("[BrandProfile:handleFollow] Received response:", {
+        status: response.status,
+        data: response.data,
+        followers: response.data.followers,
+        userStatus: response.data.userStatus,
+      });
 
-        setBrand((prev) => ({
-          ...prev,
-          followers: isFollowing
-            ? prev.followers.filter((id) => id !== user._id)
-            : [...prev.followers, user._id],
-        }));
+      if (response.status === 200) {
+        const newFollowingState = !isFollowing;
+        console.log("[BrandProfile:handleFollow] Updating local state:", {
+          oldFollowingState: isFollowing,
+          newFollowingState,
+          newFollowersCount: response.data.followers.length,
+        });
+
+        setIsFollowing(newFollowingState);
+        toast.showSuccess(
+          newFollowingState ? "Following brand" : "Unfollowed brand"
+        );
+
+        setBrand((prev) => {
+          const updatedBrand = {
+            ...prev,
+            followers: response.data.followers,
+            userStatus: {
+              ...prev.userStatus,
+              isFollowing: newFollowingState,
+            },
+          };
+          console.log("[BrandProfile:handleFollow] Updated brand state:", {
+            previousFollowers: prev.followers,
+            newFollowers: updatedBrand.followers,
+            followersCount: updatedBrand.followers.length,
+          });
+          return updatedBrand;
+        });
       }
     } catch (error) {
-      console.error("Error following brand:", error);
+      console.error("[BrandProfile:handleFollow] Error:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        isFollowing,
+        brandId: brand._id,
+        userId: user._id,
+      });
 
       if (error.response?.status === 400) {
-        if (isFollowing) {
-          toast.showError("You are not following this brand");
-        } else {
-          toast.showError("You are already following this brand");
-        }
-        const response = await axiosInstance.get(
-          `/brands/profile/${brand._id}`
+        console.log(
+          "[BrandProfile:handleFollow] Refreshing brand data due to error"
         );
-        setIsFollowing(response.data.userStatus?.isFollowing || false);
+        await fetchBrand();
+        toast.showError(
+          error.response.data.message || "Failed to update follow status"
+        );
       } else {
         toast.showError("Failed to update follow status");
       }

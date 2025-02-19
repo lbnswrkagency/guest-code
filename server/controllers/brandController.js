@@ -598,42 +598,48 @@ exports.banMember = async (req, res) => {
 
 // Follow a brand
 exports.followBrand = async (req, res) => {
+  console.log("[BrandController:followBrand] Starting follow request:", {
+    brandId: req.params.brandId,
+    userId: req.user?._id,
+    timestamp: new Date().toISOString(),
+  });
+
   try {
     const { brandId } = req.params;
-
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ message: "User not authenticated" });
-    }
-
     const userId = req.user._id;
 
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
+    // Use findOneAndUpdate to atomically update the followers array
+    const updatedBrand = await Brand.findOneAndUpdate(
+      { _id: brandId },
+      { $addToSet: { followers: userId } },
+      { new: true }
+    );
+
+    if (!updatedBrand) {
+      console.log("[BrandController:followBrand] Brand not found:", {
+        brandId,
+      });
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Clean up any null values and convert to strings for comparison
-    brand.followers = brand.followers
-      .filter((id) => id != null)
-      .map((id) => id.toString());
+    // Convert followers to strings for the response
+    const followersAsStrings = updatedBrand.followers.map((id) =>
+      id.toString()
+    );
 
-    // Check if user is already following
-    const isFollowing = brand.followers.includes(userId.toString());
-    if (isFollowing) {
-      return res.status(400).json({ message: "Already following this brand" });
-    }
-
-    // Add user to followers
-    brand.followers = [...brand.followers, userId.toString()];
-    await brand.save();
+    console.log("[BrandController:followBrand] Updated brand:", {
+      brandId: updatedBrand._id,
+      followersAsStrings,
+      addedUserId: userId.toString(),
+    });
 
     // Create notification for brand owner
     await Notification.create({
-      userId: brand.owner,
+      userId: updatedBrand.owner,
       type: "new_follower",
       title: "New Follower",
-      message: `@${req.user.username} started following @${brand.username}`,
-      brandId: brand._id,
+      message: `@${req.user.username} started following @${updatedBrand.username}`,
+      brandId: updatedBrand._id,
       metadata: {
         follower: {
           id: userId,
@@ -641,53 +647,95 @@ exports.followBrand = async (req, res) => {
           avatar: req.user.avatar,
         },
         brand: {
-          id: brand._id,
-          username: brand.username,
-          name: brand.name,
+          id: updatedBrand._id,
+          username: updatedBrand.username,
+          name: updatedBrand.name,
         },
       },
     });
 
-    res.status(200).json({
+    const response = {
       message: "Successfully followed brand",
-      followers: brand.followers,
-    });
+      followers: followersAsStrings,
+      userStatus: {
+        isFollowing: true,
+      },
+    };
+
+    console.log(
+      "[BrandController:followBrand] Sending success response:",
+      response
+    );
+    res.status(200).json(response);
   } catch (error) {
+    console.error("[BrandController:followBrand] Error:", {
+      error: error.message,
+      stack: error.stack,
+      brandId: req.params.brandId,
+      userId: req.user?._id,
+    });
     res.status(500).json({ message: "Error following brand" });
   }
 };
 
 // Unfollow a brand
 exports.unfollowBrand = async (req, res) => {
+  console.log("[BrandController:unfollowBrand] Starting unfollow request:", {
+    brandId: req.params.brandId,
+    userId: req.user?._id,
+    timestamp: new Date().toISOString(),
+  });
+
   try {
     const { brandId } = req.params;
     const userId = req.user._id;
 
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
+    // Use findOneAndUpdate to atomically update the followers array
+    const updatedBrand = await Brand.findOneAndUpdate(
+      { _id: brandId },
+      { $pull: { followers: userId } },
+      { new: true }
+    );
+
+    if (!updatedBrand) {
+      console.log("[BrandController:unfollowBrand] Brand not found:", {
+        brandId,
+      });
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Clean up any null values and convert to strings for comparison
-    brand.followers = brand.followers
-      .filter((id) => id != null)
-      .map((id) => id.toString());
+    // Convert followers to strings for the response
+    const followersAsStrings = updatedBrand.followers.map((id) =>
+      id.toString()
+    );
 
-    // Check if user is actually following
-    const isFollowing = brand.followers.includes(userId.toString());
-    if (!isFollowing) {
-      return res.status(400).json({ message: "Not following this brand" });
-    }
-
-    // Remove user from followers
-    brand.followers = brand.followers.filter((id) => id !== userId.toString());
-    await brand.save();
-
-    res.status(200).json({
-      message: "Successfully unfollowed brand",
-      followers: brand.followers,
+    console.log("[BrandController:unfollowBrand] Updated brand:", {
+      brandId: updatedBrand._id,
+      previousFollowers: updatedBrand.followers,
+      followersAsStrings,
+      removedUserId: userId.toString(),
     });
+
+    const response = {
+      message: "Successfully unfollowed brand",
+      followers: followersAsStrings,
+      userStatus: {
+        isFollowing: false,
+      },
+    };
+
+    console.log(
+      "[BrandController:unfollowBrand] Sending success response:",
+      response
+    );
+    res.status(200).json(response);
   } catch (error) {
+    console.error("[BrandController:unfollowBrand] Error:", {
+      error: error.message,
+      stack: error.stack,
+      brandId: req.params.brandId,
+      userId: req.user?._id,
+    });
     res.status(500).json({ message: "Error unfollowing brand" });
   }
 };
