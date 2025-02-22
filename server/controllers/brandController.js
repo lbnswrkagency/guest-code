@@ -124,7 +124,9 @@ exports.getAllBrands = async (req, res) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const brands = await Brand.find({ owner: req.user._id });
+    const brands = await Brand.find({
+      $or: [{ owner: req.user._id }, { "team.user": req.user._id }],
+    });
     res.status(200).json(brands);
   } catch (error) {
     res.status(500).json({
@@ -458,17 +460,62 @@ exports.updateBrandCover = async (req, res) => {
 // Delete brand
 exports.deleteBrand = async (req, res) => {
   try {
-    const brand = await Brand.findOneAndDelete({
-      _id: req.params.brandId,
-      owner: req.user._id,
+    console.log("[Delete Brand] Request params:", {
+      brandId: req.params.brandId,
+      userId: req.user._id,
     });
 
-    if (!brand) {
+    // First find the brand to check permissions
+    const brandToDelete = await Brand.findById(req.params.brandId);
+    console.log("[Delete Brand] Found brand:", {
+      brand: brandToDelete
+        ? {
+            _id: brandToDelete._id,
+            owner: brandToDelete.owner,
+            team: brandToDelete.team,
+          }
+        : null,
+    });
+
+    if (!brandToDelete) {
+      console.log(
+        "[Delete Brand] Brand not found with ID:",
+        req.params.brandId
+      );
       return res.status(404).json({ message: "Brand not found" });
     }
 
+    // Check if user is owner or team member with admin rights
+    const isOwner = brandToDelete.owner.toString() === req.user._id.toString();
+    const isTeamAdmin = brandToDelete.team.some(
+      (member) =>
+        member.user.toString() === req.user._id.toString() &&
+        member.role === "admin"
+    );
+
+    console.log("[Delete Brand] Permission check:", {
+      isOwner,
+      isTeamAdmin,
+      requestingUserId: req.user._id,
+      brandOwnerId: brandToDelete.owner,
+    });
+
+    if (!isOwner && !isTeamAdmin) {
+      console.log("[Delete Brand] Permission denied for user:", req.user._id);
+      return res
+        .status(403)
+        .json({ message: "You don't have permission to delete this brand" });
+    }
+
+    // Delete the brand
+    const deletedBrand = await Brand.findOneAndDelete({
+      _id: req.params.brandId,
+    });
+    console.log("[Delete Brand] Brand deleted:", deletedBrand?._id);
+
     res.status(200).json({ message: "Brand deleted successfully" });
   } catch (error) {
+    console.error("[Delete Brand] Error:", error);
     res
       .status(500)
       .json({ message: "Error deleting brand", error: error.message });

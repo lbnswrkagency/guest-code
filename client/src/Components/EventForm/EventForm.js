@@ -23,8 +23,60 @@ import {
 import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 import ErrorBoundary from "../ErrorBoundary/ErrorBoundary";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+import { FaTimes, FaCheck } from "react-icons/fa";
+import { BiTime } from "react-icons/bi";
 
-const EventForm = ({ event, onClose, onSave }) => {
+const FLYER_TYPES = [
+  {
+    id: "portrait",
+    ratio: "9:16",
+    label: "Portrait",
+    aspectRatio: 9 / 16,
+    tolerance: 0.2,
+  },
+  {
+    id: "square",
+    ratio: "1:1",
+    label: "Square",
+    aspectRatio: 1,
+    tolerance: 0.2,
+  },
+  {
+    id: "landscape",
+    ratio: "16:9",
+    label: "Landscape",
+    aspectRatio: 16 / 9,
+    tolerance: 0.2,
+  },
+];
+
+const validateImageAspectRatio = (file, targetRatio, tolerance) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.width / img.height;
+      const minRatio = targetRatio * (1 - tolerance);
+      const maxRatio = targetRatio * (1 + tolerance);
+
+      if (ratio >= minRatio && ratio <= maxRatio) {
+        resolve(true);
+      } else {
+        const ratioType =
+          targetRatio === 1
+            ? "square"
+            : targetRatio > 1
+            ? "landscape"
+            : "portrait";
+        reject(new Error(`Please use a ${ratioType} image for this format`));
+      }
+    };
+    img.onerror = () =>
+      reject(new Error("Unable to load image. Please try another file."));
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -58,9 +110,29 @@ const EventForm = ({ event, onClose, onSave }) => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [blobUrls, setBlobUrls] = useState(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFlyerType, setSelectedFlyerType] = useState(
+    event?.flyerType || "portrait"
+  );
 
   const processQueue = useRef([]);
   const abortControllerRef = useRef(null);
+
+  const [flyerFiles, setFlyerFiles] = useState({
+    portrait: null,
+    square: null,
+    landscape: null,
+  });
+  const [flyerPreviews, setFlyerPreviews] = useState({
+    portrait: null,
+    square: null,
+    landscape: null,
+  });
+  const [uploadProgress, setUploadProgress] = useState({});
+  const fileInputRefs = {
+    portrait: useRef(),
+    square: useRef(),
+    landscape: useRef(),
+  };
 
   // Cleanup function
   useEffect(() => {
@@ -93,47 +165,58 @@ const EventForm = ({ event, onClose, onSave }) => {
     setIsFormValid(isValid);
   }, [formData.title, formData.location]);
 
-  const handleFileChange = async (e, type) => {
+  const handleFlyerClick = (type) => {
+    fileInputRefs[type].current?.click();
+  };
+
+  const handleFlyerChange = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const loadingToast = toast.showLoading("Processing...");
+    const flyerType = FLYER_TYPES.find((t) => t.id === type);
+    const loadingToast = toast.showLoading(
+      `Processing ${flyerType.label} flyer...`
+    );
 
     try {
       // Validate file size
       if (file.size > 20 * 1024 * 1024) {
-        throw new Error("Max: 20MB");
+        throw new Error("File size should be less than 20MB");
       }
 
-      const blurPlaceholder = await generateBlurPlaceholder(file);
-      const processed = await processImage(file);
+      // Validate aspect ratio
+      await validateImageAspectRatio(
+        file,
+        flyerType.aspectRatio,
+        flyerType.tolerance
+      );
 
-      // Create and track blob URLs
+      // Process image
+      const processed = await processImage(file);
+      const blurPlaceholder = await generateBlurPlaceholder(file);
+
+      // Create preview URLs
       const previewUrls = {
-        thumbnail: createAndTrackBlobUrl(processed.thumbnail.file),
-        medium: createAndTrackBlobUrl(processed.medium.file),
-        full: createAndTrackBlobUrl(processed.full.file),
-        blur: createAndTrackBlobUrl(new Blob([blurPlaceholder])),
+        thumbnail: URL.createObjectURL(processed.thumbnail.file),
+        medium: URL.createObjectURL(processed.medium.file),
+        full: URL.createObjectURL(processed.full.file),
+        blur: blurPlaceholder,
       };
 
       // Update state
-      setProcessedFiles((prev) => ({
+      setFlyerFiles((prev) => ({
         ...prev,
         [type]: processed,
       }));
 
-      setPreviews((prev) => ({
+      setFlyerPreviews((prev) => ({
         ...prev,
         [type]: previewUrls,
       }));
 
-      toast.showSuccess("Done");
+      toast.showSuccess(`${flyerType.label} flyer added successfully`);
     } catch (error) {
-      let errorMsg = error.message;
-      if (errorMsg.includes("dimensions")) {
-        errorMsg = errorMsg.replace(/.*dimensions/i, "Min dimensions:");
-      }
-      toast.showError(errorMsg);
+      toast.showError(error.message);
       e.target.value = "";
     } finally {
       loadingToast.dismiss();
@@ -150,56 +233,37 @@ const EventForm = ({ event, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("[EventForm] Submit triggered", {
+      formData,
+      isFormValid,
+      isSubmitting,
+    });
+
     if (!isFormValid || isSubmitting) {
-      toast.showError("Please fill in all required fields");
+      console.log("[EventForm] Form validation failed", {
+        isFormValid,
+        isSubmitting,
+      });
       return;
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.showLoading("Saving event...");
+    const loadingToast = toast.showLoading("Creating event...");
 
     try {
-      let updatedFormData = { ...formData };
-      const token = localStorage.getItem("token");
+      // First create the event
+      const eventData = {
+        ...formData,
+        flyer: {}, // Will be populated with URLs after upload
+      };
 
-      let eventResponse;
-      if (event?._id) {
-        // Update existing event
-        eventResponse = await axiosInstance.put(
-          `/events/${event._id}`,
-          updatedFormData
-        );
-      } else {
-        // Create new event
-        eventResponse = await axiosInstance.post("/events", updatedFormData);
-      }
-
-      // Upload flyer images if they exist
-      if (Object.values(processedFiles).some((file) => file !== null)) {
-        for (const [type, processed] of Object.entries(processedFiles)) {
-          if (processed) {
-            const formData = new FormData();
-            formData.append("flyer", processed.full.file, `${type}.jpg`);
-            formData.append("type", type);
-
-            await axiosInstance.put(
-              `/events/${eventResponse.data.event._id}/flyer`,
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-          }
-        }
-      }
-
-      toast.showSuccess(`Event ${event ? "updated" : "created"} successfully!`);
-      onSave(eventResponse.data.event);
+      console.log("[EventForm] Calling onSave with data:", eventData);
+      await onSave(eventData);
     } catch (error) {
-      toast.showError(error.response?.data?.message || "Failed to save event");
+      console.error("[EventForm] Error submitting form:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to create event"
+      );
     } finally {
       setIsSubmitting(false);
       loadingToast.dismiss();
@@ -220,244 +284,161 @@ const EventForm = ({ event, onClose, onSave }) => {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
-          <div className="form-header">
-            <h2>{event ? "Edit Event" : "Create New Event"}</h2>
-            <button className="close-button" onClick={onClose}>
-              <RiCloseLine />
-            </button>
-          </div>
+          <button className="close-button" onClick={onClose}>
+            <RiCloseLine />
+          </button>
+
+          <h2>{event ? "Edit Event" : "Create Event"}</h2>
 
           <form onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="form-section">
-                <h3>Event Details</h3>
+            <div className="form-section">
+              <h3>Event Details</h3>
+              <div className="form-group required">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  name="title"
+                  placeholder="Enter event title"
+                  required
+                />
+              </div>
 
-                <div className="form-group">
-                  <label htmlFor="title">Event Title</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="Enter event title"
+              <div className="form-group">
+                <label>Subtitle</label>
+                <input
+                  type="text"
+                  value={formData.subTitle}
+                  onChange={handleInputChange}
+                  name="subTitle"
+                  placeholder="Enter event subtitle"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  name="description"
+                  placeholder="Enter event description"
+                  rows="3"
+                />
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h3>Date & Time</h3>
+              <div className="form-group required">
+                <label>Date</label>
+                <div className="input-with-icon">
+                  <RiCalendarEventLine />
+                  <DatePicker
+                    selected={formData.date}
+                    onChange={(date) =>
+                      setFormData((prev) => ({ ...prev, date }))
+                    }
+                    dateFormat="MMMM d, yyyy"
+                    minDate={new Date()}
+                    placeholderText="Select event date"
                     required
                   />
                 </div>
+              </div>
 
-                <div className="form-group">
-                  <label htmlFor="subTitle">Subtitle (Optional)</label>
-                  <input
-                    type="text"
-                    id="subTitle"
-                    name="subTitle"
-                    value={formData.subTitle}
-                    onChange={handleInputChange}
-                    placeholder="Enter event subtitle"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Enter event description"
-                    rows="4"
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="date">Date</label>
-                    <div className="input-with-icon">
-                      <RiCalendarEventLine />
-                      <DatePicker
-                        selected={formData.date}
-                        onChange={(date) =>
-                          setFormData((prev) => ({ ...prev, date }))
-                        }
-                        dateFormat="MMMM d, yyyy"
-                        minDate={new Date()}
-                        className="date-picker"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="startTime">Start Time</label>
-                    <div className="input-with-icon">
-                      <RiTimeLine />
-                      <input
-                        type="time"
-                        id="startTime"
-                        name="startTime"
-                        value={formData.startTime}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="endTime">End Time</label>
-                    <div className="input-with-icon">
-                      <RiTimeLine />
-                      <input
-                        type="time"
-                        id="endTime"
-                        name="endTime"
-                        value={formData.endTime}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="location">Location</label>
+              <div className="time-inputs">
+                <div className="form-group required">
+                  <label>Start Time</label>
                   <div className="input-with-icon">
-                    <RiMapPinLine />
+                    <RiTimeLine />
                     <input
-                      type="text"
-                      id="location"
-                      name="location"
-                      value={formData.location}
+                      type="time"
+                      name="startTime"
+                      value={formData.startTime}
                       onChange={handleInputChange}
-                      placeholder="Enter event location"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group required">
+                  <label>End Time</label>
+                  <div className="input-with-icon">
+                    <RiTimeLine />
+                    <input
+                      type="time"
+                      name="endTime"
+                      value={formData.endTime}
+                      onChange={handleInputChange}
                       required
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="form-section">
-                <h3>Event Media</h3>
-                <div className="image-upload-grid">
-                  <div className="image-upload-item">
-                    <label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, "landscape")}
-                        style={{ display: "none" }}
-                      />
-                      <div className="upload-preview">
-                        {previews.landscape ? (
-                          <ProgressiveImage
-                            thumbnailSrc={previews.landscape.thumbnail}
-                            mediumSrc={previews.landscape.medium}
-                            fullSrc={previews.landscape.full}
-                            blurDataURL={previews.landscape.blur}
-                            alt="Landscape flyer"
-                          />
-                        ) : (
-                          <div className="upload-placeholder">
-                            <RiUpload2Line />
-                            <span>Landscape Flyer</span>
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="image-upload-item">
-                    <label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, "portrait")}
-                        style={{ display: "none" }}
-                      />
-                      <div className="upload-preview">
-                        {previews.portrait ? (
-                          <ProgressiveImage
-                            thumbnailSrc={previews.portrait.thumbnail}
-                            mediumSrc={previews.portrait.medium}
-                            fullSrc={previews.portrait.full}
-                            blurDataURL={previews.portrait.blur}
-                            alt="Portrait flyer"
-                          />
-                        ) : (
-                          <div className="upload-placeholder">
-                            <RiUpload2Line />
-                            <span>Portrait Flyer</span>
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="image-upload-item">
-                    <label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, "square")}
-                        style={{ display: "none" }}
-                      />
-                      <div className="upload-preview">
-                        {previews.square ? (
-                          <ProgressiveImage
-                            thumbnailSrc={previews.square.thumbnail}
-                            mediumSrc={previews.square.medium}
-                            fullSrc={previews.square.full}
-                            blurDataURL={previews.square.blur}
-                            alt="Square flyer"
-                          />
-                        ) : (
-                          <div className="upload-placeholder">
-                            <RiUpload2Line />
-                            <span>Square Flyer</span>
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  </div>
+              <div className="form-group required">
+                <label>Location</label>
+                <div className="input-with-icon">
+                  <RiMapPinLine />
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="Enter event location"
+                    required
+                  />
                 </div>
+              </div>
+            </div>
 
-                <h3>Access Control</h3>
-                <div className="checkbox-grid">
-                  <label className="checkbox-label">
+            <div className="form-section">
+              <h3>Event Media</h3>
+              <div className="flyer-options">
+                {FLYER_TYPES.map((type) => (
+                  <div
+                    key={type.id}
+                    className={`flyer-option ${type.id} ${
+                      flyerFiles[type.id] ? "selected" : ""
+                    }`}
+                    onClick={() => handleFlyerClick(type.id)}
+                  >
                     <input
-                      type="checkbox"
-                      name="guestCode"
-                      checked={formData.guestCode}
-                      onChange={handleInputChange}
+                      type="file"
+                      ref={fileInputRefs[type.id]}
+                      onChange={(e) => handleFlyerChange(e, type.id)}
+                      accept="image/*"
+                      style={{ display: "none" }}
                     />
-                    <RiGroupLine /> Guest Code
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="friendsCode"
-                      checked={formData.friendsCode}
-                      onChange={handleInputChange}
-                    />
-                    <RiTeamLine /> Friends Code
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="ticketCode"
-                      checked={formData.ticketCode}
-                      onChange={handleInputChange}
-                    />
-                    <RiTicketLine /> Ticket Code
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="tableCode"
-                      checked={formData.tableCode}
-                      onChange={handleInputChange}
-                    />
-                    <RiVipLine /> Table Code
-                  </label>
-                </div>
+                    <div className="ratio-preview">
+                      {flyerPreviews[type.id] ? (
+                        <ProgressiveImage
+                          thumbnailSrc={flyerPreviews[type.id].thumbnail}
+                          mediumSrc={flyerPreviews[type.id].medium}
+                          fullSrc={flyerPreviews[type.id].full}
+                          blurDataURL={flyerPreviews[type.id].blur}
+                          alt={`${type.label} flyer preview`}
+                        />
+                      ) : null}
+                    </div>
+                    <span className="ratio-text">{type.ratio}</span>
+                    {flyerFiles[type.id] && (
+                      <span className="check-icon">
+                        <FaCheck />
+                      </span>
+                    )}
+                    {uploadProgress[type.id] > 0 &&
+                      uploadProgress[type.id] < 100 && (
+                        <div className="upload-progress">
+                          <div
+                            className="progress-bar"
+                            style={{ width: `${uploadProgress[type.id]}%` }}
+                          />
+                        </div>
+                      )}
+                  </div>
+                ))}
               </div>
             </div>
 

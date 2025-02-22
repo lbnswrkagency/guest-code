@@ -147,19 +147,39 @@ const Brands = () => {
     try {
       const loadingToast = toast.showLoading("Deleting brand...");
 
-      await axios.delete(
-        `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.showError("Authentication required");
+        return;
+      }
+
+      const deleteUrl = `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`;
+      console.log(
+        "[Delete Brand] Attempting to delete brand with URL:",
+        deleteUrl
       );
+      console.log("[Delete Brand] Environment:", {
+        REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+        brandId,
+      });
+
+      await axios.delete(deleteUrl, {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       toast.showSuccess("Brand deleted successfully!");
       fetchBrands();
+      loadingToast.dismiss();
     } catch (error) {
+      console.error("Delete brand error:", error);
+      console.error("[Delete Brand] Full error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config,
+      });
       toast.showError("Failed to delete brand");
     }
   };
@@ -191,10 +211,23 @@ const Brands = () => {
     try {
       if (!selectedBrandForSettings) return;
 
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.showError("Authentication required");
+        return;
+      }
+
       await axios.put(
         `${process.env.REACT_APP_API_BASE_URL}/brands/${selectedBrandForSettings._id}`,
         {
           settings,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 

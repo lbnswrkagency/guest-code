@@ -5,6 +5,7 @@ const { upload, uploadSingle } = require("../../utils/multerConfig");
 const {
   createEvent,
   getAllEvents,
+  getBrandEvents,
   editEvent,
   deleteEvent,
   getEvent,
@@ -18,33 +19,37 @@ const {
   deleteDroppedFile,
   getSignedUrlForDownload,
 } = require("../../controllers/eventsController");
-router.get("/listDroppedFiles", authenticate, listDroppedFiles);
-router.post("/", authenticate, createEvent);
+
+// Brand-specific event routes
+router.get("/brand/:brandId", authenticate, getBrandEvents);
+router.post("/brand/:brandId", authenticate, createEvent);
+
+// Event-specific routes
 router.get("/", authenticate, getAllEvents);
+router.get("/:eventId", authenticate, getEvent);
 router.put("/:eventId", authenticate, editEvent);
 router.delete("/:eventId", authenticate, deleteEvent);
-router.get("/:eventId", authenticate, getEvent);
 router.get("/page/:eventId", authenticate, getEventPage);
 router.get("/link/:eventLink", getEventByLink);
+
+// Guest code routes
 router.post("/generateGuestCode", generateGuestCode);
 router.patch(
-  "/updateGuestCodeCondition/:eventId",
+  "/:eventId/guestCodeCondition",
   authenticate,
   updateGuestCodeCondition
 );
+
+// File handling routes
 router.post(
   "/compressAndOptimizeFiles",
   authenticate,
   upload,
   compressAndOptimizeFiles
 );
+router.post("/uploadVideo", uploadSingle, uploadVideoToS3);
+router.get("/files", authenticate, listDroppedFiles);
+router.delete("/files/:fileName", authenticate, deleteDroppedFile);
+router.get("/files/:fileName/download", authenticate, getSignedUrlForDownload);
 
-router.post("/uploadVideoToS3", uploadSingle, uploadVideoToS3);
-
-router.delete("/deleteDroppedFile/:fileName", authenticate, deleteDroppedFile);
-router.get(
-  "/getSignedUrlForDownload/:fileName",
-  authenticate,
-  getSignedUrlForDownload
-);
 module.exports = router;

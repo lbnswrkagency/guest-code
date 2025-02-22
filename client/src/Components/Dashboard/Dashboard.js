@@ -488,6 +488,7 @@ const DashboardContent = ({ user, setUser }) => {
         isOpen={isNavigationOpen}
         onClose={() => setIsNavigationOpen(false)}
         currentUser={user}
+        setUser={setUser}
       />
     </div>
   );

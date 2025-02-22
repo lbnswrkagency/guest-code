@@ -10,6 +10,7 @@ import {
   RiTimeLine,
   RiTeamLine,
   RiGroupLine,
+  RiAddLine,
 } from "react-icons/ri";
 import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
@@ -24,6 +25,8 @@ import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 const Events = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const [userBrands, setUserBrands] = useState([]);
+  const [selectedBrand, setSelectedBrand] = useState(null);
   const [events, setEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -33,17 +36,40 @@ const Events = () => {
   const [selectedEventForSettings, setSelectedEventForSettings] =
     useState(null);
   const toast = useToast();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const fetchBrands = async () => {
+    try {
+      const response = await axiosInstance.get("/brands");
+      if (Array.isArray(response.data)) {
+        setUserBrands(response.data);
+        if (response.data.length > 0 && !selectedBrand) {
+          setSelectedBrand(response.data[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      toast.showError("Failed to load brands");
+      setUserBrands([]);
+    }
+  };
 
   useEffect(() => {
-    fetchEvents();
+    fetchBrands();
   }, []);
 
   const fetchEvents = async () => {
+    if (!selectedBrand?._id) return;
+
     const loadingToast = toast.showLoading("Loading events...");
     try {
-      const response = await axiosInstance.get("/events");
-      setEvents(response.data.events || []);
+      console.log("Fetching events for brand:", selectedBrand._id);
+      const response = await axiosInstance.get(
+        `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`
+      );
+      setEvents(response.data || []);
     } catch (error) {
+      console.error("Error fetching events:", error);
       toast.showError("Failed to load events");
       setEvents([]);
     } finally {
@@ -51,6 +77,18 @@ const Events = () => {
       loadingToast.dismiss();
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (selectedBrand?._id && isMounted) {
+      fetchEvents();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedBrand?._id]);
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
@@ -62,28 +100,66 @@ const Events = () => {
     setSelectedEvent(null);
   };
 
-  const handleSave = async (eventData) => {
-    try {
-      setEvents((prev) => {
-        const updatedEvents = selectedEvent
-          ? prev.map((e) => (e._id === selectedEvent._id ? eventData : e))
-          : [...prev, eventData];
-        return updatedEvents;
-      });
-      handleClose();
-    } catch (error) {
-      toast.showError(error.response?.data?.message || "Failed to save event");
-    }
+  const handleBrandSelect = (brand) => {
+    setSelectedBrand(brand);
+    setIsDropdownOpen(false);
   };
 
-  const handleDelete = async (eventId) => {
+  const handleSave = async (eventData) => {
     try {
-      const loadingToast = toast.showLoading("Deleting event...");
-      await axiosInstance.delete(`/events/${eventId}`);
-      toast.showSuccess("Event deleted successfully!");
-      fetchEvents();
+      const loadingToast = toast.showLoading(
+        selectedEvent ? "Updating event..." : "Creating event..."
+      );
+      let response;
+
+      console.log("[Event Creation] Attempting to create/update event:", {
+        isUpdate: !!selectedEvent,
+        eventData,
+        selectedBrandId: selectedBrand._id,
+      });
+
+      if (selectedEvent) {
+        console.log(`[Event Update] Updating event ${selectedEvent._id}`);
+        response = await axiosInstance.put(
+          `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}`,
+          eventData
+        );
+      } else {
+        console.log(
+          `[Event Creation] Creating new event for brand ${selectedBrand._id}`
+        );
+        response = await axiosInstance.post(
+          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`,
+          eventData
+        );
+      }
+
+      console.log("[Event Operation] Server response:", {
+        status: response.status,
+        data: response.data,
+      });
+
+      setEvents((prev) => {
+        const updatedEvents = selectedEvent
+          ? prev.map((e) => (e._id === selectedEvent._id ? response.data : e))
+          : [...prev, response.data];
+        return updatedEvents;
+      });
+
+      toast.showSuccess(
+        selectedEvent
+          ? "Event updated successfully!"
+          : "Event created successfully!"
+      );
+      handleClose();
     } catch (error) {
-      toast.showError("Failed to delete event");
+      console.error("[Event Operation Error]", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+      });
+      toast.showError(error.response?.data?.message || "Failed to save event");
     }
   };
 
@@ -117,40 +193,90 @@ const Events = () => {
       <div className="events">
         <div className="events-header">
           <h1>Your Events</h1>
-          <p>Create and manage your events</p>
+          <p>Create and manage your event portfolio</p>
+
+          {userBrands && userBrands.length > 0 ? (
+            <div className="brand-selector">
+              <div
+                className="selected-brand"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                {selectedBrand?.logo ? (
+                  <img
+                    src={selectedBrand.logo.thumbnail}
+                    alt={selectedBrand.name}
+                  />
+                ) : (
+                  <div className="brand-initial">{selectedBrand?.name[0]}</div>
+                )}
+                <span className="brand-name">{selectedBrand?.name}</span>
+              </div>
+              <div className={`brand-options ${isDropdownOpen ? "open" : ""}`}>
+                {userBrands.map((brand) => (
+                  <div
+                    key={brand._id}
+                    className={`brand-option ${
+                      selectedBrand?._id === brand._id ? "selected" : ""
+                    }`}
+                    onClick={() => handleBrandSelect(brand)}
+                  >
+                    {brand.logo ? (
+                      <img src={brand.logo.thumbnail} alt={brand.name} />
+                    ) : (
+                      <div className="brand-initial">{brand.name[0]}</div>
+                    )}
+                    <span className="brand-name">{brand.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="no-brands-message">
+              <h2>Create Your First Brand</h2>
+              <p>To create an Event you need to join or create a brand</p>
+              <button
+                className="brand-button"
+                onClick={() => navigate("/brands")}
+              >
+                Brands
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="events-grid">
-          {loading ? (
-            <div className="loading-state">Loading events...</div>
-          ) : events.length > 0 ? (
-            <>
-              {events.map((event) => (
-                <EventCard
-                  key={event._id}
-                  event={event}
-                  onClick={handleEventClick}
-                  onSettingsClick={handleSettingsClick}
-                />
-              ))}
+        {userBrands && userBrands.length > 0 && (
+          <div className="events-grid">
+            {loading ? (
+              <div className="loading-state">Loading events...</div>
+            ) : events.length > 0 ? (
+              <>
+                {events.map((event) => (
+                  <EventCard
+                    key={event._id}
+                    event={event}
+                    onClick={handleEventClick}
+                    onSettingsClick={handleSettingsClick}
+                  />
+                ))}
+                <div
+                  className="event-card add-card"
+                  onClick={() => setShowForm(true)}
+                >
+                  <RiAddCircleLine className="add-icon" />
+                  <p>Create New Event</p>
+                </div>
+              </>
+            ) : (
               <div
                 className="event-card add-card"
                 onClick={() => setShowForm(true)}
               >
                 <RiAddCircleLine className="add-icon" />
-                <p>Create New Event</p>
+                <p>No events found. Create your first event!</p>
               </div>
-            </>
-          ) : (
-            <div
-              className="event-card add-card"
-              onClick={() => setShowForm(true)}
-            >
-              <RiAddCircleLine className="add-icon" />
-              <p>No events found. Create your first event!</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {showForm && (
           <EventForm

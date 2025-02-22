@@ -237,6 +237,7 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
             withCredentials: true,
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
           }
         );
@@ -247,15 +248,12 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
           {
             ...updatedFormData,
             username: updatedFormData.username.toLowerCase(),
-            settings: {
-              autoJoinEnabled: false,
-              defaultRole: "member",
-            },
           },
           {
             withCredentials: true,
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
           }
         );

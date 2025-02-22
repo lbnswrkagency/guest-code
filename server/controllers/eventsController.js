@@ -1,5 +1,6 @@
 const Event = require("../models/eventsModel");
 const User = require("../models/User");
+const Brand = require("../models/brandModel");
 const GuestCode = require("../models/GuestCode");
 const InvitationCode = require("../models/InvitationModel");
 const mongoose = require("mongoose");
@@ -24,41 +25,272 @@ const onToBoolean = (value) => {
   return value === "on";
 };
 
-const generateUniqueLink = async () => {
-  const link = Math.random().toString(36).substr(2, 8);
-  const eventExists = await Event.findOne({ link });
-  if (eventExists) {
-    return generateUniqueLink();
-  }
-  return link;
+const generateUniqueLink = () => {
+  return Math.random().toString(36).substr(2, 8);
 };
 
 exports.createEvent = async (req, res) => {
   try {
+    console.log("[Event Creation] Received request:", {
+      body: req.body,
+      brandId: req.params.brandId,
+      userId: req.user._id,
+    });
+
+    // Validate brand exists and user has permission
+    const brand = await Brand.findById(req.params.brandId);
+    if (!brand) {
+      console.log("[Event Creation] Brand not found:", req.params.brandId);
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    console.log("[Event Creation] Found brand:", {
+      brandId: brand._id,
+      brandName: brand.name,
+    });
+
+    // Create event object with a synchronously generated link
     const eventData = {
       ...req.body,
-      user: req.user._id, // Add the user ID from the request
-      guestCode: onToBoolean(req.body.guestCode),
-      friendsCode: onToBoolean(req.body.friendsCode),
-      ticketCode: onToBoolean(req.body.ticketCode),
-      tableCode: onToBoolean(req.body.tableCode),
-
-      link: await generateUniqueLink(),
+      user: req.user._id,
+      brand: req.params.brandId,
+      link: generateUniqueLink(),
     };
+
+    console.log("[Event Creation] Creating event with data:", eventData);
 
     const event = new Event(eventData);
     await event.save();
 
-    // Add the event to the user's events array
-    const user = await User.findById(req.body.user);
+    console.log("[Event Creation] Event created successfully:", {
+      eventId: event._id,
+      title: event.title,
+    });
 
-    user.events.push(event._id);
-    await user.save();
+    // Handle flyer uploads if they exist
+    if (req.files && Object.keys(req.files).length > 0) {
+      console.log("[Event Creation] Processing flyer uploads");
+      const flyerPromises = [];
 
-    res.status(201).json({ event });
+      for (const [fieldName, file] of Object.entries(req.files)) {
+        const [type, format] = fieldName.split(".");
+        if (type === "flyer") {
+          console.log(`[Event Creation] Processing ${format} flyer`);
+
+          try {
+            // Process image with sharp
+            const processedImage = await sharp(file.buffer)
+              .resize(1080) // Adjust size as needed
+              .jpeg({ quality: 80 })
+              .toBuffer();
+
+            // Upload to S3
+            const uploadedUrl = await uploadToS3(
+              processedImage,
+              "events/flyers",
+              `${event._id}_${format}.jpg`,
+              "image/jpeg"
+            );
+
+            // Update event with the flyer URL
+            event.flyer[format] = {
+              full: uploadedUrl,
+              medium: uploadedUrl,
+              thumbnail: uploadedUrl,
+            };
+
+            console.log(
+              `[Event Creation] Uploaded ${format} flyer:`,
+              uploadedUrl
+            );
+          } catch (error) {
+            console.error(
+              `[Event Creation] Error processing ${format} flyer:`,
+              error
+            );
+          }
+        }
+      }
+
+      if (Object.keys(event.flyer).length > 0) {
+        await event.save();
+        console.log("[Event Creation] Updated event with flyer URLs");
+      }
+    }
+
+    res.status(201).json(event);
   } catch (error) {
-    console.warn(error);
-    res.status(400).json({ message: "Error creating event", error });
+    console.error("[Event Creation Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ message: "Failed to create event", error: error.message });
+  }
+};
+
+exports.getBrandEvents = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    console.log(`[Events] Fetching events for brand: ${brandId}`);
+
+    // Check if user is authenticated
+    if (!req.user || !req.user.userId) {
+      console.log("[Events] User is not authenticated:", { user: req.user });
+      return res.status(401).json({
+        message: "User not authenticated",
+        debug: { user: req.user },
+      });
+    }
+
+    const userId = req.user.userId; // Get the correct user ID
+    console.log(`[Events] Current user ID: ${userId}`);
+    console.log(`[Events] Full user object:`, req.user);
+
+    // First find the brand without team check to debug
+    const brandExists = await Brand.findById(brandId);
+    if (!brandExists) {
+      console.log(`[Events] Brand does not exist with ID: ${brandId}`);
+      return res.status(404).json({
+        message: "Brand not found",
+      });
+    }
+
+    console.log(`[Events] Brand found:`, {
+      name: brandExists.name,
+      owner: brandExists.owner,
+      teamCount: brandExists.team.length,
+      teamMembers: brandExists.team.map((t) => ({
+        user: t.user,
+        role: t.role,
+      })),
+    });
+
+    // Now check if user has permission
+    const brand = await Brand.findOne({
+      _id: brandId,
+      $or: [{ owner: userId }, { "team.user": userId }],
+    });
+
+    if (!brand) {
+      console.log(
+        `[Events] User ${userId} is not owner or team member for brand: ${brandId}`
+      );
+      return res.status(403).json({
+        message: "You don't have permission to view this brand's events",
+      });
+    }
+
+    console.log(`[Events] Found brand: ${brand.name}`);
+
+    const events = await Event.find({ brand: brandId })
+      .sort({ date: -1 })
+      .populate("user", "username firstName lastName avatar");
+
+    console.log(
+      `[Events] Found ${events.length} events for brand: ${brand.name}`
+    );
+
+    res.status(200).json(events);
+  } catch (error) {
+    console.error("[Events] Error in getBrandEvents:", error);
+    res.status(500).json({
+      message: "Error fetching brand events",
+      error: error.message,
+    });
+  }
+};
+
+exports.getAllEvents = async (req, res) => {
+  try {
+    // Get all brands where user is a team member
+    const brands = await Brand.find({ "team.user": req.user.userId });
+    const brandIds = brands.map((brand) => brand._id);
+
+    // Get events from all these brands
+    const events = await Event.find({ brand: { $in: brandIds } })
+      .sort({ date: -1 })
+      .populate("brand", "name username logo")
+      .populate("user", "username firstName lastName avatar");
+
+    res.status(200).json(events);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching events" });
+  }
+};
+
+exports.editEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const updatedEventData = req.body;
+
+    // Find event and check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user has permission to edit this event
+    const brand = await Brand.findOne({
+      _id: event.brand,
+      "team.user": req.user.userId,
+    });
+
+    if (!brand) {
+      return res.status(403).json({
+        message: "You don't have permission to edit this event",
+      });
+    }
+
+    // Update the event
+    const updatedEvent = await Event.findByIdAndUpdate(
+      eventId,
+      updatedEventData,
+      { new: true }
+    ).populate("brand", "name username logo");
+
+    res.status(200).json(updatedEvent);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating event" });
+  }
+};
+
+exports.deleteEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Find event and check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user has permission to delete this event
+    const brand = await Brand.findOne({
+      _id: event.brand,
+      "team.user": req.user.userId,
+    });
+
+    if (!brand) {
+      return res.status(403).json({
+        message: "You don't have permission to delete this event",
+      });
+    }
+
+    // Remove event from brand's events array
+    brand.events.pull(eventId);
+    await brand.save();
+
+    // Delete the event
+    await Event.findByIdAndDelete(eventId);
+
+    res.status(200).json({ message: "Event deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting event" });
   }
 };
 
@@ -71,62 +303,6 @@ exports.getEventByLink = async (req, res) => {
         .json({ success: false, message: "Event not found." });
     }
     res.status(200).json({ success: true, event });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-};
-
-exports.getAllEvents = async (req, res) => {
-  try {
-    const events = await Event.find({ user: req.user._id }); // Get events only created by the user
-    res.status(200).json({ success: true, events });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-};
-
-exports.editEvent = async (req, res) => {
-  const eventId = req.params.eventId;
-  const updatedEventData = req.body;
-
-  try {
-    const event = await Event.findByIdAndUpdate(eventId, updatedEventData, {
-      new: true,
-    });
-
-    if (!event) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Event not found." });
-    }
-
-    res.status(200).json({ success: true, event });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-};
-
-exports.deleteEvent = async (req, res) => {
-  const eventId = req.params.eventId;
-
-  try {
-    const event = await Event.findByIdAndRemove(eventId);
-
-    if (!event) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Event not found." });
-    }
-
-    // Remove the event from the user's events array
-    const user = await User.findById(req.user.userId);
-    user.events.pull(eventId);
-    await user.save();
-
-    res.status(200).json({ success: true, message: "Event deleted." });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
