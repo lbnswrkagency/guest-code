@@ -28,6 +28,7 @@ import {
   RiStarFill,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
+import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
 
 const BrandProfile = () => {
   console.log("[BrandProfile] Component initialization:", {
@@ -50,6 +51,8 @@ const BrandProfile = () => {
   const [joinRequestStatus, setJoinRequestStatus] = useState(null);
   const [showActions, setShowActions] = useState(false);
   const [joinStatus, setJoinStatus] = useState(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showCancelJoinConfirm, setShowCancelJoinConfirm] = useState(false);
 
   const cleanUsername = brandUsername?.replace("@", "");
 
@@ -67,6 +70,15 @@ const BrandProfile = () => {
       fetchBrand();
     }
   }, [cleanUsername, user]);
+
+  useEffect(() => {
+    if (brand?.userStatus) {
+      setIsFollowing(brand.userStatus.isFollowing || false);
+      setIsMember(brand.userStatus.isMember || false);
+      setIsFavorited(brand.userStatus.isFavorited || false);
+      setJoinRequestStatus(brand.userStatus.joinRequestStatus || null);
+    }
+  }, [brand?.userStatus]);
 
   const fetchBrand = async () => {
     console.log("[BrandProfile] Fetching brand data:", {
@@ -209,9 +221,57 @@ const BrandProfile = () => {
     }
   };
 
+  const getJoinButtonText = () => {
+    if (isMember) return "Member";
+    if (joinRequestStatus === "pending") return "Pending";
+    if (joinRequestStatus === "accepted") return "Accepted";
+    if (joinRequestStatus === "rejected") return "Rejected";
+    return "Join";
+  };
+
+  const getJoinButtonClass = () => {
+    if (isMember) return "active";
+    if (joinRequestStatus === "pending") return "pending";
+    if (joinRequestStatus === "accepted") return "accepted";
+    if (joinRequestStatus === "rejected") return "rejected";
+    return "";
+  };
+
+  const handleCancelJoinRequest = async () => {
+    try {
+      const response = await axiosInstance.post(
+        `/brands/${brand._id}/cancel-join`
+      );
+
+      if (response.data.status === "cancelled") {
+        setJoinRequestStatus(null);
+        toast.showSuccess("Join request cancelled");
+        await fetchBrand();
+      }
+    } catch (error) {
+      console.error("Error cancelling join request:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to cancel join request"
+      );
+    }
+    setShowCancelJoinConfirm(false);
+  };
+
   const handleJoinRequest = async () => {
     if (!user) {
       toast.showError("Please log in to join brands");
+      return;
+    }
+
+    // If already a member, handle leaving
+    if (isMember) {
+      setShowLeaveConfirm(true);
+      return;
+    }
+
+    // If pending, show cancel confirmation
+    if (joinRequestStatus === "pending") {
+      setShowCancelJoinConfirm(true);
       return;
     }
 
@@ -352,6 +412,28 @@ const BrandProfile = () => {
     return icons[platform];
   };
 
+  const handleLeaveBrand = async () => {
+    if (!user) {
+      toast.showError("Please log in to leave brands");
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.post(`/brands/${brand._id}/leave`);
+
+      if (response.status === 200) {
+        setIsMember(false);
+        toast.showSuccess("Successfully left brand");
+
+        // Refresh brand data
+        await fetchBrand();
+      }
+    } catch (error) {
+      console.error("Error leaving brand:", error);
+      toast.showError("Failed to leave brand");
+    }
+  };
+
   const renderActions = () => {
     if (!user) {
       return (
@@ -381,20 +463,13 @@ const BrandProfile = () => {
           {isFollowing ? "Following" : "Follow"}
         </motion.button>
         <motion.button
-          className={`action-button ${isMember ? "active" : ""} ${
-            joinRequestStatus === "pending" ? "pending" : ""
-          }`}
+          className={`action-button ${getJoinButtonClass()}`}
           onClick={handleJoinRequest}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={joinRequestStatus === "pending"}
         >
           <RiUserAddLine />
-          {isMember
-            ? "Member"
-            : joinRequestStatus === "pending"
-            ? "Pending"
-            : "Join"}
+          {getJoinButtonText()}
         </motion.button>
         <motion.button
           className={`action-button ${isFavorited ? "active" : ""}`}
@@ -421,13 +496,7 @@ const BrandProfile = () => {
       <div className="page-wrapper">
         <Navigation onBack={handleBack} />
         <div className="brand-profile loading">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="loading-content"
-          >
-            Loading brand profile...
-          </motion.div>
+          <div className="loading-spinner" />
         </div>
       </div>
     );
@@ -510,6 +579,88 @@ const BrandProfile = () => {
 
         <BrandProfileFeed brand={brand} />
       </div>
+
+      <AnimatePresence mode="wait">
+        {showLeaveConfirm && (
+          <motion.div
+            className="delete-confirmation-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 2000,
+            }}
+          >
+            <motion.div
+              className="delete-confirmation"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#151515",
+                borderRadius: "12px",
+                padding: "1.5rem",
+                width: "90%",
+                maxWidth: "400px",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <h3>Leave Brand</h3>
+              <p>
+                Are you sure you want to leave this brand? You'll need to
+                request to join again if you want to become a member in the
+                future.
+              </p>
+              <div className="confirmation-actions">
+                <motion.button
+                  className="cancel-btn"
+                  onClick={() => setShowLeaveConfirm(false)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  className="confirm-delete-btn"
+                  onClick={() => {
+                    handleLeaveBrand();
+                    setShowLeaveConfirm(false);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Leave
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showCancelJoinConfirm && (
+          <ConfirmDialog
+            title="Cancel Join Request"
+            message="Are you sure you want to cancel your join request?"
+            confirmText="Cancel Request"
+            type="danger"
+            onConfirm={handleCancelJoinRequest}
+            onCancel={() => setShowCancelJoinConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./DashboardNavigation.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,9 +10,14 @@ import {
   RiMapPinLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
+import { useSocket } from "../../contexts/SocketContext";
+import AvatarUpload from "../AvatarUpload/AvatarUpload";
+import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
 
-const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
+const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   const navigate = useNavigate();
+  const { isConnected } = useSocket();
+  const [isCropMode, setIsCropMode] = useState(false);
 
   if (!currentUser) return null;
 
@@ -35,7 +40,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
     {
       title: "Events",
       icon: <RiCalendarEventLine />,
-      path: "/events",
+      path: `/@${currentUser.username}/events`,
     },
     {
       title: "Settings",
@@ -102,7 +107,29 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
                 <RiCloseLine />
               </motion.button>
               <div className="user-info">
-                <span className="username">@{currentUser.username}</span>
+                <div className="avatar-section">
+                  <div className="avatar-container">
+                    <AvatarUpload
+                      user={currentUser}
+                      setUser={setUser}
+                      isCropMode={isCropMode}
+                      setIsCropMode={setIsCropMode}
+                    />
+                    {currentUser?._id && (
+                      <OnlineIndicator
+                        userId={currentUser._id}
+                        size="medium"
+                        className="nav-online-indicator"
+                      />
+                    )}
+                  </div>
+                  <div className="user-details">
+                    <span className="display-name">
+                      {currentUser.firstName}
+                    </span>
+                    <span className="username">@{currentUser.username}</span>
+                  </div>
+                </div>
               </div>
             </div>
 

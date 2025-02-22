@@ -29,6 +29,7 @@ import DropFiles from "./Components/DropFiles/DropFiles";
 import Locations from "./Components/Locations/Locations";
 import BrandProfile from "./Components/BrandProfile/BrandProfile";
 import Brands from "./Components/Brands/Brands";
+import Events from "./Components/Events/Events";
 
 // Main routing component
 const AppRoutes = () => {
@@ -92,6 +93,14 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="user-brands">
                       <Brands />
+                    </RouteDebug>
+                  }
+                />
+                <Route
+                  path="events"
+                  element={
+                    <RouteDebug name="user-events">
+                      <Events />
                     </RouteDebug>
                   }
                 />

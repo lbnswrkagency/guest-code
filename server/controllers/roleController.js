@@ -1,4 +1,5 @@
-const Role = require("../models/Role");
+const Role = require("../models/roleModel");
+const Brand = require("../models/brandModel");
 
 // Create default roles for a brand
 exports.createDefaultRoles = async (brandId, userId) => {
@@ -135,10 +136,18 @@ exports.createRole = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Prevent creating another OWNER role
+    if (name.toUpperCase() === "OWNER") {
+      return res
+        .status(403)
+        .json({ message: "Cannot create another OWNER role" });
+    }
+
     const role = new Role({
-      name,
+      name: name.toUpperCase(), // Store all role names in uppercase
       permissions,
       brandId,
+      createdBy: req.user._id,
     });
 
     const savedRole = await role.save();
@@ -173,9 +182,18 @@ exports.updateRole = async (req, res) => {
       return res.status(403).json({ message: "Cannot modify OWNER role" });
     }
 
+    // Prevent changing role name to OWNER
+    if (name && name.toUpperCase() === "OWNER") {
+      return res.status(403).json({ message: "Cannot rename role to OWNER" });
+    }
+
     const updatedRole = await Role.findByIdAndUpdate(
       roleId,
-      { name, permissions },
+      {
+        name: name ? name.toUpperCase() : role.name, // Store all role names in uppercase
+        permissions,
+        updatedBy: req.user._id,
+      },
       { new: true }
     );
 
@@ -192,7 +210,7 @@ exports.updateRole = async (req, res) => {
 // Delete a role
 exports.deleteRole = async (req, res) => {
   try {
-    const { roleId } = req.params;
+    const { roleId, brandId } = req.params;
 
     // Find the role first
     const role = await Role.findById(roleId);
@@ -203,6 +221,22 @@ exports.deleteRole = async (req, res) => {
     // Prevent deleting OWNER role
     if (role.name === "OWNER") {
       return res.status(403).json({ message: "Cannot delete OWNER role" });
+    }
+
+    // Check if role is assigned to any team members
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    const isRoleAssigned = brand.team.some(
+      (member) => member.role === role.name
+    );
+    if (isRoleAssigned) {
+      return res.status(400).json({
+        message: "Cannot delete role that is assigned to team members",
+        isAssigned: true,
+      });
     }
 
     await Role.findByIdAndDelete(roleId);

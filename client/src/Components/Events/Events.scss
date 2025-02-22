@@ -1,116 +1,238 @@
-@import "../../_variables";
-@import "../../_animations";
+.page-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #151515;
+  position: relative;
+  overflow-x: hidden;
+}
 
 .events {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
   padding: 2rem;
-  background-color: $background-color;
+  max-width: 1400px;
+  margin: 0 auto;
 
-  h1 {
-    color: $primary-color;
+  .events-header {
     margin-bottom: 2rem;
-  }
-
-  .event-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    grid-gap: 1rem;
-    width: 100%;
-    margin-top: 3rem;
-  }
-
-  .event-item {
-    position: relative;
-
-    padding: 1rem;
-    border: 1px solid $border-color;
-    border-radius: 4px;
-    background-color: $light-color;
-    overflow: hidden;
-    transition: box-shadow 0.3s, transform 0.3s;
-    animation: fadeIn 0.5s ease-in-out forwards;
-    height: 16rem;
     text-align: center;
-    display: grid;
 
-    img {
-      width: 100%;
-      height: auto;
-      max-height: 150px;
-      object-fit: cover;
+    h1 {
+      font-size: 2.5rem;
+      color: #fff;
       margin-bottom: 0.5rem;
     }
 
-    .event-info {
-      display: grid;
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
+    }
+  }
 
-      width: 100%;
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 1rem;
+  }
 
-      h3 {
-        color: $secondary-color;
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 0;
-        margin-bottom: 0.25rem;
-      }
+  .loading-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+  }
+}
 
-      .event-date {
-        color: $secondary-color;
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-      }
+.event-card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  height: 400px;
 
-      .event-location {
-        color: $gray-color;
-        font-size: 0.8rem;
-        font-weight: 400;
-        margin: 0;
-      }
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+
+    .card-actions {
+      opacity: 1;
+    }
+  }
+
+  &.add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    gap: 1rem;
+
+    .add-icon {
+      font-size: 3rem;
+      color: #ffc807;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      font-size: 1.1rem;
     }
 
     &:hover {
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transform: translateY(-5px);
-      cursor: pointer;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: #ffc807;
 
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          135deg,
-          rgba($primary-color, 0.3),
-          rgba($secondary-color, 0.3)
-        );
-        opacity: 0.7;
+      .add-icon {
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+.event-card-header {
+  position: relative;
+  height: 160px;
+
+  .event-cover-image {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .card-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    .action-button {
+      background: rgba(26, 26, 26, 0.9);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      backdrop-filter: blur(4px);
+
+      &:hover {
+        background: #1a1a1a;
+        color: #ffc807;
+      }
+
+      svg {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+.event-card-content {
+  padding: 1.5rem;
+
+  .event-info {
+    margin-bottom: 1.5rem;
+
+    h3 {
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 0.25rem;
+      line-height: 1.3;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.95rem;
+    }
+  }
+
+  .event-details {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+
+      svg {
+        font-size: 1.2rem;
+        color: #ffc807;
+      }
+
+      span {
+        font-size: 0.95rem;
       }
     }
   }
 
-  .create-event-button {
-    display: inline-block;
-    background-color: $primary-color;
-    color: $light-color;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 1rem;
-    transition: background-color 0.3s, transform 0.3s;
-    animation: scaleIn 0.3s ease-in-out forwards;
+  .event-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 
-    &:hover {
-      background-color: darken($primary-color, 5%);
-      transform: translateY(-3px);
+    .feature {
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 0.35rem 0.75rem;
+      border-radius: 16px;
+      font-size: 0.85rem;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffc807;
+      }
     }
+  }
+}
+
+.card-front,
+.card-back {
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .events {
+    padding: 1rem;
+
+    .events-header {
+      h1 {
+        font-size: 2rem;
+      }
+    }
+
+    .events-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  .event-card {
+    height: auto;
+    min-height: 380px;
   }
 }

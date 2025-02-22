@@ -252,6 +252,79 @@
           }
         }
       }
+
+      .status-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+        width: fit-content;
+
+        &.accepted {
+          background: rgba(76, 209, 55, 0.1);
+          color: #4cd137;
+          border: 1px solid rgba(76, 209, 55, 0.2);
+
+          svg {
+            font-size: 1rem;
+          }
+        }
+
+        &.rejected {
+          background: rgba(255, 82, 82, 0.1);
+          color: #ff5252;
+          border: 1px solid rgba(255, 82, 82, 0.2);
+
+          svg {
+            font-size: 1rem;
+          }
+        }
+
+        &.pending {
+          background: rgba(255, 200, 7, 0.1);
+          color: #ffc807;
+          border: 1px solid rgba(255, 200, 7, 0.2);
+
+          svg {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+
+      &.accepted {
+        background: rgba(46, 213, 115, 0.15);
+        color: #2ed573;
+        border: 1px solid rgba(46, 213, 115, 0.3);
+      }
+
+      &.rejected {
+        background: rgba(255, 71, 87, 0.15);
+        color: #ff4757;
+        border: 1px solid rgba(255, 71, 87, 0.3);
+      }
+
+      svg {
+        font-size: 1rem;
+      }
     }
   }
 }

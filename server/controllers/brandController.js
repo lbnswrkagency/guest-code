@@ -180,11 +180,18 @@ exports.getBrandProfile = async (req, res) => {
       isMember: false,
       isFavorited: false,
       role: null,
+      joinRequestStatus: null,
     };
 
     // Check if user is authenticated and update status accordingly
     if (req.user && req.user._id) {
       const userId = req.user._id.toString();
+
+      // Get join request status if exists
+      const joinRequest = await JoinRequest.findOne({
+        user: userId,
+        brand: brand._id,
+      }).select("status");
 
       userStatus = {
         isFollowing: brand.followers.includes(userId),
@@ -195,6 +202,7 @@ exports.getBrandProfile = async (req, res) => {
         role:
           brand.team.find((member) => member.user._id.toString() === userId)
             ?.role || null,
+        joinRequestStatus: joinRequest?.status || null,
       };
     }
 
@@ -247,11 +255,18 @@ exports.getBrandProfileByUsername = async (req, res) => {
       isMember: false,
       isFavorited: false,
       role: null,
+      joinRequestStatus: null,
     };
 
     // Check if user is authenticated and update status accordingly
     if (req.user && req.user._id) {
       const userId = req.user._id.toString();
+
+      // Get join request status if exists
+      const joinRequest = await JoinRequest.findOne({
+        user: userId,
+        brand: brand._id,
+      }).select("status");
 
       userStatus = {
         isFollowing: brand.followers.includes(userId),
@@ -262,6 +277,7 @@ exports.getBrandProfileByUsername = async (req, res) => {
         role:
           brand.team.find((member) => member.user._id.toString() === userId)
             ?.role || null,
+        joinRequestStatus: joinRequest?.status || null,
       };
     }
 
@@ -463,26 +479,30 @@ exports.deleteBrand = async (req, res) => {
 exports.getTeamMembers = async (req, res) => {
   try {
     const { brandId } = req.params;
-    const brand = await Brand.findById(brandId)
-      .populate("members.user", "username email avatar")
-      .select("members");
+    const brand = await Brand.findById(brandId).populate({
+      path: "team.user",
+      select: "_id username firstName lastName avatar",
+    });
 
     if (!brand) {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Transform the members data to match the frontend expectations
-    const members = brand.members.map((member) => ({
-      _id: member.user._id,
-      name: member.user.username,
-      email: member.user.email,
-      avatar: member.user.avatar,
-      role: member.role,
-      joinedAt: member.joinedAt,
-    }));
+    // Filter out OWNER role and transform data
+    const members = brand.team
+      .filter((member) => member.role !== "OWNER")
+      .map((member) => ({
+        _id: member.user._id,
+        name: `${member.user.firstName} ${member.user.lastName}`,
+        username: member.user.username,
+        role: member.role,
+        avatar: member.user.avatar?.medium || member.user.avatar,
+        joinedAt: member.joinedAt,
+      }));
 
     res.json(members);
   } catch (error) {
+    console.error("Error fetching team members:", error);
     res.status(500).json({ message: "Error fetching team members" });
   }
 };
@@ -505,7 +525,7 @@ exports.updateMemberRole = async (req, res) => {
         .json({ message: "Not authorized to update roles" });
     }
 
-    const memberIndex = brand.members.findIndex(
+    const memberIndex = brand.team.findIndex(
       (m) => m.user.toString() === memberId
     );
     if (memberIndex === -1) {
@@ -513,7 +533,7 @@ exports.updateMemberRole = async (req, res) => {
     }
 
     // Update role and permissions
-    brand.members[memberIndex].role = role;
+    brand.team[memberIndex].role = role;
 
     // Set default permissions based on role
     const defaultPermissions = {
@@ -559,7 +579,7 @@ exports.updateMemberRole = async (req, res) => {
     };
 
     // Merge default permissions with any custom permissions provided
-    brand.members[memberIndex].permissions = {
+    brand.team[memberIndex].permissions = {
       ...defaultPermissions,
       ...permissions,
     };
@@ -568,7 +588,7 @@ exports.updateMemberRole = async (req, res) => {
 
     res.json({
       message: "Member role and permissions updated successfully",
-      member: brand.members[memberIndex],
+      member: brand.team[memberIndex],
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating member role" });
@@ -592,7 +612,7 @@ exports.removeMember = async (req, res) => {
         .json({ message: "Not authorized to remove members" });
     }
 
-    brand.members = brand.members.filter((m) => !m.user.equals(memberId));
+    brand.team = brand.team.filter((m) => !m.user.equals(memberId));
     await brand.save();
 
     res.json({ message: "Member removed successfully" });
@@ -617,7 +637,7 @@ exports.banMember = async (req, res) => {
     }
 
     // Remove member and add to banned list
-    brand.members = brand.members.filter((m) => !m.user.equals(memberId));
+    brand.team = brand.team.filter((m) => !m.user.equals(memberId));
     brand.bannedMembers.push({
       user: memberId,
       bannedAt: new Date(),
@@ -782,6 +802,12 @@ exports.requestJoin = async (req, res) => {
     const { brandId } = req.params;
     const userId = req.user._id;
 
+    console.log("[BrandController:requestJoin] Starting join request:", {
+      brandId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+
     // Check if brand exists
     const brand = await Brand.findById(brandId);
     if (!brand) {
@@ -808,17 +834,11 @@ exports.requestJoin = async (req, res) => {
         .json({ message: "You are banned from this brand" });
     }
 
-    // Check if there's a pending request
-    const pendingRequest = await JoinRequest.findOne({
+    // First delete any existing join requests for this user and brand
+    await JoinRequest.deleteMany({
       user: userId,
       brand: brandId,
-      status: "pending",
     });
-    if (pendingRequest) {
-      return res
-        .status(400)
-        .json({ message: "You already have a pending request" });
-    }
 
     if (brand.settings?.autoJoinEnabled) {
       // Auto-join enabled - add user directly to team
@@ -897,6 +917,13 @@ exports.requestJoin = async (req, res) => {
         requestedAt: new Date(),
       });
 
+      console.log("[BrandController:requestJoin] Created join request:", {
+        requestId: joinRequest._id,
+        userId,
+        brandId,
+        timestamp: new Date().toISOString(),
+      });
+
       // Create notification for brand owner
       await Notification.create({
         userId: brand.owner,
@@ -911,6 +938,11 @@ exports.requestJoin = async (req, res) => {
             username: req.user.username,
             avatar: req.user.avatar,
           },
+          brand: {
+            id: brand._id,
+            username: brand.username,
+            name: brand.name,
+          },
         },
       });
 
@@ -921,8 +953,17 @@ exports.requestJoin = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("[BrandController:requestJoin] Error:", error);
-    res.status(500).json({ message: "Error processing join request" });
+    console.error("[BrandController:requestJoin] Error:", {
+      error: error.message,
+      stack: error.stack,
+      brandId: req.params.brandId,
+      userId: req.user?._id,
+      timestamp: new Date().toISOString(),
+    });
+    res.status(500).json({
+      message: "Error processing join request",
+      error: error.message,
+    });
   }
 };
 
@@ -999,6 +1040,15 @@ exports.processJoinRequest = async (req, res) => {
       });
       await brand.save();
 
+      // Delete the join request
+      await JoinRequest.findByIdAndDelete(requestId);
+
+      // Delete the original join request notification
+      await Notification.deleteMany({
+        type: "join_request",
+        requestId: requestId,
+      });
+
       // Create notification for user
       await Notification.create({
         userId: joinRequest.user._id,
@@ -1008,6 +1058,16 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
     } else {
+      // Update join request status to rejected
+      joinRequest.status = "rejected";
+      await joinRequest.save();
+
+      // Delete the original join request notification
+      await Notification.deleteMany({
+        type: "join_request",
+        requestId: requestId,
+      });
+
       // Create notification for user
       await Notification.create({
         userId: joinRequest.user._id,
@@ -1017,12 +1077,6 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
     }
-
-    // Update request status
-    joinRequest.status = action === "accept" ? "accepted" : "rejected";
-    joinRequest.processedAt = new Date();
-    joinRequest.processedBy = adminId;
-    await joinRequest.save();
 
     res.status(200).json({ message: `Join request ${action}ed successfully` });
   } catch (error) {
@@ -1048,8 +1102,21 @@ exports.leaveBrand = async (req, res) => {
     );
     await brand.save();
 
-    res.status(200).json({ message: "Successfully left brand" });
+    // Clean up ALL join requests for this user and brand
+    await JoinRequest.deleteMany({
+      user: userId,
+      brand: brandId,
+    });
+
+    res.status(200).json({
+      message: "Successfully left brand",
+      userStatus: {
+        isMember: false,
+        role: null,
+      },
+    });
   } catch (error) {
+    console.error("[BrandController:leaveBrand] Error:", error);
     res.status(500).json({ message: "Error leaving brand" });
   }
 };
@@ -1065,47 +1132,38 @@ exports.favoriteBrand = async (req, res) => {
 
     const userId = req.user._id;
 
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
+    // Use findOneAndUpdate to atomically update the favorites array
+    const updatedBrand = await Brand.findOneAndUpdate(
+      { _id: brandId },
+      { $addToSet: { favorites: userId } },
+      { new: true }
+    );
+
+    if (!updatedBrand) {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Clean up any null values and convert to strings for comparison
-    brand.favorites = brand.favorites
-      .filter((id) => id != null)
-      .map((id) => id.toString());
+    // Convert favorites to strings for the response
+    const favoritesAsStrings = updatedBrand.favorites.map((id) =>
+      id.toString()
+    );
 
-    // Check if user has already favorited
-    const isFavorited = brand.favorites.includes(userId.toString());
-    if (isFavorited) {
-      return res.status(400).json({ message: "Already favorited this brand" });
-    }
-
-    // Add user to favorites
-    brand.favorites = [...brand.favorites, userId.toString()];
-    await brand.save();
-
-    // Create notification for brand owner
-    await Notification.create({
-      userId: brand.owner,
-      type: "new_favorite",
-      title: "New Favorite",
-      message: `${req.user.username} favorited your brand`,
-      brandId: brand._id,
-      metadata: {
-        user: {
-          id: userId,
-          username: req.user.username,
-          avatar: req.user.avatar,
-        },
-      },
-    });
-
-    res.status(200).json({
+    const response = {
       message: "Successfully favorited brand",
-      favorites: brand.favorites,
-    });
+      favorites: favoritesAsStrings,
+      userStatus: {
+        isFavorited: true,
+      },
+    };
+
+    res.status(200).json(response);
   } catch (error) {
+    console.error("[BrandController:favoriteBrand] Error:", {
+      error: error.message,
+      stack: error.stack,
+      brandId: req.params.brandId,
+      userId: req.user?._id,
+    });
     res.status(500).json({ message: "Error favoriting brand" });
   }
 };
@@ -1194,6 +1252,64 @@ exports.updateBrandSettings = async (req, res) => {
   }
 };
 
+exports.cancelJoinRequest = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const userId = req.user._id;
+
+    console.log("[BrandController:cancelJoinRequest] Starting cancellation:", {
+      brandId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Delete the join request
+    const deletedRequest = await JoinRequest.findOneAndDelete({
+      user: userId,
+      brand: brandId,
+      status: "pending", // Only allow canceling pending requests
+    });
+
+    if (!deletedRequest) {
+      return res.status(404).json({ message: "No pending join request found" });
+    }
+
+    // Delete associated notification
+    await Notification.deleteMany({
+      type: "join_request",
+      "metadata.user.id": userId,
+      brandId: brandId,
+    });
+
+    console.log(
+      "[BrandController:cancelJoinRequest] Successfully cancelled request:",
+      {
+        requestId: deletedRequest._id,
+        userId,
+        brandId,
+        timestamp: new Date().toISOString(),
+      }
+    );
+
+    res.status(200).json({
+      message: "Join request cancelled successfully",
+      status: "cancelled",
+    });
+  } catch (error) {
+    console.error("[BrandController:cancelJoinRequest] Error:", {
+      error: error.message,
+      stack: error.stack,
+      brandId: req.params.brandId,
+      userId: req.user?._id,
+      timestamp: new Date().toISOString(),
+    });
+    res.status(500).json({
+      message: "Error cancelling join request",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createBrand: exports.createBrand,
   getAllBrands: exports.getAllBrands,
@@ -1216,4 +1332,5 @@ module.exports = {
   favoriteBrand: exports.favoriteBrand,
   unfavoriteBrand: exports.unfavoriteBrand,
   updateBrandSettings: exports.updateBrandSettings,
+  cancelJoinRequest: exports.cancelJoinRequest,
 };

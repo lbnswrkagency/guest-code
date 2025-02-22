@@ -1,80 +1,316 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import AuthContext from "../../contexts/AuthContext";
 import "./Events.scss";
-import { getAllEvents } from "../../utils/apiClient";
-import BackButton from "../BackButton/BackButton";
+import { motion } from "framer-motion";
+import {
+  RiAddCircleLine,
+  RiEditLine,
+  RiSettings4Line,
+  RiCalendarEventLine,
+  RiMapPinLine,
+  RiTimeLine,
+  RiTeamLine,
+  RiGroupLine,
+} from "react-icons/ri";
+import EventForm from "../EventForm/EventForm";
+import EventSettings from "../EventSettings/EventSettings";
+import Navigation from "../Navigation/Navigation";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../utils/axiosConfig";
+import { useToast } from "../Toast/ToastContext";
+import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
+import AuthContext from "../../contexts/AuthContext";
+import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 
 const Events = () => {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
-
-  const navigate = useNavigate();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedEventForSettings, setSelectedEventForSettings] =
+    useState(null);
+  const toast = useToast();
 
   useEffect(() => {
-    const refetchEvents = async () => {
-      try {
-        const fetchedEvents = await getAllEvents();
+    fetchEvents();
+  }, []);
 
-        if (user && user.events) {
-          setEvents(
-            fetchedEvents.filter((event) => user.events.includes(event._id))
-          ); // Display only events created by the user
-        } else {
-          setEvents([]);
-        }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      }
-    };
-    refetchEvents();
-  }, [user]);
+  const fetchEvents = async () => {
+    const loadingToast = toast.showLoading("Loading events...");
+    try {
+      const response = await axiosInstance.get("/events");
+      setEvents(response.data.events || []);
+    } catch (error) {
+      toast.showError("Failed to load events");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+      loadingToast.dismiss();
+    }
+  };
 
-  const formatDate = (date) => {
-    const eventDate = new Date(date);
-    const options = {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-    };
-    return eventDate.toLocaleDateString("en-US", options);
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setShowForm(true);
+  };
+
+  const handleClose = () => {
+    setShowForm(false);
+    setSelectedEvent(null);
+  };
+
+  const handleSave = async (eventData) => {
+    try {
+      setEvents((prev) => {
+        const updatedEvents = selectedEvent
+          ? prev.map((e) => (e._id === selectedEvent._id ? eventData : e))
+          : [...prev, eventData];
+        return updatedEvents;
+      });
+      handleClose();
+    } catch (error) {
+      toast.showError(error.response?.data?.message || "Failed to save event");
+    }
+  };
+
+  const handleDelete = async (eventId) => {
+    try {
+      const loadingToast = toast.showLoading("Deleting event...");
+      await axiosInstance.delete(`/events/${eventId}`);
+      toast.showSuccess("Event deleted successfully!");
+      fetchEvents();
+    } catch (error) {
+      toast.showError("Failed to delete event");
+    }
+  };
+
+  const handleBack = () => {
+    navigate(`/@${user.username}`);
+  };
+
+  const handleSettingsClick = (event) => {
+    setSelectedEventForSettings(event);
+    setShowSettings(true);
+  };
+
+  const handleSettingsClose = () => {
+    setShowSettings(false);
+    setSelectedEventForSettings(null);
   };
 
   return (
-    <div className="events">
-      <BackButton />
-      <h1>Events</h1>
-      <button
-        className="create-event-button"
-        onClick={() => navigate("/events/create")}
-      >
-        Create Event
-      </button>
-      <div className="event-list">
-        {events.map((event, index) => (
-          <Link to={`/events/${event._id}`} key={event._id}>
-            <div className="event-item">
-              <img
-                src={
-                  event && event.flyer && event.flyer.landscape
-                    ? event.flyer.landscape
-                    : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
-                }
-                alt="Event Flyer"
-              />
-              <div className="event-info">
-                <h3>{event.title}</h3>
-                <p className="event-date">
-                  {formatDate(event.date)} | {event.time}
-                </p>
-                <p className="event-location">{event.location}</p>
+    <div className="page-wrapper">
+      <Navigation
+        onBack={handleBack}
+        onMenuClick={() => setIsNavigationOpen(true)}
+      />
+
+      <DashboardNavigation
+        isOpen={isNavigationOpen}
+        onClose={() => setIsNavigationOpen(false)}
+        currentUser={user}
+      />
+
+      <div className="events">
+        <div className="events-header">
+          <h1>Your Events</h1>
+          <p>Create and manage your events</p>
+        </div>
+
+        <div className="events-grid">
+          {loading ? (
+            <div className="loading-state">Loading events...</div>
+          ) : events.length > 0 ? (
+            <>
+              {events.map((event) => (
+                <EventCard
+                  key={event._id}
+                  event={event}
+                  onClick={handleEventClick}
+                  onSettingsClick={handleSettingsClick}
+                />
+              ))}
+              <div
+                className="event-card add-card"
+                onClick={() => setShowForm(true)}
+              >
+                <RiAddCircleLine className="add-icon" />
+                <p>Create New Event</p>
               </div>
+            </>
+          ) : (
+            <div
+              className="event-card add-card"
+              onClick={() => setShowForm(true)}
+            >
+              <RiAddCircleLine className="add-icon" />
+              <p>No events found. Create your first event!</p>
             </div>
-          </Link>
-        ))}
+          )}
+        </div>
+
+        {showForm && (
+          <EventForm
+            event={selectedEvent}
+            onClose={handleClose}
+            onSave={handleSave}
+          />
+        )}
       </div>
     </div>
+  );
+};
+
+const EventCard = ({ event, onClick, onSettingsClick }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showBackContent, setShowBackContent] = useState(false);
+
+  const getImageUrl = (imageObj) => {
+    if (!imageObj) return null;
+    if (typeof imageObj === "string") return imageObj;
+    return imageObj.medium || imageObj.full || imageObj.thumbnail;
+  };
+
+  useEffect(() => {
+    if (isFlipped) {
+      const timer = setTimeout(() => setShowBackContent(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowBackContent(false);
+    }
+  }, [isFlipped]);
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    onClick(event);
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    setIsFlipped(true);
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <motion.div
+      className={`event-card ${isFlipped ? "flipped" : ""}`}
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "1000px",
+      }}
+    >
+      {/* Front side */}
+      <div
+        className="card-front"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          zIndex: isFlipped ? 0 : 1,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <div className="event-card-header">
+          <div className="event-cover-image">
+            {event.flyer?.landscape && (
+              <ProgressiveImage
+                thumbnailSrc={getImageUrl(event.flyer.landscape)}
+                mediumSrc={getImageUrl(event.flyer.landscape)}
+                fullSrc={getImageUrl(event.flyer.landscape)}
+                alt={`${event.title} cover`}
+                className="cover-image"
+              />
+            )}
+          </div>
+          <div className="card-actions">
+            <motion.button
+              className="action-button edit"
+              onClick={handleEditClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiEditLine />
+            </motion.button>
+            <motion.button
+              className="action-button settings"
+              onClick={handleSettingsClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiSettings4Line />
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="event-card-content">
+          <div className="event-info">
+            <h3>{event.title}</h3>
+            {event.subTitle && (
+              <span className="subtitle">{event.subTitle}</span>
+            )}
+          </div>
+
+          <div className="event-details">
+            <div className="detail-item">
+              <RiCalendarEventLine />
+              <span>{formatDate(event.date)}</span>
+            </div>
+            <div className="detail-item">
+              <RiTimeLine />
+              <span>
+                {event.startTime} - {event.endTime}
+              </span>
+            </div>
+            <div className="detail-item">
+              <RiMapPinLine />
+              <span>{event.location}</span>
+            </div>
+            <div className="detail-item">
+              <RiTeamLine />
+              <span>{event.team?.length || 0} Team Members</span>
+            </div>
+          </div>
+
+          <div className="event-features">
+            {event.guestCode && <span className="feature">Guest Code</span>}
+            {event.friendsCode && <span className="feature">Friends Code</span>}
+            {event.ticketCode && <span className="feature">Ticket Code</span>}
+            {event.tableCode && <span className="feature">Table Code</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Back side */}
+      <div
+        className="card-back"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
+          zIndex: isFlipped ? 1 : 0,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {showBackContent && (
+          <EventSettings event={event} onClose={() => setIsFlipped(false)} />
+        )}
+      </div>
+    </motion.div>
   );
 };
 

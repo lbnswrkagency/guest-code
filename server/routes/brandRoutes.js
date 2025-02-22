@@ -73,6 +73,7 @@ router.post("/:brandId/unfavorite", brandController.unfavoriteBrand);
 // Join/Leave
 router.post("/:brandId/join", brandController.requestJoin);
 router.post("/:brandId/leave", brandController.leaveBrand);
+router.post("/:brandId/cancel-join", brandController.cancelJoinRequest);
 
 // Join request management
 router.post(

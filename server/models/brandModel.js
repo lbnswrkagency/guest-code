@@ -12,15 +12,7 @@ const BrandSchema = new Schema(
         user: { type: Schema.Types.ObjectId, ref: "User" },
         role: {
           type: String,
-          enum: [
-            "OWNER",
-            "MEMBER",
-            "admin",
-            "manager",
-            "promoter",
-            "staff",
-            "member",
-          ],
+          required: true,
           default: "MEMBER",
         },
         permissions: {

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RiUpload2Line, RiCloseLine, RiCheckLine } from "react-icons/ri";
 import { createPortal } from "react-dom";
 
-const AvatarUpload = ({ user, setUser, isOnline }) => {
+const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
   const [showModal, setShowModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -90,6 +90,12 @@ const AvatarUpload = ({ user, setUser, isOnline }) => {
         return;
       }
 
+      console.log("[AvatarUpload] Starting save process:", {
+        userId: user._id,
+        hasCroppedPixels: !!croppedAreaPixels,
+        timestamp: new Date().toISOString(),
+      });
+
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       const file = new File([croppedImageBlob], `avatar-${Date.now()}.jpg`, {
         type: "image/jpeg",
@@ -100,7 +106,18 @@ const AvatarUpload = ({ user, setUser, isOnline }) => {
       formData.append("userId", user._id);
 
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("No authentication token found");
+      if (!token) {
+        console.error("[AvatarUpload] No authentication token found");
+        throw new Error("No authentication token found");
+      }
+
+      console.log("[AvatarUpload] Sending upload request:", {
+        hasToken: !!token,
+        tokenStart: token.substring(0, 20) + "...",
+        userId: user._id,
+        fileSize: file.size,
+        timestamp: new Date().toISOString(),
+      });
 
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/avatar/profile-img-upload`,
@@ -113,19 +130,27 @@ const AvatarUpload = ({ user, setUser, isOnline }) => {
         }
       );
 
-      const timestamp = new Date().getTime();
-      const newAvatarUrl = `${response.data.imageUrl}?t=${timestamp}`;
+      console.log("[AvatarUpload] Upload response received:", {
+        status: response.status,
+        hasImageUrl: !!response.data.imageUrl,
+        timestamp: new Date().toISOString(),
+      });
 
       setUser((prevUser) => ({
         ...prevUser,
-        avatar: newAvatarUrl,
+        avatar: response.data.imageUrl,
       }));
 
       setImageSrc(null);
       setShowModal(false);
       toast.success("Avatar updated successfully!");
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("[AvatarUpload] Upload error:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        timestamp: new Date().toISOString(),
+      });
       toast.error(error.response?.data?.error || "Failed to upload avatar");
     } finally {
       setIsUploading(false);
@@ -135,6 +160,12 @@ const AvatarUpload = ({ user, setUser, isOnline }) => {
   const handleCancel = () => {
     setImageSrc(null);
     setShowModal(false);
+  };
+
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return null;
+    if (typeof avatar === "string") return avatar;
+    return avatar.medium || avatar.full || avatar.thumbnail;
   };
 
   const renderModal = () => {
@@ -238,17 +269,16 @@ const AvatarUpload = ({ user, setUser, isOnline }) => {
     <>
       <div className="avatar-upload">
         <div className="avatar-display" onClick={() => setShowModal(true)}>
-          {user.avatar ? (
-            <img src={user.avatar} alt="User avatar" className="avatar-image" />
+          {user?.avatar ? (
+            <img
+              src={getAvatarUrl(user.avatar)}
+              alt="User avatar"
+              className="avatar-image"
+            />
           ) : (
             <div className="avatar-placeholder">
               <img src="/image/profile-icon.svg" alt="Default profile" />
             </div>
-          )}
-          {isOnline !== undefined && (
-            <div
-              className={`online-status-dot ${isOnline ? "online" : "offline"}`}
-            />
           )}
           <div className="avatar-overlay">
             <img src="/image/edit-icon.svg" alt="Edit" className="edit-icon" />

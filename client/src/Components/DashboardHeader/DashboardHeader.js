@@ -6,9 +6,10 @@ import "./DashboardHeader.scss";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
 import AvatarUpload from "../AvatarUpload/AvatarUpload";
+import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
 
 const DashboardHeader = ({ user, setUser }) => {
-  const { isConnected, onlineUsers } = useSocket();
+  const { isConnected } = useSocket();
   const { user: authUser } = useAuth();
   const [isCropMode, setIsCropMode] = useState(false);
 
@@ -28,13 +29,21 @@ const DashboardHeader = ({ user, setUser }) => {
       <div className="header-content">
         {/* Profile Section */}
         <div className="profile-section">
-          <AvatarUpload
-            user={user}
-            setUser={setUser}
-            isCropMode={isCropMode}
-            setIsCropMode={setIsCropMode}
-            isOnline={isConnected}
-          />
+          <div className="avatar-wrapper">
+            <AvatarUpload
+              user={user}
+              setUser={setUser}
+              isCropMode={isCropMode}
+              setIsCropMode={setIsCropMode}
+            />
+            {user?._id && (
+              <OnlineIndicator
+                userId={user._id}
+                size="medium"
+                className="profile-online-indicator"
+              />
+            )}
+          </div>
 
           <div className="user-info">
             <div className="user-info-main">

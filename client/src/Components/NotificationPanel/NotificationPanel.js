@@ -48,8 +48,25 @@ const NotificationPanel = ({ onClose }) => {
       await axiosInstance.post(`/brands/join-requests/${requestId}/process`, {
         action,
       });
+
+      // Update notifications locally
+      setNotifications((prev) =>
+        prev.map((notification) => {
+          if (notification.requestId === requestId) {
+            return {
+              ...notification,
+              type:
+                action === "accept"
+                  ? "join_request_accepted"
+                  : "join_request_rejected",
+              read: true,
+            };
+          }
+          return notification;
+        })
+      );
+
       toast.showSuccess(`Join request ${action}ed successfully`);
-      fetchNotifications();
     } catch (error) {
       toast.showError(`Failed to ${action} join request`);
     }
@@ -151,14 +168,11 @@ const NotificationPanel = ({ onClose }) => {
   };
 
   const formatEntityName = (entity, type, notification) => {
-    // console.log("[NotificationPanel] formatEntityName - Raw data:", {
-    //   entity,
-    //   type,
-    //   notificationId: notification?._id,
-    // });
-
     if (!entity) {
-      // console.log("[NotificationPanel] No entity provided for formatting");
+      console.warn("[NotificationPanel] No entity provided for formatting", {
+        type,
+        notificationId: notification?._id,
+      });
       return "";
     }
 
@@ -178,26 +192,24 @@ const NotificationPanel = ({ onClose }) => {
             notification.metadata.brand.name;
         }
       }
-
-      // console.log("[NotificationPanel] Brand username resolution:", {
-      //   entityType: typeof entity,
-      //   directUsername: typeof entity === "string" ? entity : null,
-      //   entityUsername: entity.username,
-      //   entityName: entity.name,
-      //   metadataUsername: notification?.metadata?.brand?.username,
-      //   finalUsername: username,
-      // });
+    } else if (type === "user") {
+      // For user entities, be more defensive
+      if (typeof entity === "string") {
+        username = entity;
+      } else {
+        username = entity.username || entity.name || "Unknown User";
+      }
     } else {
-      username = entity.username || entity.name;
+      username = entity.username || entity.name || "Unknown";
     }
 
     if (!username) {
-      // console.error("[NotificationPanel] No username found for entity:", {
-      //   entity,
-      //   type,
-      //   notificationMetadata: notification?.metadata,
-      // });
-      return "";
+      console.warn("[NotificationPanel] No username found for entity:", {
+        entity,
+        type,
+        notificationMetadata: notification?.metadata,
+      });
+      return type === "user" ? "Someone" : "Unknown";
     }
 
     return (
@@ -222,6 +234,10 @@ const NotificationPanel = ({ onClose }) => {
       let messageContent;
       switch (type) {
         case "new_follower":
+          if (!metadata?.follower || !metadata?.brand) {
+            messageContent = "Someone started following your brand";
+            break;
+          }
           messageContent = (
             <>
               {formatEntityName(metadata.follower, "user", notification)}{" "}
@@ -231,6 +247,10 @@ const NotificationPanel = ({ onClose }) => {
           );
           break;
         case "join_request":
+          if (!metadata?.user || !metadata?.brand) {
+            messageContent = "Someone requested to join a brand";
+            break;
+          }
           messageContent = (
             <>
               {formatEntityName(metadata.user, "user", notification)} wants to
@@ -239,6 +259,10 @@ const NotificationPanel = ({ onClose }) => {
           );
           break;
         case "join_request_accepted":
+          if (!metadata?.brand) {
+            messageContent = "Your join request has been accepted";
+            break;
+          }
           messageContent = (
             <>
               Your request to join{" "}
@@ -248,6 +272,10 @@ const NotificationPanel = ({ onClose }) => {
           );
           break;
         case "join_request_rejected":
+          if (!metadata?.brand) {
+            messageContent = "Your join request has been rejected";
+            break;
+          }
           messageContent = (
             <>
               Your request to join{" "}
@@ -311,7 +339,7 @@ const NotificationPanel = ({ onClose }) => {
               })}
             </span>
           </div>
-          {type === "join_request" && !read && (
+          {type === "join_request" && !notification.read && (
             <div className="actions">
               <button
                 className="accept"
@@ -333,6 +361,20 @@ const NotificationPanel = ({ onClose }) => {
                 <RiCloseLine />
                 Reject
               </button>
+            </div>
+          )}
+          {(type === "join_request_accepted" ||
+            type === "join_request_rejected") && (
+            <div className="status-badge">
+              {type === "join_request_accepted" ? (
+                <span className="accepted">
+                  <RiCheckLine /> Accepted
+                </span>
+              ) : (
+                <span className="rejected">
+                  <RiCloseLine /> Rejected
+                </span>
+              )}
             </div>
           )}
         </div>

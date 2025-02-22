@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 
 const UserSchema = new Schema(
   {
-    firstName: { type: String, required: true },
+    firstName: { type: String, required: true, trim: true },
     email: {
       type: String,
       required: true,
@@ -12,8 +12,14 @@ const UserSchema = new Schema(
       trim: true,
       lowercase: true,
     },
-    lastName: { type: String, required: true },
-    username: { type: String, required: true, unique: true },
+    lastName: { type: String, required: true, trim: true },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     password: { type: String, required: true },
     birthday: { type: Date, required: true },
     isVerified: { type: Boolean, default: false },
@@ -28,10 +34,13 @@ const UserSchema = new Schema(
     backstageCodeLimit: { type: Number, default: false },
     friendsCodeLimit: { type: Number, default: false },
     createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
     events: [{ type: Schema.Types.ObjectId, ref: "Event" }],
     avatar: {
-      type: String,
-      default: "",
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+      timestamp: { type: Number },
     },
     refreshToken: {
       type: String,
@@ -50,6 +59,11 @@ const UserSchema = new Schema(
 UserSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+UserSchema.pre("save", function (next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 // Add index for email lookups
 UserSchema.index({ email: 1 });

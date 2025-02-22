@@ -7,15 +7,20 @@ import {
   RiRepeatFill,
   RiEditLine,
   RiLockLine,
+  RiTeamLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
+import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import { toast } from "react-toastify";
 
 const RoleSetting = ({ brand, onClose }) => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
+  const [roleToDelete, setRoleToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newRole, setNewRole] = useState({
     name: "",
     permissions: {
@@ -80,9 +85,14 @@ const RoleSetting = ({ brand, onClose }) => {
     if (!newRole.name.trim()) return;
 
     try {
+      const normalizedRole = {
+        ...newRole,
+        name: newRole.name.toUpperCase(),
+      };
+
       const response = await axiosInstance.post(
         `/roles/brands/${brand._id}/roles`,
-        newRole
+        normalizedRole
       );
       setRoles([...roles, response.data]);
       setNewRole({
@@ -133,13 +143,31 @@ const RoleSetting = ({ brand, onClose }) => {
     }
   };
 
-  const handleDeleteRole = async (roleId, roleName) => {
-    if (roleName === "OWNER") return;
+  const handleDeleteClick = (role) => {
+    if (role.name === "OWNER") return;
+    setRoleToDelete(role);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (!roleToDelete) return;
+
     try {
-      await axiosInstance.delete(`/roles/brands/${brand._id}/roles/${roleId}`);
-      setRoles(roles.filter((role) => role._id !== roleId));
+      await axiosInstance.delete(
+        `/roles/brands/${brand._id}/roles/${roleToDelete._id}`
+      );
+      setRoles(roles.filter((role) => role._id !== roleToDelete._id));
+      toast.success("Role deleted successfully");
     } catch (error) {
-      console.error("Error deleting role:", error);
+      if (error.response?.data?.isAssigned) {
+        toast.error("Cannot delete role that is assigned to team members");
+      } else {
+        toast.error("Failed to delete role");
+        console.error("Error deleting role:", error);
+      }
+    } finally {
+      setShowDeleteConfirm(false);
+      setRoleToDelete(null);
     }
   };
 
@@ -224,9 +252,14 @@ const RoleSetting = ({ brand, onClose }) => {
     if (!newRole.name.trim() || !editingRole) return;
 
     try {
+      const normalizedRole = {
+        ...newRole,
+        name: newRole.name.toUpperCase(),
+      };
+
       const response = await axiosInstance.put(
         `/roles/brands/${brand._id}/roles/${editingRole._id}`,
-        newRole
+        normalizedRole
       );
       setRoles(
         roles.map((role) =>
@@ -366,7 +399,7 @@ const RoleSetting = ({ brand, onClose }) => {
                   </motion.button>
                   <motion.button
                     className="action-btn delete"
-                    onClick={() => handleDeleteRole(role._id, role.name)}
+                    onClick={() => handleDeleteClick(role)}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                   >
@@ -535,6 +568,22 @@ const RoleSetting = ({ brand, onClose }) => {
           </motion.div>
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {showDeleteConfirm && roleToDelete && (
+          <ConfirmDialog
+            title="Delete Role"
+            message={`Are you sure you want to delete the role "${roleToDelete.name}"? This action cannot be undone.`}
+            confirmText="Delete"
+            type="danger"
+            onConfirm={handleDeleteRole}
+            onCancel={() => {
+              setShowDeleteConfirm(false);
+              setRoleToDelete(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

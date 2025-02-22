@@ -110,6 +110,11 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("connect", () => {
+        console.log("[SocketContext] Socket connected successfully", {
+          socketId: socketInstance.id,
+          userId: user._id,
+          timestamp: new Date().toISOString(),
+        });
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttempts = 0;
@@ -117,11 +122,21 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("disconnect", () => {
+        console.log("[SocketContext] Socket disconnected", {
+          userId: user._id,
+          timestamp: new Date().toISOString(),
+        });
         setIsConnected(false);
         setOnlineUsers(new Map());
       });
 
       socketInstance.on("connect_error", async (error) => {
+        console.error("[SocketContext] Socket connection error:", {
+          error: error.message,
+          userId: user._id,
+          reconnectAttempt: reconnectAttempts + 1,
+          timestamp: new Date().toISOString(),
+        });
         setIsConnected(false);
         setConnectionError(error.message);
 
@@ -133,15 +148,26 @@ export const SocketProvider = ({ children }) => {
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
           const delay = RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1);
+          console.log("[SocketContext] Attempting to reconnect", {
+            attempt: reconnectAttempts,
+            delay,
+            nextAttemptAt: new Date(Date.now() + delay).toISOString(),
+          });
 
           setTimeout(async () => {
             try {
               await connectSocket();
             } catch (error) {
-              // Silent catch
+              console.error(
+                "[SocketContext] Reconnection attempt failed:",
+                error
+              );
             }
           }, delay);
         } else {
+          console.error(
+            "[SocketContext] Maximum reconnection attempts reached"
+          );
           setConnectionError(
             "Maximum reconnection attempts reached. Please refresh the page."
           );
@@ -149,6 +175,10 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("initial_online_users", (users) => {
+        console.log("[SocketContext] Received initial online users", {
+          count: users.length,
+          timestamp: new Date().toISOString(),
+        });
         const userMap = new Map();
         users.forEach((user) => {
           if (user.userId && user.userData) {
@@ -159,6 +189,10 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("user_connected", ({ userId, userData }) => {
+        console.log("[SocketContext] User connected", {
+          userId,
+          timestamp: new Date().toISOString(),
+        });
         setOnlineUsers((prev) => {
           const newMap = new Map(prev);
           newMap.set(userId, userData);
@@ -167,6 +201,10 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("user_disconnected", (userId) => {
+        console.log("[SocketContext] User disconnected", {
+          userId,
+          timestamp: new Date().toISOString(),
+        });
         setOnlineUsers((prev) => {
           const newMap = new Map(prev);
           newMap.delete(userId);

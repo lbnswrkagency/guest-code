@@ -8,9 +8,9 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
 
 .avatar-upload {
   position: relative;
-  width: 48px;
-  height: 48px;
-  margin-top: -8px; // Align with the top line
+  width: 72px;
+  height: 72px;
+  margin-top: -8px;
 
   .avatar-display {
     width: 100%;
@@ -19,12 +19,14 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
     overflow: hidden;
     cursor: pointer;
     position: relative;
-    border: 2px solid #ffc807;
+    border: 2px solid rgba(255, 200, 7, 0.6);
+    box-shadow: 0 0 10px rgba(255, 200, 7, 0.2);
     transition: all 0.3s ease;
 
     &:hover {
       transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.2);
+      box-shadow: 0 0 15px rgba(255, 200, 7, 0.3);
+      border-color: #ffc807;
 
       .avatar-overlay {
         opacity: 1;
@@ -35,6 +37,7 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border-radius: 50%;
     }
 
     .avatar-placeholder {
@@ -61,34 +64,13 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
       justify-content: center;
       opacity: 0;
       transition: opacity 0.2s ease;
+      border-radius: 50%;
 
       .edit-icon {
         width: 20px;
         height: 20px;
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
       }
-    }
-  }
-
-  .online-status-dot {
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid #1c1c1c;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-    z-index: 2;
-
-    &.online {
-      background: radial-gradient(circle at 30% 30%, #4cd137, #44bd32);
-      box-shadow: 0 0 8px rgba(76, 209, 55, 0.4);
-    }
-
-    &.offline {
-      background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5253);
-      box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
     }
   }
 }
