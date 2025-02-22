@@ -177,11 +177,11 @@ const EventPage = ({ passedEventId }) => {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/events/generateGuestCode`,
         {
-          eventId: event._id,
+          eventId: "67ba4e93c1cd0bf905bf1c9d",
           email,
           phone,
           name,
-          condition: event.guestCodeCondition,
+          condition: "Free Entrance until 00:30 H",
           pax: 1,
           paxChecked: 0,
         }
