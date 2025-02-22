@@ -34,7 +34,8 @@ exports.createEvent = async (req, res) => {
     console.log("[Event Creation] Received request:", {
       body: req.body,
       brandId: req.params.brandId,
-      userId: req.user._id,
+      userId: req.user.userId,
+      files: req.files ? Object.keys(req.files) : "No files",
     });
 
     // Validate brand exists and user has permission
@@ -52,13 +53,13 @@ exports.createEvent = async (req, res) => {
     // Create event object with a synchronously generated link
     const eventData = {
       ...req.body,
-      user: req.user._id,
+      user: req.user.userId,
       brand: req.params.brandId,
       link: generateUniqueLink(),
+      flyer: {}, // Initialize empty flyer object
     };
 
-    console.log("[Event Creation] Creating event with data:", eventData);
-
+    // Create and save the event first
     const event = new Event(eventData);
     await event.save();
 
@@ -67,55 +68,88 @@ exports.createEvent = async (req, res) => {
       title: event.title,
     });
 
-    // Handle flyer uploads if they exist
-    if (req.files && Object.keys(req.files).length > 0) {
-      console.log("[Event Creation] Processing flyer uploads");
-      const flyerPromises = [];
+    // Handle file uploads if they exist
+    if (req.files) {
+      console.log("[Event Creation] Processing flyer uploads:", {
+        fileFields: Object.keys(req.files),
+        fileDetails: Object.entries(req.files).map(([field, files]) => ({
+          field,
+          size: files[0].size,
+          mimetype: files[0].mimetype,
+        })),
+      });
 
-      for (const [fieldName, file] of Object.entries(req.files)) {
-        const [type, format] = fieldName.split(".");
-        if (type === "flyer") {
-          console.log(`[Event Creation] Processing ${format} flyer`);
+      const timestamp = Date.now();
 
-          try {
-            // Process image with sharp
-            const processedImage = await sharp(file.buffer)
-              .resize(1080) // Adjust size as needed
-              .jpeg({ quality: 80 })
-              .toBuffer();
+      for (const [fieldName, files] of Object.entries(req.files)) {
+        if (!fieldName.startsWith("flyer.")) continue;
 
-            // Upload to S3
-            const uploadedUrl = await uploadToS3(
-              processedImage,
-              "events/flyers",
-              `${event._id}_${format}.jpg`,
-              "image/jpeg"
+        const format = fieldName.split(".")[1]; // Get portrait/landscape/square
+        const file = files[0]; // Get the first file from the array
+
+        try {
+          const key = `events/${event._id}/flyers/${format}/${timestamp}`;
+          const qualities = ["thumbnail", "medium", "full"];
+          const urls = {};
+
+          // Process and upload each quality
+          for (const quality of qualities) {
+            let processedBuffer = file.buffer;
+
+            // Resize based on quality
+            if (quality === "thumbnail") {
+              processedBuffer = await sharp(file.buffer)
+                .resize(300)
+                .jpeg({ quality: 80 })
+                .toBuffer();
+            } else if (quality === "medium") {
+              processedBuffer = await sharp(file.buffer)
+                .resize(800)
+                .jpeg({ quality: 85 })
+                .toBuffer();
+            }
+
+            const qualityKey = `${key}/${quality}`;
+            const url = await uploadToS3(
+              processedBuffer,
+              qualityKey,
+              file.mimetype
             );
-
-            // Update event with the flyer URL
-            event.flyer[format] = {
-              full: uploadedUrl,
-              medium: uploadedUrl,
-              thumbnail: uploadedUrl,
-            };
+            urls[quality] = url;
 
             console.log(
-              `[Event Creation] Uploaded ${format} flyer:`,
-              uploadedUrl
-            );
-          } catch (error) {
-            console.error(
-              `[Event Creation] Error processing ${format} flyer:`,
-              error
+              `[Event Creation] Uploaded ${format}/${quality} flyer:`,
+              {
+                size: processedBuffer.length,
+                url,
+              }
             );
           }
+
+          // Update event with the flyer URLs
+          event.flyer[format] = {
+            thumbnail: urls.thumbnail,
+            medium: urls.medium,
+            full: urls.full,
+            timestamp,
+          };
+
+          console.log(
+            `[Event Creation] Updated event with ${format} flyer URLs:`,
+            urls
+          );
+        } catch (error) {
+          console.error(
+            `[Event Creation] Error processing ${format} flyer:`,
+            error
+          );
+          throw error; // Re-throw to handle in outer catch block
         }
       }
 
-      if (Object.keys(event.flyer).length > 0) {
-        await event.save();
-        console.log("[Event Creation] Updated event with flyer URLs");
-      }
+      // Save the updated event with flyer URLs
+      await event.save();
+      console.log("[Event Creation] Saved event with flyer URLs");
     }
 
     res.status(201).json(event);
@@ -226,6 +260,11 @@ exports.editEvent = async (req, res) => {
     const { eventId } = req.params;
     const updatedEventData = req.body;
 
+    console.log("[Event Update] Received request:", {
+      eventId,
+      body: req.body,
+    });
+
     // Find event and check permissions
     const event = await Event.findById(eventId);
     if (!event) {
@@ -244,17 +283,288 @@ exports.editEvent = async (req, res) => {
       });
     }
 
-    // Update the event
-    const updatedEvent = await Event.findByIdAndUpdate(
-      eventId,
-      updatedEventData,
-      { new: true }
-    ).populate("brand", "name username logo");
+    // Update event data
+    Object.assign(event, updatedEventData);
+    await event.save();
 
-    res.status(200).json(updatedEvent);
+    console.log("[Event Update] Event updated successfully");
+    res.status(200).json(event);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error updating event" });
+    console.error("[Event Update Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ message: "Error updating event", error: error.message });
+  }
+};
+
+// New flyer update handlers
+exports.updateLandscapeFlyer = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const { eventId } = req.params;
+    const file = req.file;
+
+    console.log("[Landscape Flyer Update] Processing upload:", {
+      eventId,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
+
+    // Find event and check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user has permission
+    const brand = await Brand.findOne({
+      _id: event.brand,
+      "team.user": req.user.userId,
+    });
+
+    if (!brand) {
+      return res.status(403).json({
+        message: "You don't have permission to update this event",
+      });
+    }
+
+    const timestamp = Date.now();
+    const key = `events/${event._id}/flyers/landscape/${timestamp}`;
+    const qualities = ["thumbnail", "medium", "full"];
+    const urls = {};
+
+    // Process and upload each quality
+    for (const quality of qualities) {
+      let processedBuffer = file.buffer;
+
+      // Resize based on quality
+      if (quality === "thumbnail") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(300)
+          .jpeg({ quality: 80 })
+          .toBuffer();
+      } else if (quality === "medium") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(800)
+          .jpeg({ quality: 85 })
+          .toBuffer();
+      }
+
+      const qualityKey = `${key}/${quality}`;
+      const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
+      urls[quality] = url;
+
+      console.log(`[Landscape Flyer Update] Uploaded ${quality}:`, {
+        size: processedBuffer.length,
+        url,
+      });
+    }
+
+    // Update event with the flyer URLs
+    if (!event.flyer) event.flyer = {};
+    event.flyer.landscape = {
+      thumbnail: urls.thumbnail,
+      medium: urls.medium,
+      full: urls.full,
+      timestamp,
+    };
+
+    await event.save();
+    console.log("[Landscape Flyer Update] Event updated successfully");
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("[Landscape Flyer Update Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ message: "Error updating flyer", error: error.message });
+  }
+};
+
+exports.updatePortraitFlyer = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const { eventId } = req.params;
+    const file = req.file;
+
+    console.log("[Portrait Flyer Update] Processing upload:", {
+      eventId,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
+
+    // Find event and check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user has permission
+    const brand = await Brand.findOne({
+      _id: event.brand,
+      "team.user": req.user.userId,
+    });
+
+    if (!brand) {
+      return res.status(403).json({
+        message: "You don't have permission to update this event",
+      });
+    }
+
+    const timestamp = Date.now();
+    const key = `events/${event._id}/flyers/portrait/${timestamp}`;
+    const qualities = ["thumbnail", "medium", "full"];
+    const urls = {};
+
+    // Process and upload each quality
+    for (const quality of qualities) {
+      let processedBuffer = file.buffer;
+
+      // Resize based on quality
+      if (quality === "thumbnail") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(300)
+          .jpeg({ quality: 80 })
+          .toBuffer();
+      } else if (quality === "medium") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(800)
+          .jpeg({ quality: 85 })
+          .toBuffer();
+      }
+
+      const qualityKey = `${key}/${quality}`;
+      const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
+      urls[quality] = url;
+
+      console.log(`[Portrait Flyer Update] Uploaded ${quality}:`, {
+        size: processedBuffer.length,
+        url,
+      });
+    }
+
+    // Update event with the flyer URLs
+    if (!event.flyer) event.flyer = {};
+    event.flyer.portrait = {
+      thumbnail: urls.thumbnail,
+      medium: urls.medium,
+      full: urls.full,
+      timestamp,
+    };
+
+    await event.save();
+    console.log("[Portrait Flyer Update] Event updated successfully");
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("[Portrait Flyer Update Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ message: "Error updating flyer", error: error.message });
+  }
+};
+
+exports.updateSquareFlyer = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const { eventId } = req.params;
+    const file = req.file;
+
+    console.log("[Square Flyer Update] Processing upload:", {
+      eventId,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
+
+    // Find event and check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if user has permission
+    const brand = await Brand.findOne({
+      _id: event.brand,
+      "team.user": req.user.userId,
+    });
+
+    if (!brand) {
+      return res.status(403).json({
+        message: "You don't have permission to update this event",
+      });
+    }
+
+    const timestamp = Date.now();
+    const key = `events/${event._id}/flyers/square/${timestamp}`;
+    const qualities = ["thumbnail", "medium", "full"];
+    const urls = {};
+
+    // Process and upload each quality
+    for (const quality of qualities) {
+      let processedBuffer = file.buffer;
+
+      // Resize based on quality
+      if (quality === "thumbnail") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(300)
+          .jpeg({ quality: 80 })
+          .toBuffer();
+      } else if (quality === "medium") {
+        processedBuffer = await sharp(file.buffer)
+          .resize(800)
+          .jpeg({ quality: 85 })
+          .toBuffer();
+      }
+
+      const qualityKey = `${key}/${quality}`;
+      const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
+      urls[quality] = url;
+
+      console.log(`[Square Flyer Update] Uploaded ${quality}:`, {
+        size: processedBuffer.length,
+        url,
+      });
+    }
+
+    // Update event with the flyer URLs
+    if (!event.flyer) event.flyer = {};
+    event.flyer.square = {
+      thumbnail: urls.thumbnail,
+      medium: urls.medium,
+      full: urls.full,
+      timestamp,
+    };
+
+    await event.save();
+    console.log("[Square Flyer Update] Event updated successfully");
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("[Square Flyer Update Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ message: "Error updating flyer", error: error.message });
   }
 };
 

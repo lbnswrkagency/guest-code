@@ -122,7 +122,12 @@ const Events = () => {
         console.log(`[Event Update] Updating event ${selectedEvent._id}`);
         response = await axiosInstance.put(
           `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}`,
-          eventData
+          eventData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
       } else {
         console.log(
@@ -130,7 +135,12 @@ const Events = () => {
         );
         response = await axiosInstance.post(
           `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`,
-          eventData
+          eventData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
       }
 
@@ -300,6 +310,23 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     return imageObj.medium || imageObj.full || imageObj.thumbnail;
   };
 
+  const getFlyerImage = (flyer) => {
+    if (!flyer) return null;
+    // Try landscape first
+    if (flyer.landscape) {
+      return getImageUrl(flyer.landscape);
+    }
+    // Try portrait second
+    if (flyer.portrait) {
+      return getImageUrl(flyer.portrait);
+    }
+    // Try square last
+    if (flyer.square) {
+      return getImageUrl(flyer.square);
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (isFlipped) {
       const timer = setTimeout(() => setShowBackContent(true), 150);
@@ -350,11 +377,11 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
       >
         <div className="event-card-header">
           <div className="event-cover-image">
-            {event.flyer?.landscape && (
+            {event.flyer && (
               <ProgressiveImage
-                thumbnailSrc={getImageUrl(event.flyer.landscape)}
-                mediumSrc={getImageUrl(event.flyer.landscape)}
-                fullSrc={getImageUrl(event.flyer.landscape)}
+                thumbnailSrc={getFlyerImage(event.flyer)}
+                mediumSrc={getFlyerImage(event.flyer)}
+                fullSrc={getFlyerImage(event.flyer)}
                 alt={`${event.title} cover`}
                 className="cover-image"
               />

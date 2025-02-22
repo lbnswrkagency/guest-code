@@ -122,10 +122,23 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
     square: null,
     landscape: null,
   });
-  const [flyerPreviews, setFlyerPreviews] = useState({
-    portrait: null,
-    square: null,
-    landscape: null,
+  const [flyerPreviews, setFlyerPreviews] = useState(() => {
+    if (event?.flyer) {
+      const previews = {};
+      Object.entries(event.flyer).forEach(([format, urls]) => {
+        if (urls) {
+          previews[format] = {
+            thumbnail: urls.thumbnail,
+            medium: urls.medium,
+            full: urls.full,
+            blur: urls.blur || urls.thumbnail,
+            isExisting: true,
+          };
+        }
+      });
+      return previews;
+    }
+    return {};
   });
   const [uploadProgress, setUploadProgress] = useState({});
   const fileInputRefs = {
@@ -201,12 +214,17 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
         medium: URL.createObjectURL(processed.medium.file),
         full: URL.createObjectURL(processed.full.file),
         blur: blurPlaceholder,
+        isExisting: false,
       };
 
-      // Update state
+      // Update state with the processed files
       setFlyerFiles((prev) => ({
         ...prev,
-        [type]: processed,
+        [type]: {
+          full: { file: processed.full.file },
+          medium: { file: processed.medium.file },
+          thumbnail: { file: processed.thumbnail.file },
+        },
       }));
 
       setFlyerPreviews((prev) => ({
@@ -214,8 +232,9 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
         [type]: previewUrls,
       }));
 
-      toast.showSuccess(`${flyerType.label} flyer added successfully`);
+      toast.showSuccess(`${flyerType.label} flyer ready for upload`);
     } catch (error) {
+      console.error(`Error processing ${type} flyer:`, error);
       toast.showError(error.message);
       e.target.value = "";
     } finally {
@@ -233,37 +252,112 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("[EventForm] Submit triggered", {
-      formData,
-      isFormValid,
-      isSubmitting,
-    });
 
     if (!isFormValid || isSubmitting) {
-      console.log("[EventForm] Form validation failed", {
-        isFormValid,
-        isSubmitting,
-      });
       return;
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.showLoading("Creating event...");
+    const loadingToast = toast.showLoading(
+      event ? "Updating event..." : "Creating event..."
+    );
 
     try {
-      // First create the event
-      const eventData = {
-        ...formData,
-        flyer: {}, // Will be populated with URLs after upload
-      };
+      // Create FormData to send files
+      const formDataToSend = new FormData();
 
-      console.log("[EventForm] Calling onSave with data:", eventData);
-      await onSave(eventData);
+      // Add all the regular form data
+      Object.keys(formData).forEach((key) => {
+        if (key !== "flyer") {
+          if (key === "date") {
+            formDataToSend.append(key, formData[key].toISOString());
+          } else {
+            formDataToSend.append(key, formData[key]);
+          }
+        }
+      });
+
+      if (event?._id) {
+        // If editing, first update the event details
+        const updatedEvent = await onSave(formDataToSend);
+
+        // Then upload any new flyers
+        for (const [format, files] of Object.entries(flyerFiles)) {
+          if (files?.full?.file) {
+            const flyerFormData = new FormData();
+            flyerFormData.append("flyer", files.full.file);
+
+            console.log(`[EventForm] Attempting to upload ${format} flyer:`, {
+              url: `/events/${event._id}/flyer/${format}`,
+              fileSize: files.full.file.size,
+              fileType: files.full.file.type,
+            });
+
+            try {
+              const response = await axiosInstance.put(
+                `/events/${event._id}/flyer/${format}`,
+                flyerFormData,
+                {
+                  headers: {
+                    "Content-Type": "multipart/form-data",
+                  },
+                  onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round(
+                      (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setUploadProgress((prev) => ({
+                      ...prev,
+                      [format]: percentCompleted,
+                    }));
+                  },
+                }
+              );
+
+              console.log(
+                `[EventForm] ${format} flyer upload response:`,
+                response.data
+              );
+
+              if (response.data?.flyer?.[format]) {
+                setFlyerPreviews((prev) => ({
+                  ...prev,
+                  [format]: {
+                    ...response.data.flyer[format],
+                    blur: prev[format]?.blur,
+                    isExisting: true,
+                  },
+                }));
+              }
+            } catch (uploadError) {
+              console.error(
+                `[EventForm] Error uploading ${format} flyer:`,
+                uploadError
+              );
+              toast.showError(`Failed to upload ${format} flyer`);
+            }
+          }
+        }
+      } else {
+        // If creating new event, include all flyer files
+        Object.entries(flyerFiles).forEach(([format, processedFiles]) => {
+          if (processedFiles?.full?.file) {
+            formDataToSend.append(
+              `flyer.${format}`,
+              processedFiles.full.file,
+              `${format}.jpg`
+            );
+          }
+        });
+        await onSave(formDataToSend);
+      }
+
+      toast.showSuccess(
+        event ? "Event updated successfully" : "Event created successfully"
+      );
+      onClose();
     } catch (error) {
       console.error("[EventForm] Error submitting form:", error);
-      toast.showError(
-        error.response?.data?.message || "Failed to create event"
-      );
+      toast.showError(error.response?.data?.message || "Failed to save event");
     } finally {
       setIsSubmitting(false);
       loadingToast.dismiss();
@@ -400,7 +494,9 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                   <div
                     key={type.id}
                     className={`flyer-option ${type.id} ${
-                      flyerFiles[type.id] ? "selected" : ""
+                      flyerFiles[type.id] || flyerPreviews[type.id]
+                        ? "selected"
+                        : ""
                     }`}
                     onClick={() => handleFlyerClick(type.id)}
                   >
@@ -412,7 +508,7 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                       style={{ display: "none" }}
                     />
                     <div className="ratio-preview">
-                      {flyerPreviews[type.id] ? (
+                      {flyerPreviews[type.id] && (
                         <ProgressiveImage
                           thumbnailSrc={flyerPreviews[type.id].thumbnail}
                           mediumSrc={flyerPreviews[type.id].medium}
@@ -420,10 +516,10 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                           blurDataURL={flyerPreviews[type.id].blur}
                           alt={`${type.label} flyer preview`}
                         />
-                      ) : null}
+                      )}
                     </div>
                     <span className="ratio-text">{type.ratio}</span>
-                    {flyerFiles[type.id] && (
+                    {(flyerFiles[type.id] || flyerPreviews[type.id]) && (
                       <span className="check-icon">
                         <FaCheck />
                       </span>
