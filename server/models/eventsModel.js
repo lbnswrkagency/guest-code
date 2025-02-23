@@ -12,6 +12,7 @@ const EventSchema = new Schema(
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     location: { type: String, required: true },
+    isWeekly: { type: Boolean, default: false },
     flyer: {
       landscape: {
         thumbnail: String,

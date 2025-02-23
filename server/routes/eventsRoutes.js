@@ -51,28 +51,20 @@ router.post(
 );
 
 router.get("/events", auth, eventsController.getAllEvents);
+router.get("/events/brand/:brandId", auth, eventsController.getBrandEvents);
 router.get("/events/:eventId", auth, eventsController.getEvent);
-router.put("/events/:eventId", auth, eventsController.editEvent);
-router.delete("/events/:eventId", auth, eventsController.deleteEvent);
 
-// Separate flyer upload routes - match the frontend URL pattern
+// Update event details (without media)
+router.put("/events/:eventId", auth, eventsController.editEvent);
+
+// Media upload routes
 router.put(
   "/events/:eventId/flyer/:format",
   auth,
   upload.single("flyer"),
-  async (req, res) => {
-    const { format } = req.params;
-    switch (format) {
-      case "landscape":
-        return eventsController.updateLandscapeFlyer(req, res);
-      case "portrait":
-        return eventsController.updatePortraitFlyer(req, res);
-      case "square":
-        return eventsController.updateSquareFlyer(req, res);
-      default:
-        return res.status(400).json({ message: "Invalid flyer format" });
-    }
-  }
+  eventsController.updateFlyer
 );
+
+router.delete("/events/:eventId", auth, eventsController.deleteEvent);
 
 module.exports = router;

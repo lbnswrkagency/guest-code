@@ -87,6 +87,7 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
     startTime: event?.startTime || "20:00",
     endTime: event?.endTime || "04:00",
     location: event?.location || "",
+    isWeekly: event?.isWeekly || false,
     flyer: null,
     guestCode: event?.guestCode || false,
     friendsCode: event?.friendsCode || false,
@@ -258,12 +259,9 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.showLoading(
-      event ? "Updating event..." : "Creating event..."
-    );
 
     try {
-      // Create FormData to send files
+      // Create FormData for event details
       const formDataToSend = new FormData();
 
       // Add all the regular form data
@@ -277,21 +275,43 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
         }
       });
 
+      let eventResponse;
       if (event?._id) {
-        // If editing, first update the event details
-        const updatedEvent = await onSave(formDataToSend);
+        // Update event details first
+        eventResponse = await axiosInstance.put(
+          `/events/${event._id}`,
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      } else {
+        // For new events, include flyer files in initial creation
+        Object.entries(flyerFiles).forEach(([format, files]) => {
+          if (files?.full?.file) {
+            formDataToSend.append(`flyer.${format}`, files.full.file);
+          }
+        });
 
-        // Then upload any new flyers
+        eventResponse = await axiosInstance.post(
+          `/events/brand/${selectedBrand._id}`,
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      }
+
+      // If editing and there are new flyers, upload them
+      if (event?._id) {
         for (const [format, files] of Object.entries(flyerFiles)) {
           if (files?.full?.file) {
             const flyerFormData = new FormData();
             flyerFormData.append("flyer", files.full.file);
-
-            console.log(`[EventForm] Attempting to upload ${format} flyer:`, {
-              url: `/events/${event._id}/flyer/${format}`,
-              fileSize: files.full.file.size,
-              fileType: files.full.file.type,
-            });
 
             try {
               const response = await axiosInstance.put(
@@ -313,11 +333,6 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                 }
               );
 
-              console.log(
-                `[EventForm] ${format} flyer upload response:`,
-                response.data
-              );
-
               if (response.data?.flyer?.[format]) {
                 setFlyerPreviews((prev) => ({
                   ...prev,
@@ -329,28 +344,14 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                 }));
               }
             } catch (uploadError) {
-              console.error(
-                `[EventForm] Error uploading ${format} flyer:`,
-                uploadError
-              );
+              console.error(`Error uploading ${format} flyer:`, uploadError);
               toast.showError(`Failed to upload ${format} flyer`);
             }
           }
         }
-      } else {
-        // If creating new event, include all flyer files
-        Object.entries(flyerFiles).forEach(([format, processedFiles]) => {
-          if (processedFiles?.full?.file) {
-            formDataToSend.append(
-              `flyer.${format}`,
-              processedFiles.full.file,
-              `${format}.jpg`
-            );
-          }
-        });
-        await onSave(formDataToSend);
       }
 
+      await onSave(eventResponse.data);
       toast.showSuccess(
         event ? "Event updated successfully" : "Event created successfully"
       );
@@ -360,7 +361,6 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
       toast.showError(error.response?.data?.message || "Failed to save event");
     } finally {
       setIsSubmitting(false);
-      loadingToast.dismiss();
     }
   };
 
@@ -469,6 +469,26 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="form-group weekly-event-toggle">
+                <div className="toggle-container">
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      name="isWeekly"
+                      checked={formData.isWeekly}
+                      onChange={handleInputChange}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                  <span className="toggle-label">Weekly Event</span>
+                </div>
+                {formData.isWeekly && (
+                  <p className="toggle-hint">
+                    This event will repeat every week
+                  </p>
+                )}
               </div>
 
               <div className="form-group required">
