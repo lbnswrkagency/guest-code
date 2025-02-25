@@ -50,16 +50,16 @@ exports.createEvent = async (req, res) => {
       brandName: brand.name,
     });
 
-    // Create event object with a synchronously generated link
+    // Create event object without explicit _id
     const eventData = {
       ...req.body,
       user: req.user.userId,
       brand: req.params.brandId,
       link: generateUniqueLink(),
-      flyer: {}, // Initialize empty flyer object
+      flyer: {},
     };
 
-    // Create and save the event first
+    // Create and save the event
     const event = new Event(eventData);
     await event.save();
 
@@ -84,19 +84,17 @@ exports.createEvent = async (req, res) => {
       for (const [fieldName, files] of Object.entries(req.files)) {
         if (!fieldName.startsWith("flyer.")) continue;
 
-        const format = fieldName.split(".")[1]; // Get portrait/landscape/square
-        const file = files[0]; // Get the first file from the array
+        const format = fieldName.split(".")[1];
+        const file = files[0];
 
         try {
           const key = `events/${event._id}/flyers/${format}/${timestamp}`;
           const qualities = ["thumbnail", "medium", "full"];
           const urls = {};
 
-          // Process and upload each quality
           for (const quality of qualities) {
             let processedBuffer = file.buffer;
 
-            // Resize based on quality
             if (quality === "thumbnail") {
               processedBuffer = await sharp(file.buffer)
                 .resize(300)
@@ -126,28 +124,20 @@ exports.createEvent = async (req, res) => {
             );
           }
 
-          // Update event with the flyer URLs
           event.flyer[format] = {
             thumbnail: urls.thumbnail,
             medium: urls.medium,
             full: urls.full,
             timestamp,
           };
-
-          console.log(
-            `[Event Creation] Updated event with ${format} flyer URLs:`,
-            urls
-          );
         } catch (error) {
           console.error(
             `[Event Creation] Error processing ${format} flyer:`,
             error
           );
-          throw error; // Re-throw to handle in outer catch block
         }
       }
 
-      // Save the updated event with flyer URLs
       await event.save();
       console.log("[Event Creation] Saved event with flyer URLs");
     }
@@ -158,9 +148,19 @@ exports.createEvent = async (req, res) => {
       error: error.message,
       stack: error.stack,
     });
-    res
-      .status(500)
-      .json({ message: "Failed to create event", error: error.message });
+
+    // Check if it's truly a duplicate key error
+    if (error.code === 11000) {
+      const existingEvent = await Event.findById(error.keyValue._id);
+      if (existingEvent) {
+        return res.status(200).json(existingEvent);
+      }
+    }
+
+    res.status(500).json({
+      message: "Failed to create event",
+      error: error.message,
+    });
   }
 };
 
@@ -263,6 +263,7 @@ exports.editEvent = async (req, res) => {
     console.log("[Event Update] Received request:", {
       eventId,
       body: req.body,
+      userId: req.user.userId,
     });
 
     // Find event and check permissions
@@ -274,7 +275,7 @@ exports.editEvent = async (req, res) => {
     // Check if user has permission to edit this event
     const brand = await Brand.findOne({
       _id: event.brand,
-      "team.user": req.user.userId,
+      $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
     });
 
     if (!brand) {
@@ -283,20 +284,33 @@ exports.editEvent = async (req, res) => {
       });
     }
 
-    // Update event data
-    Object.assign(event, updatedEventData);
-    await event.save();
+    // Convert date string to Date object if it exists
+    if (updatedEventData.date) {
+      updatedEventData.date = new Date(updatedEventData.date);
+    }
 
-    console.log("[Event Update] Event updated successfully");
-    res.status(200).json(event);
+    // Update event data
+    const updatedEvent = await Event.findByIdAndUpdate(
+      eventId,
+      { $set: updatedEventData },
+      { new: true, runValidators: true }
+    );
+
+    console.log("[Event Update] Event updated successfully:", {
+      eventId,
+      updatedFields: Object.keys(updatedEventData),
+    });
+
+    res.status(200).json(updatedEvent);
   } catch (error) {
     console.error("[Event Update Error]", {
       error: error.message,
       stack: error.stack,
     });
-    res
-      .status(500)
-      .json({ message: "Error updating event", error: error.message });
+    res.status(500).json({
+      message: "Error updating event",
+      error: error.message,
+    });
   }
 };
 

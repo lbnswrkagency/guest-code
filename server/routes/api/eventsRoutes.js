@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../../middleware/authMiddleware");
 const multer = require("multer");
+const sharp = require("sharp");
+const { uploadToS3 } = require("../../utils/s3Uploader");
+const Event = require("../../models/eventsModel");
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -76,6 +79,98 @@ router.put("/:eventId", authenticate, editEvent);
 router.delete("/:eventId", authenticate, deleteEvent);
 router.get("/page/:eventId", authenticate, getEventPage);
 router.get("/link/:eventLink", getEventByLink);
+
+// Add the flyer update route
+router.put(
+  "/:eventId/flyer/:format",
+  authenticate,
+  upload.single("flyer"),
+  async (req, res) => {
+    try {
+      const { eventId, format } = req.params;
+      const file = req.file;
+
+      console.log("[Flyer Update] Processing request:", {
+        eventId,
+        format,
+        fileInfo: file
+          ? {
+              size: file.size,
+              mimetype: file.mimetype,
+            }
+          : "No file",
+      });
+
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Find event and check permissions
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      const timestamp = Date.now();
+      const key = `events/${event._id}/flyers/${format}/${timestamp}`;
+      const qualities = ["thumbnail", "medium", "full"];
+      const urls = {};
+
+      // Process and upload each quality
+      for (const quality of qualities) {
+        let processedBuffer = file.buffer;
+
+        if (quality === "thumbnail") {
+          processedBuffer = await sharp(file.buffer)
+            .resize(300)
+            .jpeg({ quality: 80 })
+            .toBuffer();
+        } else if (quality === "medium") {
+          processedBuffer = await sharp(file.buffer)
+            .resize(800)
+            .jpeg({ quality: 85 })
+            .toBuffer();
+        }
+
+        const qualityKey = `${key}/${quality}`;
+        const url = await uploadToS3(
+          processedBuffer,
+          qualityKey,
+          file.mimetype
+        );
+        urls[quality] = url;
+
+        console.log(`[Flyer Update] Uploaded ${format}/${quality}:`, {
+          size: processedBuffer.length,
+          url,
+        });
+      }
+
+      // Update event with the flyer URLs
+      if (!event.flyer) event.flyer = {};
+      event.flyer[format] = {
+        thumbnail: urls.thumbnail,
+        medium: urls.medium,
+        full: urls.full,
+        timestamp,
+      };
+
+      await event.save();
+      console.log(`[Flyer Update] Updated ${format} flyer successfully`);
+
+      res.status(200).json(event);
+    } catch (error) {
+      console.error("[Flyer Update Error]", {
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({
+        message: "Error updating flyer",
+        error: error.message,
+      });
+    }
+  }
+);
 
 // Guest code routes
 router.post("/generateGuestCode", generateGuestCode);

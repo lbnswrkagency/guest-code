@@ -264,11 +264,16 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
       // Create FormData for event details
       const formDataToSend = new FormData();
 
+      // Log the form data being sent
+      console.log("[EventForm] Submitting form data:", formData);
+
       // Add all the regular form data
       Object.keys(formData).forEach((key) => {
         if (key !== "flyer") {
           if (key === "date") {
             formDataToSend.append(key, formData[key].toISOString());
+          } else if (typeof formData[key] === "boolean") {
+            formDataToSend.append(key, formData[key].toString());
           } else {
             formDataToSend.append(key, formData[key]);
           }
@@ -278,44 +283,47 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
       let eventResponse;
       if (event?._id) {
         // Update event details first
-        eventResponse = await axiosInstance.put(
-          `/events/${event._id}`,
-          formDataToSend,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-      } else {
-        // For new events, include flyer files in initial creation
-        Object.entries(flyerFiles).forEach(([format, files]) => {
-          if (files?.full?.file) {
-            formDataToSend.append(`flyer.${format}`, files.full.file);
-          }
+        console.log("[Event Update] Sending update request:", {
+          eventId: event._id,
+          formData: Object.fromEntries(formDataToSend.entries()),
         });
 
-        eventResponse = await axiosInstance.post(
-          `/events/brand/${selectedBrand._id}`,
-          formDataToSend,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+        // Convert FormData to plain object for PUT request
+        const updateData = {};
+        for (const [key, value] of formDataToSend.entries()) {
+          if (key === "date") {
+            updateData[key] = new Date(value).toISOString();
+          } else if (value === "true" || value === "false") {
+            updateData[key] = value === "true";
+          } else {
+            updateData[key] = value;
           }
-        );
-      }
+        }
 
-      // If editing and there are new flyers, upload them
-      if (event?._id) {
+        eventResponse = await axiosInstance.put(
+          `/events/${event._id}`,
+          updateData
+        );
+
+        // Handle flyer uploads separately
         for (const [format, files] of Object.entries(flyerFiles)) {
           if (files?.full?.file) {
             const flyerFormData = new FormData();
             flyerFormData.append("flyer", files.full.file);
 
             try {
+              console.log(`[Event Update] Uploading ${format} flyer:`, {
+                eventId: event._id,
+                format,
+                fileSize: files.full.file.size,
+                fileName: files.full.file.name,
+              });
+
+              const uploadUrl = `/events/${event._id}/flyer/${format}`;
+              console.log(`[Event Update] Upload URL:`, uploadUrl);
+
               const response = await axiosInstance.put(
-                `/events/${event._id}/flyer/${format}`,
+                uploadUrl,
                 flyerFormData,
                 {
                   headers: {
@@ -333,6 +341,11 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                 }
               );
 
+              console.log(
+                `[Event Update] ${format} flyer upload response:`,
+                response.data
+              );
+
               if (response.data?.flyer?.[format]) {
                 setFlyerPreviews((prev) => ({
                   ...prev,
@@ -342,23 +355,49 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                     isExisting: true,
                   },
                 }));
+
+                eventResponse = response;
               }
             } catch (uploadError) {
-              console.error(`Error uploading ${format} flyer:`, uploadError);
-              toast.showError(`Failed to upload ${format} flyer`);
+              console.error(`[Event Update] Error uploading ${format} flyer:`, {
+                error: uploadError.message,
+                response: uploadError.response?.data,
+                status: uploadError.response?.status,
+                url: uploadError.config?.url,
+              });
+              throw uploadError; // Let parent handle the error
             }
           }
         }
+      } else {
+        // For new events, include flyer files in initial creation
+        Object.entries(flyerFiles).forEach(([format, files]) => {
+          if (files?.full?.file) {
+            formDataToSend.append(`flyer.${format}`, files.full.file);
+          }
+        });
+
+        console.log("[Event Creation] Creating new event:", {
+          brandId: selectedBrand._id,
+          formData: Object.fromEntries(formDataToSend.entries()),
+        });
+
+        eventResponse = await axiosInstance.post(
+          `/events/brand/${selectedBrand._id}`,
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
       }
 
       await onSave(eventResponse.data);
-      toast.showSuccess(
-        event ? "Event updated successfully" : "Event created successfully"
-      );
       onClose();
     } catch (error) {
       console.error("[EventForm] Error submitting form:", error);
-      toast.showError(error.response?.data?.message || "Failed to save event");
+      throw error; // Let parent handle the error
     } finally {
       setIsSubmitting(false);
     }

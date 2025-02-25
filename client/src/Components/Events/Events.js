@@ -293,6 +293,7 @@ const Events = () => {
             event={selectedEvent}
             onClose={handleClose}
             onSave={handleSave}
+            selectedBrand={selectedBrand}
           />
         )}
       </div>
