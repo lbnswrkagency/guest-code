@@ -11,6 +11,9 @@ import {
   RiTeamLine,
   RiGroupLine,
   RiAddLine,
+  RiBroadcastLine,
+  RiEyeLine,
+  RiEyeOffLine,
 } from "react-icons/ri";
 import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
@@ -304,6 +307,8 @@ const Events = () => {
 const EventCard = ({ event, onClick, onSettingsClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showBackContent, setShowBackContent] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
+  const [isLive, setIsLive] = useState(event.isLive || false); // Track live status
 
   const getImageUrl = (imageObj) => {
     if (!imageObj) return null;
@@ -347,6 +352,26 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     setIsFlipped(true);
   };
 
+  // Weekly event navigation handlers
+  const handlePrevWeek = (e) => {
+    e.stopPropagation();
+    if (currentWeek > 0) {
+      setCurrentWeek((prev) => prev - 1);
+    }
+  };
+
+  const handleNextWeek = (e) => {
+    e.stopPropagation();
+    setCurrentWeek((prev) => prev + 1);
+  };
+
+  // Calculate the date for the current week
+  const getWeeklyDate = (baseDate, weekOffset) => {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + weekOffset * 7);
+    return date;
+  };
+
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString("en-US", {
       day: "numeric",
@@ -355,9 +380,33 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     });
   };
 
+  // Format date for weekly display (Mar 22, 2025)
+  const formatWeeklyDate = (date) => {
+    const d = new Date(date);
+    const month = d.toLocaleString("en-US", { month: "short" });
+    const day = d.getDate();
+    const year = d.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
+  // Get the display date based on current week
+  const displayDate = event.isWeekly
+    ? getWeeklyDate(event.date, currentWeek)
+    : event.date;
+
+  const handleGoLive = (e) => {
+    e.stopPropagation();
+    // In a real implementation, this would call an API to update the event status
+    setIsLive(!isLive);
+    // TODO: Add API call to update event.isLive status in the database
+    // Example: axiosInstance.patch(`/events/${event._id}`, { isLive: !isLive });
+  };
+
   return (
     <motion.div
-      className={`event-card ${isFlipped ? "flipped" : ""}`}
+      className={`event-card ${isFlipped ? "flipped" : ""} ${
+        event.isWeekly ? "weekly-event" : ""
+      } ${isLive ? "live-event" : ""}`}
       style={{
         transformStyle: "preserve-3d",
         perspective: "1000px",
@@ -410,17 +459,56 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
 
         <div className="event-card-content">
           <div className="event-info">
-            <h3>{event.title}</h3>
-            {event.subTitle && (
-              <span className="subtitle">{event.subTitle}</span>
-            )}
+            <div className="title-container">
+              <h3>{event.title}</h3>
+              {event.subTitle && (
+                <span className="subtitle">{event.subTitle}</span>
+              )}
+            </div>
+            <motion.button
+              className={`go-live-button ${isLive ? "live" : ""}`}
+              onClick={handleGoLive}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isLive ? (
+                <>
+                  <RiEyeLine /> Live
+                </>
+              ) : (
+                <>
+                  <RiEyeOffLine /> Go Live
+                </>
+              )}
+            </motion.button>
           </div>
 
           <div className="event-details">
-            <div className="detail-item">
-              <RiCalendarEventLine />
-              <span>{formatDate(event.date)}</span>
-            </div>
+            {event.isWeekly ? (
+              <div className="weekly-date-navigation">
+                <div className="navigation-controls">
+                  <button
+                    className="nav-arrow prev"
+                    onClick={handlePrevWeek}
+                    disabled={currentWeek === 0}
+                  >
+                    ←
+                  </button>
+                  <div className="date-display">
+                    <RiCalendarEventLine className="calendar-icon" />
+                    {formatWeeklyDate(displayDate)}
+                  </div>
+                  <button className="nav-arrow next" onClick={handleNextWeek}>
+                    →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="detail-item">
+                <RiCalendarEventLine />
+                <span>{formatDate(event.date)}</span>
+              </div>
+            )}
             <div className="detail-item">
               <RiTimeLine />
               <span>
@@ -442,6 +530,10 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
             {event.friendsCode && <span className="feature">Friends Code</span>}
             {event.ticketCode && <span className="feature">Ticket Code</span>}
             {event.tableCode && <span className="feature">Table Code</span>}
+            {event.isWeekly && (
+              <span className="feature weekly-badge">Weekly</span>
+            )}
+            {isLive && <span className="feature live-badge">Live</span>}
           </div>
         </div>
       </div>
