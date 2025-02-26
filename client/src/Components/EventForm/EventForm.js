@@ -76,9 +76,18 @@ const validateImageAspectRatio = (file, targetRatio, tolerance) => {
   });
 };
 
-const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
+const EventForm = ({
+  event,
+  onClose,
+  onSave,
+  selectedBrand,
+  weekNumber = 0,
+}) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const isChildEvent =
+    event?.parentEventId || (event?.isWeekly && weekNumber > 0);
+
   const [formData, setFormData] = useState({
     title: event?.title || "",
     subTitle: event?.subTitle || "",
@@ -300,8 +309,12 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
           }
         }
 
+        // Include the weekNumber in the URL if this is a child event or we're editing a specific week
+        const weekParam =
+          isChildEvent || weekNumber > 0 ? `?weekNumber=${weekNumber}` : "";
+
         eventResponse = await axiosInstance.put(
-          `/events/${event._id}`,
+          `/events/${event._id}${weekParam}`,
           updateData
         );
 
@@ -462,23 +475,23 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
             </div>
 
             <div className="form-section">
-              <h3>Date & Time</h3>
-              <div className="form-group required">
-                <label>Date</label>
-                <div className="input-with-icon">
-                  <RiCalendarEventLine />
-                  <DatePicker
-                    selected={formData.date}
-                    onChange={(date) =>
-                      setFormData((prev) => ({ ...prev, date }))
-                    }
-                    dateFormat="MMMM d, yyyy"
-                    minDate={new Date()}
-                    placeholderText="Select event date"
-                    required
-                  />
+              <h3>{isChildEvent ? "Time" : "Date & Time"}</h3>
+
+              {/* Only show date picker for parent events */}
+              {!isChildEvent && (
+                <div className="form-group required">
+                  <label>Date</label>
+                  <div className="date-picker-container">
+                    <DatePicker
+                      selected={formData.date}
+                      onChange={(date) => setFormData({ ...formData, date })}
+                      dateFormat="MMMM d, yyyy"
+                      className="date-picker"
+                    />
+                    <RiCalendarEventLine className="date-icon" />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="time-inputs">
                 <div className="form-group required">
@@ -510,25 +523,28 @@ const EventForm = ({ event, onClose, onSave, selectedBrand }) => {
                 </div>
               </div>
 
-              <div className="form-group weekly-event-toggle">
-                <div className="toggle-container">
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      name="isWeekly"
-                      checked={formData.isWeekly}
-                      onChange={handleInputChange}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                  <span className="toggle-label">Weekly Event</span>
+              {/* Only show weekly toggle for parent events */}
+              {!isChildEvent && (
+                <div className="form-group weekly-event-toggle">
+                  <div className="toggle-container">
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        name="isWeekly"
+                        checked={formData.isWeekly}
+                        onChange={handleInputChange}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                    <span className="toggle-label">Weekly Event</span>
+                  </div>
+                  {formData.isWeekly && (
+                    <p className="toggle-hint">
+                      This event will repeat every week
+                    </p>
+                  )}
                 </div>
-                {formData.isWeekly && (
-                  <p className="toggle-hint">
-                    This event will repeat every week
-                  </p>
-                )}
-              </div>
+              )}
 
               <div className="form-group required">
                 <label>Location</label>

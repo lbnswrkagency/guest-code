@@ -29,6 +29,92 @@ const generateUniqueLink = () => {
   return Math.random().toString(36).substr(2, 8);
 };
 
+// Helper function to generate weekly occurrences
+const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
+  try {
+    console.log(
+      `[Weekly Events] Generating occurrence for week ${weekNumber} for event: ${parentEvent._id}`
+    );
+
+    // Calculate the date for this occurrence
+    const occurrenceDate = new Date(parentEvent.date);
+    occurrenceDate.setDate(occurrenceDate.getDate() + weekNumber * 7);
+
+    // Create a unique link for this occurrence
+    const link = `${parentEvent.link}-w${weekNumber}`;
+
+    // Create the weekly occurrence
+    const weeklyEvent = new Event({
+      user: parentEvent.user,
+      brand: parentEvent.brand,
+      title: parentEvent.title,
+      subTitle: parentEvent.subTitle,
+      description: parentEvent.description,
+      date: occurrenceDate,
+      startTime: parentEvent.startTime,
+      endTime: parentEvent.endTime,
+      location: parentEvent.location,
+      isWeekly: true,
+      parentEventId: parentEvent._id,
+      weekNumber: weekNumber,
+      isLive: false, // Default to not live
+      flyer: parentEvent.flyer,
+      guestCode: parentEvent.guestCode,
+      friendsCode: parentEvent.friendsCode,
+      ticketCode: parentEvent.ticketCode,
+      tableCode: parentEvent.tableCode,
+      link: link,
+    });
+
+    await weeklyEvent.save();
+    console.log(
+      `[Weekly Events] Created week ${weekNumber} occurrence: ${weeklyEvent._id}`
+    );
+
+    return weeklyEvent;
+  } catch (error) {
+    console.error(
+      `[Weekly Events] Error generating weekly occurrence for week ${weekNumber}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Find or create a weekly occurrence
+const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
+  try {
+    console.log(
+      `[Weekly Events] Looking for child event with parentEventId: ${parentEvent._id}, weekNumber: ${weekNumber}`
+    );
+
+    // First try to find an existing occurrence for this week
+    const existingOccurrence = await Event.findOne({
+      parentEventId: parentEvent._id,
+      weekNumber: weekNumber,
+    });
+
+    if (existingOccurrence) {
+      console.log(
+        `[Weekly Events] Found existing occurrence for week ${weekNumber}: ${existingOccurrence._id}`
+      );
+      return existingOccurrence;
+    }
+
+    // If not found, create a new one
+    console.log(
+      `[Weekly Events] No existing occurrence found for week ${weekNumber}, creating new one`
+    );
+    return await generateWeeklyOccurrences(parentEvent, weekNumber);
+  } catch (error) {
+    console.error(
+      `[Weekly Events] Error in findOrCreateWeeklyOccurrence:`,
+      error
+    );
+    throw error;
+  }
+};
+
 exports.createEvent = async (req, res) => {
   try {
     console.log("[Event Creation] Received request:", {
@@ -67,6 +153,19 @@ exports.createEvent = async (req, res) => {
       eventId: event._id,
       title: event.title,
     });
+
+    // Initialize default code settings for the event
+    try {
+      const { initializeDefaultSettings } = require("./codeSettingsController");
+      await initializeDefaultSettings(event._id);
+      console.log("[Event Creation] Default code settings initialized");
+    } catch (settingsError) {
+      console.error(
+        "[Event Creation] Error initializing code settings:",
+        settingsError
+      );
+      // Continue with event creation even if code settings initialization fails
+    }
 
     // Handle file uploads if they exist
     if (req.files) {
@@ -218,12 +317,17 @@ exports.getBrandEvents = async (req, res) => {
 
     console.log(`[Events] Found brand: ${brand.name}`);
 
-    const events = await Event.find({ brand: brandId })
+    // Get only parent events (events with no parentEventId)
+    // We don't want to include child events in the main list
+    const events = await Event.find({
+      brand: brandId,
+      parentEventId: { $exists: false }, // Only get parent events
+    })
       .sort({ date: -1 })
       .populate("user", "username firstName lastName avatar");
 
     console.log(
-      `[Events] Found ${events.length} events for brand: ${brand.name}`
+      `[Events] Found ${events.length} parent events for brand: ${brand.name}`
     );
 
     res.status(200).json(events);
@@ -259,11 +363,13 @@ exports.editEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const updatedEventData = req.body;
+    const weekNumber = parseInt(req.query.weekNumber || "0");
 
     console.log("[Event Update] Received request:", {
       eventId,
       body: req.body,
       userId: req.user.userId,
+      weekNumber,
     });
 
     // Find event and check permissions
@@ -289,7 +395,85 @@ exports.editEvent = async (req, res) => {
       updatedEventData.date = new Date(updatedEventData.date);
     }
 
-    // Update event data
+    // Check if this is a child event being edited directly
+    if (event.parentEventId) {
+      console.log(`[Event Update] Editing child event directly: ${event._id}`);
+
+      // Update the child event with the new data
+      // Make sure we don't change certain fields that should remain consistent
+      const updatedChildData = {
+        ...updatedEventData,
+        isWeekly: true, // Keep it marked as weekly
+        parentEventId: event.parentEventId, // Keep the parent reference
+        weekNumber: event.weekNumber, // Keep the week number
+      };
+
+      // Apply updates to the child event
+      Object.keys(updatedChildData).forEach((key) => {
+        if (
+          key !== "parentEventId" &&
+          key !== "weekNumber" &&
+          key !== "isWeekly"
+        ) {
+          event[key] = updatedChildData[key];
+        }
+      });
+
+      await event.save();
+      console.log(`[Event Update] Updated child event directly: ${event._id}`);
+      return res.status(200).json(event);
+    }
+
+    // Check if this is a weekly event and we're editing a future occurrence
+    if (event.isWeekly && weekNumber > 0) {
+      // This is a request to edit a future occurrence of a weekly event
+      console.log(
+        `[Event Update] Editing weekly occurrence for week ${weekNumber}`
+      );
+
+      try {
+        // Find or create the child event for this week
+        const childEvent = await findOrCreateWeeklyOccurrence(
+          event,
+          weekNumber
+        );
+
+        // Update the child event with the new data
+        // Make sure we don't change certain fields that should remain consistent
+        const updatedChildData = {
+          ...updatedEventData,
+          isWeekly: true, // Keep it marked as weekly
+          parentEventId: event._id, // Keep the parent reference
+          weekNumber: weekNumber, // Keep the week number
+        };
+
+        // Apply updates to the child event
+        Object.keys(updatedChildData).forEach((key) => {
+          if (
+            key !== "parentEventId" &&
+            key !== "weekNumber" &&
+            key !== "isWeekly"
+          ) {
+            childEvent[key] = updatedChildData[key];
+          }
+        });
+
+        await childEvent.save();
+
+        console.log(
+          `[Event Update] Updated child event for week ${weekNumber}`
+        );
+        return res.status(200).json(childEvent);
+      } catch (error) {
+        console.error("[Event Update] Error updating child event:", error);
+        return res.status(500).json({
+          message: "Error updating child event",
+          error: error.message,
+        });
+      }
+    }
+
+    // For regular events or the parent weekly event (week 0)
     const updatedEvent = await Event.findByIdAndUpdate(
       eventId,
       { $set: updatedEventData },
@@ -585,6 +769,7 @@ exports.updateSquareFlyer = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
+    console.log(`[Event Delete] Deleting event: ${eventId}`);
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -604,16 +789,26 @@ exports.deleteEvent = async (req, res) => {
       });
     }
 
-    // Remove event from brand's events array
-    brand.events.pull(eventId);
-    await brand.save();
+    // If this is a weekly event, delete all child events
+    if (event.isWeekly) {
+      console.log(
+        `[Event Delete] Deleting child events for weekly event: ${eventId}`
+      );
+      const deletedChildren = await Event.deleteMany({
+        parentEventId: eventId,
+      });
+      console.log(
+        `[Event Delete] Deleted ${deletedChildren.deletedCount} child events`
+      );
+    }
 
     // Delete the event
     await Event.findByIdAndDelete(eventId);
+    console.log(`[Event Delete] Successfully deleted event: ${eventId}`);
 
     res.status(200).json({ message: "Event deleted successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("[Event Delete] Error:", error);
     res.status(500).json({ message: "Error deleting event" });
   }
 };
@@ -984,5 +1179,72 @@ exports.getSignedUrlForDownload = async (req, res) => {
   } catch (error) {
     console.error("Error generating signed URL:", error);
     res.status(500).json({ error: "Failed to generate download URL" });
+  }
+};
+
+// Add the Go Live toggle route with weekly event handling
+exports.toggleEventLive = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const weekNumber = parseInt(req.query.weekNumber || "0");
+
+    console.log("[Toggle Live] Processing request:", {
+      eventId,
+      weekNumber,
+    });
+
+    // Find the event
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // If this is a weekly event and we're toggling a future occurrence
+    if (event.isWeekly && weekNumber > 0) {
+      try {
+        // Find or create the child event for this week
+        const childEvent = await findOrCreateWeeklyOccurrence(
+          event,
+          weekNumber
+        );
+
+        // Toggle the isLive status
+        childEvent.isLive = !childEvent.isLive;
+        await childEvent.save();
+
+        console.log(
+          `[Toggle Live] Updated live status for week ${weekNumber} to ${childEvent.isLive}`
+        );
+        return res.status(200).json({
+          message: `Event is now ${childEvent.isLive ? "live" : "not live"}`,
+          isLive: childEvent.isLive,
+          childEvent: childEvent, // Return the child event so frontend can update state
+        });
+      } catch (error) {
+        console.error("[Toggle Live] Error updating child event:", error);
+        return res.status(500).json({
+          message: "Error toggling live status for weekly occurrence",
+          error: error.message,
+        });
+      }
+    }
+
+    // For regular events or the parent weekly event (week 0)
+    event.isLive = !event.isLive;
+    await event.save();
+
+    res.status(200).json({
+      message: `Event is now ${event.isLive ? "live" : "not live"}`,
+      isLive: event.isLive,
+    });
+  } catch (error) {
+    console.error("[Toggle Live Status Error]", {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      message: "Error toggling live status",
+      error: error.message,
+    });
   }
 };

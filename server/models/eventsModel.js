@@ -1,6 +1,27 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+// Define a schema for code settings
+const CodeSettingsSchema = new Schema(
+  {
+    name: { type: String, required: true }, // Custom name for the code
+    type: {
+      type: String,
+      enum: ["guest", "friends", "ticket", "table", "backstage", "custom"],
+      required: true,
+    },
+    condition: { type: String, default: "" },
+    maxPax: { type: Number, default: 1 },
+    limit: { type: Number, default: 0 }, // 0 means unlimited
+    isEnabled: { type: Boolean, default: true },
+    isEditable: { type: Boolean, default: false }, // Whether name can be edited
+    // Additional fields for specific code types
+    price: { type: Number }, // For ticket codes
+    tableNumber: { type: String }, // For table codes
+  },
+  { _id: false }
+);
+
 const EventSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -13,6 +34,9 @@ const EventSchema = new Schema(
     endTime: { type: String, required: true },
     location: { type: String, required: true },
     isWeekly: { type: Boolean, default: false },
+    parentEventId: { type: Schema.Types.ObjectId, ref: "Event" },
+    weekNumber: { type: Number, default: 0 },
+    isLive: { type: Boolean, default: false },
     flyer: {
       landscape: {
         thumbnail: String,
@@ -30,11 +54,67 @@ const EventSchema = new Schema(
         full: String,
       },
     },
+
+    // New approach: Array of code settings
+    codeSettings: {
+      type: [CodeSettingsSchema],
+      default: function () {
+        return [
+          // Default code types with predefined settings
+          {
+            name: "Guest Code",
+            type: "guest",
+            condition: "",
+            maxPax: 1,
+            limit: 0,
+            isEnabled: false,
+            isEditable: false,
+          },
+          {
+            name: "Ticket Code",
+            type: "ticket",
+            condition: "",
+            maxPax: 1,
+            limit: 0,
+            isEnabled: false,
+            isEditable: false,
+          },
+          {
+            name: "Friends Code",
+            type: "friends",
+            condition: "",
+            maxPax: 1,
+            limit: 0,
+            isEnabled: false,
+            isEditable: true,
+          },
+          {
+            name: "Backstage Code",
+            type: "backstage",
+            condition: "",
+            maxPax: 1,
+            limit: 0,
+            isEnabled: false,
+            isEditable: true,
+          },
+        ];
+      },
+    },
+
+    // Keep these for backward compatibility
     guestCode: { type: Boolean, default: false },
     friendsCode: { type: Boolean, default: false },
     ticketCode: { type: Boolean, default: false },
     tableCode: { type: Boolean, default: false },
+    backstageCode: { type: Boolean, default: false },
+    guestCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+    friendsCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+    ticketCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+    tableCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+    backstageCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+
     link: { type: String, required: true, unique: true },
+    isPublic: { type: Boolean, default: true },
   },
   {
     timestamps: true,

@@ -40,6 +40,8 @@ const Events = () => {
     useState(null);
   const toast = useToast();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
+  const [isLive, setIsLive] = useState(false); // Track live status
 
   const fetchBrands = async () => {
     try {
@@ -93,14 +95,16 @@ const Events = () => {
     };
   }, [selectedBrand?._id]);
 
-  const handleEventClick = (event) => {
+  const handleEventClick = (event, weekNumber = 0) => {
     setSelectedEvent(event);
+    setCurrentWeek(weekNumber);
     setShowForm(true);
   };
 
   const handleClose = () => {
     setShowForm(false);
     setSelectedEvent(null);
+    // We don't reset currentWeek here to preserve the week navigation state
   };
 
   const handleBrandSelect = (brand) => {
@@ -115,23 +119,50 @@ const Events = () => {
       );
       let response;
 
-      console.log("[Event Creation] Attempting to create/update event:", {
+      console.log("[Event Operation] Attempting to create/update event:", {
         isUpdate: !!selectedEvent,
         eventData,
         selectedBrandId: selectedBrand._id,
+        weekNumber: currentWeek,
+        isChildEvent: selectedEvent?.parentEventId ? true : false,
       });
 
       if (selectedEvent) {
         console.log(`[Event Update] Updating event ${selectedEvent._id}`);
-        response = await axiosInstance.put(
-          `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}`,
-          eventData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+
+        // If this is a child event, use its ID directly
+        if (selectedEvent.parentEventId) {
+          console.log(
+            `[Event Update] This is a child event with parentEventId: ${selectedEvent.parentEventId}`
+          );
+
+          response = await axiosInstance.put(
+            `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}`,
+            eventData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+        } else {
+          // Get the current week from the EventCard component if this is a weekly event
+          // This is needed because the EventCard component might be showing a specific week
+          const weekParam =
+            selectedEvent.isWeekly && currentWeek > 0
+              ? `?weekNumber=${currentWeek}`
+              : "";
+
+          response = await axiosInstance.put(
+            `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}${weekParam}`,
+            eventData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+        }
       } else {
         console.log(
           `[Event Creation] Creating new event for brand ${selectedBrand._id}`
@@ -152,18 +183,69 @@ const Events = () => {
         data: response.data,
       });
 
+      // Update the events array
       setEvents((prev) => {
-        const updatedEvents = selectedEvent
-          ? prev.map((e) => (e._id === selectedEvent._id ? response.data : e))
-          : [...prev, response.data];
-        return updatedEvents;
+        if (selectedEvent) {
+          // If we're updating an event
+          if (selectedEvent.parentEventId) {
+            // If this is a child event, update it directly
+            console.log("[Event Update] Updating child event in events array");
+            return prev.map((e) =>
+              e._id === selectedEvent._id ? response.data : e
+            );
+          } else if (selectedEvent.isWeekly && currentWeek > 0) {
+            // If this is a weekly event and we're editing a specific week,
+            // we need to add the child event to the events array if it's not already there
+            const childEventExists = prev.some(
+              (e) =>
+                e.parentEventId === selectedEvent._id &&
+                e.weekNumber === currentWeek
+            );
+
+            if (!childEventExists && response.data.parentEventId) {
+              // Add the new child event to the array
+              console.log(
+                "[Event Update] Adding new child event to events array:",
+                response.data
+              );
+              return [...prev, response.data];
+            }
+
+            // Update the child event if it exists
+            console.log(
+              "[Event Update] Updating existing child event in events array"
+            );
+            return prev.map((e) =>
+              e.parentEventId === selectedEvent._id &&
+              e.weekNumber === currentWeek
+                ? response.data
+                : e
+            );
+          } else {
+            // Regular update for parent event
+            console.log("[Event Update] Updating parent event in events array");
+            return prev.map((e) =>
+              e._id === selectedEvent._id ? response.data : e
+            );
+          }
+        } else {
+          // New event creation
+          console.log("[Event Creation] Adding new event to events array");
+          return [...prev, response.data];
+        }
       });
+
+      // After updating the events array, fetch all events again to ensure we have the latest data
+      await fetchEvents();
 
       toast.showSuccess(
         selectedEvent
           ? "Event updated successfully!"
           : "Event created successfully!"
       );
+
+      // Don't reset the current week when closing the form
+      // This ensures we stay on the same week after editing
       handleClose();
     } catch (error) {
       console.error("[Event Operation Error]", {
@@ -265,7 +347,7 @@ const Events = () => {
               <>
                 {events.map((event) => (
                   <EventCard
-                    key={event._id}
+                    key={`${event._id}-${event.updatedAt || ""}`}
                     event={event}
                     onClick={handleEventClick}
                     onSettingsClick={handleSettingsClick}
@@ -297,6 +379,7 @@ const Events = () => {
             onClose={handleClose}
             onSave={handleSave}
             selectedBrand={selectedBrand}
+            weekNumber={currentWeek}
           />
         )}
       </div>
@@ -308,7 +391,123 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showBackContent, setShowBackContent] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
+  const [currentEvent, setCurrentEvent] = useState(event); // Track the current event (parent or child)
   const [isLive, setIsLive] = useState(event.isLive || false); // Track live status
+  const [lastFetchTime, setLastFetchTime] = useState(Date.now()); // Track when we last fetched data
+  const toast = useToast(); // Add toast context
+
+  useEffect(() => {
+    // Reset to the parent event when the event prop changes
+    setCurrentEvent(event);
+    setCurrentWeek(0);
+    setIsLive(event.isLive || false); // Reset isLive state to match parent event
+  }, [event]);
+
+  // When navigating weeks, check if a child event exists for that week
+  useEffect(() => {
+    if (!event.isWeekly || currentWeek === 0) {
+      // If not weekly or we're on week 0, use the parent event
+      setCurrentEvent(event);
+      setIsLive(event.isLive || false);
+      return;
+    }
+
+    // Check if we have a child event for this week in the events array
+    const findChildEvent = async () => {
+      try {
+        console.log(`[Weekly Events] Fetching data for week ${currentWeek}`);
+
+        // Check if we have a valid token before making the request
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log(
+            "[Weekly Events] No auth token available, using fallback"
+          );
+          throw new Error("No auth token");
+        }
+
+        // Try to fetch the child event for this week
+        const response = await axiosInstance.get(
+          `/events/${event._id}/weekly/${currentWeek}?_t=${Date.now()}`
+        );
+
+        if (response.data) {
+          // If we found a child event, use it
+          console.log(
+            `[Weekly Events] Found child event for week ${currentWeek}`,
+            response.data
+          );
+          setCurrentEvent(response.data);
+          setIsLive(response.data.isLive || false); // Set isLive based on child event
+          setLastFetchTime(Date.now()); // Update last fetch time
+        }
+      } catch (error) {
+        // Handle 404 errors gracefully - this just means the child event doesn't exist yet
+        if (error.response && error.response.status === 404) {
+          console.log(
+            `[Weekly Events] No child event exists yet for week ${currentWeek}`
+          );
+
+          // Check if we have parent event data in the error response
+          if (error.response?.data?.parentEvent) {
+            const parentEvent = error.response.data.parentEvent;
+            // Calculate the date for this week based on the parent event
+            const weeklyDate = getWeeklyDate(parentEvent.date, currentWeek);
+
+            // Create a temporary event object with the calculated date
+            // but keep all other properties from the parent event
+            const tempEvent = {
+              ...parentEvent,
+              date: weeklyDate,
+              weekNumber: currentWeek,
+              isLive: false, // Child events start as not live
+              // Don't override subtitle if not needed
+            };
+
+            setCurrentEvent(tempEvent);
+            setIsLive(false);
+            setLastFetchTime(Date.now()); // Update last fetch time
+          } else {
+            // Fallback to using the parent event with calculated date
+            const weeklyDate = getWeeklyDate(event.date, currentWeek);
+            setCurrentEvent({
+              ...event,
+              date: weeklyDate,
+              weekNumber: currentWeek,
+              isLive: false, // Child events start as not live
+            });
+            setIsLive(false);
+            setLastFetchTime(Date.now()); // Update last fetch time
+          }
+        } else {
+          // For 401 or any other errors, just use the parent event data with calculated date
+          // This prevents showing error messages for auth issues which are expected in some cases
+          console.log(
+            `[Weekly Events] Using fallback for week ${currentWeek} due to error:`,
+            error.message
+          );
+
+          // Create a temporary event with the calculated date based on parent event
+          const weeklyDate = getWeeklyDate(event.date, currentWeek);
+          const tempEvent = {
+            ...event,
+            date: weeklyDate,
+            weekNumber: currentWeek,
+            isLive: false, // Child events start as not live
+          };
+
+          setCurrentEvent(tempEvent);
+          setIsLive(false);
+          setLastFetchTime(Date.now()); // Update last fetch time
+        }
+      }
+    };
+
+    // Only try to find child events if we're not on week 0
+    if (currentWeek > 0) {
+      findChildEvent();
+    }
+  }, [event, currentWeek]);
 
   const getImageUrl = (imageObj) => {
     if (!imageObj) return null;
@@ -344,7 +543,14 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
 
   const handleEditClick = (e) => {
     e.stopPropagation();
-    onClick(event);
+    console.log("[Event Edit] Editing event:", {
+      eventId: currentEvent._id,
+      isChildEvent: currentEvent.parentEventId ? true : false,
+      weekNumber: currentWeek,
+    });
+
+    // Pass the currentEvent (which could be parent or child) and the current week number
+    onClick(currentEvent, currentWeek);
   };
 
   const handleSettingsClick = (e) => {
@@ -356,12 +562,23 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
   const handlePrevWeek = (e) => {
     e.stopPropagation();
     if (currentWeek > 0) {
+      console.log(
+        `[Weekly Navigation] Moving from week ${currentWeek} to week ${
+          currentWeek - 1
+        }`
+      );
       setCurrentWeek((prev) => prev - 1);
     }
   };
 
   const handleNextWeek = (e) => {
     e.stopPropagation();
+    console.log(
+      `[Weekly Navigation] Moving from week ${currentWeek} to week ${
+        currentWeek + 1
+      }`
+    );
+    // Store the current week number to prevent jumping back to week 1
     setCurrentWeek((prev) => prev + 1);
   };
 
@@ -389,24 +606,77 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     return `${month} ${day}, ${year}`;
   };
 
-  // Get the display date based on current week
-  const displayDate = event.isWeekly
-    ? getWeeklyDate(event.date, currentWeek)
-    : event.date;
+  // Get the display date based on current event
+  const displayDate = currentEvent.date;
 
   const handleGoLive = (e) => {
     e.stopPropagation();
-    // In a real implementation, this would call an API to update the event status
-    setIsLive(!isLive);
-    // TODO: Add API call to update event.isLive status in the database
-    // Example: axiosInstance.patch(`/events/${event._id}`, { isLive: !isLive });
+
+    // Show loading toast
+    const loadingToast = toast.showLoading("Updating event status...");
+
+    console.log(
+      `[Go Live] Toggling live status for event ${event._id}, week ${currentWeek}`
+    );
+
+    // Check if we have a valid token before making the request
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.log("[Go Live] No auth token available");
+      toast.showError("Authentication required. Please log in again.");
+      loadingToast.dismiss();
+      return;
+    }
+
+    // Call the API to toggle the live status
+    // Include the current week number for weekly events
+    axiosInstance
+      .patch(
+        `/events/${event._id}/toggle-live${
+          event.isWeekly && currentWeek > 0 ? `?weekNumber=${currentWeek}` : ""
+        }`
+      )
+      .then((response) => {
+        console.log(`[Go Live] Response:`, response.data);
+
+        // Update the local state
+        setIsLive(response.data.isLive);
+
+        // If this is a child event that was just created, update the currentEvent
+        if (currentWeek > 0 && response.data.childEvent) {
+          console.log(`[Go Live] Updating current event with child event data`);
+          setCurrentEvent(response.data.childEvent);
+        } else if (currentWeek === 0) {
+          // If this is the parent event, update it
+          setCurrentEvent((prev) => ({
+            ...prev,
+            isLive: response.data.isLive,
+          }));
+        }
+
+        // Show success message
+        toast.showSuccess(response.data.message);
+        loadingToast.dismiss();
+      })
+      .catch((error) => {
+        console.error("[Go Live] Error toggling live status:", error);
+
+        // Handle 401 errors specifically
+        if (error.response && error.response.status === 401) {
+          toast.showError("Authentication required. Please log in again.");
+        } else {
+          toast.showError("Failed to update event status");
+        }
+
+        loadingToast.dismiss();
+      });
   };
 
   return (
     <motion.div
       className={`event-card ${isFlipped ? "flipped" : ""} ${
         event.isWeekly ? "weekly-event" : ""
-      } ${isLive ? "live-event" : ""}`}
+      } ${isLive ? "live-event" : ""} ${currentWeek > 0 ? "child-event" : ""}`}
       style={{
         transformStyle: "preserve-3d",
         perspective: "1000px",
@@ -432,7 +702,7 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
                 thumbnailSrc={getFlyerImage(event.flyer)}
                 mediumSrc={getFlyerImage(event.flyer)}
                 fullSrc={getFlyerImage(event.flyer)}
-                alt={`${event.title} cover`}
+                alt={`${currentEvent.title} cover`}
                 className="cover-image"
               />
             )}
@@ -460,9 +730,9 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
         <div className="event-card-content">
           <div className="event-info">
             <div className="title-container">
-              <h3>{event.title}</h3>
-              {event.subTitle && (
-                <span className="subtitle">{event.subTitle}</span>
+              <h3>{currentEvent.title}</h3>
+              {currentEvent.subTitle && (
+                <span className="subtitle">{currentEvent.subTitle}</span>
               )}
             </div>
             <motion.button
@@ -506,30 +776,34 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
             ) : (
               <div className="detail-item">
                 <RiCalendarEventLine />
-                <span>{formatDate(event.date)}</span>
+                <span>{formatDate(currentEvent.date)}</span>
               </div>
             )}
             <div className="detail-item">
               <RiTimeLine />
               <span>
-                {event.startTime} - {event.endTime}
+                {currentEvent.startTime} - {currentEvent.endTime}
               </span>
             </div>
             <div className="detail-item">
               <RiMapPinLine />
-              <span>{event.location}</span>
-            </div>
-            <div className="detail-item">
-              <RiTeamLine />
-              <span>{event.team?.length || 0} Team Members</span>
+              <span>{currentEvent.location}</span>
             </div>
           </div>
 
           <div className="event-features">
-            {event.guestCode && <span className="feature">Guest Code</span>}
-            {event.friendsCode && <span className="feature">Friends Code</span>}
-            {event.ticketCode && <span className="feature">Ticket Code</span>}
-            {event.tableCode && <span className="feature">Table Code</span>}
+            {currentEvent.guestCode && (
+              <span className="feature">Guest Code</span>
+            )}
+            {currentEvent.friendsCode && (
+              <span className="feature">Friends Code</span>
+            )}
+            {currentEvent.ticketCode && (
+              <span className="feature">Ticket Code</span>
+            )}
+            {currentEvent.tableCode && (
+              <span className="feature">Table Code</span>
+            )}
             {event.isWeekly && (
               <span className="feature weekly-badge">Weekly</span>
             )}

@@ -57,6 +57,7 @@ const {
   listDroppedFiles,
   deleteDroppedFile,
   getSignedUrlForDownload,
+  toggleEventLive,
 } = require("../../controllers/eventsController");
 
 // Brand-specific event routes
@@ -79,6 +80,42 @@ router.put("/:eventId", authenticate, editEvent);
 router.delete("/:eventId", authenticate, deleteEvent);
 router.get("/page/:eventId", authenticate, getEventPage);
 router.get("/link/:eventLink", getEventByLink);
+
+// Get a specific weekly occurrence of an event
+router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const week = parseInt(req.params.weekNumber);
+
+    console.log(`[Weekly Events] Fetching week ${week} for event ${eventId}`);
+
+    // First, find the parent event
+    const parentEvent = await Event.findById(eventId);
+    if (!parentEvent) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Then find the child event for this week
+    const childEvent = await Event.findOne({
+      parentEventId: eventId,
+      weekNumber: week,
+    });
+
+    if (!childEvent) {
+      // Instead of just returning a 404, include the parent event in the response
+      // This allows the frontend to create a temporary event object
+      return res.status(404).json({
+        message: "Weekly occurrence not found",
+        parentEvent: parentEvent,
+      });
+    }
+
+    res.status(200).json(childEvent);
+  } catch (error) {
+    console.error("[Weekly Events] Error:", error);
+    res.status(500).json({ message: "Error fetching weekly event" });
+  }
+});
 
 // Add the flyer update route
 router.put(
@@ -171,6 +208,9 @@ router.put(
     }
   }
 );
+
+// Add the Go Live toggle route
+router.patch("/:eventId/toggle-live", authenticate, toggleEventLive);
 
 // Guest code routes
 router.post("/generateGuestCode", generateGuestCode);
