@@ -10,6 +10,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
 const { sendQRCodeInvitation } = require("../utils/email");
 const { createTicketPDF } = require("../utils/pdf-invite");
+const CodeSettings = require("../models/codeSettingsModel");
 
 const {
   uploadToS3,
@@ -59,10 +60,17 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       weekNumber: weekNumber,
       isLive: false, // Default to not live
       flyer: parentEvent.flyer,
+      // Copy legacy code settings for backward compatibility
       guestCode: parentEvent.guestCode,
       friendsCode: parentEvent.friendsCode,
       ticketCode: parentEvent.ticketCode,
       tableCode: parentEvent.tableCode,
+      backstageCode: parentEvent.backstageCode,
+      guestCodeSettings: parentEvent.guestCodeSettings,
+      friendsCodeSettings: parentEvent.friendsCodeSettings,
+      ticketCodeSettings: parentEvent.ticketCodeSettings,
+      tableCodeSettings: parentEvent.tableCodeSettings,
+      backstageCodeSettings: parentEvent.backstageCodeSettings,
       link: link,
     });
 
@@ -70,6 +78,76 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
     console.log(
       `[Weekly Events] Created week ${weekNumber} occurrence: ${weeklyEvent._id}`
     );
+
+    // Initialize default code settings for the weekly event
+    try {
+      const { initializeDefaultSettings } = require("./codeSettingsController");
+      await initializeDefaultSettings(weeklyEvent._id);
+      console.log(
+        `[Weekly Events] Initialized default code settings for week ${weekNumber}`
+      );
+
+      // Copy code settings from parent event to child event
+      const parentCodeSettings = await CodeSettings.find({
+        eventId: parentEvent._id,
+      });
+      if (parentCodeSettings && parentCodeSettings.length > 0) {
+        console.log(
+          `[Weekly Events] Copying ${parentCodeSettings.length} code settings from parent event`
+        );
+
+        // For each parent code setting, create a corresponding child code setting
+        await Promise.all(
+          parentCodeSettings.map(async (parentSetting) => {
+            // Check if a setting of this type already exists for the child
+            const existingChildSetting = await CodeSettings.findOne({
+              eventId: weeklyEvent._id,
+              type: parentSetting.type,
+            });
+
+            if (existingChildSetting) {
+              // Update existing setting
+              existingChildSetting.name = parentSetting.name;
+              existingChildSetting.condition = parentSetting.condition;
+              existingChildSetting.maxPax = parentSetting.maxPax;
+              existingChildSetting.limit = parentSetting.limit;
+              existingChildSetting.isEnabled = parentSetting.isEnabled;
+              existingChildSetting.isEditable = parentSetting.isEditable;
+              existingChildSetting.price = parentSetting.price;
+              existingChildSetting.tableNumber = parentSetting.tableNumber;
+
+              await existingChildSetting.save();
+            } else {
+              // Create new setting
+              const newChildSetting = new CodeSettings({
+                eventId: weeklyEvent._id,
+                name: parentSetting.name,
+                type: parentSetting.type,
+                condition: parentSetting.condition,
+                maxPax: parentSetting.maxPax,
+                limit: parentSetting.limit,
+                isEnabled: parentSetting.isEnabled,
+                isEditable: parentSetting.isEditable,
+                price: parentSetting.price,
+                tableNumber: parentSetting.tableNumber,
+              });
+
+              await newChildSetting.save();
+            }
+          })
+        );
+
+        console.log(
+          `[Weekly Events] Successfully copied code settings to child event`
+        );
+      }
+    } catch (settingsError) {
+      console.error(
+        `[Weekly Events] Error handling code settings for week ${weekNumber}:`,
+        settingsError
+      );
+      // Continue even if code settings initialization fails
+    }
 
     return weeklyEvent;
   } catch (error) {
@@ -419,9 +497,84 @@ exports.editEvent = async (req, res) => {
         }
       });
 
-      await event.save();
-      console.log(`[Event Update] Updated child event directly: ${event._id}`);
-      return res.status(200).json(event);
+      try {
+        await event.save();
+        console.log(
+          `[Event Update] Updated child event directly: ${event._id}`
+        );
+
+        // Check if we need to update code settings for this child event
+        if (
+          updatedEventData.codeSettings ||
+          updatedEventData.guestCode !== undefined ||
+          updatedEventData.friendsCode !== undefined ||
+          updatedEventData.ticketCode !== undefined ||
+          updatedEventData.tableCode !== undefined ||
+          updatedEventData.backstageCode !== undefined
+        ) {
+          console.log(
+            `[Event Update] Updating code settings for child event: ${event._id}`
+          );
+
+          // Import the CodeSettings controller
+          const { configureCodeSettings } = require("./codeSettingsController");
+
+          // Initialize default settings if they don't exist
+          const {
+            initializeDefaultSettings,
+          } = require("./codeSettingsController");
+          await initializeDefaultSettings(event._id);
+
+          // Update the legacy boolean fields if they were changed
+          if (updatedEventData.guestCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: event._id, type: "guest" },
+              { isEnabled: updatedEventData.guestCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.friendsCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: event._id, type: "friends" },
+              { isEnabled: updatedEventData.friendsCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.ticketCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: event._id, type: "ticket" },
+              { isEnabled: updatedEventData.ticketCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.tableCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: event._id, type: "table" },
+              { isEnabled: updatedEventData.tableCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.backstageCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: event._id, type: "backstage" },
+              { isEnabled: updatedEventData.backstageCode },
+              { upsert: true, new: true }
+            );
+          }
+        }
+
+        return res.status(200).json(event);
+      } catch (error) {
+        console.error("[Event Update] Error saving child event:", error);
+        return res.status(500).json({
+          message: "Error updating child event",
+          error: error.message,
+        });
+      }
     }
 
     // Check if this is a weekly event and we're editing a future occurrence
@@ -460,6 +613,67 @@ exports.editEvent = async (req, res) => {
 
         await childEvent.save();
 
+        // Check if we need to update code settings for this child event
+        if (
+          updatedEventData.codeSettings ||
+          updatedEventData.guestCode !== undefined ||
+          updatedEventData.friendsCode !== undefined ||
+          updatedEventData.ticketCode !== undefined ||
+          updatedEventData.tableCode !== undefined ||
+          updatedEventData.backstageCode !== undefined
+        ) {
+          console.log(
+            `[Event Update] Updating code settings for weekly child event: ${childEvent._id}`
+          );
+
+          // Initialize default settings if they don't exist
+          const {
+            initializeDefaultSettings,
+          } = require("./codeSettingsController");
+          await initializeDefaultSettings(childEvent._id);
+
+          // Update the legacy boolean fields if they were changed
+          if (updatedEventData.guestCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: childEvent._id, type: "guest" },
+              { isEnabled: updatedEventData.guestCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.friendsCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: childEvent._id, type: "friends" },
+              { isEnabled: updatedEventData.friendsCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.ticketCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: childEvent._id, type: "ticket" },
+              { isEnabled: updatedEventData.ticketCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.tableCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: childEvent._id, type: "table" },
+              { isEnabled: updatedEventData.tableCode },
+              { upsert: true, new: true }
+            );
+          }
+
+          if (updatedEventData.backstageCode !== undefined) {
+            await CodeSettings.findOneAndUpdate(
+              { eventId: childEvent._id, type: "backstage" },
+              { isEnabled: updatedEventData.backstageCode },
+              { upsert: true, new: true }
+            );
+          }
+        }
+
         console.log(
           `[Event Update] Updated child event for week ${weekNumber}`
         );
@@ -479,6 +693,65 @@ exports.editEvent = async (req, res) => {
       { $set: updatedEventData },
       { new: true, runValidators: true }
     );
+
+    // Check if we need to update code settings for this event
+    if (
+      updatedEventData.codeSettings ||
+      updatedEventData.guestCode !== undefined ||
+      updatedEventData.friendsCode !== undefined ||
+      updatedEventData.ticketCode !== undefined ||
+      updatedEventData.tableCode !== undefined ||
+      updatedEventData.backstageCode !== undefined
+    ) {
+      console.log(
+        `[Event Update] Updating code settings for event: ${eventId}`
+      );
+
+      // Initialize default settings if they don't exist
+      const { initializeDefaultSettings } = require("./codeSettingsController");
+      await initializeDefaultSettings(eventId);
+
+      // Update the legacy boolean fields if they were changed
+      if (updatedEventData.guestCode !== undefined) {
+        await CodeSettings.findOneAndUpdate(
+          { eventId: eventId, type: "guest" },
+          { isEnabled: updatedEventData.guestCode },
+          { upsert: true, new: true }
+        );
+      }
+
+      if (updatedEventData.friendsCode !== undefined) {
+        await CodeSettings.findOneAndUpdate(
+          { eventId: eventId, type: "friends" },
+          { isEnabled: updatedEventData.friendsCode },
+          { upsert: true, new: true }
+        );
+      }
+
+      if (updatedEventData.ticketCode !== undefined) {
+        await CodeSettings.findOneAndUpdate(
+          { eventId: eventId, type: "ticket" },
+          { isEnabled: updatedEventData.ticketCode },
+          { upsert: true, new: true }
+        );
+      }
+
+      if (updatedEventData.tableCode !== undefined) {
+        await CodeSettings.findOneAndUpdate(
+          { eventId: eventId, type: "table" },
+          { isEnabled: updatedEventData.tableCode },
+          { upsert: true, new: true }
+        );
+      }
+
+      if (updatedEventData.backstageCode !== undefined) {
+        await CodeSettings.findOneAndUpdate(
+          { eventId: eventId, type: "backstage" },
+          { isEnabled: updatedEventData.backstageCode },
+          { upsert: true, new: true }
+        );
+      }
+    }
 
     console.log("[Event Update] Event updated successfully:", {
       eventId,

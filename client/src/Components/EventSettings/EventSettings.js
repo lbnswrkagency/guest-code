@@ -15,6 +15,7 @@ import {
   RiEditLine,
   RiToggleLine,
   RiToggleFill,
+  RiRepeatFill,
 } from "react-icons/ri";
 import "./EventSettings.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -59,6 +60,7 @@ const EventSettings = ({ event, onClose }) => {
             limit: event?.guestCodeSettings?.limit || 0,
             isEnabled: event?.guestCode || false,
             isEditable: false,
+            _id: "guest-" + Date.now(), // Temporary ID for frontend use
           },
           {
             name: "Ticket Code",
@@ -68,6 +70,7 @@ const EventSettings = ({ event, onClose }) => {
             limit: 0,
             isEnabled: event?.ticketCode || false,
             isEditable: false,
+            _id: "ticket-" + Date.now(), // Temporary ID for frontend use
           },
           {
             name: "Friends Code",
@@ -77,6 +80,7 @@ const EventSettings = ({ event, onClose }) => {
             limit: 0,
             isEnabled: event?.friendsCode || false,
             isEditable: true,
+            _id: "friends-" + Date.now(), // Temporary ID for frontend use
           },
           {
             name: "Backstage Code",
@@ -86,6 +90,7 @@ const EventSettings = ({ event, onClose }) => {
             limit: 0,
             isEnabled: event?.backstageCode || false,
             isEditable: true,
+            _id: "backstage-" + Date.now(), // Temporary ID for frontend use
           },
         ];
 
@@ -120,8 +125,17 @@ const EventSettings = ({ event, onClose }) => {
           }
         } catch (saveError) {
           console.error("Error saving default settings:", saveError);
-          // We already set the defaults in state, so we can continue
-          toast.showInfo("Using default settings (not saved to server)");
+          // We already set the defaults in state with temporary IDs, so we can continue
+          // No need to show an error toast if it's an auth error (401/403)
+          if (
+            saveError.response &&
+            (saveError.response.status === 401 ||
+              saveError.response.status === 403)
+          ) {
+            toast.showInfo("Using default settings (view-only mode)");
+          } else {
+            toast.showInfo("Using default settings (not saved to server)");
+          }
         }
       } else {
         setCodeSettings(response.data.codeSettings);
@@ -175,7 +189,17 @@ const EventSettings = ({ event, onClose }) => {
       ];
 
       setCodeSettings(defaultSettings);
-      toast.showError("Failed to fetch code settings from server");
+
+      // Show different message based on error type
+      if (
+        error.response &&
+        (error.response.status === 401 || error.response.status === 403)
+      ) {
+        toast.showInfo("Using default settings (view-only mode)");
+      } else {
+        toast.showError("Failed to fetch code settings from server");
+      }
+
       setIsLoading(false);
     }
   };
@@ -206,20 +230,42 @@ const EventSettings = ({ event, onClose }) => {
 
       if (!isTemporary) {
         // If it's a real server-side setting, update it
-        const response = await axiosInstance.put(
-          `/code-settings/events/${event._id}`,
-          {
-            codeSettingId: codeSetting._id,
-            isEnabled: !codeSetting.isEnabled,
-            type: codeSetting.type,
-          }
-        );
+        try {
+          const response = await axiosInstance.put(
+            `/code-settings/events/${event._id}`,
+            {
+              codeSettingId: codeSetting._id,
+              isEnabled: !codeSetting.isEnabled,
+              type: codeSetting.type,
+            }
+          );
 
-        toast.showSuccess(
-          `${codeSetting.name} ${
-            !codeSetting.isEnabled ? "enabled" : "disabled"
-          }`
-        );
+          toast.showSuccess(
+            `${codeSetting.name} ${
+              !codeSetting.isEnabled ? "enabled" : "disabled"
+            }`
+          );
+        } catch (error) {
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            toast.showError(`Failed to update ${codeSetting.name} on server`);
+            // Revert the local state change on error
+            setCodeSettings((prevSettings) =>
+              prevSettings.map((setting) =>
+                setting._id === codeSetting._id
+                  ? { ...setting, isEnabled: codeSetting.isEnabled }
+                  : setting
+              )
+            );
+          }
+        }
       } else {
         // For temporary settings, try to create it on the server
         try {
@@ -260,8 +306,18 @@ const EventSettings = ({ event, onClose }) => {
             }`
           );
         } catch (error) {
-          console.error("Error creating code setting on server:", error);
-          toast.showInfo(`${codeSetting.name} updated locally only`);
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            console.error("Error creating code setting on server:", error);
+            toast.showInfo(`${codeSetting.name} updated locally only`);
+          }
         }
       }
     } catch (error) {
@@ -295,13 +351,36 @@ const EventSettings = ({ event, onClose }) => {
 
       if (!isTemporary) {
         // If it's a real server-side setting, update it
-        await axiosInstance.put(`/code-settings/events/${event._id}`, {
-          codeSettingId: codeSetting._id,
-          [field]: value,
-          type: codeSetting.type,
-        });
+        try {
+          await axiosInstance.put(`/code-settings/events/${event._id}`, {
+            codeSettingId: codeSetting._id,
+            [field]: value,
+            type: codeSetting.type,
+          });
 
-        toast.showSuccess(`${codeSetting.name} updated`);
+          toast.showSuccess(`${codeSetting.name} updated`);
+        } catch (error) {
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            console.error("Error updating code setting on server:", error);
+            toast.showError(`Failed to update ${codeSetting.name} on server`);
+            // Revert the local state change on error
+            setCodeSettings((prevSettings) =>
+              prevSettings.map((setting) =>
+                setting._id === codeSetting._id
+                  ? { ...setting, [field]: codeSetting[field] }
+                  : setting
+              )
+            );
+          }
+        }
       } else {
         // For temporary settings, try to create it on the server
         try {
@@ -339,8 +418,18 @@ const EventSettings = ({ event, onClose }) => {
 
           toast.showSuccess(`${codeSetting.name} updated`);
         } catch (error) {
-          console.error("Error creating code setting on server:", error);
-          toast.showInfo(`${codeSetting.name} updated locally only`);
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            console.error("Error creating code setting on server:", error);
+            toast.showInfo(`${codeSetting.name} updated locally only`);
+          }
         }
       }
     } catch (error) {
@@ -380,13 +469,36 @@ const EventSettings = ({ event, onClose }) => {
 
       if (!isTemporary) {
         // Send update to server
-        await axiosInstance.put(`/code-settings/events/${event._id}`, {
-          codeSettingId: codeSetting._id,
-          name: newName,
-          type: codeSetting.type,
-        });
+        try {
+          await axiosInstance.put(`/code-settings/events/${event._id}`, {
+            codeSettingId: codeSetting._id,
+            name: newName,
+            type: codeSetting.type,
+          });
 
-        toast.showSuccess("Code name updated");
+          toast.showSuccess("Code name updated");
+        } catch (error) {
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            console.error("Error updating code name on server:", error);
+            toast.showError("Failed to update code name on server");
+            // Revert the local state change on error
+            setCodeSettings((prevSettings) =>
+              prevSettings.map((setting) =>
+                setting._id === codeSetting._id
+                  ? { ...setting, name: codeSetting.name }
+                  : setting
+              )
+            );
+          }
+        }
       } else {
         // For temporary settings, try to create it on the server
         try {
@@ -423,8 +535,18 @@ const EventSettings = ({ event, onClose }) => {
 
           toast.showSuccess("Code name updated");
         } catch (error) {
-          console.error("Error creating code setting on server:", error);
-          toast.showInfo("Code name updated locally only");
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else {
+            console.error("Error creating code setting on server:", error);
+            toast.showInfo("Code name updated locally only");
+          }
         }
       }
     } catch (error) {
@@ -448,34 +570,67 @@ const EventSettings = ({ event, onClose }) => {
     }
 
     try {
-      const response = await axiosInstance.put(
-        `/code-settings/events/${event._id}`,
-        {
-          type: "custom",
-          name: newCodeName,
-          isEnabled: true,
-          isEditable: true,
-        }
-      );
-
-      // Update local state with the new code setting
-      if (response.data.codeSettings && response.data.codeSettings.length > 0) {
-        // Find the newly added custom code (should be the last one)
-        const customCodes = response.data.codeSettings.filter(
-          (setting) => setting.type === "custom"
+      try {
+        const response = await axiosInstance.put(
+          `/code-settings/events/${event._id}`,
+          {
+            type: "custom",
+            name: newCodeName,
+            isEnabled: true,
+            isEditable: true,
+          }
         );
 
-        if (customCodes.length > 0) {
-          const newCode = customCodes[customCodes.length - 1];
-          setCodeSettings((prev) => [...prev, newCode]);
+        // Update local state with the new code setting
+        if (
+          response.data.codeSettings &&
+          response.data.codeSettings.length > 0
+        ) {
+          // Find the newly added custom code (should be the last one)
+          const customCodes = response.data.codeSettings.filter(
+            (setting) => setting.type === "custom"
+          );
+
+          if (customCodes.length > 0) {
+            const newCode = customCodes[customCodes.length - 1];
+            setCodeSettings((prev) => [...prev, newCode]);
+          }
+        }
+
+        // Reset form
+        setNewCodeName("");
+        setShowAddCodeDialog(false);
+
+        toast.showSuccess("New code type added");
+      } catch (error) {
+        // Handle authentication errors
+        if (
+          error.response &&
+          (error.response.status === 401 || error.response.status === 403)
+        ) {
+          // Add the code locally with a temporary ID
+          const tempCode = {
+            _id: "custom-" + Date.now(),
+            type: "custom",
+            name: newCodeName,
+            isEnabled: true,
+            isEditable: true,
+            condition: "",
+            maxPax: 1,
+            limit: 0,
+          };
+
+          setCodeSettings((prev) => [...prev, tempCode]);
+
+          // Reset form
+          setNewCodeName("");
+          setShowAddCodeDialog(false);
+
+          toast.showInfo("New code added locally (view-only mode)");
+        } else {
+          toast.showError("Failed to add new code type");
         }
       }
-
-      // Reset form
-      setNewCodeName("");
-      setShowAddCodeDialog(false);
-
-      toast.showSuccess("New code type added");
     } catch (error) {
       toast.showError("Failed to add new code type");
     }
@@ -495,22 +650,36 @@ const EventSettings = ({ event, onClose }) => {
 
       if (!isTemporary) {
         // Delete from server
-        await axiosInstance.delete(
-          `/code-settings/events/${event._id}/${codeSetting._id}`
-        );
-        toast.showSuccess(`${codeSetting.name} deleted`);
+        try {
+          await axiosInstance.delete(
+            `/code-settings/events/${event._id}/${codeSetting._id}`
+          );
+          toast.showSuccess(`${codeSetting.name} deleted`);
+        } catch (error) {
+          // Handle authentication errors
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            toast.showInfo(
+              "Changes are in view-only mode (not saved to server)"
+            );
+          } else if (error.response && error.response.status === 400) {
+            toast.showError(error.response.data.message);
+            // Restore the setting if server deletion fails
+            fetchCodeSettings();
+          } else {
+            toast.showError(`Failed to delete ${codeSetting.name}`);
+            // Restore the setting if server deletion fails
+            fetchCodeSettings();
+          }
+        }
       } else {
         toast.showInfo(`${codeSetting.name} removed from view`);
       }
     } catch (error) {
-      // Restore the setting if server deletion fails
-      if (error.response && error.response.status === 400) {
-        toast.showError(error.response.data.message);
-      } else {
-        toast.showError(`Failed to delete ${codeSetting.name}`);
-      }
-
-      // Add the setting back to the state
+      // Restore the setting if deletion fails
+      toast.showError(`Failed to delete ${codeSetting.name}`);
       fetchCodeSettings();
     }
   };
@@ -665,50 +834,58 @@ const EventSettings = ({ event, onClose }) => {
 
                 <div className="settings-field">
                   <label>Max People per Code</label>
-                  <select
-                    value={codeSetting.maxPax}
-                    onChange={(e) =>
-                      handleCodeSettingChange(
-                        codeSetting,
-                        "maxPax",
-                        parseInt(e.target.value)
-                      )
-                    }
-                  >
+                  <div className="max-pax-selector">
                     {[1, 2, 3, 4, 5].map((num) => (
-                      <option key={num} value={num}>
+                      <button
+                        key={`pax-${num}`}
+                        className={`pax-option ${
+                          codeSetting.maxPax === num ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          handleCodeSettingChange(codeSetting, "maxPax", num)
+                        }
+                      >
                         {num} {num === 1 ? "Person" : "People"}
-                      </option>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 <div className="settings-field">
                   <label>Code Limit</label>
-                  <div className="limit-input-container">
-                    <select
-                      value={codeSetting.limit}
-                      onChange={(e) =>
+                  <div className="code-limit-section">
+                    <div className="limit-input-wrapper">
+                      <input
+                        type="number"
+                        min="0"
+                        value={codeSetting.limit === 0 ? "" : codeSetting.limit}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleCodeSettingChange(
+                            codeSetting,
+                            "limit",
+                            value === "" ? 0 : parseInt(value)
+                          );
+                        }}
+                        placeholder="Enter limit"
+                        className="limit-input"
+                      />
+                    </div>
+                    <button
+                      className={`unlimited-btn ${
+                        codeSetting.limit === 0 ? "active" : ""
+                      }`}
+                      onClick={() =>
                         handleCodeSettingChange(
                           codeSetting,
                           "limit",
-                          parseInt(e.target.value)
+                          codeSetting.limit === 0 ? 100 : 0
                         )
                       }
                     >
-                      <option value={0}>Unlimited</option>
-                      {[50, 100, 150, 200, 250, 300, 500, 1000].map((num) => (
-                        <option key={num} value={num}>
-                          {num} Codes
-                        </option>
-                      ))}
-                    </select>
-                    <div className="limit-info">
-                      <RiInformationLine />
-                      <span className="tooltip">
-                        Maximum number of codes that can be generated
-                      </span>
-                    </div>
+                      <RiRepeatFill />
+                      <span>Unlimited</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -766,7 +943,7 @@ const EventSettings = ({ event, onClose }) => {
         </div>
 
         <div className="settings-group">
-          <h3>Access Control</h3>
+          <h3>Code Access</h3>
           {isLoading ? (
             <div className="loading-indicator">Loading code settings...</div>
           ) : (
@@ -778,7 +955,11 @@ const EventSettings = ({ event, onClose }) => {
                     (setting) =>
                       setting.type === "guest" || setting.type === "ticket"
                   )
-                  .map(renderCodeSettingItem)}
+                  .map((setting) => (
+                    <div key={setting._id}>
+                      {renderCodeSettingItem(setting)}
+                    </div>
+                  ))}
 
                 {/* Then render editable code types */}
                 {codeSettings
@@ -786,7 +967,11 @@ const EventSettings = ({ event, onClose }) => {
                     (setting) =>
                       setting.type !== "guest" && setting.type !== "ticket"
                   )
-                  .map(renderCodeSettingItem)}
+                  .map((setting) => (
+                    <div key={setting._id}>
+                      {renderCodeSettingItem(setting)}
+                    </div>
+                  ))}
               </div>
 
               <div className="add-code-container">

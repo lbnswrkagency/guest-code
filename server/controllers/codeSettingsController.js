@@ -17,6 +17,7 @@ const getCodeSettings = async (req, res) => {
     if (
       req.user &&
       event.user &&
+      req.user._id && // Make sure req.user._id exists
       event.user.toString() !== req.user._id.toString() &&
       !req.user.isAdmin
     ) {
@@ -61,6 +62,7 @@ const configureCodeSettings = async (req, res) => {
     }
 
     // Check if user has permission to modify this event
+    // Only check permissions if req.user exists (might be bypassed in some routes)
     if (
       req.user &&
       event.user &&
@@ -193,6 +195,7 @@ const deleteCodeSetting = async (req, res) => {
     }
 
     // Check if user has permission to modify this event
+    // Only check permissions if req.user exists (might be bypassed in some routes)
     if (
       req.user &&
       event.user &&

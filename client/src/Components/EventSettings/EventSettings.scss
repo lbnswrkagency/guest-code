@@ -298,6 +298,73 @@
     }
   }
 
+  .code-limit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .limit-input-wrapper {
+      width: 100%;
+      max-width: 120px;
+
+      .limit-input {
+        width: 100%;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.9rem;
+        text-align: center;
+        transition: all 0.2s ease;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .unlimited-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      max-width: 120px;
+
+      svg {
+        font-size: 1.1rem;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      &.active {
+        background: rgba(255, 200, 7, 0.15);
+        color: #ffc807;
+
+        &:hover {
+          background: rgba(255, 200, 7, 0.2);
+        }
+      }
+    }
+  }
+
   .editable-name {
     position: relative;
 
@@ -511,6 +578,38 @@
             background: rgba(255, 200, 7, 0.3);
             cursor: not-allowed;
           }
+        }
+      }
+    }
+  }
+
+  .max-pax-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    .pax-option {
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      &.active {
+        background: rgba(255, 200, 7, 0.15);
+        border-color: rgba(255, 200, 7, 0.3);
+        color: #ffc807;
+
+        &:hover {
+          background: rgba(255, 200, 7, 0.2);
         }
       }
     }

@@ -115,6 +115,7 @@ app.use("/api/table", tableRoutes);
 app.use("/api/backstage", backstageRoutes);
 app.use("/api/code", codeRoutes);
 app.use("/api/codes", codesRoutes);
+app.use("/api/code-settings", require("./routes/api/codeSettingsRoutes"));
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
