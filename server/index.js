@@ -116,6 +116,7 @@ app.use("/api/backstage", backstageRoutes);
 app.use("/api/code", codeRoutes);
 app.use("/api/codes", codesRoutes);
 app.use("/api/code-settings", require("./routes/api/codeSettingsRoutes"));
+app.use("/api/ticket-settings", require("./routes/api/ticketSettingsRoutes"));
 app.use("/api/qr", qrRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/avatar", avatarRoutes);
@@ -138,10 +139,10 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
-    // Silent success
+    console.log("[MongoDB] Connection successful");
   })
   .catch((error) => {
-    // Silent error
+    console.error("[MongoDB] Connection error:", error.message);
   });
 
 // Root route
@@ -154,7 +155,7 @@ const io = setupSocket(server);
 app.set("io", io);
 
 // Start server
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log(`\n[Server] Running on port ${port}`);
   console.log(`[Server] Access via http://localhost:${port}`);

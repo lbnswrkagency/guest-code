@@ -14,7 +14,10 @@ const CodeSettingsSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["guest", "friends", "ticket", "table", "backstage", "custom"],
+      // Default types: guest, ticket
+      // Legacy types still supported: friends, table, backstage
+      // Custom types can be added by users
+      enum: ["guest", "ticket", "friends", "table", "backstage", "custom"],
       required: true,
     },
     condition: {
@@ -37,6 +40,16 @@ const CodeSettingsSchema = new Schema(
       type: Boolean,
       default: false,
     }, // Whether name can be edited
+    color: {
+      type: String,
+      default: "#2196F3",
+      validate: {
+        validator: function (v) {
+          return /^#[0-9A-Fa-f]{6}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid hex color!`,
+      },
+    },
     // Additional fields for specific code types
     price: {
       type: Number,

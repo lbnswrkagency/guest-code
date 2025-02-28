@@ -10,7 +10,9 @@ const {
   getUserData,
   refreshAccessToken,
   logout,
+  syncToken,
 } = require("../controllers/authController");
+
 router.use((req, res, next) => {
   next();
 });
@@ -18,16 +20,28 @@ router.use((req, res, next) => {
 // Refresh token route
 router.post("/refresh-token", refreshAccessToken);
 
-// Register route (no validations here)
-router.post("/register", register);
+// Sync token from localStorage to cookies
+router.post("/sync-token", syncToken);
 
-// Email verification route
-router.get("/verify/:token", verifyEmail);
+// Register route with validation
+router.post(
+  "/register",
+  [
+    check("email", "Please include a valid email").isEmail(),
+    check("password", "Password must be at least 6 characters").isLength({
+      min: 6,
+    }),
+  ],
+  register
+);
 
 // Login route
 router.post("/login", login);
 
-// User data route
+// Verify email route
+router.get("/verify-email/:token", verifyEmail);
+
+// Get user data route (protected)
 router.get("/user", authenticate, getUserData);
 
 // Logout route

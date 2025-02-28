@@ -66,11 +66,12 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       ticketCode: parentEvent.ticketCode,
       tableCode: parentEvent.tableCode,
       backstageCode: parentEvent.backstageCode,
-      guestCodeSettings: parentEvent.guestCodeSettings,
-      friendsCodeSettings: parentEvent.friendsCodeSettings,
-      ticketCodeSettings: parentEvent.ticketCodeSettings,
-      tableCodeSettings: parentEvent.tableCodeSettings,
-      backstageCodeSettings: parentEvent.backstageCodeSettings,
+      // Use empty objects for embedded code settings to avoid validation errors
+      guestCodeSettings: {},
+      friendsCodeSettings: {},
+      ticketCodeSettings: {},
+      tableCodeSettings: {},
+      backstageCodeSettings: {},
       link: link,
     });
 
@@ -439,6 +440,17 @@ exports.getAllEvents = async (req, res) => {
 
 exports.editEvent = async (req, res) => {
   try {
+    console.log("[Event Edit] === DEBUG AUTH START ===");
+    console.log("[Event Edit] Request headers:", {
+      authorization: req.headers.authorization,
+      cookie: req.headers.cookie,
+    });
+    console.log("[Event Edit] Request cookies:", req.cookies);
+    console.log("[Event Edit] Request user:", req.user);
+    console.log("[Event Edit] Request user ID:", req.user?.userId);
+    console.log("[Event Edit] Request params:", req.params);
+    console.log("[Event Edit] === DEBUG AUTH END ===");
+
     const { eventId } = req.params;
     const updatedEventData = req.body;
     const weekNumber = parseInt(req.query.weekNumber || "0");
@@ -498,6 +510,14 @@ exports.editEvent = async (req, res) => {
       });
 
       try {
+        // Remove validation for embedded code settings to prevent errors
+        // These fields are now handled by the CodeSettings model
+        event.guestCodeSettings = {};
+        event.friendsCodeSettings = {};
+        event.ticketCodeSettings = {};
+        event.tableCodeSettings = {};
+        event.backstageCodeSettings = {};
+
         await event.save();
         console.log(
           `[Event Update] Updated child event directly: ${event._id}`
@@ -611,73 +631,89 @@ exports.editEvent = async (req, res) => {
           }
         });
 
-        await childEvent.save();
+        // Remove validation for embedded code settings to prevent errors
+        // These fields are now handled by the CodeSettings model
+        childEvent.guestCodeSettings = {};
+        childEvent.friendsCodeSettings = {};
+        childEvent.ticketCodeSettings = {};
+        childEvent.tableCodeSettings = {};
+        childEvent.backstageCodeSettings = {};
 
-        // Check if we need to update code settings for this child event
-        if (
-          updatedEventData.codeSettings ||
-          updatedEventData.guestCode !== undefined ||
-          updatedEventData.friendsCode !== undefined ||
-          updatedEventData.ticketCode !== undefined ||
-          updatedEventData.tableCode !== undefined ||
-          updatedEventData.backstageCode !== undefined
-        ) {
+        try {
+          await childEvent.save();
+
+          // Check if we need to update code settings for this child event
+          if (
+            updatedEventData.codeSettings ||
+            updatedEventData.guestCode !== undefined ||
+            updatedEventData.friendsCode !== undefined ||
+            updatedEventData.ticketCode !== undefined ||
+            updatedEventData.tableCode !== undefined ||
+            updatedEventData.backstageCode !== undefined
+          ) {
+            console.log(
+              `[Event Update] Updating code settings for weekly child event: ${childEvent._id}`
+            );
+
+            // Initialize default settings if they don't exist
+            const {
+              initializeDefaultSettings,
+            } = require("./codeSettingsController");
+            await initializeDefaultSettings(childEvent._id);
+
+            // Update the legacy boolean fields if they were changed
+            if (updatedEventData.guestCode !== undefined) {
+              await CodeSettings.findOneAndUpdate(
+                { eventId: childEvent._id, type: "guest" },
+                { isEnabled: updatedEventData.guestCode },
+                { upsert: true, new: true }
+              );
+            }
+
+            if (updatedEventData.friendsCode !== undefined) {
+              await CodeSettings.findOneAndUpdate(
+                { eventId: childEvent._id, type: "friends" },
+                { isEnabled: updatedEventData.friendsCode },
+                { upsert: true, new: true }
+              );
+            }
+
+            if (updatedEventData.ticketCode !== undefined) {
+              await CodeSettings.findOneAndUpdate(
+                { eventId: childEvent._id, type: "ticket" },
+                { isEnabled: updatedEventData.ticketCode },
+                { upsert: true, new: true }
+              );
+            }
+
+            if (updatedEventData.tableCode !== undefined) {
+              await CodeSettings.findOneAndUpdate(
+                { eventId: childEvent._id, type: "table" },
+                { isEnabled: updatedEventData.tableCode },
+                { upsert: true, new: true }
+              );
+            }
+
+            if (updatedEventData.backstageCode !== undefined) {
+              await CodeSettings.findOneAndUpdate(
+                { eventId: childEvent._id, type: "backstage" },
+                { isEnabled: updatedEventData.backstageCode },
+                { upsert: true, new: true }
+              );
+            }
+          }
+
           console.log(
-            `[Event Update] Updating code settings for weekly child event: ${childEvent._id}`
+            `[Event Update] Updated child event for week ${weekNumber}`
           );
-
-          // Initialize default settings if they don't exist
-          const {
-            initializeDefaultSettings,
-          } = require("./codeSettingsController");
-          await initializeDefaultSettings(childEvent._id);
-
-          // Update the legacy boolean fields if they were changed
-          if (updatedEventData.guestCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: childEvent._id, type: "guest" },
-              { isEnabled: updatedEventData.guestCode },
-              { upsert: true, new: true }
-            );
-          }
-
-          if (updatedEventData.friendsCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: childEvent._id, type: "friends" },
-              { isEnabled: updatedEventData.friendsCode },
-              { upsert: true, new: true }
-            );
-          }
-
-          if (updatedEventData.ticketCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: childEvent._id, type: "ticket" },
-              { isEnabled: updatedEventData.ticketCode },
-              { upsert: true, new: true }
-            );
-          }
-
-          if (updatedEventData.tableCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: childEvent._id, type: "table" },
-              { isEnabled: updatedEventData.tableCode },
-              { upsert: true, new: true }
-            );
-          }
-
-          if (updatedEventData.backstageCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: childEvent._id, type: "backstage" },
-              { isEnabled: updatedEventData.backstageCode },
-              { upsert: true, new: true }
-            );
-          }
+          return res.status(200).json(childEvent);
+        } catch (error) {
+          console.error("[Event Update] Error saving child event:", error);
+          return res.status(500).json({
+            message: "Error updating child event",
+            error: error.message,
+          });
         }
-
-        console.log(
-          `[Event Update] Updated child event for week ${weekNumber}`
-        );
-        return res.status(200).json(childEvent);
       } catch (error) {
         console.error("[Event Update] Error updating child event:", error);
         return res.status(500).json({

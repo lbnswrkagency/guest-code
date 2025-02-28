@@ -295,3 +295,49 @@ exports.logout = async (req, res) => {
     res.status(200).json({ message: "Logged out successfully" });
   }
 };
+
+// Sync token from request body to cookies
+exports.syncToken = async (req, res) => {
+  try {
+    console.log("[Auth:Sync] Token sync request received", {
+      hasToken: !!req.body.token,
+      tokenLength: req.body.token?.length,
+      headers: req.headers,
+      timestamp: new Date().toISOString(),
+    });
+
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "No token provided" });
+    }
+
+    try {
+      // Verify the token is valid before setting it in cookies
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      console.log("[Auth:Sync] Token verified successfully", {
+        userId: decoded.userId,
+        exp: decoded.exp,
+        expiresIn: decoded.exp - Math.floor(Date.now() / 1000) + " seconds",
+      });
+
+      // Set the token in cookies
+      res.cookie("accessToken", token, accessTokenCookieOptions);
+
+      console.log("[Auth:Sync] Token set in cookies successfully");
+      return res
+        .status(200)
+        .json({ message: "Token synced to cookies successfully" });
+    } catch (error) {
+      console.log("[Auth:Sync] Token verification failed", {
+        error: error.name,
+        message: error.message,
+      });
+
+      return res.status(401).json({ message: "Invalid token" });
+    }
+  } catch (error) {
+    console.error("[Auth:Sync] Error syncing token:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

@@ -394,13 +394,38 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
   const [currentEvent, setCurrentEvent] = useState(event); // Track the current event (parent or child)
   const [isLive, setIsLive] = useState(event.isLive || false); // Track live status
   const [lastFetchTime, setLastFetchTime] = useState(Date.now()); // Track when we last fetched data
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast(); // Add toast context
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Reset to the parent event when the event prop changes
+    console.log("[EventCard] Event prop changed:", event);
+
+    // Reset the current event to the new event
     setCurrentEvent(event);
-    setCurrentWeek(0);
-    setIsLive(event.isLive || false); // Reset isLive state to match parent event
+
+    // If this is a child event (has parentEventId and weekNumber), set currentWeek to event.weekNumber
+    // Otherwise, if we're already on a specific week, maintain that week number
+    if (event.parentEventId && event.weekNumber) {
+      console.log(
+        `[EventCard] Setting currentWeek to ${event.weekNumber} from child event`
+      );
+      setCurrentWeek(event.weekNumber);
+    } else if (event.isWeekly && currentWeek > 0) {
+      console.log(
+        `[EventCard] Maintaining current week ${currentWeek} for weekly event`
+      );
+      // Keep the current week number
+    } else {
+      console.log(`[EventCard] Resetting currentWeek to 0 for parent event`);
+      setCurrentWeek(0);
+    }
+
+    // Reset isLive to match the event's isLive status
+    setIsLive(event.isLive || false);
+
+    // Reset the last fetch time
+    setLastFetchTime(Date.now());
   }, [event]);
 
   // When navigating weeks, check if a child event exists for that week
@@ -414,92 +439,83 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
 
     // Check if we have a child event for this week in the events array
     const findChildEvent = async () => {
+      if (!event || !event._id || !event.isWeekly || currentWeek === 0) {
+        return;
+      }
+
+      console.log(
+        `[findChildEvent] Finding child event for parent ${event._id}, week ${currentWeek}`
+      );
+
       try {
-        console.log(`[Weekly Events] Fetching data for week ${currentWeek}`);
-
-        // Check if we have a valid token before making the request
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.log(
-            "[Weekly Events] No auth token available, using fallback"
-          );
-          throw new Error("No auth token");
-        }
-
-        // Try to fetch the child event for this week
+        setIsLoading(true);
         const response = await axiosInstance.get(
-          `/events/${event._id}/weekly/${currentWeek}?_t=${Date.now()}`
+          `/events/${event._id}/weekly/${currentWeek}`
         );
 
         if (response.data) {
-          // If we found a child event, use it
+          console.log(`[findChildEvent] Child event found:`, response.data);
+
+          // Ensure the weekNumber is set on the child event
+          const childEvent = {
+            ...response.data,
+            weekNumber: currentWeek,
+          };
+
+          setCurrentEvent(childEvent);
+          setIsLive(childEvent.isLive);
+        } else {
           console.log(
-            `[Weekly Events] Found child event for week ${currentWeek}`,
-            response.data
-          );
-          setCurrentEvent(response.data);
-          setIsLive(response.data.isLive || false); // Set isLive based on child event
-          setLastFetchTime(Date.now()); // Update last fetch time
-        }
-      } catch (error) {
-        // Handle 404 errors gracefully - this just means the child event doesn't exist yet
-        if (error.response && error.response.status === 404) {
-          console.log(
-            `[Weekly Events] No child event exists yet for week ${currentWeek}`
+            `[findChildEvent] No child event found for week ${currentWeek}, using parent event data`
           );
 
-          // Check if we have parent event data in the error response
-          if (error.response?.data?.parentEvent) {
-            const parentEvent = error.response.data.parentEvent;
-            // Calculate the date for this week based on the parent event
-            const weeklyDate = getWeeklyDate(parentEvent.date, currentWeek);
+          try {
+            // Calculate the date for this week's occurrence
+            const weekDate = new Date(event.startDate || event.date);
 
-            // Create a temporary event object with the calculated date
-            // but keep all other properties from the parent event
+            // Check if the date is valid before proceeding
+            if (isNaN(weekDate.getTime())) {
+              console.error(
+                "[findChildEvent] Invalid date:",
+                event.startDate || event.date
+              );
+              throw new Error("Invalid date");
+            }
+
+            weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+
+            // Create a temporary event object with parent data but updated date
             const tempEvent = {
-              ...parentEvent,
-              date: weeklyDate,
-              weekNumber: currentWeek,
+              ...event,
+              _id: event._id, // Keep the parent ID for API calls
+              parentEventId: event._id, // Mark this as a child event
+              weekNumber: currentWeek, // Set the week number
+              startDate: weekDate.toISOString(), // Update the startDate
+              date: weekDate.toISOString(), // Update the date for compatibility
               isLive: false, // Child events start as not live
-              // Don't override subtitle if not needed
             };
 
             setCurrentEvent(tempEvent);
             setIsLive(false);
-            setLastFetchTime(Date.now()); // Update last fetch time
-          } else {
-            // Fallback to using the parent event with calculated date
-            const weeklyDate = getWeeklyDate(event.date, currentWeek);
+          } catch (error) {
+            console.error(
+              "[findChildEvent] Error creating temporary event:",
+              error
+            );
+            // Just use the parent event without date modification as fallback
             setCurrentEvent({
               ...event,
-              date: weeklyDate,
               weekNumber: currentWeek,
-              isLive: false, // Child events start as not live
+              parentEventId: event._id,
             });
             setIsLive(false);
-            setLastFetchTime(Date.now()); // Update last fetch time
           }
-        } else {
-          // For 401 or any other errors, just use the parent event data with calculated date
-          // This prevents showing error messages for auth issues which are expected in some cases
-          console.log(
-            `[Weekly Events] Using fallback for week ${currentWeek} due to error:`,
-            error.message
-          );
-
-          // Create a temporary event with the calculated date based on parent event
-          const weeklyDate = getWeeklyDate(event.date, currentWeek);
-          const tempEvent = {
-            ...event,
-            date: weeklyDate,
-            weekNumber: currentWeek,
-            isLive: false, // Child events start as not live
-          };
-
-          setCurrentEvent(tempEvent);
-          setIsLive(false);
-          setLastFetchTime(Date.now()); // Update last fetch time
         }
+      } catch (error) {
+        console.error("[findChildEvent] Error fetching child event:", error);
+        toast.showError("Failed to fetch event details");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -546,11 +562,12 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     console.log("[Event Edit] Editing event:", {
       eventId: currentEvent._id,
       isChildEvent: currentEvent.parentEventId ? true : false,
-      weekNumber: currentWeek,
+      weekNumber: currentEvent.weekNumber || currentWeek,
     });
 
     // Pass the currentEvent (which could be parent or child) and the current week number
-    onClick(currentEvent, currentWeek);
+    // Use the weekNumber from the currentEvent if available, otherwise use the currentWeek state
+    onClick(currentEvent, currentEvent.weekNumber || currentWeek);
   };
 
   const handleSettingsClick = (e) => {
@@ -558,29 +575,56 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     setIsFlipped(true);
   };
 
-  // Weekly event navigation handlers
+  // Handle navigation to previous week
   const handlePrevWeek = (e) => {
     e.stopPropagation();
     if (currentWeek > 0) {
-      console.log(
-        `[Weekly Navigation] Moving from week ${currentWeek} to week ${
-          currentWeek - 1
-        }`
-      );
-      setCurrentWeek((prev) => prev - 1);
+      const newWeek = currentWeek - 1;
+      console.log(`[Weekly Navigation] Moving to previous week: ${newWeek}`);
+      setCurrentWeek(newWeek);
     }
   };
 
+  // Handle navigation to next week
   const handleNextWeek = (e) => {
     e.stopPropagation();
-    console.log(
-      `[Weekly Navigation] Moving from week ${currentWeek} to week ${
-        currentWeek + 1
-      }`
-    );
-    // Store the current week number to prevent jumping back to week 1
-    setCurrentWeek((prev) => prev + 1);
+    const newWeek = currentWeek + 1;
+    console.log(`[Weekly Navigation] Moving to next week: ${newWeek}`);
+    setCurrentWeek(newWeek);
   };
+
+  // Update when currentWeek changes
+  useEffect(() => {
+    if (currentEvent.isWeekly && currentWeek > 0) {
+      console.log(`[Weekly Navigation] Week changed to ${currentWeek}`);
+
+      try {
+        // Calculate the date for this week's occurrence
+        const weekDate = new Date(event.startDate || event.date);
+
+        // Check if the date is valid before proceeding
+        if (isNaN(weekDate.getTime())) {
+          console.error(
+            "[Weekly Navigation] Invalid date:",
+            event.startDate || event.date
+          );
+          return;
+        }
+
+        weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+
+        // Update the current event with the new week number and date
+        setCurrentEvent((prev) => ({
+          ...prev,
+          weekNumber: currentWeek,
+          startDate: weekDate.toISOString(),
+          date: weekDate.toISOString(), // Update both date fields for compatibility
+        }));
+      } catch (error) {
+        console.error("[Weekly Navigation] Error updating date:", error);
+      }
+    }
+  }, [currentWeek, event.startDate, event.date, currentEvent.isWeekly]);
 
   // Calculate the date for the current week
   const getWeeklyDate = (baseDate, weekOffset) => {
@@ -590,24 +634,43 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) {
+        console.error("[formatDate] Invalid date:", date);
+        return "Invalid date";
+      }
+      return d.toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      console.error("[formatDate] Error formatting date:", error);
+      return "Invalid date";
+    }
   };
 
   // Format date for weekly display (Mar 22, 2025)
   const formatWeeklyDate = (date) => {
-    const d = new Date(date);
-    const month = d.toLocaleString("en-US", { month: "short" });
-    const day = d.getDate();
-    const year = d.getFullYear();
-    return `${month} ${day}, ${year}`;
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) {
+        console.error("[formatWeeklyDate] Invalid date:", date);
+        return "Invalid date";
+      }
+      const month = d.toLocaleString("en-US", { month: "short" });
+      const day = d.getDate();
+      const year = d.getFullYear();
+      return `${month} ${day}, ${year}`;
+    } catch (error) {
+      console.error("[formatWeeklyDate] Error formatting date:", error);
+      return "Invalid date";
+    }
   };
 
   // Get the display date based on current event
-  const displayDate = currentEvent.date;
+  const displayDate = currentEvent.date || currentEvent.startDate;
 
   const handleGoLive = (e) => {
     e.stopPropagation();
@@ -615,8 +678,11 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     // Show loading toast
     const loadingToast = toast.showLoading("Updating event status...");
 
+    // Use the weekNumber from the currentEvent if available, otherwise use the currentWeek state
+    const weekToUse = currentEvent.weekNumber || currentWeek;
+
     console.log(
-      `[Go Live] Toggling live status for event ${event._id}, week ${currentWeek}`
+      `[Go Live] Toggling live status for event ${event._id}, week ${weekToUse}`
     );
 
     // Check if we have a valid token before making the request
@@ -633,7 +699,7 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
     axiosInstance
       .patch(
         `/events/${event._id}/toggle-live${
-          event.isWeekly && currentWeek > 0 ? `?weekNumber=${currentWeek}` : ""
+          event.isWeekly && weekToUse > 0 ? `?weekNumber=${weekToUse}` : ""
         }`
       )
       .then((response) => {
@@ -643,10 +709,10 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
         setIsLive(response.data.isLive);
 
         // If this is a child event that was just created, update the currentEvent
-        if (currentWeek > 0 && response.data.childEvent) {
+        if (weekToUse > 0 && response.data.childEvent) {
           console.log(`[Go Live] Updating current event with child event data`);
           setCurrentEvent(response.data.childEvent);
-        } else if (currentWeek === 0) {
+        } else if (weekToUse === 0) {
           // If this is the parent event, update it
           setCurrentEvent((prev) => ({
             ...prev,

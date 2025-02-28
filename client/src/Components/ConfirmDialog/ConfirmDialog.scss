@@ -1,77 +1,81 @@
 .confirm-dialog-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
-  padding: 1rem;
+  z-index: 1000;
+}
 
-  .confirm-dialog {
-    width: 100%;
-    max-width: 400px;
-    background: #151515;
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem;
+.confirm-dialog {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 
-    h3 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #fff;
-    }
+  h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: #333;
+    font-size: 20px;
+  }
 
-    p {
-      margin: 0 0 1.5rem;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.95rem;
-      line-height: 1.5;
-    }
+  p {
+    margin-bottom: 24px;
+    color: #666;
+    font-size: 16px;
+    line-height: 1.4;
+  }
 
-    .dialog-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: flex-end;
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
 
-      button {
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        border: none;
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
+    button {
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
-        &.cancel-btn {
-          background: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.9);
+      &.cancel-btn {
+        background-color: #f1f1f1;
+        color: #555;
+
+        &:hover {
+          background-color: #e4e4e4;
+        }
+      }
+
+      &.confirm-btn {
+        background-color: #3498db;
+        color: white;
+
+        &:hover {
+          background-color: #2980b9;
+        }
+
+        &.danger {
+          background-color: #e74c3c;
 
           &:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background-color: #c0392b;
           }
         }
 
-        &.confirm-btn {
-          &.default {
-            background: #ffc807;
-            color: #000;
+        &.success {
+          background-color: #2ecc71;
 
-            &:hover {
-              background: #d1a300;
-            }
-          }
-
-          &.danger {
-            background: #ff4444;
-            color: #fff;
-
-            &:hover {
-              background: #cc3333;
-            }
+          &:hover {
+            background-color: #27ae60;
           }
         }
       }

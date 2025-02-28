@@ -22,6 +22,26 @@ const CodeSettingsSchema = new Schema(
   { _id: false }
 );
 
+// Create a separate schema for embedded code settings that doesn't have required fields
+const EmbeddedCodeSettingsSchema = new Schema(
+  {
+    name: { type: String }, // Not required when embedded
+    type: {
+      type: String,
+      enum: ["guest", "friends", "ticket", "table", "backstage", "custom"],
+    },
+    condition: { type: String, default: "" },
+    maxPax: { type: Number, default: 1 },
+    limit: { type: Number, default: 0 }, // 0 means unlimited
+    isEnabled: { type: Boolean, default: true },
+    isEditable: { type: Boolean, default: false }, // Whether name can be edited
+    // Additional fields for specific code types
+    price: { type: Number }, // For ticket codes
+    tableNumber: { type: String }, // For table codes
+  },
+  { _id: false }
+);
+
 const EventSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -107,11 +127,26 @@ const EventSchema = new Schema(
     ticketCode: { type: Boolean, default: false },
     tableCode: { type: Boolean, default: false },
     backstageCode: { type: Boolean, default: false },
-    guestCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
-    friendsCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
-    ticketCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
-    tableCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
-    backstageCodeSettings: { type: CodeSettingsSchema, default: () => ({}) },
+    guestCodeSettings: {
+      type: EmbeddedCodeSettingsSchema,
+      default: () => ({}),
+    },
+    friendsCodeSettings: {
+      type: EmbeddedCodeSettingsSchema,
+      default: () => ({}),
+    },
+    ticketCodeSettings: {
+      type: EmbeddedCodeSettingsSchema,
+      default: () => ({}),
+    },
+    tableCodeSettings: {
+      type: EmbeddedCodeSettingsSchema,
+      default: () => ({}),
+    },
+    backstageCodeSettings: {
+      type: EmbeddedCodeSettingsSchema,
+      default: () => ({}),
+    },
 
     link: { type: String, required: true, unique: true },
     isPublic: { type: Boolean, default: true },
