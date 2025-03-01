@@ -140,17 +140,6 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
             <RiSearchLine className="icon" />
           </motion.div>
 
-          {/* Test Notification Button */}
-          <motion.div
-            className="nav-icon-wrapper test-notification"
-            onClick={createTestNotification}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Create Test Notification"
-          >
-            <RiTestTubeLine className="icon" />
-          </motion.div>
-
           {/* Notifications */}
           <motion.div
             className={`nav-icon-wrapper ${

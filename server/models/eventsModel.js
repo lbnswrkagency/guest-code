@@ -57,6 +57,7 @@ const EventSchema = new Schema(
     parentEventId: { type: Schema.Types.ObjectId, ref: "Event" },
     weekNumber: { type: Number, default: 0 },
     isLive: { type: Boolean, default: false },
+    lineups: [{ type: Schema.Types.ObjectId, ref: "LineUp" }],
     flyer: {
       landscape: {
         thumbnail: String,

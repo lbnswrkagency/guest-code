@@ -72,6 +72,17 @@ const Events = () => {
       const response = await axiosInstance.get(
         `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`
       );
+      console.log("Events response:", {
+        count: response.data?.length,
+        firstEvent: response.data?.[0]
+          ? {
+              id: response.data[0]._id,
+              title: response.data[0].title,
+              hasLineups: !!response.data[0].lineups,
+              lineupCount: response.data[0].lineups?.length,
+            }
+          : null,
+      });
       setEvents(response.data || []);
     } catch (error) {
       console.error("Error fetching events:", error);

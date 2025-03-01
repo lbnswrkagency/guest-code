@@ -215,6 +215,17 @@ exports.createEvent = async (req, res) => {
       brandName: brand.name,
     });
 
+    // Parse lineups if they exist
+    let lineups = [];
+    if (req.body.lineups) {
+      try {
+        lineups = JSON.parse(req.body.lineups);
+        console.log("[Event Creation] Parsed lineups:", lineups);
+      } catch (e) {
+        console.error("[Event Creation] Error parsing lineups:", e);
+      }
+    }
+
     // Create event object without explicit _id
     const eventData = {
       ...req.body,
@@ -222,6 +233,7 @@ exports.createEvent = async (req, res) => {
       brand: req.params.brandId,
       link: generateUniqueLink(),
       flyer: {},
+      lineups: lineups,
     };
 
     // Create and save the event
@@ -403,11 +415,23 @@ exports.getBrandEvents = async (req, res) => {
       parentEventId: { $exists: false }, // Only get parent events
     })
       .sort({ date: -1 })
-      .populate("user", "username firstName lastName avatar");
+      .populate("user", "username firstName lastName avatar")
+      .populate("lineups");
 
     console.log(
       `[Events] Found ${events.length} parent events for brand: ${brand.name}`
     );
+
+    // Log the first event's lineups for debugging
+    if (events.length > 0) {
+      console.log(`[Events] First event lineups:`, {
+        eventId: events[0]._id,
+        title: events[0].title,
+        hasLineups: !!events[0].lineups,
+        lineupCount: events[0].lineups?.length,
+        lineups: events[0].lineups?.map((l) => ({ id: l._id, name: l.name })),
+      });
+    }
 
     res.status(200).json(events);
   } catch (error) {
@@ -461,6 +485,20 @@ exports.editEvent = async (req, res) => {
       userId: req.user.userId,
       weekNumber,
     });
+
+    // Handle lineups if they exist
+    if (updatedEventData.lineups) {
+      // If lineups is a string (from FormData), parse it
+      if (typeof updatedEventData.lineups === "string") {
+        try {
+          updatedEventData.lineups = JSON.parse(updatedEventData.lineups);
+        } catch (e) {
+          console.error("[Event Update] Error parsing lineups:", e);
+          delete updatedEventData.lineups;
+        }
+      }
+      console.log("[Event Update] Lineups:", updatedEventData.lineups);
+    }
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1078,7 +1116,10 @@ exports.updateSquareFlyer = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    console.log(`[Event Delete] Deleting event: ${eventId}`);
+    const { deleteRelated } = req.query;
+    console.log(
+      `[Event Delete] Deleting event: ${eventId}, deleteRelated: ${deleteRelated}`
+    );
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1111,26 +1152,65 @@ exports.deleteEvent = async (req, res) => {
       );
     }
 
+    // If deleteRelated is true, delete related data
+    if (deleteRelated === "true") {
+      try {
+        // Delete code settings related to this event
+        const CodeSettings = require("../models/codeSettingsModel");
+        const deletedCodeSettings = await CodeSettings.deleteMany({
+          event: eventId,
+        });
+        console.log(
+          `[Event Delete] Deleted ${deletedCodeSettings.deletedCount} code settings`
+        );
+
+        // Delete codes related to this event
+        const Code = require("../models/codeModel");
+        const deletedCodes = await Code.deleteMany({ event: eventId });
+        console.log(
+          `[Event Delete] Deleted ${deletedCodes.deletedCount} codes`
+        );
+
+        // Delete media files from storage (if using cloud storage)
+        if (event.flyer) {
+          // This would depend on your storage implementation
+          console.log(
+            `[Event Delete] Deleted media files for event: ${eventId}`
+          );
+        }
+      } catch (relatedError) {
+        console.error(
+          "[Event Delete] Error deleting related data:",
+          relatedError
+        );
+        // Continue with event deletion even if related data deletion fails
+      }
+    }
+
     // Delete the event
     await Event.findByIdAndDelete(eventId);
     console.log(`[Event Delete] Successfully deleted event: ${eventId}`);
 
-    res.status(200).json({ message: "Event deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Event deleted successfully" });
   } catch (error) {
     console.error("[Event Delete] Error:", error);
-    res.status(500).json({ message: "Error deleting event" });
+    res.status(500).json({ success: false, message: "Error deleting event" });
   }
 };
 
 exports.getEventByLink = async (req, res) => {
   try {
-    const event = await Event.findOne({ link: req.params.eventLink });
-    if (!event) {
+    const eventData = await Event.findOne({
+      link: req.params.eventLink,
+    }).populate("lineups");
+    if (!eventData) {
       return res
         .status(404)
         .json({ success: false, message: "Event not found." });
     }
-    res.status(200).json({ success: true, event });
+    res.status(200).json({ success: true, event: eventData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
@@ -1139,13 +1219,15 @@ exports.getEventByLink = async (req, res) => {
 
 exports.getEvent = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.eventId);
-    if (!event) {
+    const eventData = await Event.findById(req.params.eventId).populate(
+      "lineups"
+    );
+    if (!eventData) {
       return res
         .status(404)
         .json({ success: false, message: "Event not found." });
     }
-    res.status(200).json({ success: true, event });
+    res.status(200).json({ success: true, event: eventData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
@@ -1154,13 +1236,15 @@ exports.getEvent = async (req, res) => {
 
 exports.getEventPage = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.eventId);
-    if (!event) {
+    const eventData = await Event.findById(req.params.eventId).populate(
+      "lineups"
+    );
+    if (!eventData) {
       return res
         .status(404)
         .json({ success: false, message: "Event not found." });
     }
-    res.status(200).json({ success: true, event });
+    res.status(200).json({ success: true, event: eventData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });

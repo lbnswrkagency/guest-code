@@ -290,31 +290,6 @@
     }
   }
 
-  &-test-notification {
-    margin-top: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(45deg, #ffc807, #ff9d00);
-    border: none;
-    border-radius: 12px;
-    color: #151515;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 10rem;
-    justify-self: center;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.2);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  }
-
   .avatar-upload-overlay {
     position: fixed;
     inset: 0;

@@ -133,7 +133,7 @@ const EventSettings = ({ event, onClose }) => {
             setCodeSettings={setCodeSettings}
           />
         )}
-
+        {/* 
         <div className="settings-group danger-zone">
           <h3>Danger Zone</h3>
           <div className="settings-items">
@@ -166,7 +166,7 @@ const EventSettings = ({ event, onClose }) => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Delete Event Dialog */}

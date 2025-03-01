@@ -11,6 +11,9 @@ import {
   RiTicketLine,
   RiGroupLine,
   RiVipLine,
+  RiMusicLine,
+  RiDeleteBinLine,
+  RiInformationLine,
 } from "react-icons/ri";
 import { useToast } from "../Toast/ToastContext";
 import axiosInstance from "../../utils/axiosConfig";
@@ -25,6 +28,8 @@ import ErrorBoundary from "../ErrorBoundary/ErrorBoundary";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import { FaTimes, FaCheck } from "react-icons/fa";
 import { BiTime } from "react-icons/bi";
+import LineUp from "../LineUp/LineUp";
+import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 
 const FLYER_TYPES = [
   {
@@ -87,6 +92,7 @@ const EventForm = ({
   const [loading, setLoading] = useState(false);
   const isChildEvent =
     event?.parentEventId || (event?.isWeekly && weekNumber > 0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
     title: event?.title || "",
@@ -155,6 +161,48 @@ const EventForm = ({
     portrait: useRef(),
     square: useRef(),
     landscape: useRef(),
+  };
+
+  // Add state for LineUp modal
+  const [showLineUpModal, setShowLineUpModal] = useState(false);
+  // Add state for selected lineups
+  const [selectedLineups, setSelectedLineups] = useState([]);
+
+  // Load existing lineups if event exists
+  useEffect(() => {
+    if (event?._id) {
+      // If event already has lineups populated, use those
+      if (event.lineups && Array.isArray(event.lineups)) {
+        console.log("Using lineups from event object:", event.lineups);
+        setSelectedLineups(event.lineups);
+      } else {
+        // Otherwise, fetch lineups from API
+        const fetchEventLineups = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            const response = await axiosInstance.get(
+              `/lineup/event/${event._id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            console.log("Fetched lineups from API:", response.data);
+            setSelectedLineups(response.data);
+          } catch (error) {
+            console.error("Error fetching event lineups:", error);
+          }
+        };
+
+        fetchEventLineups();
+      }
+    }
+  }, [event]);
+
+  // Handle saving selected lineups
+  const handleSaveLineups = (lineups) => {
+    setSelectedLineups(lineups);
   };
 
   // Cleanup function
@@ -289,6 +337,14 @@ const EventForm = ({
         }
       });
 
+      // Add selected lineups to the form data
+      if (selectedLineups.length > 0) {
+        formDataToSend.append(
+          "lineups",
+          JSON.stringify(selectedLineups.map((lineup) => lineup._id))
+        );
+      }
+
       let eventResponse;
       if (event?._id) {
         // Update event details first
@@ -307,6 +363,11 @@ const EventForm = ({
           } else {
             updateData[key] = value;
           }
+        }
+
+        // Add selected lineups to the update data
+        if (selectedLineups.length > 0) {
+          updateData.lineups = selectedLineups.map((lineup) => lineup._id);
         }
 
         // Include the weekNumber in the URL if this is a child event or we're editing a specific week
@@ -416,6 +477,44 @@ const EventForm = ({
     }
   };
 
+  // Add debugging for event object
+  useEffect(() => {
+    if (event) {
+      console.log("EventForm received event:", {
+        id: event._id,
+        title: event.title,
+        hasLineups: !!event.lineups,
+        lineups: event.lineups,
+      });
+    }
+  }, [event]);
+
+  // Handle delete event
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setLoading(true);
+      // Delete the event and all related data
+      const response = await axiosInstance.delete(
+        `/events/${event._id}?deleteRelated=true`
+      );
+
+      if (response.data.success) {
+        toast.showSuccess("Event deleted successfully");
+        onClose(true); // Pass true to indicate successful deletion
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.showError("Failed to delete event");
+    } finally {
+      setLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -473,7 +572,6 @@ const EventForm = ({
                 />
               </div>
             </div>
-
             <div className="form-section">
               <h3>{isChildEvent ? "Time" : "Date & Time"}</h3>
 
@@ -561,7 +659,54 @@ const EventForm = ({
                 </div>
               </div>
             </div>
+            {/* Line Up section - moved before Event Media */}
+            <div className="form-section">
+              <h3>Line Up</h3>
 
+              {/* Display selected lineups */}
+              {selectedLineups.length > 0 && (
+                <div className="selected-lineups">
+                  {selectedLineups.map((lineup) => (
+                    <div key={lineup._id} className="selected-lineup-item">
+                      <div className="lineup-avatar">
+                        {lineup.avatar ? (
+                          <img
+                            src={
+                              typeof lineup.avatar === "string"
+                                ? lineup.avatar
+                                : lineup.avatar.medium ||
+                                  lineup.avatar.thumbnail
+                            }
+                            alt={lineup.name}
+                          />
+                        ) : (
+                          <div className="avatar-placeholder"></div>
+                        )}
+                      </div>
+                      <div className="lineup-info">
+                        <span className="lineup-category">
+                          {lineup.category}
+                        </span>
+                        <span className="lineup-name">{lineup.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Moved button below the selected lineups */}
+              <div className="lineup-button-container">
+                <button
+                  type="button"
+                  className="lineup-button"
+                  onClick={() => setShowLineUpModal(true)}
+                >
+                  <RiMusicLine />
+                  <span>EDIT LINE UP</span>
+                </button>
+              </div>
+            </div>
+            {/* Event Media section - moved after Line Up */}
             <div className="form-section">
               <h3>Event Media</h3>
               <div className="flyer-options">
@@ -634,6 +779,92 @@ const EventForm = ({
           </form>
         </motion.div>
       </motion.div>
+
+      {/* LineUp Modal */}
+      {showLineUpModal && (
+        <LineUp
+          key="event-lineup-modal"
+          event={event}
+          onClose={() => setShowLineUpModal(false)}
+          selectedBrand={selectedBrand}
+          onSave={handleSaveLineups}
+          initialSelectedLineups={selectedLineups}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <motion.div
+          className="delete-confirmation-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+          }}
+        >
+          <motion.div
+            className="delete-confirmation"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#151515",
+              borderRadius: "12px",
+              padding: "1.5rem",
+              width: "90%",
+              maxWidth: "400px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+            }}
+          >
+            <h3>Delete Event</h3>
+            <p>
+              Are you sure you want to delete this event? This will also delete
+              all related media and code settings. This action cannot be undone.
+            </p>
+            <div className="confirmation-actions">
+              <motion.button
+                className="cancel-btn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowDeleteConfirm(false);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                className="confirm-delete-btn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  confirmDelete();
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Delete
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

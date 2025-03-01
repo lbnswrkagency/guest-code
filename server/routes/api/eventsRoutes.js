@@ -90,7 +90,7 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     console.log(`[Weekly Events] Fetching week ${week} for event ${eventId}`);
 
     // First, find the parent event
-    const parentEvent = await Event.findById(eventId);
+    const parentEvent = await Event.findById(eventId).populate("lineups");
     if (!parentEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
@@ -99,7 +99,7 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     const childEvent = await Event.findOne({
       parentEventId: eventId,
       weekNumber: week,
-    });
+    }).populate("lineups");
 
     if (!childEvent) {
       // Instead of just returning a 404, include the parent event in the response

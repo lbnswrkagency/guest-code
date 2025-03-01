@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import Cropper from "react-easy-crop";
 import axios from "axios";
@@ -7,14 +7,35 @@ import "./AvatarUpload.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import { RiUpload2Line, RiCloseLine, RiCheckLine } from "react-icons/ri";
 import { createPortal } from "react-dom";
+import { useToast } from "../Toast/ToastContext";
 
-const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
+const AvatarUpload = ({
+  user,
+  setUser,
+  isCropMode,
+  setIsCropMode,
+  onImageCropped,
+  isLineUpMode = false,
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [imageSrc, setImageSrc] = useState(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const { showSuccess, showError } = useToast();
+
+  useEffect(() => {
+    if (isCropMode !== undefined) {
+      setShowModal(isCropMode);
+    }
+  }, [isCropMode]);
+
+  useEffect(() => {
+    if (setIsCropMode && !showModal && isCropMode) {
+      setIsCropMode(false);
+    }
+  }, [showModal, isCropMode, setIsCropMode]);
 
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -86,13 +107,15 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
       setIsUploading(true);
 
       if (!imageSrc || !croppedAreaPixels) {
-        toast.error("Please select and crop an image first");
+        showError("Please select and crop an image first");
+        setIsUploading(false);
         return;
       }
 
       console.log("[AvatarUpload] Starting save process:", {
-        userId: user._id,
+        userId: user?._id,
         hasCroppedPixels: !!croppedAreaPixels,
+        isLineUpMode,
         timestamp: new Date().toISOString(),
       });
 
@@ -101,9 +124,24 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
         type: "image/jpeg",
       });
 
+      if (isLineUpMode && onImageCropped) {
+        console.log("[AvatarUpload] In LineUp mode, returning cropped file");
+        onImageCropped(file);
+        setImageSrc(null);
+        setShowModal(false);
+        if (setIsCropMode) setIsCropMode(false);
+        setIsUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("profileImage", file);
-      formData.append("userId", user._id);
+
+      if (user && user._id) {
+        formData.append("userId", user._id);
+      } else {
+        throw new Error("User ID is required for avatar upload");
+      }
 
       const token = localStorage.getItem("token");
       if (!token) {
@@ -143,7 +181,7 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
 
       setImageSrc(null);
       setShowModal(false);
-      toast.success("Avatar updated successfully!");
+      showSuccess("Avatar updated successfully!");
     } catch (error) {
       console.error("[AvatarUpload] Upload error:", {
         error: error.message,
@@ -151,7 +189,7 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
         status: error.response?.status,
         timestamp: new Date().toISOString(),
       });
-      toast.error(error.response?.data?.error || "Failed to upload avatar");
+      showError(error.response?.data?.error || "Failed to upload avatar");
     } finally {
       setIsUploading(false);
     }
@@ -160,6 +198,7 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
   const handleCancel = () => {
     setImageSrc(null);
     setShowModal(false);
+    if (setIsCropMode) setIsCropMode(false);
   };
 
   const getAvatarUrl = (avatar) => {
@@ -267,8 +306,14 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
 
   return (
     <>
-      <div className="avatar-upload">
-        <div className="avatar-display" onClick={() => setShowModal(true)}>
+      <div className={`avatar-upload ${isLineUpMode ? "lineup-mode" : ""}`}>
+        <div
+          className="avatar-display"
+          onClick={() => {
+            setShowModal(true);
+            if (setIsCropMode) setIsCropMode(true);
+          }}
+        >
           {user?.avatar ? (
             <img
               src={getAvatarUrl(user.avatar)}
@@ -277,7 +322,11 @@ const AvatarUpload = ({ user, setUser, isCropMode, setIsCropMode }) => {
             />
           ) : (
             <div className="avatar-placeholder">
-              <img src="/image/profile-icon.svg" alt="Default profile" />
+              {isLineUpMode ? (
+                <RiUpload2Line className="upload-icon" />
+              ) : (
+                <img src="/image/profile-icon.svg" alt="Default profile" />
+              )}
             </div>
           )}
           <div className="avatar-overlay">
