@@ -488,7 +488,7 @@ const EventPage = ({ passedEventId }) => {
 
               <div
                 className="event-page-banner-location"
-                onClick={copyAddressToClipboard}
+                onClick={() => copyAddressToClipboard(address)}
               >
                 <img src="./image/location.svg" alt="" />
 

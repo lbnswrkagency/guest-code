@@ -1,7 +1,15 @@
-const fs = require("fs");
-const nodemailer = require("nodemailer");
-const key = require("./key.json");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 const puppeteer = require("puppeteer");
+const fs = require("fs");
+const path = require("path");
+const mongoose = require("mongoose");
+const Event = require("../models/eventsModel");
+const Brand = require("../models/brandModel");
+
+// Configure Brevo API Key
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 const addLeadingZeros = (num, totalLength) => {
   return String(num).padStart(totalLength, "0");
@@ -16,346 +24,461 @@ const formattedDate = () => {
   if (dd < 10) dd = "0" + dd;
   if (mm < 10) mm = "0" + mm;
 
-  const str = dd + "." + mm + "." + yyyy;
-  return str;
+  return dd + "." + mm + "." + yyyy;
 };
 
-const sendEmail = async (createdTicket, isNoCostOrder) => {
+// Generate a shorter invoice number
+const generateInvoiceNumber = (sessionId) => {
+  // Take the last 4 characters of the session ID
+  const shortId = sessionId.slice(-4).toUpperCase();
+  return `INV-${shortId}`;
+};
+
+// Format date with leading zeros
+const formatDateWithLeadingZeros = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+const sendEmail = async (order) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // true for 465, false for other ports
-      auth: {
-        type: "oAuth2",
-        user: "mail@hilifechallenge.net", // generated ethereal user
-        serviceClient: key.client_id,
-        privateKey: key.private_key, // generated ethereal password
+    // Fetch event and brand information
+    const event = await Event.findById(order.eventId).populate("brand");
+    const brand = event ? await Brand.findById(event.brand) : null;
+
+    // Get brand colors or use defaults
+    const primaryColor = brand?.colors?.primary || "#ffc807";
+    const accentColor = brand?.colors?.accent || "#000000";
+
+    // Create an elegant logo with SVG for better quality
+    const logoHtml = `
+      <div style="text-align: center; padding: 10px; background-color: ${accentColor}; color: white;">
+        <h1 style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 24px; font-weight: 700; margin: 0; color: ${primaryColor}; letter-spacing: 1px;">GuestCode</h1>
+        <p style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; margin: 3px 0 0; letter-spacing: 0.5px;">The Future of Event Management</p>
+      </div>
+    `;
+
+    // Add brand logo if available
+    const brandLogoHtml = brand?.logo?.medium
+      ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 60px; height: 60px; padding: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><img src="${brand.logo.medium}" alt="${brand.name}" style="max-height: 55px; max-width: 55px; object-fit: contain;"></div>`
+      : "";
+
+    // Generate the tickets HTML with improved styling
+    const ticketsHtml = order.tickets
+      .map(
+        (ticket, index) => `
+      <div style="width: 100%; display: grid; grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr; margin-bottom: 0.6rem; align-items: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 0.6rem;">
+        <p style="padding-left: 1rem; align-self: start; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0;">${
+          index + 1
+        }.</p>
+        <div style="display: grid; grid-gap: .2rem;">
+          <p style="font-weight: 600; margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${
+            ticket.name
+          }</p>
+        </div>
+        <p style="justify-self: end; padding-right: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0;">${
+          ticket.quantity
+        } Stk</p>
+        <p style="justify-self: end; padding-right: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0;">${ticket.pricePerUnit.toFixed(
+          2
+        )} EUR</p>
+        <p style="justify-self: end; padding-right: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600; margin: 0;">${(
+          ticket.quantity * ticket.pricePerUnit
+        ).toFixed(2)} EUR</p>
+      </div>
+    `
+      )
+      .join("");
+
+    const line2HTML = order.billingAddress.line2
+      ? `<p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.line2}</p>`
+      : "";
+    const addressHTML = `
+      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600;">${order.firstName} ${order.lastName}</p>
+      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.line1}</p>
+      ${line2HTML}
+      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.postal_code}, ${order.billingAddress.city}</p>
+    `;
+
+    // Launch puppeteer to generate PDF with new headless mode
+    const browser = await puppeteer.launch({
+      headless: "new", // Use the new headless mode
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+
+    // Generate invoice HTML with improved styling
+    const invoiceHtml = `
+    <html>
+    <head>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+          font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          color: #333;
+          line-height: 1.4;
+          min-height: 100vh;
+        }
+        .invoice-container {
+          width: 100%;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        .header {
+          background-color: ${accentColor};
+          height: 6rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+        }
+        .content {
+          padding: 1.5rem 2rem;
+          flex: 1;
+        }
+        .address-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          margin-bottom: 1.5rem;
+        }
+        .company-address {
+          margin-top: 1rem;
+        }
+        .client-address {
+          margin-top: 0.5rem;
+        }
+        .invoice-details {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          justify-content: end;
+          justify-items: end;
+          margin-top: 1rem;
+        }
+        .invoice-title-section {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        .invoice-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #222;
+          margin: 0;
+        }
+        .brand-logo {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .event-info {
+          margin-bottom: 1rem;
+          padding: 0.8rem;
+          background-color: #f9f9f9;
+          border-radius: 4px;
+          border-left: 3px solid ${primaryColor};
+        }
+        .table-header {
+          height: 2.2rem;
+          width: 100%;
+          background-color: ${accentColor};
+          display: grid;
+          grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
+          color: white;
+          align-items: center;
+          border-radius: 4px;
+          margin-bottom: 0.5rem;
+        }
+        .table-footer {
+          height: 2.2rem;
+          width: 100%;
+          background-color: ${accentColor};
+          display: grid;
+          grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
+          color: white;
+          align-items: center;
+          border-radius: 4px;
+          margin-top: 0.5rem;
+        }
+        .footer-message {
+          margin-top: 1.5rem;
+          padding: 1rem;
+          background-color: #f9f9f9;
+          border-radius: 4px;
+          border-left: 3px solid ${primaryColor};
+        }
+        .footer {
+          background-color: ${accentColor};
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          margin-top: auto;
+          height: 5rem;
+          color: #b4b0b0;
+        }
+        .footer-left {
+          align-self: center;
+          padding-left: 2rem;
+          font-size: 0.7rem;
+        }
+        .footer-center {
+          justify-self: center;
+          align-self: center;
+        }
+        .footer-right {
+          align-self: center;
+          justify-self: end;
+          padding-right: 2rem;
+          font-size: 0.7rem;
+          text-align: right;
+        }
+        .invoice-number {
+          color: ${primaryColor};
+          font-weight: 600;
+        }
+        .total-amount {
+          font-weight: 700;
+          font-size: 1rem;
+        }
+        p {
+          margin: 0.2rem 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="invoice-container">
+        <div class="header">
+          ${logoHtml}
+        </div>
+
+        <div class="content">
+          <div class="address-section">
+            <div class="company-address">
+              <p style="font-size: 0.6rem; margin-bottom: .5rem; color: #777;">
+                GuestCode - Your Address Here - Your City
+              </p>
+              ${addressHTML}
+            </div>
+
+            <div class="invoice-details">
+              <div>
+                <p style="font-weight: 600; margin: 2px 0;">Invoice No.</p>
+                <p style="margin: 2px 0;">Date</p>
+              </div>
+              <div>
+                <p class="invoice-number" style="margin: 2px 0;">${generateInvoiceNumber(
+                  order.stripeSessionId
+                )}</p>
+                <p style="margin: 2px 0;">${formattedDate()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="invoice-title-section">
+            <h1 class="invoice-title">Invoice</h1>
+            ${
+              brandLogoHtml
+                ? `<div class="brand-logo">${brandLogoHtml}</div>`
+                : ""
+            }
+          </div>
+          
+          ${
+            event
+              ? `
+          <div class="event-info">
+            <p style="font-weight: 600; margin: 0;">${
+              event.title || "Event"
+            }</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+              <p style="margin: 3px 0 0; font-size: 0.9rem;">${
+                brand ? brand.name : ""
+              }</p>
+              ${
+                event.date
+                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${formatDateWithLeadingZeros(
+                      event.date
+                    )}</p>`
+                  : ""
+              }
+              ${
+                event.location
+                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${event.location}</p>`
+                  : ""
+              }
+              ${
+                event.startTime
+                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${
+                      event.startTime
+                    }${event.endTime ? ` - ${event.endTime}` : ""}</p>`
+                  : ""
+              }
+            </div>
+          </div>
+          `
+              : ""
+          }
+
+          <div class="table-header">
+            <p style="padding-left: 1rem; font-weight: 500; margin: 0;">Pos.</p>
+            <p style="font-weight: 500; margin: 0;">Description</p>
+            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Quantity</p>
+            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Unit Price</p>
+            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Total</p>
+          </div>
+
+          ${ticketsHtml}
+
+          <div class="table-footer">
+            <p style="padding-left: 1rem; margin: 0;"></p>
+            <p style="font-weight: 500; margin: 0;">Total Amount</p>
+            <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
+            <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
+            <p class="total-amount" style="justify-self: end; padding-right: 1rem; margin: 0;">${order.totalAmount.toFixed(
+              2
+            )} EUR</p>
+          </div>
+
+          <div class="footer-message">
+            <p style="margin: 0; font-weight: 500;">Payment has been processed successfully.</p>
+            <p style="margin: 3px 0 0 0;">Thank you for your purchase. We look forward to seeing you at the event!</p>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="footer-left">
+            <p style="margin:0; font-weight: 600;">GuestCode</p>
+            <p style="margin:2px 0 0;">Your Address</p>
+            <p style="margin:2px 0 0;">Your City</p>
+          </div>
+
+          <div class="footer-center">
+            <p style="color: white; font-size: 0.8rem; margin: 0;">Powered by</p>
+            <p style="color: ${primaryColor}; font-weight: 600; font-size: 1rem; margin: 0;">GuestCode</p>
+          </div>
+
+          <div class="footer-right">
+            <p style="margin:0;">Email: contact@guest-code.com</p>
+            <p style="margin:2px 0 0;">Web: www.guest-code.com</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>`;
+
+    await page.setContent(invoiceHtml);
+    await page.emulateMediaType("screen");
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
       },
     });
 
-    const image = fs.readFileSync("hilifelogo.png");
-    const base64Image = new Buffer.from(image).toString("base64");
-    const dataURI = "data:image/jpeg;base64," + base64Image;
+    await browser.close();
 
-    if (!isNoCostOrder) {
-      const totalAmount = () => {
-        let total = createdTicket.price;
-        return total;
-      };
-
-      const ticketHtml = () => {
-        let htmlStr = "";
-        htmlStr =
-          htmlStr +
-          `        <div
-          style="
+    // Prepare and send email using Brevo with improved email template
+    let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: order.email }];
+    sendSmtpEmail.sender = {
+      name: brand?.name || "GuestCode",
+      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
+    };
+    sendSmtpEmail.subject = `${brand?.name || "GuestCode"} - Your Invoice`;
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="text-align: center; background-color: ${accentColor}; padding: 20px; margin-bottom: 30px;">
+          <h1 style="color: ${primaryColor}; font-size: 28px; font-weight: 700; margin: 0;">GuestCode</h1>
+          <p style="color: white; font-size: 14px; margin: 5px 0 0;">The Future of Event Management</p>
+          ${
+            brand?.logo?.medium
+              ? `<div style="margin-top: 15px; display: inline-block;"><img src="${brand.logo.medium}" alt="${brand.name}" style="max-height: 80px; max-width: 200px; object-fit: contain;"></div>`
+              : ""
+          }
+        </div>
         
-            width: 100%;
-
-            display: grid;
-            grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-            margin-bottom: 1rem;
-            align-items: center;
-            align-content: center;
-          "
-        >
-          <p style="padding-left: 1rem; align-self: start">1.</p>
-            <div style="display: grid; grid-gap: .3rem;">
-              <p style="font-weight: 600; margin: 0;">${createdTicket.challengeName}</p> 
-            </div>
-          <p style="justify-self: end; padding-right: 1rem; align-self: start">1 Stk</p>
-          <p style="justify-self: end; padding-right: 1rem; align-self: start">${createdTicket.price}.00 EUR</p>
-          <p style="justify-self: end; padding-right: 1rem; align-self: start">${createdTicket.price}.00 EUR</p>
-        </div>`;
-
-        return htmlStr;
-      };
-
-      const line2HTML = createdTicket.billingAddress.line2
-        ? `<p>${createdTicket.billingAddress.line2}</p>`
-        : "";
-
-      const addressHTML = `
-  <p>${createdTicket.firstname}&nbsp; ${createdTicket.lastname}</p>
-  <p>${createdTicket.billingAddress.line1}</p>
-  ${line2HTML}
-  <p>${createdTicket.billingAddress.postal_code}, ${createdTicket.billingAddress.city}</p>
-`;
-
-      const ticketStr = () => {
-        let str = "";
-        if (createdTicket.vip)
-          str = str + " | VIP: " + createdTicket.vip.toString() + " | ";
-        if (createdTicket.premium)
-          str = str + " | Premium: " + createdTicket.premium.toString() + " | ";
-        if (createdTicket.regular)
-          str = str + " | Regular: " + createdTicket.regular.toString() + " | ";
-        return str;
-      };
-
-      const str = `<div style="z-index:5; color:white; position:absolute; bottom: 1rem; margin-left:auto; margin-right:auto; font-size:.8rem;">${ticketStr()}</div>`;
-
-      const browser = await puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-      const page = await browser.newPage();
-      await page.setContent(`
-      <html>
-  
-  <body style="width: 100%; margin: 0;">
-    <div style="width: 100%">
-      <div style="background-color: black; display: grid; height: 8rem;">
-        <img
-        style="justify-self: center; padding: 1rem; width: 5rem;"
-        src="${dataURI}"
-        alt=""
-        />
+        <h2 style="color: #333; text-align: center; font-size: 24px; margin-bottom: 20px;">Thank You for Your Purchase</h2>
+        
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Dear ${
+          order.firstName
+        },</p>
+        
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Thank you for your purchase. Your payment has been successfully processed, and your invoice is attached to this email.</p>
+        
+        ${
+          event
+            ? `
+        <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
+          <p style="margin: 0; font-weight: 500;">Event: <span style="color: #333;">${
+            event.title || "Event"
+          }</span></p>
+          <p style="margin: 8px 0 0;">Organizer: <strong>${
+            brand ? brand.name : "GuestCode"
+          }</strong></p>
+          ${
+            event.date
+              ? `<p style="margin: 8px 0 0;">Date: <strong>${new Date(
+                  event.date
+                ).toLocaleDateString()}</strong></p>`
+              : ""
+          }
+        </div>
+        `
+            : ""
+        }
+        
+        <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
+          <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
+      order.stripeSessionId
+    )}</span></p>
+          <p style="margin: 8px 0 0;">Total Amount: <strong>${order.totalAmount.toFixed(
+            2
+          )} EUR</strong></p>
+        </div>
+        
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">We look forward to seeing you at the event! If you have any questions, please don't hesitate to contact us.</p>
+        
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">Best regards,<br>${
+          brand ? brand.name : "The GuestCode Team"
+        }</p>
+        
+        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+          <p style="color: ${primaryColor}; font-size: 18px; font-weight: bold; margin: 0;">GuestCode</p>
+          <p style="color: #777; font-size: 14px; margin: 5px 0 0;">The Future of Event Management</p>
+          <p style="color: #777; font-size: 14px; margin: 15px 0 0;">Email: contact@guest-code.com | Web: www.guest-code.com</p>
+        </div>
       </div>
-  
-  <div style="padding-left: 2rem; padding-right: 2rem">
-  <div style="display: grid; grid-template-columns: 1fr 1fr">
-  <div style="margin-top: 3rem">
-    <p style="font-size: 0.6rem; margin-bottom: .75rem">
-      myleo GmbH - Franklinstr. 10 - 10587 Berlin
-    </p>
-   ${addressHTML}
-  </div>
-  
-  <div
-    style="
-      grid-column: 2/3;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      justify-content: end;
-      justify-items: end;
-    "
-  >
-    <div style="margin-top: 2rem">
-      <p style="font-weight: 600">Rechnungs-Nr.</p>
-      <p>Rechnungsdatum</p>
-      <p>Lieferdatum</p>
-    </div>
-    <div style="margin-top: 2rem">
-      <p>RE-${addLeadingZeros(createdTicket.invoiceNo, 4)}</p>
-      <p>${formattedDate()}</p>
-      <p>${formattedDate()}</p>
-    </div>
-  </div>
-  </div>
-  
-  <div style="display: grid; grid-template-columns: .3fr 1fr;; margin-top: 5rem;">
-  <h1>Rechnung</h1>
-  
-  
-  </div>
-  <div
-  style="
-    height: 2rem;
-    width: 100%;
-    background-color: black;
-    display: grid;
-    grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-    color: white;
-    align-items: center;
-    align-content: center;
-  "
-  >
-  <p style="padding-left: 1rem">Pos.</p>
-  <p>Beschreibung</p>
-  <p style="justify-self: end; padding-right: 1rem">Menge</p>
-  <p style="justify-self: end; padding-right: 1rem">Einzelpreis</p>
-  <p style="justify-self: end; padding-right: 1rem">Gesamtpreis</p>
-  </div>
-  
-  <!-- TICKETS -->
-  
-  ${ticketHtml()}
-  
-  <!-- TICKETS -->
-  
-  <div
-  style="
-    height: 2rem;
-    width: 100%;
-    background-color: black;
-    display: grid;
-    grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-    color: white;
-    align-items: center;
-    align-content: center;
-  
-  "
-  >
-  <p style="padding-left: 1rem"></p>
-  <p>Gesamtbetrag netto</p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem">${
-    Math.round((totalAmount() / 1.19 + Number.EPSILON) * 100) / 100
-  }EUR</p>
-  </div>
-  
-  <div
-  style="
-    height: 2rem;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-    color: black;
-    align-items: center;
-    align-content: center;
-  "
-  >
-  <p style="padding-left: 1rem"></p>
-  <p>zzgl. Umsatzsteuer 19%</p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem">${
-    Math.round((totalAmount() - totalAmount() / 1.19 + Number.EPSILON) * 100) /
-    100
-  } EUR</p>
-  </div>
-  <div
-  style="
-    height: 2rem;
-    width: 100%;
-    background-color: black;
-    display: grid;
-    grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-    color: white;
-    align-items: center;
-    align-content: center;
-  "
-  >
-  <p style="padding-left: 1rem"></p>
-  <p style="font-weight: 600;">Gesamtbetrag brutto</p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem"></p>
-  <p style="justify-self: end; padding-right: 1rem; font-weight: 600; ">${
-    Math.round((totalAmount() + Number.EPSILON) * 100) / 100
-  }.00 EUR</p>
-  </div>
-  
-  <div style="margin-top: 5rem;">
-    <p style="margin: 0;">Die Rechnung ist vollständig beglichen.</p>
-    <p style="margin: 0;">Wir bedanken uns für Ihr Vertrauen und wünschen eine erfolgreiche Challenge.</p>
-  </div>
-  </div>
-  <div style="background-color: black; display: grid; grid-template-columns: 1fr 1fr 1fr; margin-top: 11.5rem; height: 8rem;">
-  
-  <div style="color: rgb(180, 176, 176); font-weight: 300; font-size: .8rem; align-self: center; padding-left: 2rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap:2rem;">
-  
-    <div>            
-        <p style="margin:0; font-weight: 600;">myleo GmbH</p>
-    </div>
-  
-    <div>
-    <p style="margin:0;">Franklinstr. 10</p>
-    <p style="margin:0;">10587 Berlin</p>
-    <p style="margin:0;">Deutschland</p>
-    </div>
-  
-  </div>
-  
-  <img
-  style="justify-self: center; align-self: center; width: 5rem;"
-  src="${dataURI}"
-  alt=""
-  />
-  <div style="color: rgb(180, 176, 176); font-weight: 300; font-size: .8rem; align-self: center; justify-self: end; padding-right: 2rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content));">
-  
-    <div>
-    <p style="margin:0;">E-Mail:</p>
-    <p style="margin:0;">Web:</p>
-    <p style="margin:0;">Umsatzsteuer ID :</p>
-     <p style="margin:0;">Handelsregister: </p>
-    </div>
-    <div>
-    <p style="margin:0; text-align: right;">mail@hilifechallenge.net</p>
-    <p style="margin:0; text-align: right;">www.hilifechallenge.net</p>
-    <p style="margin:0; text-align: right;">DE289104024</p>
-     <p style="margin:0; text-align: right;">HRB 149335</p>
-    </div>
-  
-  </div>
-  </div>
-  </div>
-  </div>
-  </body>
-      </html>
-      `);
-      await page.emulateMediaType("screen");
-      await page.pdf({
-        path: "invoice.pdf",
-        format: "A4",
-        printBackground: true,
-      });
+    `;
 
-      await browser.close();
+    sendSmtpEmail.attachment = [
+      {
+        content: pdfBuffer.toString("base64"),
+        name: `${generateInvoiceNumber(order.stripeSessionId)}.pdf`,
+        type: "application/pdf",
+      },
+    ];
 
-      await transporter.sendMail({
-        from: '"HiLife Challenge" <mail@hilifechallenge.et>', // sender address
-        to: createdTicket.email, // list of receivers
-        subject: "HiLife Challenge - Rechnung", // Subject line
-        text: "", // plain text body
-        html: `    
-          <div style="color: black">
-              <div>Hallo ${createdTicket.firstname},</div>
-              <br />
-              <div>vielen Dank für deinen Einkauf. Im Anhang befindet sich die Rechnung.</div><br />
-              <br />
-              <br>
-              <div>Wir freuen uns.</div>
-              _____________________________
-              <br /><br />
-              <b>Beste Grüße</b>
-              <br /><br />
-              <p>
-              <img style="float: left; width: 3.5rem" src="cid:my-qr-code-1-1-1" /> 
-              </p>
-              
-              <br /><br /><br /><br /><br />
-              <h3>HiLife Challenge</h3>
-              <p>Email: mail@hilifechallenge.net<br /><p>Website: www.hilifechallenge.net</p>
-          </div>`,
-        attachments: [
-          {
-            filename: "invoice.pdf",
-            path: "./invoice.pdf",
-          },
-        ], // html body
-      });
-    } else {
-      await transporter.sendMail({
-        from: '"HiLife Challenge" <mail@hilifechallenge.et>', // sender address
-        to: createdTicket.email, // list of receivers
-        subject: "HiLife Challenge - Willkommen", // Subject line
-        text: "", // plain text body
-        html: `    
-          <div style="color: black">
-              <div>Hallo ${createdTicket.firstname},</div>
-              <br />
-              <div>vielen Dank für Deine Anmeldung zur HiLife Challenge! Wir freuen uns auf 4 gemeinsame Wochen für mehr Power, Health & Happiness und Deine Topform!</div>
-              <br />
-              ___________
-              <br /><br />
-              <div>Viele Grüße</div>
-              <div>Dein HiLife Challenge Team</div>
-              <br /><br />
-              <img style="width: 150px" src="cid:logo" />
-          </div>`,
-        attachments: [
-          {
-            filename: "logo.png",
-            path: "./views/img/logo.png",
-            cid: "logo",
-          },
-        ],
-      });
-    }
+    // Send the email
+    let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.debug(
+      "Order confirmation email sent successfully to:",
+      order.email
+    );
   } catch (error) {
-    console.log(error);
+    console.error("Error sending order confirmation email:", error);
+    throw error;
   }
 };
 

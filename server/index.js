@@ -43,12 +43,56 @@ const tempDir = path.join(__dirname, "temp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
+
+// Load environment variables first
 dotenv.config();
+
+// Initialize Stripe after loading environment variables
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const { fulfillOrder } = require("./fulfillOrder");
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS configuration
+// Webhook endpoint must be before ANY other middleware
+app.post(
+  "/webhook",
+  express.raw({ type: "application/json" }), // Changed to only handle JSON
+  async (request, response) => {
+    const sig = request.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!endpointSecret) {
+      return response.status(500).send("Webhook secret is not configured");
+    }
+
+    try {
+      // Verify the signature using the raw body and secret
+      const event = stripe.webhooks.constructEvent(
+        request.body,
+        sig,
+        endpointSecret
+      );
+
+      // Handle the event
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+
+        // Get the billing address from the session
+        const billingAddress = session.customer_details?.address;
+
+        // Fulfill the order
+        await fulfillOrder(session, billingAddress);
+      }
+
+      response.json({ received: true });
+    } catch (err) {
+      return response.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  }
+);
+
+// Move all middleware and routes after the webhook
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
@@ -66,6 +110,7 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
     "Origin",
+    "stripe-signature",
   ],
   exposedHeaders: ["set-cookie"],
   preflightContinue: false,
@@ -73,7 +118,7 @@ const corsOptions = {
   maxAge: 86400,
 };
 
-// Apply CORS before any other middleware
+// Apply CORS after webhook route
 app.use(cors(corsOptions));
 
 // Enable pre-flight requests for all routes
@@ -172,37 +217,3 @@ server.on("error", (error) => {
 process.on("unhandledRejection", (reason, promise) => {
   console.error("[Server] Unhandled Rejection:", reason);
 });
-
-app.post(
-  `${process.env.NODE_ENV === "production" ? "/api/stripe" : ""}/webhook`,
-  express.raw({ type: "application/json" }),
-  (request, response) => {
-    const sig = request.headers["stripe-signature"];
-
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
-      return response.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    // Determine if it's a no-cost order
-    const isNoCostOrder =
-      event.type === "checkout.session.completed" &&
-      event.data.object.amount_total === 0;
-
-    switch (event.type) {
-      case "checkout.session.completed":
-        const session = event.data.object;
-        const billingAddress = session.customer_details.address || null;
-        fulfillOrder(session, billingAddress, isNoCostOrder); // Pass the isNoCostOrder flag to fulfillOrder
-        break;
-      default:
-        console.log("Unhandled event type:", event.type);
-    }
-
-    response.json({ received: true }); // Acknowledge the event
-  }
-);
