@@ -180,6 +180,17 @@ const DashboardContent = ({ user, setUser }) => {
   const startingEventString = "15052024";
   const startingEventDate = moment(startingEventString, "DDMMYYYY");
 
+  // Add state for selected brand and date to pass to DashboardFeed
+  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  console.log("[Dashboard] Current state:", {
+    selectedBrand: selectedBrand
+      ? `${selectedBrand.name} (${selectedBrand._id})`
+      : "none",
+    selectedDate: selectedDate ? new Date(selectedDate).toISOString() : "none",
+  });
+
   const handleCropModeToggle = (isInCropMode) => {
     setIsCropMode(isInCropMode);
   };
@@ -449,6 +460,10 @@ const DashboardContent = ({ user, setUser }) => {
           isCropMode={isCropMode}
           setUser={setUser}
           isOnline={isConnected}
+          selectedBrand={selectedBrand}
+          setSelectedBrand={setSelectedBrand}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
         />
 
         <DashboardMenu
@@ -464,7 +479,15 @@ const DashboardContent = ({ user, setUser }) => {
         />
 
         <Routes>
-          <Route index element={<DashboardFeed />} />
+          <Route
+            index
+            element={
+              <DashboardFeed
+                selectedBrand={selectedBrand}
+                selectedDate={selectedDate}
+              />
+            }
+          />
           {/* Commented out chat routes
           <Route
             path="chat"

@@ -170,3 +170,37 @@ server.on("error", (error) => {
 process.on("unhandledRejection", (reason, promise) => {
   console.error("[Server] Unhandled Rejection:", reason);
 });
+
+app.post(
+  `${process.env.NODE_ENV === "production" ? "/api/stripe" : ""}/webhook`,
+  express.raw({ type: "application/json" }),
+  (request, response) => {
+    const sig = request.headers["stripe-signature"];
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err.message);
+      return response.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Determine if it's a no-cost order
+    const isNoCostOrder =
+      event.type === "checkout.session.completed" &&
+      event.data.object.amount_total === 0;
+
+    switch (event.type) {
+      case "checkout.session.completed":
+        const session = event.data.object;
+        const billingAddress = session.customer_details.address || null;
+        fulfillOrder(session, billingAddress, isNoCostOrder); // Pass the isNoCostOrder flag to fulfillOrder
+        break;
+      default:
+        console.log("Unhandled event type:", event.type);
+    }
+
+    response.json({ received: true }); // Acknowledge the event
+  }
+);
