@@ -28,7 +28,17 @@ import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 // Helper function to check if a user has permissions to edit an event
 const hasEventPermissions = (event, user, userBrands) => {
   // If no user or event, permission denied
-  if (!user || !event) return false;
+  if (!user || !event) {
+    console.log("[hasEventPermissions] No user or event provided");
+    return false;
+  }
+
+  console.log("[hasEventPermissions] Checking permissions for:", {
+    userId: user._id,
+    eventId: event._id,
+    brandId: typeof event.brand === "object" ? event.brand._id : event.brand,
+    userBrandsCount: userBrands?.length || 0,
+  });
 
   // Get the brand associated with this event
   const eventBrand = userBrands?.find(
@@ -37,28 +47,124 @@ const hasEventPermissions = (event, user, userBrands) => {
       (typeof event.brand === "object" && b._id === event.brand._id)
   );
 
-  if (!eventBrand) return false;
+  if (!eventBrand) {
+    console.log("[hasEventPermissions] Brand not found in user's brands");
+    return false;
+  }
+
+  console.log("[hasEventPermissions] Found brand:", {
+    brandId: eventBrand._id,
+    brandName: eventBrand.name,
+    brandOwner:
+      typeof eventBrand.owner === "object"
+        ? eventBrand.owner._id
+        : eventBrand.owner,
+    hasTeam: !!eventBrand.team,
+    teamSize: eventBrand.team?.length || 0,
+  });
 
   // If user is the brand owner, they have permission
-  if (
-    eventBrand.owner === user._id ||
-    (typeof eventBrand.owner === "object" && eventBrand.owner._id === user._id)
-  ) {
+  const ownerId =
+    typeof eventBrand.owner === "object"
+      ? eventBrand.owner._id
+      : eventBrand.owner;
+  const userId = user._id;
+
+  if (ownerId === userId) {
+    console.log(
+      "[hasEventPermissions] User is brand owner, granting permission"
+    );
     return true;
   }
 
   // If user is a team member, check their permissions
-  const teamMember = eventBrand.team?.find(
-    (member) =>
-      member.user === user._id ||
-      (typeof member.user === "object" && member.user._id === user._id)
-  );
+  if (eventBrand.team && Array.isArray(eventBrand.team)) {
+    // Find the team member by comparing user IDs
+    const teamMember = eventBrand.team.find((member) => {
+      const memberId =
+        typeof member.user === "object" ? member.user._id : member.user;
+      return memberId === userId;
+    });
 
-  if (teamMember) {
-    // Check if the team member has edit permissions for events
-    return teamMember.permissions?.events?.edit === true;
+    if (teamMember) {
+      // Log team member details
+      console.log("[hasEventPermissions] Found team member:", {
+        memberId:
+          typeof teamMember.user === "object"
+            ? teamMember.user._id
+            : teamMember.user,
+        memberRole: teamMember.role,
+        permissions: JSON.stringify(teamMember.permissions || {}),
+      });
+
+      // Define roles that should have edit permissions by default
+      const editRoles = [
+        "OWNER",
+        "ADMIN",
+        "MANAGER",
+        "HOST",
+        "VERANSTALTER",
+        "ORGANIZER",
+        "EDITOR",
+      ];
+
+      // Check if the user's role is in the editRoles list (case insensitive)
+      const hasEditRole =
+        teamMember.role &&
+        editRoles.some(
+          (role) => role.toUpperCase() === teamMember.role.toUpperCase()
+        );
+
+      // Log the role-based permission check
+      console.log(`[hasEventPermissions] Role-based permission check:`, {
+        role: teamMember.role,
+        hasEditRole,
+        editRoles: editRoles.join(", "),
+      });
+
+      // IMPORTANT FIX: If the role is in our editRoles list, grant permission regardless of
+      // what's in the permissions object. This is the key fix.
+      if (hasEditRole) {
+        console.log(
+          `[hasEventPermissions] Granting permission based on role: ${teamMember.role}`
+        );
+        return true;
+      }
+
+      // Only check the permissions object if the role doesn't automatically grant access
+      if (teamMember.permissions) {
+        // Check if the team member has edit permissions for events
+        const hasEditPermission = teamMember.permissions?.events?.edit === true;
+
+        // Log detailed information about the permissions
+        console.log(
+          "[hasEventPermissions] Team member direct permissions check:",
+          {
+            role: teamMember.role,
+            hasEditPermission,
+            eventsPermissions: JSON.stringify(
+              teamMember.permissions?.events || {}
+            ),
+            allPermissions: JSON.stringify(teamMember.permissions || {}),
+          }
+        );
+
+        // If the permissions object has events.edit defined, use that value
+        if (typeof teamMember.permissions?.events?.edit === "boolean") {
+          return hasEditPermission;
+        }
+      }
+
+      // If we get here, the role doesn't have automatic access and there's no
+      // valid permissions object, so deny access
+      console.log(
+        `[hasEventPermissions] No valid permissions found for role: ${teamMember.role}`
+      );
+      return false;
+    }
   }
 
+  console.log("[hasEventPermissions] No permissions found for user");
   return false;
 };
 
@@ -79,12 +185,24 @@ const Events = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
   const [isLive, setIsLive] = useState(false); // Track live status
+  const [brandsLoaded, setBrandsLoaded] = useState(false);
 
   const fetchBrands = async () => {
     try {
+      console.log("[Events] Fetching brands...");
       const response = await axiosInstance.get("/brands");
       if (Array.isArray(response.data)) {
+        console.log("[Events] Brands fetched:", {
+          count: response.data.length,
+          brands: response.data.map((b) => ({
+            id: b._id,
+            name: b.name,
+            owner: typeof b.owner === "object" ? b.owner._id : b.owner,
+            teamSize: b.team?.length || 0,
+          })),
+        });
         setUserBrands(response.data);
+        setBrandsLoaded(true);
         if (response.data.length > 0 && !selectedBrand) {
           setSelectedBrand(response.data[0]);
         }
@@ -93,6 +211,7 @@ const Events = () => {
       console.error("Error fetching brands:", error);
       toast.showError("Failed to load brands");
       setUserBrands([]);
+      setBrandsLoaded(true);
     }
   };
 
@@ -459,6 +578,41 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
   // Check if the user has permission to edit this event
   const hasPermission = hasEventPermissions(event, user, userBrands);
+
+  // Log permission status for debugging
+  useEffect(() => {
+    console.log("[EventCard] Permission check result:", {
+      hasPermission,
+      eventId: event._id,
+      eventTitle: event.title,
+      userId: user?._id,
+      userBrandsCount: userBrands?.length || 0,
+    });
+
+    // If user has a HOST role but doesn't have permission, log more details
+    if (!hasPermission && user && userBrands) {
+      const eventBrand = userBrands.find(
+        (b) =>
+          b._id === event.brand ||
+          (typeof event.brand === "object" && b._id === event.brand._id)
+      );
+
+      if (eventBrand) {
+        console.log("[EventCard] Detailed brand info for debugging:", {
+          brandId: eventBrand._id,
+          brandName: eventBrand.name,
+          brandOwner: eventBrand.owner,
+          teamMembers: eventBrand.team?.map((member) => ({
+            id: member._id,
+            name: member.name,
+            userId:
+              typeof member.user === "object" ? member.user._id : member.user,
+            permissions: member.permissions,
+          })),
+        });
+      }
+    }
+  }, [event._id, user, userBrands, hasPermission]);
 
   useEffect(() => {
     console.log("[EventCard] Event prop changed:", event);

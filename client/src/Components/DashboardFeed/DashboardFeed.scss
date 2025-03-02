@@ -114,22 +114,38 @@
   // Event Details
   .event-details-container {
     padding: 24px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    max-width: 100%;
 
     .event-details {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
+      width: 100%;
+      max-width: 100%;
 
       .detail-item {
         display: flex;
         align-items: flex-start;
         gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
 
         svg {
           color: #ffc807;
           font-size: 20px;
           margin-top: 4px;
+          flex-shrink: 0;
+        }
+
+        div {
+          flex: 1;
+          min-width: 0; /* Important for text truncation */
+          overflow: hidden;
         }
 
         h4 {
@@ -143,6 +159,10 @@
           margin: 0;
           color: white;
           font-size: 16px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: normal;
+          word-break: break-word;
         }
       }
     }
@@ -151,6 +171,7 @@
       margin: 24px 0;
       display: flex;
       justify-content: center;
+      width: 100%;
 
       .view-event-button {
         background: #ffc807;
@@ -181,6 +202,12 @@
       margin-top: 24px;
       padding-top: 24px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+      position: relative;
+      overflow: hidden;
+      max-width: 100%;
 
       h3 {
         font-size: 18px;
@@ -192,6 +219,15 @@
         color: rgba(255, 255, 255, 0.8);
         line-height: 1.6;
         margin: 0;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        max-width: 100%;
+        overflow: hidden;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        hyphens: auto;
       }
     }
   }

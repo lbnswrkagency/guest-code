@@ -27,6 +27,7 @@ const DashboardHeader = ({
   const { isConnected } = useSocket();
   const { user: authUser } = useAuth();
   const [isCropMode, setIsCropMode] = useState(false);
+  const [userRole, setUserRole] = useState("");
 
   // State for dropdowns
   const [brandDropdown, setBrandDropdown] = useState(false);
@@ -82,6 +83,56 @@ const DashboardHeader = ({
 
     fetchBrands();
   }, []);
+
+  // Determine user's role in the selected brand
+  useEffect(() => {
+    if (selectedBrand && user?._id) {
+      // Check if user is the brand owner
+      if (
+        selectedBrand.owner === user._id ||
+        (typeof selectedBrand.owner === "object" &&
+          selectedBrand.owner._id === user._id)
+      ) {
+        setUserRole(`Owner ${selectedBrand.name}`);
+        return;
+      }
+
+      // Check if user is a team member
+      if (selectedBrand.team && Array.isArray(selectedBrand.team)) {
+        const teamMember = selectedBrand.team.find(
+          (member) =>
+            member.user === user._id ||
+            (typeof member.user === "object" && member.user._id === user._id)
+        );
+
+        if (teamMember) {
+          // Format role name: first letter uppercase, rest lowercase
+          let formattedRole = "Member";
+
+          if (teamMember.role) {
+            // Handle case where role might be all uppercase or mixed case
+            formattedRole =
+              teamMember.role.charAt(0).toUpperCase() +
+              teamMember.role.slice(1).toLowerCase();
+          }
+
+          // Log the role formatting for debugging
+          console.log("[DashboardHeader] Formatting role:", {
+            originalRole: teamMember.role,
+            formattedRole: formattedRole,
+          });
+
+          setUserRole(`${formattedRole} ${selectedBrand.name}`);
+          return;
+        }
+      }
+
+      // Default role if no specific role found
+      setUserRole(`Member ${selectedBrand.name}`);
+    } else {
+      setUserRole(""); // Reset if no brand selected
+    }
+  }, [selectedBrand, user]);
 
   // Fetch events for selected brand
   useEffect(() => {
@@ -258,7 +309,9 @@ const DashboardHeader = ({
                   {formatStatLabel(stats.events, "Event", "Events")}
                 </div>
               </div>
-              <div className="user-bio">Event Manager at GuestCode 🎫</div>
+              <div className="user-bio">
+                {userRole || "Member at GuestCode"}
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./EventSettings.scss";
 import { motion } from "framer-motion";
-import { RiInformationLine } from "react-icons/ri";
+import { RiInformationLine, RiCloseLine } from "react-icons/ri";
 import EventCodeSettings from "../EventCodeSettings/EventCodeSettings";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import axiosInstance from "../../utils/axiosConfig";
@@ -93,6 +93,14 @@ const EventSettings = ({ event, onClose }) => {
     <div className="event-settings">
       <div className="settings-header">
         <h2>Event Settings</h2>
+        <motion.button
+          className="close-button"
+          onClick={() => onClose && onClose()}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <RiCloseLine />
+        </motion.button>
       </div>
 
       <div className="settings-content">
