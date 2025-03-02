@@ -11,7 +11,7 @@ const {
   getLineUpById,
   addLineUpToEvent,
   removeLineUpFromEvent,
-} = require("../../controllers/lineUpController");
+} = require("../../controllers/lineupController");
 
 // Configure multer storage
 const storage = multer.memoryStorage();
@@ -27,6 +27,9 @@ router.get("/brand/:brandId", authenticate, getLineUpsByBrand);
 
 // Event-specific lineups
 router.get("/event/:eventId", authenticate, getLineUpsByEvent);
+
+// Public endpoint for event lineups (no authentication)
+router.get("/public/event/:eventId", getLineUpsByEvent);
 
 // Single lineup
 router.get("/:id", authenticate, getLineUpById);

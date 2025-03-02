@@ -10,6 +10,12 @@ router.get(
   ticketSettingsController.getTicketSettings
 );
 
+// Public endpoint for event ticket settings (no authentication)
+router.get(
+  "/public/events/:eventId",
+  ticketSettingsController.getTicketSettings
+);
+
 // Create a new ticket setting
 router.post(
   "/events/:eventId",

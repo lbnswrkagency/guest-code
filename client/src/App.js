@@ -30,6 +30,7 @@ import Locations from "./Components/Locations/Locations";
 import BrandProfile from "./Components/BrandProfile/BrandProfile";
 import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
+import EventProfile from "./Components/EventProfile/EventProfile";
 
 // Main routing component
 const AppRoutes = () => {
@@ -200,6 +201,16 @@ const AppRoutes = () => {
         element={
           <RouteDebug name="verify">
             <EmailVerification />
+          </RouteDebug>
+        }
+      />
+
+      {/* Event Profile Route */}
+      <Route
+        path="/events/:eventId"
+        element={
+          <RouteDebug name="event-profile">
+            <EventProfile />
           </RouteDebug>
         }
       />

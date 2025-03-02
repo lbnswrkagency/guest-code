@@ -1,0 +1,774 @@
+@import "../../_variables";
+
+.event-profile {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--text-color);
+  padding: 0 1rem;
+  padding-top: 80px;
+  padding-bottom: 120px;
+
+  // Loading state
+  &-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: 2rem;
+    margin-top: 100px;
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: #2196f3;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    p {
+      margin-top: 1rem;
+      color: var(--text-color-secondary);
+    }
+  }
+
+  // Error state
+  &-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 100px;
+
+    svg {
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1.5rem;
+    }
+
+    button {
+      background: #2196f3;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #1976d2;
+      }
+    }
+  }
+
+  // Hero section with event flyer
+  .event-hero {
+    background: #151515;
+    position: relative;
+    margin-bottom: 1rem;
+    border-radius: 1rem;
+    overflow: hidden;
+
+    &-image,
+    &-placeholder {
+      height: 300px;
+      position: relative;
+      overflow: hidden;
+
+      @media (max-width: 768px) {
+        height: 200px;
+      }
+
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    &-placeholder {
+      background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+    }
+
+    &-overlay {
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.8) 0%,
+        rgba(0, 0, 0, 0.5) 50%,
+        rgba(0, 0, 0, 0.3) 100%
+      );
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      box-sizing: border-box;
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.25rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+
+        @media (max-width: 768px) {
+          font-size: 1.5rem;
+        }
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 0.75rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+        @media (max-width: 768px) {
+          font-size: 1rem;
+        }
+      }
+
+      .event-brand {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 0.5rem;
+        display: inline-block;
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        backdrop-filter: blur(5px);
+      }
+    }
+  }
+
+  // Navigation tabs
+  .event-nav {
+    display: flex;
+    background: #151515;
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+
+    button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 1rem 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+
+      &:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &.active {
+        color: white;
+        border-bottom: 2px solid #2196f3;
+      }
+    }
+  }
+
+  // Content sections
+  .event-content {
+    margin-bottom: 2rem;
+  }
+
+  .event-section {
+    background: #151515;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1.5rem 0;
+      color: white;
+    }
+  }
+
+  // Info section
+  .event-info {
+    .event-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+
+        svg {
+          font-size: 1.5rem;
+          margin-top: 0.25rem;
+          color: #2196f3;
+        }
+
+        div {
+          h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+          }
+
+          p {
+            margin: 0;
+            font-size: 1rem;
+            color: white;
+            font-weight: 400;
+          }
+        }
+
+        &.weekly-badge {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 0.5rem;
+          padding: 0.75rem;
+          align-items: center;
+          justify-content: center;
+
+          span {
+            font-size: 0.875rem;
+            color: white;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    .event-description {
+      margin-bottom: 1.5rem;
+
+      h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.6;
+        white-space: pre-line;
+      }
+    }
+
+    .event-actions {
+      display: flex;
+      justify-content: flex-end;
+
+      .share-button {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.25rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+
+        svg {
+          margin-right: 0.5rem;
+        }
+
+        &:hover {
+          background-color: var(--primary-color-dark);
+        }
+      }
+    }
+  }
+
+  // Lineup section
+  .event-lineup {
+    .lineup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1.5rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1rem;
+      }
+
+      .lineup-artist {
+        text-align: center;
+
+        .artist-image {
+          width: 120px;
+          height: 120px;
+          border-radius: 1rem;
+          overflow: hidden;
+          margin: 0 auto 0.75rem;
+          background: rgba(255, 255, 255, 0.1);
+
+          @media (max-width: 768px) {
+            width: 100px;
+            height: 100px;
+          }
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .artist-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.5);
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+          }
+        }
+
+        h4 {
+          margin: 0 0 0.25rem 0;
+          font-size: 1rem;
+          font-weight: 500;
+          color: white;
+          // Prevent very long names from breaking layout
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .artist-category {
+          margin: 0;
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 400;
+        }
+      }
+    }
+
+    .no-lineup {
+      text-align: center;
+      padding: 2rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Tickets section
+  .event-tickets {
+    .tickets-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .ticket-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        transition: transform 0.2s;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        .ticket-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+
+          h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+          }
+
+          .ticket-discount {
+            background: #2196f3;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+          }
+        }
+
+        .ticket-price {
+          margin-bottom: 1rem;
+
+          .current-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-right: 0.5rem;
+          }
+
+          .original-price {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: line-through;
+          }
+        }
+
+        .ticket-description {
+          color: rgba(255, 255, 255, 0.8);
+          margin-bottom: 1rem;
+          font-size: 0.9rem;
+          line-height: 1.5;
+        }
+
+        .ticket-availability {
+          margin-bottom: 1rem;
+
+          .availability-bar {
+            height: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+
+            .availability-fill {
+              height: 100%;
+              transition: width 0.3s ease-out;
+            }
+          }
+
+          .availability-text {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        .ticket-countdown {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 1rem;
+        }
+
+        .buy-ticket-button {
+          width: 100%;
+          padding: 0.75rem;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 500;
+          color: white;
+          cursor: pointer;
+          transition: filter 0.2s;
+
+          &:hover {
+            filter: brightness(1.1);
+          }
+        }
+      }
+    }
+
+    .no-tickets {
+      text-align: center;
+      padding: 2rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Access section
+  .event-access {
+    .access-options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .access-option {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+
+        @media (max-width: 768px) {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .access-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: #2196f3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+
+          svg {
+            font-size: 1.5rem;
+            color: white;
+          }
+
+          &.friends {
+            background: #4caf50;
+          }
+
+          &.vip {
+            background: #ffc107;
+          }
+
+          &.backstage {
+            background: #9c27b0;
+          }
+
+          &.table {
+            background: #ff5722;
+          }
+        }
+
+        .access-info {
+          flex: 1;
+          min-width: 0;
+
+          h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+            font-weight: 500;
+          }
+
+          p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        .generate-code-button {
+          background: #1e88e5;
+          border: none;
+          border-radius: 0.5rem;
+          color: white;
+          padding: 0.6rem 1rem;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: background 0.2s;
+          white-space: nowrap;
+
+          @media (max-width: 768px) {
+            width: 100%;
+            margin-top: 1rem;
+            justify-content: center;
+          }
+
+          &:hover {
+            background: #1976d2;
+          }
+
+          svg {
+            font-size: 1.2rem;
+          }
+        }
+
+        .code-input {
+          display: flex;
+          gap: 0.5rem;
+
+          @media (max-width: 768px) {
+            width: 100%;
+            margin-top: 1rem;
+          }
+
+          input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+
+            &::placeholder {
+              color: rgba(255, 255, 255, 0.5);
+            }
+          }
+
+          button {
+            background: #1e88e5;
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            padding: 0.6rem 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+
+            &:hover {
+              background: #1976d2;
+            }
+          }
+        }
+      }
+
+      .no-access-codes {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+    }
+  }
+
+  // Guest code dialog
+  .guest-code-display {
+    text-align: center;
+    padding: 1rem 0;
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    .code {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 1rem;
+      word-break: break-all;
+    }
+
+    .code-note {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  // Share button at bottom
+  .event-actions-footer {
+    position: fixed;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 10;
+
+    .share-event-button {
+      background: #2196f3;
+      border: none;
+      border-radius: 2rem;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: background 0.2s, transform 0.2s;
+
+      &:hover {
+        background: #1976d2;
+        transform: translateY(-2px);
+      }
+
+      svg {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+// Media queries
+@media (max-width: 768px) {
+  .event-profile {
+    .event-hero {
+      height: 30vh;
+
+      .event-hero-overlay {
+        h1 {
+          font-size: 1.75rem;
+        }
+
+        h2 {
+          font-size: 1.25rem;
+        }
+      }
+    }
+
+    .event-info {
+      .event-details {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .event-tickets {
+      .tickets-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .event-access {
+      .access-option {
+        flex-direction: column;
+        text-align: center;
+
+        .access-icon {
+          margin-right: 0;
+          margin-bottom: 1rem;
+        }
+
+        .access-info {
+          margin-bottom: 1rem;
+        }
+
+        .code-input {
+          width: 100%;
+
+          input {
+            flex: 1;
+          }
+        }
+      }
+    }
+  }
+}

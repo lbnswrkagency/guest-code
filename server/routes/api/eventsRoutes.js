@@ -58,6 +58,7 @@ const {
   deleteDroppedFile,
   getSignedUrlForDownload,
   toggleEventLive,
+  getEventProfile,
 } = require("../../controllers/eventsController");
 
 // Brand-specific event routes
@@ -75,6 +76,7 @@ router.post(
 
 // Event-specific routes
 router.get("/", authenticate, getAllEvents);
+router.get("/profile/:eventId", getEventProfile);
 router.get("/:eventId", authenticate, getEvent);
 router.put("/:eventId", authenticate, editEvent);
 router.delete("/:eventId", authenticate, deleteEvent);

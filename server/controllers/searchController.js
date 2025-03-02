@@ -80,21 +80,36 @@ exports.search = async (req, res) => {
       case "events":
         try {
           results = await Event.find({
-            $or: [{ name: searchRegex }, { description: searchRegex }],
+            $or: [
+              { title: searchRegex },
+              { subTitle: searchRegex },
+              { description: searchRegex },
+              { location: searchRegex },
+            ],
             date: { $gte: new Date() },
           })
-            .select("name description date coverImage location")
-            .populate("location", "name")
+            .select(
+              "title subTitle description date startTime endTime location flyer link brand"
+            )
+            .populate("brand", "name username")
             .sort({ date: 1 })
             .limit(10)
             .lean();
 
           results = results.map((event) => ({
             _id: event._id,
-            name: event.name,
+            name: event.title,
             date: event.date,
-            avatar: event.coverImage?.thumbnail,
-            location: event.location?.name || "No location",
+            avatar:
+              event.flyer?.landscape?.thumbnail ||
+              event.flyer?.portrait?.thumbnail ||
+              event.flyer?.square?.thumbnail,
+            location: event.location,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            username: event.link,
+            brandUsername: event.brand?.username,
+            brandName: event.brand?.name,
             type: "event",
           }));
         } catch (error) {
@@ -142,11 +157,18 @@ exports.search = async (req, res) => {
               }),
 
             Event.find({
-              $or: [{ name: searchRegex }, { description: searchRegex }],
+              $or: [
+                { title: searchRegex },
+                { subTitle: searchRegex },
+                { description: searchRegex },
+                { location: searchRegex },
+              ],
               date: { $gte: new Date() },
             })
-              .select("name description date coverImage location")
-              .populate("location", "name")
+              .select(
+                "title subTitle description date startTime endTime location flyer link brand"
+              )
+              .populate("brand", "name username")
               .sort({ date: 1 })
               .limit(5)
               .lean()
@@ -180,10 +202,18 @@ exports.search = async (req, res) => {
             })),
             ...events.map((event) => ({
               _id: event._id,
-              name: event.name,
+              name: event.title,
               date: event.date,
-              avatar: event.coverImage?.thumbnail,
-              location: event.location?.name || "No location",
+              avatar:
+                event.flyer?.landscape?.thumbnail ||
+                event.flyer?.portrait?.thumbnail ||
+                event.flyer?.square?.thumbnail,
+              location: event.location,
+              startTime: event.startTime,
+              endTime: event.endTime,
+              username: event.link,
+              brandUsername: event.brand?.username,
+              brandName: event.brand?.name,
               type: "event",
             })),
           ];

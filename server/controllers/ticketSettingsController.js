@@ -29,8 +29,11 @@ const getTicketSettings = async (req, res) => {
     // Get the parent event ID if this is a child event
     const parentEventId = await getParentEventId(eventId);
 
+    // Check if this is a public route (no authentication required)
+    const isPublicRoute = req.path.includes("/public/");
+
     // Check if user has permission to view this event
-    if (req.user) {
+    if (!isPublicRoute && req.user) {
       const userId = req.user.userId || req.user._id;
       const isDirectOwner = event.user.toString() === userId.toString();
       let isBrandTeamMember = false;

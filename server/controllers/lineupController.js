@@ -1,4 +1,4 @@
-const LineUp = require("../models/lineUpModel");
+const LineUp = require("../models/lineupModel");
 const Brand = require("../models/brandModel");
 const Event = require("../models/eventsModel");
 const mongoose = require("mongoose");
@@ -439,6 +439,32 @@ exports.getLineUpsByEvent = async (req, res) => {
         success: false,
         message: "Event not found",
       });
+    }
+
+    // Check if this is a public route (no authentication required)
+    const isPublicRoute = req.path.includes("/public/");
+
+    // Check permissions only for non-public routes
+    if (!isPublicRoute && req.user) {
+      const userId = req.user.userId || req.user._id;
+      const isDirectOwner =
+        event.user && event.user.toString() === userId.toString();
+      let isBrandTeamMember = false;
+
+      if (!isDirectOwner && !req.user.isAdmin) {
+        const brand = await Brand.findOne({
+          _id: event.brand,
+          $or: [{ owner: userId }, { "team.user": userId }],
+        });
+        isBrandTeamMember = !!brand;
+
+        if (!isBrandTeamMember) {
+          return res.status(403).json({
+            success: false,
+            message: "Not authorized to view lineups for this event",
+          });
+        }
+      }
     }
 
     // Find all lineup entries associated with this event

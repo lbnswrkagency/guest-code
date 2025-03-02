@@ -19,6 +19,7 @@ const Search = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [results, setResults] = useState([]);
+  const [resultCounts, setResultCounts] = useState({ brands: 0, events: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Search = ({ isOpen, onClose }) => {
     debounce(async (query, type) => {
       if (!query.trim()) {
         setResults([]);
+        setResultCounts({ brands: 0, events: 0 });
         return;
       }
 
@@ -44,6 +46,13 @@ const Search = ({ isOpen, onClose }) => {
         });
 
         setResults(response.data);
+
+        // Calculate counts for each category
+        const counts = {
+          brands: response.data.filter((item) => item.type === "brand").length,
+          events: response.data.filter((item) => item.type === "event").length,
+        };
+        setResultCounts(counts);
       } catch (err) {
         setError("Failed to perform search. Please try again.");
         console.error("Search error:", err);
@@ -96,16 +105,9 @@ const Search = ({ isOpen, onClose }) => {
         navigate(brandPath);
         break;
       case "event":
-        if (!item.brandUsername || !item.username) {
-          console.error("[Search] Event or brand username is missing:", item);
-          toast.showError("Unable to navigate to event");
-          return;
-        }
-        const eventPath = user
-          ? `/@${user.username}/@${item.brandUsername}/@${item.username}`
-          : `/@${item.brandUsername}/@${item.username}`;
-        console.log("[Search] Navigating to event:", eventPath);
-        navigate(eventPath);
+        // Navigate to the EventProfile component
+        console.log("[Search] Navigating to event profile:", item._id);
+        navigate(`/events/${item._id}`);
         break;
       default:
         console.log("[Search] Unhandled item type:", item.type);
@@ -203,7 +205,12 @@ const Search = ({ isOpen, onClose }) => {
               onClick={() => handleTabClick(id)}
             >
               <Icon />
-              {label}
+              {label}{" "}
+              {id === "events"
+                ? `(${resultCounts.events})`
+                : id === "brands"
+                ? `(${resultCounts.brands})`
+                : ""}
             </button>
           ))}
         </div>

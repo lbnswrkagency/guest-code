@@ -11,6 +11,8 @@ const { sendQRCodeEmail } = require("../utils/email");
 const { sendQRCodeInvitation } = require("../utils/email");
 const { createTicketPDF } = require("../utils/pdf-invite");
 const CodeSettings = require("../models/codeSettingsModel");
+const LineUp = require("../models/lineupModel");
+const TicketSettings = require("../models/ticketSettingsModel");
 
 const {
   uploadToS3,
@@ -1248,6 +1250,178 @@ exports.getEventPage = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+// New function to get comprehensive event data for the EventProfile component
+exports.getEventProfile = async (req, res) => {
+  try {
+    console.log(
+      `[EventProfile] Fetching event profile data for event ID: ${req.params.eventId}`
+    );
+
+    // Find the event and populate brand information
+    const event = await Event.findById(req.params.eventId)
+      .populate({
+        path: "brand",
+        select: "name username logo description",
+      })
+      .populate({
+        path: "user",
+        select: "username firstName lastName avatar",
+      });
+
+    if (!event) {
+      console.log(
+        `[EventProfile] Event not found with ID: ${req.params.eventId}`
+      );
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
+
+    console.log(`[EventProfile] Found event:`, {
+      id: event._id,
+      title: event.title,
+      brand: event.brand ? event.brand.name : "No brand",
+    });
+
+    // Get lineup data using the lineup IDs stored in the event
+    console.log(
+      `[EventProfile] Fetching lineups using lineup IDs stored in event`
+    );
+    try {
+      // Check if the event has lineup IDs
+      if (event.lineups && event.lineups.length > 0) {
+        console.log(
+          `[EventProfile] Event has ${event.lineups.length} lineup IDs:`,
+          event.lineups
+        );
+
+        // Fetch lineups using their IDs from the event
+        const lineups = await LineUp.find({
+          _id: { $in: event.lineups },
+          isActive: true,
+        }).sort({ sortOrder: 1 });
+
+        console.log(`[EventProfile] Found ${lineups.length} lineups for event`);
+      } else {
+        console.log(`[EventProfile] Event has no lineup IDs stored`);
+
+        // Try the old method as a fallback
+        const fallbackLineups = await LineUp.find({
+          events: req.params.eventId,
+          isActive: true,
+        }).sort({ sortOrder: 1 });
+
+        console.log(
+          `[EventProfile] Fallback method found ${fallbackLineups.length} lineups`
+        );
+
+        if (fallbackLineups.length === 0) {
+          // Log all lineups to see if we can match manually
+          const allLineups = await LineUp.find({}).limit(5);
+          console.log(
+            `[EventProfile] Sample of all lineups in DB:`,
+            allLineups.map((l) => ({
+              id: l._id,
+              name: l.name,
+              events: l.events ? l.events.map((e) => e.toString()) : [],
+              brandId: l.brandId ? l.brandId.toString() : "none",
+            }))
+          );
+        }
+      }
+
+      // Fetch lineups using their IDs from the event
+      const lineups =
+        event.lineups && event.lineups.length > 0
+          ? await LineUp.find({
+              _id: { $in: event.lineups },
+              isActive: true,
+            }).sort({ sortOrder: 1 })
+          : await LineUp.find({
+              events: req.params.eventId,
+              isActive: true,
+            }).sort({ sortOrder: 1 });
+
+      // Get ticket settings
+      console.log(
+        `[EventProfile] Fetching ticket settings for event ID: ${req.params.eventId}`
+      );
+      const ticketSettings = await TicketSettings.find({
+        eventId: req.params.eventId,
+      }).sort({ price: 1 });
+
+      console.log(
+        `[EventProfile] Found ${ticketSettings.length} ticket settings for event`
+      );
+      console.log(`[EventProfile] Ticket settings search criteria:`, {
+        eventId: req.params.eventId,
+      });
+
+      if (ticketSettings.length === 0) {
+        // Log a sample of ticket settings to see if we can match manually
+        const allTickets = await TicketSettings.find({}).limit(5);
+        console.log(
+          `[EventProfile] Sample of all ticket settings in DB:`,
+          allTickets.map((t) => ({
+            id: t._id,
+            name: t.name,
+            eventId: t.eventId ? t.eventId.toString() : "none",
+          }))
+        );
+      }
+
+      // Get code settings
+      console.log(
+        `[EventProfile] Fetching code settings for event ID: ${req.params.eventId}`
+      );
+      const codeSettings = await CodeSettings.find({
+        eventId: req.params.eventId,
+      });
+
+      console.log(
+        `[EventProfile] Found ${codeSettings.length} code settings for event`
+      );
+
+      console.log(`[EventProfile] Successfully fetched event profile data:`, {
+        eventId: event._id,
+        title: event.title,
+        lineupCount: lineups.length,
+        ticketSettingsCount: ticketSettings.length,
+        codeSettingsCount: codeSettings.length,
+        hasFlyer: !!event.flyer,
+      });
+
+      // Return all data in a structured format
+      res.status(200).json({
+        success: true,
+        event,
+        lineups,
+        ticketSettings,
+        codeSettings,
+      });
+    } catch (innerError) {
+      console.error("[EventProfile] Error fetching related data:", innerError);
+      // Still return the event data even if related data fetching fails
+      res.status(200).json({
+        success: true,
+        event,
+        lineups: [],
+        ticketSettings: [],
+        codeSettings: [],
+        error: innerError.message,
+      });
+    }
+  } catch (error) {
+    console.error("[EventProfile] Error fetching event profile data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 
