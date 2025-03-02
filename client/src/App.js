@@ -26,7 +26,7 @@ import Brands from "./Components/Brands/Brands";
 import Locations from "./Components/Locations/Locations";
 
 function App() {
-  const eventId = "l9xm6f9c";
+  const eventId = "8r0xqv1s";
 
   return (
     <Router>
