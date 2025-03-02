@@ -5,6 +5,7 @@ import "./EventProfile.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
+import Navigation from "../Navigation/Navigation";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -18,6 +19,10 @@ import {
   RiVipCrownLine,
   RiDoorLine,
   RiTableLine,
+  RiUserAddLine,
+  RiUserFollowLine,
+  RiStarFill,
+  RiStarLine,
 } from "react-icons/ri";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 
@@ -36,6 +41,14 @@ const EventProfile = () => {
   const [guestCode, setGuestCode] = useState("");
   const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [activeSection, setActiveSection] = useState("info");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isMember, setIsMember] = useState(false);
+  const [joinRequestStatus, setJoinRequestStatus] = useState("");
+  const [ticketQuantities, setTicketQuantities] = useState({});
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
 
   // Fetch event data
   useEffect(() => {
@@ -54,6 +67,10 @@ const EventProfile = () => {
           setLineups(response.data.lineups || []);
           setTicketSettings(response.data.ticketSettings || []);
           setCodeSettings(response.data.codeSettings || []);
+          setIsFollowing(response.data.isFollowing || false);
+          setIsFavorited(response.data.isFavorited || false);
+          setIsMember(response.data.isMember || false);
+          setJoinRequestStatus(response.data.joinRequestStatus || "");
         } else {
           throw new Error(response.data.message || "Failed to load event data");
         }
@@ -126,7 +143,7 @@ const EventProfile = () => {
   };
 
   // Share event
-  const handleShareEvent = () => {
+  const handleShare = () => {
     if (navigator.share) {
       navigator
         .share({
@@ -176,6 +193,101 @@ const EventProfile = () => {
     );
   };
 
+  // Handle follow event
+  const handleFollow = () => {
+    console.log("[EventProfile] Handle follow event");
+    // Implementation of handleFollow function
+  };
+
+  // Handle join request
+  const handleJoinRequest = () => {
+    console.log("[EventProfile] Handle join request");
+    // Implementation of handleJoinRequest function
+  };
+
+  // Handle favorite event
+  const handleFavorite = () => {
+    console.log("[EventProfile] Handle favorite event");
+    // Implementation of handleFavorite function
+  };
+
+  const getJoinButtonClass = () => {
+    if (isMember) return "active";
+    if (joinRequestStatus === "pending") return "pending";
+    if (joinRequestStatus === "accepted") return "accepted";
+    if (joinRequestStatus === "rejected") return "rejected";
+    return "";
+  };
+
+  const getJoinButtonText = () => {
+    if (isMember) return "Member";
+    if (joinRequestStatus === "pending") return "Pending";
+    if (joinRequestStatus === "accepted") return "Accepted";
+    if (joinRequestStatus === "rejected") return "Rejected";
+    return "Join";
+  };
+
+  const handleQuantityChange = (ticketId, change) => {
+    setTicketQuantities((prev) => ({
+      ...prev,
+      [ticketId]: Math.max(0, (prev[ticketId] || 0) + change),
+    }));
+  };
+
+  const calculateTotal = () => {
+    return ticketSettings
+      .reduce((total, ticket) => {
+        return total + ticket.price * (ticketQuantities[ticket._id] || 0);
+      }, 0)
+      .toFixed(2);
+  };
+
+  const hasSelectedTickets = Object.values(ticketQuantities).some(
+    (quantity) => quantity > 0
+  );
+
+  const isFormValid = () => {
+    return (
+      firstName &&
+      lastName &&
+      email &&
+      email.includes("@") &&
+      hasSelectedTickets
+    );
+  };
+
+  const handleCheckout = async () => {
+    try {
+      const selectedTickets = ticketSettings
+        .filter((ticket) => ticketQuantities[ticket._id] > 0)
+        .map((ticket) => ({
+          ticketId: ticket._id,
+          name: ticket.name,
+          description: ticket.description,
+          price: ticket.price,
+          quantity: ticketQuantities[ticket._id],
+        }));
+
+      const response = await axiosInstance.post(
+        "/stripe/create-checkout-session",
+        {
+          firstName,
+          lastName,
+          email,
+          eventId: event._id,
+          tickets: selectedTickets,
+        }
+      );
+
+      if (response.data.url) {
+        window.location = response.data.url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.showError("Failed to process checkout");
+    }
+  };
+
   if (loading) {
     return (
       <div className="event-profile-loading">
@@ -197,453 +309,475 @@ const EventProfile = () => {
   }
 
   return (
-    <div className="event-profile">
-      {/* Hero Section with Event Flyer */}
-      <div className="event-hero">
-        {getEventImage() ? (
-          <div
-            className="event-hero-image"
-            style={{ backgroundImage: `url(${getEventImage()})` }}
-          >
-            <div className="event-hero-overlay">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+    <div className="page-wrapper">
+      <Navigation onBack={() => navigate(-1)} />
+
+      <div className="event-profile">
+        {/* Event Header Section */}
+        <div className="event-header">
+          <div className="event-cover">
+            {getEventImage() ? (
+              <img
+                src={getEventImage()}
+                alt={event.title}
+                className="cover-image"
+              />
+            ) : (
+              <div className="cover-placeholder" />
+            )}
+          </div>
+
+          <div className="event-info">
+            <div className="brand-logo">
+              {event.brand?.logo && event.brand.logo.medium ? (
+                <img src={event.brand.logo.medium} alt={event.brand.name} />
+              ) : (
+                <div className="logo-placeholder">
+                  {event.brand?.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            <div className="eventProfile-details">
+              <h1 className="event-title">{event.title}</h1>
+              <div className="username">
+                @
+                {event.brand?.username ||
+                  event.brand?.name.toLowerCase().replace(/\s+/g, "")}
+              </div>
+            </div>
+
+            <div className="header-actions">
+              <motion.button
+                className="action-button"
+                onClick={handleShare}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                {event.title}
-              </motion.h1>
-              {event.subTitle && (
-                <motion.h2
+                <RiShareLine />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="event-nav">
+          <button
+            className={activeSection === "info" ? "active" : ""}
+            onClick={() => setActiveSection("info")}
+          >
+            <RiInformationLine />
+            Info
+          </button>
+          <button
+            className={activeSection === "lineup" ? "active" : ""}
+            onClick={() => setActiveSection("lineup")}
+          >
+            <RiUserLine />
+            Lineup
+          </button>
+          <button
+            className={activeSection === "tickets" ? "active" : ""}
+            onClick={() => setActiveSection("tickets")}
+          >
+            <RiTicketLine />
+            Tickets
+          </button>
+          <button
+            className={activeSection === "access" ? "active" : ""}
+            onClick={() => setActiveSection("access")}
+          >
+            <RiDoorLine />
+            Access
+          </button>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="event-content">
+          {/* Info Section */}
+          {activeSection === "info" && (
+            <motion.div
+              className="event-section event-info"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="event-details">
+                <motion.div
+                  className="detail-item"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <RiCalendarEventLine />
+                  <div>
+                    <h4>Date</h4>
+                    <p>{formatDate(event.date)}</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  className="detail-item"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <RiTimeLine />
+                  <div>
+                    <h4>Time</h4>
+                    <p>
+                      {event.startTime} - {event.endTime}
+                    </p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  className="detail-item"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  {event.subTitle}
-                </motion.h2>
-              )}
+                  <RiMapPinLine />
+                  <div>
+                    <h4>Location</h4>
+                    <p>{event.location}</p>
+                  </div>
+                </motion.div>
+              </div>
 
-              {event.brand && (
+              {event.description && (
                 <motion.div
-                  className="event-brand"
+                  className="event-description"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  Presented by {event.brand.name}
+                  <h3>About This Event</h3>
+                  <p>{event.description}</p>
                 </motion.div>
               )}
-            </div>
-          </div>
-        ) : (
-          <div className="event-hero-placeholder">
-            <div className="event-hero-overlay">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {event.title}
-              </motion.h1>
-              {event.subTitle && (
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  {event.subTitle}
-                </motion.h2>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+            </motion.div>
+          )}
 
-      {/* Navigation Tabs */}
-      <div className="event-nav">
-        <button
-          className={activeSection === "info" ? "active" : ""}
-          onClick={() => setActiveSection("info")}
-        >
-          Info
-        </button>
-        <button
-          className={activeSection === "lineup" ? "active" : ""}
-          onClick={() => setActiveSection("lineup")}
-        >
-          Lineup
-        </button>
-        <button
-          className={activeSection === "tickets" ? "active" : ""}
-          onClick={() => setActiveSection("tickets")}
-        >
-          Tickets
-        </button>
-        <button
-          className={activeSection === "access" ? "active" : ""}
-          onClick={() => setActiveSection("access")}
-        >
-          Access
-        </button>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="event-content">
-        {/* Info Section */}
-        {activeSection === "info" && (
-          <div className="event-section event-info">
-            <div className="event-details">
-              <div className="detail-item">
-                <RiCalendarEventLine />
-                <div>
-                  <h4>Date</h4>
-                  <p>{formatDate(event.date)}</p>
+          {/* Lineup Section */}
+          {activeSection === "lineup" && (
+            <motion.div
+              className="event-section event-lineup"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h3>Event Lineup</h3>
+              {lineups && lineups.length > 0 ? (
+                <div className="lineup-grid">
+                  {lineups.map((artist, index) => (
+                    <motion.div
+                      key={artist._id || index}
+                      className="lineup-artist"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <div className="artist-image">
+                        {artist.avatar && artist.avatar.medium ? (
+                          <img src={artist.avatar.medium} alt={artist.name} />
+                        ) : (
+                          <div className="artist-placeholder">
+                            {artist.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <h4>{artist.name}</h4>
+                      {artist.category && (
+                        <span className="artist-category">
+                          {artist.category}
+                        </span>
+                      )}
+                    </motion.div>
+                  ))}
                 </div>
-              </div>
-
-              <div className="detail-item">
-                <RiTimeLine />
-                <div>
-                  <h4>Time</h4>
-                  <p>
-                    {event.startTime} - {event.endTime}
-                  </p>
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <RiMapPinLine />
-                <div>
-                  <h4>Location</h4>
-                  <p>{event.location}</p>
-                </div>
-              </div>
-
-              {event.isWeekly && (
-                <div className="detail-item weekly-badge">
-                  <span>Weekly Event</span>
+              ) : (
+                <div className="no-lineup">
+                  <p>No lineup information available for this event.</p>
                 </div>
               )}
-            </div>
+            </motion.div>
+          )}
 
-            {event.description && (
-              <div className="event-description">
-                <h3>About This Event</h3>
-                <p>{event.description}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Lineup Section */}
-        {activeSection === "lineup" && (
-          <div className="event-section event-lineup">
-            <h3>Event Lineup</h3>
-
-            {lineups && lineups.length > 0 ? (
-              <div className="lineup-grid">
-                {lineups.map((artist, index) => (
-                  <motion.div
-                    key={artist._id || index}
-                    className="lineup-artist"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <div className="artist-image">
-                      {artist.avatar && artist.avatar.medium ? (
-                        <img src={artist.avatar.medium} alt={artist.name} />
-                      ) : (
-                        <div className="artist-placeholder">
-                          {artist.name.charAt(0).toUpperCase()}
+          {/* Tickets Section */}
+          {activeSection === "tickets" && (
+            <motion.div
+              className="event-section event-tickets"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h3>Tickets</h3>
+              {ticketSettings && ticketSettings.length > 0 ? (
+                <>
+                  <div className="tickets-container">
+                    {ticketSettings.map((ticket, index) => (
+                      <motion.div
+                        key={ticket._id}
+                        className="ticket-card"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        style={{
+                          borderColor: ticket.color || "#2196F3",
+                        }}
+                      >
+                        <div className="ticket-header">
+                          <h4>{ticket.name}</h4>
+                          {ticket.originalPrice &&
+                            ticket.originalPrice > ticket.price && (
+                              <span className="ticket-discount">
+                                {Math.round(
+                                  ((ticket.originalPrice - ticket.price) /
+                                    ticket.originalPrice) *
+                                    100
+                                )}
+                                % OFF
+                              </span>
+                            )}
                         </div>
+
+                        <div className="ticket-price">
+                          <span className="current-price">
+                            ${ticket.price.toFixed(2)}
+                          </span>
+                          {ticket.originalPrice &&
+                            ticket.originalPrice > ticket.price && (
+                              <span className="original-price">
+                                ${ticket.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                        </div>
+
+                        {ticket.description && (
+                          <p className="ticket-description">
+                            {ticket.description}
+                          </p>
+                        )}
+
+                        {ticket.isLimited && (
+                          <div className="ticket-availability">
+                            <div className="availability-bar">
+                              <div
+                                className="availability-fill"
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    Math.round(
+                                      (ticket.soldCount / ticket.maxTickets) *
+                                        100
+                                    )
+                                  )}%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="availability-text">
+                              {Math.max(
+                                0,
+                                ticket.maxTickets - ticket.soldCount
+                              )}{" "}
+                              tickets left
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="ticket-quantity">
+                          <button
+                            className="quantity-btn"
+                            onClick={() => handleQuantityChange(ticket._id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="quantity">
+                            {ticketQuantities[ticket._id] || 0}
+                          </span>
+                          <button
+                            className="quantity-btn"
+                            onClick={() => handleQuantityChange(ticket._id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="checkout-summary">
+                    <div className="selected-tickets">
+                      {ticketSettings.map(
+                        (ticket) =>
+                          ticketQuantities[ticket._id] > 0 && (
+                            <div
+                              key={ticket._id}
+                              className="selected-ticket-item"
+                            >
+                              <span>
+                                {ticketQuantities[ticket._id]}x {ticket.name}
+                              </span>
+                              <span>
+                                $
+                                {(
+                                  ticket.price * ticketQuantities[ticket._id]
+                                ).toFixed(2)}
+                              </span>
+                            </div>
+                          )
                       )}
                     </div>
-                    <h4>{artist.name}</h4>
-                    {artist.category && (
-                      <p className="artist-category">{artist.category}</p>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="no-lineup">
-                <p>No lineup information available for this event.</p>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Tickets Section */}
-        {activeSection === "tickets" && (
-          <div className="event-section event-tickets">
-            <h3>Tickets</h3>
-
-            {ticketSettings && ticketSettings.length > 0 ? (
-              <div className="tickets-container">
-                {ticketSettings.map((ticket, index) => (
-                  <motion.div
-                    key={ticket._id}
-                    className="ticket-card"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    style={{
-                      borderColor: ticket.color || "#2196F3",
-                      borderLeft: `4px solid ${ticket.color || "#2196F3"}`,
-                    }}
-                  >
-                    <div className="ticket-header">
-                      <h4>{ticket.name}</h4>
-                      {ticket.originalPrice &&
-                        ticket.originalPrice > ticket.price && (
-                          <span className="ticket-discount">
-                            {Math.round(
-                              ((ticket.originalPrice - ticket.price) /
-                                ticket.originalPrice) *
-                                100
-                            )}
-                            % OFF
-                          </span>
-                        )}
+                    <div className="total-amount">
+                      <span>Total</span>
+                      <span>${calculateTotal()}</span>
                     </div>
 
-                    <div className="ticket-price">
-                      <span className="current-price">
-                        ${ticket.price.toFixed(2)}
-                      </span>
-                      {ticket.originalPrice &&
-                        ticket.originalPrice > ticket.price && (
-                          <span className="original-price">
-                            ${ticket.originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                    </div>
-
-                    {ticket.description && (
-                      <p className="ticket-description">{ticket.description}</p>
-                    )}
-
-                    {ticket.isLimited && (
-                      <div className="ticket-availability">
-                        <div className="availability-bar">
-                          <div
-                            className="availability-fill"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                Math.round(
-                                  (ticket.soldCount / ticket.maxTickets) * 100
-                                )
-                              )}%`,
-                              backgroundColor: ticket.color || "#2196F3",
-                            }}
-                          ></div>
+                    {hasSelectedTickets && (
+                      <div className="checkout-form">
+                        <div className="form-group">
+                          <input
+                            type="text"
+                            placeholder="First Name"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                          />
                         </div>
-                        <span className="availability-text">
-                          {Math.max(0, ticket.maxTickets - ticket.soldCount)}{" "}
-                          tickets left
-                        </span>
+                        <div className="form-group">
+                          <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <input
+                            type="email"
+                            placeholder="Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                          />
+                        </div>
+                        <motion.button
+                          className="checkout-button"
+                          onClick={handleCheckout}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          disabled={!isFormValid()}
+                        >
+                          Buy Tickets
+                        </motion.button>
                       </div>
                     )}
-
-                    {ticket.hasCountdown && ticket.endDate && (
-                      <div className="ticket-countdown">
-                        <RiTimeLine />
-                        <span>
-                          Sale ends:{" "}
-                          {new Date(ticket.endDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-
-                    <button
-                      className="buy-ticket-button"
-                      style={{ backgroundColor: ticket.color || "#2196F3" }}
-                      onClick={() => handleBuyTicket(ticket)}
-                    >
-                      Buy Ticket
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="no-tickets">
-                <p>No tickets available for this event.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Access Codes Section */}
-        {activeSection === "access" && (
-          <div className="event-section event-access">
-            <h3>Access Codes</h3>
-
-            <div className="access-options">
-              {/* Guest Code */}
-              {codeSettings &&
-                codeSettings.some(
-                  (code) => code.type === "guest" && code.isEnabled
-                ) && (
-                  <div className="access-option">
-                    <div className="access-icon">
-                      <RiUserLine />
-                    </div>
-                    <div className="access-info">
-                      <h4>Guest Code</h4>
-                      <p>
-                        {codeSettings.find((code) => code.type === "guest")
-                          ?.description ||
-                          "Get a unique code to access this event as a guest"}
-                      </p>
-                    </div>
-                    <button
-                      className="generate-code-button"
-                      onClick={handleGenerateGuestCode}
-                    >
-                      <RiCodeSSlashLine /> Generate Code
-                    </button>
                   </div>
-                )}
-
-              {/* Friends Code */}
-              {codeSettings &&
-                codeSettings.some(
-                  (code) => code.type === "friends" && code.isEnabled
-                ) && (
-                  <div className="access-option">
-                    <div className="access-icon friends">
-                      <RiUserLine />
-                    </div>
-                    <div className="access-info">
-                      <h4>Friends Code</h4>
-                      <p>
-                        {codeSettings.find((code) => code.type === "friends")
-                          ?.description ||
-                          "Special access for friends of the organizer"}
-                      </p>
-                    </div>
-                    <div className="code-input">
-                      <input type="text" placeholder="Enter friends code" />
-                      <button>Verify</button>
-                    </div>
-                  </div>
-                )}
-
-              {/* VIP Code */}
-              {codeSettings &&
-                codeSettings.some(
-                  (code) => code.type === "vip" && code.isEnabled
-                ) && (
-                  <div className="access-option">
-                    <div className="access-icon vip">
-                      <RiVipCrownLine />
-                    </div>
-                    <div className="access-info">
-                      <h4>VIP Access</h4>
-                      <p>
-                        {codeSettings.find((code) => code.type === "vip")
-                          ?.description ||
-                          "Exclusive VIP access for special guests"}
-                      </p>
-                    </div>
-                    <div className="code-input">
-                      <input type="text" placeholder="Enter VIP code" />
-                      <button>Verify</button>
-                    </div>
-                  </div>
-                )}
-
-              {/* Backstage Code */}
-              {codeSettings &&
-                codeSettings.some(
-                  (code) => code.type === "backstage" && code.isEnabled
-                ) && (
-                  <div className="access-option">
-                    <div className="access-icon backstage">
-                      <RiDoorLine />
-                    </div>
-                    <div className="access-info">
-                      <h4>Backstage Access</h4>
-                      <p>
-                        {codeSettings.find((code) => code.type === "backstage")
-                          ?.description ||
-                          "Exclusive backstage access for authorized personnel"}
-                      </p>
-                    </div>
-                    <div className="code-input">
-                      <input type="text" placeholder="Enter backstage code" />
-                      <button>Verify</button>
-                    </div>
-                  </div>
-                )}
-
-              {/* Table Code */}
-              {codeSettings &&
-                codeSettings.some(
-                  (code) => code.type === "table" && code.isEnabled
-                ) && (
-                  <div className="access-option">
-                    <div className="access-icon table">
-                      <RiTableLine />
-                    </div>
-                    <div className="access-info">
-                      <h4>Table Reservation</h4>
-                      <p>
-                        {codeSettings.find((code) => code.type === "table")
-                          ?.description ||
-                          "Reserved table access for premium guests"}
-                      </p>
-                    </div>
-                    <div className="code-input">
-                      <input type="text" placeholder="Enter table code" />
-                      <button>Verify</button>
-                    </div>
-                  </div>
-                )}
-
-              {codeSettings && codeSettings.length === 0 && (
-                <div className="no-access-codes">
-                  <p>No access codes are available for this event.</p>
+                </>
+              ) : (
+                <div className="no-tickets">
+                  <p>No tickets available for this event.</p>
                 </div>
               )}
-            </div>
-          </div>
+            </motion.div>
+          )}
+
+          {/* Access Section */}
+          {activeSection === "access" && (
+            <motion.div
+              className="event-section event-access"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h3>Access Codes</h3>
+              <div className="access-options">
+                {codeSettings &&
+                  codeSettings.map(
+                    (code, index) =>
+                      code.isEnabled && (
+                        <motion.div
+                          key={code.type}
+                          className="access-option"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <div className={`access-icon ${code.type}`}>
+                            {code.type === "guest" && <RiUserLine />}
+                            {code.type === "friends" && <RiUserLine />}
+                            {code.type === "vip" && <RiVipCrownLine />}
+                            {code.type === "backstage" && <RiDoorLine />}
+                            {code.type === "table" && <RiTableLine />}
+                          </div>
+                          <div className="access-info">
+                            <h4>
+                              {code.name ||
+                                code.type.charAt(0).toUpperCase() +
+                                  code.type.slice(1)}
+                            </h4>
+                            <p>
+                              {code.description ||
+                                `Access code for ${code.type} entry`}
+                            </p>
+                          </div>
+                          {code.type === "guest" ? (
+                            <motion.button
+                              className="generate-code-button"
+                              onClick={handleGenerateGuestCode}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <RiCodeSSlashLine /> Generate Code
+                            </motion.button>
+                          ) : (
+                            <div className="code-input">
+                              <input
+                                type="text"
+                                placeholder={`Enter ${code.type} code`}
+                              />
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                Verify
+                              </motion.button>
+                            </div>
+                          )}
+                        </motion.div>
+                      )
+                  )}
+                {(!codeSettings || codeSettings.length === 0) && (
+                  <div className="no-access-codes">
+                    <p>No access codes are available for this event.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Guest Code Dialog */}
+        {showCodeDialog && (
+          <ConfirmDialog
+            title="Your Guest Code"
+            message={
+              <div className="guest-code-display">
+                <p>Use this code to access the event:</p>
+                <div className="code">{guestCode}</div>
+                <p className="code-note">
+                  This code is unique to you and should not be shared.
+                </p>
+              </div>
+            }
+            confirmText="Copy Code"
+            cancelText="Close"
+            onConfirm={() => {
+              navigator.clipboard.writeText(guestCode);
+              toast.showSuccess("Code copied to clipboard");
+              setShowCodeDialog(false);
+            }}
+            onCancel={() => setShowCodeDialog(false)}
+            type="default"
+          />
         )}
       </div>
-
-      {/* Share button */}
-      <div className="event-actions-footer">
-        <button className="share-event-button" onClick={handleShareEvent}>
-          <RiShareLine /> Share Event
-        </button>
-      </div>
-
-      {/* Guest Code Dialog */}
-      {showCodeDialog && (
-        <ConfirmDialog
-          title="Your Guest Code"
-          message={
-            <div className="guest-code-display">
-              <p>Use this code to access the event:</p>
-              <div className="code">{guestCode}</div>
-              <p className="code-note">
-                This code is unique to you and should not be shared.
-              </p>
-            </div>
-          }
-          confirmText="Copy Code"
-          cancelText="Close"
-          onConfirm={() => {
-            navigator.clipboard.writeText(guestCode);
-            toast.showSuccess("Code copied to clipboard");
-            setShowCodeDialog(false);
-          }}
-          onCancel={() => setShowCodeDialog(false)}
-          type="default"
-        />
-      )}
     </div>
   );
 };

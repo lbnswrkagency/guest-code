@@ -19,6 +19,7 @@ function CheckOutHandle(
   couponCode
 ) {
   toast.loading("Bis gleich.");
+
   fetch(
     `${
       process.env.NODE_ENV === "production"

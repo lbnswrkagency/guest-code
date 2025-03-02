@@ -36,6 +36,7 @@ const notificationRoutes = require("./routes/notificationRoute");
 const uploadRoutes = require("./routes/api/uploadRoutes");
 const searchRoutes = require("./routes/searchRoute");
 const roleRoutes = require("./routes/roleRoutes");
+const stripeRoutes = require("./routes/api/stripeRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -109,6 +110,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventsRoutes);
 app.use("/api/spotify", spotifyRoutes);
+app.use("/api/stripe", stripeRoutes);
 app.use("/api/dns", dnsRoutes);
 app.use("/api/friends", friendsRoutes);
 app.use("/api/table", tableRoutes);

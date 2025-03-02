@@ -1,87 +1,77 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-08-16",
+  apiVersion: "2023-10-16",
 });
-const Challenge = require("../models/challengeModel");
-const { fulfillOrder } = require("../fulfillOrder");
+const Event = require("../models/eventsModel");
+
+// Get the client URL with fallback
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 const checkOutSession = async (req, res) => {
   try {
-    const challenge = await Challenge.findById(req.body.challengeId);
-    if (!challenge) {
-      console.error("Challenge not found", req.body.challengeId);
-      return res.status(404).json({ message: "Challenge not found" });
+    const { firstName, lastName, email, eventId, tickets } = req.body;
+
+    // Validate the event exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    let promotionCodeApplied;
-
-    if (req.body.coupon) {
-      try {
-        const { data: promoCodes } = await stripe.promotionCodes.list({
-          code: req.body.coupon,
-          active: true,
-        });
-
-        if (promoCodes.length > 0) {
-          const promoCode = promoCodes[0];
-          promotionCodeApplied = promoCode.id;
-        } else {
-          console.log(
-            "Promotion code not found or not active:",
-            req.body.coupon
-          );
-          return res
-            .status(404)
-            .json({ message: "Promotion code not found or not active" });
-        }
-      } catch (err) {
-        console.error("Error retrieving promotion code:", err.message);
-        return res.status(400).json({ message: "Invalid promotion code" });
-      }
-    }
-
-    // Proceed to create a checkout session
-    const sessionConfig = {
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: { name: "HiLife Challenge" },
-            unit_amount: challenge.price * 100,
+    // Create line items from tickets with more detailed information
+    const line_items = tickets.map((ticket) => ({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: ticket.name,
+          description: `${event.title} - ${
+            ticket.description || "Event ticket"
+          }`,
+          images: event.flyer?.landscape?.full
+            ? [event.flyer.landscape.full]
+            : undefined,
+          metadata: {
+            ticketId: ticket.ticketId,
+            eventId: eventId,
           },
-          quantity: 1,
         },
-      ],
+        unit_amount: Math.round(ticket.price * 100), // Convert to cents
+      },
+      quantity: ticket.quantity,
+    }));
+
+    // Create the checkout session with absolute URLs
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items,
       mode: "payment",
-      success_url: `${process.env.CLIENT_URL}paid`,
-      cancel_url: `${process.env.CLIENT_URL}`,
-      metadata: req.body,
+      success_url: `${CLIENT_URL}/paid?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${CLIENT_URL}/events/${eventId}`,
+      customer_email: email,
+      metadata: {
+        eventId,
+        firstName,
+        lastName,
+        email,
+        tickets: JSON.stringify(tickets),
+      },
       billing_address_collection: "required",
-    };
+      allow_promotion_codes: true,
+      automatic_tax: { enabled: true },
+      client_reference_id: eventId,
+      locale: "de", // Set to German locale
+      custom_text: {
+        submit: {
+          message: "Wir reservieren Ihre Tickets für 30 Minuten.", // Custom message in German
+        },
+      },
+    });
 
-    if (promotionCodeApplied) {
-      sessionConfig.discounts = [{ promotion_code: promotionCodeApplied }];
-    }
-
-    // If the promotion code gives a 100% discount, switch to setup mode
-    if (promotionCodeApplied && challenge.price === 0) {
-      sessionConfig.mode = "setup";
-      sessionConfig.setup_intent_data = {
-        metadata: req.body,
-      };
-      // Remove line items for setup mode
-      delete sessionConfig.line_items;
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionConfig);
-
-    console.log("Stripe session created", session.id);
     return res.status(200).json({ url: session.url });
   } catch (error) {
     console.error("Error creating checkout session:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error", details: error.message });
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
   }
 };
 

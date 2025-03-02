@@ -1,73 +1,51 @@
-const Ticket = require("./models/ticketModel");
-const User = require("./models/userModel");
+const Order = require("./models/orderModel");
+const Event = require("./models/eventsModel");
 const { sendEmail } = require("./sendEmail");
 // const { sendInvoice } = require("./sendInvoice");
 const UserChallenge = require("./models/userChallengeModel");
 const Challenge = require("./models/challengeModel");
 
-const fulfillOrder = (session, billingAddress, isNoCostOrder) => {
-  // Fetch the challenge from the database
-  Challenge.findById(session.metadata.challengeId, (err, challenge) => {
-    if (err) {
-      console.error("Error fetching Challenge:", err);
-      return;
-    }
+const fulfillOrder = async (session, billingAddress) => {
+  try {
+    // Parse the tickets from session metadata
+    const tickets = JSON.parse(session.metadata.tickets);
+    const eventId = session.metadata.eventId;
 
-    // Find the UserChallenge document and update it if it exists
-    UserChallenge.findOneAndUpdate(
-      {
-        user: session.metadata.userId,
-        challenge: session.metadata.challengeId,
+    // Create the order
+    const order = await Order.create({
+      eventId,
+      email: session.metadata.email,
+      firstName: session.metadata.firstName,
+      lastName: session.metadata.lastName,
+      tickets: tickets.map((ticket) => ({
+        ticketId: ticket.ticketId,
+        name: ticket.name,
+        quantity: ticket.quantity,
+        pricePerUnit: ticket.price,
+      })),
+      totalAmount: session.amount_total / 100, // Convert from cents
+      stripeSessionId: session.id,
+      billingAddress: {
+        line1: billingAddress?.line1 || "",
+        line2: billingAddress?.line2 || "",
+        city: billingAddress?.city || "",
+        state: billingAddress?.state || "",
+        postal_code: billingAddress?.postal_code || "",
+        country: billingAddress?.country || "",
       },
-      {
-        user: session.metadata.userId,
-        challenge: session.metadata.challengeId,
-        payWall: true,
-      },
-      { upsert: true, new: true },
-      (err, createdOrUpdatedUserChallenge) => {
-        if (err) {
-          console.error("Error creating or updating UserChallenge:", err);
-          return;
-        }
+      status: "completed",
+      paymentStatus: "paid",
+    });
 
-        // Update the User document with the new or updated UserChallenge document's ID
-        User.findOneAndUpdate(
-          { email: session.metadata.email },
-          { $addToSet: { challenges: createdOrUpdatedUserChallenge._id } },
-          (err, user) => {
-            if (err) {
-              console.error("Error updating User:", err);
-              return;
-            }
+    // Send confirmation email
+    await sendEmail(order);
 
-            // Create a new Ticket document
-            Ticket.create(
-              {
-                email: session.metadata.email,
-                item: session.metadata.item,
-                firstname: session.metadata.firstname,
-                lastname: session.metadata.lastname,
-                userId: session.metadata.userId,
-                challengeId: session.metadata.challengeId,
-                price: session.amount_total / 100, // Stripe amounts are in cents
-                challengeName: challenge.name, // Add the challenge name
-                billingAddress: billingAddress,
-              },
-              (err, createdTicket) => {
-                if (err) {
-                  console.error("Error creating Ticket:", err);
-                  return;
-                }
-
-                sendEmail(createdTicket, isNoCostOrder);
-              }
-            );
-          }
-        );
-      }
-    );
-  });
+    console.log(`Order fulfilled: ${order._id}`);
+    return order;
+  } catch (error) {
+    console.error("Error fulfilling order:", error);
+    throw error;
+  }
 };
 
 module.exports = {
