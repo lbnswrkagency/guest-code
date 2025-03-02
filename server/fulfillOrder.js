@@ -1,22 +1,57 @@
 const Order = require("./models/orderModel");
 const Event = require("./models/eventsModel");
-const { sendEmail } = require("./sendEmail");
+const { sendEmail } = require("./utils/sendEmail");
 // const { sendInvoice } = require("./sendInvoice");
-const UserChallenge = require("./models/userChallengeModel");
-const Challenge = require("./models/challengeModel");
+
+// Function to generate invoice number from session ID
+const generateInvoiceNumber = (sessionId) => {
+  if (!sessionId) return "INV-0000";
+  // Take the last 4 characters of the session ID
+  const shortCode = sessionId.slice(-4).toUpperCase();
+  return `INV-${shortCode}`;
+};
 
 const fulfillOrder = async (session, billingAddress) => {
   try {
     // Parse the tickets from session metadata
-    const tickets = JSON.parse(session.metadata.tickets);
+    const tickets = JSON.parse(session.metadata.tickets || "[]");
     const eventId = session.metadata.eventId;
+
+    // Get customer email from session (try multiple possible locations)
+    const email =
+      session.metadata.email ||
+      session.customer_email ||
+      session.customer_details?.email ||
+      "";
+
+    // Get customer name from session
+    const firstName =
+      session.metadata.firstName ||
+      (session.customer_details?.name
+        ? session.customer_details.name.split(" ")[0]
+        : "");
+    const lastName =
+      session.metadata.lastName ||
+      (session.customer_details?.name
+        ? session.customer_details.name.split(" ").slice(1).join(" ")
+        : "");
+
+    if (!email) {
+      throw new Error(
+        "Customer email is required but was not found in the session data"
+      );
+    }
+
+    // Generate invoice number
+    const invoiceNumber = generateInvoiceNumber(session.id);
 
     // Create the order
     const order = await Order.create({
       eventId,
-      email: session.metadata.email,
-      firstName: session.metadata.firstName,
-      lastName: session.metadata.lastName,
+      email,
+      firstName,
+      lastName,
+      invoiceNumber,
       tickets: tickets.map((ticket) => ({
         ticketId: ticket.ticketId,
         name: ticket.name,
@@ -40,10 +75,8 @@ const fulfillOrder = async (session, billingAddress) => {
     // Send confirmation email
     await sendEmail(order);
 
-    console.log(`Order fulfilled: ${order._id}`);
     return order;
   } catch (error) {
-    console.error("Error fulfilling order:", error);
     throw error;
   }
 };

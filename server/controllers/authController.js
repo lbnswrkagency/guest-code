@@ -75,7 +75,6 @@ exports.register = async (req, res) => {
       details: "Please check your email for verification.",
     });
   } catch (error) {
-    console.error("Registration error:", error);
     res.status(500).json({
       success: false,
       message: "Registration failed",
@@ -106,7 +105,6 @@ exports.verifyEmail = async (req, res) => {
       details: "You can now log in to your account.",
     });
   } catch (error) {
-    console.error("Email verification error:", error);
     res.status(500).json({
       success: false,
       message: "Verification failed",
@@ -153,7 +151,6 @@ exports.login = async (req, res) => {
       refreshToken: refreshToken,
     });
   } catch (error) {
-    console.error("[Auth] Login error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -168,49 +165,33 @@ exports.getUserData = async (req, res) => {
     }
     res.json(user);
   } catch (error) {
-    console.error("[Auth] Get user data error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 exports.refreshAccessToken = async (req, res) => {
   try {
-    console.log("[Auth:Refresh] Starting token refresh", {
-      hasRefreshTokenCookie: !!req.cookies.refreshToken,
-      headers: req.headers,
-      timestamp: new Date().toISOString(),
-    });
-
     const { refreshToken } = req.cookies;
 
     if (!refreshToken) {
-      console.log("[Auth:Refresh] No refresh token in cookies");
       return res.status(401).json({ message: "No refresh token" });
     }
 
     // Verify refresh token
-    console.log("[Auth:Refresh] Verifying refresh token");
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    console.log("[Auth:Refresh] Token verified, finding user", {
-      userId: decoded.userId,
-    });
-
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      console.log("[Auth:Refresh] User not found", { userId: decoded.userId });
       return res.status(401).json({ message: "User not found" });
     }
 
     // Verify stored refresh token hash
-    console.log("[Auth:Refresh] Verifying stored refresh token hash");
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
       user.refreshToken
     );
 
     if (!isValidRefreshToken) {
-      console.log("[Auth:Refresh] Invalid refresh token hash");
       // Clear cookies and user's stored refresh token if invalid
       user.refreshToken = null;
       await user.save();
@@ -220,7 +201,6 @@ exports.refreshAccessToken = async (req, res) => {
     }
 
     // Generate new tokens
-    console.log("[Auth:Refresh] Generating new tokens");
     const newAccessToken = generateAccessToken(user._id);
     const newRefreshToken = generateRefreshToken(user._id);
 
@@ -232,12 +212,6 @@ exports.refreshAccessToken = async (req, res) => {
     res.cookie("accessToken", newAccessToken, accessTokenCookieOptions);
     res.cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions);
 
-    console.log("[Auth:Refresh] Tokens refreshed successfully", {
-      userId: user._id,
-      accessTokenLength: newAccessToken.length,
-      refreshTokenLength: newRefreshToken.length,
-    });
-
     // Return tokens in response body as well
     res.json({
       message: "Tokens refreshed successfully",
@@ -245,19 +219,10 @@ exports.refreshAccessToken = async (req, res) => {
       refreshToken: newRefreshToken,
     });
   } catch (error) {
-    console.error("[Auth:Refresh] Error refreshing tokens:", {
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    });
-
     if (
       error.name === "JsonWebTokenError" ||
       error.name === "TokenExpiredError"
     ) {
-      console.log("[Auth:Refresh] Token validation failed:", {
-        errorType: error.name,
-      });
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
       return res
@@ -288,7 +253,6 @@ exports.logout = async (req, res) => {
 
     res.json({ message: "Logged out successfully" });
   } catch (error) {
-    console.error("[Auth] Logout error:", error);
     // Still clear cookies even if there's an error
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
@@ -299,13 +263,6 @@ exports.logout = async (req, res) => {
 // Sync token from request body to cookies
 exports.syncToken = async (req, res) => {
   try {
-    console.log("[Auth:Sync] Token sync request received", {
-      hasToken: !!req.body.token,
-      tokenLength: req.body.token?.length,
-      headers: req.headers,
-      timestamp: new Date().toISOString(),
-    });
-
     const { token } = req.body;
 
     if (!token) {
@@ -315,29 +272,17 @@ exports.syncToken = async (req, res) => {
     try {
       // Verify the token is valid before setting it in cookies
       const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-      console.log("[Auth:Sync] Token verified successfully", {
-        userId: decoded.userId,
-        exp: decoded.exp,
-        expiresIn: decoded.exp - Math.floor(Date.now() / 1000) + " seconds",
-      });
 
       // Set the token in cookies
       res.cookie("accessToken", token, accessTokenCookieOptions);
 
-      console.log("[Auth:Sync] Token set in cookies successfully");
       return res
         .status(200)
         .json({ message: "Token synced to cookies successfully" });
     } catch (error) {
-      console.log("[Auth:Sync] Token verification failed", {
-        error: error.name,
-        message: error.message,
-      });
-
       return res.status(401).json({ message: "Invalid token" });
     }
   } catch (error) {
-    console.error("[Auth:Sync] Error syncing token:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -31,6 +31,7 @@ import BrandProfile from "./Components/BrandProfile/BrandProfile";
 import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
+import AfterPayment from "./Components/AfterPayment/AfterPayment";
 
 // Main routing component
 const AppRoutes = () => {
@@ -240,6 +241,7 @@ const AppRoutes = () => {
           </RouteDebug>
         }
       />
+      <Route path="/paid" element={<AfterPayment />} />
     </Routes>
   );
 };

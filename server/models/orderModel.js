@@ -24,6 +24,20 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    invoiceNumber: {
+      type: String,
+      default: function () {
+        // Generate a default invoice number if not provided
+        if (this.stripeSessionId) {
+          const shortCode = this.stripeSessionId.slice(-4).toUpperCase();
+          return `INV-${shortCode}`;
+        }
+        return `INV-${Math.random()
+          .toString(36)
+          .substring(2, 6)
+          .toUpperCase()}`;
+      },
+    },
     tickets: [
       {
         ticketId: {

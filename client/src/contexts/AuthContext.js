@@ -32,21 +32,6 @@ const AuthProviderWithRouter = ({ children }) => {
     "/verify/:token",
   ];
 
-  // Add logging for user state changes
-  useEffect(() => {
-    console.log("[AuthContext] Auth state changed:", {
-      isAuthenticated: !!user,
-      user: user
-        ? {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-          }
-        : null,
-      timestamp: new Date().toISOString(),
-    });
-  }, [user]);
-
   const fetchUserData = async () => {
     try {
       const response = await axiosInstance.get("/auth/user");
@@ -69,7 +54,6 @@ const AuthProviderWithRouter = ({ children }) => {
         try {
           await fetchUserData();
         } catch (error) {
-          // console.error("Initial auth check failed:", error);
           // Only redirect if on a protected route
           if (pathsRequiringAuth.includes(location.pathname)) {
             navigate("/login", { state: { from: location } });
@@ -106,7 +90,6 @@ const AuthProviderWithRouter = ({ children }) => {
             // Retry the original request
             return axiosInstance(originalRequest);
           } catch (refreshError) {
-            // console.error("Token refresh failed:", refreshError);
             setIsRefreshing(false);
             setUser(null);
             navigate("/login", { state: { from: location } });
@@ -126,7 +109,7 @@ const AuthProviderWithRouter = ({ children }) => {
             await axiosInstance.post("/auth/refresh-token");
           }
         } catch (error) {
-          // console.error("Periodic token refresh failed:", error);
+          // Silent fail for periodic refresh
         }
       }, 14 * 60 * 1000); // 14 minutes
     };
@@ -147,7 +130,6 @@ const AuthProviderWithRouter = ({ children }) => {
         try {
           await fetchUserData();
         } catch (error) {
-          // console.error("Auth state check failed:", error);
           navigate("/login", { state: { from: location } });
         } finally {
           setLoading(false);
@@ -162,11 +144,6 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log("[AuthContext] Login attempt:", {
-        email: credentials.email,
-        timestamp: new Date().toISOString(),
-      });
-
       const response = await axiosInstance.post("/auth/login", credentials);
 
       // Clean the username when logging in
@@ -175,15 +152,6 @@ const AuthProviderWithRouter = ({ children }) => {
           response.data.user.username
         );
       }
-
-      console.log("[AuthContext] Login successful:", {
-        userData: {
-          id: response.data.user._id,
-          username: response.data.user.username,
-          email: response.data.user.email,
-        },
-        timestamp: new Date().toISOString(),
-      });
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("refreshToken", response.data.refreshToken);
@@ -196,12 +164,6 @@ const AuthProviderWithRouter = ({ children }) => {
 
       navigate(`/@${response.data.user.username}`);
     } catch (error) {
-      console.error("[AuthContext] Login failed:", {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        timestamp: new Date().toISOString(),
-      });
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
@@ -211,11 +173,6 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log("[AuthContext] Logout initiated", {
-        currentUser: user?.username,
-        timestamp: new Date().toISOString(),
-      });
-
       await axiosInstance.post("/auth/logout");
 
       localStorage.removeItem("token");
@@ -223,15 +180,7 @@ const AuthProviderWithRouter = ({ children }) => {
 
       setUser(null);
       navigate("/login");
-
-      console.log("[AuthContext] Logout successful", {
-        timestamp: new Date().toISOString(),
-      });
     } catch (error) {
-      console.error("[AuthContext] Logout failed:", {
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
