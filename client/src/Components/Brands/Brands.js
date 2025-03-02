@@ -26,6 +26,34 @@ import AuthContext from "../../contexts/AuthContext";
 import { motion } from "framer-motion";
 import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 
+// Helper function to check if a user has permissions to edit a brand
+const hasBrandPermissions = (brand, user) => {
+  // If no user or brand, permission denied
+  if (!user || !brand) return false;
+
+  // If user is the brand owner, they have permission
+  if (
+    brand.owner === user._id ||
+    (typeof brand.owner === "object" && brand.owner._id === user._id)
+  ) {
+    return true;
+  }
+
+  // If user is a team member, check their permissions
+  const teamMember = brand.team?.find(
+    (member) =>
+      member.user === user._id ||
+      (typeof member.user === "object" && member.user._id === user._id)
+  );
+
+  if (teamMember) {
+    // Check if the team member has management permissions
+    return teamMember.permissions?.team?.manage === true;
+  }
+
+  return false;
+};
+
 const SocialIcon = ({ platform, url }) => {
   const icons = {
     instagram: FaInstagram,
@@ -315,6 +343,10 @@ const BrandCard = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showBackContent, setShowBackContent] = useState(false);
+  const { user } = useContext(AuthContext); // Get current user
+
+  // Check if the user has permission to edit this brand
+  const hasPermission = hasBrandPermissions(brand, user);
 
   const getImageUrl = (imageObj) => {
     if (!imageObj) return null;
@@ -413,22 +445,26 @@ const BrandCard = ({
             )}
           </div>
           <div className="card-actions">
-            <motion.button
-              className="action-button edit"
-              onClick={handleEditClick}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <RiEditLine />
-            </motion.button>
-            <motion.button
-              className="action-button settings"
-              onClick={handleSettingsClick}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <RiSettings4Line />
-            </motion.button>
+            {hasPermission && (
+              <>
+                <motion.button
+                  className="action-button edit"
+                  onClick={handleEditClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+                <motion.button
+                  className="action-button settings"
+                  onClick={handleSettingsClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiSettings4Line />
+                </motion.button>
+              </>
+            )}
           </div>
         </div>
         <div className="brand-card-content">
@@ -497,13 +533,22 @@ const BrandCard = ({
           transformStyle: "preserve-3d",
         }}
       >
-        {showBackContent && (
+        {showBackContent && hasPermission && (
           <BrandSettings
             brand={brand}
             onClose={() => setIsFlipped(false)}
             onDelete={onSettingsDelete}
             onSave={onSettingsSave}
           />
+        )}
+        {showBackContent && !hasPermission && (
+          <div className="no-permission-message">
+            <h3>Access Restricted</h3>
+            <p>You don't have permission to modify this brand.</p>
+            <button className="back-button" onClick={() => setIsFlipped(false)}>
+              Back to Brand
+            </button>
+          </div>
         )}
       </div>
     </motion.div>

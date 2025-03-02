@@ -1,4 +1,6 @@
 @import "../../_variables";
+@import "../../_animations";
+@import "../../_glassy";
 
 .dashboard {
   display: grid;
@@ -63,5 +65,56 @@
       background: none;
       border: none;
     }
+  }
+}
+
+// Glassy Stats Cards Example
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+
+  .stat-card {
+    @include glassy-base;
+    padding: 1.25rem;
+
+    .stat-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 200, 7, 0.9);
+      margin-bottom: 0.75rem;
+      font-size: 1.75rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: white;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    // Premium stat card
+    &.premium {
+      @include glassy-premium;
+    }
+  }
+}
+
+// Glassy Action Button
+.glassy-action-btn {
+  @include glassy-base;
+  @include glassy-button;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+
+  svg {
+    margin-right: 8px;
   }
 }

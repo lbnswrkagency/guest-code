@@ -516,7 +516,7 @@ const EventCodeSettings = ({
 
             {codeSetting.type === "custom" && (
               <motion.button
-                className="delete-button"
+                className="code-setting-delete-button"
                 onClick={() => promptDeleteCodeSetting(codeSetting)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}

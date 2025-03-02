@@ -590,7 +590,7 @@ exports.editEvent = async (req, res) => {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "guest" },
               { isEnabled: updatedEventData.guestCode },
-              { upsert: true, new: true }
+              { new: true }
             );
           }
 
@@ -598,7 +598,7 @@ exports.editEvent = async (req, res) => {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "friends" },
               { isEnabled: updatedEventData.friendsCode },
-              { upsert: true, new: true }
+              { new: true }
             );
           }
 
@@ -606,7 +606,7 @@ exports.editEvent = async (req, res) => {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "ticket" },
               { isEnabled: updatedEventData.ticketCode },
-              { upsert: true, new: true }
+              { new: true }
             );
           }
 
@@ -614,7 +614,7 @@ exports.editEvent = async (req, res) => {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "table" },
               { isEnabled: updatedEventData.tableCode },
-              { upsert: true, new: true }
+              { new: true }
             );
           }
 
@@ -622,7 +622,7 @@ exports.editEvent = async (req, res) => {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "backstage" },
               { isEnabled: updatedEventData.backstageCode },
-              { upsert: true, new: true }
+              { new: true }
             );
           }
         }
@@ -706,7 +706,7 @@ exports.editEvent = async (req, res) => {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "guest" },
                 { isEnabled: updatedEventData.guestCode },
-                { upsert: true, new: true }
+                { new: true }
               );
             }
 
@@ -714,7 +714,7 @@ exports.editEvent = async (req, res) => {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "friends" },
                 { isEnabled: updatedEventData.friendsCode },
-                { upsert: true, new: true }
+                { new: true }
               );
             }
 
@@ -722,7 +722,7 @@ exports.editEvent = async (req, res) => {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "ticket" },
                 { isEnabled: updatedEventData.ticketCode },
-                { upsert: true, new: true }
+                { new: true }
               );
             }
 
@@ -730,7 +730,7 @@ exports.editEvent = async (req, res) => {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "table" },
                 { isEnabled: updatedEventData.tableCode },
-                { upsert: true, new: true }
+                { new: true }
               );
             }
 
@@ -738,7 +738,7 @@ exports.editEvent = async (req, res) => {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "backstage" },
                 { isEnabled: updatedEventData.backstageCode },
-                { upsert: true, new: true }
+                { new: true }
               );
             }
           }
@@ -792,7 +792,7 @@ exports.editEvent = async (req, res) => {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "guest" },
           { isEnabled: updatedEventData.guestCode },
-          { upsert: true, new: true }
+          { new: true }
         );
       }
 
@@ -800,7 +800,7 @@ exports.editEvent = async (req, res) => {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "friends" },
           { isEnabled: updatedEventData.friendsCode },
-          { upsert: true, new: true }
+          { new: true }
         );
       }
 
@@ -808,7 +808,7 @@ exports.editEvent = async (req, res) => {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "ticket" },
           { isEnabled: updatedEventData.ticketCode },
-          { upsert: true, new: true }
+          { new: true }
         );
       }
 
@@ -816,7 +816,7 @@ exports.editEvent = async (req, res) => {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "table" },
           { isEnabled: updatedEventData.tableCode },
-          { upsert: true, new: true }
+          { new: true }
         );
       }
 
@@ -824,7 +824,7 @@ exports.editEvent = async (req, res) => {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "backstage" },
           { isEnabled: updatedEventData.backstageCode },
-          { upsert: true, new: true }
+          { new: true }
         );
       }
     }

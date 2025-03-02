@@ -1,6 +1,16 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+// Define a schema for code permissions that can be dynamic
+const CodePermissionSchema = new Schema(
+  {
+    generate: { type: Boolean, default: false },
+    limit: { type: Number, default: 0 },
+    unlimited: { type: Boolean, default: false },
+  },
+  { _id: false, strict: false }
+);
+
 const RoleSchema = new Schema(
   {
     brandId: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
@@ -21,24 +31,7 @@ const RoleSchema = new Schema(
       analytics: {
         view: { type: Boolean, default: false },
       },
-      codes: {
-        friends: {
-          generate: { type: Boolean, default: false },
-          limit: { type: Number, default: 0 },
-          unlimited: { type: Boolean, default: false },
-        },
-        backstage: {
-          generate: { type: Boolean, default: false },
-          limit: { type: Number, default: 0 },
-          unlimited: { type: Boolean, default: false },
-        },
-        table: {
-          generate: { type: Boolean, default: false },
-        },
-        ticket: {
-          generate: { type: Boolean, default: false },
-        },
-      },
+      codes: { type: Map, of: CodePermissionSchema, default: {} },
       scanner: {
         use: { type: Boolean, default: false },
       },

@@ -175,20 +175,21 @@
     .item-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
 
       .color-picker-button,
       .toggle-button,
       .expand-settings-button,
       .delete-button,
+      .code-setting-delete-button,
       .icon-picker-button {
         background: rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.1);
         color: rgba(255, 255, 255, 0.7);
         cursor: pointer;
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -207,7 +208,7 @@
         }
       }
 
-      .delete-button {
+      .code-setting-delete-button {
         background: rgba(255, 59, 48, 0.1);
         border: 1px solid rgba(255, 59, 48, 0.2);
         color: rgba(255, 59, 48, 0.8);
@@ -373,31 +374,35 @@
 }
 
 .add-code-container {
-  margin-top: 1rem;
   display: flex;
   justify-content: center;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+  position: sticky;
+  bottom: 1rem;
 
   .add-code-button {
+    background-color: rgba(255, 200, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 200, 7, 0.3);
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.2s ease;
-
-    svg {
-      font-size: 1.1rem;
-    }
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background-color: rgba(255, 200, 7, 0.25);
       transform: translateY(-2px);
+    }
+
+    svg {
+      font-size: 1.2rem;
     }
   }
 }
@@ -529,6 +534,7 @@
         .toggle-button,
         .expand-settings-button,
         .delete-button,
+        .code-setting-delete-button,
         .icon-picker-button {
           width: 32px;
           height: 32px;
@@ -716,5 +722,137 @@
   &.active {
     background: rgba(255, 200, 7, 0.2);
     color: #ffc807;
+  }
+}
+
+// Add Code Dialog Styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-code-dialog {
+  position: relative;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  z-index: 1100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      input {
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.5);
+          box-shadow: 0 0 0 1px rgba(255, 200, 7, 0.1);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+
+      button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &.cancel-button {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.7);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+        }
+
+        &.confirm-button {
+          background-color: #ffc807;
+          border: none;
+          color: #000;
+
+          &:hover:not(:disabled) {
+            background-color: #d1a300;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Media queries for responsive design
+@media (max-width: 600px) {
+  .add-code-dialog {
+    width: 95%;
+    padding: 20px;
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
+
+    .dialog-content {
+      gap: 16px;
+    }
   }
 }

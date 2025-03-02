@@ -349,10 +349,18 @@ const configureCodeSettings = async (req, res) => {
     // If no codeSettingId but type is provided, create or update by type
     else if (type) {
       // For non-custom types, try to find existing setting
-      codeSetting = await CodeSettings.findOne({
+      // For custom types, use both type and name to find the setting
+      let query = {
         eventId: parentEventId,
         type,
-      });
+      };
+
+      // For custom codes, also check the name to ensure uniqueness
+      if (type === "custom" && name) {
+        query.name = name;
+      }
+
+      codeSetting = await CodeSettings.findOne(query);
 
       if (!codeSetting) {
         console.log("[CodeSettings] Creating new code setting for type:", type);

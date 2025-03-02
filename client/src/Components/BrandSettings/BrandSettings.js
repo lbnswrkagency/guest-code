@@ -23,7 +23,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
     defaultRole: brand.settings?.defaultRole || "staff",
   });
   const [roles, setRoles] = useState([]);
-  const toast = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     console.log("[BrandSettings] Initial settings:", {
@@ -44,7 +44,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
       setRoles(response.data);
     } catch (error) {
       console.error("Error fetching roles:", error);
-      toast.showError("Failed to fetch roles");
+      showToast("Failed to fetch roles", "error");
     }
   };
 
@@ -100,7 +100,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
   const handleJoinToggle = async () => {
     try {
       const response = await axiosInstance.put(
-        `/brands/${brand._id}/settings`,
+        `/api/brands/${brand._id}/settings`,
         {
           autoJoinEnabled: !settings.autoJoinEnabled,
           defaultRole: settings.defaultRole,
@@ -112,10 +112,10 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
         autoJoinEnabled: !prev.autoJoinEnabled,
       }));
 
-      toast.showSuccess("Join settings updated successfully");
+      showToast("Join settings updated successfully", "success");
     } catch (error) {
       console.error("Error updating join settings:", error);
-      toast.showError("Failed to update join settings");
+      showToast("Failed to update join settings", "error");
     }
   };
 
@@ -125,7 +125,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
 
     try {
       const response = await axiosInstance.put(
-        `/brands/${brand._id}/settings`,
+        `/api/brands/${brand._id}/settings`,
         {
           autoJoinEnabled: settings.autoJoinEnabled,
           defaultRole: newRole,
@@ -137,10 +137,10 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
         defaultRole: newRole,
       }));
 
-      toast.showSuccess("Default role updated successfully");
+      showToast("Default role updated successfully", "success");
     } catch (error) {
       console.error("Error updating default role:", error);
-      toast.showError("Failed to update default role");
+      showToast("Failed to update default role", "error");
     }
   };
 

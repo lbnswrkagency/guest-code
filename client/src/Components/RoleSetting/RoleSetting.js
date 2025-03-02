@@ -8,6 +8,7 @@ import {
   RiEditLine,
   RiLockLine,
   RiTeamLine,
+  RiCodeLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
@@ -21,6 +22,9 @@ const RoleSetting = ({ brand, onClose }) => {
   const [editingRole, setEditingRole] = useState(null);
   const [roleToDelete, setRoleToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [codeSettings, setCodeSettings] = useState([]);
+  const [loadingCodeSettings, setLoadingCodeSettings] = useState(true);
+
   const [newRole, setNewRole] = useState({
     name: "",
     permissions: {
@@ -38,25 +42,7 @@ const RoleSetting = ({ brand, onClose }) => {
         view: false,
       },
       codes: {
-        friends: {
-          generate: false,
-          limit: 0,
-          unlimited: false,
-        },
-        backstage: {
-          generate: false,
-          limit: 0,
-          unlimited: false,
-        },
-        table: {
-          generate: false,
-        },
-        ticket: {
-          generate: false,
-        },
-        guest: {
-          generate: false,
-        },
+        // Will be populated with all code types
       },
       scanner: {
         use: false,
@@ -66,6 +52,7 @@ const RoleSetting = ({ brand, onClose }) => {
 
   useEffect(() => {
     fetchRoles();
+    fetchCodeSettings();
   }, [brand._id]);
 
   const fetchRoles = async () => {
@@ -79,6 +66,75 @@ const RoleSetting = ({ brand, onClose }) => {
       console.error("Error fetching roles:", error);
       setLoading(false);
     }
+  };
+
+  // We're only interested in custom code types now
+  const fetchCodeSettings = async () => {
+    try {
+      setLoadingCodeSettings(true);
+
+      // Get events for this brand
+      const eventsResponse = await axiosInstance.get(
+        `/events/brand/${brand._id}`
+      );
+
+      // Initialize with empty array since we're only focusing on custom codes
+      let customCodeSettings = [];
+
+      if (eventsResponse.data && eventsResponse.data.length) {
+        // Use the first event to get code settings
+        const eventId = eventsResponse.data[0]._id;
+
+        const codeResponse = await axiosInstance.get(
+          `/code-settings/events/${eventId}`
+        );
+
+        if (codeResponse.data && codeResponse.data.codeSettings) {
+          // Get only custom code types
+          customCodeSettings = codeResponse.data.codeSettings
+            .filter((code) => code.type === "custom")
+            .map((code) => ({
+              name: code.name,
+              displayName:
+                code.name.charAt(0).toUpperCase() + code.name.slice(1),
+              hasLimits: true, // Custom codes typically have limits
+              isCustom: true,
+              color: code.color || "#ffc807", // Use the code's color or default to yellow
+              maxLimit: code.limit || 999, // Use code's limit or default to a high value
+            }));
+        }
+      }
+
+      console.log("Available custom code settings:", customCodeSettings);
+      setCodeSettings(customCodeSettings);
+
+      // Initialize role with permissions for only custom code types
+      initializeRoleWithCodePermissions(customCodeSettings);
+    } catch (error) {
+      console.error("Error fetching code settings:", error);
+    } finally {
+      setLoadingCodeSettings(false);
+    }
+  };
+
+  // Initialize role with permissions for custom code types only
+  const initializeRoleWithCodePermissions = (codeTypes) => {
+    const codePermissions = {};
+
+    codeTypes.forEach((code) => {
+      codePermissions[code.name] = {
+        generate: false,
+        ...(code.hasLimits ? { limit: 0, unlimited: false } : {}),
+      };
+    });
+
+    setNewRole((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        codes: codePermissions,
+      },
+    }));
   };
 
   const handleCreateRole = async () => {
@@ -95,52 +151,50 @@ const RoleSetting = ({ brand, onClose }) => {
         normalizedRole
       );
       setRoles([...roles, response.data]);
-      setNewRole({
-        name: "",
-        permissions: {
-          events: {
-            create: false,
-            edit: false,
-            delete: false,
-            view: true,
-          },
-          team: {
-            manage: false,
-            view: true,
-          },
-          analytics: {
-            view: false,
-          },
-          codes: {
-            friends: {
-              generate: false,
-              limit: 0,
-              unlimited: false,
-            },
-            backstage: {
-              generate: false,
-              limit: 0,
-              unlimited: false,
-            },
-            table: {
-              generate: false,
-            },
-            ticket: {
-              generate: false,
-            },
-            guest: {
-              generate: false,
-            },
-          },
-          scanner: {
-            use: false,
-          },
-        },
-      });
+
+      // Reset role with permissions for all code types
+      resetRoleForm();
       setShowCreateForm(false);
     } catch (error) {
       console.error("Error creating role:", error);
+      toast.error(error.response?.data?.message || "Failed to create role");
     }
+  };
+
+  const resetRoleForm = () => {
+    // Initialize base role structure
+    const resetRole = {
+      name: "",
+      permissions: {
+        events: {
+          create: false,
+          edit: false,
+          delete: false,
+          view: true,
+        },
+        team: {
+          manage: false,
+          view: true,
+        },
+        analytics: {
+          view: false,
+        },
+        codes: {},
+        scanner: {
+          use: false,
+        },
+      },
+    };
+
+    // Add code permissions for all code types
+    codeSettings.forEach((code) => {
+      resetRole.permissions.codes[code.name] = {
+        generate: false,
+        ...(code.hasLimits ? { limit: 0, unlimited: false } : {}),
+      };
+    });
+
+    setNewRole(resetRole);
   };
 
   const handleDeleteClick = (role) => {
@@ -185,25 +239,47 @@ const RoleSetting = ({ brand, onClose }) => {
   };
 
   const handleCodePermissionChange = (codeType, changes) => {
-    setNewRole((prev) => ({
-      ...prev,
-      permissions: {
-        ...prev.permissions,
-        codes: {
-          ...prev.permissions.codes,
-          [codeType]: {
-            ...prev.permissions.codes[codeType],
-            ...changes,
-          },
+    // Find the code setting for this code type to get its maxLimit
+    const codeSetting = codeSettings.find((code) => code.name === codeType);
+    const maxLimit = codeSetting?.maxLimit || 999;
+
+    // If we're changing the limit, ensure it's within bounds
+    if (changes.limit !== undefined) {
+      changes.limit = Math.min(changes.limit, maxLimit);
+    }
+
+    setNewRole((prev) => {
+      const updatedCodes = { ...prev.permissions.codes };
+
+      if (!updatedCodes[codeType]) {
+        updatedCodes[codeType] = {
+          generate: false,
+          limit: 0,
+          unlimited: false,
+        };
+      }
+
+      updatedCodes[codeType] = {
+        ...updatedCodes[codeType],
+        ...changes,
+      };
+
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          codes: updatedCodes,
         },
-      },
-    }));
+      };
+    });
   };
 
   const handleStartEdit = (role) => {
     if (role.name === "OWNER") return;
     setEditingRole(role);
-    setNewRole({
+
+    // Initialize role with basic permissions structure
+    const initialEditRole = {
       name: role.name,
       permissions: {
         events: {
@@ -219,32 +295,31 @@ const RoleSetting = ({ brand, onClose }) => {
         analytics: {
           view: role.permissions?.analytics?.view || false,
         },
-        codes: {
-          friends: {
-            generate: role.permissions?.codes?.friends?.generate || false,
-            limit: role.permissions?.codes?.friends?.limit || 0,
-            unlimited: role.permissions?.codes?.friends?.unlimited || false,
-          },
-          backstage: {
-            generate: role.permissions?.codes?.backstage?.generate || false,
-            limit: role.permissions?.codes?.backstage?.limit || 0,
-            unlimited: role.permissions?.codes?.backstage?.unlimited || false,
-          },
-          table: {
-            generate: role.permissions?.codes?.table?.generate || false,
-          },
-          ticket: {
-            generate: role.permissions?.codes?.ticket?.generate || false,
-          },
-          guest: {
-            generate: role.permissions?.codes?.guest?.generate || false,
-          },
-        },
+        codes: {},
         scanner: {
           use: role.permissions?.scanner?.use || false,
         },
       },
+    };
+
+    // Initialize custom code permissions only
+    const roleCodePermissions = role.permissions?.codes || {};
+
+    // Make sure we have entries for all custom code types
+    codeSettings.forEach((code) => {
+      const existingPermission = roleCodePermissions[code.name] || {};
+      initialEditRole.permissions.codes[code.name] = {
+        generate: Boolean(existingPermission.generate),
+        ...(code.hasLimits
+          ? {
+              limit: parseInt(existingPermission.limit) || 0,
+              unlimited: Boolean(existingPermission.unlimited),
+            }
+          : {}),
+      };
     });
+
+    setNewRole(initialEditRole);
     setShowCreateForm(true);
   };
 
@@ -268,7 +343,9 @@ const RoleSetting = ({ brand, onClose }) => {
       );
       setShowCreateForm(false);
       setEditingRole(null);
+      toast.success("Role updated successfully");
     } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update role");
       console.error("Error updating role:", error);
     }
   };
@@ -291,42 +368,65 @@ const RoleSetting = ({ brand, onClose }) => {
     </div>
   );
 
-  const renderCodePermission = (title, codeType) => {
-    const permission = newRole.permissions.codes[codeType];
-    const isCodeWithLimit = ["friends", "backstage"].includes(codeType);
+  const renderCodePermission = (
+    displayName,
+    codeType,
+    hasLimits,
+    codeColor
+  ) => {
+    const permission = newRole.permissions.codes[codeType] || {
+      generate: false,
+      ...(hasLimits ? { limit: 0, unlimited: false } : {}),
+    };
+
+    // Find the code setting to get its maxLimit
+    const codeSetting = codeSettings.find((code) => code.name === codeType);
+    const maxLimit = codeSetting?.maxLimit || 999;
+
+    // Use the custom code color or default to the primary color
+    const borderColor = codeColor ? codeColor : "#ffc807";
 
     return (
-      <div className="permission-item">
+      <div className="permission-item" style={{ borderLeftColor: borderColor }}>
         <div className="permission-header">
           <label className="switch">
             <input
               type="checkbox"
-              checked={
-                isCodeWithLimit ? permission.generate : permission.generate
-              }
+              checked={permission.generate || false}
               onChange={(e) =>
                 handleCodePermissionChange(codeType, {
                   generate: e.target.checked,
                 })
               }
             />
-            <span className="slider"></span>
+            <span
+              className="slider"
+              style={{
+                backgroundColor: permission.generate ? borderColor : "",
+              }}
+            ></span>
           </label>
-          <span className="permission-title">{title}</span>
+          <span className="permission-title">{displayName}</span>
         </div>
 
-        {isCodeWithLimit && permission.generate && (
+        {hasLimits && permission.generate && (
           <div className="code-limit-section">
             <div className="limit-input-wrapper">
               <input
                 type="number"
                 min="0"
+                max={maxLimit}
                 value={permission.unlimited ? "∞" : permission.limit}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === "") return;
+
+                  // Parse the value and ensure it doesn't exceed maxLimit
+                  const numValue = parseInt(value) || 0;
+                  const cappedValue = Math.min(numValue, maxLimit);
+
                   handleCodePermissionChange(codeType, {
-                    limit: parseInt(value) || 0,
+                    limit: cappedValue,
                     unlimited: false,
                   });
                 }}
@@ -338,6 +438,14 @@ const RoleSetting = ({ brand, onClose }) => {
               className={`unlimited-btn ${
                 permission.unlimited ? "active" : ""
               }`}
+              style={{
+                backgroundColor: permission.unlimited
+                  ? `rgba(${parseInt(borderColor.slice(1, 3), 16)}, ${parseInt(
+                      borderColor.slice(3, 5),
+                      16
+                    )}, ${parseInt(borderColor.slice(5, 7), 16)}, 0.15)`
+                  : "",
+              }}
               onClick={() =>
                 handleCodePermissionChange(codeType, {
                   unlimited: !permission.unlimited,
@@ -346,7 +454,7 @@ const RoleSetting = ({ brand, onClose }) => {
               }
             >
               <RiRepeatFill />
-              <span>Unlimited</span>
+              <span>Maximum</span>
             </button>
           </div>
         )}
@@ -354,7 +462,7 @@ const RoleSetting = ({ brand, onClose }) => {
     );
   };
 
-  if (loading) {
+  if (loading || loadingCodeSettings) {
     return <div className="role-settings loading">Loading...</div>;
   }
 
@@ -414,7 +522,10 @@ const RoleSetting = ({ brand, onClose }) => {
 
       <motion.button
         className="add-role-btn"
-        onClick={() => setShowCreateForm(true)}
+        onClick={() => {
+          resetRoleForm();
+          setShowCreateForm(true);
+        }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
@@ -476,14 +587,30 @@ const RoleSetting = ({ brand, onClose }) => {
                 )}
               </div>
 
-              <h4>Code Permissions</h4>
-              <div className="permission-group">
-                {renderCodePermission("Friends Code", "friends")}
-                {renderCodePermission("Backstage Code", "backstage")}
-                {renderCodePermission("Table Code", "table")}
-                {renderCodePermission("Ticket Code", "ticket")}
-                {renderCodePermission("Guest Code", "guest")}
-              </div>
+              {codeSettings.length > 0 && (
+                <div className="permission-group">
+                  <h4>Custom Codes</h4>
+                  {codeSettings.length > 0 ? (
+                    <div className="custom-codes">
+                      {codeSettings.map((code) => (
+                        <div key={code.name}>
+                          {renderCodePermission(
+                            code.displayName,
+                            code.name,
+                            code.hasLimits,
+                            code.color
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-custom-codes">
+                      <RiCodeLine />
+                      <span>No custom codes available</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <h4>Other Permissions</h4>
               <div className="permission-group">
@@ -508,48 +635,7 @@ const RoleSetting = ({ brand, onClose }) => {
                 onClick={() => {
                   setShowCreateForm(false);
                   setEditingRole(null);
-                  setNewRole({
-                    name: "",
-                    permissions: {
-                      events: {
-                        create: false,
-                        edit: false,
-                        delete: false,
-                        view: true,
-                      },
-                      team: {
-                        manage: false,
-                        view: true,
-                      },
-                      analytics: {
-                        view: false,
-                      },
-                      codes: {
-                        friends: {
-                          generate: false,
-                          limit: 0,
-                          unlimited: false,
-                        },
-                        backstage: {
-                          generate: false,
-                          limit: 0,
-                          unlimited: false,
-                        },
-                        table: {
-                          generate: false,
-                        },
-                        ticket: {
-                          generate: false,
-                        },
-                        guest: {
-                          generate: false,
-                        },
-                      },
-                      scanner: {
-                        use: false,
-                      },
-                    },
-                  });
+                  resetRoleForm();
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

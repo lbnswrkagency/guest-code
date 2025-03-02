@@ -25,6 +25,43 @@ import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import AuthContext from "../../contexts/AuthContext";
 import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
 
+// Helper function to check if a user has permissions to edit an event
+const hasEventPermissions = (event, user, userBrands) => {
+  // If no user or event, permission denied
+  if (!user || !event) return false;
+
+  // Get the brand associated with this event
+  const eventBrand = userBrands?.find(
+    (b) =>
+      b._id === event.brand ||
+      (typeof event.brand === "object" && b._id === event.brand._id)
+  );
+
+  if (!eventBrand) return false;
+
+  // If user is the brand owner, they have permission
+  if (
+    eventBrand.owner === user._id ||
+    (typeof eventBrand.owner === "object" && eventBrand.owner._id === user._id)
+  ) {
+    return true;
+  }
+
+  // If user is a team member, check their permissions
+  const teamMember = eventBrand.team?.find(
+    (member) =>
+      member.user === user._id ||
+      (typeof member.user === "object" && member.user._id === user._id)
+  );
+
+  if (teamMember) {
+    // Check if the team member has edit permissions for events
+    return teamMember.permissions?.events?.edit === true;
+  }
+
+  return false;
+};
+
 const Events = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -274,6 +311,15 @@ const Events = () => {
   };
 
   const handleSettingsClick = (event) => {
+    // Check if this is a deletion result from EventCard
+    if (event && event.action === "deleted") {
+      // Remove the deleted event from the events array
+      setEvents((prev) => prev.filter((e) => e._id !== event.eventId));
+      toast.showSuccess("Event successfully deleted");
+      return;
+    }
+
+    // Regular settings handling
     setSelectedEventForSettings(event);
     setShowSettings(true);
   };
@@ -362,6 +408,7 @@ const Events = () => {
                     event={event}
                     onClick={handleEventClick}
                     onSettingsClick={handleSettingsClick}
+                    userBrands={userBrands}
                   />
                 ))}
                 <div
@@ -398,7 +445,7 @@ const Events = () => {
   );
 };
 
-const EventCard = ({ event, onClick, onSettingsClick }) => {
+const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showBackContent, setShowBackContent] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
@@ -408,6 +455,10 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast(); // Add toast context
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext); // Get current user
+
+  // Check if the user has permission to edit this event
+  const hasPermission = hasEventPermissions(event, user, userBrands);
 
   useEffect(() => {
     console.log("[EventCard] Event prop changed:", event);
@@ -785,22 +836,26 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
             )}
           </div>
           <div className="card-actions">
-            <motion.button
-              className="action-button edit"
-              onClick={handleEditClick}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <RiEditLine />
-            </motion.button>
-            <motion.button
-              className="action-button settings"
-              onClick={handleSettingsClick}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <RiSettings4Line />
-            </motion.button>
+            {hasPermission && (
+              <>
+                <motion.button
+                  className="action-button edit"
+                  onClick={handleEditClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+                <motion.button
+                  className="action-button settings"
+                  onClick={handleSettingsClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiSettings4Line />
+                </motion.button>
+              </>
+            )}
           </div>
         </div>
 
@@ -812,22 +867,24 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
                 <span className="subtitle">{currentEvent.subTitle}</span>
               )}
             </div>
-            <motion.button
-              className={`go-live-button ${isLive ? "live" : ""}`}
-              onClick={handleGoLive}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {isLive ? (
-                <>
-                  <RiEyeLine /> Live
-                </>
-              ) : (
-                <>
-                  <RiEyeOffLine /> Go Live
-                </>
-              )}
-            </motion.button>
+            {hasPermission && (
+              <motion.button
+                className={`go-live-button ${isLive ? "live" : ""}`}
+                onClick={handleGoLive}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isLive ? (
+                  <>
+                    <RiEyeLine /> Live
+                  </>
+                ) : (
+                  <>
+                    <RiEyeOffLine /> Go Live
+                  </>
+                )}
+              </motion.button>
+            )}
           </div>
 
           <div className="event-details">
@@ -836,8 +893,12 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
                 <div className="navigation-controls">
                   <button
                     className="nav-arrow prev"
-                    onClick={handlePrevWeek}
-                    disabled={currentWeek === 0}
+                    onClick={
+                      hasPermission
+                        ? handlePrevWeek
+                        : (e) => e.stopPropagation()
+                    }
+                    disabled={currentWeek === 0 || !hasPermission}
                   >
                     ←
                   </button>
@@ -845,7 +906,15 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
                     <RiCalendarEventLine className="calendar-icon" />
                     {formatWeeklyDate(displayDate)}
                   </div>
-                  <button className="nav-arrow next" onClick={handleNextWeek}>
+                  <button
+                    className="nav-arrow next"
+                    onClick={
+                      hasPermission
+                        ? handleNextWeek
+                        : (e) => e.stopPropagation()
+                    }
+                    disabled={!hasPermission}
+                  >
                     →
                   </button>
                 </div>
@@ -903,8 +972,26 @@ const EventCard = ({ event, onClick, onSettingsClick }) => {
           transformStyle: "preserve-3d",
         }}
       >
-        {showBackContent && (
-          <EventSettings event={event} onClose={() => setIsFlipped(false)} />
+        {showBackContent && hasPermission && (
+          <EventSettings
+            event={event}
+            onClose={(result) => {
+              setIsFlipped(false);
+              // If this was a deletion, notify the parent via onSettingsClick callback
+              if (result && result.deleted) {
+                onSettingsClick({ action: "deleted", eventId: result.eventId });
+              }
+            }}
+          />
+        )}
+        {showBackContent && !hasPermission && (
+          <div className="no-permission-message">
+            <h3>Access Restricted</h3>
+            <p>You don't have permission to modify this event.</p>
+            <button className="back-button" onClick={() => setIsFlipped(false)}>
+              Back to Event
+            </button>
+          </div>
         )}
       </div>
     </motion.div>

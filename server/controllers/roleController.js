@@ -1,9 +1,56 @@
 const Role = require("../models/roleModel");
 const Brand = require("../models/brandModel");
+const CodeSetting = require("../models/codeSettingsModel");
 
 // Create default roles for a brand
 exports.createDefaultRoles = async (brandId, userId) => {
   try {
+    // Prepare default code permissions
+    const defaultCodePermissions = {
+      friends: {
+        generate: true,
+        limit: 0,
+        unlimited: true,
+      },
+      backstage: {
+        generate: true,
+        limit: 0,
+        unlimited: true,
+      },
+      table: {
+        generate: true,
+      },
+      ticket: {
+        generate: true,
+      },
+      guest: {
+        generate: true,
+      },
+    };
+
+    // Default limited permissions
+    const limitedCodePermissions = {
+      friends: {
+        generate: true,
+        limit: 10,
+        unlimited: false,
+      },
+      backstage: {
+        generate: false,
+        limit: 0,
+        unlimited: false,
+      },
+      table: {
+        generate: false,
+      },
+      ticket: {
+        generate: false,
+      },
+      guest: {
+        generate: false,
+      },
+    };
+
     // Create OWNER role
     const ownerRole = new Role({
       name: "OWNER",
@@ -24,27 +71,7 @@ exports.createDefaultRoles = async (brandId, userId) => {
         analytics: {
           view: true,
         },
-        codes: {
-          friends: {
-            generate: true,
-            limit: 0,
-            unlimited: true,
-          },
-          backstage: {
-            generate: true,
-            limit: 0,
-            unlimited: true,
-          },
-          table: {
-            generate: true,
-          },
-          ticket: {
-            generate: true,
-          },
-          guest: {
-            generate: true,
-          },
-        },
+        codes: defaultCodePermissions,
         scanner: {
           use: true,
         },
@@ -71,27 +98,7 @@ exports.createDefaultRoles = async (brandId, userId) => {
         analytics: {
           view: false,
         },
-        codes: {
-          friends: {
-            generate: true,
-            limit: 10,
-            unlimited: false,
-          },
-          backstage: {
-            generate: false,
-            limit: 0,
-            unlimited: false,
-          },
-          table: {
-            generate: false,
-          },
-          ticket: {
-            generate: false,
-          },
-          guest: {
-            generate: false,
-          },
-        },
+        codes: limitedCodePermissions,
         scanner: {
           use: false,
         },
@@ -104,6 +111,33 @@ exports.createDefaultRoles = async (brandId, userId) => {
     console.error("[RoleController:createDefaultRoles] Error:", error);
     throw error;
   }
+};
+
+// Process and normalize code permissions before saving
+const processCodePermissions = (codePermissions) => {
+  const processedPermissions = {};
+
+  if (codePermissions && typeof codePermissions === "object") {
+    // Loop through each code type
+    Object.keys(codePermissions).forEach((codeType) => {
+      const permission = codePermissions[codeType];
+
+      // Basic structure for all code types
+      processedPermissions[codeType] = {
+        generate: Boolean(permission.generate),
+      };
+
+      // Add limit and unlimited if applicable
+      if (typeof permission.limit !== "undefined") {
+        processedPermissions[codeType].limit = parseInt(permission.limit) || 0;
+        processedPermissions[codeType].unlimited = Boolean(
+          permission.unlimited
+        );
+      }
+    });
+  }
+
+  return processedPermissions;
 };
 
 // Get all roles for a brand
@@ -141,6 +175,11 @@ exports.createRole = async (req, res) => {
       return res
         .status(403)
         .json({ message: "Cannot create another OWNER role" });
+    }
+
+    // Process code permissions
+    if (permissions.codes) {
+      permissions.codes = processCodePermissions(permissions.codes);
     }
 
     const role = new Role({
@@ -185,6 +224,11 @@ exports.updateRole = async (req, res) => {
     // Prevent changing role name to OWNER
     if (name && name.toUpperCase() === "OWNER") {
       return res.status(403).json({ message: "Cannot rename role to OWNER" });
+    }
+
+    // Process code permissions if present
+    if (permissions && permissions.codes) {
+      permissions.codes = processCodePermissions(permissions.codes);
     }
 
     const updatedRole = await Role.findByIdAndUpdate(

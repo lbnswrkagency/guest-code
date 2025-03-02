@@ -1,0 +1,246 @@
+// Glassy UI Component Styling
+// Usage: Add .glassy-element class to any div to get the glossy styling
+
+@keyframes subtleShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+// Base glassy style
+@mixin glassy-base {
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.7),
+    rgba(17, 25, 40, 0.8)
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 200, 7, 0.3) inset, 0 0 0 1px rgba(255, 200, 7, 0.1);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: all 0.3s ease;
+
+  // Golden border effect
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1.5px; // Border width
+    background: linear-gradient(
+      225deg,
+      rgba(255, 200, 7, 0.9),
+      rgba(255, 200, 7, 0.5) 40%,
+      rgba(255, 200, 7, 0.3) 60%,
+      rgba(255, 200, 7, 0.8)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: 0;
+    animation: subtleShine 3s infinite linear;
+    background-size: 200% 200%;
+  }
+
+  // Inner glass effect
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // Style for the content inside
+  > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  // Hover state
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 200, 7, 0.5) inset, 0 0 0 1px rgba(255, 200, 7, 0.3);
+
+    &::before {
+      background: linear-gradient(
+        225deg,
+        rgba(255, 200, 7, 1),
+        rgba(255, 200, 7, 0.6) 40%,
+        rgba(255, 200, 7, 0.4) 60%,
+        rgba(255, 200, 7, 0.9)
+      );
+    }
+  }
+
+  // Active state
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(255, 200, 7, 0.4) inset;
+  }
+}
+
+// Small mixin
+@mixin glassy-small {
+  border-radius: 12px;
+
+  &::before,
+  &::after {
+    border-radius: 12px;
+  }
+}
+
+// Icon mixin
+@mixin glassy-icon {
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+
+  svg,
+  img {
+    height: 60%;
+    width: 60%;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+}
+
+// Square mixin
+@mixin glassy-square {
+  border-radius: 12px;
+
+  &::before,
+  &::after {
+    border-radius: 12px;
+  }
+}
+
+// Size mixins
+@mixin glassy-xs {
+  width: 40px;
+  height: 40px;
+}
+
+@mixin glassy-sm {
+  width: 60px;
+  height: 60px;
+}
+
+@mixin glassy-md {
+  width: 80px;
+  height: 80px;
+}
+
+@mixin glassy-lg {
+  width: 100px;
+  height: 100px;
+}
+
+@mixin glassy-xl {
+  width: 120px;
+  height: 120px;
+}
+
+// Button mixin
+@mixin glassy-button {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-weight: 500;
+  color: white;
+
+  &:hover {
+    color: rgba(255, 200, 7, 0.9);
+  }
+}
+
+// Premium mixin
+@mixin glassy-premium {
+  background: linear-gradient(
+    145deg,
+    rgba(20, 20, 20, 0.7),
+    rgba(30, 30, 30, 0.8)
+  );
+
+  &::before {
+    background: linear-gradient(
+      225deg,
+      rgba(255, 215, 0, 1),
+      rgba(255, 200, 7, 0.7) 40%,
+      rgba(255, 180, 0, 0.5) 60%,
+      rgba(255, 215, 0, 0.9)
+    );
+    padding: 2px;
+  }
+}
+
+// Apply base class
+.glassy-element {
+  @include glassy-base;
+}
+
+// Individual modifier classes
+.glassy-small {
+  @include glassy-small;
+}
+
+.glassy-icon {
+  @include glassy-icon;
+}
+
+.glassy-square {
+  @include glassy-square;
+}
+
+.glassy-xs {
+  @include glassy-xs;
+}
+
+.glassy-sm {
+  @include glassy-sm;
+}
+
+.glassy-md {
+  @include glassy-md;
+}
+
+.glassy-lg {
+  @include glassy-lg;
+}
+
+.glassy-xl {
+  @include glassy-xl;
+}
+
+.glassy-button {
+  @include glassy-button;
+}
+
+.glassy-premium {
+  @include glassy-premium;
+}
