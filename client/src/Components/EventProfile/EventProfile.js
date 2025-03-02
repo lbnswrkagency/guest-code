@@ -23,6 +23,8 @@ import {
   RiUserFollowLine,
   RiStarFill,
   RiStarLine,
+  RiMailLine,
+  RiUserStarLine,
 } from "react-icons/ri";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 
@@ -40,7 +42,7 @@ const EventProfile = () => {
   const [error, setError] = useState(null);
   const [guestCode, setGuestCode] = useState("");
   const [showCodeDialog, setShowCodeDialog] = useState(false);
-  const [activeSection, setActiveSection] = useState("info");
+  const [activeSection, setActiveSection] = useState("event");
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isMember, setIsMember] = useState(false);
@@ -49,6 +51,8 @@ const EventProfile = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
 
   // Fetch event data
   useEffect(() => {
@@ -124,10 +128,22 @@ const EventProfile = () => {
   // Generate guest code
   const handleGenerateGuestCode = async () => {
     try {
+      // Validate guest name and email
+      if (
+        !guestName.trim() ||
+        !guestEmail.trim() ||
+        !guestEmail.includes("@")
+      ) {
+        toast.showError("Please enter a valid name and email");
+        return;
+      }
+
       console.log("[EventProfile] Generating guest code for event:", event._id);
 
       const response = await axiosInstance.post("/events/generateGuestCode", {
         eventId: event._id,
+        guestName: guestName,
+        guestEmail: guestEmail,
       });
 
       console.log("[EventProfile] Guest code generated:", response.data);
@@ -135,6 +151,9 @@ const EventProfile = () => {
       if (response.data && response.data.code) {
         setGuestCode(response.data.code);
         setShowCodeDialog(true);
+        // Clear form fields after successful submission
+        setGuestName("");
+        setGuestEmail("");
       }
     } catch (err) {
       console.error("[EventProfile] Error generating guest code:", err);
@@ -363,18 +382,11 @@ const EventProfile = () => {
         {/* Navigation Tabs */}
         <div className="event-nav">
           <button
-            className={activeSection === "info" ? "active" : ""}
-            onClick={() => setActiveSection("info")}
+            className={activeSection === "event" ? "active" : ""}
+            onClick={() => setActiveSection("event")}
           >
-            <RiInformationLine />
-            Info
-          </button>
-          <button
-            className={activeSection === "lineup" ? "active" : ""}
-            onClick={() => setActiveSection("lineup")}
-          >
-            <RiUserLine />
-            Lineup
+            <RiCalendarEventLine />
+            Event
           </button>
           <button
             className={activeSection === "tickets" ? "active" : ""}
@@ -394,111 +406,157 @@ const EventProfile = () => {
 
         {/* Main Content Area */}
         <div className="event-content">
-          {/* Info Section */}
-          {activeSection === "info" && (
+          {/* Combined Event Section (Info + Lineup) */}
+          {activeSection === "event" && (
             <motion.div
-              className="event-section event-info"
+              className="event-section event-combined"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="event-details">
-                <motion.div
-                  className="detail-item"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <RiCalendarEventLine />
-                  <div>
-                    <h4>Date</h4>
-                    <p>{formatDate(event.date)}</p>
-                  </div>
-                </motion.div>
+              {/* Event Info with Integrated Lineup */}
+              <div className="event-info-section">
+                <h3>Event Details</h3>
 
-                <motion.div
-                  className="detail-item"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <RiTimeLine />
-                  <div>
-                    <h4>Time</h4>
-                    <p>
-                      {event.startTime} - {event.endTime}
-                    </p>
+                {/* Minimalistic Lineup Section integrated with event info */}
+                {lineups && lineups.length > 0 && (
+                  <div className="lineup-mini-grid">
+                    {lineups.map((artist, index) => (
+                      <motion.div
+                        key={artist._id || index}
+                        className="lineup-artist-mini"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 + index * 0.05 }}
+                      >
+                        <div className="artist-image-mini">
+                          {artist.avatar && artist.avatar.medium ? (
+                            <img src={artist.avatar.medium} alt={artist.name} />
+                          ) : (
+                            <div className="artist-placeholder-mini">
+                              {artist.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="artist-info-mini">
+                          <h4>{artist.name}</h4>
+                          {artist.category && (
+                            <span className="artist-category-mini">
+                              {artist.category}
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </motion.div>
+                )}
 
-                <motion.div
-                  className="detail-item"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <RiMapPinLine />
-                  <div>
-                    <h4>Location</h4>
-                    <p>{event.location}</p>
-                  </div>
-                </motion.div>
+                <div className="event-details">
+                  <motion.div
+                    className="detail-item"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <RiCalendarEventLine />
+                    <div>
+                      <h4>Date</h4>
+                      <p>{formatDate(event.date)}</p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    className="detail-item"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <RiTimeLine />
+                    <div>
+                      <h4>Time</h4>
+                      <p>
+                        {event.startTime} - {event.endTime}
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    className="detail-item"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <RiMapPinLine />
+                    <div>
+                      <h4>Location</h4>
+                      <p>{event.location}</p>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {event.description && (
+                  <motion.div
+                    className="event-description"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <h3>About This Event</h3>
+                    <p>{event.description}</p>
+                  </motion.div>
+                )}
               </div>
 
-              {event.description && (
-                <motion.div
-                  className="event-description"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <h3>About This Event</h3>
-                  <p>{event.description}</p>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
+              {/* Guest Code Request Section */}
+              <motion.div
+                className="event-guest-code"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <h3>Request Guest Code</h3>
+                <p className="guest-code-description">
+                  Enter your details below to request a guest code for this
+                  event.
+                </p>
 
-          {/* Lineup Section */}
-          {activeSection === "lineup" && (
-            <motion.div
-              className="event-section event-lineup"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h3>Event Lineup</h3>
-              {lineups && lineups.length > 0 ? (
-                <div className="lineup-grid">
-                  {lineups.map((artist, index) => (
-                    <motion.div
-                      key={artist._id || index}
-                      className="lineup-artist"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <div className="artist-image">
-                        {artist.avatar && artist.avatar.medium ? (
-                          <img src={artist.avatar.medium} alt={artist.name} />
-                        ) : (
-                          <div className="artist-placeholder">
-                            {artist.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <h4>{artist.name}</h4>
-                      {artist.category && (
-                        <span className="artist-category">
-                          {artist.category}
-                        </span>
-                      )}
-                    </motion.div>
-                  ))}
+                <div className="guest-code-form">
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiMailLine />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Your Email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <motion.button
+                    className="guest-code-button"
+                    onClick={handleGenerateGuestCode}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={
+                      !guestName || !guestEmail || !guestEmail.includes("@")
+                    }
+                  >
+                    <RiCodeSSlashLine /> Get Guest Code
+                  </motion.button>
                 </div>
-              ) : (
-                <div className="no-lineup">
-                  <p>No lineup information available for this event.</p>
-                </div>
-              )}
+              </motion.div>
             </motion.div>
           )}
 
@@ -687,20 +745,73 @@ const EventProfile = () => {
               animate={{ opacity: 1, y: 0 }}
             >
               <h3>Access Codes</h3>
+
+              {/* Guest Code Request Section in Access Tab */}
+              <motion.div
+                className="access-guest-code"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <h4>Request Guest Code</h4>
+                <p className="guest-code-description">
+                  Enter your details below to request a guest code for this
+                  event.
+                </p>
+
+                <div className="guest-code-form">
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiMailLine />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Your Email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <motion.button
+                    className="guest-code-button"
+                    onClick={handleGenerateGuestCode}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={
+                      !guestName || !guestEmail || !guestEmail.includes("@")
+                    }
+                  >
+                    <RiCodeSSlashLine /> Get Guest Code
+                  </motion.button>
+                </div>
+              </motion.div>
+
               <div className="access-options">
                 {codeSettings &&
                   codeSettings.map(
                     (code, index) =>
-                      code.isEnabled && (
+                      code.isEnabled &&
+                      code.type !== "guest" && (
                         <motion.div
                           key={code.type}
                           className="access-option"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          transition={{ delay: 0.2 + index * 0.1 }}
                         >
                           <div className={`access-icon ${code.type}`}>
-                            {code.type === "guest" && <RiUserLine />}
                             {code.type === "friends" && <RiUserLine />}
                             {code.type === "vip" && <RiVipCrownLine />}
                             {code.type === "backstage" && <RiDoorLine />}
@@ -717,35 +828,28 @@ const EventProfile = () => {
                                 `Access code for ${code.type} entry`}
                             </p>
                           </div>
-                          {code.type === "guest" ? (
+                          <div className="code-input">
+                            <input
+                              type="text"
+                              placeholder={`Enter ${code.type} code`}
+                            />
                             <motion.button
-                              className="generate-code-button"
-                              onClick={handleGenerateGuestCode}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                             >
-                              <RiCodeSSlashLine /> Generate Code
+                              Verify
                             </motion.button>
-                          ) : (
-                            <div className="code-input">
-                              <input
-                                type="text"
-                                placeholder={`Enter ${code.type} code`}
-                              />
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                              >
-                                Verify
-                              </motion.button>
-                            </div>
-                          )}
+                          </div>
                         </motion.div>
                       )
                   )}
-                {(!codeSettings || codeSettings.length === 0) && (
+                {(!codeSettings ||
+                  codeSettings.filter((code) => code.type !== "guest")
+                    .length === 0) && (
                   <div className="no-access-codes">
-                    <p>No access codes are available for this event.</p>
+                    <p>
+                      No additional access codes are available for this event.
+                    </p>
                   </div>
                 )}
               </div>

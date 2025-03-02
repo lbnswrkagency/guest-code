@@ -37,6 +37,7 @@ const uploadRoutes = require("./routes/api/uploadRoutes");
 const searchRoutes = require("./routes/searchRoute");
 const roleRoutes = require("./routes/roleRoutes");
 const stripeRoutes = require("./routes/api/stripeRoutes");
+const ticketRoutes = require("./routes/ticketRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -178,6 +179,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", searchRoutes);
 app.use("/api/roles", roleRoutes);
+app.use("/api/tickets", ticketRoutes);
 
 // MongoDB connection
 mongoose

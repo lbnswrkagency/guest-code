@@ -5,6 +5,10 @@ const path = require("path");
 const mongoose = require("mongoose");
 const Event = require("../models/eventsModel");
 const Brand = require("../models/brandModel");
+const {
+  createTicketsForOrder,
+  generateTicketPDF,
+} = require("../controllers/ticketController");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -388,6 +392,14 @@ const sendEmail = async (order) => {
 
     await browser.close();
 
+    // Generate tickets for the order
+    const tickets = await createTicketsForOrder(order, order.userId);
+
+    // Generate PDF tickets
+    const ticketPDFs = await Promise.all(
+      tickets.map((ticket) => generateTicketPDF(ticket))
+    );
+
     // Prepare and send email using Brevo with improved email template
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: order.email }];
@@ -395,7 +407,9 @@ const sendEmail = async (order) => {
       name: brand?.name || "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject = `${brand?.name || "GuestCode"} - Your Invoice`;
+    sendSmtpEmail.subject = `${
+      brand?.name || "GuestCode"
+    } - Your Invoice and Tickets`;
     sendSmtpEmail.htmlContent = `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="text-align: center; background-color: ${accentColor}; padding: 20px; margin-bottom: 30px;">
@@ -414,7 +428,7 @@ const sendEmail = async (order) => {
           order.firstName
         },</p>
         
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Thank you for your purchase. Your payment has been successfully processed, and your invoice is attached to this email.</p>
+        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Thank you for your purchase. Your payment has been successfully processed, and your invoice and tickets are attached to this email.</p>
         
         ${
           event
@@ -445,6 +459,9 @@ const sendEmail = async (order) => {
           <p style="margin: 8px 0 0;">Total Amount: <strong>${order.totalAmount.toFixed(
             2
           )} EUR</strong></p>
+          <p style="margin: 8px 0 0;">Tickets: <strong>${
+            tickets.length
+          }</strong></p>
         </div>
         
         <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">We look forward to seeing you at the event! If you have any questions, please don't hesitate to contact us.</p>
@@ -461,7 +478,8 @@ const sendEmail = async (order) => {
       </div>
     `;
 
-    sendSmtpEmail.attachment = [
+    // Prepare attachments
+    const attachments = [
       {
         content: pdfBuffer.toString("base64"),
         name: `${generateInvoiceNumber(order.stripeSessionId)}.pdf`,
@@ -469,13 +487,26 @@ const sendEmail = async (order) => {
       },
     ];
 
+    // Add ticket PDFs to attachments
+    tickets.forEach((ticket, index) => {
+      attachments.push({
+        content: ticketPDFs[index].toString("base64"),
+        name: `Ticket_${index + 1}_${ticket.securityToken.slice(0, 8)}.pdf`,
+        type: "application/pdf",
+      });
+    });
+
+    sendSmtpEmail.attachment = attachments;
+
     // Send the email
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
     await apiInstance.sendTransacEmail(sendSmtpEmail);
     console.debug(
-      "Order confirmation email sent successfully to:",
+      "Order confirmation email with tickets sent successfully to:",
       order.email
     );
+
+    return tickets;
   } catch (error) {
     console.error("Error sending order confirmation email:", error);
     throw error;

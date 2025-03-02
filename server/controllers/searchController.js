@@ -79,6 +79,17 @@ exports.search = async (req, res) => {
 
       case "events":
         try {
+          // Get current date and time for proper comparison
+          const now = new Date();
+          const today = new Date(now);
+          today.setHours(0, 0, 0, 0);
+
+          console.log("[SearchController] Events search using date filter:", {
+            today: today.toISOString(),
+            currentTime: now.toISOString(),
+          });
+
+          // Find events that are happening today or in the future
           results = await Event.find({
             $or: [
               { title: searchRegex },
@@ -86,7 +97,8 @@ exports.search = async (req, res) => {
               { description: searchRegex },
               { location: searchRegex },
             ],
-            date: { $gte: new Date() },
+            // Include events where date is today or in the future
+            date: { $gte: today },
           })
             .select(
               "title subTitle description date startTime endTime location flyer link brand"
@@ -95,6 +107,18 @@ exports.search = async (req, res) => {
             .sort({ date: 1 })
             .limit(10)
             .lean();
+
+          // Add debug info about found events
+          console.log(
+            "[SearchController] Events found:",
+            results.map((event) => ({
+              id: event._id,
+              title: event.title,
+              date: event.date,
+              startTime: event.startTime,
+              endTime: event.endTime,
+            }))
+          );
 
           results = results.map((event) => ({
             _id: event._id,
@@ -121,6 +145,16 @@ exports.search = async (req, res) => {
       case "all":
       default:
         try {
+          // Get current date and time for proper comparison
+          const now = new Date();
+          const today = new Date(now);
+          today.setHours(0, 0, 0, 0);
+
+          console.log("[SearchController] All search using date filter:", {
+            today: today.toISOString(),
+            currentTime: now.toISOString(),
+          });
+
           const [brands, events] = await Promise.all([
             // User.find({
             //   $or: [
@@ -163,7 +197,8 @@ exports.search = async (req, res) => {
                 { description: searchRegex },
                 { location: searchRegex },
               ],
-              date: { $gte: new Date() },
+              // Include events where date is today or in the future
+              date: { $gte: today },
             })
               .select(
                 "title subTitle description date startTime endTime location flyer link brand"
@@ -227,6 +262,12 @@ exports.search = async (req, res) => {
     console.log("[SearchController] Search results:", {
       count: results.length,
       type,
+      results: results.map((r) => ({
+        id: r._id,
+        name: r.name,
+        type: r.type,
+        date: r.date ? new Date(r.date).toISOString() : null,
+      })),
     });
 
     res.json(results);

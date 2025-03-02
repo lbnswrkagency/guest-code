@@ -35,6 +35,9 @@ exports.authenticate = async (req, res, next) => {
   }
 };
 
+// Alias for authenticate middleware to maintain compatibility with existing code
+exports.protect = exports.authenticate;
+
 // Optional: Middleware to verify refresh token
 exports.verifyRefreshToken = async (req, res, next) => {
   try {
