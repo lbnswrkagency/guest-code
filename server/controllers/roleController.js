@@ -293,3 +293,32 @@ exports.deleteRole = async (req, res) => {
     });
   }
 };
+
+// Add this function to the exports
+exports.getUserRoles = async (req, res) => {
+  try {
+    console.log(
+      "[RoleController:getUserRoles] Fetching roles for user:",
+      req.user._id
+    );
+
+    // Find all roles where brandId exists (to filter out any corrupted data)
+    const roles = await Role.find({
+      brandId: { $exists: true },
+    });
+
+    console.log(
+      "[RoleController:getUserRoles] Found roles:",
+      roles.map((r) => ({
+        id: r._id,
+        name: r.name,
+        brandId: r.brandId,
+      }))
+    );
+
+    res.status(200).json(roles);
+  } catch (error) {
+    console.error("[RoleController:getUserRoles] Error:", error);
+    res.status(500).json({ message: "Error fetching user roles" });
+  }
+};

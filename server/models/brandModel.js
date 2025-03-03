@@ -10,45 +10,7 @@ const BrandSchema = new Schema(
     team: [
       {
         user: { type: Schema.Types.ObjectId, ref: "User" },
-        role: {
-          type: String,
-          required: true,
-          default: "MEMBER",
-        },
-        permissions: {
-          events: {
-            create: { type: Boolean, default: false },
-            edit: { type: Boolean, default: false },
-            delete: { type: Boolean, default: false },
-            view: { type: Boolean, default: true },
-          },
-          team: {
-            manage: { type: Boolean, default: false },
-            view: { type: Boolean, default: true },
-          },
-          analytics: {
-            view: { type: Boolean, default: false },
-          },
-          codes: {
-            friends: {
-              generate: { type: Boolean, default: false },
-              limit: { type: Number, default: 0 },
-            },
-            backstage: {
-              generate: { type: Boolean, default: false },
-              limit: { type: Number, default: 0 },
-            },
-            table: {
-              generate: { type: Boolean, default: false },
-            },
-            ticket: {
-              generate: { type: Boolean, default: false },
-            },
-          },
-          scanner: {
-            use: { type: Boolean, default: false },
-          },
-        },
+        role: { type: String, required: true, default: "MEMBER" },
         joinedAt: { type: Date, default: Date.now },
       },
     ],

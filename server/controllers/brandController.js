@@ -897,38 +897,33 @@ exports.processJoinRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
     const { action } = req.body;
-    const adminId = req.user._id;
 
-    // Check if join request exists
-    const joinRequest = await JoinRequest.findById(requestId)
-      .populate("user")
-      .populate("brand");
+    if (!requestId || !action) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const joinRequest = await JoinRequest.findById(requestId).populate("user");
     if (!joinRequest) {
       return res.status(404).json({ message: "Join request not found" });
     }
 
-    const brand = joinRequest.brand;
+    const brand = await Brand.findById(joinRequest.brand);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
 
-    // Check if admin is owner or has permission to manage team
-    const isOwner = brand.owner.toString() === adminId.toString();
-    const adminTeamMember = brand.team.find(
-      (member) => member.user.toString() === adminId.toString()
-    );
-    const canManageTeam =
-      isOwner || (adminTeamMember && adminTeamMember.permissions?.team?.manage);
-
-    if (!canManageTeam) {
+    // Check if user has permission to process requests
+    if (!brand.owner.equals(req.user.userId)) {
       return res
         .status(403)
-        .json({ message: "You don't have permission to manage team members" });
+        .json({ message: "Not authorized to process requests" });
     }
 
     if (action === "accept") {
-      // Add user to team
+      // Add user to team with default role
       brand.team.push({
         user: joinRequest.user._id,
         role: brand.settings?.defaultRole || "MEMBER",
-        // No need to duplicate permissions here, they will be taken from the role
         joinedAt: new Date(),
       });
       await brand.save();

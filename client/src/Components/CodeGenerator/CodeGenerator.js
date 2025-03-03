@@ -11,22 +11,22 @@ function CodeGenerator({
   user,
   onClose,
   type,
-  weeklyCount,
   refreshCounts,
   currentEventDate,
   onPrevWeek,
   onNextWeek,
   isStartingEvent,
   dataInterval,
-  counts,
+  codeSettings = [],
+  selectedBrand,
+  selectedEvent,
 }) {
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [condition, setCondition] = useState("");
   const [tableNumber, setTableNumber] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [limit, setLimit] = useState(undefined);
-  const [remainingCount, setRemainingCount] = useState(undefined);
+  const [activeSetting, setActiveSetting] = useState(null);
+  const [availableSettings, setAvailableSettings] = useState([]);
   const [codes, setCodes] = useState([]);
   const [totalPaxUsed, setTotalPaxUsed] = useState(0);
 
@@ -39,83 +39,104 @@ function CodeGenerator({
     calculateTotalPax();
   }, [codes]);
 
-  // Update limits based on user type and total pax used
+  // Fetch event-specific code settings if not provided
   useEffect(() => {
-    const newLimit =
-      type === "Backstage"
-        ? user.backstageCodeLimit
-        : type === "Friends"
-        ? user.friendsCodeLimit
-        : type === "Table"
-        ? user.tableCodeLimit
-        : undefined;
+    const fetchEventCodeSettings = async () => {
+      if (!selectedEvent?._id) return;
 
-    setLimit(newLimit === 0 ? undefined : newLimit);
+      try {
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${selectedEvent._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
-    // Calculate remaining count based on total pax used instead of weeklyCount
-    setRemainingCount(
-      newLimit === 0 || newLimit === undefined
-        ? weeklyCount
-        : newLimit - totalPaxUsed
-    );
-  }, [user, type, weeklyCount, totalPaxUsed]);
+        if (response.data?.codeSettings) {
+          const settings = response.data.codeSettings.filter(
+            (s) => s.isEnabled
+          );
+          setAvailableSettings(settings);
+
+          // Set active setting based on type prop or first available setting
+          const matchingSetting =
+            settings.find((s) => s.type === type) || settings[0];
+          if (matchingSetting) {
+            setActiveSetting(matchingSetting);
+            setCondition(matchingSetting.condition || "");
+            setPax(1); // Reset pax to 1 when changing settings
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching code settings:", error);
+        toast.error("Failed to load code settings");
+      }
+    };
+
+    if (codeSettings.length === 0) {
+      fetchEventCodeSettings();
+    } else {
+      const enabledSettings = codeSettings.filter((s) => s.isEnabled);
+      setAvailableSettings(enabledSettings);
+      const matchingSetting =
+        enabledSettings.find((s) => s.type === type) || enabledSettings[0];
+      if (matchingSetting) {
+        setActiveSetting(matchingSetting);
+        setCondition(matchingSetting.condition || "");
+      }
+    }
+  }, [selectedEvent, type, codeSettings]);
 
   const handleCode = async () => {
+    if (!activeSetting) {
+      toast.error("Please select a code type.");
+      return;
+    }
+
     if (!name) {
       toast.error("Please enter a name.");
       return;
     }
 
-    // Enforce maximum pax of 5
-    if (pax > 5) {
-      toast.error("Maximum 5 people allowed.");
+    // Check pax against maxPax setting
+    if (pax > (activeSetting.maxPax || 5)) {
+      toast.error(`Maximum ${activeSetting.maxPax || 5} people allowed.`);
       return;
     }
 
-    // Check against remaining count using pax
-    if (limit !== undefined && limit !== 0) {
-      const willExceedLimit = totalPaxUsed + pax > limit;
+    // Check against remaining limit
+    if (activeSetting.limit && activeSetting.limit > 0) {
+      const willExceedLimit = totalPaxUsed + pax > activeSetting.limit;
       if (willExceedLimit) {
         toast.error(
-          `Cannot generate code for ${pax} people. Only ${remainingCount} spots remaining.`
+          `Cannot generate code for ${pax} people. Only ${
+            activeSetting.limit - totalPaxUsed
+          } spots remaining.`
         );
         return;
       }
     }
 
-    toast.loading(`Generating ${type} Code...`);
+    toast.loading(`Generating ${activeSetting.name}...`);
 
     try {
       const data = {
         name,
-        event: user.events,
+        event: selectedEvent?._id,
         host: user.firstName || user.username,
         hostId: user._id,
-        condition: conditionText(type, condition),
-        pax: pax,
+        condition: activeSetting.condition || condition,
+        pax,
         paxChecked: 0,
-        ...(type === "Table" && { tableNumber }),
+        type: activeSetting.type,
+        ...(activeSetting.type === "table" && { tableNumber }),
+        settings: activeSetting._id,
       };
 
-      if (type === "Table") {
-        const isBackstageTable = [
-          "B1",
-          "B2",
-          "B3",
-          "B4",
-          "B5",
-          "P1",
-          "P2",
-          "P3",
-          "P4",
-          "P5",
-          "P6",
-        ].includes(tableNumber);
-        data.backstagePass = isBackstageTable;
-      }
-
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/code/${type.toLowerCase()}/add`,
+        `${process.env.REACT_APP_API_BASE_URL}/code/generate`,
         data,
         {
           headers: {
@@ -128,13 +149,13 @@ function CodeGenerator({
       if (response.data) {
         refreshCounts();
         toast.dismiss();
-        toast.success(`${type} Code generated!`);
+        toast.success(`${activeSetting.name} generated!`);
 
         // Reset form fields
         setName("");
         setPax(1);
         setCondition("");
-        if (type === "Table") {
+        if (activeSetting.type === "table") {
           setTableNumber("");
         }
       }
@@ -145,73 +166,81 @@ function CodeGenerator({
     }
   };
 
-  const conditionText = (type, condition) => {
-    if (type === "Friends") {
-      return condition || "STANDARD ENTRANCE";
-    } else if (type === "Backstage") {
-      return "BACKSTAGE ACCESS ALL NIGHT";
-    } else if (type === "Table") {
-      return "TABLE RESERVATION";
-    } else {
-      return "CODE CONDITION";
-    }
-  };
+  if (!activeSetting) {
+    return (
+      <div className="code">
+        <div className="code-wrapper">
+          <Toaster />
+          <Navigation onBack={onClose} />
+          <h1 className="code-title">No Code Types Available</h1>
+          <p>There are no code types configured for this event.</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="code">
       <div className="code-wrapper">
         <Toaster />
         <Navigation onBack={onClose} />
-        <h1 className="code-title">{`${type} Code`}</h1>
+        <h1 className="code-title">{activeSetting.name}</h1>
 
-        <img
-          className="code-logo"
-          src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-          alt="Logo"
-        />
+        {selectedBrand?.logo && (
+          <img
+            className="code-logo"
+            src={selectedBrand.logo}
+            alt={`${selectedBrand.name} Logo`}
+          />
+        )}
 
         <div className="code-count">
           <h4>
-            {limit === undefined || limit === 0
-              ? "This Week's Count"
-              : "Remaining This Week"}
+            {activeSetting.limit === 0
+              ? "No Limit"
+              : `${activeSetting.limit - totalPaxUsed} Remaining`}
           </h4>
-          <div className="code-count-number">
-            <p>{remainingCount}</p>
-          </div>
         </div>
 
         <div className="code-admin">
           <CodeSettings
-            codeType={type}
+            codeType={activeSetting.type}
             name={name}
             setName={setName}
             pax={pax}
             setPax={setPax}
+            maxPax={activeSetting.maxPax}
             condition={condition}
             setCondition={setCondition}
             tableNumber={tableNumber}
             setTableNumber={setTableNumber}
-            counts={counts}
+            isEditable={activeSetting.isEditable}
+            availableSettings={availableSettings}
+            activeSetting={activeSetting}
+            setActiveSetting={setActiveSetting}
           />
-          <button className="code-btn" onClick={handleCode}>
+          <button
+            className="code-btn"
+            onClick={handleCode}
+            style={{ backgroundColor: activeSetting.color }}
+          >
             Generate
           </button>
         </div>
 
         <CodeManagement
           user={user}
-          type={type}
+          type={activeSetting.type}
           codes={codes}
           setCodes={setCodes}
-          weeklyCount={weeklyCount}
           refreshCounts={refreshCounts}
           currentEventDate={currentEventDate}
           onPrevWeek={onPrevWeek}
           onNextWeek={onNextWeek}
           isStartingEvent={isStartingEvent}
-          counts={counts}
           dataInterval={dataInterval}
+          codeSetting={activeSetting}
         />
       </div>
       <Footer />

@@ -299,38 +299,30 @@ const DashboardContent = ({ user, setUser }) => {
 
   useEffect(() => {
     const fetchUserRoles = async () => {
-      if (!user || !user._id) return;
-
       try {
-        console.log("[Dashboard] Fetching user roles for user:", user._id);
+        if (!user || !selectedBrand?._id) return;
 
-        // Use axiosInstance instead of axios directly for consistency
-        const response = await axiosInstance.get(`/users/roles`, {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        console.log("[Dashboard] Fetching roles for brand:", selectedBrand._id);
 
-        console.log("[Dashboard] User roles fetched:", response.data);
+        const response = await axiosInstance.get(
+          `/roles/brands/${selectedBrand._id}/roles`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
-        // Check if the response data is valid and has the expected format
         if (Array.isArray(response.data)) {
-          // Log each role structure to check if brandIds are properly formatted
-          response.data.forEach((role) => {
-            console.log(`[Dashboard] Loaded role: ${role.name}`, {
-              roleBrandId: role.brandId,
-              roleId: role._id,
-              permissionsPresent: !!role.permissions,
-            });
-          });
-
+          console.log("[Dashboard] Fetched roles:", response.data);
           setUserRoles(response.data);
         } else {
-          console.error("[Dashboard] Invalid role data format:", response.data);
+          console.error("[Dashboard] Invalid roles data:", response.data);
+          setUserRoles([]);
         }
       } catch (error) {
-        console.error("[Dashboard] Error fetching user roles:", error);
+        console.error("[Dashboard] Error fetching roles:", error);
+        setUserRoles([]);
       }
     };
 
@@ -353,7 +345,7 @@ const DashboardContent = ({ user, setUser }) => {
 
     fetchUserRoles();
     fetchCodeSettings();
-  }, [user]);
+  }, [user, selectedBrand]);
 
   const handleLogout = () => {
     logout();
