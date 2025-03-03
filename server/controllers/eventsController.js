@@ -8,7 +8,7 @@ const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
 const { sendQRCodeInvitation } = require("../utils/email");
-const { createTicketPDF } = require("../utils/pdf-invite");
+const createTicketPDF = require("../utils/pdf");
 
 const {
   uploadToS3,
@@ -166,6 +166,11 @@ exports.getEventPage = async (req, res) => {
 exports.generateGuestCode = async (req, res) => {
   try {
     const { name, email, condition, eventId, pax } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !eventId || !condition || !pax) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     // Capitalize names
     const formattedName = name

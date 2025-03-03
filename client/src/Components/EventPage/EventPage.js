@@ -177,7 +177,7 @@ const EventPage = ({ passedEventId }) => {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/events/generateGuestCode`,
         {
-          eventId: "67ba4e93c1cd0bf905bf1c9d",
+          eventId: "67c45ff9cb3101ecab825a0a",
           email,
           phone,
           name,
@@ -517,39 +517,38 @@ const EventPage = ({ passedEventId }) => {
                 </>
               )}
             </div>
-            {event.guestCode && (
-              <form
-                ref={guestCodeRef}
-                className="event-page-guestcode"
-                onSubmit={handleGuestCodeFormSubmit}
-              >
-                <h1 className="event-page-guestcode-title">GUEST CODE</h1>
-                <div className="event-page-guestcode-form">
-                  <p className="event-page-guestcode-condition">
-                    free entrance until 00:30 H
-                  </p>
-                  <p>Studio 24 - Sunday - 02.03.2025</p>
-                  <input
-                    type="text"
-                    className="event-page-guestcode-form-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Name"
-                    required
-                  />
-                  <input
-                    type="email"
-                    className="event-page-guestcode-form-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email Address"
-                  />
-                </div>
-                <button type="submit" className="event-page-guestcode-button">
-                  Generate GuestCode
-                </button>
-              </form>
-            )}
+
+            <form
+              ref={guestCodeRef}
+              className="event-page-guestcode"
+              onSubmit={handleGuestCodeFormSubmit}
+            >
+              <h1 className="event-page-guestcode-title">GUEST CODE</h1>
+              <div className="event-page-guestcode-form">
+                <p className="event-page-guestcode-condition">
+                  free entrance until 00:30 H
+                </p>
+                <p>Studio 24 - Sunday - 02.03.2025</p>
+                <input
+                  type="text"
+                  className="event-page-guestcode-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name"
+                  required
+                />
+                <input
+                  type="email"
+                  className="event-page-guestcode-form-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
+                />
+              </div>
+              <button type="submit" className="event-page-guestcode-button">
+                Generate GuestCode
+              </button>
+            </form>
 
             <div ref={eventRef} className="event-page-info">
               <div className="event-page-info-wrapper">
