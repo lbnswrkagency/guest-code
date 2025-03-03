@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
@@ -24,9 +24,19 @@ import Inbox from "./Components/Inbox/Inbox";
 import PersonalChat from "./Components/PersonalChat/PersonalChat";
 import Brands from "./Components/Brands/Brands";
 import Locations from "./Components/Locations/Locations";
+import UnderConstruction from "./Components/UnderConstruction/UnderConstruction";
 
 function App() {
   const eventId = "l9xm6f9c";
+  const [showConstruction, setShowConstruction] = useState(true);
+
+  // Uncomment this to allow hiding the overlay after a set time
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setShowConstruction(false);
+  //   }, 10000); // Hide after 10 seconds
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   return (
     <Router>
@@ -34,6 +44,8 @@ function App() {
         <SocketProvider>
           <NotificationProvider>
             <Toaster position="top-center" />
+
+            {showConstruction && <UnderConstruction />}
 
             <Routes>
               <Route path="/" element={<EventPage passedEventId={eventId} />} />
