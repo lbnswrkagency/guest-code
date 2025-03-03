@@ -145,7 +145,6 @@ const PublicProfileView = ({ username }) => {
 
 // Second part - all your existing code moves here
 const DashboardContent = ({ user, setUser }) => {
-  // NOW we can use useSocket because we're inside SocketProvider
   const { isConnected, socket } = useSocket();
   const toast = useToast();
 
@@ -165,6 +164,8 @@ const DashboardContent = ({ user, setUser }) => {
     backstageCounts: [],
     guestCounts: { total: 0, used: 0 },
   });
+  const [userRoles, setUserRoles] = useState([]);
+  const [codeSettings, setCodeSettings] = useState([]);
   const {
     currentEventDate,
     dataInterval,
@@ -302,6 +303,51 @@ const DashboardContent = ({ user, setUser }) => {
       fetchUserSpecificCounts();
     }
   }, [currentEventDate, user]);
+
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (!user || !user._id) return;
+
+      try {
+        console.log("[Dashboard] Fetching user roles");
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/users/roles`,
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        console.log("[Dashboard] User roles fetched:", response.data);
+        setUserRoles(response.data);
+      } catch (error) {
+        console.error("Error fetching user roles:", error);
+      }
+    };
+
+    const fetchCodeSettings = async () => {
+      try {
+        console.log("[Dashboard] Fetching code settings");
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/code-settings`,
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        console.log("[Dashboard] Code settings fetched:", response.data);
+        setCodeSettings(response.data);
+      } catch (error) {
+        console.error("Error fetching code settings:", error);
+      }
+    };
+
+    fetchUserRoles();
+    fetchCodeSettings();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -464,6 +510,7 @@ const DashboardContent = ({ user, setUser }) => {
           setSelectedBrand={setSelectedBrand}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
+          userRoles={userRoles}
         />
 
         <DashboardMenu
@@ -474,8 +521,10 @@ const DashboardContent = ({ user, setUser }) => {
           setShowDropFiles={setShowDropFiles}
           setCodeType={setCodeType}
           setShowTableSystem={setShowTableSystem}
-          // setShowGlobalChat={setShowGlobalChat}  // Commented out chat functionality
           isOnline={isConnected}
+          userRoles={userRoles}
+          codeSettings={codeSettings}
+          selectedBrand={selectedBrand}
         />
 
         <Routes>

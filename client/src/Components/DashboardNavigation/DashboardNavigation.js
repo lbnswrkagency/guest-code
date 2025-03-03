@@ -7,7 +7,6 @@ import {
   RiCloseLine,
   RiBuildingLine,
   RiSettings4Line,
-  RiMapPinLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../contexts/SocketContext";
@@ -26,26 +25,38 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       title: "Profile",
       icon: <RiHome5Line />,
       path: `/@${currentUser.username}`,
+      action: () => {
+        navigate(`/@${currentUser.username}`);
+        onClose();
+      },
     },
     {
       title: "Brands",
       icon: <RiBuildingLine />,
       path: `/@${currentUser.username}/brands`,
-    },
-    {
-      title: "Locations",
-      icon: <RiMapPinLine />,
-      path: "/locations",
+      action: () => {
+        navigate(`/@${currentUser.username}/brands`);
+        onClose();
+      },
     },
     {
       title: "Events",
       icon: <RiCalendarEventLine />,
       path: `/@${currentUser.username}/events`,
+      action: () => {
+        navigate(`/@${currentUser.username}/events`);
+        onClose();
+      },
     },
     {
       title: "Settings",
       icon: <RiSettings4Line />,
       path: "/settings",
+      action: (e) => {
+        // No action for now, will implement later
+        e.stopPropagation();
+        onClose();
+      },
     },
   ];
 
@@ -137,13 +148,12 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
               {menuItems.map((item, index) => (
                 <motion.div
                   key={item.title}
-                  className="menu-item"
+                  className={`menu-item ${
+                    item.title === "Settings" ? "disabled" : ""
+                  }`}
                   variants={menuItemVariants}
                   custom={index}
-                  onClick={() => {
-                    navigate(item.path);
-                    onClose();
-                  }}
+                  onClick={item.action}
                   whileHover={{ x: -4 }}
                   whileTap={{ scale: 0.98 }}
                 >

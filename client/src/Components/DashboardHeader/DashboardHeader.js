@@ -23,6 +23,7 @@ const DashboardHeader = ({
   setSelectedBrand,
   selectedDate,
   setSelectedDate,
+  userRoles = [], // Add userRoles prop with default empty array
 }) => {
   const { isConnected } = useSocket();
   const { user: authUser } = useAuth();
@@ -87,12 +88,34 @@ const DashboardHeader = ({
   // Determine user's role in the selected brand
   useEffect(() => {
     if (selectedBrand && user?._id) {
+      console.log(
+        "[DashboardHeader] Determining user role for brand:",
+        selectedBrand.name
+      );
+      console.log("[DashboardHeader] User:", user._id);
+      console.log("[DashboardHeader] Brand owner:", selectedBrand.owner);
+      console.log("[DashboardHeader] Brand team:", selectedBrand.team);
+
+      // Log available user roles for this brand
+      console.log("[DashboardHeader] Available userRoles:", userRoles);
+      const brandRoles = userRoles.filter(
+        (role) =>
+          role.brandId === selectedBrand._id ||
+          (typeof role.brandId === "object" &&
+            role.brandId._id === selectedBrand._id)
+      );
+      console.log(
+        "[DashboardHeader] Filtered roles for this brand:",
+        brandRoles
+      );
+
       // Check if user is the brand owner
       if (
         selectedBrand.owner === user._id ||
         (typeof selectedBrand.owner === "object" &&
           selectedBrand.owner._id === user._id)
       ) {
+        console.log("[DashboardHeader] User is the OWNER of this brand");
         setUserRole(`Owner ${selectedBrand.name}`);
         return;
       }
@@ -117,9 +140,10 @@ const DashboardHeader = ({
           }
 
           // Log the role formatting for debugging
-          console.log("[DashboardHeader] Formatting role:", {
+          console.log("[DashboardHeader] User is a TEAM MEMBER with role:", {
             originalRole: teamMember.role,
             formattedRole: formattedRole,
+            teamMemberData: teamMember,
           });
 
           setUserRole(`${formattedRole} ${selectedBrand.name}`);
@@ -128,11 +152,15 @@ const DashboardHeader = ({
       }
 
       // Default role if no specific role found
+      console.log(
+        "[DashboardHeader] No specific role found, defaulting to MEMBER"
+      );
       setUserRole(`Member ${selectedBrand.name}`);
     } else {
+      console.log("[DashboardHeader] No brand or user selected, clearing role");
       setUserRole(""); // Reset if no brand selected
     }
-  }, [selectedBrand, user]);
+  }, [selectedBrand, user, userRoles]);
 
   // Fetch events for selected brand
   useEffect(() => {
