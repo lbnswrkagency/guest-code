@@ -459,11 +459,11 @@ const EventProfile = () => {
             Tickets
           </button>
           <button
-            className={activeSection === "access" ? "active" : ""}
-            onClick={() => setActiveSection("access")}
+            className={activeSection === "codes" ? "active" : ""}
+            onClick={() => setActiveSection("codes")}
           >
             <RiDoorLine />
-            Access
+            Codes
           </button>
         </div>
 
@@ -819,26 +819,24 @@ const EventProfile = () => {
             </motion.div>
           )}
 
-          {/* Access Section */}
-          {activeSection === "access" && (
+          {/* Codes Section */}
+          {activeSection === "codes" && (
             <motion.div
-              className="event-section event-access"
+              className="event-section event-codes"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h3>Access Codes</h3>
-
-              {/* Guest Code Request Section in Access Tab */}
+              {/* Guest Code Request Section */}
               <motion.div
-                className="access-guest-code"
+                className="codes-guest"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <h4>Request Guest Code</h4>
+                <h4>Guest Code</h4>
                 <p className="guest-code-description">
-                  Enter your details below to request a guest code for this
-                  event.
+                  {event.guestCodeCondition ||
+                    "Request your guest code for this event."}
                 </p>
 
                 <div className="guest-code-form">
@@ -880,7 +878,7 @@ const EventProfile = () => {
                 </div>
               </motion.div>
 
-              <div className="access-options">
+              <div className="codes-options">
                 {codeSettings &&
                   codeSettings.map(
                     (code, index) =>
@@ -888,18 +886,18 @@ const EventProfile = () => {
                       code.type !== "guest" && (
                         <motion.div
                           key={code.type}
-                          className="access-option"
+                          className="code-option"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 + index * 0.1 }}
                         >
-                          <div className={`access-icon ${code.type}`}>
+                          <div className={`code-icon ${code.type}`}>
                             {code.type === "friends" && <RiUserLine />}
                             {code.type === "vip" && <RiVipCrownLine />}
                             {code.type === "backstage" && <RiDoorLine />}
                             {code.type === "table" && <RiTableLine />}
                           </div>
-                          <div className="access-info">
+                          <div className="code-info">
                             <h4>
                               {code.name ||
                                 code.type.charAt(0).toUpperCase() +
@@ -907,7 +905,7 @@ const EventProfile = () => {
                             </h4>
                             <p>
                               {code.description ||
-                                `Access code for ${code.type} entry`}
+                                `Enter your ${code.type} code`}
                             </p>
                           </div>
                           <div className="code-input">
@@ -925,15 +923,6 @@ const EventProfile = () => {
                         </motion.div>
                       )
                   )}
-                {(!codeSettings ||
-                  codeSettings.filter((code) => code.type !== "guest")
-                    .length === 0) && (
-                  <div className="no-access-codes">
-                    <p>
-                      No additional access codes are available for this event.
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           )}

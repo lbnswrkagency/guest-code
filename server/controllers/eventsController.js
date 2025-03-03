@@ -212,6 +212,21 @@ exports.createEvent = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
+    // Check for existing event with same title and date
+    const existingEvent = await Event.findOne({
+      brand: req.params.brandId,
+      title: req.body.title,
+      date: req.body.date,
+    });
+
+    if (existingEvent) {
+      console.log("[Event Creation] Found existing event:", {
+        eventId: existingEvent._id,
+        title: existingEvent.title,
+      });
+      return res.status(200).json(existingEvent);
+    }
+
     console.log("[Event Creation] Found brand:", {
       brandId: brand._id,
       brandName: brand.name,

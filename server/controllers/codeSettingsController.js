@@ -558,31 +558,49 @@ const deleteCodeSetting = async (req, res) => {
 // Initialize default code settings for an event
 const initializeDefaultSettings = async (eventId) => {
   try {
-    // Check if any settings already exist
-    const existingSettings = await CodeSettings.find({ eventId });
-    if (existingSettings.length > 0) {
-      return; // Settings already exist, no need to initialize
-    }
+    // Check if any settings already exist for each type
+    const existingGuestSetting = await CodeSettings.findOne({
+      eventId,
+      type: "guest",
+    });
+    const existingTicketSetting = await CodeSettings.findOne({
+      eventId,
+      type: "ticket",
+    });
 
-    // Default settings - simplified to just guest and ticket code
-    const defaultSettings = [
-      {
+    // Only create settings that don't exist
+    const settingsToCreate = [];
+
+    if (!existingGuestSetting) {
+      settingsToCreate.push({
         name: "Guest Code",
         type: "guest",
         isEnabled: false,
         isEditable: false,
-      },
-      {
+      });
+    }
+
+    if (!existingTicketSetting) {
+      settingsToCreate.push({
         name: "Ticket Code",
         type: "ticket",
         isEnabled: false,
         isEditable: false,
-      },
-    ];
+      });
+    }
 
-    // Create all default settings
+    // If no new settings need to be created, return early
+    if (settingsToCreate.length === 0) {
+      console.log(
+        "[CodeSettings] All default settings already exist for event:",
+        eventId
+      );
+      return true;
+    }
+
+    // Create only the missing settings
     await Promise.all(
-      defaultSettings.map(async (setting) => {
+      settingsToCreate.map(async (setting) => {
         const newSetting = new CodeSettings({
           eventId,
           ...setting,
@@ -591,10 +609,13 @@ const initializeDefaultSettings = async (eventId) => {
       })
     );
 
-    console.log("[CodeSettings] Initialized default settings for event:", {
-      eventId,
-      types: defaultSettings.map((s) => s.type),
-    });
+    console.log(
+      "[CodeSettings] Initialized missing default settings for event:",
+      {
+        eventId,
+        createdTypes: settingsToCreate.map((s) => s.type),
+      }
+    );
 
     return true;
   } catch (error) {
