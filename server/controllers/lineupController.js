@@ -280,10 +280,23 @@ exports.deleteLineUp = async (req, res) => {
       });
     }
 
-    if (
-      brand.owner.toString() !== req.user._id.toString() &&
-      !brand.admins.includes(req.user._id)
-    ) {
+    // Get the user ID from either req.user.userId or req.user._id
+    const userId = req.user.userId || req.user._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Check if user is brand owner or admin
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      brand.admins &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to delete this line-up entry",

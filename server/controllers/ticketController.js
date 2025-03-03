@@ -34,6 +34,7 @@ const createTicketsForOrder = async (order, userId) => {
           ticketType: item.type || "standard",
           ticketName: item.name,
           price: item.pricePerUnit,
+          pax: item.pax || 1, // Set pax from the item or default to 1
           // Additional fields can be added here if needed
         };
 
@@ -61,6 +62,22 @@ const formatTicketDate = (dateString) => {
   };
 };
 
+// Calculate remaining time for countdown
+const calculateRemainingTime = (endDate) => {
+  if (!endDate) return null;
+
+  const now = new Date();
+  const end = new Date(endDate);
+  const diff = end - now;
+
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+  return { days, hours };
+};
+
 // Generate QR code for a ticket
 const generateTicketQR = async (securityToken) => {
   try {
@@ -84,8 +101,19 @@ const generateTicketQR = async (securityToken) => {
 const generateTicketPDF = async (ticket) => {
   try {
     // Fetch related data
-    const event = await Event.findById(ticket.eventId).populate("brand");
+    const event = await Event.findById(ticket.eventId)
+      .populate("brand")
+      .populate("lineups");
     const brand = event ? await Brand.findById(event.brand) : null;
+
+    // Get ticket settings to check for countdown
+    const ticketSettings = await mongoose.model("TicketSettings").findOne({
+      eventId: ticket.eventId,
+      name: ticket.ticketName,
+    });
+
+    // Remove countdown from printed ticket - we'll keep the code but not use it in the template
+    let countdownDisplay = "";
 
     // Get brand colors or use defaults
     const primaryColor = brand?.colors?.primary || "#ffc807";
@@ -97,25 +125,47 @@ const generateTicketPDF = async (ticket) => {
     // Format date
     const eventDate = formatTicketDate(event?.date);
 
+    // Format ticket name for display - only show the first word (e.g., "EARLY" from "Early Bird")
+    const ticketNameParts = ticket.ticketName.split(" ");
+    let formattedTicketName = ticketNameParts[0].toUpperCase();
+
+    // Special case for backstage tickets
+    if (ticketNameParts[0].toLowerCase() === "backstage") {
+      formattedTicketName = "BACKSTAGE";
+    }
+
     // Create HTML template for the ticket
     const htmlTemplate = `
-    <html style="font-family: 'Manrope', sans-serif;">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" rel="stylesheet">
+    <html>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body {
+            font-family: 'Manrope', sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
       <body
-      style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
-        <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>
-        ${
-          brand?.logo?.medium
-            ? `<img src="${brand.logo.medium}" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">`
-            : `<div style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem; height: 4rem; background-color: ${primaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <span style="color: ${accentColor}; font-weight: bold; font-size: 1.5rem;">${
-                brand?.name?.charAt(0) || "G"
-              }</span>
-          </div>`
-        }
-        <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: ${accentColor}; border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
+      style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: 'Manrope', sans-serif;">
+        <!-- Center the header elements -->
+        <div style="position: absolute; top: 3.25rem; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 2.313rem;">
+          <h1 style="margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>
+          ${
+            brand?.logo?.medium
+              ? `<img src="${brand.logo.medium}" style="width: 3.5rem; object-fit: contain;">`
+              : `<div style="width: 3.5rem; height: 3.5rem; background-color: ${primaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <span style="color: ${accentColor}; font-weight: bold; font-size: 1.5rem;">${
+                  brand?.name?.charAt(0) || "G"
+                }</span>
+            </div>`
+          }
+        </div>
+        
+        <div style="position: absolute; width: 20.375rem; height: 27rem; background-color: black; border-radius: 1.75rem; top: 7.5rem; left: 2rem; border: 1px solid #333333;">
           
           <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: ${primaryColor};">${
       event?.title || "Event"
@@ -130,9 +180,21 @@ const generateTicketPDF = async (ticket) => {
               <p style="margin: 0; font-weight: 500; font-size: 0.857em; color: #fff; line-height: 1.25rem;">${
                 event?.location || ""
               }</p>
+              ${
+                event?.street
+                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${event.street}</p>`
+                  : ""
+              }
+              ${
+                event?.postalCode || event?.city
+                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                      event.postalCode || ""
+                    } ${event.city || ""}</p>`
+                  : ""
+              }
             </div>
             <div>
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date & Time</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
                 eventDate.day
               }</p>
@@ -141,7 +203,7 @@ const generateTicketPDF = async (ticket) => {
               }</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
                 event?.startTime || eventDate.time
-              }</p>
+              }H Open</p>
             </div>
           </div>
           
@@ -150,11 +212,14 @@ const generateTicketPDF = async (ticket) => {
               <div style="margin-top: 0.5rem;">
                 <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
                 ${
-                  event?.lineup
-                    ? event.lineup
+                  event?.lineups && event.lineups.length > 0
+                    ? event.lineups
+                        .slice(0, 4) // Limit to first 4 artists to avoid overflow
                         .map(
-                          (artist) =>
-                            `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${artist.name}</p>`
+                          (lineup) =>
+                            `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                              lineup.name || lineup
+                            }</p>`
                         )
                         .join("")
                     : `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">TBA</p>`
@@ -164,10 +229,20 @@ const generateTicketPDF = async (ticket) => {
 
             <div style="margin-top: 0.5rem;">
               <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Music</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Afrobeats</p>                    
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Amapiano</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dancehall</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">& co</p>
+              ${
+                event?.music
+                  ? event.music
+                      .split(",")
+                      .map(
+                        (genre) =>
+                          `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${genre.trim()}</p>`
+                      )
+                      .join("")
+                  : `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Afrobeats</p>                    
+                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Amapiano</p>
+                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dancehall</p>
+                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">& co</p>`
+              }
             </div>
           </div>
           
@@ -182,26 +257,26 @@ const generateTicketPDF = async (ticket) => {
             </div>
             
             <div style="margin-top: 0.75rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Price</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.price.toFixed(
-                2
-              )} EUR</p>        
+              ${
+                ticket.pax > 1
+                  ? `
+                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.pax}</p>
+                `
+                  : `
+                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Price</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.price.toFixed(
+                  2
+                )} EUR</p>
+                `
+              }      
             </div>
           </div>
         </div>
 
-        <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: grid; grid-template-columns: repeat(2,minmax(min-content,max-content)); grid-gap: 2.5rem; justify-items: center; justify-content: center; align-content: center; align-items: center;">
-          <div style="justify-self: center; text-align: center;">
-            <p style="margin: 0; font-weight: 700; font-size: .90rem; line-height: 1.5rem;">${ticket.ticketName.toUpperCase()}</p>
-            <p style="margin: 0; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem;">${
-              brand?.name || "GuestCode"
-            }</p>
-          </div>
-          <div style="justify-self: center;">
+        <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center;">
+          <div style="text-align: center;">
             <img style="background-color: white; width: 8rem; height: 8rem;" src="${qrCodeDataUrl}"></img>
-            <p style="margin: 0; font-weight: 500; font-size: 0.5rem; text-align: center;">${
-              ticket.securityToken
-            }</p>        
           </div>
         </div>
       </body>

@@ -51,7 +51,9 @@ const formatDateWithLeadingZeros = (dateString) => {
 const sendEmail = async (order) => {
   try {
     // Fetch event and brand information
-    const event = await Event.findById(order.eventId).populate("brand");
+    const event = await Event.findById(order.eventId)
+      .populate("brand")
+      .populate("lineups");
     const brand = event ? await Brand.findById(event.brand) : null;
 
     // Get brand colors or use defaults
@@ -395,10 +397,41 @@ const sendEmail = async (order) => {
     // Generate tickets for the order
     const tickets = await createTicketsForOrder(order, order.userId);
 
-    // Generate PDF tickets
-    const ticketPDFs = await Promise.all(
-      tickets.map((ticket) => generateTicketPDF(ticket))
-    );
+    // Group identical tickets
+    const ticketGroups = {};
+    tickets.forEach((ticket) => {
+      const key = ticket.ticketName;
+      if (!ticketGroups[key]) {
+        ticketGroups[key] = [];
+      }
+      ticketGroups[key].push(ticket);
+    });
+
+    // Generate PDF tickets - one per unique ticket type
+    const ticketPDFs = [];
+    const ticketAttachments = [];
+
+    for (const [ticketName, ticketGroup] of Object.entries(ticketGroups)) {
+      // Use the first ticket of each group as a template
+      const representativeTicket = ticketGroup[0];
+
+      // Set pax to the number of tickets in the group if there are multiple
+      if (ticketGroup.length > 1) {
+        representativeTicket.pax = ticketGroup.length;
+      }
+
+      const pdfBuffer = await generateTicketPDF(representativeTicket);
+      ticketPDFs.push(pdfBuffer);
+
+      ticketAttachments.push({
+        content: pdfBuffer.toString("base64"),
+        name: `Ticket_${ticketName.replace(
+          /\s+/g,
+          "_"
+        )}_${representativeTicket.securityToken.slice(0, 8)}.pdf`,
+        type: "application/pdf",
+      });
+    }
 
     // Prepare and send email using Brevo with improved email template
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
@@ -460,7 +493,7 @@ const sendEmail = async (order) => {
             2
           )} EUR</strong></p>
           <p style="margin: 8px 0 0;">Tickets: <strong>${
-            tickets.length
+            Object.keys(ticketGroups).length
           }</strong></p>
         </div>
         
@@ -485,16 +518,8 @@ const sendEmail = async (order) => {
         name: `${generateInvoiceNumber(order.stripeSessionId)}.pdf`,
         type: "application/pdf",
       },
+      ...ticketAttachments,
     ];
-
-    // Add ticket PDFs to attachments
-    tickets.forEach((ticket, index) => {
-      attachments.push({
-        content: ticketPDFs[index].toString("base64"),
-        name: `Ticket_${index + 1}_${ticket.securityToken.slice(0, 8)}.pdf`,
-        type: "application/pdf",
-      });
-    });
 
     sendSmtpEmail.attachment = attachments;
 

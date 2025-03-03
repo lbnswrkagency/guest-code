@@ -38,6 +38,9 @@ function LineUp({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [lineupToDelete, setLineupToDelete] = useState(null);
 
+  // Extract unique categories from existing lineups
+  const [existingCategories, setExistingCategories] = useState([]);
+
   // Extract eventId from event prop if available
   const eventId = event?._id;
 
@@ -89,6 +92,16 @@ function LineUp({
       fetchEventLineUps();
     }
   }, [eventId, token, brandId, initialSelectedLineups]);
+
+  // Extract unique categories from lineups
+  useEffect(() => {
+    if (lineUps.length > 0) {
+      const uniqueCategories = [
+        ...new Set(lineUps.map((lineup) => lineup.category)),
+      ].filter(Boolean);
+      setExistingCategories(uniqueCategories);
+    }
+  }, [lineUps]);
 
   // Initialize selectedLineUps with initialSelectedLineups if provided
   useEffect(() => {
@@ -203,16 +216,21 @@ function LineUp({
   };
 
   const handleImageCropped = (file) => {
+    console.log("[handleImageCropped] Image cropped, updating state");
+
     // Create a preview URL for the cropped image
     const previewUrl = URL.createObjectURL(file);
 
+    // Update the newLineUp state with the cropped image
     setNewLineUp((prev) => ({
       ...prev,
-      avatarFile: file,
+      avatarFile: file, // Store the file for upload
+      avatar: file, // Keep for compatibility
       avatarPreview: previewUrl,
     }));
 
-    console.log("Image cropped and preview created:", previewUrl);
+    // Close the crop mode
+    setIsCropMode(false);
   };
 
   const handleCreateLineUp = async () => {
@@ -324,14 +342,14 @@ function LineUp({
         `[handleDeleteLineUp] Sending DELETE request to ${process.env.REACT_APP_API_BASE_URL}/lineup/${lineupToDelete._id}`
       );
 
-      const response = await axios.delete(
-        `${process.env.REACT_APP_API_BASE_URL}/lineup/${lineupToDelete._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${currentToken}`,
-          },
-        }
-      );
+      const response = await axios({
+        method: "DELETE",
+        url: `${process.env.REACT_APP_API_BASE_URL}/lineup/${lineupToDelete._id}`,
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       console.log("[handleDeleteLineUp] Response received:", response.data);
 
@@ -387,20 +405,33 @@ function LineUp({
     }
   };
 
-  // Handle opening the avatar crop mode
-  const handleOpenAvatarCrop = (e) => {
-    e.stopPropagation(); // Prevent event bubbling
-    console.log("Opening avatar crop mode");
-    setIsCropMode(true);
-    setShowModal(true); // Make sure the modal is shown
+  // Handle category quick selection
+  const handleCategorySelect = (category) => {
+    setNewLineUp((prev) => ({
+      ...prev,
+      category,
+    }));
   };
 
-  // Create a dummy user object with just the userId for AvatarUpload
-  const dummyUser = { _id: user?.userId || "temp-id" };
+  // Handle opening the avatar crop mode
+  const handleOpenAvatarCrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("[handleOpenAvatarCrop] Opening avatar crop mode");
+    setIsCropMode(true);
+    setModalKey(Date.now()); // Force re-render of the modal
+  };
+
+  // Create a dummy user object for AvatarUpload component
+  const dummyUser = {
+    _id: "lineup-avatar-" + Date.now(), // Ensure unique ID
+    avatar: newLineUp.avatarPreview,
+  };
 
   // Function to handle modal closing
   const handleModalClose = (e) => {
     if (e) e.stopPropagation();
+    console.log("[handleModalClose] Closing avatar crop mode");
     setIsCropMode(false);
   };
 
@@ -434,73 +465,47 @@ function LineUp({
           {/* Render the AvatarUpload modal outside the main modal to prevent event conflicts */}
           {isCropMode && (
             <div
-              className="crop-modal-wrapper"
-              onClick={handleModalClose}
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 2000,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
+              className="delete-confirmation-overlay"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsCropMode(false);
               }}
-            />
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "relative",
+                  width: "auto", // Allow content to determine width
+                  maxWidth: "90%", // Limit maximum width
+                  pointerEvents: "auto", // Ensure clicks are registered
+                }}
+              >
+                <AvatarUpload
+                  user={dummyUser}
+                  setUser={setUser}
+                  isCropMode={isCropMode}
+                  setIsCropMode={setIsCropMode}
+                  onImageCropped={handleImageCropped}
+                  isLineUpMode={true}
+                />
+              </div>
+            </div>
           )}
 
           <h2>LINE UP</h2>
 
           <div className="lineup-content">
-            {/* Add new lineup form - moved to the top */}
-            {isAddingNew && (
-              <div className="compact-add-form">
-                <div className="form-grid">
-                  <div className="avatar-cell" onClick={handleOpenAvatarCrop}>
-                    {newLineUp.avatarPreview ? (
-                      <div className="avatar-preview">
-                        <img
-                          src={newLineUp.avatarPreview}
-                          alt="Avatar preview"
-                          className="preview-image"
-                        />
-                      </div>
-                    ) : (
-                      <AvatarUpload
-                        user={dummyUser}
-                        setUser={setUser}
-                        isCropMode={isCropMode}
-                        setIsCropMode={setIsCropMode}
-                        onImageCropped={handleImageCropped}
-                        isLineUpMode={true}
-                      />
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    name="category"
-                    value={newLineUp.category}
-                    onChange={handleInputChange}
-                    placeholder="Cat"
-                    className="category-cell"
-                  />
-                  <input
-                    type="text"
-                    name="name"
-                    value={newLineUp.name}
-                    onChange={handleInputChange}
-                    placeholder="Name"
-                    className="name-cell"
-                  />
-                  <button
-                    className={`check-cell ${
-                      newLineUp.name && newLineUp.category ? "active" : ""
-                    }`}
-                    onClick={handleCreateLineUp}
-                    disabled={!newLineUp.name || !newLineUp.category}
-                  >
-                    <RiCheckLine />
-                  </button>
+            {/* Add new lineup button */}
+            {!isAddingNew && (
+              <div
+                className="add-new-button"
+                onClick={() => setIsAddingNew(true)}
+              >
+                <div className="add-icon">
+                  <RiAddLine />
                 </div>
+                <span>Add New</span>
               </div>
             )}
 
@@ -550,7 +555,7 @@ function LineUp({
                         </div>
                       )}
                       <div
-                        className="delete-icon"
+                        className="delete-icon always-visible"
                         onClick={(e) => handleDeleteClick(e, lineUp)}
                         title="Delete lineup"
                       >
@@ -560,19 +565,147 @@ function LineUp({
                   ))}
                 </div>
               )}
-
-              {/* Add new button moved to the bottom */}
-              <div
-                className="add-new-button"
-                onClick={() => setIsAddingNew(true)}
-              >
-                <div className="add-icon">
-                  <RiAddLine />
-                </div>
-                <span>Add New</span>
-              </div>
             </div>
           </div>
+
+          {/* Add new lineup form - shown as a popup, moved outside lineup-content */}
+          {isAddingNew && (
+            <div className="delete-confirmation-overlay">
+              <div className="add-form-popup">
+                <div className="add-form-header">
+                  <h3>Add New Lineup</h3>
+                  <button
+                    className="close-form-button"
+                    onClick={() => {
+                      setIsAddingNew(false);
+                      setNewLineUp({
+                        name: "",
+                        category: "",
+                        avatar: null,
+                        avatarPreview: null,
+                      });
+                    }}
+                  >
+                    <RiCloseLine />
+                  </button>
+                </div>
+                <div className="add-form-content">
+                  <div
+                    className="avatar-upload-container"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log("Avatar upload container clicked");
+                      setIsCropMode(true);
+                      setModalKey(Date.now());
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      position: "relative",
+                      zIndex: 100,
+                      cursor: "pointer",
+                      pointerEvents: "auto",
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsCropMode(true);
+                        setModalKey(Date.now());
+                      }
+                    }}
+                  >
+                    {newLineUp.avatarPreview ? (
+                      <div className="avatar-preview">
+                        <img
+                          src={newLineUp.avatarPreview}
+                          alt="Avatar preview"
+                          className="preview-image"
+                        />
+                      </div>
+                    ) : (
+                      <div className="avatar-upload-placeholder">
+                        <RiImageAddLine />
+                        <span>Upload Image</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="quick-categories">
+                    <div className="category-chips">
+                      {existingCategories.length > 0 ? (
+                        existingCategories.map((category) => (
+                          <div
+                            key={category}
+                            className={`category-chip ${
+                              newLineUp.category === category ? "active" : ""
+                            }`}
+                            onClick={() => handleCategorySelect(category)}
+                          >
+                            {category}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="no-categories">
+                          No existing categories
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-fields">
+                    <div className="form-group">
+                      <label htmlFor="category">Category</label>
+                      <input
+                        type="text"
+                        id="category"
+                        name="category"
+                        value={newLineUp.category}
+                        onChange={handleInputChange}
+                        placeholder="e.g., DJ, Artist, Host"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="name">Name</label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={newLineUp.name}
+                        onChange={handleInputChange}
+                        placeholder="Enter name"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      className="cancel-form-button"
+                      onClick={() => {
+                        setIsAddingNew(false);
+                        setNewLineUp({
+                          name: "",
+                          category: "",
+                          avatar: null,
+                          avatarPreview: null,
+                        });
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className={`save-form-button ${
+                        newLineUp.name && newLineUp.category ? "active" : ""
+                      }`}
+                      onClick={handleCreateLineUp}
+                      disabled={!newLineUp.name || !newLineUp.category}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="lineup-actions">
             <button className="cancel-button" onClick={onClose}>
@@ -598,9 +731,9 @@ function LineUp({
               Are you sure you want to delete {lineupToDelete.name}? This action
               cannot be undone.
             </p>
-            <div className="confirmation-actions">
+            <div className="delete-actions">
               <button
-                className="cancel-btn"
+                className="cancel-delete"
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setLineupToDelete(null);
@@ -608,10 +741,7 @@ function LineUp({
               >
                 Cancel
               </button>
-              <button
-                className="confirm-delete-btn"
-                onClick={handleDeleteLineUp}
-              >
+              <button className="confirm-delete" onClick={handleDeleteLineUp}>
                 Delete
               </button>
             </div>

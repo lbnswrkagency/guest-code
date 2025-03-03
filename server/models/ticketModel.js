@@ -33,6 +33,16 @@ const ticketSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // Number of people allowed with this ticket
+    pax: {
+      type: Number,
+      default: 1,
+    },
+    // Number of people who have checked in with this ticket
+    paxChecked: {
+      type: Number,
+      default: 0,
+    },
 
     // Security and validation
     securityToken: {

@@ -350,6 +350,10 @@
                 color: white;
                 font-size: 1rem;
                 font-weight: 400;
+
+                & + p {
+                  margin-top: 0.25rem;
+                }
               }
             }
           }
@@ -557,6 +561,20 @@
                 color: white;
                 min-width: 2rem;
                 text-align: center;
+              }
+            }
+
+            .ticket-countdown {
+              margin-top: 0.5rem;
+              padding: 0.5rem;
+              background: rgba(255, 200, 7, 0.1);
+              border-radius: 8px;
+              text-align: center;
+
+              .countdown-text {
+                font-size: 0.9rem;
+                font-weight: 500;
+                color: #ffc807;
               }
             }
 
@@ -904,6 +922,10 @@
                   color: white;
                   font-size: 1rem;
                   font-weight: 400;
+
+                  & + p {
+                    margin-top: 0.25rem;
+                  }
                 }
               }
             }

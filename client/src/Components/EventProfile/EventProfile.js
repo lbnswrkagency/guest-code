@@ -53,6 +53,7 @@ const EventProfile = () => {
   const [email, setEmail] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [countdowns, setCountdowns] = useState({});
 
   // Fetch event data
   useEffect(() => {
@@ -307,6 +308,68 @@ const EventProfile = () => {
     }
   };
 
+  // Add a new function to calculate remaining time for countdown
+  const calculateRemainingTime = (endDate) => {
+    if (!endDate) return null;
+
+    const now = new Date();
+    const end = new Date(endDate);
+    const diff = end - now;
+
+    if (diff <= 0) return null;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    return { days, hours };
+  };
+
+  // Add a useEffect to update countdowns
+  useEffect(() => {
+    if (!ticketSettings || ticketSettings.length === 0) return;
+
+    // Initialize countdowns
+    const initialCountdowns = {};
+    ticketSettings.forEach((ticket) => {
+      if (
+        ticket.hasCountdown &&
+        ticket.endDate &&
+        ticket.name.toLowerCase().includes("early")
+      ) {
+        const remaining = calculateRemainingTime(ticket.endDate);
+        if (remaining) {
+          initialCountdowns[ticket._id] = remaining;
+        }
+      }
+    });
+
+    setCountdowns(initialCountdowns);
+
+    // Set up interval to update countdowns
+    const intervalId = setInterval(() => {
+      setCountdowns((prevCountdowns) => {
+        const updatedCountdowns = {};
+
+        ticketSettings.forEach((ticket) => {
+          if (
+            ticket.hasCountdown &&
+            ticket.endDate &&
+            ticket.name.toLowerCase().includes("early")
+          ) {
+            const remaining = calculateRemainingTime(ticket.endDate);
+            if (remaining) {
+              updatedCountdowns[ticket._id] = remaining;
+            }
+          }
+        });
+
+        return updatedCountdowns;
+      });
+    }, 60000); // Update every minute
+
+    return () => clearInterval(intervalId);
+  }, [ticketSettings]);
+
   if (loading) {
     return (
       <div className="event-profile-loading">
@@ -489,6 +552,13 @@ const EventProfile = () => {
                     <div>
                       <h4>Location</h4>
                       <p>{event.location}</p>
+                      {event.street && <p>{event.street}</p>}
+                      {(event.postalCode || event.city) && (
+                        <p>
+                          {event.postalCode && event.postalCode}{" "}
+                          {event.city && event.city}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 </div>
@@ -596,6 +666,18 @@ const EventProfile = () => {
                               </span>
                             )}
                         </div>
+
+                        {/* Add countdown display for Early Bird tickets */}
+                        {countdowns[ticket._id] && (
+                          <div className="ticket-countdown">
+                            <span className="countdown-text">
+                              {countdowns[ticket._id].days > 0
+                                ? `${countdowns[ticket._id].days}d `
+                                : ""}
+                              {countdowns[ticket._id].hours}h remaining
+                            </span>
+                          </div>
+                        )}
 
                         <div className="ticket-price">
                           <span className="current-price">

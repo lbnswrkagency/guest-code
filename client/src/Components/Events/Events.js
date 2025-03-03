@@ -729,7 +729,15 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         }
       } catch (error) {
         console.error("[findChildEvent] Error fetching child event:", error);
-        toast.showError("Failed to fetch event details");
+        // Don't show error toast for 404 errors (weekly event doesn't exist yet)
+        // This is expected behavior as part of the data-saving mechanism
+        if (!error.response || error.response.status !== 404) {
+          toast.showError("Failed to fetch event details");
+        } else {
+          console.log(
+            "[findChildEvent] Weekly event doesn't exist yet (404) - this is expected behavior"
+          );
+        }
       } finally {
         setIsLoading(false);
       }
@@ -978,7 +986,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         }}
       >
         <div className="event-card-header">
-          <div className="event-cover-image">
+          <div className="event-cover-image glassy-element">
             {event.flyer && (
               <ProgressiveImage
                 thumbnailSrc={getFlyerImage(event.flyer)}
@@ -1093,16 +1101,16 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
           <div className="event-features">
             {currentEvent.guestCode && (
-              <span className="feature">Guest Code</span>
+              <span className="feature guest-code">Guest Code</span>
             )}
             {currentEvent.friendsCode && (
-              <span className="feature">Friends Code</span>
+              <span className="feature friends-code">Friends Code</span>
             )}
             {currentEvent.ticketCode && (
-              <span className="feature">Ticket Code</span>
+              <span className="feature ticket-code">Ticket Code</span>
             )}
             {currentEvent.tableCode && (
-              <span className="feature">Table Code</span>
+              <span className="feature table-code">Table Code</span>
             )}
             {event.isWeekly && (
               <span className="feature weekly-badge">Weekly</span>

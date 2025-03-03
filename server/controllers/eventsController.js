@@ -228,14 +228,49 @@ exports.createEvent = async (req, res) => {
       }
     }
 
-    // Create event object without explicit _id
+    // Extract event data from request body
+    const {
+      title,
+      subTitle,
+      description,
+      date,
+      startTime,
+      endTime,
+      location,
+      street,
+      postalCode,
+      city,
+      music,
+      isWeekly,
+      guestCode,
+      friendsCode,
+      ticketCode,
+      tableCode,
+    } = req.body;
+
+    // Create event object
     const eventData = {
-      ...req.body,
       user: req.user.userId,
       brand: req.params.brandId,
+      title,
+      subTitle,
+      description,
+      date,
+      startTime,
+      endTime,
+      location,
+      street,
+      postalCode,
+      city,
+      music,
+      isWeekly: onToBoolean(isWeekly),
       link: generateUniqueLink(),
       flyer: {},
       lineups: lineups,
+      guestCode: guestCode,
+      friendsCode: friendsCode,
+      ticketCode: ticketCode,
+      tableCode: tableCode,
     };
 
     // Create and save the event
@@ -478,8 +513,28 @@ exports.editEvent = async (req, res) => {
     console.log("[Event Edit] === DEBUG AUTH END ===");
 
     const { eventId } = req.params;
-    const updatedEventData = req.body;
-    const weekNumber = parseInt(req.query.weekNumber || "0");
+    const weekNumber = parseInt(req.query.weekNumber) || 0;
+
+    // Extract event data from request body
+    const {
+      title,
+      subTitle,
+      description,
+      date,
+      startTime,
+      endTime,
+      location,
+      street,
+      postalCode,
+      city,
+      music,
+      isWeekly,
+      lineups,
+      guestCode,
+      friendsCode,
+      ticketCode,
+      tableCode,
+    } = req.body;
 
     console.log("[Event Update] Received request:", {
       eventId,
@@ -489,17 +544,17 @@ exports.editEvent = async (req, res) => {
     });
 
     // Handle lineups if they exist
-    if (updatedEventData.lineups) {
+    if (lineups) {
       // If lineups is a string (from FormData), parse it
-      if (typeof updatedEventData.lineups === "string") {
+      if (typeof lineups === "string") {
         try {
-          updatedEventData.lineups = JSON.parse(updatedEventData.lineups);
+          req.body.lineups = JSON.parse(lineups);
         } catch (e) {
           console.error("[Event Update] Error parsing lineups:", e);
-          delete updatedEventData.lineups;
+          delete req.body.lineups;
         }
       }
-      console.log("[Event Update] Lineups:", updatedEventData.lineups);
+      console.log("[Event Update] Lineups:", req.body.lineups);
     }
 
     // Find event and check permissions
@@ -520,10 +575,19 @@ exports.editEvent = async (req, res) => {
       });
     }
 
-    // Convert date string to Date object if it exists
-    if (updatedEventData.date) {
-      updatedEventData.date = new Date(updatedEventData.date);
-    }
+    // Update fields
+    if (title) event.title = title;
+    if (subTitle !== undefined) event.subTitle = subTitle;
+    if (description !== undefined) event.description = description;
+    if (date) event.date = new Date(date);
+    if (startTime) event.startTime = startTime;
+    if (endTime) event.endTime = endTime;
+    if (location) event.location = location;
+    if (street !== undefined) event.street = street;
+    if (postalCode !== undefined) event.postalCode = postalCode;
+    if (city !== undefined) event.city = city;
+    if (music !== undefined) event.music = music;
+    if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
 
     // Check if this is a child event being edited directly
     if (event.parentEventId) {
@@ -532,7 +596,7 @@ exports.editEvent = async (req, res) => {
       // Update the child event with the new data
       // Make sure we don't change certain fields that should remain consistent
       const updatedChildData = {
-        ...updatedEventData,
+        ...req.body,
         isWeekly: true, // Keep it marked as weekly
         parentEventId: event.parentEventId, // Keep the parent reference
         weekNumber: event.weekNumber, // Keep the week number
@@ -565,12 +629,12 @@ exports.editEvent = async (req, res) => {
 
         // Check if we need to update code settings for this child event
         if (
-          updatedEventData.codeSettings ||
-          updatedEventData.guestCode !== undefined ||
-          updatedEventData.friendsCode !== undefined ||
-          updatedEventData.ticketCode !== undefined ||
-          updatedEventData.tableCode !== undefined ||
-          updatedEventData.backstageCode !== undefined
+          req.body.codeSettings ||
+          req.body.guestCode !== undefined ||
+          req.body.friendsCode !== undefined ||
+          req.body.ticketCode !== undefined ||
+          req.body.tableCode !== undefined ||
+          req.body.backstageCode !== undefined
         ) {
           console.log(
             `[Event Update] Updating code settings for child event: ${event._id}`
@@ -586,42 +650,42 @@ exports.editEvent = async (req, res) => {
           await initializeDefaultSettings(event._id);
 
           // Update the legacy boolean fields if they were changed
-          if (updatedEventData.guestCode !== undefined) {
+          if (req.body.guestCode !== undefined) {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "guest" },
-              { isEnabled: updatedEventData.guestCode },
+              { isEnabled: req.body.guestCode },
               { new: true }
             );
           }
 
-          if (updatedEventData.friendsCode !== undefined) {
+          if (req.body.friendsCode !== undefined) {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "friends" },
-              { isEnabled: updatedEventData.friendsCode },
+              { isEnabled: req.body.friendsCode },
               { new: true }
             );
           }
 
-          if (updatedEventData.ticketCode !== undefined) {
+          if (req.body.ticketCode !== undefined) {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "ticket" },
-              { isEnabled: updatedEventData.ticketCode },
+              { isEnabled: req.body.ticketCode },
               { new: true }
             );
           }
 
-          if (updatedEventData.tableCode !== undefined) {
+          if (req.body.tableCode !== undefined) {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "table" },
-              { isEnabled: updatedEventData.tableCode },
+              { isEnabled: req.body.tableCode },
               { new: true }
             );
           }
 
-          if (updatedEventData.backstageCode !== undefined) {
+          if (req.body.backstageCode !== undefined) {
             await CodeSettings.findOneAndUpdate(
               { eventId: event._id, type: "backstage" },
-              { isEnabled: updatedEventData.backstageCode },
+              { isEnabled: req.body.backstageCode },
               { new: true }
             );
           }
@@ -654,7 +718,7 @@ exports.editEvent = async (req, res) => {
         // Update the child event with the new data
         // Make sure we don't change certain fields that should remain consistent
         const updatedChildData = {
-          ...updatedEventData,
+          ...req.body,
           isWeekly: true, // Keep it marked as weekly
           parentEventId: event._id, // Keep the parent reference
           weekNumber: weekNumber, // Keep the week number
@@ -684,12 +748,12 @@ exports.editEvent = async (req, res) => {
 
           // Check if we need to update code settings for this child event
           if (
-            updatedEventData.codeSettings ||
-            updatedEventData.guestCode !== undefined ||
-            updatedEventData.friendsCode !== undefined ||
-            updatedEventData.ticketCode !== undefined ||
-            updatedEventData.tableCode !== undefined ||
-            updatedEventData.backstageCode !== undefined
+            req.body.codeSettings ||
+            req.body.guestCode !== undefined ||
+            req.body.friendsCode !== undefined ||
+            req.body.ticketCode !== undefined ||
+            req.body.tableCode !== undefined ||
+            req.body.backstageCode !== undefined
           ) {
             console.log(
               `[Event Update] Updating code settings for weekly child event: ${childEvent._id}`
@@ -702,42 +766,42 @@ exports.editEvent = async (req, res) => {
             await initializeDefaultSettings(childEvent._id);
 
             // Update the legacy boolean fields if they were changed
-            if (updatedEventData.guestCode !== undefined) {
+            if (req.body.guestCode !== undefined) {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "guest" },
-                { isEnabled: updatedEventData.guestCode },
+                { isEnabled: req.body.guestCode },
                 { new: true }
               );
             }
 
-            if (updatedEventData.friendsCode !== undefined) {
+            if (req.body.friendsCode !== undefined) {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "friends" },
-                { isEnabled: updatedEventData.friendsCode },
+                { isEnabled: req.body.friendsCode },
                 { new: true }
               );
             }
 
-            if (updatedEventData.ticketCode !== undefined) {
+            if (req.body.ticketCode !== undefined) {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "ticket" },
-                { isEnabled: updatedEventData.ticketCode },
+                { isEnabled: req.body.ticketCode },
                 { new: true }
               );
             }
 
-            if (updatedEventData.tableCode !== undefined) {
+            if (req.body.tableCode !== undefined) {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "table" },
-                { isEnabled: updatedEventData.tableCode },
+                { isEnabled: req.body.tableCode },
                 { new: true }
               );
             }
 
-            if (updatedEventData.backstageCode !== undefined) {
+            if (req.body.backstageCode !== undefined) {
               await CodeSettings.findOneAndUpdate(
                 { eventId: childEvent._id, type: "backstage" },
-                { isEnabled: updatedEventData.backstageCode },
+                { isEnabled: req.body.backstageCode },
                 { new: true }
               );
             }
@@ -766,18 +830,18 @@ exports.editEvent = async (req, res) => {
     // For regular events or the parent weekly event (week 0)
     const updatedEvent = await Event.findByIdAndUpdate(
       eventId,
-      { $set: updatedEventData },
+      { $set: req.body },
       { new: true, runValidators: true }
     );
 
     // Check if we need to update code settings for this event
     if (
-      updatedEventData.codeSettings ||
-      updatedEventData.guestCode !== undefined ||
-      updatedEventData.friendsCode !== undefined ||
-      updatedEventData.ticketCode !== undefined ||
-      updatedEventData.tableCode !== undefined ||
-      updatedEventData.backstageCode !== undefined
+      req.body.codeSettings ||
+      req.body.guestCode !== undefined ||
+      req.body.friendsCode !== undefined ||
+      req.body.ticketCode !== undefined ||
+      req.body.tableCode !== undefined ||
+      req.body.backstageCode !== undefined
     ) {
       console.log(
         `[Event Update] Updating code settings for event: ${eventId}`
@@ -788,42 +852,42 @@ exports.editEvent = async (req, res) => {
       await initializeDefaultSettings(eventId);
 
       // Update the legacy boolean fields if they were changed
-      if (updatedEventData.guestCode !== undefined) {
+      if (req.body.guestCode !== undefined) {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "guest" },
-          { isEnabled: updatedEventData.guestCode },
+          { isEnabled: req.body.guestCode },
           { new: true }
         );
       }
 
-      if (updatedEventData.friendsCode !== undefined) {
+      if (req.body.friendsCode !== undefined) {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "friends" },
-          { isEnabled: updatedEventData.friendsCode },
+          { isEnabled: req.body.friendsCode },
           { new: true }
         );
       }
 
-      if (updatedEventData.ticketCode !== undefined) {
+      if (req.body.ticketCode !== undefined) {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "ticket" },
-          { isEnabled: updatedEventData.ticketCode },
+          { isEnabled: req.body.ticketCode },
           { new: true }
         );
       }
 
-      if (updatedEventData.tableCode !== undefined) {
+      if (req.body.tableCode !== undefined) {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "table" },
-          { isEnabled: updatedEventData.tableCode },
+          { isEnabled: req.body.tableCode },
           { new: true }
         );
       }
 
-      if (updatedEventData.backstageCode !== undefined) {
+      if (req.body.backstageCode !== undefined) {
         await CodeSettings.findOneAndUpdate(
           { eventId: eventId, type: "backstage" },
-          { isEnabled: updatedEventData.backstageCode },
+          { isEnabled: req.body.backstageCode },
           { new: true }
         );
       }
@@ -831,7 +895,7 @@ exports.editEvent = async (req, res) => {
 
     console.log("[Event Update] Event updated successfully:", {
       eventId,
-      updatedFields: Object.keys(updatedEventData),
+      updatedFields: Object.keys(req.body),
     });
 
     res.status(200).json(updatedEvent);

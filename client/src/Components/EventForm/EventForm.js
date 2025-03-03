@@ -102,6 +102,10 @@ const EventForm = ({
     startTime: event?.startTime || "20:00",
     endTime: event?.endTime || "04:00",
     location: event?.location || "",
+    street: event?.street || "",
+    postalCode: event?.postalCode || "",
+    city: event?.city || "",
+    music: event?.music || "",
     isWeekly: event?.isWeekly || false,
     flyer: null,
     guestCode: event?.guestCode || false,
@@ -653,8 +657,46 @@ const EventForm = ({
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
-                    placeholder="Enter event location"
+                    placeholder="Enter venue name"
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Street</label>
+                <div className="input-with-icon">
+                  <RiMapPinLine />
+                  <input
+                    type="text"
+                    name="street"
+                    value={formData.street}
+                    onChange={handleInputChange}
+                    placeholder="Enter street address"
+                  />
+                </div>
+              </div>
+
+              <div className="location-details">
+                <div className="form-group">
+                  <label>Postal Code</label>
+                  <input
+                    type="text"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                    placeholder="Enter postal code"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    placeholder="Enter city"
                   />
                 </div>
               </div>
@@ -755,6 +797,21 @@ const EventForm = ({
                       )}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Music section */}
+            <div className="form-section">
+              <h3>Music</h3>
+              <div className="form-group">
+                <label>Music Genres</label>
+                <textarea
+                  value={formData.music}
+                  onChange={handleInputChange}
+                  name="music"
+                  placeholder="Enter music genres (e.g., Afrobeats, Amapiano, Dancehall)"
+                  rows="3"
+                />
               </div>
             </div>
 

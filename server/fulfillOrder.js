@@ -1,5 +1,6 @@
 const Order = require("./models/orderModel");
 const Event = require("./models/eventsModel");
+const TicketSettings = require("./models/ticketSettingsModel");
 const { sendEmail } = require("./utils/sendEmail");
 // const { sendInvoice } = require("./sendInvoice");
 
@@ -72,11 +73,26 @@ const fulfillOrder = async (session, billingAddress) => {
       paymentStatus: "paid",
     });
 
+    // Update ticket counts in TicketSettings
+    for (const ticket of tickets) {
+      // Find the ticket settings and increment the soldCount
+      await TicketSettings.findByIdAndUpdate(
+        ticket.ticketId,
+        { $inc: { soldCount: ticket.quantity } },
+        { new: true }
+      );
+
+      console.log(
+        `Updated soldCount for ticket ${ticket.name} (${ticket.ticketId}), sold ${ticket.quantity} tickets`
+      );
+    }
+
     // Send confirmation email
     await sendEmail(order);
 
     return order;
   } catch (error) {
+    console.error("Error fulfilling order:", error);
     throw error;
   }
 };
