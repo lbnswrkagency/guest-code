@@ -27,13 +27,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
 
   // Effect to fetch event data when brand or date changes
   useEffect(() => {
-    console.log("[DashboardFeed] Component mounted or props updated:", {
-      selectedBrand: selectedBrand ? `${selectedBrand.name}` : "none",
-      selectedDate: selectedDate
-        ? new Date(selectedDate).toISOString()
-        : "none",
-    });
-
     const fetchEventData = async () => {
       if (!selectedBrand || !selectedDate) {
         setIsLoading(false);
@@ -48,15 +41,11 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
         const formattedDate = new Date(selectedDate)
           .toISOString()
           .split("T")[0];
-        console.log(
-          `[DashboardFeed] Fetching event for brand: ${selectedBrand._id}, date: ${formattedDate}`
-        );
 
         // This endpoint should return events for a specific brand on a specific date
         const response = await axiosInstance.get(
           `/events/brand/${selectedBrand._id}`
         );
-        console.log("[DashboardFeed] Received events:", response.data);
 
         // Filter events for the selected date
         const eventsForDate = response.data.filter((event) => {
@@ -68,20 +57,14 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
         if (eventsForDate.length > 0) {
           // Use the first event for this date
           const event = eventsForDate[0];
-          console.log(
-            "[DashboardFeed] Found event for selected date:",
-            event.title
-          );
           setEventData(event);
 
           // Preload event image
           preloadEventImage(event);
         } else {
-          console.log("[DashboardFeed] No events found for selected date");
           setEventData(null);
         }
       } catch (err) {
-        console.error("[DashboardFeed] Error fetching event data:", err);
         setError("Failed to load event data. Please try again.");
       } finally {
         setIsLoading(false);
@@ -103,11 +86,9 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        console.log("[DashboardFeed] Image loaded successfully");
         setImageLoaded(true);
       };
       img.onerror = () => {
-        console.error("[DashboardFeed] Failed to load event image");
         setImageLoaded(false);
       };
     } else {
@@ -152,7 +133,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
 
   // Handle retry
   const handleRetry = () => {
-    console.log("[DashboardFeed] Retry initiated");
     setImageLoaded(false);
     setEventData(null);
     setError(null);

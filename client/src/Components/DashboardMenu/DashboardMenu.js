@@ -14,6 +14,19 @@ const DashboardMenu = ({
   const [userRole, setUserRole] = useState("");
   const [userPermissions, setUserPermissions] = useState(null);
 
+  // Helper function to compare MongoDB IDs that might be in different formats
+  const compareIds = (id1, id2) => {
+    if (!id1 || !id2) return false;
+
+    // Convert to strings for comparison
+    const str1 =
+      typeof id1 === "object" ? id1._id || id1.toString() : id1.toString();
+    const str2 =
+      typeof id2 === "object" ? id2._id || id2.toString() : id2.toString();
+
+    return str1 === str2;
+  };
+
   // Handler to toggle menu open/close
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -28,7 +41,6 @@ const DashboardMenu = ({
   };
 
   // Determine user's role and permissions in the selected brand
-  // This mirrors the logic in DashboardHeader but adds permission processing
   useEffect(() => {
     if (selectedBrand && user?._id) {
       console.log(
@@ -46,13 +58,36 @@ const DashboardMenu = ({
       console.log("[DashboardMenu] Brand team:", selectedBrand.team);
       console.log("[DashboardMenu] Code settings:", codeSettings);
 
-      // Filter roles for this brand
-      const brandRoles = userRoles.filter(
-        (role) =>
-          role.brandId === selectedBrand._id ||
-          (typeof role.brandId === "object" &&
-            role.brandId._id === selectedBrand._id)
-      );
+      // Add detailed debugging for role filtering
+      console.log("[DashboardMenu] All userRoles before filtering:", userRoles);
+      console.log("[DashboardMenu] Brand ID for filtering:", {
+        selectedBrandId: selectedBrand._id,
+        selectedBrandIdType: typeof selectedBrand._id,
+      });
+
+      // Filter roles for this brand with our improved ID comparison
+      const brandRoles = userRoles.filter((role) => {
+        console.log("[DashboardMenu] Comparing role:", {
+          roleName: role.name,
+          roleBrandId: role.brandId,
+          roleBrandIdType: typeof role.brandId,
+          roleId: role._id,
+        });
+
+        // Use our improved ID comparison function
+        const isMatch = compareIds(role.brandId, selectedBrand._id);
+
+        console.log(
+          `[DashboardMenu] Role ${role.name} matches brand: ${isMatch}`
+        );
+        console.log(
+          `[DashboardMenu] IDs as strings: "${
+            typeof role.brandId === "object" ? role.brandId._id : role.brandId
+          }" vs "${selectedBrand._id}"`
+        );
+
+        return isMatch;
+      });
 
       console.log("[DashboardMenu] Filtered roles for this brand:", brandRoles);
 
@@ -132,23 +167,50 @@ const DashboardMenu = ({
 
           // Process role-based permissions
           if (brandRoles.length > 0) {
+            console.log(
+              "[DashboardMenu] Processing permissions from brandRoles:",
+              brandRoles.map((r) => r.name)
+            );
+
             brandRoles.forEach((role) => {
+              console.log(
+                `[DashboardMenu] Processing permissions for role: ${role.name}`
+              );
+
               // Combine permissions from all roles
               if (role.permissions) {
+                console.log(
+                  `[DashboardMenu] Role permissions object:`,
+                  role.permissions
+                );
+
                 // Analytics permissions
                 if (role.permissions.analytics?.view) {
+                  console.log(
+                    `[DashboardMenu] Setting analytics.view to true from role ${role.name}`
+                  );
                   effectivePermissions.analytics.view = true;
                 }
 
                 // Scanner permissions
                 if (role.permissions.scanner?.use) {
+                  console.log(
+                    `[DashboardMenu] Setting scanner.use to true from role ${role.name}`
+                  );
                   effectivePermissions.scanner.use = true;
                 }
 
                 // Events permissions
                 if (role.permissions.events) {
+                  console.log(
+                    `[DashboardMenu] Processing events permissions from role ${role.name}:`,
+                    role.permissions.events
+                  );
                   Object.keys(role.permissions.events).forEach((action) => {
                     if (role.permissions.events[action]) {
+                      console.log(
+                        `[DashboardMenu] Setting events.${action} to true from role ${role.name}`
+                      );
                       effectivePermissions.events[action] = true;
                     }
                   });
@@ -156,8 +218,15 @@ const DashboardMenu = ({
 
                 // Team permissions
                 if (role.permissions.team) {
+                  console.log(
+                    `[DashboardMenu] Processing team permissions from role ${role.name}:`,
+                    role.permissions.team
+                  );
                   Object.keys(role.permissions.team).forEach((action) => {
                     if (role.permissions.team[action]) {
+                      console.log(
+                        `[DashboardMenu] Setting team.${action} to true from role ${role.name}`
+                      );
                       effectivePermissions.team[action] = true;
                     }
                   });
@@ -165,26 +234,59 @@ const DashboardMenu = ({
 
                 // Code permissions
                 if (role.permissions.codes) {
+                  console.log(
+                    `[DashboardMenu] Processing code permissions from role ${role.name}`
+                  );
+                  console.log(
+                    `[DashboardMenu] Code permissions type:`,
+                    typeof role.permissions.codes
+                  );
+
                   // Handle both Map and Object types
-                  const codesObj =
-                    role.permissions.codes instanceof Map
-                      ? Object.fromEntries(role.permissions.codes)
-                      : role.permissions.codes;
+                  let codesObj;
+                  if (role.permissions.codes instanceof Map) {
+                    console.log(
+                      `[DashboardMenu] Codes is a Map, converting to object`
+                    );
+                    codesObj = Object.fromEntries(role.permissions.codes);
+                  } else if (typeof role.permissions.codes === "object") {
+                    console.log(`[DashboardMenu] Codes is an object`);
+                    codesObj = role.permissions.codes;
+                  }
 
-                  Object.keys(codesObj).forEach((codeType) => {
-                    if (!effectivePermissions.codes[codeType]) {
-                      effectivePermissions.codes[codeType] = {};
-                    }
+                  console.log(
+                    `[DashboardMenu] Code permissions processed object:`,
+                    codesObj
+                  );
 
-                    // Copy permissions for this code type
-                    Object.keys(codesObj[codeType]).forEach((perm) => {
-                      effectivePermissions.codes[codeType][perm] =
-                        codesObj[codeType][perm];
+                  if (codesObj) {
+                    Object.keys(codesObj).forEach((codeType) => {
+                      console.log(
+                        `[DashboardMenu] Processing code type: ${codeType}`,
+                        codesObj[codeType]
+                      );
+
+                      if (!effectivePermissions.codes[codeType]) {
+                        effectivePermissions.codes[codeType] = {};
+                      }
+
+                      // Copy permissions for this code type
+                      Object.keys(codesObj[codeType]).forEach((perm) => {
+                        console.log(
+                          `[DashboardMenu] Setting codes.${codeType}.${perm} to ${codesObj[codeType][perm]}`
+                        );
+                        effectivePermissions.codes[codeType][perm] =
+                          codesObj[codeType][perm];
+                      });
                     });
-                  });
+                  }
                 }
               }
             });
+          } else {
+            console.log(
+              "[DashboardMenu] No brand roles found, using only legacy permissions"
+            );
           }
 
           // Legacy fallbacks for backward compatibility

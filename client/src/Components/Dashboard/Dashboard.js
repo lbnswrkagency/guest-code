@@ -185,13 +185,6 @@ const DashboardContent = ({ user, setUser }) => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
 
-  console.log("[Dashboard] Current state:", {
-    selectedBrand: selectedBrand
-      ? `${selectedBrand.name} (${selectedBrand._id})`
-      : "none",
-    selectedDate: selectedDate ? new Date(selectedDate).toISOString() : "none",
-  });
-
   const handleCropModeToggle = (isInCropMode) => {
     setIsCropMode(isInCropMode);
   };
@@ -309,26 +302,40 @@ const DashboardContent = ({ user, setUser }) => {
       if (!user || !user._id) return;
 
       try {
-        console.log("[Dashboard] Fetching user roles");
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/users/roles`,
-          {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        console.log("[Dashboard] Fetching user roles for user:", user._id);
+
+        // Use axiosInstance instead of axios directly for consistency
+        const response = await axiosInstance.get(`/users/roles`, {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
         console.log("[Dashboard] User roles fetched:", response.data);
-        setUserRoles(response.data);
+
+        // Check if the response data is valid and has the expected format
+        if (Array.isArray(response.data)) {
+          // Log each role structure to check if brandIds are properly formatted
+          response.data.forEach((role) => {
+            console.log(`[Dashboard] Loaded role: ${role.name}`, {
+              roleBrandId: role.brandId,
+              roleId: role._id,
+              permissionsPresent: !!role.permissions,
+            });
+          });
+
+          setUserRoles(response.data);
+        } else {
+          console.error("[Dashboard] Invalid role data format:", response.data);
+        }
       } catch (error) {
-        console.error("Error fetching user roles:", error);
+        console.error("[Dashboard] Error fetching user roles:", error);
       }
     };
 
     const fetchCodeSettings = async () => {
       try {
-        console.log("[Dashboard] Fetching code settings");
         const response = await axios.get(
           `${process.env.REACT_APP_API_BASE_URL}/code-settings`,
           {
@@ -338,10 +345,9 @@ const DashboardContent = ({ user, setUser }) => {
             },
           }
         );
-        console.log("[Dashboard] Code settings fetched:", response.data);
         setCodeSettings(response.data);
       } catch (error) {
-        console.error("Error fetching code settings:", error);
+        // Error handling with no console log
       }
     };
 

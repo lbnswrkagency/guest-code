@@ -23,7 +23,7 @@ const DashboardHeader = ({
   setSelectedBrand,
   selectedDate,
   setSelectedDate,
-  userRoles = [], // Add userRoles prop with default empty array
+  userRoles = [], // User roles prop with default empty array
 }) => {
   const { isConnected } = useSocket();
   const { user: authUser } = useAuth();
@@ -37,18 +37,6 @@ const DashboardHeader = ({
   const [userBrands, setUserBrands] = useState([]);
   const [brandEvents, setBrandEvents] = useState([]);
 
-  // Log whenever props change
-  useEffect(() => {
-    console.log("[DashboardHeader] Props updated:", {
-      selectedBrand: selectedBrand
-        ? `${selectedBrand.name} (${selectedBrand._id})`
-        : "none",
-      selectedDate: selectedDate
-        ? new Date(selectedDate).toISOString()
-        : "none",
-    });
-  }, [selectedBrand, selectedDate]);
-
   // Sample data (replace with real data later)
   const stats = {
     members: 25,
@@ -60,25 +48,16 @@ const DashboardHeader = ({
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        console.log("[DashboardHeader] Fetching brands...");
         const response = await axiosInstance.get("/brands");
         if (response.data && response.data.length > 0) {
-          console.log(
-            "[DashboardHeader] Brands fetched:",
-            response.data.length
-          );
           setUserBrands(response.data);
           // Set the first brand as selected if none is selected
           if (!selectedBrand) {
-            console.log(
-              "[DashboardHeader] Setting initial brand:",
-              response.data[0].name
-            );
             setSelectedBrand(response.data[0]);
           }
         }
       } catch (error) {
-        console.error("[DashboardHeader] Error fetching brands:", error);
+        // Error handling without console log
       }
     };
 
@@ -88,25 +67,12 @@ const DashboardHeader = ({
   // Determine user's role in the selected brand
   useEffect(() => {
     if (selectedBrand && user?._id) {
-      console.log(
-        "[DashboardHeader] Determining user role for brand:",
-        selectedBrand.name
-      );
-      console.log("[DashboardHeader] User:", user._id);
-      console.log("[DashboardHeader] Brand owner:", selectedBrand.owner);
-      console.log("[DashboardHeader] Brand team:", selectedBrand.team);
-
-      // Log available user roles for this brand
-      console.log("[DashboardHeader] Available userRoles:", userRoles);
+      // Filter roles for this brand
       const brandRoles = userRoles.filter(
         (role) =>
           role.brandId === selectedBrand._id ||
           (typeof role.brandId === "object" &&
             role.brandId._id === selectedBrand._id)
-      );
-      console.log(
-        "[DashboardHeader] Filtered roles for this brand:",
-        brandRoles
       );
 
       // Check if user is the brand owner
@@ -115,7 +81,6 @@ const DashboardHeader = ({
         (typeof selectedBrand.owner === "object" &&
           selectedBrand.owner._id === user._id)
       ) {
-        console.log("[DashboardHeader] User is the OWNER of this brand");
         setUserRole(`Owner ${selectedBrand.name}`);
         return;
       }
@@ -139,25 +104,14 @@ const DashboardHeader = ({
               teamMember.role.slice(1).toLowerCase();
           }
 
-          // Log the role formatting for debugging
-          console.log("[DashboardHeader] User is a TEAM MEMBER with role:", {
-            originalRole: teamMember.role,
-            formattedRole: formattedRole,
-            teamMemberData: teamMember,
-          });
-
           setUserRole(`${formattedRole} ${selectedBrand.name}`);
           return;
         }
       }
 
       // Default role if no specific role found
-      console.log(
-        "[DashboardHeader] No specific role found, defaulting to MEMBER"
-      );
       setUserRole(`Member ${selectedBrand.name}`);
     } else {
-      console.log("[DashboardHeader] No brand or user selected, clearing role");
       setUserRole(""); // Reset if no brand selected
     }
   }, [selectedBrand, user, userRoles]);
@@ -168,10 +122,6 @@ const DashboardHeader = ({
       if (!selectedBrand) return;
 
       try {
-        console.log(
-          "[DashboardHeader] Fetching events for brand:",
-          selectedBrand.name
-        );
         // Use the same endpoint as in Events.js
         const response = await axiosInstance.get(
           `/events/brand/${selectedBrand._id}`
@@ -183,20 +133,15 @@ const DashboardHeader = ({
             (a, b) => new Date(a.date) - new Date(b.date)
           );
 
-          console.log("[DashboardHeader] Events fetched:", sortedEvents.length);
           setBrandEvents(sortedEvents);
 
           // Set the first event date as selected if available and no date is selected
           if (sortedEvents.length > 0 && !selectedDate) {
-            console.log(
-              "[DashboardHeader] Setting initial date:",
-              new Date(sortedEvents[0].date).toISOString()
-            );
             setSelectedDate(new Date(sortedEvents[0].date));
           }
         }
       } catch (error) {
-        console.error("[DashboardHeader] Error fetching brand events:", error);
+        // Error handling without console log
         setBrandEvents([]);
       }
     };
@@ -226,7 +171,6 @@ const DashboardHeader = ({
   }, []);
 
   const handleBrandSelect = (brand) => {
-    console.log("[DashboardHeader] Brand selected:", brand.name);
     setSelectedBrand(brand);
     setBrandDropdown(false);
     // Reset selected date when changing brands
@@ -234,10 +178,6 @@ const DashboardHeader = ({
   };
 
   const handleDateSelect = (date) => {
-    console.log(
-      "[DashboardHeader] Date selected:",
-      new Date(date).toISOString()
-    );
     setSelectedDate(new Date(date));
     setDateDropdown(false);
   };
@@ -246,7 +186,6 @@ const DashboardHeader = ({
     // Handle event selection - navigate to event page or update state
     setSelectedDate(new Date(event.date));
     setShowEventsPopup(false);
-    console.log("Selected event:", event);
     // Implementation depends on your app's navigation/state management
   };
 

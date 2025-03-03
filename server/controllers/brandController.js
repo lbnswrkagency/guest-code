@@ -52,45 +52,7 @@ exports.createBrand = async (req, res) => {
         {
           user: req.user._id,
           role: "OWNER",
-          permissions: {
-            events: {
-              create: true,
-              edit: true,
-              delete: true,
-              view: true,
-            },
-            team: {
-              manage: true,
-              view: true,
-            },
-            analytics: {
-              view: true,
-            },
-            codes: {
-              friends: {
-                generate: true,
-                limit: 0,
-                unlimited: true,
-              },
-              backstage: {
-                generate: true,
-                limit: 0,
-                unlimited: true,
-              },
-              table: {
-                generate: true,
-              },
-              ticket: {
-                generate: true,
-              },
-              guest: {
-                generate: true,
-              },
-            },
-            scanner: {
-              use: true,
-            },
-          },
+          joinedAt: new Date(),
         },
       ],
       settings: {
@@ -558,7 +520,7 @@ exports.getTeamMembers = async (req, res) => {
 exports.updateMemberRole = async (req, res) => {
   try {
     const { brandId, memberId } = req.params;
-    const { role, permissions } = req.body;
+    const { role } = req.body; // Only need the role name, no permissions needed
 
     const brand = await Brand.findById(brandId);
     if (!brand) {
@@ -579,66 +541,20 @@ exports.updateMemberRole = async (req, res) => {
       return res.status(404).json({ message: "Member not found" });
     }
 
-    // Update role and permissions
+    // Update role only - permissions will be retrieved from roleModel.js
     brand.team[memberIndex].role = role;
-
-    // Set default permissions based on role
-    const defaultPermissions = {
-      events: {
-        create: role === "admin" || role === "manager",
-        edit: role === "admin" || role === "manager",
-        delete: role === "admin",
-        view: true,
-      },
-      team: {
-        manage: role === "admin",
-        view: true,
-      },
-      analytics: {
-        view: role === "admin" || role === "manager",
-      },
-      codes: {
-        friends: {
-          generate: role !== "staff",
-          limit:
-            role === "admin"
-              ? -1
-              : role === "manager"
-              ? 100
-              : role === "promoter"
-              ? 50
-              : 0,
-        },
-        backstage: {
-          generate: role === "admin" || role === "manager",
-          limit: role === "admin" ? -1 : role === "manager" ? 20 : 0,
-        },
-        table: {
-          generate: role === "admin" || role === "manager",
-        },
-        ticket: {
-          generate: role === "admin" || role === "manager",
-        },
-      },
-      scanner: {
-        use: true,
-      },
-    };
-
-    // Merge default permissions with any custom permissions provided
-    brand.team[memberIndex].permissions = {
-      ...defaultPermissions,
-      ...permissions,
-    };
 
     await brand.save();
 
     res.json({
-      message: "Member role and permissions updated successfully",
+      message: "Member role updated successfully",
       member: brand.team[memberIndex],
     });
   } catch (error) {
-    res.status(500).json({ message: "Error updating member role" });
+    console.error("[BrandController:updateMemberRole] Error:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating member role", error: error.message });
   }
 };
 
@@ -892,45 +808,7 @@ exports.requestJoin = async (req, res) => {
       brand.team.push({
         user: userId,
         role: brand.settings?.defaultRole || "MEMBER",
-        permissions: {
-          events: {
-            create: false,
-            edit: false,
-            delete: false,
-            view: true,
-          },
-          team: {
-            manage: false,
-            view: true,
-          },
-          analytics: {
-            view: false,
-          },
-          codes: {
-            friends: {
-              generate: true,
-              limit: 10,
-              unlimited: false,
-            },
-            backstage: {
-              generate: false,
-              limit: 0,
-              unlimited: false,
-            },
-            table: {
-              generate: false,
-            },
-            ticket: {
-              generate: false,
-            },
-            guest: {
-              generate: false,
-            },
-          },
-          scanner: {
-            use: false,
-          },
-        },
+        joinedAt: new Date(),
       });
       await brand.save();
 
@@ -1018,117 +896,82 @@ exports.requestJoin = async (req, res) => {
 exports.processJoinRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
-    const { action } = req.body; // 'accept' or 'reject'
+    const { action } = req.body;
     const adminId = req.user._id;
 
+    // Check if join request exists
     const joinRequest = await JoinRequest.findById(requestId)
-      .populate("brand")
-      .populate("user");
+      .populate("user")
+      .populate("brand");
     if (!joinRequest) {
       return res.status(404).json({ message: "Join request not found" });
     }
 
     const brand = joinRequest.brand;
 
-    // Verify admin has permission
-    const isAdmin = brand.team.some(
-      (member) =>
-        member.user.toString() === adminId.toString() &&
-        (member.role === "OWNER" || member.role === "admin")
+    // Check if admin is owner or has permission to manage team
+    const isOwner = brand.owner.toString() === adminId.toString();
+    const adminTeamMember = brand.team.find(
+      (member) => member.user.toString() === adminId.toString()
     );
-    if (!isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+    const canManageTeam =
+      isOwner || (adminTeamMember && adminTeamMember.permissions?.team?.manage);
+
+    if (!canManageTeam) {
+      return res
+        .status(403)
+        .json({ message: "You don't have permission to manage team members" });
     }
 
     if (action === "accept") {
-      // Add user to team with default role
+      // Add user to team
       brand.team.push({
         user: joinRequest.user._id,
         role: brand.settings?.defaultRole || "MEMBER",
-        permissions: {
-          events: {
-            create: false,
-            edit: false,
-            delete: false,
-            view: true,
-          },
-          team: {
-            manage: false,
-            view: true,
-          },
-          analytics: {
-            view: false,
-          },
-          codes: {
-            friends: {
-              generate: true,
-              limit: 10,
-              unlimited: false,
-            },
-            backstage: {
-              generate: false,
-              limit: 0,
-              unlimited: false,
-            },
-            table: {
-              generate: false,
-            },
-            ticket: {
-              generate: false,
-            },
-            guest: {
-              generate: false,
-            },
-          },
-          scanner: {
-            use: false,
-          },
-        },
+        // No need to duplicate permissions here, they will be taken from the role
+        joinedAt: new Date(),
       });
       await brand.save();
 
-      // Delete the join request
-      await JoinRequest.findByIdAndDelete(requestId);
-
-      // Delete the original join request notification
-      await Notification.deleteMany({
-        type: "join_request",
-        requestId: requestId,
-      });
-
-      // Create notification for user
+      // Create notification for the user
       await Notification.create({
         userId: joinRequest.user._id,
-        type: "join_request_accepted",
+        type: "success",
         title: "Join Request Accepted",
         message: `Your request to join ${brand.name} has been accepted`,
         brandId: brand._id,
       });
-    } else {
-      // Update join request status to rejected
+
+      // Delete the request
+      await JoinRequest.findByIdAndDelete(requestId);
+
+      return res.status(200).json({
+        message: "Join request accepted",
+        team: brand.team,
+      });
+    } else if (action === "reject") {
+      // Update request status
       joinRequest.status = "rejected";
       await joinRequest.save();
 
-      // Delete the original join request notification
-      await Notification.deleteMany({
-        type: "join_request",
-        requestId: requestId,
-      });
-
-      // Create notification for user
+      // Create notification for the user
       await Notification.create({
         userId: joinRequest.user._id,
-        type: "join_request_rejected",
+        type: "error",
         title: "Join Request Rejected",
         message: `Your request to join ${brand.name} has been rejected`,
         brandId: brand._id,
       });
-    }
 
-    res.status(200).json({ message: `Join request ${action}ed successfully` });
+      return res.status(200).json({
+        message: "Join request rejected",
+      });
+    } else {
+      return res.status(400).json({ message: "Invalid action" });
+    }
   } catch (error) {
     console.error("[BrandController:processJoinRequest] Error:", error);
-    res.status(500).json({ message: "Error processing join request" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
