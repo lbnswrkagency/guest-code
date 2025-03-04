@@ -62,6 +62,7 @@ const EventSchema = new Schema(
     weekNumber: { type: Number, default: 0 },
     isLive: { type: Boolean, default: false },
     lineups: [{ type: Schema.Types.ObjectId, ref: "LineUp" }],
+    slug: { type: String }, // URL-friendly slug for the event
     flyer: {
       landscape: {
         thumbnail: String,

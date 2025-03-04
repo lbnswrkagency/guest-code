@@ -14,6 +14,7 @@ import axiosInstance from "../../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { getEventUrl } from "../../utils/urlUtils";
 
 const Search = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -105,9 +106,71 @@ const Search = ({ isOpen, onClose }) => {
         navigate(brandPath);
         break;
       case "event":
-        // Navigate to the EventProfile component
-        console.log("[Search] Navigating to event profile:", item._id);
-        navigate(`/events/${item._id}`);
+        // Navigate to the event with a pretty URL
+        console.log("[Search] Full event data:", JSON.stringify(item, null, 2));
+        console.log("[Search] Event data for URL generation:", {
+          id: item._id,
+          name: item.name,
+          date: item.date,
+          brandUsername: item.brandUsername,
+        });
+
+        // Check if we have all the data needed for a pretty URL
+        // Accept data from multiple possible sources in the search result
+        const brandUsername =
+          (item.brand && item.brand.username) || // Nested object
+          item.brandUsername || // Direct property
+          (typeof item.brand === "string" ? item.brand : null); // String ID (less ideal)
+
+        console.log("[Search] Extracted brandUsername:", brandUsername);
+        console.log("[Search] Has direct brand:", !!item.brand);
+        console.log("[Search] Has brandUsername:", !!item.brandUsername);
+        console.log("[Search] Brand type:", typeof item.brand);
+
+        console.log("[Search] Using item.name for title:", item.name);
+
+        if (brandUsername && item.date && item.name) {
+          // Format date for URL (MMDDYY)
+          const eventDate = new Date(item.date);
+          const month = String(eventDate.getMonth() + 1).padStart(2, "0");
+          const day = String(eventDate.getDate()).padStart(2, "0");
+          const year = String(eventDate.getFullYear()).slice(2);
+          const dateSlug = `${month}${day}${year}`;
+
+          console.log("[Search] Formatted date slug:", dateSlug);
+
+          // No longer using title part in URL as requested and removing /e/ segment
+
+          // Construct the URL path without the /e/ and title
+          const eventPath = user
+            ? `/@${user.username}/@${brandUsername}/${dateSlug}`
+            : `/@${brandUsername}/${dateSlug}`;
+
+          // Make sure the @ is included for the brand username
+          const finalPath = eventPath.replace("/@", "@").includes("@")
+            ? eventPath
+            : eventPath.replace(`/${brandUsername}`, `/@${brandUsername}`);
+
+          console.log(
+            "[Search] Navigating to event with pretty URL:",
+            finalPath
+          );
+          navigate(finalPath);
+        } else {
+          // Fallback if missing data
+          console.log(
+            "[Search] Missing data for pretty URL, falling back to ID URL:",
+            {
+              hasBrand: !!item.brand || !!item.brandUsername,
+              hasBrandUsername:
+                (item.brand && !!item.brand.username) || !!item.brandUsername,
+              hasDate: !!item.date,
+              hasName: !!item.name,
+            }
+          );
+          console.log("[Search] Navigating to event with ID:", item._id);
+          navigate(`/events/${item._id}`);
+        }
         break;
       default:
         console.log("[Search] Unhandled item type:", item.type);

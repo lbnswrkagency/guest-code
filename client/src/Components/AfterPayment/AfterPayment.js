@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useToast } from "../Toast/ToastContext";
+import { useAuth } from "../../contexts/AuthContext";
 import axiosInstance from "../../utils/axiosConfig";
 import "./AfterPayment.scss";
 import {
@@ -15,6 +16,7 @@ const AfterPayment = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [status, setStatus] = useState("loading");
   const [order, setOrder] = useState(null);
   const [verificationAttempted, setVerificationAttempted] = useState(false);
@@ -66,10 +68,46 @@ const AfterPayment = () => {
     }
   }, [searchParams, toast, verificationAttempted]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const eventId = order?.eventId || searchParams.get("eventId");
     if (eventId) {
-      navigate(`/events/${eventId}`);
+      try {
+        // Fetch event data to create pretty URL
+        const { data } = await axiosInstance.get(`/events/${eventId}`);
+
+        if (data.success && data.event) {
+          const event = data.event;
+
+          // Format date for URL (MMDDYY)
+          const eventDate = new Date(event.date);
+          const month = String(eventDate.getMonth() + 1).padStart(2, "0");
+          const day = String(eventDate.getDate()).padStart(2, "0");
+          const year = String(eventDate.getFullYear()).slice(2);
+          const dateSlug = `${month}${day}${year}`;
+
+          // No longer need a title slug, using ultra-simplified format
+
+          // Get brand username
+          const brandUsername = event.brand?.username;
+
+          if (brandUsername) {
+            // Construct URL based on user authentication status with ultra-simplified format
+            const eventPath = user
+              ? `/@${user.username}/@${brandUsername}/${dateSlug}`
+              : `/@${brandUsername}/${dateSlug}`;
+
+            navigate(eventPath);
+            return;
+          }
+        }
+
+        // Fallback to old URL if any data is missing
+        navigate(`/events/${eventId}`);
+      } catch (error) {
+        console.error("[AfterPayment] Error fetching event data:", error);
+        // Fallback to old URL if there's an error
+        navigate(`/events/${eventId}`);
+      }
     } else {
       navigate("/events");
     }

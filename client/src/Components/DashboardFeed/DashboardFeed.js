@@ -17,9 +17,11 @@ import {
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const DashboardFeed = ({ selectedBrand, selectedDate }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [eventData, setEventData] = useState(null);
@@ -142,7 +144,29 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
   // Navigate to event profile
   const handleViewEvent = () => {
     if (eventData && eventData._id) {
-      navigate(`/events/${eventData._id}`);
+      // Create pretty URL for event
+      if (eventData.brand && eventData.date && eventData.title) {
+        // Format date for URL (MMDDYY)
+        const eventDate = new Date(eventData.date);
+        const month = String(eventDate.getMonth() + 1).padStart(2, "0");
+        const day = String(eventDate.getDate()).padStart(2, "0");
+        const year = String(eventDate.getFullYear()).slice(2);
+        const dateSlug = `${month}${day}${year}`;
+
+        // No longer using title slugs in URL
+        // Get brand username
+        const brandUsername = eventData.brand.username || "";
+
+        // Construct URL based on user authentication status with ultra-simplified format
+        const eventPath = user
+          ? `/@${user.username}/@${brandUsername}/${dateSlug}`
+          : `/@${brandUsername}/${dateSlug}`;
+
+        navigate(eventPath);
+      } else {
+        // Fallback to old format if we don't have all the needed data
+        navigate(`/events/${eventData._id}`);
+      }
     }
   };
 

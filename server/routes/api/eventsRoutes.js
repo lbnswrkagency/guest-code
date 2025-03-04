@@ -77,6 +77,10 @@ router.post(
 // Event-specific routes
 router.get("/", authenticate, getAllEvents);
 router.get("/profile/:eventId", getEventProfile);
+router.get("/slug/:brandUsername/:dateSlug/:eventSlug", getEventProfile);
+// Route for both simplified formats: /@brandUsername/e/MMDDYY and /@brandUsername/MMDDYY
+// The dateSlug can include an optional suffix (e.g., 032225-2) to get the Nth event on that day
+router.get("/date/:brandUsername/:dateSlug", getEventProfile);
 router.get("/:eventId", authenticate, getEvent);
 router.put("/:eventId", authenticate, editEvent);
 router.delete("/:eventId", authenticate, deleteEvent);

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./EventProfile.scss";
-import axiosInstance from "../../utils/axiosConfig";
+import axios from "axios";
 import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Navigation from "../Navigation/Navigation";
@@ -30,8 +30,10 @@ import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 
 const EventProfile = () => {
-  const { eventId } = useParams();
+  const { eventId, brandUsername, dateSlug, eventSlug, eventUsername } =
+    useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { user } = useAuth();
 
@@ -95,9 +97,38 @@ const EventProfile = () => {
       fetchEventData();
     }
   }, [eventId, toast]);
+  const [hasFetchAttempted, setHasFetchAttempted] = useState(false);
+
+  // Extract URL parameters
+  const {
+    eventId: urlEventId,
+    brandUsername: urlBrandUsername,
+    eventUsername: urlEventUsername,
+    dateSlug: urlDateSlug,
+    eventSlug: urlEventSlug,
+  } = useParams();
+
+  const pathname = location.pathname;
+
+  console.log("[EventProfile] URL parameters:", {
+    urlEventId,
+    urlBrandUsername,
+    urlEventUsername,
+    urlDateSlug,
+    urlEventSlug,
+    pathname,
+  });
+
+  // Helper function to format date for URL (MMDDYY)
+  const formatDateForUrl = useCallback((date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(2);
+    return `${month}${day}${year}`;
+  }, []);
 
   // Format date
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     const options = {
       weekday: "long",
       year: "numeric",
@@ -105,7 +136,294 @@ const EventProfile = () => {
       day: "numeric",
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  }, []);
+
+  // Create stable versions of the format checking functions
+  const isSpecialFormat = useCallback(() => {
+    const pathParts = pathname.split("/").filter((p) => p);
+    console.log(
+      "[EventProfile] Path parts for special format check:",
+      pathParts
+    );
+
+    // For URL pattern /@userUsername/@brandUsername/dateSlug
+    // Example: /@hendricks/@whitechocolate/032225
+    // The key insight is that @whitechocolate is the BRAND username, not an event username
+    return (
+      pathParts.length === 3 &&
+      pathParts[0].startsWith("@") &&
+      pathParts[1].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[2])
+    );
+  }, [pathname]);
+
+  // Utility function to get the correct path parts for the special format
+  const getSpecialFormatParts = useCallback(() => {
+    const pathParts = pathname.split("/").filter((p) => p);
+
+    // IMPORTANT: For URL /@hendricks/@whitechocolate/032225
+    // pathParts[0] = @hendricks (user username, not relevant for API call)
+    // pathParts[1] = @whitechocolate (THIS is the actual brand username)
+    // pathParts[2] = 032225 (date)
+
+    // We need to log this before returning to help with debugging
+    const parts = {
+      // CORRECTION: The SECOND part is the brand username
+      realBrandUsername: pathParts[1].substring(1), // Remove @ from @whitechocolate
+      userUsername: pathParts[0].substring(1), // Remove @ from @hendricks
+      realDateSlug: pathParts[2], // 032225
+    };
+
+    console.log("[EventProfile] CORRECTED path parts extraction:", parts);
+
+    return parts;
+  }, [pathname]);
+
+  // The original format check for /brandUsername/e/dateSlug
+  const isNewUrlFormat = useCallback(() => {
+    console.log("[EventProfile] Checking URL format:", {
+      urlBrandUsername,
+      urlEventUsername,
+      urlDateSlug,
+      urlEventSlug,
+    });
+
+    // Check for special format /@brandUsername/@eventUsername/dateSlug
+    if (isSpecialFormat()) {
+      console.log(
+        "[EventProfile] Detected special format /@brandUsername/@eventUsername/dateSlug"
+      );
+      return true;
+    }
+
+    // Check for original new format /brandUsername/e/dateSlug
+    if (urlBrandUsername && urlDateSlug) {
+      console.log("[EventProfile] Detected format /brandUsername/e/dateSlug");
+      return true;
+    }
+
+    console.log("[EventProfile] No recognized format detected");
+    return false;
+  }, [
+    urlBrandUsername,
+    urlDateSlug,
+    urlEventSlug,
+    urlEventUsername,
+    isSpecialFormat,
+  ]);
+
+  // Fetch event data
+  const fetchEventData = useCallback(async () => {
+    console.log("[EventProfile] Starting fetchEventData with params:", {
+      urlEventId,
+      urlBrandUsername,
+      urlEventUsername,
+      urlDateSlug,
+      urlEventSlug,
+      pathname,
+    });
+
+    try {
+      setLoading(true);
+      let response;
+      let endpoint;
+
+      // Special format: /@brandUsername/@eventUsername/dateSlug
+      if (isSpecialFormat()) {
+        const { realBrandUsername, userUsername, realDateSlug } =
+          getSpecialFormatParts();
+
+        console.log(
+          "[EventProfile] Using CORRECTED special format with extracted parts:",
+          {
+            realBrandUsername, // This is whitechocolate
+            userUsername, // This is hendricks (not used for API call)
+            realDateSlug, // This is 032225
+          }
+        );
+
+        // Use the date endpoint instead of a special endpoint since there is no /special/ endpoint
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${realBrandUsername}/${realDateSlug}`;
+        console.log(
+          "[EventProfile] Fetching with CORRECTED endpoint:",
+          endpoint
+        );
+
+        response = await axios.get(endpoint);
+        console.log(
+          "[EventProfile] Special format API response:",
+          response.status,
+          response.data
+        );
+      } else if (isNewUrlFormat()) {
+        // Check for the special format with @eventUsername
+        if (urlEventUsername && urlDateSlug) {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
+          console.log(
+            `[EventProfile] Fetching data for special format (using date endpoint): ${endpoint}`
+          );
+
+          response = await axios.get(endpoint);
+        }
+        // Accept both MMDDYY and MMDDYY-N formats for numbered events on the same day
+        else if (urlDateSlug && /^\d{6}(-\d+)?$/.test(urlDateSlug)) {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
+          console.log(
+            `[EventProfile] Fetching data for ultra-simplified format: ${endpoint}`
+          );
+
+          response = await axios.get(endpoint);
+        } else if (urlEventSlug) {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/slug/${urlBrandUsername}/${urlDateSlug}/${urlEventSlug}`;
+          console.log(
+            `[EventProfile] Fetching data for full slug format: ${endpoint}`
+          );
+
+          response = await axios.get(endpoint);
+        } else {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
+          console.log(
+            `[EventProfile] Fetching data with /e/ format: ${endpoint}`
+          );
+
+          response = await axios.get(endpoint);
+        }
+      } else if (urlEventId) {
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${urlEventId}`;
+        console.log(`[EventProfile] Fetching data for event ID: ${endpoint}`);
+
+        response = await axios.get(endpoint);
+      } else {
+        console.log("[EventProfile] No valid format detected, skipping fetch");
+        setLoading(false);
+        return; // Early return to prevent further processing
+      }
+
+      console.log("[EventProfile] API Response status:", response.status);
+      console.log("[EventProfile] API Response data:", response.data);
+
+      if (response && response.data && response.data.success) {
+        setEvent(response.data.event);
+        console.log(
+          "[EventProfile] Event data loaded successfully:",
+          response.data.event
+        );
+
+        // If we found the event by ID but we have the new URL format available,
+        // update the URL without reloading the page
+        if (urlEventId && !isNewUrlFormat() && response.data.event.slug) {
+          const { brand, date, slug } = response.data.event;
+          // Use the now properly defined formatDateForUrl
+          const formattedDate = formatDateForUrl(new Date(date));
+          const newPath = `/@${brand.username}/e/${formattedDate}/${slug}`;
+          console.log(`[EventProfile] Updating URL to new format: ${newPath}`);
+          navigate(newPath, { replace: true });
+        }
+      } else {
+        console.log(
+          "[EventProfile] API returned success:false or invalid data"
+        );
+        setError("Could not find event information");
+        throw new Error(response.data.message || "Failed to load event data");
+      }
+    } catch (error) {
+      console.log("[EventProfile] Error fetching event data:", error);
+      console.log("[EventProfile] Error details:", {
+        message: error.message,
+        response: error.response,
+        stack: error.stack,
+      });
+      setError("Failed to load event information");
+
+      // Show a user-friendly error message, but only once
+      if (toast && toast.showError && !hasFetchAttempted) {
+        toast.showError("Failed to load event information");
+      }
+
+      setLoading(false);
+    }
+  }, [
+    urlEventId,
+    urlBrandUsername,
+    urlEventUsername,
+    urlDateSlug,
+    urlEventSlug,
+    pathname,
+    isSpecialFormat,
+    isNewUrlFormat,
+    getSpecialFormatParts,
+    setEvent,
+    setLoading,
+    setError,
+    navigate,
+    formatDateForUrl,
+    toast,
+    hasFetchAttempted,
+  ]);
+
+  // Load event data when component mounts or URL changes
+  useEffect(() => {
+    console.log("[EventProfile] useEffect triggered with path:", pathname);
+
+    // If we've already tried fetching and got an error, don't try again
+    if (hasFetchAttempted && error) {
+      console.log(
+        "[EventProfile] Already attempted fetch with error, not trying again"
+      );
+      return;
+    }
+
+    // Reset state when URL changes
+    setEvent(null);
+    setLoading(true);
+    setError(null);
+
+    // Check URL pattern directly to avoid potential circular dependencies
+    const pathParts = pathname.split("/").filter((p) => p);
+    const isSpecialUrlPattern =
+      pathParts.length === 3 &&
+      pathParts[0].startsWith("@") &&
+      pathParts[1].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[2]);
+
+    // IMPORTANT DEBUGGING: When we have a special URL pattern, the params from useParams
+    // will be wrong because React Router doesn't know about our custom format
+    if (isSpecialUrlPattern) {
+      console.log(
+        "[EventProfile] Detected special URL pattern, useParams may not match:"
+      );
+      console.log("    Path parts:", pathParts);
+      console.log("    Expected brand username:", pathParts[1].substring(1));
+      console.log("    Got from useParams:", urlBrandUsername);
+    }
+
+    console.log("[EventProfile] Path pattern check:", {
+      pathParts,
+      isSpecialUrlPattern,
+      hasEventId: !!urlEventId,
+      hasFetchAttempted,
+    });
+
+    // Call fetchEventData if we have an ID or a valid URL pattern
+    if (urlEventId || isSpecialUrlPattern) {
+      console.log("[EventProfile] Conditions met, calling fetchEventData");
+      setHasFetchAttempted(true);
+      fetchEventData();
+    } else {
+      console.log("[EventProfile] Conditions not met, skipping fetchEventData");
+      setLoading(false);
+    }
+  }, [
+    urlEventId,
+    urlBrandUsername,
+    urlEventUsername,
+    urlDateSlug,
+    urlEventSlug,
+    pathname,
+    fetchEventData,
+    hasFetchAttempted,
+    error,
+  ]);
 
   // Get appropriate flyer image or fallback
   const getEventImage = () => {
@@ -308,8 +626,8 @@ const EventProfile = () => {
           quantity: ticketQuantities[ticket._id],
         }));
 
-      const response = await axiosInstance.post(
-        "/stripe/create-checkout-session",
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/stripe/create-checkout-session`,
         {
           firstName,
           lastName,
@@ -390,6 +708,7 @@ const EventProfile = () => {
     return () => clearInterval(intervalId);
   }, [ticketSettings]);
 
+  // Rendering logic with loading, error, and event states
   if (loading) {
     return (
       <div className="event-profile-loading">
@@ -398,17 +717,61 @@ const EventProfile = () => {
     );
   }
 
-  if (error || !event) {
+  if (error) {
     return (
       <div className="event-profile-error">
         <RiInformationLine size={48} />
         <h2>Oops! Something went wrong</h2>
-        <p>{error || "Failed to load event information"}</p>
+        <p>{error}</p>
+        <button onClick={() => navigate(-1)}>Go Back</button>
+
+        {/* Add a debugging section visible in development */}
+        {process.env.NODE_ENV === "development" && (
+          <div
+            className="debug-info"
+            style={{
+              marginTop: "20px",
+              padding: "10px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              backgroundColor: "#f5f5f5",
+            }}
+          >
+            <h3>Debug Information:</h3>
+            <pre style={{ overflow: "auto" }}>
+              {JSON.stringify(
+                {
+                  path: pathname,
+                  params: {
+                    urlEventId,
+                    urlBrandUsername,
+                    urlEventUsername,
+                    urlDateSlug,
+                    urlEventSlug,
+                  },
+                },
+                null,
+                2
+              )}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="event-profile-error">
+        <RiInformationLine size={48} />
+        <h2>Event Not Found</h2>
+        <p>We couldn't find the event you're looking for.</p>
         <button onClick={() => navigate(-1)}>Go Back</button>
       </div>
     );
   }
 
+  // Render the event content if we have event data
   return (
     <div className="page-wrapper">
       <Navigation onBack={() => navigate(-1)} />

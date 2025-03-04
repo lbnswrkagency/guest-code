@@ -101,7 +101,12 @@ const NotificationPanel = ({ onClose }) => {
     }
   };
 
-  const handleEntityClick = (type, id, notification) => {
+  const handleEntityClick = async (type, id, notification) => {
+    // Mark notification as read when clicked
+    if (!notification.isRead) {
+      await markAsRead(notification._id);
+    }
+
     // console.log("[NotificationPanel] handleEntityClick - Raw data:", {
     //   type,
     //   id,
@@ -157,7 +162,44 @@ const NotificationPanel = ({ onClose }) => {
         break;
 
       case "event":
-        navigate(`/events/${id}`);
+        // For events, we need to fetch the event data first to get the title and brand
+        try {
+          const { data } = await axiosInstance.get(`/events/${id}`);
+
+          if (data.success && data.event) {
+            const event = data.event;
+
+            // Format date for URL (MMDDYY)
+            const eventDate = new Date(event.date);
+            const month = String(eventDate.getMonth() + 1).padStart(2, "0");
+            const day = String(eventDate.getDate()).padStart(2, "0");
+            const year = String(eventDate.getFullYear()).slice(2);
+            const dateSlug = `${month}${day}${year}`;
+
+            // We're no longer using title slugs or /e/ in the URL
+            // just use the date directly
+
+            // Get the brand username from the brand object
+            const brandUsername = event.brand.username || "";
+
+            // Construct the URL with ultra-simplified format
+            const eventPath = user
+              ? `/@${user.username}/@${brandUsername}/${dateSlug}`
+              : `/@${brandUsername}/${dateSlug}`;
+
+            navigate(eventPath);
+          } else {
+            // Fallback to old URL format if event data not available
+            navigate(`/events/${id}`);
+          }
+        } catch (error) {
+          console.error(
+            "[NotificationPanel] Error fetching event data:",
+            error
+          );
+          // Fallback to old URL format if there's an error
+          navigate(`/events/${id}`);
+        }
         onClose();
         break;
 
