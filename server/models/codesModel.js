@@ -13,6 +13,7 @@ const CodeSchema = new Schema(
     name: { type: String, required: true },
     code: { type: String, required: true, unique: true },
     qrCode: { type: String, required: true },
+    securityToken: { type: String }, // Added for secure validation
     condition: { type: String, default: "" },
     maxPax: { type: Number, default: 1 },
     limit: { type: Number, default: 0 }, // 0 means unlimited
@@ -24,6 +25,9 @@ const CodeSchema = new Schema(
       default: "active",
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // Guest code specific fields
+    guestName: { type: String }, // Name of the guest for guest codes
+    guestEmail: { type: String }, // Email of the guest for guest codes
     // Additional fields for specific code types
     price: { type: Number }, // For ticket codes
     tableNumber: { type: String }, // For table codes
@@ -36,6 +40,7 @@ const CodeSchema = new Schema(
 // Create indexes for faster queries
 CodeSchema.index({ eventId: 1, type: 1 });
 CodeSchema.index({ code: 1 }, { unique: true });
+CodeSchema.index({ securityToken: 1 }); // Add index for security token lookups
 
 const Code = mongoose.model("Code", CodeSchema);
 

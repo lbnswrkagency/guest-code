@@ -11,6 +11,7 @@ import {
 import "./LineUp.scss";
 import AvatarUpload from "../AvatarUpload/AvatarUpload";
 import { useToast } from "../Toast/ToastContext";
+import { createPortal } from "react-dom";
 
 function LineUp({
   onClose,
@@ -418,8 +419,16 @@ function LineUp({
     e.preventDefault();
     e.stopPropagation();
     console.log("[handleOpenAvatarCrop] Opening avatar crop mode");
+    console.log(
+      "[handleOpenAvatarCrop] Before state change - isCropMode:",
+      isCropMode
+    );
     setIsCropMode(true);
+    console.log(
+      "[handleOpenAvatarCrop] After state change - isCropMode should be true now"
+    );
     setModalKey(Date.now()); // Force re-render of the modal
+    console.log("[handleOpenAvatarCrop] Modal key updated:", Date.now());
   };
 
   // Create a dummy user object for AvatarUpload component
@@ -462,36 +471,79 @@ function LineUp({
             <RiCloseLine />
           </button>
 
-          {/* Render the AvatarUpload modal outside the main modal to prevent event conflicts */}
-          {isCropMode && (
-            <div
-              className="delete-confirmation-overlay"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsCropMode(false);
-              }}
-            >
+          {/* Render the AvatarUpload modal directly using createPortal to avoid nesting issues */}
+          {isCropMode &&
+            createPortal(
               <div
-                onClick={(e) => e.stopPropagation()}
+                className="crop-modal-wrapper"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("Crop modal wrapper clicked, closing crop mode");
+                  setIsCropMode(false);
+                }}
                 style={{
-                  position: "relative",
-                  width: "auto", // Allow content to determine width
-                  maxWidth: "90%", // Limit maximum width
-                  pointerEvents: "auto", // Ensure clicks are registered
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 2500,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(0, 0, 0, 0.8)",
+                  backdropFilter: "blur(5px)",
                 }}
               >
-                <AvatarUpload
-                  user={dummyUser}
-                  setUser={setUser}
-                  isCropMode={isCropMode}
-                  setIsCropMode={setIsCropMode}
-                  onImageCropped={handleImageCropped}
-                  isLineUpMode={true}
-                />
-              </div>
-            </div>
-          )}
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log(
+                      "Inner crop modal container clicked (stopping propagation)"
+                    );
+                  }}
+                  style={{
+                    position: "relative",
+                    width: "90%",
+                    maxWidth: "600px",
+                    pointerEvents: "auto",
+                    zIndex: 3000,
+                  }}
+                >
+                  {console.log(
+                    "Rendering AvatarUpload component with isCropMode=true"
+                  )}
+                  <AvatarUpload
+                    user={dummyUser}
+                    setUser={(updatedUser) => {
+                      console.log(
+                        "AvatarUpload setUser called, user:",
+                        updatedUser
+                      );
+                      // Don't actually update any user, just for UI display
+                    }}
+                    isCropMode={true}
+                    setIsCropMode={(value) => {
+                      console.log(
+                        "AvatarUpload called setIsCropMode with value:",
+                        value
+                      );
+                      setIsCropMode(value);
+                    }}
+                    onImageCropped={(file) => {
+                      console.log(
+                        "Image cropped callback received file:",
+                        file
+                      );
+                      handleImageCropped(file);
+                    }}
+                    isLineUpMode={true}
+                  />
+                </div>
+              </div>,
+              document.body
+            )}
 
           <h2>LINE UP</h2>
 
@@ -596,8 +648,14 @@ function LineUp({
                       e.preventDefault();
                       e.stopPropagation();
                       console.log("Avatar upload container clicked");
+                      console.log(
+                        "Before state change - isCropMode:",
+                        isCropMode
+                      );
                       setIsCropMode(true);
+                      console.log("After state change - setIsCropMode called");
                       setModalKey(Date.now());
+                      console.log("Modal key updated:", Date.now());
                     }}
                     role="button"
                     tabIndex={0}
@@ -628,6 +686,24 @@ function LineUp({
                       <div className="avatar-upload-placeholder">
                         <RiImageAddLine />
                         <span>Upload Image</span>
+                        {isCropMode && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: "rgba(0,0,0,0.5)",
+                              borderRadius: "50%",
+                            }}
+                          >
+                            <div className="loading-spinner"></div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

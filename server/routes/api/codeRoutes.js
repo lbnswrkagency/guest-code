@@ -22,4 +22,11 @@ router.put(
   codeController.updateCodeStatus
 );
 
+// New route for generating and sending a code via email
+router.post(
+  "/:type/generate-and-send",
+  authenticate,
+  codeController.generateAndSendCode
+);
+
 module.exports = router;

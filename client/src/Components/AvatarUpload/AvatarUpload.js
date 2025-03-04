@@ -17,7 +17,13 @@ const AvatarUpload = ({
   onImageCropped,
   isLineUpMode = false,
 }) => {
-  const [showModal, setShowModal] = useState(false);
+  console.log("[AvatarUpload] Component rendered with props:", {
+    user: user ? { id: user._id, hasAvatar: !!user.avatar } : null,
+    isCropMode,
+    isLineUpMode,
+  });
+
+  const [showModal, setShowModal] = useState(isCropMode);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [imageSrc, setImageSrc] = useState(null);
@@ -26,12 +32,20 @@ const AvatarUpload = ({
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
-    if (isCropMode !== undefined) {
-      setShowModal(isCropMode);
-    }
+    console.log(
+      "[AvatarUpload] isCropMode effect triggered, value:",
+      isCropMode
+    );
+    setShowModal(isCropMode);
   }, [isCropMode]);
 
   useEffect(() => {
+    console.log(
+      "[AvatarUpload] showModal effect triggered, value:",
+      showModal,
+      "isCropMode:",
+      isCropMode
+    );
     if (setIsCropMode && !showModal && isCropMode) {
       setIsCropMode(false);
     }
@@ -208,8 +222,13 @@ const AvatarUpload = ({
   };
 
   const renderModal = () => {
-    if (!showModal) return null;
+    console.log("[AvatarUpload] renderModal called, showModal:", showModal);
+    if (!showModal) {
+      console.log("[AvatarUpload] Not showing modal - showModal is false");
+      return null;
+    }
 
+    console.log("[AvatarUpload] Rendering modal portal");
     return createPortal(
       <AnimatePresence>
         <motion.div
@@ -237,6 +256,7 @@ const AvatarUpload = ({
               <div
                 {...getRootProps()}
                 className={`upload-dropzone ${isDragActive ? "active" : ""}`}
+                style={{ zIndex: 9999 }}
               >
                 <input {...getInputProps()} />
                 <RiUpload2Line className="upload-icon" />
@@ -310,8 +330,14 @@ const AvatarUpload = ({
         <div
           className="avatar-display"
           onClick={() => {
+            console.log(
+              "[AvatarUpload] Avatar display clicked, setting showModal=true"
+            );
             setShowModal(true);
-            if (setIsCropMode) setIsCropMode(true);
+            if (setIsCropMode) {
+              console.log("[AvatarUpload] Also setting isCropMode=true");
+              setIsCropMode(true);
+            }
           }}
         >
           {user?.avatar ? (

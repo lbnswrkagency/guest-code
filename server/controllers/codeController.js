@@ -4,6 +4,14 @@ const TableCode = require("../models/TableCode"); // Assuming you've created a T
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
 const path = require("path");
+const crypto = require("crypto");
+const puppeteer = require("puppeteer");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+
+// Configure Brevo API Key
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 const qrOption = {
   margin: 1,
@@ -284,6 +292,7 @@ const formatCondition = (condition) => {
     </p>
   `;
 };
+
 const generateCodeImage = async (req, res) => {
   const { type, codeId } = req.params;
 
@@ -669,6 +678,399 @@ const generateCodeImage = async (req, res) => {
   }
 };
 
+// Generate a unique code
+const generateUniqueCode = async () => {
+  // Generate a random string
+  const randomString = crypto.randomBytes(4).toString("hex").toUpperCase();
+
+  // Check if code already exists
+  const existingCode = await Code.findOne({ code: randomString });
+  if (existingCode) {
+    // Recursively generate a new code if this one exists
+    return generateUniqueCode();
+  }
+
+  return randomString;
+};
+
+// Format date with leading zeros
+const formatCodeDate = (dateString) => {
+  if (!dateString) return { date: "", time: "" };
+
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return {
+    date: `${day}.${month}.${year}`,
+    time: `${hours}:${minutes}`,
+  };
+};
+
+// Generate QR Code for the access code
+const generateCodeQR = async (codeId) => {
+  try {
+    const qrDataUrl = await QRCode.toDataURL(codeId.toString(), {
+      margin: 1,
+      width: 225,
+      color: {
+        dark: "#000000", // Black dots
+        light: "#ffffff", // White background
+      },
+    });
+    return qrDataUrl;
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    throw error;
+  }
+};
+
+// Generate PDF for the code
+const generateCodePDF = async (code, event, codeSettings) => {
+  try {
+    // Fetch related data
+    const brand = event ? await Brand.findById(event.brand) : null;
+
+    // Get brand colors or use defaults
+    const primaryColor = brand?.colors?.primary || "#ffc807";
+    const accentColor = brand?.colors?.accent || "#000000";
+
+    // Format date
+    const eventDate = formatCodeDate(event?.date);
+
+    // Generate QR code
+    const qrCodeDataUrl = await generateCodeQR(code._id);
+
+    // Create HTML template for the code - white theme, opposite of tickets
+    const htmlTemplate = `
+    <html>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body {
+            font-family: 'Manrope', sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
+      <body style="position: relative; background-color: white; width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 380px; background-color: ${primaryColor}; overflow: hidden; border-top-left-radius: 28px; border-top-right-radius: 28px;">
+          <h1 style="position: absolute; top: 52px; left: 38px; margin: 0; font-weight: 700; font-size: 32px; color: #222222;">${code.type.toUpperCase()} CODE</h1>
+          
+          ${
+            brand?.logo?.medium
+              ? `<img src="${brand.logo.medium}" style="position: absolute; top: 64px; right: 38px; height: 64px; width: auto;" alt="${brand.name} logo">`
+              : `<div style="position: absolute; top: 64px; right: 38px; font-size: 24px; font-weight: 700; color: #222222;">${
+                  brand?.name || "GuestCode"
+                }</div>`
+          }
+          
+          <div style="position: absolute; top: 120px; left: 38px; right: 38px;">
+            <div style="margin-top: 24px; display: flex; justify-content: space-between;">
+              <div>
+                <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Event</p>
+                <p style="margin: 0; font-weight: 600; font-size: 16px; line-height: 20px; color: #222222;">${
+                  event?.title || "Event"
+                }</p>
+              </div>
+              
+              <div>
+                <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Date</p>
+                <p style="margin: 0; font-weight: 600; font-size: 16px; line-height: 20px; color: #222222;">${
+                  eventDate.date
+                }</p>
+                <p style="margin: 0; font-weight: 500; font-size: 14px; line-height: 20px; color: #222222;">${
+                  event?.startTime || eventDate.time
+                }H Start</p>
+              </div>
+            </div>
+            
+            <div style="margin-top: 24px; display: flex; justify-content: space-between;">
+              <div>
+                <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Location</p>
+                <p style="margin: 0; font-weight: 600; font-size: 16px; line-height: 20px; color: #222222;">${
+                  event?.location?.name || "Venue"
+                }</p>
+                <p style="margin: 0; font-weight: 500; font-size: 14px; line-height: 20px; color: #222222;">${
+                  event?.location?.address || ""
+                }</p>
+                ${
+                  event?.location?.city
+                    ? `<p style="margin: 0; font-weight: 500; font-size: 14px; line-height: 20px; color: #222222;">${event.location.city}</p>`
+                    : ""
+                }
+              </div>
+              
+              <div>
+                <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Code Type</p>
+                <p style="margin: 0; font-weight: 600; font-size: 16px; line-height: 20px; color: #222222;">${
+                  code.name
+                }</p>
+                ${
+                  code.maxPax > 1
+                    ? `<p style="margin: 0; font-weight: 500; font-size: 14px; line-height: 20px; color: #222222;">Valid for ${code.maxPax} people</p>`
+                    : ""
+                }
+              </div>
+            </div>
+            
+            <div style="margin-top: 24px;">
+              <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Name</p>
+              <p style="margin: 0; font-weight: 600; font-size: 16px; line-height: 20px; color: #222222;">${
+                code.guestName || "Guest"
+              }</p>
+            </div>
+            
+            ${
+              event?.lineups && event.lineups.length > 0
+                ? `
+            <div style="margin-top: 24px;">
+              <p style="margin: 0; color: rgba(34, 34, 34, 0.6); font-weight: 600; font-size: 10px; line-height: 16px; text-transform: uppercase;">Line Up</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                ${event.lineups
+                  .slice(0, 3)
+                  .map(
+                    (lineup) =>
+                      `<p style="margin: 0; font-weight: 600; font-size: 14px; line-height: 20px; color: #222222;">${
+                        lineup.name || lineup
+                      }</p>`
+                  )
+                  .join(" • ")}
+                ${event.lineups.length > 3 ? "• ..." : ""}
+              </div>
+            </div>`
+                : ""
+            }
+          </div>
+        </div>
+        
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 380px; background-color: #222222; overflow: hidden; border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="margin-bottom: 16px; text-align: center;">
+            <p style="margin: 0; font-weight: 600; font-size: 14px; line-height: 20px; color: #ffffff;">SCAN THIS CODE FOR ENTRY</p>
+          </div>
+          
+          <div style="background-color: white; padding: 16px; border-radius: 16px;">
+            <img src="${qrCodeDataUrl}" style="width: 200px; height: 200px;">
+          </div>
+          
+          <div style="margin-top: 16px; text-align: center;">
+            <p style="margin: 0; font-weight: 700; font-size: 24px; color: ${primaryColor};">${
+      code.code
+    }</p>
+          </div>
+        </div>
+      </body>
+    </html>`;
+
+    // Launch puppeteer to generate PDF
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(htmlTemplate);
+    await page.emulateMediaType("screen");
+
+    // Generate PDF with 9:16 aspect ratio
+    const pdfBuffer = await page.pdf({
+      width: "390px",
+      height: "760px",
+      printBackground: true,
+      margin: {
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+        left: "0px",
+      },
+    });
+
+    await browser.close();
+
+    return {
+      buffer: pdfBuffer,
+      html: htmlTemplate,
+    };
+  } catch (error) {
+    console.error("[generateCodePDF] Error generating code PDF:", error);
+    throw error;
+  }
+};
+
+// Send code via email
+const sendCodeEmail = async (code, email, pdfBuffer) => {
+  try {
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Read attachments
+    const attachments = [
+      {
+        content: pdfBuffer.toString("base64"),
+        name: `${code.type}_code_${code.code}.pdf`,
+      },
+    ];
+
+    // Build the improved email template
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: email,
+          name: code.guestName || "Guest",
+        },
+      ],
+      subject: `Your ${code.type.toUpperCase()} Code for Event`,
+      htmlContent: `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; padding: 20px; background-color: #222; margin-bottom: 20px; border-radius: 8px;">
+            <h1 style="color: #ffc807; margin: 0; font-size: 28px;">Your ${code.type.toUpperCase()} Code is Ready!</h1>
+          </div>
+          
+          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${
+            code.guestName || "there"
+          },</p>
+          
+          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your ${
+            code.type
+          } code has been generated and is attached to this email as a PDF file. Use this code for entry to the event.</p>
+          
+          <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin-bottom: 20px;">
+            <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Code Details:</p>
+            <p style="font-size: 16px; margin: 0 0 5px;">Code: <strong>${
+              code.code
+            }</strong></p>
+            <p style="font-size: 16px; margin: 0 0 5px;">Type: <strong>${
+              code.type
+            }</strong></p>
+            ${
+              code.maxPax > 1
+                ? `<p style="font-size: 16px; margin: 0;">Valid for: <strong>${code.maxPax} people</strong></p>`
+                : ""
+            }
+          </div>
+          
+          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Please keep this email for your records. You can either show the PDF on your phone or print it out for entry.</p>
+          
+          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 30px;">We look forward to seeing you at the event!</p>
+          
+          <div style="text-align: center; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
+            <p style="font-size: 14px; color: #666; margin: 0;">This is an automated email. Please do not reply to this message.</p>
+          </div>
+        </div>
+      `,
+      attachment: attachments,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+    return result;
+  } catch (error) {
+    console.error("[sendCodeEmail] Error sending email:", error);
+    throw error;
+  }
+};
+
+// Generate and send code via email
+const generateAndSendCode = async (req, res) => {
+  const { type } = req.params;
+  const {
+    eventId,
+    codeSettingId,
+    guestName,
+    guestEmail,
+    maxPax = 1,
+  } = req.body;
+
+  if (!eventId || !guestEmail) {
+    return res
+      .status(400)
+      .json({ message: "Event ID and guest email are required" });
+  }
+
+  try {
+    // Fetch the event
+    const event = await Event.findById(eventId).populate("brand");
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Get code settings if provided
+    let codeSettings = null;
+    if (codeSettingId) {
+      codeSettings = await CodeSettings.findById(codeSettingId);
+      if (!codeSettings) {
+        return res.status(404).json({ message: "Code settings not found" });
+      }
+    } else {
+      // Find default settings for this type
+      codeSettings = await CodeSettings.findOne({ eventId, type });
+    }
+
+    // Generate a unique code
+    const codeValue = await generateUniqueCode();
+
+    // Generate QR code data URL
+    const qrCodeDataUrl = await QRCode.toDataURL(codeValue, {
+      margin: 1,
+      width: 225,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    });
+
+    // Create the code in the database
+    const newCode = new Code({
+      eventId,
+      codeSettingId: codeSettings?._id,
+      type,
+      name: codeSettings?.name || type.charAt(0).toUpperCase() + type.slice(1),
+      code: codeValue,
+      qrCode: qrCodeDataUrl,
+      condition: codeSettings?.condition || "",
+      maxPax: maxPax || codeSettings?.maxPax || 1,
+      status: "active",
+      createdBy: req.user._id,
+      guestName,
+      guestEmail,
+    });
+
+    // Save the code
+    await newCode.save();
+
+    // Generate PDF for the code
+    const { buffer: pdfBuffer } = await generateCodePDF(
+      newCode,
+      event,
+      codeSettings
+    );
+
+    // Send the code via email
+    await sendCodeEmail(newCode, guestEmail, pdfBuffer);
+
+    res.status(201).json({
+      message: "Code generated and sent successfully",
+      code: newCode,
+    });
+  } catch (error) {
+    console.error("[generateAndSendCode] Error:", error);
+    res.status(500).json({
+      message: "Error generating and sending code",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchCodes,
   deleteCode,
@@ -676,4 +1078,5 @@ module.exports = {
   addCode,
   generateCodeImage,
   updateCodeStatus,
+  generateAndSendCode,
 };

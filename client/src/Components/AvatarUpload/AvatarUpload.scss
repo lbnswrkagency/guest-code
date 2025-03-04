@@ -78,7 +78,7 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
 .avatar-modal-container {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,7 +90,7 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  z-index: 9998;
+  z-index: 9999;
   pointer-events: auto; // Catch clicks on the overlay
 }
 

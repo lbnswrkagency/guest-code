@@ -27,6 +27,7 @@ import {
   RiUserStarLine,
 } from "react-icons/ri";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 
 const EventProfile = () => {
   const { eventId } = useParams();
@@ -53,7 +54,9 @@ const EventProfile = () => {
   const [email, setEmail] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPax, setGuestPax] = useState(1);
   const [countdowns, setCountdowns] = useState({});
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   // Fetch event data
   useEffect(() => {
@@ -139,26 +142,43 @@ const EventProfile = () => {
         return;
       }
 
+      // Set generating state once at the beginning
+      setGeneratingCode(true);
+
+      // Use info toast to let the user know we're processing
+      toast.showInfo("Processing your request...");
+
       console.log("[EventProfile] Generating guest code for event:", event._id);
 
-      const response = await axiosInstance.post("/events/generateGuestCode", {
+      const response = await axiosInstance.post("/guest-code/generate", {
         eventId: event._id,
         guestName: guestName,
         guestEmail: guestEmail,
+        maxPax: guestPax,
       });
 
-      console.log("[EventProfile] Guest code generated:", response.data);
+      console.log(
+        "[EventProfile] Guest code generated and sent:",
+        response.data
+      );
 
+      // Only update state and show success once at the end
       if (response.data && response.data.code) {
-        setGuestCode(response.data.code);
-        setShowCodeDialog(true);
-        // Clear form fields after successful submission
+        // Clear form fields
         setGuestName("");
         setGuestEmail("");
+        setGuestPax(1);
+        // Show success toast
+        toast.showSuccess(`Guest code sent to ${guestEmail}`);
       }
     } catch (err) {
       console.error("[EventProfile] Error generating guest code:", err);
-      toast.showError("Failed to generate guest code");
+      toast.showError(
+        err.response?.data?.message || "Failed to generate guest code"
+      );
+    } finally {
+      // Always reset the generating state, regardless of success or failure
+      setGeneratingCode(false);
     }
   };
 
@@ -373,8 +393,7 @@ const EventProfile = () => {
   if (loading) {
     return (
       <div className="event-profile-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading event information...</p>
+        <LoadingSpinner size="large" color="primary" />
       </div>
     );
   }
@@ -575,58 +594,6 @@ const EventProfile = () => {
                   </motion.div>
                 )}
               </div>
-
-              {/* Guest Code Request Section */}
-              <motion.div
-                className="event-guest-code"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <h3>Request Guest Code</h3>
-                <p className="guest-code-description">
-                  Enter your details below to request a guest code for this
-                  event.
-                </p>
-
-                <div className="guest-code-form">
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiMailLine />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <motion.button
-                    className="guest-code-button"
-                    onClick={handleGenerateGuestCode}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={
-                      !guestName || !guestEmail || !guestEmail.includes("@")
-                    }
-                  >
-                    <RiCodeSSlashLine /> Get Guest Code
-                  </motion.button>
-                </div>
-              </motion.div>
             </motion.div>
           )}
 
@@ -835,8 +802,8 @@ const EventProfile = () => {
               >
                 <h4>Guest Code</h4>
                 <p className="guest-code-description">
-                  {event.guestCodeCondition ||
-                    "Request your guest code for this event."}
+                  {codeSettings.find((cs) => cs.type === "guest")?.condition ||
+                    "Request a code for this event"}
                 </p>
 
                 <div className="guest-code-form">
@@ -864,66 +831,54 @@ const EventProfile = () => {
                     />
                   </div>
 
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <select
+                      value={guestPax}
+                      onChange={(e) => setGuestPax(Number(e.target.value))}
+                      className="pax-selector"
+                    >
+                      {Array.from(
+                        {
+                          length:
+                            codeSettings.find((cs) => cs.type === "guest")
+                              ?.maxPax || 1,
+                        },
+                        (_, i) => i + 1
+                      ).map((num) => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? "Person" : "People"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <motion.button
                     className="guest-code-button"
                     onClick={handleGenerateGuestCode}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     disabled={
-                      !guestName || !guestEmail || !guestEmail.includes("@")
+                      generatingCode ||
+                      !guestName ||
+                      !guestEmail ||
+                      !guestEmail.includes("@")
                     }
                   >
-                    <RiCodeSSlashLine /> Get Guest Code
+                    {generatingCode ? (
+                      <>
+                        <LoadingSpinner size="small" color="white" /> Sending...
+                      </>
+                    ) : (
+                      <>
+                        <RiCodeSSlashLine /> Get Guest Code
+                      </>
+                    )}
                   </motion.button>
                 </div>
               </motion.div>
-
-              <div className="codes-options">
-                {codeSettings &&
-                  codeSettings.map(
-                    (code, index) =>
-                      code.isEnabled &&
-                      code.type !== "guest" && (
-                        <motion.div
-                          key={code.type}
-                          className="code-option"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                        >
-                          <div className={`code-icon ${code.type}`}>
-                            {code.type === "friends" && <RiUserLine />}
-                            {code.type === "vip" && <RiVipCrownLine />}
-                            {code.type === "backstage" && <RiDoorLine />}
-                            {code.type === "table" && <RiTableLine />}
-                          </div>
-                          <div className="code-info">
-                            <h4>
-                              {code.name ||
-                                code.type.charAt(0).toUpperCase() +
-                                  code.type.slice(1)}
-                            </h4>
-                            <p>
-                              {code.description ||
-                                `Enter your ${code.type} code`}
-                            </p>
-                          </div>
-                          <div className="code-input">
-                            <input
-                              type="text"
-                              placeholder={`Enter ${code.type} code`}
-                            />
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              Verify
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      )
-                  )}
-              </div>
             </motion.div>
           )}
         </div>

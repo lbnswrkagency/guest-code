@@ -969,11 +969,45 @@
           }
 
           .guest-code-form {
-            display: grid;
-            gap: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
 
             .form-group {
               position: relative;
+
+              .pax-selector {
+                height: 3rem !important;
+                width: 100% !important;
+                padding: 0.75rem 1rem 0.75rem 3rem !important;
+                border-radius: 0.5rem !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                background-color: rgba(255, 255, 255, 0.05) !important;
+                color: #fff !important;
+                font-size: 1rem !important;
+                font-family: "Poppins", sans-serif !important;
+                transition: all 0.2s ease !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                appearance: none !important;
+                background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+                background-repeat: no-repeat !important;
+                background-position: right 1rem center !important;
+                background-size: 0.65rem auto !important;
+
+                &:focus {
+                  outline: none !important;
+                  border-color: var(--color-primary) !important;
+                  background-color: rgba(255, 255, 255, 0.1) !important;
+                }
+
+                option {
+                  background-color: #1e1e1e !important;
+                  color: #fff !important;
+                  padding: 0.5rem !important;
+                }
+              }
 
               .input-icon {
                 position: absolute;
@@ -981,51 +1015,49 @@
                 top: 50%;
                 transform: translateY(-50%);
                 color: rgba(255, 255, 255, 0.5);
+                font-size: 1.25rem;
+                z-index: 1;
               }
 
               input {
                 width: 100%;
-                padding: 0.75rem 1rem 0.75rem 2.5rem;
+                padding: 0.875rem 1rem 0.875rem 3rem;
                 border-radius: 8px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                background: rgba(0, 0, 0, 0.2);
-                color: white;
-                font-size: 0.95rem;
-
-                &::placeholder {
-                  color: rgba(255, 255, 255, 0.5);
-                }
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                font-size: 0.9rem;
+                transition: all 0.2s ease;
 
                 &:focus {
                   outline: none;
-                  border-color: rgba(255, 200, 7, 0.5);
+                  border-color: var(--primary-color);
+                  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
                 }
               }
-            }
 
-            .guest-code-button {
-              padding: 0.75rem 1.5rem;
-              border: none;
-              border-radius: 8px;
-              background: rgba(255, 200, 7, 0.15);
-              color: #ffc807;
-              font-weight: 500;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              border: 1px solid rgba(255, 200, 7, 0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
+              .guest-code-button {
+                padding: 0.75rem 1.5rem;
+                border: none;
+                border-radius: 8px;
+                background: rgba(255, 200, 7, 0.15);
+                color: #ffc807;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: 1px solid rgba(255, 200, 7, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
 
-              &:hover {
-                background: rgba(255, 200, 7, 0.2);
-                border-color: rgba(255, 200, 7, 0.4);
-              }
+                &:hover {
+                  background: rgba(255, 200, 7, 0.2);
+                  border-color: rgba(255, 200, 7, 0.4);
+                }
 
-              &:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
+                &:disabled {
+                  opacity: 0.5;
+                  cursor: not-allowed;
+                }
               }
             }
           }
@@ -1191,11 +1223,45 @@
     }
 
     .guest-code-form {
-      display: grid;
-      gap: 1rem;
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
 
       .form-group {
         position: relative;
+
+        .pax-selector {
+          height: 3rem !important;
+          width: 100% !important;
+          padding: 0.75rem 1rem 0.75rem 3rem !important;
+          border-radius: 0.5rem !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: rgba(255, 255, 255, 0.05) !important;
+          color: #fff !important;
+          font-size: 1rem !important;
+          font-family: "Poppins", sans-serif !important;
+          transition: all 0.2s ease !important;
+          -webkit-appearance: none !important;
+          -moz-appearance: none !important;
+          appearance: none !important;
+          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+          background-repeat: no-repeat !important;
+          background-position: right 1rem center !important;
+          background-size: 0.65rem auto !important;
+
+          &:focus {
+            outline: none !important;
+            border-color: var(--color-primary) !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+          }
+
+          option {
+            background-color: #1e1e1e !important;
+            color: #fff !important;
+            padding: 0.5rem !important;
+          }
+        }
 
         .input-icon {
           position: absolute;
@@ -1203,51 +1269,52 @@
           top: 50%;
           transform: translateY(-50%);
           color: rgba(255, 255, 255, 0.5);
+          font-size: 1.25rem;
+          z-index: 1;
         }
 
         input {
           width: 100%;
-          padding: 0.75rem 1rem 0.75rem 2.5rem;
-          border-radius: 8px;
+          height: 3rem;
+          padding: 0.75rem 1rem 0.75rem 3rem;
+          border-radius: 0.5rem;
           border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(0, 0, 0, 0.2);
-          color: white;
-          font-size: 0.95rem;
-
-          &::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-          }
+          background-color: rgba(255, 255, 255, 0.05);
+          color: #fff;
+          font-size: 1rem;
+          transition: all 0.2s ease;
 
           &:focus {
             outline: none;
-            border-color: rgba(255, 200, 7, 0.5);
+            border-color: var(--color-primary);
+            background-color: rgba(255, 255, 255, 0.1);
           }
         }
-      }
 
-      .guest-code-button {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        background: rgba(255, 200, 7, 0.15);
-        color: #ffc807;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 1px solid rgba(255, 200, 7, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
+        .guest-code-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 8px;
+          background: rgba(255, 200, 7, 0.15);
+          color: #ffc807;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 1px solid rgba(255, 200, 7, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
 
-        &:hover {
-          background: rgba(255, 200, 7, 0.2);
-          border-color: rgba(255, 200, 7, 0.4);
-        }
+          &:hover {
+            background: rgba(255, 200, 7, 0.2);
+            border-color: rgba(255, 200, 7, 0.4);
+          }
 
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
         }
       }
     }
@@ -1458,5 +1525,38 @@
         }
       }
     }
+  }
+}
+
+/* Add direct selector for pax-selector */
+.pax-selector {
+  height: 3rem !important;
+  width: 100% !important;
+  padding: 0.75rem 1rem 0.75rem 3rem !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  font-family: "Poppins", sans-serif !important;
+  transition: all 0.2s ease !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 1rem center !important;
+  background-size: 0.65rem auto !important;
+
+  &:focus {
+    outline: none !important;
+    border-color: var(--color-primary) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  option {
+    background-color: #1e1e1e !important;
+    color: #fff !important;
+    padding: 0.5rem !important;
   }
 }
