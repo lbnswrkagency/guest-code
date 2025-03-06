@@ -87,10 +87,20 @@ const EventProfile = () => {
           setLineups(response.data.lineups || []);
           setTicketSettings(response.data.ticketSettings || []);
           setCodeSettings(response.data.codeSettings || []);
-          setIsFollowing(response.data.isFollowing || false);
-          setIsFavorited(response.data.isFavorited || false);
-          setIsMember(response.data.isMember || false);
-          setJoinRequestStatus(response.data.joinRequestStatus || "");
+
+          // Set user status values only if user is logged in
+          if (user) {
+            setIsFollowing(response.data.isFollowing || false);
+            setIsFavorited(response.data.isFavorited || false);
+            setIsMember(response.data.isMember || false);
+            setJoinRequestStatus(response.data.joinRequestStatus || "");
+          } else {
+            // Set default values for anonymous users
+            setIsFollowing(false);
+            setIsFavorited(false);
+            setIsMember(false);
+            setJoinRequestStatus("");
+          }
         } else {
           throw new Error(response.data.message || "Failed to load event data");
         }
@@ -106,7 +116,7 @@ const EventProfile = () => {
     if (eventId) {
       fetchEventData();
     }
-  }, [eventId, toast]);
+  }, [eventId, toast, user]);
 
   // Extract URL parameters
   const {
@@ -134,6 +144,18 @@ const EventProfile = () => {
         userUsername: pathParts[0].substring(1), // Remove @ from first part
         brandUsername: pathParts[1].substring(1), // Remove @ from second part
         dateSlug: pathParts[2], // The date part
+      };
+    }
+
+    // For the format /@brandUsername/XXYYZZ (e.g., /@afrospiti/030925)
+    if (
+      pathParts.length === 2 &&
+      pathParts[0].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[1])
+    ) {
+      return {
+        brandUsername: pathParts[0].substring(1), // Remove @ from first part
+        dateSlug: pathParts[1], // The date part
       };
     }
 
@@ -201,6 +223,19 @@ const EventProfile = () => {
     if (isSpecialFormat()) {
       console.log(
         "[EventProfile] Detected special format /@userUsername/@brandUsername/dateSlug"
+      );
+      return true;
+    }
+
+    // Check for simple format /@brandUsername/dateSlug (e.g., /@afrospiti/030925)
+    const pathParts = pathname.split("/").filter((p) => p);
+    if (
+      pathParts.length === 2 &&
+      pathParts[0].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[1])
+    ) {
+      console.log(
+        "[EventProfile] Detected simple format /@brandUsername/dateSlug"
       );
       return true;
     }
@@ -951,32 +986,47 @@ const EventProfile = () => {
                 {/* Minimalistic Lineup Section integrated with event info */}
                 {lineups && lineups.length > 0 && (
                   <div className="lineup-mini-grid">
-                    {lineups.map((artist, index) => (
-                      <motion.div
-                        key={artist._id || index}
-                        className="lineup-artist-mini"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + index * 0.05 }}
-                      >
-                        <div className="artist-image-mini">
-                          {artist.avatar && artist.avatar.medium ? (
-                            <img src={artist.avatar.medium} alt={artist.name} />
-                          ) : (
-                            <div className="artist-placeholder-mini">
-                              {artist.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                    {/* Group lineups by category */}
+                    {Object.entries(
+                      lineups.reduce((groups, artist) => {
+                        const category = artist.category || "Other";
+                        if (!groups[category]) {
+                          groups[category] = [];
+                        }
+                        groups[category].push(artist);
+                        return groups;
+                      }, {})
+                    ).map(([category, artists]) => (
+                      <div key={category} className="lineup-category-section">
+                        <h4 className="lineup-category-title">{category}</h4>
+                        <div className="lineup-category-artists">
+                          {artists.map((artist, index) => (
+                            <motion.div
+                              key={artist._id || index}
+                              className="lineup-artist-mini"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 + index * 0.05 }}
+                            >
+                              <div className="artist-image-mini">
+                                {artist.avatar && artist.avatar.medium ? (
+                                  <img
+                                    src={artist.avatar.medium}
+                                    alt={artist.name}
+                                  />
+                                ) : (
+                                  <div className="artist-placeholder-mini">
+                                    {artist.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="artist-info-mini">
+                                <h4>{artist.name}</h4>
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
-                        <div className="artist-info-mini">
-                          <h4>{artist.name}</h4>
-                          {artist.category && (
-                            <span className="artist-category-mini">
-                              {artist.category}
-                            </span>
-                          )}
-                        </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1310,20 +1360,16 @@ const EventProfile = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     disabled={
-                      generatingCode ||
-                      !guestName ||
-                      !guestEmail ||
-                      !guestEmail.includes("@")
+                      generatingCode || !guestName || !guestEmail || !guestPax
                     }
                   >
                     {generatingCode ? (
                       <>
-                        <LoadingSpinner size="small" color="white" /> Sending...
+                        <span className="loading-spinner-small"></span>
+                        Generating...
                       </>
                     ) : (
-                      <>
-                        <RiCodeSSlashLine /> Get Guest Code
-                      </>
+                      <>Get Guest Code</>
                     )}
                   </motion.button>
                 </div>
@@ -1335,35 +1381,42 @@ const EventProfile = () => {
         {/* Guest Code Dialog */}
         {showCodeDialog && (
           <ConfirmDialog
+            isOpen={showCodeDialog}
             title="Your Guest Code"
-            message={
+            content={
               <div className="guest-code-display">
-                <p>Use this code to access the event:</p>
+                <p>
+                  Your guest code has been generated. Show this code at the
+                  entrance:
+                </p>
                 <div className="code">{guestCode}</div>
                 <p className="code-note">
-                  This code is unique to you and should not be shared.
+                  This code is valid for {guestPax}{" "}
+                  {guestPax === 1 ? "person" : "people"}.
                 </p>
               </div>
             }
             confirmText="Copy Code"
-            cancelText="Close"
+            showCancel={false}
             onConfirm={() => {
               navigator.clipboard.writeText(guestCode);
               toast.showSuccess("Code copied to clipboard");
               setShowCodeDialog(false);
             }}
-            onCancel={() => setShowCodeDialog(false)}
             type="default"
           />
         )}
       </div>
 
-      <DashboardNavigation
-        isOpen={isNavigationOpen}
-        onClose={() => setIsNavigationOpen(false)}
-        currentUser={user}
-        setUser={setUser}
-      />
+      {/* Only render DashboardNavigation for authenticated users */}
+      {user && (
+        <DashboardNavigation
+          isOpen={isNavigationOpen}
+          onClose={() => setIsNavigationOpen(false)}
+          currentUser={user}
+          setUser={setUser}
+        />
+      )}
     </div>
   );
 };

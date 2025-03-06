@@ -55,9 +55,24 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       `[Weekly Events] Generating occurrence for week ${weekNumber} for event: ${parentEvent._id}`
     );
 
+    console.log(`[WEEKLY DEBUG] Parent event details before creating child:`, {
+      parentId: parentEvent._id,
+      parentTitle: parentEvent.title,
+      parentDate: parentEvent.date,
+      parentIsWeekly: parentEvent.isWeekly,
+      parentWeekNumber: parentEvent.weekNumber || 0,
+      requestedWeekNumber: weekNumber,
+    });
+
     // Calculate the date for this occurrence
     const occurrenceDate = new Date(parentEvent.date);
     occurrenceDate.setDate(occurrenceDate.getDate() + weekNumber * 7);
+
+    console.log(`[WEEKLY DEBUG] Calculated occurrence date:`, {
+      parentDate: parentEvent.date,
+      calculatedDate: occurrenceDate,
+      weekOffset: weekNumber * 7,
+    });
 
     // Create a unique link for this occurrence
     const link = `${parentEvent.link}-w${weekNumber}`;
@@ -107,6 +122,15 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
     console.log(
       `[Weekly Events] Created week ${weekNumber} occurrence: ${weeklyEvent._id}`
     );
+
+    console.log(`[WEEKLY DEBUG] Created child event details:`, {
+      childId: weeklyEvent._id,
+      childTitle: weeklyEvent.title,
+      childDate: weeklyEvent.date,
+      childIsWeekly: weeklyEvent.isWeekly,
+      childWeekNumber: weeklyEvent.weekNumber,
+      parentId: weeklyEvent.parentEventId,
+    });
 
     // Initialize default code settings for the weekly event
     try {
@@ -195,6 +219,18 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
       `[Weekly Events] Looking for child event with parentEventId: ${parentEvent._id}, weekNumber: ${weekNumber}`
     );
 
+    console.log(
+      `[WEEKLY DEBUG] Parent event in findOrCreateWeeklyOccurrence:`,
+      {
+        parentId: parentEvent._id,
+        parentTitle: parentEvent.title,
+        parentDate: parentEvent.date,
+        parentIsWeekly: parentEvent.isWeekly,
+        parentWeekNumber: parentEvent.weekNumber || 0,
+        requestedWeekNumber: weekNumber,
+      }
+    );
+
     // First try to find an existing occurrence for this week
     const existingOccurrence = await Event.findOne({
       parentEventId: parentEvent._id,
@@ -205,6 +241,15 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
       console.log(
         `[Weekly Events] Found existing occurrence for week ${weekNumber}: ${existingOccurrence._id}`
       );
+
+      console.log(`[WEEKLY DEBUG] Found existing child event:`, {
+        childId: existingOccurrence._id,
+        childTitle: existingOccurrence.title,
+        childDate: existingOccurrence.date,
+        childWeekNumber: existingOccurrence.weekNumber,
+        parentId: existingOccurrence.parentEventId,
+      });
+
       return existingOccurrence;
     }
 
@@ -795,12 +840,33 @@ exports.editEvent = async (req, res) => {
         `[Event Update] Editing weekly occurrence for week ${weekNumber}`
       );
 
+      console.log(
+        `[WEEKLY DEBUG] Before finding/creating child - Parent event:`,
+        {
+          parentId: event._id,
+          parentTitle: event.title,
+          parentDate: event.date,
+          parentIsWeekly: event.isWeekly,
+          targetWeekNumber: weekNumber,
+          requestBody: Object.keys(req.body),
+        }
+      );
+
       try {
         // Find or create the child event for this week
         const childEvent = await findOrCreateWeeklyOccurrence(
           event,
           weekNumber
         );
+
+        console.log(`[WEEKLY DEBUG] After finding/creating child:`, {
+          childId: childEvent._id,
+          childTitle: childEvent.title,
+          childDate: childEvent.date,
+          childWeekNumber: childEvent.weekNumber,
+          childIsWeekly: childEvent.isWeekly,
+          parentId: childEvent.parentEventId,
+        });
 
         // Update the child event with the new data
         // Make sure we don't change certain fields that should remain consistent
@@ -811,6 +877,12 @@ exports.editEvent = async (req, res) => {
           weekNumber: weekNumber, // Keep the week number
         };
 
+        console.log(`[WEEKLY DEBUG] Child data before update:`, {
+          childId: childEvent._id,
+          childTitle: childEvent.title,
+          childDate: childEvent.date,
+        });
+
         // Apply updates to the child event
         Object.keys(updatedChildData).forEach((key) => {
           if (
@@ -820,6 +892,12 @@ exports.editEvent = async (req, res) => {
           ) {
             childEvent[key] = updatedChildData[key];
           }
+        });
+
+        console.log(`[WEEKLY DEBUG] Child data after update:`, {
+          childId: childEvent._id,
+          childTitle: childEvent.title,
+          childDate: childEvent.date,
         });
 
         // Remove validation for embedded code settings to prevent errors
@@ -920,6 +998,16 @@ exports.editEvent = async (req, res) => {
       { $set: req.body },
       { new: true, runValidators: true }
     );
+
+    console.log(`[WEEKLY DEBUG] Direct parent event update:`, {
+      eventId,
+      isWeekly: event.isWeekly,
+      weekNumber,
+      updatedTitle: updatedEvent.title,
+      updatedDate: updatedEvent.date,
+      originalDate: event.date,
+      fieldsUpdated: Object.keys(req.body),
+    });
 
     // Check if we need to update code settings for this event
     if (
@@ -1739,13 +1827,33 @@ exports.getEventProfile = async (req, res) => {
         hasFlyer: !!event.flyer,
       });
 
-      // Return all data in a structured format
-      res.status(200).json({
+      // After finding the event and related data, prepare the response
+      // Check if user is authenticated
+      let userRelatedData = {};
+
+      if (req.user) {
+        console.log(`[EventProfile] User is authenticated: ${req.user._id}`);
+        // Include user-specific data if authenticated
+        userRelatedData = {
+          isFollowing: event.followers?.includes(req.user._id),
+          isFavorited: event.favorites?.includes(req.user._id),
+          isMember: brand.team?.some(
+            (member) => member.user.toString() === req.user._id.toString()
+          ),
+          joinRequestStatus: null, // You may need to fetch this from JoinRequest model if needed
+        };
+      } else {
+        console.log(`[EventProfile] Anonymous user access`);
+      }
+
+      // Return the response with user data if available
+      return res.status(200).json({
         success: true,
         event,
         lineups,
         ticketSettings,
         codeSettings,
+        ...userRelatedData,
       });
     } catch (innerError) {
       console.error("[EventProfile] Error fetching related data:", innerError);
@@ -2112,47 +2220,60 @@ exports.toggleEventLive = async (req, res) => {
 
     // If this is a weekly event and we're toggling a future occurrence
     if (event.isWeekly && weekNumber > 0) {
-      try {
-        // Find or create the child event for this week
-        const childEvent = await findOrCreateWeeklyOccurrence(
-          event,
-          weekNumber
-        );
+      console.log(
+        `[Toggle Live] Processing weekly event for week ${weekNumber}`
+      );
 
-        // Toggle the isLive status
-        childEvent.isLive = !childEvent.isLive;
-        await childEvent.save();
+      // First, check if this child event already exists
+      let childEvent = await Event.findOne({
+        parentEventId: eventId,
+        weekNumber: weekNumber,
+      });
 
+      // If it doesn't exist, we need to create it first
+      if (!childEvent) {
         console.log(
-          `[Toggle Live] Updated live status for week ${weekNumber} to ${childEvent.isLive}`
+          `[Toggle Live] Child event for week ${weekNumber} doesn't exist yet, creating it`
         );
-        return res.status(200).json({
-          message: `Event is now ${childEvent.isLive ? "live" : "not live"}`,
-          isLive: childEvent.isLive,
-          childEvent: childEvent, // Return the child event so frontend can update state
-        });
-      } catch (error) {
-        console.error("[Toggle Live] Error updating child event:", error);
-        return res.status(500).json({
-          message: "Error toggling live status for weekly occurrence",
-          error: error.message,
-        });
+
+        // Create the child event using our weekly occurrence generator
+        childEvent = await generateWeeklyOccurrences(event, weekNumber);
+        console.log(`[Toggle Live] Created new child event: ${childEvent._id}`);
+      } else {
+        console.log(
+          `[Toggle Live] Found existing child event: ${childEvent._id}`
+        );
       }
+
+      // Toggle the isLive status
+      childEvent.isLive = !childEvent.isLive;
+      await childEvent.save();
+
+      console.log(
+        `[Toggle Live] Updated live status for week ${weekNumber} to ${childEvent.isLive}`
+      );
+
+      return res.status(200).json({
+        message: `Event is now ${childEvent.isLive ? "live" : "not live"}`,
+        isLive: childEvent.isLive,
+        childEvent: childEvent, // Return the child event so frontend can update state
+      });
     }
 
     // For regular events or the parent weekly event (week 0)
     event.isLive = !event.isLive;
     await event.save();
 
+    console.log(
+      `[Toggle Live] Updated parent event live status to ${event.isLive}`
+    );
+
     res.status(200).json({
       message: `Event is now ${event.isLive ? "live" : "not live"}`,
       isLive: event.isLive,
     });
   } catch (error) {
-    console.error("[Toggle Live Status Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
+    console.error("[Toggle Live] Error:", error);
     res.status(500).json({
       message: "Error toggling live status",
       error: error.message,

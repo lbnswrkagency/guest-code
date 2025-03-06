@@ -109,36 +109,39 @@ const BrandProfileHeader = ({
           )}
 
           <div className="brand-actions">
-            {user && (
-              <>
-                <motion.button
-                  className={`action-button ${isFollowing ? "active" : ""}`}
-                  onClick={onFollow}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isFollowing ? <RiUserFollowLine /> : <RiUserAddLine />}
-                  {isFollowing ? "Following" : "Follow"}
-                </motion.button>
-                <motion.button
-                  className={`action-button ${isMember ? "active" : ""}`}
-                  onClick={onJoin}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <RiUserAddLine />
-                  {isMember ? "Member" : "Join"}
-                </motion.button>
-                <motion.button
-                  className={`action-button ${isFavorited ? "active" : ""}`}
-                  onClick={onFavorite}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isFavorited ? <RiStarFill /> : <RiStarLine />}
-                </motion.button>
-              </>
-            )}
+            {
+              user ? (
+                <>
+                  <motion.button
+                    className={`action-button ${isFollowing ? "active" : ""}`}
+                    onClick={onFollow}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {isFollowing ? <RiUserFollowLine /> : <RiUserAddLine />}
+                    {isFollowing ? "Following" : "Follow"}
+                  </motion.button>
+                  <motion.button
+                    className={`action-button ${isMember ? "active" : ""}`}
+                    onClick={onJoin}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RiUserAddLine />
+                    {isMember ? "Member" : "Join"}
+                  </motion.button>
+                  <motion.button
+                    className={`action-button ${isFavorited ? "active" : ""}`}
+                    onClick={onFavorite}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {isFavorited ? <RiStarFill /> : <RiStarLine />}
+                  </motion.button>
+                </>
+              ) : null /* Don't show any interactive buttons for non-authenticated users except share */
+            }
+            {/* Always show the share button */}
             <motion.button
               className="action-button"
               onClick={onShare}

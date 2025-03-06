@@ -4,7 +4,6 @@ import toast, { Toaster } from "react-hot-toast";
 import "./Register.scss";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Navigation from "../../Home/Navigation/Navigation";
 
 function Register({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
@@ -67,7 +66,6 @@ function Register({ onRegisterSuccess }) {
   if (registrationComplete) {
     return (
       <div className="register">
-        <Navigation />
         <motion.div
           className="register-container"
           initial={{ opacity: 0, y: 20 }}
@@ -94,7 +92,6 @@ function Register({ onRegisterSuccess }) {
 
   return (
     <div className="register">
-      <Navigation />
       <Toaster />
 
       <motion.div

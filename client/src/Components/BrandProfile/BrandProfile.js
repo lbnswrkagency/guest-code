@@ -61,21 +61,45 @@ const BrandProfile = () => {
     isFavorited: false,
     joinRequestStatus: null,
   });
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [loadingJoinRequests, setLoadingJoinRequests] = useState(false);
 
-  const cleanUsername = brandUsername?.replace("@", "");
+  // Clean username for API calls - handle both param and direct path extraction
+  let cleanUsername;
+  if (brandUsername) {
+    // Normal route param
+    cleanUsername = brandUsername.replace(/^@/, "");
+  } else if (location.pathname.startsWith("/@")) {
+    // Direct path matching
+    // Extract only the username part, not including any date slug
+    const pathParts = location.pathname.substring(2).split("/");
+    cleanUsername = pathParts[0]; // Take only the first part after /@
+  }
+
+  // Enhanced logging for debugging
+  console.log("[BrandProfile] Detailed params:", {
+    brandUsername,
+    cleanUsername,
+    rawParams: useParams(),
+    pathname: location.pathname,
+    pathParts: location.pathname.substring(2).split("/"),
+    isExactMatch: location.pathname === `/@${cleanUsername}`,
+    timestamp: new Date().toISOString(),
+  });
 
   useEffect(() => {
-    console.log("[BrandProfile] Profile data dependencies changed:", {
-      brandUsername,
+    console.log("[BrandProfile] useEffect triggered with:", {
       cleanUsername,
-      isAuthenticated: !!user,
-      currentUser: user?.username,
-      pathname: location.pathname,
+      user: !!user,
       timestamp: new Date().toISOString(),
     });
 
     if (cleanUsername) {
       fetchBrand();
+    } else {
+      console.error("[BrandProfile] No username found in params or path");
+      toast.showError("Invalid brand profile");
+      navigate("/");
     }
   }, [cleanUsername, user]);
 
@@ -99,9 +123,12 @@ const BrandProfile = () => {
 
     try {
       setLoading(true);
-      const response = await axiosInstance.get(
-        `/brands/profile/username/${cleanUsername}`
-      );
+
+      // Log the exact API endpoint being called
+      const apiEndpoint = `/brands/profile/username/${cleanUsername}`;
+      console.log(`[BrandProfile] Calling API endpoint: ${apiEndpoint}`);
+
+      const response = await axiosInstance.get(apiEndpoint);
 
       console.log("[BrandProfile] Brand data fetched:", {
         brandId: response.data._id,
@@ -125,8 +152,16 @@ const BrandProfile = () => {
         timestamp: new Date().toISOString(),
       });
 
-      toast.showError("Failed to load brand profile");
-      navigate("/");
+      // Only redirect to home if it's not a 404 error
+      if (error.response?.status === 404) {
+        toast.showError(`Brand "${cleanUsername}" not found`);
+        // Stay on the page but show a not found message
+        setBrand(null);
+        setLoading(false);
+      } else {
+        toast.showError("Failed to load brand profile");
+        navigate("/");
+      }
     } finally {
       setLoading(false);
     }
@@ -446,14 +481,14 @@ const BrandProfile = () => {
     if (!user) {
       return (
         <div className="brand-actions">
+          {/* Only show the share button for public view */}
           <motion.button
-            className="action-button login"
-            onClick={() => navigate("/login")}
+            className="action-button"
+            onClick={handleShare}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <RiUserAddLine />
-            Login to interact
+            <RiShareLine />
           </motion.button>
         </div>
       );
@@ -596,7 +631,67 @@ const BrandProfile = () => {
             Object.keys(brand.social).some((key) => brand.social[key]) && (
               <SocialLinks social={brand.social} />
             )}
+
+          {/* Lineup Section */}
+          {brand.lineups && brand.lineups.length > 0 && (
+            <div className="brand-lineups">
+              <h3 className="section-title">Lineup</h3>
+              <div className="lineup-container">
+                {/* Group lineups by category */}
+                {Object.entries(
+                  brand.lineups.reduce((groups, artist) => {
+                    const category = artist.category || "Other";
+                    if (!groups[category]) {
+                      groups[category] = [];
+                    }
+                    groups[category].push(artist);
+                    return groups;
+                  }, {})
+                ).map(([category, artists]) => (
+                  <div key={category} className="lineup-category-group">
+                    <h4 className="category-title">{category}</h4>
+                    <div className="lineup-artists">
+                      {artists.map((artist, index) => (
+                        <div key={artist._id || index} className="artist">
+                          <div className="artist-avatar">
+                            {artist.avatar && artist.avatar.thumbnail ? (
+                              <img
+                                src={artist.avatar.thumbnail}
+                                alt={artist.name}
+                              />
+                            ) : (
+                              <div className="artist-avatar placeholder">
+                                {artist.name
+                                  ? artist.name.charAt(0).toUpperCase()
+                                  : "?"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="artist-info">
+                            <span className="artist-name">{artist.name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Log brand data before passing to BrandProfileFeed */}
+        {console.log(
+          "[BrandProfile] Brand data being passed to BrandProfileFeed:",
+          {
+            id: brand._id,
+            username: brand.username,
+            name: brand.name,
+            hasEvents: Array.isArray(brand.events),
+            eventCount: Array.isArray(brand.events) ? brand.events.length : 0,
+            timestamp: new Date().toISOString(),
+          }
+        )}
 
         <BrandProfileFeed brand={brand} />
       </div>
@@ -683,12 +778,15 @@ const BrandProfile = () => {
         )}
       </AnimatePresence>
 
-      <DashboardNavigation
-        isOpen={isNavigationOpen}
-        onClose={() => setIsNavigationOpen(false)}
-        currentUser={user}
-        setUser={setUser}
-      />
+      {/* Only render DashboardNavigation for authenticated users */}
+      {user && (
+        <DashboardNavigation
+          isOpen={isNavigationOpen}
+          onClose={() => setIsNavigationOpen(false)}
+          currentUser={user}
+          setUser={setUser}
+        />
+      )}
     </div>
   );
 };

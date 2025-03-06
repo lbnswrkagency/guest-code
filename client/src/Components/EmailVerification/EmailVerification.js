@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import "./EmailVerification.scss";
-import Navigation from "../Home/Navigation/Navigation";
 
 const EmailVerification = () => {
   const { token } = useParams();
@@ -34,7 +33,6 @@ const EmailVerification = () => {
 
   return (
     <div className="email-verification">
-      <Navigation />
       <motion.div
         className="verification-container"
         initial={{ opacity: 0, y: 20 }}

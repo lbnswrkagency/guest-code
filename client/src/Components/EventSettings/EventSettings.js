@@ -9,7 +9,7 @@ import { useToast } from "../Toast/ToastContext";
 
 const EventSettings = ({ event, onClose }) => {
   const [activeTab, setActiveTab] = useState("codes");
-  const { showToast } = useToast();
+  const { showToast, showSuccess, showError } = useToast();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [codeSettings, setCodeSettings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,8 +64,8 @@ const EventSettings = ({ event, onClose }) => {
         axiosInstance.delete(`/events/${event._id}`)
       );
 
-      // Use showToast instead of react-hot-toast
-      showToast("Event deleted successfully", "success");
+      // Use correct toast methods from useToast()
+      showSuccess("Event deleted successfully");
 
       // Redirect or update state as needed
       if (onClose) {
@@ -76,10 +76,9 @@ const EventSettings = ({ event, onClose }) => {
       }
     } catch (error) {
       console.error("Error deleting event:", error);
-      showToast(
+      showError(
         "Failed to delete event: " +
-          (error.response?.data?.message || error.message),
-        "error"
+          (error.response?.data?.message || error.message)
       );
     }
     setShowConfirmDialog(false);

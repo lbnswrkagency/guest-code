@@ -134,6 +134,9 @@ const generateTicketPDF = async (ticket) => {
       formattedTicketName = "BACKSTAGE";
     }
 
+    // Create a short ticket code for display
+    const ticketCode = ticket.securityToken.substring(0, 8).toUpperCase();
+
     // Create HTML template for the ticket
     const htmlTemplate = `
     <html>
@@ -194,55 +197,29 @@ const generateTicketPDF = async (ticket) => {
               }
             </div>
             <div>
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date & Time</p>
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
                 eventDate.day
               }</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
                 eventDate.date
               }</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
-                event?.startTime || eventDate.time
-              }H Open</p>
             </div>
           </div>
           
           <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
             <div> 
               <div style="margin-top: 0.5rem;">
-                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
-                ${
-                  event?.lineups && event.lineups.length > 0
-                    ? event.lineups
-                        .slice(0, 4) // Limit to first 4 artists to avoid overflow
-                        .map(
-                          (lineup) =>
-                            `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
-                              lineup.name || lineup
-                            }</p>`
-                        )
-                        .join("")
-                    : `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">TBA</p>`
-                }
+                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Start</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                  event?.startTime || eventDate.time
+                }</p>
               </div>
             </div>
 
             <div style="margin-top: 0.5rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Music</p>
-              ${
-                event?.music
-                  ? event.music
-                      .split(",")
-                      .map(
-                        (genre) =>
-                          `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${genre.trim()}</p>`
-                      )
-                      .join("")
-                  : `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Afrobeats</p>                    
-                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Amapiano</p>
-                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dancehall</p>
-                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">& co</p>`
-              }
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">End</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">04:00</p>
             </div>
           </div>
           
@@ -274,9 +251,20 @@ const generateTicketPDF = async (ticket) => {
           </div>
         </div>
 
-        <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center;">
-          <div style="text-align: center;">
-            <img style="background-color: white; width: 8rem; height: 8rem;" src="${qrCodeDataUrl}"></img>
+        <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+          <div style="position: relative; width: 100%; height: 100%;">
+            <!-- Decorative diagonal stripe in brand color -->
+            <div style="position: absolute; top: -2rem; right: -2rem; width: 12rem; height: 4rem; background-color: ${primaryColor}; transform: rotate(45deg);"></div>
+            
+            <!-- Centered QR code -->
+            <div style="text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+              <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" src="${qrCodeDataUrl}"></img>
+            </div>
+            
+            <!-- Ticket code displayed in the top right corner -->
+            <div style="position: absolute; top: 1rem; right: 1.5rem;">
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 700; font-size: 1rem; letter-spacing: 1px;">${ticketCode}</p>
+            </div>
           </div>
         </div>
       </body>

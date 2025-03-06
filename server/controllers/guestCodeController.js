@@ -380,8 +380,19 @@ const generateGuestCode = async (req, res) => {
   try {
     const { eventId, guestName, guestEmail, maxPax = 1 } = req.body;
 
+    console.log("[GuestCode] Generate request:", {
+      eventId,
+      guestName,
+      guestEmail,
+      maxPax,
+      isAuthenticated: !!req.user,
+      userId: req.user?._id,
+      timestamp: new Date().toISOString(),
+    });
+
     // Validate required fields
     if (!eventId || !guestName || !guestEmail) {
+      console.log("[GuestCode] Missing required fields");
       return res.status(400).json({
         message: "Event ID, guest name, and email are required",
       });
@@ -390,6 +401,7 @@ const generateGuestCode = async (req, res) => {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(guestEmail.trim())) {
+      console.log("[GuestCode] Invalid email format:", guestEmail);
       return res.status(400).json({
         message: "Invalid email format",
       });
@@ -401,14 +413,23 @@ const generateGuestCode = async (req, res) => {
 
     // Get the current user ID if authenticated, otherwise use null
     const userId = req.user ? req.user._id : null;
+    console.log("[GuestCode] User ID for code generation:", userId);
 
     // Fetch the event with brand and lineups
     const event = await Event.findById(eventId)
       .populate("brand")
       .populate("lineups");
     if (!event) {
+      console.log("[GuestCode] Event not found:", eventId);
       return res.status(404).json({ message: "Event not found" });
     }
+
+    console.log("[GuestCode] Found event:", {
+      eventId: event._id,
+      eventTitle: event.title,
+      brandId: event.brand?._id,
+      brandName: event.brand?.name,
+    });
 
     try {
       // Create the guest code
@@ -420,12 +441,21 @@ const generateGuestCode = async (req, res) => {
         maxPax
       );
 
+      console.log("[GuestCode] Code created:", {
+        codeId: code._id,
+        code: code.code,
+        guestName: code.guestName,
+        maxPax: code.maxPax,
+      });
+
       try {
         // Generate the PDF
         const { buffer: pdfBuffer } = await generateGuestCodePDF(code, event);
+        console.log("[GuestCode] PDF generated successfully");
 
         // Send the email
         await sendGuestCodeEmail(code, event, sanitizedEmail, pdfBuffer);
+        console.log("[GuestCode] Email sent successfully to:", sanitizedEmail);
 
         return res.status(200).json({
           message: "Guest code generated and sent successfully",
@@ -436,7 +466,7 @@ const generateGuestCode = async (req, res) => {
           },
         });
       } catch (emailError) {
-        console.error(`[generateGuestCode] Email error: ${emailError.message}`);
+        console.error(`[GuestCode] Email error: ${emailError.message}`);
 
         // Still return the code even if email fails
         return res.status(207).json({
@@ -450,16 +480,14 @@ const generateGuestCode = async (req, res) => {
         });
       }
     } catch (codeError) {
-      console.error(
-        `[generateGuestCode] Code generation error: ${codeError.message}`
-      );
+      console.error(`[GuestCode] Code generation error: ${codeError.message}`);
       return res.status(500).json({
         message: "Failed to generate guest code",
         error: codeError.message,
       });
     }
   } catch (error) {
-    console.error(`[generateGuestCode] Server error: ${error.message}`);
+    console.error(`[GuestCode] Server error: ${error.message}`);
     return res.status(500).json({
       message: "Internal server error",
       error: error.message,

@@ -8,6 +8,7 @@ import {
   RiLogoutBoxRLine,
   RiTestTubeLine,
   RiSearchLine,
+  RiLoginBoxLine,
 } from "react-icons/ri";
 import NotificationPanel from "../NotificationPanel/NotificationPanel";
 import { useNotificationDot } from "../../hooks/useNotificationDot";
@@ -38,6 +39,9 @@ const Navigation = ({
   const { user, logout } = useAuth();
   const { socket } = useSocket();
   const [showSearch, setShowSearch] = useState(false);
+
+  // Check if user is authenticated
+  const isAuthenticated = !!user;
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -73,13 +77,23 @@ const Navigation = ({
   const handleBack = () => {
     if (onBack) {
       onBack();
-    } else {
+    } else if (isAuthenticated) {
       navigate(`/@${user.username}`);
+    } else {
+      navigate("/");
     }
   };
 
   const handleHome = () => {
-    navigate(`/@${user.username}`);
+    if (isAuthenticated) {
+      navigate(`/@${user.username}`);
+    } else {
+      navigate("/");
+    }
+  };
+
+  const handleLogin = () => {
+    navigate("/login");
   };
 
   const createTestNotification = async () => {
@@ -122,7 +136,7 @@ const Navigation = ({
     >
       <div className="nav-content">
         <div className="nav-left">
-          {location.pathname !== "/dashboard" && (
+          {location.pathname !== "/" && (
             <motion.div
               className="nav-icon-wrapper back-button"
               onClick={handleBack}
@@ -138,7 +152,7 @@ const Navigation = ({
         </div>
 
         <div className="nav-right">
-          {/* Search */}
+          {/* Search - Available for all users */}
           <motion.div
             className="nav-icon-wrapper"
             onClick={handleSearchClick}
@@ -148,59 +162,65 @@ const Navigation = ({
             <RiSearchLine className="icon" />
           </motion.div>
 
-          {/* Notifications */}
-          <motion.div
-            className={`nav-icon-wrapper ${
-              unreadCount > 0 ? "has-notification" : ""
-            }`}
-            onClick={toggleNotifications}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <RiBellLine className="icon" />
-            {unreadCount > 0 && (
-              <span className="notification-count">{unreadCount}</span>
-            )}
-          </motion.div>
+          {/* Authenticated-only elements */}
+          {isAuthenticated && (
+            <>
+              {/* Notifications */}
+              <motion.div
+                className={`nav-icon-wrapper ${
+                  unreadCount > 0 ? "has-notification" : ""
+                }`}
+                onClick={toggleNotifications}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <RiBellLine className="icon" />
+                {unreadCount > 0 && (
+                  <span className="notification-count">{unreadCount}</span>
+                )}
+              </motion.div>
 
-          {/* Menu */}
-          <motion.div
-            className="nav-icon-wrapper"
-            onClick={() => {
-              console.log(
-                "[Navigation] Menu icon clicked, calling onMenuClick",
-                {
-                  hasOnMenuClick: typeof onMenuClick === "function",
-                  component: location.pathname,
-                  timestamp: new Date().toISOString(),
-                }
-              );
-              if (typeof onMenuClick === "function") {
-                onMenuClick();
-              } else {
-                console.error(
-                  "[Navigation] onMenuClick is not a function:",
-                  onMenuClick
-                );
-              }
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            role="button"
-            aria-label="Open menu"
-          >
-            <RiMenuLine className="icon" />
-          </motion.div>
+              {/* Menu */}
+              <motion.div
+                className="nav-icon-wrapper"
+                onClick={() => {
+                  console.log(
+                    "[Navigation] Menu icon clicked, calling onMenuClick",
+                    {
+                      hasOnMenuClick: typeof onMenuClick === "function",
+                      component: location.pathname,
+                      timestamp: new Date().toISOString(),
+                    }
+                  );
+                  if (typeof onMenuClick === "function") {
+                    onMenuClick();
+                  } else {
+                    console.error(
+                      "[Navigation] onMenuClick is not a function:",
+                      onMenuClick
+                    );
+                  }
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                role="button"
+                aria-label="Open menu"
+              >
+                <RiMenuLine className="icon" />
+              </motion.div>
 
-          {/* Logout */}
-          <motion.div
-            className="nav-icon-wrapper"
-            onClick={handleLogout}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <RiLogoutBoxRLine className="icon" />
-          </motion.div>
+              {/* Logout */}
+              <motion.div
+                className="nav-icon-wrapper"
+                onClick={handleLogout}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <RiLogoutBoxRLine className="icon" />
+              </motion.div>
+            </>
+          )}
+          {/* Removed login button for unauthenticated users as requested */}
         </div>
       </div>
 
@@ -211,7 +231,7 @@ const Navigation = ({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showNotifications && (
+        {showNotifications && isAuthenticated && (
           <NotificationPanel onClose={() => setShowNotifications(false)} />
         )}
       </AnimatePresence>
