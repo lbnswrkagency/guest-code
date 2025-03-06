@@ -39,7 +39,7 @@ const Search = ({ isOpen, onClose }) => {
       setError(null);
 
       try {
-        const response = await axiosInstance.get("/search", {
+        const response = await axiosInstance.get("/api/search", {
           params: {
             q: query,
             type: type === "all" ? undefined : type,
