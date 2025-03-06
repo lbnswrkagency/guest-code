@@ -85,7 +85,7 @@ const AuthProviderWithRouter = ({ children }) => {
 
           try {
             // Attempt to refresh tokens
-            await axiosInstance.post("/api/auth/refresh-token");
+            await axiosInstance.post("/auth/refresh-token");
             setIsRefreshing(false);
             // Retry the original request
             return axiosInstance(originalRequest);
