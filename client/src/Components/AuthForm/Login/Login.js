@@ -187,6 +187,7 @@ function Login() {
                       showPasswordError ? "error" : ""
                     }`}
                     autoFocus
+                    autoComplete="new-password"
                   />
                   {showPasswordError && (
                     <motion.p

@@ -1840,13 +1840,18 @@ exports.getEventProfile = async (req, res) => {
       // Check if user is authenticated
       let userRelatedData = {};
 
+      // Extract brand from event if not already defined
+      const brand = req.params.brandUsername
+        ? await Brand.findOne({ username: req.params.brandUsername })
+        : event.brand;
+
       if (req.user) {
         console.log(`[EventProfile] User is authenticated: ${req.user._id}`);
         // Include user-specific data if authenticated
         userRelatedData = {
           isFollowing: event.followers?.includes(req.user._id),
           isFavorited: event.favorites?.includes(req.user._id),
-          isMember: brand.team?.some(
+          isMember: brand?.team?.some(
             (member) => member.user.toString() === req.user._id.toString()
           ),
           joinRequestStatus: null, // You may need to fetch this from JoinRequest model if needed
