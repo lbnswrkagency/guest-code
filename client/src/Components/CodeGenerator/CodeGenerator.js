@@ -810,7 +810,6 @@ function CodeGenerator({
   }
 
   return (
-<<<<<<< HEAD
     <div className="code-generator">
       <Navigation onBack={onClose} title={`${type} Codes`} />
       <div className="code-generator-container">
@@ -928,24 +927,6 @@ function CodeGenerator({
             >
               {getCounterValue()}
             </div>
-=======
-    <div className="code">
-      <div className="code-wrapper">
-        <Toaster />
-        <Navigation onBack={onClose} />
-        <h1 className="code-title">{`${type} Code`}</h1>
-
-        <img className="code-logo" src="/image/logo_w.svg" alt="Logo" />
-
-        <div className="code-count">
-          <h4>
-            {limit === undefined || limit === 0
-              ? "This Week's Count"
-              : "Remaining This Week"}
-          </h4>
-          <div className="code-count-number">
-            <p>{remainingCount}</p>
->>>>>>> master
           </div>
         </div>
 

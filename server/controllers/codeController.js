@@ -4,7 +4,6 @@ const TableCode = require("../models/TableCode"); // Assuming you've created a T
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
 const path = require("path");
-<<<<<<< HEAD
 const crypto = require("crypto");
 const puppeteer = require("puppeteer");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
@@ -13,9 +12,6 @@ const SibApiV3Sdk = require("sib-api-v3-sdk");
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications["api-key"];
 apiKey.apiKey = process.env.BREVO_API_KEY;
-=======
-const fs = require("fs").promises;
->>>>>>> master
 
 const qrOption = {
   margin: 1,

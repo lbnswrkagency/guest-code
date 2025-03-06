@@ -198,7 +198,6 @@ body {
     width: 80%;
   }
   &-logo {
-<<<<<<< HEAD
     width: 5rem;
     height: 5rem;
     object-fit: cover;
@@ -215,12 +214,6 @@ body {
       transform: scale(1.05);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
     }
-=======
-    width: 10rem;
-
-    animation: 3s ease-out 0s 1 LogoRotate;
-    justify-self: center;
->>>>>>> master
   }
 
   &-sub {
