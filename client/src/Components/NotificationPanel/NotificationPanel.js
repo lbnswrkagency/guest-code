@@ -1,216 +1,489 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RiBellLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
-import axios from "axios";
+import {
+  RiCloseLine,
+  RiCheckLine,
+  RiCloseFill,
+  RiTeamLine,
+  RiUserFollowLine,
+  RiStarLine,
+  RiNotificationLine,
+  RiTimeLine,
+} from "react-icons/ri";
 import "./NotificationPanel.scss";
-import { useNotifications } from "../../contexts/NotificationContext";
-import AuthContext from "../../contexts/AuthContext";
-import { useNotificationDot } from "../../hooks/useNotificationDot";
+import axiosInstance from "../../utils/axiosConfig";
+import { useToast } from "../Toast/ToastContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
-const NotificationPanel = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const {
-    notifications,
-    unreadCount,
-    markAsRead,
-    setNotifications,
-    setUnreadCount,
-    clearAll,
-  } = useNotifications();
-  const { user } = useContext(AuthContext);
-  const hasNotifications = useNotificationDot();
+const NotificationPanel = ({ onClose }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [showHistory, setShowHistory] = useState(false);
+  const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (user?._id) {
-        try {
-          const response = await axios.get(
-            `${process.env.REACT_APP_API_BASE_URL}/notifications/user/${user._id}`,
-            {
-              withCredentials: true,
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          setNotifications(response.data);
-          setUnreadCount(response.data.filter((n) => !n.read).length);
-        } catch (error) {
-          console.error("Error fetching notifications:", error);
-        }
-      }
-    };
-
+    // console.log("[NotificationPanel] Fetching notifications...");
     fetchNotifications();
-  }, [user?._id]);
+  }, [user]);
 
-  const handleMarkAsRead = async (notificationId) => {
+  const fetchNotifications = async () => {
     try {
-      await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/notifications/${notificationId}/read`,
-        {},
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+      const response = await axiosInstance.get(
+        `/notifications/user/${user._id}`
       );
-      markAsRead(notificationId);
+      setNotifications(response.data);
+      setLoading(false);
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      toast.showError("Failed to load notifications");
+      setLoading(false);
     }
   };
 
-  const handleClearAll = async () => {
+  const handleProcessJoinRequest = async (requestId, action) => {
     try {
-      await clearAll();
-      setIsOpen(false);
+      await axiosInstance.post(`/brands/join-requests/${requestId}/process`, {
+        action,
+      });
+
+      // Update notifications locally
+      setNotifications((prev) =>
+        prev.map((notification) => {
+          if (notification.requestId === requestId) {
+            return {
+              ...notification,
+              type:
+                action === "accept"
+                  ? "join_request_accepted"
+                  : "join_request_rejected",
+              read: true,
+            };
+          }
+          return notification;
+        })
+      );
+
+      toast.showSuccess(`Join request ${action}ed successfully`);
     } catch (error) {
-      console.error("Error clearing notifications:", error);
+      toast.showError(`Failed to ${action} join request`);
     }
   };
 
-  const getTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return new Date(date).toLocaleDateString();
+  const markAsRead = async (notificationId) => {
+    try {
+      // console.log("[NotificationPanel] Marking notification as read:", notificationId);
+      await axiosInstance.put(`/notifications/${notificationId}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+      );
+    } catch (error) {
+      // console.error("[NotificationPanel] Error marking notification as read:", error);
+    }
   };
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case "success":
-        return "🎉";
-      case "warning":
-        return "⚠️";
-      case "error":
-        return "❌";
-      case "color_change":
-        return "🎨";
+      case "join_request":
+        return <RiTeamLine />;
+      case "join_request_accepted":
+        return <RiCheckLine />;
+      case "join_request_rejected":
+        return <RiCloseFill />;
+      case "new_follower":
+        return <RiUserFollowLine />;
+      case "new_favorite":
+        return <RiStarLine />;
       default:
-        return "📬";
+        return <RiNotificationLine />;
     }
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      setIsOpen(false);
+  const handleEntityClick = async (type, id, notification) => {
+    // Mark notification as read when clicked
+    if (!notification.isRead) {
+      await markAsRead(notification._id);
+    }
+
+    // console.log("[NotificationPanel] handleEntityClick - Raw data:", {
+    //   type,
+    //   id,
+    //   notification: {
+    //     _id: notification?._id,
+    //     type: notification?.type,
+    //     metadata: notification?.metadata,
+    //     brandId: notification?.brandId,
+    //   },
+    // });
+
+    switch (type) {
+      case "brand":
+        // First try to get the brand data from metadata
+        const brandData = notification?.metadata?.brand;
+        // console.log("[NotificationPanel] Brand data from metadata:", brandData);
+
+        // Try to get username in order of priority
+        const brandUsername =
+          brandData?.username || // from metadata.brand.username
+          (typeof id === "object" ? id.username : null) || // if id is an object with username
+          notification?.brand?.username || // from notification.brand
+          id; // fallback to id if it's a string
+
+        // console.log("[NotificationPanel] Resolved brand username:", {
+        //   fromMetadata: brandData?.username,
+        //   fromIdObject: typeof id === "object" ? id.username : null,
+        //   fromNotification: notification?.brand?.username,
+        //   fromId: id,
+        //   final: brandUsername,
+        // });
+
+        if (!brandUsername) {
+          // console.error(
+          //   "[NotificationPanel] Could not resolve brand username:",
+          //   {
+          //     brandData,
+          //     id,
+          //     notification,
+          //   }
+          // );
+          toast.showError("Could not navigate to brand profile");
+          return;
+        }
+
+        // Log the final navigation attempt
+        // console.log(
+        //   "[NotificationPanel] Attempting navigation to:",
+        //   `/@${user.username}/@${brandUsername}`
+        // );
+        navigate(`/@${user.username}/@${brandUsername}`);
+        onClose();
+        break;
+
+      case "event":
+        // For events, we need to fetch the event data first to get the title and brand
+        try {
+          const { data } = await axiosInstance.get(`/events/${id}`);
+
+          if (data.success && data.event) {
+            const event = data.event;
+
+            // Format date for URL (MMDDYY)
+            const eventDate = new Date(event.date);
+            const month = String(eventDate.getMonth() + 1).padStart(2, "0");
+            const day = String(eventDate.getDate()).padStart(2, "0");
+            const year = String(eventDate.getFullYear()).slice(2);
+            const dateSlug = `${month}${day}${year}`;
+
+            // We're no longer using title slugs or /e/ in the URL
+            // just use the date directly
+
+            // Get the brand username from the brand object
+            const brandUsername = event.brand.username || "";
+
+            // Construct the URL with ultra-simplified format
+            const eventPath = user
+              ? `/@${user.username}/@${brandUsername}/${dateSlug}`
+              : `/@${brandUsername}/${dateSlug}`;
+
+            navigate(eventPath);
+          } else {
+            // Fallback to old URL format if event data not available
+            navigate(`/events/${id}`);
+          }
+        } catch (error) {
+          console.error(
+            "[NotificationPanel] Error fetching event data:",
+            error
+          );
+          // Fallback to old URL format if there's an error
+          navigate(`/events/${id}`);
+        }
+        onClose();
+        break;
+
+      default:
+        // console.log("[NotificationPanel] Unhandled entity type:", type);
+        break;
     }
   };
 
-  const handleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const formatEntityName = (entity, type, notification) => {
+    if (!entity) {
+      console.warn("[NotificationPanel] No entity provided for formatting", {
+        type,
+        notificationId: notification?._id,
+      });
+      return "";
+    }
+
+    // For brands, try to get the username from different possible locations
+    let username;
+    if (type === "brand") {
+      // If entity is already a string (username), use it directly
+      if (typeof entity === "string") {
+        username = entity;
+      } else {
+        username = entity.username || entity.name;
+
+        // If no username found in entity, try metadata
+        if (!username && notification?.metadata?.brand) {
+          username =
+            notification.metadata.brand.username ||
+            notification.metadata.brand.name;
+        }
+      }
+    } else if (type === "user") {
+      // For user entities, be more defensive
+      if (typeof entity === "string") {
+        username = entity;
+      } else {
+        username = entity.username || entity.name || "Unknown User";
+      }
+    } else {
+      username = entity.username || entity.name || "Unknown";
+    }
+
+    if (!username) {
+      console.warn("[NotificationPanel] No username found for entity:", {
+        entity,
+        type,
+        notificationMetadata: notification?.metadata,
+      });
+      return type === "user" ? "Someone" : "Unknown";
+    }
+
+    return (
+      <span
+        className={`entity-name ${type} ${type !== "user" ? "clickable" : ""}`}
+        onClick={() =>
+          type !== "user" && handleEntityClick(type, entity, notification)
+        }
+      >
+        @{username}
+      </span>
+    );
   };
+
+  const renderNotificationContent = (notification) => {
+    const { type, metadata, read, requestId } = notification;
+    // console.log("Rendering notification:", { type, metadata });
+
+    const showAvatar = type === "new_follower" && metadata?.follower?.avatar;
+
+    const renderMessage = () => {
+      let messageContent;
+      switch (type) {
+        case "new_follower":
+          if (!metadata?.follower || !metadata?.brand) {
+            messageContent = "Someone started following your brand";
+            break;
+          }
+          messageContent = (
+            <>
+              {formatEntityName(metadata.follower, "user", notification)}{" "}
+              started following{" "}
+              {formatEntityName(metadata.brand, "brand", notification)}
+            </>
+          );
+          break;
+        case "join_request":
+          if (!metadata?.user || !metadata?.brand) {
+            messageContent = "Someone requested to join a brand";
+            break;
+          }
+          messageContent = (
+            <>
+              {formatEntityName(metadata.user, "user", notification)} wants to
+              join {formatEntityName(metadata.brand, "brand", notification)}
+            </>
+          );
+          break;
+        case "join_request_accepted":
+          if (!metadata?.brand) {
+            messageContent = "Your join request has been accepted";
+            break;
+          }
+          messageContent = (
+            <>
+              Your request to join{" "}
+              {formatEntityName(metadata.brand, "brand", notification)} has been
+              accepted
+            </>
+          );
+          break;
+        case "join_request_rejected":
+          if (!metadata?.brand) {
+            messageContent = "Your join request has been rejected";
+            break;
+          }
+          messageContent = (
+            <>
+              Your request to join{" "}
+              {formatEntityName(metadata.brand, "brand", notification)} has been
+              rejected
+            </>
+          );
+          break;
+        case "new_favorite":
+          messageContent = (
+            <>
+              {formatEntityName(metadata.user, "user", notification)} favorited{" "}
+              {formatEntityName(metadata.brand, "brand", notification)}
+            </>
+          );
+          break;
+        case "event_invitation":
+          messageContent = (
+            <>
+              You've been invited to{" "}
+              {formatEntityName(metadata.event, "event", notification)} by{" "}
+              {formatEntityName(metadata.inviter, "user", notification)}
+            </>
+          );
+          break;
+        case "test":
+          messageContent = notification.message;
+          break;
+        default:
+          if (metadata?.mentions) {
+            messageContent = metadata.mentions.reduce((msg, mention) => {
+              return msg.replace(
+                `@${mention.username}`,
+                formatEntityName(mention, mention.type, notification)
+              );
+            }, notification.message);
+          } else {
+            messageContent = notification.message;
+          }
+      }
+      return messageContent;
+    };
+
+    return (
+      <div className="content-container">
+        {!showAvatar && (
+          <div className="notification-icon">{getNotificationIcon(type)}</div>
+        )}
+        {showAvatar && (
+          <div className="notification-avatar">
+            <img src={metadata.follower.avatar} alt="Avatar" />
+          </div>
+        )}
+        <div className="content-wrapper">
+          <div className="content-main">
+            <p className="message">{renderMessage()}</p>
+            <span className="timestamp">
+              <RiTimeLine />
+              {formatDistanceToNow(new Date(notification.createdAt), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
+          {type === "join_request" && !notification.read && (
+            <div className="actions">
+              <button
+                className="accept"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcessJoinRequest(requestId, "accept");
+                }}
+              >
+                <RiCheckLine />
+                Accept
+              </button>
+              <button
+                className="reject"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProcessJoinRequest(requestId, "reject");
+                }}
+              >
+                <RiCloseLine />
+                Reject
+              </button>
+            </div>
+          )}
+          {(type === "join_request_accepted" ||
+            type === "join_request_rejected") && (
+            <div className="status-badge">
+              {type === "join_request_accepted" ? (
+                <span className="accepted">
+                  <RiCheckLine /> Accepted
+                </span>
+              ) : (
+                <span className="rejected">
+                  <RiCloseLine /> Rejected
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+  };
+
+  const filteredNotifications = showHistory
+    ? notifications
+    : notifications.filter((n) => !n.read);
 
   return (
     <div className="notification-panel">
-      <button
-        className={`notification-panel-trigger ${
-          hasNotifications ? "has-notification" : ""
-        }`}
-        onClick={handleClick}
-      >
-        <RiBellLine />
-        {unreadCount > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="notification-panel-badge"
+      <div className="panel-header">
+        <h2>Notifications</h2>
+        <div className="header-actions">
+          <motion.button
+            className={`history-toggle ${showHistory ? "active" : ""}`}
+            onClick={toggleHistory}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
-            {unreadCount}
-          </motion.span>
-        )}
-      </button>
+            <RiTimeLine />
+          </motion.button>
+          <motion.button
+            className="close-btn"
+            onClick={onClose}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <RiCloseLine />
+          </motion.button>
+        </div>
+      </div>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              className="notification-panel-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleOverlayClick}
-            />
-            <motion.div
-              className={`notification-panel-content ${isOpen ? "open" : ""}`}
-              initial={{
-                opacity: 0,
-                y: window.innerWidth <= 768 ? "100%" : -20,
-                scale: window.innerWidth <= 768 ? 1 : 0.95,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                y: window.innerWidth <= 768 ? "100%" : -20,
-                scale: window.innerWidth <= 768 ? 1 : 0.95,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            >
-              <div className="notification-panel-header">
-                <h3>Notifications</h3>
-                {notifications.length > 0 && (
-                  <button
-                    className="notification-panel-clear"
-                    onClick={handleClearAll}
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-
-              <div className="notification-panel-list">
-                {notifications.length === 0 ? (
-                  <div className="notification-panel-empty">
-                    <p>No notifications yet</p>
-                  </div>
-                ) : (
-                  notifications.map((notification) => (
-                    <motion.div
-                      key={notification._id}
-                      className={`notification-panel-item ${
-                        !notification.read ? "unread" : ""
-                      }`}
-                      layout
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                    >
-                      <div className="notification-panel-item-icon">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="notification-panel-item-content">
-                        <h4>{notification.title}</h4>
-                        <p>{notification.message}</p>
-                        <span className="notification-panel-item-time">
-                          {getTimeAgo(notification.createdAt)}
-                        </span>
-                      </div>
-                      {!notification.read && (
-                        <button
-                          className="notification-panel-item-mark-read"
-                          onClick={() => handleMarkAsRead(notification._id)}
-                        >
-                          <RiCheckLine />
-                        </button>
-                      )}
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          </>
+      <div className="notifications-list">
+        {loading ? (
+          <div className="loading">Loading notifications...</div>
+        ) : filteredNotifications.length === 0 ? (
+          <div className="empty-state">
+            {showHistory ? "No notification history" : "No new notifications"}
+          </div>
+        ) : (
+          <AnimatePresence>
+            {filteredNotifications.map((notification) => (
+              <motion.div
+                key={notification._id}
+                className={`notification-item ${
+                  notification.read ? "read" : "unread"
+                }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                onClick={() =>
+                  !notification.read && markAsRead(notification._id)
+                }
+              >
+                {renderNotificationContent(notification)}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 };

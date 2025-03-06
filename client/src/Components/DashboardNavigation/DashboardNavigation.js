@@ -1,67 +1,93 @@
-import React from "react";
+import React, { useState } from "react";
 import "./DashboardNavigation.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RiHome5Line,
-  RiBuilding2Line,
   RiCalendarEventLine,
-  RiStore2Line,
+  RiCloseLine,
+  RiBuildingLine,
   RiSettings4Line,
-  RiCloseFill,
-  RiTeamLine,
-  RiVipCrownLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
+import { useSocket } from "../../contexts/SocketContext";
+import AvatarUpload from "../AvatarUpload/AvatarUpload";
+import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
 
-const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
+const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   const navigate = useNavigate();
+  const { isConnected } = useSocket();
+  const [isCropMode, setIsCropMode] = useState(false);
 
   if (!currentUser) return null;
 
   const menuItems = [
     {
-      title: "Home",
+      title: "Profile",
       icon: <RiHome5Line />,
-      path: "/dashboard",
-      description: "Your personal dashboard",
+      path: `/@${currentUser.username}`,
+      action: () => {
+        navigate(`/@${currentUser.username}`);
+        onClose();
+      },
     },
     {
       title: "Brands",
-      icon: <RiStore2Line />,
-      path: "/brands",
-      description: "Create & manage brands",
-    },
-    {
-      title: "My Memberships",
-      icon: <RiVipCrownLine />,
-      path: "/memberships",
-      description: "Events you're part of",
-    },
-    {
-      title: "Locations",
-      icon: <RiBuilding2Line />,
-      path: "/locations",
-      description: "Venue management",
+      icon: <RiBuildingLine />,
+      path: `/@${currentUser.username}/brands`,
+      action: () => {
+        navigate(`/@${currentUser.username}/brands`);
+        onClose();
+      },
     },
     {
       title: "Events",
       icon: <RiCalendarEventLine />,
-      path: "/events",
-      description: "Your event calendar",
-    },
-    {
-      title: "Team",
-      icon: <RiTeamLine />,
-      path: "/team",
-      description: "Manage your team",
+      path: `/@${currentUser.username}/events`,
+      action: () => {
+        navigate(`/@${currentUser.username}/events`);
+        onClose();
+      },
     },
     {
       title: "Settings",
       icon: <RiSettings4Line />,
       path: "/settings",
-      description: "Account preferences",
+      action: (e) => {
+        // No action for now, will implement later
+        e.stopPropagation();
+        onClose();
+      },
     },
   ];
+
+  const overlayVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+  };
+
+  const navigationVariants = {
+    hidden: { x: "100%" },
+    visible: {
+      x: 0,
+      transition: {
+        type: "tween",
+        duration: 0.3,
+        when: "beforeChildren",
+      },
+    },
+  };
+
+  const menuItemVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: (i) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.2,
+      },
+    }),
+  };
 
   return (
     <AnimatePresence>
@@ -69,31 +95,51 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
         <>
           <motion.div
             className="dashboard-navigation-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={overlayVariants}
             onClick={onClose}
           />
           <motion.div
             className="dashboard-navigation"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={navigationVariants}
           >
             <div className="dashboard-navigation-header">
-              <button className="close-button" onClick={onClose}>
-                <RiCloseFill />
-              </button>
+              <motion.button
+                className="close-button"
+                onClick={onClose}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiCloseLine />
+              </motion.button>
               <div className="user-info">
-                <img
-                  src={currentUser.avatar || "/image/default-avatar.png"}
-                  alt="Profile"
-                  className="user-avatar"
-                />
-                <div className="user-details">
-                  <h3>{currentUser.firstName || "@" + currentUser.username}</h3>
-                  <span className="user-role">Member</span>
+                <div className="avatar-section">
+                  <div className="avatar-container">
+                    <AvatarUpload
+                      user={currentUser}
+                      setUser={setUser}
+                      isCropMode={isCropMode}
+                      setIsCropMode={setIsCropMode}
+                    />
+                    {currentUser?._id && (
+                      <OnlineIndicator
+                        userId={currentUser._id}
+                        size="medium"
+                        className="nav-online-indicator"
+                      />
+                    )}
+                  </div>
+                  <div className="user-details">
+                    <span className="display-name">
+                      {currentUser.firstName}
+                    </span>
+                    <span className="username">@{currentUser.username}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -102,19 +148,18 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser }) => {
               {menuItems.map((item, index) => (
                 <motion.div
                   key={item.title}
-                  className="menu-item"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  onClick={() => {
-                    navigate(item.path);
-                    onClose();
-                  }}
+                  className={`menu-item ${
+                    item.title === "Settings" ? "disabled" : ""
+                  }`}
+                  variants={menuItemVariants}
+                  custom={index}
+                  onClick={item.action}
+                  whileHover={{ x: -4 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <div className="menu-item-icon">{item.icon}</div>
                   <div className="menu-item-text">
                     <h4>{item.title}</h4>
-                    <p>{item.description}</p>
                   </div>
                 </motion.div>
               ))}

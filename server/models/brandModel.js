@@ -10,28 +10,23 @@ const BrandSchema = new Schema(
     team: [
       {
         user: { type: Schema.Types.ObjectId, ref: "User" },
-        role: {
-          type: String,
-          enum: ["admin", "manager", "promoter", "staff"],
-          default: "staff",
-        },
-        permissions: [
-          {
-            type: String,
-            enum: [
-              "create_events",
-              "edit_events",
-              "manage_team",
-              "view_analytics",
-            ],
-          },
-        ],
+        role: { type: String, required: true, default: "MEMBER" },
+        joinedAt: { type: Date, default: Date.now },
       },
     ],
+    favorites: [{ type: Schema.Types.ObjectId, ref: "User" }],
 
     // Brand Identity
-    logo: { type: String },
-    coverImage: { type: String },
+    logo: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
+    coverImage: {
+      thumbnail: { type: String },
+      medium: { type: String },
+      full: { type: String },
+    },
     colors: {
       primary: { type: String, default: "#ffc807" },
       secondary: { type: String, default: "#ffffff" },
@@ -74,6 +69,8 @@ const BrandSchema = new Schema(
       isVerified: { type: Boolean, default: false },
       isPublic: { type: Boolean, default: true },
       allowsReviews: { type: Boolean, default: true },
+      defaultRole: { type: String, default: "MEMBER" },
+      autoJoinEnabled: { type: Boolean, default: false },
       defaultEventSettings: {
         guestCodeEnabled: { type: Boolean, default: true },
         friendsCodeEnabled: { type: Boolean, default: true },
@@ -88,6 +85,14 @@ const BrandSchema = new Schema(
       totalAttendees: { type: Number, default: 0 },
       averageRating: { type: Number, default: 0 },
     },
+
+    bannedMembers: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User" },
+        bannedAt: { type: Date },
+        bannedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
   },
   {
     timestamps: true,

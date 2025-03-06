@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useSocket } from "./SocketContext";
-import axios from "axios";
+import axiosInstance from "../utils/axiosConfig";
 import { useAuth } from "./AuthContext";
 
 const NotificationContext = createContext();
@@ -19,24 +25,24 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { socket } = useSocket();
-  const { getNewToken, user } = useAuth();
+  const { user } = useAuth();
 
-  const axiosWithAuth = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("[Auth] No token found");
-      throw new Error("No authentication token");
+  const fetchNotifications = useCallback(async () => {
+    if (!user?._id) {
+      return;
     }
 
-    return axios.create({
-      baseURL: process.env.REACT_APP_API_BASE_URL,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-  };
+    try {
+      const response = await axiosInstance.get(
+        `/notifications/user/${user._id}`
+      );
+
+      setNotifications(response.data);
+      setUnreadCount(response.data.filter((n) => !n.read).length);
+    } catch (error) {
+      // Silent error
+    }
+  }, [user?._id]);
 
   useEffect(() => {
     if (!socket) return;
@@ -52,13 +58,26 @@ export const NotificationProvider = ({ children }) => {
           notif._id === updatedNotification._id ? updatedNotification : notif
         )
       );
+      if (updatedNotification.read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    });
+
+    socket.on("notification_deleted", (notificationId) => {
+      setNotifications((prev) =>
+        prev.filter((notif) => notif._id !== notificationId)
+      );
+      setNotifications((prev) => {
+        const newUnreadCount = prev.filter((n) => !n.read).length;
+        setUnreadCount(newUnreadCount);
+        return prev;
+      });
     });
 
     return () => {
-      if (socket) {
-        socket.off("new_notification");
-        socket.off("notification_updated");
-      }
+      socket.off("new_notification");
+      socket.off("notification_updated");
+      socket.off("notification_deleted");
     };
   }, [socket]);
 
@@ -66,63 +85,30 @@ export const NotificationProvider = ({ children }) => {
     if (user?._id) {
       fetchNotifications();
     }
-  }, [user?._id]);
+  }, [user?._id, fetchNotifications]);
 
   const markAsRead = async (notificationId) => {
     try {
-      const api = await axiosWithAuth();
-      await api.put(`/notifications/${notificationId}/read`);
+      await axiosInstance.put(`/notifications/${notificationId}/read`);
+
       setNotifications((prev) =>
-        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, read: true } : notif
+        )
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      if (error.response?.status === 401) {
-        try {
-          await getNewToken();
-          const api = await axiosWithAuth();
-          await api.put(`/notifications/${notificationId}/read`);
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n._id === notificationId ? { ...n, read: true } : n
-            )
-          );
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        } catch (retryError) {
-          console.error("Error marking notification as read:", retryError);
-        }
-      } else {
-        console.error("Error marking notification as read:", error);
-      }
+      // Silent error
     }
   };
 
   const clearAll = async () => {
     try {
-      await Promise.all(
-        notifications.map((n) =>
-          axios.delete(
-            `${process.env.REACT_APP_API_BASE_URL}/notifications/${n._id}`
-          )
-        )
-      );
+      await axiosInstance.delete(`/notifications/user/${user._id}/all`);
       setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
-      console.error("Error clearing all notifications:", error);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    if (user?._id) {
-      try {
-        const api = await axiosWithAuth();
-        const response = await api.get(`/notifications/user/${user._id}`);
-        setNotifications(response.data);
-        setUnreadCount(response.data.filter((n) => !n.read).length);
-      } catch (error) {
-        console.error("[Notification] Error fetching:", error.message);
-      }
+      // Silent error
     }
   };
 
@@ -130,8 +116,6 @@ export const NotificationProvider = ({ children }) => {
     notifications,
     unreadCount,
     markAsRead,
-    setNotifications,
-    setUnreadCount,
     clearAll,
     fetchNotifications,
   };
@@ -142,3 +126,5 @@ export const NotificationProvider = ({ children }) => {
     </NotificationContext.Provider>
   );
 };
+
+export default NotificationContext;

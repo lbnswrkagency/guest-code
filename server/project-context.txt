@@ -1,0 +1,152 @@
+# GuestCode Project Context
+
+## Current Work
+- Implementing a unified search functionality across Users, Brands, and Events
+- Search component with tabbed interface and real-time results
+- Backend search API with type-specific filtering
+
+## Architecture Overview
+
+### Frontend Structure
+1. **API Communication**
+   - Using axios with centralized configuration (axiosConfig.js)
+   - Token refresh mechanism implemented
+   - Automatic error handling and token management
+   - Base URL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api"
+
+2. **Authentication**
+   - JWT-based authentication with access and refresh tokens
+   - Tokens stored in localStorage
+   - Auto-refresh mechanism for expired tokens
+   - Protected routes using AuthContext
+
+3. **Real-time Features**
+   - Socket.IO integration for real-time updates
+   - Notification system
+   - Chat functionality (both personal and global)
+   - Online status tracking
+
+4. **UI/UX Standards**
+   - Dark theme with modern aesthetics
+   - Consistent color scheme (primary: #ffc807)
+   - Responsive design with mobile-first approach
+   - Framer Motion for animations
+   - React Icons (primarily using FI and RI icon sets)
+
+### Backend Structure
+
+1. **API Organization**
+   - RESTful architecture
+   - Routes organized by feature (auth, users, brands, events, etc.)
+   - Consistent error handling and response format
+   - Authentication middleware for protected routes
+
+2. **Database Models**
+   Key models and their relationships:
+   - User: Core user information and authentication
+   - Brand: Event organization and team management
+   - Event: Event details and management
+   - Role: Permission management for brand teams
+   - Chat/Message: Communication system
+   - Notification: User notifications
+   - Various code models (FriendsCode, BackstageCode, etc.)
+
+3. **Security Practices**
+   - JWT with separate access and refresh tokens
+   - Password hashing using bcrypt
+   - Request validation
+   - CORS configuration with proper origins
+   - Environment variable management
+
+4. **File Structure**
+   ```
+   server/
+   ├── controllers/    # Business logic
+   ├── models/        # Mongoose models
+   ├── routes/        # Route definitions
+   ├── middleware/    # Custom middleware
+   ├── utils/         # Helper functions
+   └── socket.js      # Socket.IO setup
+   ```
+
+## Key Features
+
+1. **Brand Management**
+   - Team roles and permissions
+   - Settings management
+   - Join settings with auto-join capability
+   - Brand customization (logo, colors, etc.)
+
+2. **Event System**
+   - Event creation and management
+   - Different code types (Friends, Backstage, Table)
+   - QR code generation and validation
+   - Event analytics
+
+3. **User System**
+   - Authentication and authorization
+   - Profile management
+   - Avatar upload and cropping
+   - Role-based permissions
+
+4. **Communication**
+   - Real-time chat (personal and global)
+   - Notification system
+   - Team communication
+   - Event announcements
+
+## Development Patterns
+
+1. **State Management**
+   - Context API for global state
+   - Custom hooks for reusable logic
+   - Proper error boundaries and loading states
+
+2. **Code Style**
+   - Consistent error logging with area tags
+   - Comprehensive error handling
+   - Async/await pattern
+   - Component composition
+
+3. **API Response Format**
+   ```javascript
+   {
+     success: boolean,
+     data?: any,
+     message?: string,
+     error?: string
+   }
+   ```
+
+4. **Error Handling**
+   - Consistent error logging format
+   - Client-side toast notifications
+   - Proper HTTP status codes
+   - Detailed error messages in development
+
+## Current Challenges
+1. Handling duplicate panels in brand settings
+2. Role permission synchronization
+3. Real-time updates optimization
+4. Search performance optimization
+
+## Recent Updates
+1. Improved brand settings structure
+2. Enhanced role management system
+3. Unified search implementation
+4. Real-time notification improvements
+
+## Next Steps
+1. Optimize search performance
+2. Implement search result caching
+3. Add search analytics
+4. Enhance search filters
+
+## Important Notes
+- Always use the axiosInstance for API calls
+- Implement proper error handling and loading states
+- Follow the established logging pattern
+- Maintain consistent styling with SCSS
+- Use the established component patterns
+- Always handle token refresh scenarios
+- Implement proper event cleanup in components 

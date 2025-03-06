@@ -1,0 +1,858 @@
+.settings-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.settings-group {
+  margin-bottom: 2rem;
+
+  h3 {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &.danger-zone {
+    h3 {
+      color: #ff3b30;
+    }
+  }
+}
+
+.settings-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .no-codes-message {
+    padding: 1rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+}
+
+.settings-item-container {
+  margin-bottom: 1rem;
+  position: relative;
+  padding-top: 0.75rem;
+
+  .settings-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 16px;
+    background: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    min-height: 64px;
+    border-left-width: 4px;
+
+    .item-name {
+      position: absolute;
+      top: -0.75rem;
+      left: 1rem;
+      background: rgba(20, 20, 20, 0.8);
+      padding: 0.15rem 0.75rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      z-index: 2;
+      max-width: calc(100% - 2rem);
+
+      h4 {
+        font-size: 0.9rem;
+        color: #fff;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+      }
+    }
+
+    &:hover {
+      background: rgba(40, 40, 40, 0.8);
+
+      .item-icon {
+        transform: scale(1.1);
+      }
+
+      .item-name {
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    &.active {
+      .item-content h4 {
+        font-weight: 600;
+      }
+    }
+
+    &.danger {
+      &:hover {
+        background: rgba(255, 59, 48, 0.1);
+        border-color: #ff3b30;
+
+        .item-icon {
+          background: rgba(255, 59, 48, 0.1);
+          color: #ff3b30;
+        }
+
+        .item-content {
+          h4 {
+            color: #ff3b30;
+          }
+        }
+      }
+    }
+
+    .item-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      overflow: hidden;
+
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      svg {
+        font-size: 1.5rem;
+        display: block;
+      }
+    }
+
+    .item-content {
+      flex: 1;
+      min-width: 0;
+
+      h4 {
+        font-size: 1.1rem;
+        color: #fff;
+        margin: 0;
+        transition: color 0.3s ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      p {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+
+      .color-picker-button,
+      .toggle-button,
+      .expand-settings-button,
+      .delete-button,
+      .code-setting-delete-button,
+      .icon-picker-button {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(5px);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+          transform: scale(1.1);
+        }
+
+        svg {
+          font-size: 1.25rem;
+        }
+      }
+
+      .code-setting-delete-button {
+        background: rgba(255, 59, 48, 0.1);
+        border: 1px solid rgba(255, 59, 48, 0.2);
+        color: rgba(255, 59, 48, 0.8);
+
+        &:hover {
+          background: rgba(255, 59, 48, 0.2);
+          border-color: rgba(255, 59, 48, 0.3);
+          color: #ff3b30;
+        }
+      }
+    }
+  }
+}
+
+.code-settings-panel {
+  background: rgba(20, 20, 20, 0.5);
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: none;
+  margin-top: -5px;
+}
+
+.code-settings-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+  }
+
+  input,
+  select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    width: 100%;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 200, 7, 0.5);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px rgba(255, 200, 7, 0.1);
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    &.disabled-input {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem top 50%;
+    background-size: 0.65rem auto;
+    padding-right: 2.5rem;
+  }
+}
+
+.editable-name {
+  position: relative;
+
+  .edit-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.1rem;
+    pointer-events: none;
+  }
+}
+
+.color-preview-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .color-value {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: monospace;
+  }
+}
+
+.settings-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
+  position: sticky;
+  bottom: 0;
+
+  .save-changes-button {
+    background-color: #ffc807;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-width: 180px;
+
+    &:hover {
+      background-color: #ffcf33;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    &:disabled {
+      background-color: rgba(255, 200, 7, 0.3);
+      color: rgba(0, 0, 0, 0.5);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+  }
+}
+
+.add-code-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+  position: sticky;
+  bottom: 1rem;
+
+  .add-code-button {
+    background-color: rgba(255, 200, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 200, 7, 0.3);
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      background-color: rgba(255, 200, 7, 0.25);
+      transform: translateY(-2px);
+    }
+
+    svg {
+      font-size: 1.2rem;
+    }
+  }
+}
+
+// Icon picker styles
+.icon-picker-dialog {
+  background: #1a1a1a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-height: 80vh;
+  overflow-y: auto;
+
+  h3 {
+    margin: 0 0 1.25rem;
+    font-size: 1.2rem;
+    color: #fff;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .icon-options {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+
+    .icon-option {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        font-size: 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      &:hover {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+
+        svg {
+          color: #fff;
+        }
+      }
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.cancel-button {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .settings-content {
+    padding: 1rem;
+  }
+
+  .settings-item-container {
+    padding-top: 0.6rem;
+
+    .settings-item {
+      padding: 12px;
+      min-height: 60px;
+      border-left-width: 3px;
+
+      .item-name {
+        top: -0.6rem;
+        left: 0.75rem;
+        padding: 0.1rem 0.5rem;
+
+        h4 {
+          font-size: 0.8rem;
+        }
+      }
+
+      .item-icon {
+        width: 40px;
+        height: 40px;
+
+        svg {
+          font-size: 1.25rem;
+        }
+      }
+
+      .item-content {
+        h4 {
+          font-size: 1rem;
+        }
+      }
+
+      .item-actions {
+        gap: 6px;
+
+        .color-picker-button,
+        .toggle-button,
+        .expand-settings-button,
+        .delete-button,
+        .code-setting-delete-button,
+        .icon-picker-button {
+          width: 32px;
+          height: 32px;
+
+          svg {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+  }
+
+  .code-settings-content {
+    padding: 1rem;
+  }
+
+  .settings-field {
+    input,
+    select {
+      padding: 0.7rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .icon-picker-dialog {
+    max-width: 300px;
+    padding: 0.75rem;
+    max-height: 85vh;
+
+    h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .icon-options {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+
+      .icon-option {
+        width: 40px;
+        height: 40px;
+
+        svg {
+          font-size: 1.25rem;
+        }
+      }
+    }
+
+    .dialog-actions button {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .settings-content {
+    padding: 0.75rem;
+  }
+
+  .settings-item-container {
+    .settings-item {
+      padding: 10px;
+      min-height: 56px;
+
+      .item-icon {
+        width: 36px;
+        height: 36px;
+
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+
+      .item-actions {
+        .color-picker-button,
+        .toggle-button,
+        .expand-settings-button,
+        .delete-button,
+        .icon-picker-button {
+          width: 28px;
+          height: 28px;
+
+          svg {
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+  }
+
+  .code-settings-content {
+    padding: 0.75rem;
+  }
+
+  .color-preview-container {
+    padding: 0.5rem;
+
+    .color-preview {
+      width: 32px;
+      height: 32px;
+    }
+
+    .color-value {
+      font-size: 0.8rem;
+    }
+  }
+
+  .icon-picker-dialog {
+    max-width: 280px;
+    padding: 0.5rem;
+
+    .icon-options {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+
+      .icon-option {
+        width: 36px;
+        height: 36px;
+
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+}
+
+.code-limit-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .limit-input-wrapper {
+    width: 100%;
+    max-width: 120px;
+
+    .limit-input {
+      width: 100%;
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9rem;
+      text-align: center;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 200, 7, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.unlimited-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  svg {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &.active {
+    background: rgba(255, 200, 7, 0.2);
+    color: #ffc807;
+  }
+}
+
+// Add Code Dialog Styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-code-dialog {
+  position: relative;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  z-index: 1100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      input {
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.5);
+          box-shadow: 0 0 0 1px rgba(255, 200, 7, 0.1);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+
+      button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &.cancel-button {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.7);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+        }
+
+        &.confirm-button {
+          background-color: #ffc807;
+          border: none;
+          color: #000;
+
+          &:hover:not(:disabled) {
+            background-color: #d1a300;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Media queries for responsive design
+@media (max-width: 600px) {
+  .add-code-dialog {
+    width: 95%;
+    padding: 20px;
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
+
+    .dialog-content {
+      gap: 16px;
+    }
+  }
+}

@@ -2,9 +2,9 @@
 const express = require("express");
 const router = express.Router();
 const chatController = require("../controllers/chatController");
-const { authenticate } = require("../middleware/authMiddleware"); // Note the destructuring here
+const { authenticateToken } = require("../middleware/auth");
 
-router.post("/", authenticate, chatController.createChat);
-router.get("/", authenticate, chatController.getChats);
+router.post("/", authenticateToken, chatController.createChat);
+router.get("/", authenticateToken, chatController.getChats);
 
 module.exports = router;

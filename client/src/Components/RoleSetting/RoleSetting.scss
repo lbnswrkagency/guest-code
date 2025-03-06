@@ -1,0 +1,653 @@
+.role-settings {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #151515;
+  color: #fff;
+  padding: 1.5rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1.5rem;
+    background: #151515;
+    z-index: 9;
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #151515;
+    padding-top: 0.5rem;
+    margin-top: -0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+
+      svg {
+        font-size: 1.25rem;
+      }
+    }
+  }
+
+  .roles-list {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+
+    .role-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+
+      &.owner {
+        order: -1;
+        background: rgba(255, 200, 7, 0.1);
+        border: 1px solid rgba(255, 200, 7, 0.2);
+
+        .role-name {
+          color: #ffc807;
+        }
+      }
+
+      .role-name {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .role-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+          }
+
+          &.edit {
+            color: #ffc807;
+            background: rgba(255, 200, 7, 0.1);
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.2);
+            }
+          }
+
+          &.delete {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+
+            &:hover {
+              background: rgba(255, 68, 68, 0.2);
+            }
+          }
+
+          &.lock {
+            color: #ffc807;
+            background: rgba(255, 200, 7, 0.1);
+            margin-left: auto;
+            cursor: not-allowed;
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.15);
+            }
+          }
+
+          svg {
+            font-size: 1.1rem;
+          }
+        }
+      }
+    }
+  }
+
+  .add-role-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    background: rgba(255, 200, 7, 0.1);
+    border: 1px dashed rgba(255, 200, 7, 0.3);
+    border-radius: 12px;
+    color: #ffc807;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 200, 7, 0.15);
+      border-color: rgba(255, 200, 7, 0.4);
+    }
+
+    svg {
+      font-size: 1.25rem;
+    }
+  }
+
+  .create-role-form {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+
+    h3 {
+      margin: 0 0 1rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 200, 7, 0.3);
+      }
+    }
+
+    .permissions-section {
+      h4 {
+        margin: 1.5rem 0 1rem;
+        font-size: 1rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .permission-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .permission-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.02);
+        margin-top: 0.75rem;
+        .permission-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .permission-title {
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .code-limit-section {
+          margin-left: 3.25rem;
+          margin-top: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+
+          .limit-input-wrapper {
+            width: 100%;
+            max-width: 120px;
+
+            .limit-input {
+              width: 100%;
+              padding: 0.5rem;
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              border-radius: 6px;
+              color: #fff;
+              font-size: 0.9rem;
+              text-align: center;
+              transition: all 0.2s ease;
+
+              &:focus {
+                outline: none;
+                border-color: rgba(255, 200, 7, 0.3);
+                background: rgba(255, 255, 255, 0.15);
+              }
+
+              &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+              }
+            }
+          }
+
+          .unlimited-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            svg {
+              font-size: 1.1rem;
+            }
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.15);
+              color: rgba(255, 255, 255, 0.9);
+            }
+
+            &.active {
+              background: rgba(255, 200, 7, 0.15);
+              color: #ffc807;
+
+              &:hover {
+                background: rgba(255, 200, 7, 0.2);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+
+      button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &.cancel-btn {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.9);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+          }
+        }
+
+        &.save-btn {
+          background: #ffc807;
+          color: #000;
+
+          &:hover {
+            background: #d1a300;
+          }
+        }
+      }
+    }
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+
+    input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+
+      &:checked + .slider {
+        background: #ffc807;
+
+        &:before {
+          transform: translateX(20px);
+        }
+      }
+
+      &:disabled + .slider {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.1);
+      transition: 0.2s;
+      border-radius: 24px;
+
+      &:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        transition: 0.2s;
+        border-radius: 50%;
+      }
+    }
+  }
+
+  &.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .role-actions {
+    display: flex;
+    gap: 0.5rem;
+
+    .edit-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 200, 7, 0.1);
+      color: #ffc807;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 200, 7, 0.2);
+      }
+    }
+  }
+
+  .form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .create-role-form {
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #151515;
+      margin: 0;
+      padding: 2rem;
+
+      h3 {
+        margin: 0 0 1.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      input[type="text"] {
+        margin-bottom: 2rem;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .permissions-section {
+        h4 {
+          margin: 2rem 0 1.25rem;
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.8);
+
+          &:first-of-type {
+            margin-top: 0.5rem;
+          }
+        }
+
+        .permission-group {
+          gap: 1rem;
+        }
+
+        .permission-item {
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 8px;
+          padding: 0.75rem;
+          transition: background 0.2s ease;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.05);
+          }
+        }
+      }
+
+      .form-actions {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+
+        button {
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
+          border: none;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &.cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.15);
+            }
+          }
+
+          &.save-btn {
+            background: #ffc807;
+            color: #000;
+
+            &:hover {
+              background: #d1a300;
+            }
+          }
+        }
+      }
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-codes {
+  background: rgba(255, 200, 7, 0.05);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+
+  .permission-item {
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 2px solid rgba(255, 200, 7, 0.3);
+    margin-bottom: 1rem;
+    transition: background 0.2s ease;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .permission-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      .permission-title {
+        font-weight: 500;
+      }
+    }
+
+    .code-limit-section {
+      margin-left: 3.25rem;
+      margin-top: 0.75rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+}
+
+.no-custom-codes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 24px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+
+  svg {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.8;
+    color: rgba(255, 200, 7, 0.7);
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}

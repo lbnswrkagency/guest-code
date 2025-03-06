@@ -1,13 +1,88 @@
 import React, { useState, useEffect, useContext } from "react";
 import "./Brands.scss";
-import { RiAddCircleLine } from "react-icons/ri";
+import { RiAddCircleLine, RiEditLine, RiSettings4Line } from "react-icons/ri";
+import {
+  FaInstagram,
+  FaTiktok,
+  FaFacebookF,
+  FaTwitter,
+  FaYoutube,
+  FaSpotify,
+  FaSoundcloud,
+  FaLinkedinIn,
+  FaGlobe,
+  FaWhatsapp,
+  FaTelegram,
+} from "react-icons/fa";
+import { MdEmail, MdPhone, MdLocationOn } from "react-icons/md";
 import BrandForm from "../BrandForm/BrandForm";
+import BrandSettings from "../BrandSettings/BrandSettings";
 import Navigation from "../Navigation/Navigation";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import AuthContext from "../../contexts/AuthContext";
+import { motion } from "framer-motion";
+import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
+
+// Helper function to check if a user has permissions to edit a brand
+const hasBrandPermissions = (brand, user) => {
+  // If no user or brand, permission denied
+  if (!user || !brand) return false;
+
+  // If user is the brand owner, they have permission
+  if (
+    brand.owner === user._id ||
+    (typeof brand.owner === "object" && brand.owner._id === user._id)
+  ) {
+    return true;
+  }
+
+  // If user is a team member, check their permissions
+  const teamMember = brand.team?.find(
+    (member) =>
+      member.user === user._id ||
+      (typeof member.user === "object" && member.user._id === user._id)
+  );
+
+  if (teamMember) {
+    // Check if the team member has management permissions
+    return teamMember.permissions?.team?.manage === true;
+  }
+
+  return false;
+};
+
+const SocialIcon = ({ platform, url }) => {
+  const icons = {
+    instagram: FaInstagram,
+    tiktok: FaTiktok,
+    facebook: FaFacebookF,
+    twitter: FaTwitter,
+    youtube: FaYoutube,
+    spotify: FaSpotify,
+    soundcloud: FaSoundcloud,
+    linkedin: FaLinkedinIn,
+    website: FaGlobe,
+    whatsapp: FaWhatsapp,
+    telegram: FaTelegram,
+  };
+
+  const Icon = icons[platform];
+  return (
+    <div className={`social-icon ${url ? "active" : "empty"}`}>
+      <Icon />
+    </div>
+  );
+};
+
+const ContactInfo = ({ type, value, icon: Icon }) => (
+  <div className={`contact-info ${value ? "active" : "empty"}`}>
+    <Icon />
+    <span>{value || ""}</span>
+  </div>
+);
 
 const Brands = () => {
   const navigate = useNavigate();
@@ -17,27 +92,56 @@ const Brands = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedBrandForSettings, setSelectedBrandForSettings] =
+    useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetchBrands();
   }, []);
 
   const fetchBrands = async () => {
+    const loadingToast = toast.showLoading("Loading brands...");
     try {
-      toast.loading("Loading brands...");
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/brands`,
-        {
-          withCredentials: true,
-        }
-      );
-      setBrands(response.data);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.showError("Authentication required");
+        setLoading(false);
+        setBrands([]);
+        return;
+      }
+
+      const url = `${process.env.REACT_APP_API_BASE_URL}/brands`;
+      const config = {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      const response = await axios.get(url, config);
+
+      if (Array.isArray(response.data)) {
+        setBrands(response.data);
+      } else {
+        setBrands([]);
+      }
+
       setLoading(false);
-      toast.remove();
     } catch (error) {
-      console.error("Error fetching brands:", error);
-      toast.error("Failed to load brands");
+      if (error.response?.status === 401) {
+        toast.showError("Session expired. Please log in again.");
+      } else {
+        toast.showError("Failed to load brands");
+      }
+
       setLoading(false);
+      setBrands([]);
+    } finally {
+      loadingToast.dismiss();
     }
   };
 
@@ -53,62 +157,113 @@ const Brands = () => {
 
   const handleSave = async (brandData) => {
     try {
-      toast.loading(selectedBrand ? "Updating brand..." : "Creating brand...");
+      setBrands((prev) => {
+        const updatedBrands = selectedBrand
+          ? prev.map((b) => (b._id === selectedBrand._id ? brandData : b))
+          : [...prev, brandData];
 
-      const config = {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
+        return updatedBrands;
+      });
 
-      if (selectedBrand) {
-        await axios.put(
-          `${process.env.REACT_APP_API_BASE_URL}/brands/${selectedBrand._id}`,
-          brandData,
-          config
-        );
-        toast.success("Brand updated successfully!");
-      } else {
-        await axios.post(
-          `${process.env.REACT_APP_API_BASE_URL}/brands`,
-          brandData,
-          config
-        );
-        toast.success("Brand created successfully!");
-      }
-
-      fetchBrands();
       handleClose();
     } catch (error) {
-      console.error("Error saving brand:", error);
-      toast.error(
-        selectedBrand ? "Failed to update brand" : "Failed to create brand"
-      );
+      toast.showError(error.response?.data?.message || "Failed to save brand");
     }
   };
 
   const handleDelete = async (brandId) => {
-    if (window.confirm("Are you sure you want to delete this brand?")) {
-      try {
-        toast.loading("Deleting brand...");
-        await axios.delete(
-          `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`,
-          {
-            withCredentials: true,
-          }
-        );
-        toast.success("Brand deleted successfully!");
-        fetchBrands();
-      } catch (error) {
-        console.error("Error deleting brand:", error);
-        toast.error("Failed to delete brand");
+    try {
+      const loadingToast = toast.showLoading("Deleting brand...");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.showError("Authentication required");
+        return;
       }
+
+      const deleteUrl = `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`;
+      console.log(
+        "[Delete Brand] Attempting to delete brand with URL:",
+        deleteUrl
+      );
+      console.log("[Delete Brand] Environment:", {
+        REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+        brandId,
+      });
+
+      await axios.delete(deleteUrl, {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      toast.showSuccess("Brand deleted successfully!");
+      fetchBrands();
+      loadingToast.dismiss();
+    } catch (error) {
+      console.error("Delete brand error:", error);
+      console.error("[Delete Brand] Full error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config,
+      });
+      toast.showError("Failed to delete brand");
     }
   };
 
   const handleBack = () => {
-    navigate("/dashboard");
+    navigate(`/@${user.username}`);
+  };
+
+  const handleSettingsClick = (brand) => {
+    setSelectedBrandForSettings(brand);
+    setShowSettings(true);
+  };
+
+  const handleSettingsClose = () => {
+    setShowSettings(false);
+    setSelectedBrandForSettings(null);
+  };
+
+  const handleBrandDelete = async (brandId) => {
+    try {
+      await handleDelete(brandId);
+      handleSettingsClose();
+    } catch (error) {
+      // Error is already handled in handleDelete
+    }
+  };
+
+  const handleSettingsSave = async (settings) => {
+    try {
+      if (!selectedBrandForSettings) return;
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.showError("Authentication required");
+        return;
+      }
+
+      await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/brands/${selectedBrandForSettings._id}`,
+        {
+          settings,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.showSuccess("Brand settings updated successfully");
+      fetchBrands();
+    } catch (error) {
+      toast.showError("Failed to update brand settings");
+    }
   };
 
   return (
@@ -131,38 +286,40 @@ const Brands = () => {
         </div>
 
         <div className="brands-grid">
-          {brands.map((brand) => (
-            <div
-              key={brand._id}
-              className="brand-card"
-              onClick={() => handleBrandClick(brand)}
-            >
-              <div className="brand-card-header">
-                {brand.coverImage && (
-                  <img
-                    src={brand.coverImage}
-                    alt="cover"
-                    className="brand-cover-image"
-                  />
-                )}
-              </div>
-              <div className="brand-card-content">
-                {brand.logo && (
-                  <img src={brand.logo} alt="logo" className="brand-logo" />
-                )}
-                <h3>{brand.name}</h3>
-                <p>{brand.description}</p>
-              </div>
-            </div>
-          ))}
+          {loading ? (
+            <div className="loading-state">Loading brands...</div>
+          ) : brands.length > 0 ? (
+            <>
+              {brands.map((brand) => (
+                <BrandCard
+                  key={brand._id}
+                  brand={brand}
+                  onClick={handleBrandClick}
+                  onSettingsClick={handleSettingsClick}
+                  onSettingsSave={handleSettingsSave}
+                  onSettingsDelete={handleBrandDelete}
+                />
+              ))}
 
-          <div
-            className="brand-card add-card"
-            onClick={() => setShowForm(true)}
-          >
-            <RiAddCircleLine className="add-icon" />
-            <p>Create New Brand</p>
-          </div>
+              <div
+                className="brand-card add-card"
+                onClick={() => setShowForm(true)}
+              >
+                <RiAddCircleLine className="add-icon" />
+                <p>Create New Brand</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                className="brand-card add-card"
+                onClick={() => setShowForm(true)}
+              >
+                <RiAddCircleLine className="add-icon" />
+                <p>No brands found. Create your first brand!</p>
+              </div>
+            </>
+          )}
         </div>
 
         {showForm && (
@@ -174,6 +331,227 @@ const Brands = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const BrandCard = ({
+  brand,
+  onClick,
+  onSettingsClick,
+  onSettingsSave,
+  onSettingsDelete,
+}) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showBackContent, setShowBackContent] = useState(false);
+  const { user } = useContext(AuthContext); // Get current user
+
+  // Check if the user has permission to edit this brand
+  const hasPermission = hasBrandPermissions(brand, user);
+
+  const getImageUrl = (imageObj) => {
+    if (!imageObj) return null;
+
+    // If it's a string, it's a direct URL
+    if (typeof imageObj === "string") return imageObj;
+
+    // If it has urls object, use that
+    if (imageObj.urls) {
+      return (
+        imageObj.urls.medium || imageObj.urls.full || imageObj.urls.thumbnail
+      );
+    }
+
+    // If it has different sizes, use those
+    return (
+      imageObj.medium ||
+      imageObj.full ||
+      imageObj.thumbnail ||
+      imageObj.original
+    );
+  };
+
+  useEffect(() => {
+    if (isFlipped) {
+      // Show back content after a small delay to sync with flip
+      const timer = setTimeout(() => setShowBackContent(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowBackContent(false);
+    }
+  }, [isFlipped]);
+
+  const coverImageUrl = getImageUrl(brand.coverImage);
+  const logoUrl = getImageUrl(brand.logo);
+
+  const socialPlatforms = [
+    "instagram",
+    "tiktok",
+    "facebook",
+    "twitter",
+    "youtube",
+    "spotify",
+    "soundcloud",
+    "linkedin",
+    "website",
+    "whatsapp",
+    "telegram",
+  ];
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    onClick(brand);
+  };
+
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    setIsFlipped(true);
+  };
+
+  const handleSettingsClose = () => {
+    setIsFlipped(false);
+  };
+
+  return (
+    <motion.div
+      className={`brand-card ${isFlipped ? "flipped" : ""}`}
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "1000px",
+      }}
+    >
+      {/* Front side */}
+      <div
+        className="card-front"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          zIndex: isFlipped ? 0 : 1,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <div className="brand-card-header">
+          <div className="brand-cover-image">
+            {coverImageUrl && (
+              <ProgressiveImage
+                thumbnailSrc={getImageUrl(brand.coverImage)}
+                mediumSrc={getImageUrl(brand.coverImage)}
+                fullSrc={getImageUrl(brand.coverImage)}
+                alt={`${brand.name} cover`}
+                className="cover-image"
+              />
+            )}
+          </div>
+          <div className="card-actions">
+            {hasPermission && (
+              <>
+                <motion.button
+                  className="action-button edit"
+                  onClick={handleEditClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+                <motion.button
+                  className="action-button settings"
+                  onClick={handleSettingsClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiSettings4Line />
+                </motion.button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="brand-card-content">
+          {logoUrl && (
+            <div className="brand-logo">
+              <ProgressiveImage
+                thumbnailSrc={getImageUrl(brand.logo)}
+                mediumSrc={getImageUrl(brand.logo)}
+                fullSrc={getImageUrl(brand.logo)}
+                alt={`${brand.name} logo`}
+                className="logo-image"
+              />
+            </div>
+          )}
+          <div className="brand-info">
+            <h3>{brand.name}</h3>
+            <span className="username">@{brand.username}</span>
+            {brand.description && (
+              <p className="description">{brand.description}</p>
+            )}
+          </div>
+
+          <div className="brand-details">
+            <div className="social-icons">
+              {socialPlatforms.map((platform) => (
+                <SocialIcon
+                  key={platform}
+                  platform={platform}
+                  url={brand.social?.[platform]}
+                />
+              ))}
+            </div>
+
+            <div className="contact-section">
+              <ContactInfo
+                type="email"
+                value={brand.contact?.email}
+                icon={MdEmail}
+              />
+              <ContactInfo
+                type="phone"
+                value={brand.contact?.phone}
+                icon={MdPhone}
+              />
+              <ContactInfo
+                type="address"
+                value={brand.contact?.address}
+                icon={MdLocationOn}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Back side */}
+      <div
+        className="card-back"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
+          zIndex: isFlipped ? 1 : 0,
+          position: "absolute",
+          inset: 0,
+          transformOrigin: "center",
+          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {showBackContent && hasPermission && (
+          <BrandSettings
+            brand={brand}
+            onClose={() => setIsFlipped(false)}
+            onDelete={onSettingsDelete}
+            onSave={onSettingsSave}
+          />
+        )}
+        {showBackContent && !hasPermission && (
+          <div className="no-permission-message">
+            <h3>Access Restricted</h3>
+            <p>You don't have permission to modify this brand.</p>
+            <button className="back-button" onClick={() => setIsFlipped(false)}>
+              Back to Brand
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

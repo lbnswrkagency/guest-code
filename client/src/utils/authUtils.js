@@ -35,7 +35,6 @@ export const refreshToken = async () => {
     const response = await axiosInstance.post("/auth/refresh_token");
     return response.data;
   } catch (error) {
-    console.error("[AuthUtils] Token refresh failed:", error);
     throw error;
   }
 };
@@ -45,7 +44,6 @@ export const setupAxiosInterceptors = () => {
     async (config) => {
       // Check token expiration before each request
       if (isTokenExpired()) {
-        console.log("[AuthUtils] Token expired, refreshing before request");
         await refreshToken();
       }
 
@@ -69,10 +67,6 @@ export const setupAxiosInterceptors = () => {
           originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
           return axios(originalRequest);
         } catch (refreshError) {
-          console.error(
-            "[AuthUtils] Token refresh failed in interceptor:",
-            refreshError
-          );
           // Could add logic here to redirect to login
           return Promise.reject(refreshError);
         }

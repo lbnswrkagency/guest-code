@@ -1,9 +1,9 @@
 const socketIo = require("socket.io");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
+const { generateAccessToken } = require("./utils/auth");
 
 const setupSocket = (server) => {
-  console.log("[Socket] Initializing Socket.IO server");
   const io = socketIo(server, {
     cors: {
       origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -16,32 +16,85 @@ const setupSocket = (server) => {
 
   const onlineUsers = new Map();
 
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token || socket.handshake.query.token;
-    if (!token) return next(new Error("Authentication failed"));
-
+  // Authentication middleware
+  io.use(async (socket, next) => {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded._id;
-      next();
-    } catch (err) {
-      next(new Error("Authentication failed"));
+      const token = socket.handshake.auth.token;
+
+      if (!token) {
+        throw new Error("No token provided");
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        socket.userId = decoded.userId;
+
+        // Fetch user data
+        const user = await User.findById(decoded.userId).select("-password");
+        if (!user) {
+          return next(new Error("Authentication failed: User not found"));
+        }
+
+        // Attach user data to socket
+        socket.user = user;
+        next();
+      } catch (verifyError) {
+        if (verifyError.name === "TokenExpiredError") {
+          // Get refresh token from handshake
+          const refreshToken = socket.handshake.auth.refreshToken;
+          if (!refreshToken) {
+            throw new Error("No refresh token available");
+          }
+
+          try {
+            // Verify refresh token
+            const decoded = jwt.verify(
+              refreshToken,
+              process.env.JWT_REFRESH_SECRET
+            );
+
+            // Generate new access token
+            const newAccessToken = generateAccessToken(decoded.userId);
+
+            // Attach the new token to the socket for the client to retrieve
+            socket.newAccessToken = newAccessToken;
+            socket.userId = decoded.userId;
+
+            // Fetch user data
+            const user = await User.findById(decoded.userId).select(
+              "-password"
+            );
+            if (!user) {
+              return next(new Error("Authentication failed: User not found"));
+            }
+
+            // Attach user data to socket
+            socket.user = user;
+            next();
+          } catch (refreshError) {
+            next(new Error("Authentication failed: invalid refresh token"));
+          }
+        } else {
+          next(new Error("Authentication failed: " + verifyError.message));
+        }
+      }
+    } catch (error) {
+      next(new Error("Authentication failed: " + error.message));
     }
   });
 
   io.on("connection", (socket) => {
     const userId = socket.userId;
-    console.log("[Socket] User connected:", userId);
 
+    // Store user in online users map
     onlineUsers.set(socket.user._id.toString(), socket.id);
-    console.log(
-      "[Socket] Current online users:",
-      Array.from(onlineUsers.keys())
-    );
 
+    // Join user-specific room for notifications
+    const userRoom = `user:${socket.user._id}`;
+    socket.join(userRoom);
     socket.join("global");
 
-    // Broadcast to ALL clients that this user is online
+    // Broadcast user status
     io.emit("user_status", {
       userId: socket.user._id,
       status: "online",
@@ -52,23 +105,27 @@ const setupSocket = (server) => {
       },
     });
 
-    // Send current online users to the new client
-    socket.emit(
-      "initial_online_users",
-      Array.from(onlineUsers.entries()).map(([id, socketId]) => ({
-        userId: id,
-        userData: io.sockets.sockets.get(socketId)?.user
-          ? {
-              _id: io.sockets.sockets.get(socketId).user._id,
-              username: io.sockets.sockets.get(socketId).user.username,
-              avatar: io.sockets.sockets.get(socketId).user.avatar,
-            }
-          : null,
-      }))
+    // Send current online users to new client
+    const onlineUsersData = Array.from(onlineUsers.entries()).map(
+      ([id, socketId]) => {
+        const userSocket = io.sockets.sockets.get(socketId);
+        return {
+          userId: id,
+          userData: userSocket?.user
+            ? {
+                _id: userSocket.user._id,
+                username: userSocket.user.username,
+                avatar: userSocket.user.avatar,
+              }
+            : null,
+        };
+      }
     );
 
+    socket.emit("initial_online_users", onlineUsersData);
+
+    // Message handling
     socket.on("send_message", (message) => {
-      console.log("[Socket] Broadcasting message from:", socket.user._id);
       io.emit("new_message", {
         ...message,
         sender: {
@@ -79,19 +136,19 @@ const setupSocket = (server) => {
       });
     });
 
+    // Typing events
     socket.on("user_typing", () => {
-      console.log("[Socket] User typing:", socket.user._id);
       socket.broadcast.emit("user_typing", socket.user._id);
     });
 
     socket.on("user_stop_typing", () => {
-      console.log("[Socket] User stopped typing:", socket.user._id);
       socket.broadcast.emit("user_stop_typing", socket.user._id);
     });
 
+    // Disconnect handling
     socket.on("disconnect", () => {
-      console.log("[Socket] User disconnected:", userId);
       onlineUsers.delete(socket.user._id.toString());
+
       io.emit("user_status", {
         userId: socket.user._id,
         status: "offline",

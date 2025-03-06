@@ -4,6 +4,34 @@ const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const { sendVerificationEmail } = require("../utils/email");
 
+// Token generation with different expiration times
+const generateAccessToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, {
+    expiresIn: "15m", // Short-lived access token
+  });
+};
+
+const generateRefreshToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: "7d", // Longer-lived refresh token
+  });
+};
+
+// Cookie options for security
+const accessTokenCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 15 * 60 * 1000, // 15 minutes
+};
+
+const refreshTokenCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
 exports.register = async (req, res) => {
   const { username, email, password, firstName, lastName, birthday } = req.body;
 
@@ -11,9 +39,14 @@ exports.register = async (req, res) => {
     let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Username or email already exists." });
+      return res.status(400).json({
+        success: false,
+        message: "Registration failed",
+        details:
+          user.email === email
+            ? "This email is already registered"
+            : "This username is already taken",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -26,9 +59,6 @@ exports.register = async (req, res) => {
       email,
       birthday,
       password: hashedPassword,
-      events: ["654d4bf7b3cceeb4f02c13b5"], // Afro Spiti event ID
-      isPromoter: true,
-      friendsCodeLimit: 2,
     });
 
     await user.save();
@@ -41,15 +71,14 @@ exports.register = async (req, res) => {
 
     res.json({
       success: true,
-      message:
-        "User registered successfully. Please check your email for verification.",
+      message: "Registration successful",
+      details: "Please check your email for verification.",
     });
   } catch (error) {
-    console.error("Registration error:", error);
     res.status(500).json({
       success: false,
-      message: "Registration failed. Please try again later.",
-      error: error.message,
+      message: "Registration failed",
+      details: "An unexpected error occurred. Please try again later.",
     });
   }
 };
@@ -60,182 +89,200 @@ exports.verifyEmail = async (req, res) => {
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Verification failed",
+        details: "User not found.",
+      });
     }
 
     user.isVerified = true;
     await user.save();
 
-    const payload = {
-      _id: user._id,
-      email: user.email,
-      username: user.username,
-    };
-
-    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1h",
-    });
-
     res.json({
       success: true,
-      message: "Email verified successfully.",
-      accessToken,
-      userId: user._id,
-      expiresIn: 3600,
+      message: "Email verified successfully",
+      details: "You can now log in to your account.",
     });
   } catch (error) {
-    console.error("Email verification error:", error);
     res.status(500).json({
       success: false,
-      message: "Invalid token or internal server error.",
+      message: "Verification failed",
+      details: "Invalid or expired verification link.",
     });
   }
 };
 
 exports.login = async (req, res) => {
   try {
-    console.log("[Auth:Login] Processing login request:", {
-      hasEmail: !!req.body.email,
-      emailLength: req.body.email?.length,
-      headers: {
-        auth: req.headers.authorization || "none",
-        contentType: req.headers["content-type"],
-      },
-    });
-
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Missing credentials",
-        details: "Email and password are required",
-      });
+    // Find user and validate password
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const user = await User.findOne({
-      $or: [
-        { email: new RegExp(`^${email.trim()}$`, "i") },
-        { username: new RegExp(`^${email.trim()}$`, "i") },
-      ],
-    });
+    // Generate tokens
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    if (!user) {
-      return res.status(401).json({
-        message: "Invalid credentials",
-        details: "No account found with this email or username",
-      });
-    }
+    // Store refresh token hash in user document
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
+    await user.save();
 
-    if (!user.isVerified) {
-      return res.status(403).json({
-        message: "Email not verified",
-        details: "Please check your email for verification link",
-      });
-    }
+    // Set cookies
+    res.cookie("accessToken", accessToken, accessTokenCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshTokenCookieOptions);
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        message: "Invalid credentials",
-        details: "Incorrect password",
-      });
-    }
-
-    const accessToken = jwt.sign(
-      { _id: user._id, email: user.email, username: user.username },
-      process.env.JWT_ACCESS_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    const refreshToken = jwt.sign(
-      { _id: user._id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    console.log("[Auth:Login] Generated tokens:", {
-      accessTokenLength: accessToken.length,
-      refreshTokenLength: refreshToken.length,
-      userEmail: user.email,
-    });
-
-    console.log("[Auth:Login] Sending response with:", {
-      hasUser: true,
-      tokenStart: accessToken.substring(0, 20) + "...",
-      refreshTokenStart: refreshToken.substring(0, 20) + "...",
-    });
+    // Return user data and tokens
+    const userData = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+    };
 
     res.json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatar: user.avatar,
-      },
+      user: userData,
       token: accessToken,
       refreshToken: refreshToken,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error during login",
-      details: "Please try again later",
-    });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 exports.getUserData = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
-
+    const user = await User.findById(req.user.userId).select(
+      "-password -refreshToken"
+    );
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+      return res.status(404).json({ message: "User not found" });
     }
-
     res.json(user);
   } catch (error) {
-    console.error("Get user data error:", error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 exports.refreshAccessToken = async (req, res) => {
   try {
-    const refreshToken = req.headers.authorization?.split(" ")[1];
+    const { refreshToken } = req.cookies;
 
     if (!refreshToken) {
       return res.status(401).json({ message: "No refresh token" });
     }
 
+    // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.userId);
 
-    const userId = decoded._id;
-    if (!userId) {
-      return res.status(403).json({ message: "Invalid token structure" });
-    }
-
-    const user = await User.findById(userId);
     if (!user) {
-      return res.status(403).json({ message: "User not found" });
+      return res.status(401).json({ message: "User not found" });
     }
 
-    const accessToken = jwt.sign(
-      { _id: user._id, email: user.email, username: user.username },
-      process.env.JWT_ACCESS_SECRET,
-      { expiresIn: "15m" }
+    // Verify stored refresh token hash
+    const isValidRefreshToken = await bcrypt.compare(
+      refreshToken,
+      user.refreshToken
     );
 
-    res.json({ token: accessToken });
+    if (!isValidRefreshToken) {
+      // Clear cookies and user's stored refresh token if invalid
+      user.refreshToken = null;
+      await user.save();
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    // Generate new tokens
+    const newAccessToken = generateAccessToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    // Update stored refresh token
+    user.refreshToken = await bcrypt.hash(newRefreshToken, 10);
+    await user.save();
+
+    // Set new cookies
+    res.cookie("accessToken", newAccessToken, accessTokenCookieOptions);
+    res.cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions);
+
+    // Return tokens in response body as well
+    res.json({
+      message: "Tokens refreshed successfully",
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
   } catch (error) {
-    res.status(401).json({ message: "Invalid refresh token" });
+    if (
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError"
+    ) {
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      return res
+        .status(401)
+        .json({ message: "Invalid or expired refresh token" });
+    }
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
-exports.logout = (req, res) => {
-  res.json({ success: true, message: "Logged out successfully" });
+exports.logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (refreshToken) {
+      // Find user and clear their refresh token
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      const user = await User.findById(decoded.userId);
+      if (user) {
+        user.refreshToken = null;
+        await user.save();
+      }
+    }
+
+    // Clear cookies regardless of token validity
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    // Still clear cookies even if there's an error
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    res.status(200).json({ message: "Logged out successfully" });
+  }
+};
+
+// Sync token from request body to cookies
+exports.syncToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "No token provided" });
+    }
+
+    try {
+      // Verify the token is valid before setting it in cookies
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
+      // Set the token in cookies
+      res.cookie("accessToken", token, accessTokenCookieOptions);
+
+      return res
+        .status(200)
+        .json({ message: "Token synced to cookies successfully" });
+    } catch (error) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
