@@ -263,7 +263,23 @@ const Events = () => {
   }, [selectedBrand?._id]);
 
   const handleEventClick = (event, weekNumber = 0) => {
-    setSelectedEvent(event);
+    // Make sure that if it's a calculated occurrence (childExists is false), we properly mark it
+    if (event.childExists === false) {
+      console.log("[Events] Editing a calculated occurrence:", {
+        isCalculatedOccurrence: true,
+        parentId: event.parentEventId,
+        weekNumber: event.weekNumber || weekNumber,
+      });
+
+      // Make sure we keep the parentEventId and weekNumber intact
+      setSelectedEvent({
+        ...event,
+        _id: null, // Explicitly set _id to null for calculated occurrences
+      });
+    } else {
+      setSelectedEvent(event);
+    }
+
     setCurrentWeek(weekNumber);
     setShowForm(true);
   };
@@ -669,74 +685,72 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           `/events/${event._id}/weekly/${currentWeek}`
         );
 
-        if (response.data) {
-          console.log(`[findChildEvent] Child event found:`, response.data);
+        // Set the event data regardless of whether it's a real child or calculated occurrence
+        console.log(`[findChildEvent] Response received:`, response.data);
 
-          // Ensure the weekNumber is set on the child event
-          const childEvent = {
-            ...response.data,
-            weekNumber: currentWeek,
-          };
+        // Ensure the weekNumber is set on the child event
+        const receivedEvent = {
+          ...response.data,
+          weekNumber: currentWeek,
+        };
 
-          setCurrentEvent(childEvent);
-          setIsLive(childEvent.isLive);
+        // Check if this is a real child event or a calculated one
+        if (response.data._id) {
+          console.log(
+            `[findChildEvent] Real child event found with ID: ${response.data._id}`
+          );
         } else {
           console.log(
-            `[findChildEvent] No child event found for week ${currentWeek}, using parent event data`
+            `[findChildEvent] Using calculated occurrence (no child event exists yet)`
           );
-
-          try {
-            // Calculate the date for this week's occurrence
-            const weekDate = new Date(event.startDate || event.date);
-
-            // Check if the date is valid before proceeding
-            if (isNaN(weekDate.getTime())) {
-              console.error(
-                "[findChildEvent] Invalid date:",
-                event.startDate || event.date
-              );
-              throw new Error("Invalid date");
-            }
-
-            weekDate.setDate(weekDate.getDate() + currentWeek * 7);
-
-            // Create a temporary event object with parent data but updated date
-            const tempEvent = {
-              ...event,
-              _id: event._id, // Keep the parent ID for API calls
-              parentEventId: event._id, // Mark this as a child event
-              weekNumber: currentWeek, // Set the week number
-              startDate: weekDate.toISOString(), // Update the startDate
-              date: weekDate.toISOString(), // Update the date for compatibility
-              isLive: false, // Child events start as not live
-            };
-
-            setCurrentEvent(tempEvent);
-            setIsLive(false);
-          } catch (error) {
-            console.error(
-              "[findChildEvent] Error creating temporary event:",
-              error
-            );
-            // Just use the parent event without date modification as fallback
-            setCurrentEvent({
-              ...event,
-              weekNumber: currentWeek,
-              parentEventId: event._id,
-            });
-            setIsLive(false);
-          }
         }
+
+        setCurrentEvent(receivedEvent);
+        setIsLive(receivedEvent.isLive || false);
       } catch (error) {
         console.error("[findChildEvent] Error fetching child event:", error);
-        // Don't show error toast for 404 errors (weekly event doesn't exist yet)
-        // This is expected behavior as part of the data-saving mechanism
-        if (!error.response || error.response.status !== 404) {
-          toast.showError("Failed to fetch event details");
-        } else {
-          console.log(
-            "[findChildEvent] Weekly event doesn't exist yet (404) - this is expected behavior"
+
+        // Create a fallback calculated occurrence
+        console.log(`[findChildEvent] Creating fallback calculated occurrence`);
+
+        try {
+          // Calculate the date for this week's occurrence
+          const weekDate = new Date(event.startDate || event.date);
+
+          if (isNaN(weekDate.getTime())) {
+            throw new Error("Invalid date");
+          }
+
+          weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+
+          // Create a temporary event object with parent data but updated date
+          const tempEvent = {
+            ...event,
+            _id: null, // NULL ID indicates it doesn't exist in DB yet
+            parentEventId: event._id,
+            weekNumber: currentWeek,
+            date: weekDate.toISOString(),
+            isLive: false,
+            childExists: false, // Flag to indicate this is a calculated occurrence
+          };
+
+          setCurrentEvent(tempEvent);
+          setIsLive(false);
+        } catch (dateError) {
+          console.error(
+            "[findChildEvent] Error creating fallback occurrence:",
+            dateError
           );
+          toast.showError("Error calculating event date");
+
+          // Use parent as last resort
+          setCurrentEvent({
+            ...event,
+            weekNumber: currentWeek,
+            parentEventId: event._id,
+            childExists: false,
+          });
+          setIsLive(false);
         }
       } finally {
         setIsLoading(false);
@@ -805,6 +819,16 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     if (currentWeek > 0) {
       const newWeek = currentWeek - 1;
       console.log(`[Weekly Navigation] Moving to previous week: ${newWeek}`);
+      console.log("[WEEKLY DEBUG] handlePrevWeek - Before state update:", {
+        currentWeek,
+        newWeek,
+        eventId: event?._id,
+        eventTitle: event?.title,
+        eventDate: event?.date,
+        currentEventId: currentEvent?._id,
+        currentEventTitle: currentEvent?.title,
+        currentEventDate: currentEvent?.date,
+      });
       setCurrentWeek(newWeek);
     }
   };
@@ -814,6 +838,16 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     e.stopPropagation();
     const newWeek = currentWeek + 1;
     console.log(`[Weekly Navigation] Moving to next week: ${newWeek}`);
+    console.log("[WEEKLY DEBUG] handleNextWeek - Before state update:", {
+      currentWeek,
+      newWeek,
+      eventId: event?._id,
+      eventTitle: event?.title,
+      eventDate: event?.date,
+      currentEventId: currentEvent?._id,
+      currentEventTitle: currentEvent?.title,
+      currentEventDate: currentEvent?.date,
+    });
     setCurrentWeek(newWeek);
   };
 
@@ -821,6 +855,21 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
   useEffect(() => {
     if (currentEvent.isWeekly && currentWeek > 0) {
       console.log(`[Weekly Navigation] Week changed to ${currentWeek}`);
+      console.log(
+        "[WEEKLY DEBUG] useEffect[currentWeek] - Before findChildEvent:",
+        {
+          currentWeek,
+          eventId: event?._id,
+          eventTitle: event?.title,
+          eventDate: new Date(event?.date).toISOString(),
+          eventIsWeekly: event?.isWeekly,
+          currentEventId: currentEvent?._id,
+          currentEventTitle: currentEvent?.title,
+          currentEventDate: currentEvent?.date
+            ? new Date(currentEvent.date).toISOString()
+            : null,
+        }
+      );
 
       try {
         // Calculate the date for this week's occurrence
@@ -918,6 +967,15 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
       return;
     }
 
+    // If this is a calculated occurrence (not yet in DB), we'll need to create it
+    const isCalculatedOccurrence = currentEvent.childExists === false;
+
+    if (isCalculatedOccurrence) {
+      console.log(
+        `[Go Live] This is a calculated occurrence - a child event will be created in the database`
+      );
+    }
+
     // Call the API to toggle the live status
     // Include the current week number for weekly events
     axiosInstance
@@ -932,12 +990,23 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         // Update the local state
         setIsLive(response.data.isLive);
 
-        // If this is a child event that was just created, update the currentEvent
-        if (weekToUse > 0 && response.data.childEvent) {
-          console.log(`[Go Live] Updating current event with child event data`);
-          setCurrentEvent(response.data.childEvent);
-        } else if (weekToUse === 0) {
-          // If this is the parent event, update it
+        // If a child event was included in the response, it means it was just created or updated
+        if (response.data.childEvent) {
+          console.log(
+            `[Go Live] Updating current event with child event data:`,
+            {
+              childId: response.data.childEvent._id,
+              isLive: response.data.childEvent.isLive,
+            }
+          );
+
+          // Update with the real child event that was created/updated
+          setCurrentEvent({
+            ...response.data.childEvent,
+            weekNumber: weekToUse, // Ensure weekNumber is set correctly
+          });
+        } else {
+          // Just update the isLive status
           setCurrentEvent((prev) => ({
             ...prev,
             isLive: response.data.isLive,
@@ -949,15 +1018,8 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         loadingToast.dismiss();
       })
       .catch((error) => {
-        console.error("[Go Live] Error toggling live status:", error);
-
-        // Handle 401 errors specifically
-        if (error.response && error.response.status === 401) {
-          toast.showError("Authentication required. Please log in again.");
-        } else {
-          toast.showError("Failed to update event status");
-        }
-
+        console.error("[Go Live] Error:", error);
+        toast.showError("Failed to update event status");
         loadingToast.dismiss();
       });
   };
@@ -987,11 +1049,11 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
       >
         <div className="event-card-header">
           <div className="event-cover-image glassy-element">
-            {event.flyer && (
+            {currentEvent.flyer && (
               <ProgressiveImage
-                thumbnailSrc={getFlyerImage(event.flyer)}
-                mediumSrc={getFlyerImage(event.flyer)}
-                fullSrc={getFlyerImage(event.flyer)}
+                thumbnailSrc={getFlyerImage(currentEvent.flyer)}
+                mediumSrc={getFlyerImage(currentEvent.flyer)}
+                fullSrc={getFlyerImage(currentEvent.flyer)}
                 alt={`${currentEvent.title} cover`}
                 className="cover-image"
               />

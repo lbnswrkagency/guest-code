@@ -1,9 +1,25 @@
 import React from "react";
+<<<<<<< HEAD
 import { Link } from "react-router-dom";
 import Navigation from "./Navigation/Navigation";
+=======
+import { Link, useLocation, useParams } from "react-router-dom";
+import Navigation from "../Navigation/Navigation";
+import Footer from "./Footer/Footer";
+>>>>>>> 35731d13aa759b979c858d07d8359e48d742375c
 import "./Home.scss";
 
 const Home = () => {
+  const location = useLocation();
+  const params = useParams();
+
+  // Add logging to see when Home is being rendered
+  console.log("[Home] Component rendering:", {
+    pathname: location.pathname,
+    params,
+    timestamp: new Date().toISOString(),
+  });
+
   return (
     <div className="home">
       <Navigation />

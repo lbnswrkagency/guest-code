@@ -43,10 +43,95 @@ const AppRoutes = () => {
   // Pre-build the user profile route if we have a user
   const userProfilePath = user ? `/@${user.username.trim()}` : null;
 
+  // Add detailed logging for route debugging
+  console.log("[AppRoutes] Rendering with:", {
+    pathname: location.pathname,
+    isAuthenticated: !!user,
+    userProfilePath,
+    params,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Log all route patterns for debugging
+  const allRoutes = [
+    "/@:brandUsername",
+    "/@:brandUsername/:dateSlug",
+    "/@:brandUsername/@:eventUsername/:dateSlug",
+    "/@:brandUsername/@:eventUsername",
+    "/@:brandUsername/e/:dateSlug",
+    "/@:brandUsername/e/:dateSlug/:eventSlug",
+  ];
+
+  // Check which routes would match the current path
+  allRoutes.forEach((routePath) => {
+    const match = matchPath({ path: routePath, end: true }, location.pathname);
+    if (match) {
+      console.log(
+        `[AppRoutes] Route '${routePath}' matches with params:`,
+        match.params
+      );
+    }
+  });
+
+  // Check if the current path matches the brand profile pattern
+  const isBrandProfilePath = /^\/@[a-zA-Z0-9_-]+$/.test(location.pathname);
+
+  // Check if the path starts with /@ to handle all brand-related routes
+  const isBrandRelatedPath = location.pathname.startsWith("/@");
+
+  // Check if this is the user's own profile path
+  const isUserOwnProfilePath =
+    userProfilePath && location.pathname === userProfilePath;
+
+  console.log(`[AppRoutes] Path analysis:`, {
+    pathname: location.pathname,
+    isBrandProfilePath,
+    isBrandRelatedPath,
+    isUserOwnProfilePath,
+    userProfilePath,
+    timestamp: new Date().toISOString(),
+  });
+
   return (
     <Routes>
+      {/* Special case for brand profile path - but only if it's not the user's own profile */}
+      {isBrandProfilePath && !isUserOwnProfilePath && (
+        <Route
+          path={location.pathname}
+          element={
+            <RouteDebug name="brand-profile-direct-match">
+              {({ params }) => {
+                console.log(
+                  "[Route:direct-match] Matched brand profile path:",
+                  location.pathname
+                );
+                // Extract the brand username from the path
+                const brandUsername = location.pathname.substring(2); // Remove the leading /@
+                return <BrandProfile key={brandUsername} />;
+              }}
+            </RouteDebug>
+          }
+        />
+      )}
+
       {user ? (
         <>
+          {/* User's own profile route - this should take precedence over brand routes */}
+          <Route
+            path={userProfilePath}
+            element={
+              <RouteDebug name="user-own-profile">
+                {({ params }) => {
+                  console.log(
+                    "[Route:user-own-profile] Matched user's own profile path:",
+                    location.pathname
+                  );
+                  return <Dashboard />;
+                }}
+              </RouteDebug>
+            }
+          />
+
           <Route
             path={`${userProfilePath}/*`}
             element={
@@ -164,97 +249,99 @@ const AppRoutes = () => {
         </>
       ) : (
         <>
-          <Route
-            path="/@:brandUsername"
-            element={
-              <RouteDebug name="brand-profile-public">
-                {({ params }) => {
-                  return <BrandProfile />;
-                }}
-              </RouteDebug>
-            }
-          />
-
-          {/* New ultra-simplified route for public events with format /@brandusername/MMDDYY */}
-          {/* This needs to be before the /@:brandUsername/@:eventUsername route to ensure proper matching */}
-          <Route
-            path="/@:brandUsername/:dateSlug"
-            element={
-              <RouteDebug name="event-public-ultra-simplified">
-                {({ params }) => {
-                  // We need to check if dateSlug is a valid date format to avoid mismatching
-                  const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
-
-                  if (isDateFormat) {
-                    return <EventProfile />;
-                  } else {
-                    // If it's not a date format, it might be another type of route
-                    return (
-                      <Navigate to={`/@${params.brandUsername}`} replace />
-                    );
-                  }
-                }}
-              </RouteDebug>
-            }
-          />
-
-          <Route
-            path="/@:brandUsername/@:eventUsername/:dateSlug"
-            element={
-              <RouteDebug name="event-public-special-format">
-                {({ params }) => {
-                  // Always use EventProfile for this pattern
-                  return <EventProfile />;
-                }}
-              </RouteDebug>
-            }
-          />
-
-          <Route
-            path="/@:brandUsername/@:eventUsername"
-            element={
-              <RouteDebug name="event-public">
-                {({ params }) => {
-                  return <EventProfile />;
-                }}
-              </RouteDebug>
-            }
-          />
-          {/* Keep routes with /e/ for backward compatibility */}
-          {/* New simplified route for public events with format /@brandusername/e/MMDDYY */}
-          <Route
-            path="/@:brandUsername/e/:dateSlug"
-            element={
-              <RouteDebug name="event-public-simple-format">
-                {({ params }) => {
-                  return <EventProfile />;
-                }}
-              </RouteDebug>
-            }
-          />
-          {/* New route for public events with format /@brandusername/e/MMDDYY/event-name-slug */}
-          <Route
-            path="/@:brandUsername/e/:dateSlug/:eventSlug"
-            element={
-              <RouteDebug name="event-public-new-format">
-                {({ params }) => {
-                  return <EventProfile />;
-                }}
-              </RouteDebug>
-            }
-          />
+          {/* Empty placeholder - all public routes are now defined outside the conditional */}
         </>
       )}
 
-      {/* Other routes */}
+      {/* Brand profile routes - MUST be before the catch-all route */}
       <Route
-        path="/*"
+        path="/@:brandUsername"
         element={
-          <RouteDebug name="home">
-            <Home />
+          <RouteDebug name="brand-profile-public">
+            {({ params }) => {
+              console.log(
+                "[Route:/@:brandUsername] Matched with params:",
+                params
+              );
+              return <BrandProfile />;
+            }}
           </RouteDebug>
         }
       />
+
+      {/* Public route for /@brandusername/YYXXZZ format */}
+      <Route
+        path="/@:brandUsername/:dateSlug"
+        element={
+          <RouteDebug name="event-public-ultra-simplified">
+            {({ params }) => {
+              console.log(
+                "[Route:/@:brandUsername/:dateSlug] Matched with params:",
+                params
+              );
+              // We need to check if dateSlug is a valid date format to avoid mismatching
+              const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
+
+              if (isDateFormat) {
+                return <EventProfile />;
+              } else {
+                // If it's not a date format, it might be another type of route
+                // Instead of redirecting, we should show the BrandProfile
+                return <BrandProfile />;
+              }
+            }}
+          </RouteDebug>
+        }
+      />
+
+      {/* Additional public routes */}
+      <Route
+        path="/@:brandUsername/@:eventUsername/:dateSlug"
+        element={
+          <RouteDebug name="event-public-special-format">
+            {({ params }) => {
+              // Always use EventProfile for this pattern
+              return <EventProfile />;
+            }}
+          </RouteDebug>
+        }
+      />
+
+      <Route
+        path="/@:brandUsername/@:eventUsername"
+        element={
+          <RouteDebug name="event-public">
+            {({ params }) => {
+              return <EventProfile />;
+            }}
+          </RouteDebug>
+        }
+      />
+
+      {/* Routes with /e/ for backward compatibility */}
+      <Route
+        path="/@:brandUsername/e/:dateSlug"
+        element={
+          <RouteDebug name="event-public-simple-format">
+            {({ params }) => {
+              return <EventProfile />;
+            }}
+          </RouteDebug>
+        }
+      />
+
+      <Route
+        path="/@:brandUsername/e/:dateSlug/:eventSlug"
+        element={
+          <RouteDebug name="event-public-new-format">
+            {({ params }) => {
+              return <EventProfile />;
+            }}
+          </RouteDebug>
+        }
+      />
+
+      {/* Specific routes */}
       <Route
         path="/login"
         element={
@@ -324,6 +411,67 @@ const AppRoutes = () => {
         }
       />
       <Route path="/paid" element={<AfterPayment />} />
+
+      {/* Catch-all route - MUST be last */}
+      <Route
+        path="/"
+        element={
+          <RouteDebug name="home-root">
+            <Home />
+          </RouteDebug>
+        }
+      />
+
+      {/* Fallback for any other routes */}
+      <Route
+        path="*"
+        element={
+          <RouteDebug name="home-fallback">
+            {({ params }) => {
+              console.log(
+                "[Route:*] Fallback route matched with path:",
+                location.pathname
+              );
+
+              // If it's the user's own profile path, we should redirect to the dashboard
+              if (isUserOwnProfilePath) {
+                console.log(
+                  "[Route:*] Detected user's own profile path, redirecting to dashboard"
+                );
+                return <Navigate to={userProfilePath} replace />;
+              }
+
+              // If it's a brand-related path but not matched by any specific route,
+              // we should try to render the BrandProfile component
+              if (isBrandRelatedPath) {
+                console.log(
+                  "[Route:*] Detected brand-related path, rendering BrandProfile"
+                );
+
+                // Check if this might be an event URL with a date pattern
+                const pathParts = location.pathname.substring(2).split("/");
+
+                // If there's a second part and it looks like a date (6 digits, possibly with a suffix)
+                if (
+                  pathParts.length > 1 &&
+                  /^\d{6}(-\d+)?$/.test(pathParts[1])
+                ) {
+                  console.log(
+                    "[Route:*] Detected date pattern in URL, rendering EventProfile"
+                  );
+                  return <EventProfile />;
+                }
+
+                // Otherwise, treat as a brand profile
+                const brandUsername = pathParts[0]; // First part after /@
+                return <BrandProfile key={brandUsername} />;
+              }
+
+              return <Home />;
+            }}
+          </RouteDebug>
+        }
+      />
     </Routes>
   );
 };
@@ -333,6 +481,14 @@ const RouteDebug = ({ name, children }) => {
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Enhanced logging for route debugging
+  console.log(`[RouteDebug:${name}] Rendering route:`, {
+    name,
+    pathname: location.pathname,
+    params,
+    timestamp: new Date().toISOString(),
+  });
 
   const debugInfo = {
     name,

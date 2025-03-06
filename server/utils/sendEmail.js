@@ -35,7 +35,7 @@ const formattedDate = () => {
 const generateInvoiceNumber = (sessionId) => {
   // Take the last 4 characters of the session ID
   const shortId = sessionId.slice(-4).toUpperCase();
-  return `INV-${shortId}`;
+  return `GC${shortId}`;
 };
 
 // Format date with leading zeros
@@ -268,7 +268,7 @@ const sendEmail = async (order) => {
           <div class="address-section">
             <div class="company-address">
               <p style="font-size: 0.6rem; margin-bottom: .5rem; color: #777;">
-                GuestCode - Your Address Here - Your City
+                GuestCode - Sonnenallee 101 - 12045 Berlin
               </p>
               ${addressHTML}
             </div>
@@ -352,6 +352,21 @@ const sendEmail = async (order) => {
             )} EUR</p>
           </div>
 
+          <!-- German VAT Information -->
+          <div style="margin-top: 1rem; text-align: right; padding-right: 1rem;">
+            <p style="margin: 0; font-size: 0.9rem;">Netto: ${(
+              order.totalAmount / 1.19
+            ).toFixed(2)} EUR</p>
+            <p style="margin: 0; font-size: 0.9rem;">zzgl. 19% MwSt: ${(
+              order.totalAmount -
+              order.totalAmount / 1.19
+            ).toFixed(2)} EUR</p>
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Brutto: ${order.totalAmount.toFixed(
+              2
+            )} EUR</p>
+            <p style="margin: 0.5rem 0 0; font-size: 0.8rem; color: #777;">Gemäß § 19 UStG enthält der Rechnungsbetrag 19% Mehrwertsteuer.</p>
+          </div>
+
           <div class="footer-message">
             <p style="margin: 0; font-weight: 500;">Payment has been processed successfully.</p>
             <p style="margin: 3px 0 0 0;">Thank you for your purchase. We look forward to seeing you at the event!</p>
@@ -361,8 +376,8 @@ const sendEmail = async (order) => {
         <div class="footer">
           <div class="footer-left">
             <p style="margin:0; font-weight: 600;">GuestCode</p>
-            <p style="margin:2px 0 0;">Your Address</p>
-            <p style="margin:2px 0 0;">Your City</p>
+            <p style="margin:2px 0 0;">Sonnenallee 101</p>
+            <p style="margin:2px 0 0;">12045 Berlin</p>
           </div>
 
           <div class="footer-center">

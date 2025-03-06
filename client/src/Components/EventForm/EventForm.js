@@ -350,6 +350,71 @@ const EventForm = ({
       }
 
       let eventResponse;
+
+      // Check if this is a calculated occurrence (temporary event that doesn't exist in DB yet)
+      // Look both at event._id being null and checking if we're in a week > 0 for a weekly event
+      const isCalculatedOccurrence =
+        (!event?._id && event?.parentEventId && event?.weekNumber > 0) ||
+        (!event?._id && isChildEvent && weekNumber > 0);
+
+      if (isCalculatedOccurrence) {
+        console.log(
+          "[EventForm] This is a calculated occurrence - creating child event first",
+          {
+            parentId: event.parentEventId || event.id, // Use either parentEventId or fallback to id
+            weekNumber: event.weekNumber || weekNumber,
+          }
+        );
+
+        // Need to create the child event first by toggling it live (which creates it in the DB)
+        try {
+          // Create a loading toast
+          const loadingToast = toast.showLoading("Creating child event...");
+
+          // Get the correct parent ID
+          const parentId = event.parentEventId || event.id;
+          const weekToUse = event.weekNumber || weekNumber;
+
+          if (!parentId) {
+            throw new Error("Could not determine parent event ID");
+          }
+
+          // Call the API endpoint that creates child events (toggle-live with weekNumber)
+          const createResponse = await axiosInstance.patch(
+            `/events/${parentId}/toggle-live?weekNumber=${weekToUse}`
+          );
+
+          if (createResponse.data && createResponse.data.childEvent) {
+            loadingToast.dismiss();
+            toast.showSuccess("Child event created successfully");
+
+            console.log(
+              "[EventForm] Child event created:",
+              createResponse.data.childEvent
+            );
+
+            // Now we can proceed with the update using the newly created child event ID
+            event._id = createResponse.data.childEvent._id;
+
+            // Toggle it back to the original state if needed (it was automatically set to live)
+            if (!formData.isLive && createResponse.data.isLive) {
+              await axiosInstance.patch(`/events/${event._id}/toggle-live`);
+            }
+          } else {
+            loadingToast.dismiss();
+            throw new Error("Failed to create child event");
+          }
+        } catch (createError) {
+          console.error("[EventForm] Error creating child event:", createError);
+          toast.showError(
+            "Failed to create child event: " +
+              (createError.message || "Unknown error")
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (event?._id) {
         // Update event details first
         console.log("[Event Update] Sending update request:", {
@@ -518,6 +583,34 @@ const EventForm = ({
       setShowDeleteConfirm(false);
     }
   };
+
+  // Add some additional logging at initialization
+  console.log("EventForm received event:", {
+    event,
+    id: event?._id,
+    parentId: event?.parentEventId,
+    weekNumber,
+    isChildEvent,
+    isCalculatedOccurrence:
+      !event?._id && event?.parentEventId && weekNumber > 0,
+  });
+
+  // Check component mount
+  useEffect(() => {
+    // For calculated occurrences, make sure we have correct initialization
+    if (!event?._id && event?.parentEventId && weekNumber > 0) {
+      console.log("[EventForm] Handling calculated occurrence:", {
+        parentId: event.parentEventId,
+        weekNumber,
+      });
+    }
+
+    // Component cleanup
+    return () => {
+      // Clean up blob URLs when component unmounts
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   return (
     <AnimatePresence>
