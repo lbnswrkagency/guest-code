@@ -1,0 +1,92 @@
+//
+
+$breakpoints: (
+  small: 480px,
+  bloody: 650px,
+  midsmall: 800px,
+  welldone: 1000px,
+  medium: 1200px,
+  large: 1800px,
+);
+
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+$green: #cbf73f;
+$pink: #eb4abc;
+$dark: #1b1b1b;
+$brown: #d3d3d3;
+$white: #f4f5ef;
+
+.stripe {
+  display: grid;
+}
+
+.stripe-checkout {
+  // position: relative;
+
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+
+  background-color: $green;
+  align-items: center;
+  font-weight: 800;
+  width: 20.375rem;
+  height: 3.5rem;
+  overflow: hidden;
+  margin-left: auto;
+  margin-right: auto;
+  cursor: pointer;
+  border: none;
+  border-radius: 1.563rem;
+  text-align: center;
+
+  // background-image: url("../Stripe/img/payment.svg");
+  // background-repeat: no-repeat;
+  // :hover {
+  //   background-color: red;
+  // }
+}
+
+.stripe-checkout-title {
+  margin-top: 2rem;
+  color: black;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.stripe-checkout-image {
+  // position: absolute;
+
+  top: 0;
+  left: 0;
+  width: 2.8rem;
+  height: auto;
+}
+
+.stripe-checkout-image:nth-of-type(1) {
+  // position: absolute;
+  grid-column: 1/3;
+  width: 5.9rem;
+}
+
+.stripe-checkout-code {
+  border: 1px solid black;
+  border-radius: 0.5rem;
+  padding-left: 0.5rem;
+  justify-self: center;
+  margin-top: 1rem;
+}
+
+.stripe-checkout-images {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(min-content, max-content));
+  grid-gap: 0.5rem;
+  justify-self: center;
+}

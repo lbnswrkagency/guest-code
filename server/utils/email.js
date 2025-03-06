@@ -12,32 +12,41 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const logoUrl =
   "https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"; // Use the same URL as in your other emails
 
+// Environment-aware base URL
+const getBaseUrl = () => {
+  if (process.env.NODE_ENV === "production") {
+    return "https://guest-code.com";
+  }
+  return "http://localhost:3000";
+};
+
 const sendVerificationEmail = async (to, token) => {
   try {
     console.debug("Preparing verification email...");
 
-    const verificationLink = `http://localhost:3000/verify/${token}`;
+    const verificationLink = `${getBaseUrl()}/verify/${token}`;
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: to }];
     sendSmtpEmail.sender = {
-      name: "Afro Spiti",
-      email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
+      name: "GuestCode",
+      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject = "Welcome to Afro Spiti - Verify Your Email";
+    sendSmtpEmail.subject = "Welcome to GuestCode - Verify Your Email";
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${logoUrl}" alt="Afro Spiti Logo" style="display: block; margin: 20px auto; max-width: 150px;">
-        <h1 style="color: #333; text-align: center;">Welcome to Afro Spiti!</h1>
-        <p style="color: #666; font-size: 16px; line-height: 1.5;">Thank you for joining our community. To complete your registration and access all features, please verify your email address by clicking the button below:</p>
+        <h1 style="color: #ffc807; text-align: center; font-size: 2.5rem; font-weight: 800;">GuestCode</h1>
+        <h2 style="color: #333; text-align: center;">Welcome to the Future of Event Management</h2>
+        <p style="color: #666; font-size: 16px; line-height: 1.5;">Thank you for joining GuestCode! To complete your registration and start creating amazing events, please verify your email address by clicking the button below:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" style="background-color: #ffc807; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
+          <a href="${verificationLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email</a>
         </div>
-        <p style="color: #666; font-size: 14px;">If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
         <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${verificationLink}</p>
         <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
-        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; font-size: 12px; color: #999;">
-          <p>© 2023 Afro Spiti. All rights reserved.</p>
+        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+          <p style="color: #ffc807; font-size: 1.2rem; font-weight: bold;">GuestCode</p>
+          <p style="color: #999; font-size: 0.9rem;">The Future of Event Management</p>
         </div>
       </div>
     `;
@@ -47,7 +56,7 @@ const sendVerificationEmail = async (to, token) => {
     console.debug("Verification email sent successfully to:", to);
   } catch (error) {
     console.error("Error sending verification email:", error);
-    throw error; // Rethrow the error to be caught in the registration process
+    throw error;
   }
 };
 

@@ -8,7 +8,17 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["info", "success", "warning", "error", "color_change"],
+    enum: [
+      "info",
+      "success",
+      "warning",
+      "error",
+      "color_change",
+      "join_request",
+      "join_request_accepted",
+      "join_request_rejected",
+      "new_follower",
+    ],
     required: true,
   },
   title: {
@@ -25,11 +35,24 @@ const notificationSchema = new mongoose.Schema({
   },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Brand",
+  },
+  requestId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "JoinRequest",
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+// Add indexes for better query performance
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ brandId: 1, type: 1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

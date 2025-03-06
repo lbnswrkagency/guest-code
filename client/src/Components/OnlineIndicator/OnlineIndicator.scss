@@ -1,0 +1,38 @@
+.online-indicator {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid #151515;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  pointer-events: none;
+
+  // Size variations
+  &.size-small {
+    width: 8px;
+    height: 8px;
+    border-width: 1.5px;
+  }
+
+  &.size-medium {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+  }
+
+  &.size-large {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
+  // Status styles
+  &.online {
+    background: radial-gradient(circle at 30% 30%, #4cd137, #44bd32);
+    box-shadow: 0 0 8px rgba(76, 209, 55, 0.4);
+  }
+
+  &.offline {
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5253);
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  }
+}

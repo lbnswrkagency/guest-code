@@ -1,0 +1,94 @@
+WEEKLY EVENTS IMPLEMENTATION PLAN
+
+1. DATA STRUCTURE
+----------------
+Event Model:
+- isWeekly: Boolean (indicates if event repeats weekly)
+- seriesId: ObjectId (links child events to parent)
+- startDate: Date (original start date)
+- parentEvent: ObjectId (reference to parent event, null if this is parent)
+- weekNumber: Number (which week in series, 0 for parent)
+
+2. EVENT CREATION FLOW
+---------------------
+a) Creating Parent Event:
+   - User creates event with isWeekly=true
+   - This becomes parent event (weekNumber=0)
+   - Generate seriesId (use event's _id)
+   - Store all base information
+
+b) Auto-Generation Logic:
+   - When viewing events, if weekly event has passed:
+     * Auto-generate next occurrence as placeholder
+     * Copy core info (location, time, brand)
+     * Set status as "TBA" for lineup/details
+     * Link to parent via seriesId
+     * Increment weekNumber
+
+3. DISPLAY & NAVIGATION
+----------------------
+In Events.js:
+- Show single card for weekly series
+- Display next upcoming occurrence
+- Left/right arrows for week navigation
+- Indicate if viewing past/current/future week
+- Show placeholder state for future unedited weeks
+- Calendar indicator for weeks with custom content
+
+4. EDITING LOGIC
+---------------
+a) Parent Event:
+   - Can edit core details that apply to series
+   - Option to apply changes to all future events
+
+b) Child Events:
+   - Full freedom to customize each week
+   - Changes only affect specific week
+   - Can revert to parent event defaults
+
+5. DATA MANAGEMENT
+-----------------
+- Store only modified child events
+- Generate placeholders on-the-fly
+- Clean up past events periodically
+- Keep statistics per occurrence
+
+6. UI/UX CONSIDERATIONS
+----------------------
+- Clear indication of series vs single events
+- Easy navigation between weeks
+- Visual feedback for placeholder vs customized weeks
+- Batch editing capabilities for future events
+- Preview of upcoming weeks
+
+7. API ENDPOINTS
+---------------
+POST /events
+- Creates parent event with weekly flag
+
+GET /events/series/:seriesId
+- Fetches all events in series
+- Includes auto-generated placeholders
+
+PUT /events/series/:seriesId
+- Updates series settings
+- Option to propagate changes
+
+PUT /events/:eventId
+- Updates specific occurrence
+- Maintains series relationship
+
+8. FUTURE ENHANCEMENTS
+---------------------
+- End date for series (optional)
+- Skip specific dates
+- Different repeat patterns (bi-weekly, monthly)
+- Bulk edit capabilities
+- Series duplication
+- Template saving
+
+NOTES:
+- Prioritize flexibility over automation
+- Maintain data efficiency
+- Focus on user experience
+- Keep backup of parent event data 

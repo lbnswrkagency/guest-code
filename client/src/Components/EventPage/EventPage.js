@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import "./EventPage.scss";
-import { getEventByLink } from "../../utils/apiClient";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -120,9 +119,11 @@ const EventPage = ({ passedEventId }) => {
 
     const fetchEvent = async () => {
       try {
-        const response = await getEventByLink(eventLink);
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/api/events/link/${eventLink}`
+        );
         if (isMounted) {
-          setEvent(response.event);
+          setEvent(response.data.event);
           setLoadedResources((prev) => prev + 1);
         }
       } catch (error) {
@@ -490,7 +491,7 @@ const EventPage = ({ passedEventId }) => {
 
               <div
                 className="event-page-banner-location"
-                onClick={copyAddressToClipboard}
+                onClick={() => copyAddressToClipboard(address)}
               >
                 <img src="./image/location.svg" alt="" />
 

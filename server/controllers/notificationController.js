@@ -22,7 +22,6 @@ exports.createNotification = async (req, res) => {
 
     const savedNotification = await notification.save();
 
-    // Emit through Socket.IO if available
     const io = req.app.get("io");
     if (io) {
       io.to(`user:${userId}`).emit("new_notification", savedNotification);
@@ -30,7 +29,6 @@ exports.createNotification = async (req, res) => {
 
     res.status(201).json(savedNotification);
   } catch (error) {
-    console.error("Error creating notification:", error);
     res.status(500).json({
       message: "Error creating notification",
       error: error.message,
@@ -40,10 +38,36 @@ exports.createNotification = async (req, res) => {
 
 exports.getUserNotifications = async (req, res) => {
   try {
+    const userId = req.params.userId;
     const notifications = await Notification.find({
       userId: req.params.userId,
-    }).sort({ createdAt: -1 });
-    res.json(notifications);
+    })
+      .populate("brandId", "name username")
+      .sort({ createdAt: -1 });
+
+    // Ensure brand data is included in metadata if not already present
+    const processedNotifications = notifications.map((notification) => {
+      if (
+        notification.brandId &&
+        notification.metadata &&
+        !notification.metadata.brand
+      ) {
+        return {
+          ...notification.toObject(),
+          metadata: {
+            ...notification.metadata,
+            brand: {
+              id: notification.brandId._id,
+              name: notification.brandId.name,
+              username: notification.brandId.username,
+            },
+          },
+        };
+      }
+      return notification;
+    });
+
+    res.json(processedNotifications);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -71,7 +95,6 @@ exports.markAsRead = async (req, res) => {
 
     res.json(notification);
   } catch (error) {
-    console.error("[Notification] Error marking as read:", error.message);
     res.status(500).json({ message: "Error updating notification" });
   }
 };
@@ -84,7 +107,6 @@ exports.deleteNotification = async (req, res) => {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    // Emit deletion through Socket.IO
     const io = req.app.get("io");
     if (io) {
       io.to(`user:${notification.userId}`).emit(
@@ -95,7 +117,6 @@ exports.deleteNotification = async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting notification:", error);
     res.status(500).json({ message: error.message });
   }
 };
