@@ -19,6 +19,71 @@ const getParentEventId = async (eventId) => {
   return eventId;
 };
 
+// Get all code settings for a brand by finding all events for the brand and then getting their code settings
+const getCodeSettingsByBrand = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Find the brand to verify it exists
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    // Find all events for this brand
+    const events = await Event.find({ brand: brandId });
+    if (!events || events.length === 0) {
+      return res.json({ codeSettings: [] });
+    }
+
+    // Get event IDs, making sure to use parent event IDs for child events
+    const eventIds = await Promise.all(
+      events.map(async (event) => {
+        // If this event has a parent, use the parent's ID
+        if (event.parentEventId) {
+          return event.parentEventId;
+        }
+        return event._id;
+      })
+    );
+
+    // Remove duplicate event IDs
+    const uniqueEventIds = [...new Set(eventIds)];
+
+    // Find all code settings for these events
+    const codeSettings = await CodeSettings.find({
+      eventId: { $in: uniqueEventIds },
+    });
+
+    console.log(
+      `[CodeSettings] Found ${codeSettings.length} code settings for brand ${brandId} with fields:`,
+      codeSettings.map((cs) => ({
+        name: cs.name,
+        type: cs.type,
+        maxPax: cs.maxPax,
+        condition: cs.condition,
+        eventId: cs.eventId,
+      }))
+    );
+
+    // Add the unlimited field to each code setting before sending
+    const codeSettingsWithUnlimited = codeSettings.map((setting) => {
+      // Convert to plain object to add the unlimited property
+      const settingObj = setting.toObject();
+
+      // If limit is 0, it's unlimited
+      settingObj.unlimited = settingObj.limit === 0;
+
+      return settingObj;
+    });
+
+    return res.json({ codeSettings: codeSettingsWithUnlimited });
+  } catch (error) {
+    console.error("[CodeSettings] Error fetching brand code settings:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Get all code settings for an event
 const getCodeSettings = async (req, res) => {
   try {
@@ -629,4 +694,5 @@ module.exports = {
   configureCodeSettings,
   deleteCodeSetting,
   initializeDefaultSettings,
+  getCodeSettingsByBrand,
 };

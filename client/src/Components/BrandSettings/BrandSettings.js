@@ -26,15 +26,18 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
-    console.log("[BrandSettings] Initial settings:", {
-      brandId: brand._id,
-      settings: brand.settings,
-      currentSettings: settings,
+    setSettings({
+      name: brand.name || "",
+      requiresApproval: brand.requiresApproval || false,
+      isPublic: brand.isPublic || false,
+      description: brand.description || "",
+      logo: brand.logo || null,
+      coverImage: brand.coverImage || null,
+      roles: [],
     });
-    if (brand?._id) {
-      fetchRoles();
-    }
-  }, []);
+
+    fetchRoles();
+  }, [brand]);
 
   const fetchRoles = async () => {
     try {

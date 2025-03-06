@@ -1633,6 +1633,9 @@ exports.getEventProfile = async (req, res) => {
       `[EventProfile] Fetching lineups using lineup IDs stored in event`
     );
     try {
+      // Ensure we use the event's _id consistently
+      const eventId = event._id.toString();
+
       // Check if the event has lineup IDs
       if (event.lineups && event.lineups.length > 0) {
         console.log(
@@ -1652,7 +1655,7 @@ exports.getEventProfile = async (req, res) => {
 
         // Try the old method as a fallback
         const fallbackLineups = await LineUp.find({
-          events: req.params.eventId,
+          events: eventId,
           isActive: true,
         }).sort({ sortOrder: 1 });
 
@@ -1683,23 +1686,23 @@ exports.getEventProfile = async (req, res) => {
               isActive: true,
             }).sort({ sortOrder: 1 })
           : await LineUp.find({
-              events: req.params.eventId,
+              events: eventId,
               isActive: true,
             }).sort({ sortOrder: 1 });
 
       // Get ticket settings
       console.log(
-        `[EventProfile] Fetching ticket settings for event ID: ${req.params.eventId}`
+        `[EventProfile] Fetching ticket settings for event ID: ${eventId}`
       );
       const ticketSettings = await TicketSettings.find({
-        eventId: req.params.eventId,
+        eventId: eventId,
       }).sort({ price: 1 });
 
       console.log(
         `[EventProfile] Found ${ticketSettings.length} ticket settings for event`
       );
       console.log(`[EventProfile] Ticket settings search criteria:`, {
-        eventId: req.params.eventId,
+        eventId: eventId,
       });
 
       if (ticketSettings.length === 0) {
@@ -1717,10 +1720,10 @@ exports.getEventProfile = async (req, res) => {
 
       // Get code settings
       console.log(
-        `[EventProfile] Fetching code settings for event ID: ${req.params.eventId}`
+        `[EventProfile] Fetching code settings for event ID: ${eventId}`
       );
       const codeSettings = await CodeSettings.find({
-        eventId: req.params.eventId,
+        eventId: eventId,
       });
 
       console.log(

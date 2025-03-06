@@ -3,6 +3,13 @@ const router = express.Router();
 const { authenticateToken } = require("../middleware/auth");
 const roleController = require("../controllers/roleController");
 
+// Get user's roles for a brand
+router.get(
+  "/brands/:brandId/user-roles",
+  authenticateToken,
+  roleController.getUserRolesForBrand
+);
+
 // Role management routes
 router.get(
   "/brands/:brandId/roles",

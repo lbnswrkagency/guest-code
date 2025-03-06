@@ -43,6 +43,12 @@ router.delete(
 // Create a new code
 router.post("/create", authenticate, codesController.createCode);
 
+// Create a new dynamic code with enhanced features
+router.post("/create-dynamic", authenticate, codesController.createDynamicCode);
+
+// Backward compatibility route for existing frontend requests
+router.post("/generate", authenticate, codesController.createDynamicCode);
+
 // Get all codes for an event
 router.get(
   "/events/:eventId/:type?",
@@ -64,5 +70,8 @@ router.get("/:codeId/image", authenticate, codesController.generateCodeImage);
 
 // Verify a code
 router.post("/verify", authenticate, codesController.verifyCode);
+
+// Track detailed usage of a code
+router.post("/:codeId/usage", authenticate, codesController.trackCodeUsage);
 
 module.exports = router;

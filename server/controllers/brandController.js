@@ -89,7 +89,19 @@ exports.getAllBrands = async (req, res) => {
     const brands = await Brand.find({
       $or: [{ owner: req.user._id }, { "team.user": req.user._id }],
     });
-    res.status(200).json(brands);
+
+    // Calculate and add memberCount for each brand
+    const brandsWithMemberCount = brands.map((brand) => {
+      const brandObj = brand.toObject();
+
+      // Calculate member count (team members + owner)
+      const teamMemberCount = brand.team ? brand.team.length : 0;
+      brandObj.memberCount = teamMemberCount + 1; // +1 for the owner
+
+      return brandObj;
+    });
+
+    res.status(200).json(brandsWithMemberCount);
   } catch (error) {
     res.status(500).json({
       message: "Error fetching brands",
@@ -108,7 +120,15 @@ exports.getBrand = async (req, res) => {
     if (!brand) {
       return res.status(404).json({ message: "Brand not found" });
     }
-    res.status(200).json(brand);
+
+    // Convert to object and add member count
+    const brandObj = brand.toObject();
+
+    // Calculate member count (team members + owner)
+    const teamMemberCount = brand.team ? brand.team.length : 0;
+    brandObj.memberCount = teamMemberCount + 1; // +1 for the owner
+
+    res.status(200).json(brandObj);
   } catch (error) {
     res
       .status(500)

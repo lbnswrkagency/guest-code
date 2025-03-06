@@ -31,6 +31,21 @@ const CodeSchema = new Schema(
     // Additional fields for specific code types
     price: { type: Number }, // For ticket codes
     tableNumber: { type: String }, // For table codes
+
+    // New fields for dynamic code generation
+    isDynamic: { type: Boolean, default: false }, // Flag to indicate dynamic codes
+    expiryDate: { type: Date }, // Optional expiry date for dynamic codes
+    validationRules: { type: Map, of: String }, // Flexible validation rules
+    usage: [
+      {
+        timestamp: { type: Date, default: Date.now },
+        paxUsed: { type: Number, default: 0 },
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
+        location: { type: String },
+        deviceInfo: { type: String },
+      },
+    ], // Track detailed usage information
+    metadata: { type: Map, of: Schema.Types.Mixed }, // Additional flexible metadata
   },
   {
     timestamps: true,
@@ -41,6 +56,32 @@ const CodeSchema = new Schema(
 CodeSchema.index({ eventId: 1, type: 1 });
 CodeSchema.index({ code: 1 }, { unique: true });
 CodeSchema.index({ securityToken: 1 }); // Add index for security token lookups
+CodeSchema.index({ expiryDate: 1 }); // Add index for quickly finding expired codes
+CodeSchema.index({ "usage.timestamp": 1 }); // Add index for usage analytics
+
+// Virtual property to check if code is expired
+CodeSchema.virtual("isExpired").get(function () {
+  if (!this.expiryDate) return false;
+  return new Date() > this.expiryDate;
+});
+
+// Virtual property to get remaining uses (if limit is set)
+CodeSchema.virtual("remainingUses").get(function () {
+  if (this.limit === 0) return Infinity; // Unlimited
+  return Math.max(0, this.limit - this.usageCount);
+});
+
+// Static method to find active codes
+CodeSchema.statics.findActive = function (query = {}) {
+  return this.find({
+    ...query,
+    status: "active",
+    $or: [
+      { expiryDate: { $exists: false } },
+      { expiryDate: { $gt: new Date() } },
+    ],
+  });
+};
 
 const Code = mongoose.model("Code", CodeSchema);
 

@@ -25,6 +25,7 @@ export const useSocket = () => {
 
 export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [attemptingReconnect, setAttemptingReconnect] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Map());
   const [connectionError, setConnectionError] = useState(null);
   const { user } = useAuth();
@@ -110,75 +111,22 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("connect", () => {
-        console.log("[SocketContext] Socket connected successfully", {
-          socketId: socketInstance.id,
-          userId: user._id,
-          timestamp: new Date().toISOString(),
-        });
         setIsConnected(true);
-        setConnectionError(null);
-        reconnectAttempts = 0;
-        socketInstance.emit("user_online", { userId: user._id });
       });
 
       socketInstance.on("disconnect", () => {
-        console.log("[SocketContext] Socket disconnected", {
-          userId: user._id,
-          timestamp: new Date().toISOString(),
-        });
         setIsConnected(false);
-        setOnlineUsers(new Map());
       });
 
-      socketInstance.on("connect_error", async (error) => {
-        console.error("[SocketContext] Socket connection error:", {
-          error: error.message,
-          userId: user._id,
-          reconnectAttempt: reconnectAttempts + 1,
-          timestamp: new Date().toISOString(),
-        });
-        setIsConnected(false);
-        setConnectionError(error.message);
+      socketInstance.io.on("reconnect_attempt", () => {
+        setAttemptingReconnect(true);
+      });
 
-        if (socketInstance) {
-          socketInstance.disconnect();
-          socketInstance = null;
-        }
-
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          reconnectAttempts++;
-          const delay = RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1);
-          console.log("[SocketContext] Attempting to reconnect", {
-            attempt: reconnectAttempts,
-            delay,
-            nextAttemptAt: new Date(Date.now() + delay).toISOString(),
-          });
-
-          setTimeout(async () => {
-            try {
-              await connectSocket();
-            } catch (error) {
-              console.error(
-                "[SocketContext] Reconnection attempt failed:",
-                error
-              );
-            }
-          }, delay);
-        } else {
-          console.error(
-            "[SocketContext] Maximum reconnection attempts reached"
-          );
-          setConnectionError(
-            "Maximum reconnection attempts reached. Please refresh the page."
-          );
-        }
+      socketInstance.io.on("reconnect", () => {
+        setAttemptingReconnect(false);
       });
 
       socketInstance.on("initial_online_users", (users) => {
-        console.log("[SocketContext] Received initial online users", {
-          count: users.length,
-          timestamp: new Date().toISOString(),
-        });
         const userMap = new Map();
         users.forEach((user) => {
           if (user.userId && user.userData) {
@@ -189,10 +137,6 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("user_connected", ({ userId, userData }) => {
-        console.log("[SocketContext] User connected", {
-          userId,
-          timestamp: new Date().toISOString(),
-        });
         setOnlineUsers((prev) => {
           const newMap = new Map(prev);
           newMap.set(userId, userData);
@@ -201,10 +145,6 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on("user_disconnected", (userId) => {
-        console.log("[SocketContext] User disconnected", {
-          userId,
-          timestamp: new Date().toISOString(),
-        });
         setOnlineUsers((prev) => {
           const newMap = new Map(prev);
           newMap.delete(userId);
@@ -258,6 +198,7 @@ export const SocketProvider = ({ children }) => {
   const value = {
     socket: socketInstance,
     isConnected,
+    attemptingReconnect,
     onlineUsers,
     connectionError,
   };

@@ -43,43 +43,6 @@ const AppRoutes = () => {
   // Pre-build the user profile route if we have a user
   const userProfilePath = user ? `/@${user.username.trim()}` : null;
 
-  console.log("[AppRoutes] Route initialization:", {
-    currentPath: location.pathname,
-    userState: {
-      isAuthenticated: !!user,
-      username: user?.username.trim(),
-      userProfilePath,
-    },
-    routeParams: params,
-    pathSegments: location.pathname.split("/").filter(Boolean),
-    isAuthenticatedRoute: user && location.pathname.startsWith(userProfilePath),
-    timestamp: new Date().toISOString(),
-  });
-
-  // Enhanced logging for route matching
-  console.log("[AppRoutes] Route matching state:", {
-    authenticatedRoutes: user
-      ? [
-          userProfilePath,
-          `${userProfilePath}/*`,
-          `${userProfilePath}/brands`,
-          `${userProfilePath}/:brandUsername`,
-          `${userProfilePath}/:brandUsername/:eventUsername`,
-          `${userProfilePath}/:brandUsername/:eventUsername/:dateSlug`,
-        ]
-      : [],
-    publicRoutes: [
-      "/@:brandUsername",
-      "/@:brandUsername/@:eventUsername",
-      "/@:brandUsername/@:eventUsername/:dateSlug",
-    ],
-    currentPath: location.pathname,
-    matchesAuthenticatedPath:
-      user && location.pathname.startsWith(userProfilePath),
-    matchesPublicPath: !user && location.pathname.match(/\/@[\w-]+/),
-    timestamp: new Date().toISOString(),
-  });
-
   return (
     <Routes>
       {user ? (
@@ -117,14 +80,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="brand-profile-auth">
                       {({ params }) => {
-                        console.log("[AppRoutes] Brand route matched:", {
-                          params,
-                          pathname: location.pathname,
-                          userProfilePath,
-                          isNestedUnderUserProfile:
-                            location.pathname.startsWith(userProfilePath),
-                          timestamp: new Date().toISOString(),
-                        });
                         return <BrandProfile />;
                       }}
                     </RouteDebug>
@@ -135,19 +90,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="event-auth-special-format">
                       {({ params }) => {
-                        console.log(
-                          "[AppRoutes] Auth event special format route matched:",
-                          {
-                            params,
-                            pathname: location.pathname,
-                            paramValues: {
-                              brandUsername: params.brandUsername,
-                              eventUsername: params.eventUsername,
-                              dateSlug: params.dateSlug,
-                            },
-                            timestamp: new Date().toISOString(),
-                          }
-                        );
                         // Always use EventProfile for this pattern
                         return <EventProfile />;
                       }}
@@ -159,14 +101,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="event-auth">
                       {({ params }) => {
-                        console.log(
-                          "[AppRoutes] Auth event username route matched:",
-                          {
-                            params,
-                            pathname: location.pathname,
-                            timestamp: new Date().toISOString(),
-                          }
-                        );
                         return <EventProfile />;
                       }}
                     </RouteDebug>
@@ -178,18 +112,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="event-auth-simple-format">
                       {({ params }) => {
-                        console.log(
-                          "[AppRoutes] Auth event route with simplified format matched:",
-                          {
-                            params,
-                            pathname: location.pathname,
-                            paramValues: {
-                              brandUsername: params.brandUsername,
-                              dateSlug: params.dateSlug,
-                            },
-                            timestamp: new Date().toISOString(),
-                          }
-                        );
                         return <EventProfile />;
                       }}
                     </RouteDebug>
@@ -200,19 +122,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="event-auth-new-format">
                       {({ params }) => {
-                        console.log(
-                          "[AppRoutes] Auth event route with new format matched:",
-                          {
-                            params,
-                            pathname: location.pathname,
-                            paramValues: {
-                              brandUsername: params.brandUsername,
-                              dateSlug: params.dateSlug,
-                              eventSlug: params.eventSlug,
-                            },
-                            timestamp: new Date().toISOString(),
-                          }
-                        );
                         return <EventProfile />;
                       }}
                     </RouteDebug>
@@ -228,29 +137,11 @@ const AppRoutes = () => {
                         const isDateFormat = /^\d{6}(-\d+)?$/.test(
                           params.dateSlug
                         );
-                        console.log(
-                          `[AppRoutes] :brandUsername/:dateSlug route matched, dateSlug=${params.dateSlug}, isDateFormat=${isDateFormat}`
-                        );
 
                         if (isDateFormat) {
-                          console.log(
-                            "[AppRoutes] Auth event route with ultra-simplified format matched:",
-                            {
-                              params,
-                              pathname: location.pathname,
-                              paramValues: {
-                                brandUsername: params.brandUsername,
-                                dateSlug: params.dateSlug,
-                              },
-                              timestamp: new Date().toISOString(),
-                            }
-                          );
                           return <EventProfile />;
                         } else {
                           // If it's not a date format, use EventProfile anyway to avoid errors
-                          console.log(
-                            "[AppRoutes] Using EventProfile as fallback for non-date format"
-                          );
                           return <EventProfile />;
                         }
                       }}
@@ -262,14 +153,6 @@ const AppRoutes = () => {
                   element={
                     <RouteDebug name="event-auth-special-direct-format">
                       {({ params }) => {
-                        console.log(
-                          "[AppRoutes] Direct match for special auth format:",
-                          {
-                            params,
-                            pathname: location.pathname,
-                            timestamp: new Date().toISOString(),
-                          }
-                        );
                         return <EventProfile />;
                       }}
                     </RouteDebug>
@@ -286,11 +169,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="brand-profile-public">
                 {({ params }) => {
-                  console.log("[AppRoutes] Public brand route matched:", {
-                    params,
-                    pathname: location.pathname,
-                    timestamp: new Date().toISOString(),
-                  });
                   return <BrandProfile />;
                 }}
               </RouteDebug>
@@ -306,29 +184,11 @@ const AppRoutes = () => {
                 {({ params }) => {
                   // We need to check if dateSlug is a valid date format to avoid mismatching
                   const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
-                  console.log(
-                    `[AppRoutes] /@:brandUsername/:dateSlug route matched, dateSlug=${params.dateSlug}, isDateFormat=${isDateFormat}`
-                  );
 
                   if (isDateFormat) {
-                    console.log(
-                      "[AppRoutes] Public event route with ultra-simplified format matched:",
-                      {
-                        params,
-                        pathname: location.pathname,
-                        paramValues: {
-                          brandUsername: params.brandUsername,
-                          dateSlug: params.dateSlug,
-                        },
-                        timestamp: new Date().toISOString(),
-                      }
-                    );
                     return <EventProfile />;
                   } else {
                     // If it's not a date format, it might be another type of route
-                    console.log(
-                      "[AppRoutes] Not a date format, redirecting..."
-                    );
                     return (
                       <Navigate to={`/@${params.brandUsername}`} replace />
                     );
@@ -343,19 +203,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="event-public-special-format">
                 {({ params }) => {
-                  console.log(
-                    "[AppRoutes] Public event special format route matched:",
-                    {
-                      params,
-                      pathname: location.pathname,
-                      paramValues: {
-                        brandUsername: params.brandUsername,
-                        eventUsername: params.eventUsername,
-                        dateSlug: params.dateSlug,
-                      },
-                      timestamp: new Date().toISOString(),
-                    }
-                  );
                   // Always use EventProfile for this pattern
                   return <EventProfile />;
                 }}
@@ -368,14 +215,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="event-public">
                 {({ params }) => {
-                  console.log(
-                    "[AppRoutes] Public event username route matched:",
-                    {
-                      params,
-                      pathname: location.pathname,
-                      timestamp: new Date().toISOString(),
-                    }
-                  );
                   return <EventProfile />;
                 }}
               </RouteDebug>
@@ -388,18 +227,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="event-public-simple-format">
                 {({ params }) => {
-                  console.log(
-                    "[AppRoutes] Public event route with simplified format matched:",
-                    {
-                      params,
-                      pathname: location.pathname,
-                      paramValues: {
-                        brandUsername: params.brandUsername,
-                        dateSlug: params.dateSlug,
-                      },
-                      timestamp: new Date().toISOString(),
-                    }
-                  );
                   return <EventProfile />;
                 }}
               </RouteDebug>
@@ -411,19 +238,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="event-public-new-format">
                 {({ params }) => {
-                  console.log(
-                    "[AppRoutes] Public event route with new format matched:",
-                    {
-                      params,
-                      pathname: location.pathname,
-                      paramValues: {
-                        brandUsername: params.brandUsername,
-                        dateSlug: params.dateSlug,
-                        eventSlug: params.eventSlug,
-                      },
-                      timestamp: new Date().toISOString(),
-                    }
-                  );
                   return <EventProfile />;
                 }}
               </RouteDebug>
@@ -434,7 +248,7 @@ const AppRoutes = () => {
 
       {/* Other routes */}
       <Route
-        path="/"
+        path="/*"
         element={
           <RouteDebug name="home">
             <Home />
@@ -545,8 +359,6 @@ const RouteDebug = ({ name, children }) => {
     timestamp: new Date().toISOString(),
   };
 
-  // console.log(`[RouteDebug:${name}] Route matched:`, debugInfo);
-
   return typeof children === "function" ? children(debugInfo) : children;
 };
 
@@ -556,25 +368,11 @@ const UserProfileRoute = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // console.log("[UserProfileRoute] Rendering:", {
-  //   username,
-  //   pathname: location.pathname,
-  //   search: location.search,
-  //   hash: location.hash,
-  //   state: location.state,
-  //   params: useParams(),
-  //   timestamp: new Date().toISOString(),
-  // });
-
   return <Outlet />;
 };
 
 // Main App component
 function App() {
-  // console.log("[App] Initializing App component", {
-  //   timestamp: new Date().toISOString(),
-  // });
-
   return (
     <Router>
       <AuthProvider>

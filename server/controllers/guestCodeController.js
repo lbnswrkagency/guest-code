@@ -1,4 +1,4 @@
-gitconst Code = require("../models/codesModel");
+const Code = require("../models/codesModel");
 const Event = require("../models/eventsModel");
 const Brand = require("../models/brandModel");
 const QRCode = require("qrcode");

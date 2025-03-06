@@ -17,12 +17,6 @@ const AvatarUpload = ({
   onImageCropped,
   isLineUpMode = false,
 }) => {
-  console.log("[AvatarUpload] Component rendered with props:", {
-    user: user ? { id: user._id, hasAvatar: !!user.avatar } : null,
-    isCropMode,
-    isLineUpMode,
-  });
-
   const [showModal, setShowModal] = useState(isCropMode);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -32,20 +26,10 @@ const AvatarUpload = ({
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
-    console.log(
-      "[AvatarUpload] isCropMode effect triggered, value:",
-      isCropMode
-    );
     setShowModal(isCropMode);
   }, [isCropMode]);
 
   useEffect(() => {
-    console.log(
-      "[AvatarUpload] showModal effect triggered, value:",
-      showModal,
-      "isCropMode:",
-      isCropMode
-    );
     if (setIsCropMode && !showModal && isCropMode) {
       setIsCropMode(false);
     }
@@ -222,13 +206,10 @@ const AvatarUpload = ({
   };
 
   const renderModal = () => {
-    console.log("[AvatarUpload] renderModal called, showModal:", showModal);
     if (!showModal) {
-      console.log("[AvatarUpload] Not showing modal - showModal is false");
       return null;
     }
 
-    console.log("[AvatarUpload] Rendering modal portal");
     return createPortal(
       <AnimatePresence>
         <motion.div
@@ -330,12 +311,8 @@ const AvatarUpload = ({
         <div
           className="avatar-display"
           onClick={() => {
-            console.log(
-              "[AvatarUpload] Avatar display clicked, setting showModal=true"
-            );
             setShowModal(true);
             if (setIsCropMode) {
-              console.log("[AvatarUpload] Also setting isCropMode=true");
               setIsCropMode(true);
             }
           }}

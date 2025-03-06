@@ -20,7 +20,15 @@ import { useSocket } from "../../contexts/SocketContext";
 import axiosInstance from "../../utils/axiosConfig";
 import Search from "../Search/Search";
 
-const Navigation = ({ onBack, onMenuClick, onLogout }) => {
+const Navigation = ({
+  onBack,
+  onMenuClick = () => {
+    console.warn(
+      "[Navigation] onMenuClick prop is not provided. DashboardNavigation won't open."
+    );
+  },
+  onLogout,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const hasMessages = useNotificationDot("message");
@@ -158,9 +166,28 @@ const Navigation = ({ onBack, onMenuClick, onLogout }) => {
           {/* Menu */}
           <motion.div
             className="nav-icon-wrapper"
-            onClick={onMenuClick}
+            onClick={() => {
+              console.log(
+                "[Navigation] Menu icon clicked, calling onMenuClick",
+                {
+                  hasOnMenuClick: typeof onMenuClick === "function",
+                  component: location.pathname,
+                  timestamp: new Date().toISOString(),
+                }
+              );
+              if (typeof onMenuClick === "function") {
+                onMenuClick();
+              } else {
+                console.error(
+                  "[Navigation] onMenuClick is not a function:",
+                  onMenuClick
+                );
+              }
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            role="button"
+            aria-label="Open menu"
           >
             <RiMenuLine className="icon" />
           </motion.div>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./BrandProfile.scss";
 import Navigation from "../Navigation/Navigation";
+import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import BrandProfileHeader from "./BrandProfileHeader";
 import BrandProfileFeed from "./BrandProfileFeed";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -41,7 +42,7 @@ const BrandProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { brandUsername } = useParams();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const toast = useToast();
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,13 @@ const BrandProfile = () => {
   const [joinStatus, setJoinStatus] = useState(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showCancelJoinConfirm, setShowCancelJoinConfirm] = useState(false);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState({
+    isFollowing: false,
+    isMember: false,
+    isFavorited: false,
+    joinRequestStatus: null,
+  });
 
   const cleanUsername = brandUsername?.replace("@", "");
 
@@ -491,10 +499,18 @@ const BrandProfile = () => {
     );
   };
 
+  // Add effect to log navigation state changes
+  useEffect(() => {
+    console.log("[BrandProfile] DashboardNavigation isOpen:", isNavigationOpen);
+  }, [isNavigationOpen]);
+
   if (loading) {
     return (
       <div className="page-wrapper">
-        <Navigation onBack={handleBack} />
+        <Navigation
+          onBack={handleBack}
+          onMenuClick={() => setIsNavigationOpen(true)}
+        />
         <div className="brand-profile loading">
           <div className="loading-spinner" />
         </div>
@@ -505,7 +521,10 @@ const BrandProfile = () => {
   if (!brand) {
     return (
       <div className="page-wrapper">
-        <Navigation onBack={handleBack} />
+        <Navigation
+          onBack={handleBack}
+          onMenuClick={() => setIsNavigationOpen(true)}
+        />
         <div className="brand-profile error">
           <motion.div
             initial={{ opacity: 0 }}
@@ -521,8 +540,10 @@ const BrandProfile = () => {
 
   return (
     <div className="page-wrapper">
-      <Navigation onBack={handleBack} />
-
+      <Navigation
+        onBack={handleBack}
+        onMenuClick={() => setIsNavigationOpen(true)}
+      />
       <div className="brand-profile">
         <div className="brand-header">
           <div className="brand-cover">
@@ -661,6 +682,13 @@ const BrandProfile = () => {
           />
         )}
       </AnimatePresence>
+
+      <DashboardNavigation
+        isOpen={isNavigationOpen}
+        onClose={() => setIsNavigationOpen(false)}
+        currentUser={user}
+        setUser={setUser}
+      />
     </div>
   );
 };

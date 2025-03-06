@@ -311,6 +311,116 @@ const createCode = async (req, res) => {
   }
 };
 
+// Generate a dynamic code with enhanced features
+const createDynamicCode = async (req, res) => {
+  try {
+    const {
+      name,
+      event, // This is the eventId from frontend
+      hostId, // This is the createdBy field in our model
+      condition,
+      pax, // This corresponds to maxPax
+      type, // The code type
+      settings, // This is the codeSettingId
+      tableNumber = "", // Optional for table codes
+    } = req.body;
+
+    // Validate required fields
+    if (!event || !type || !settings) {
+      return res.status(400).json({
+        message: "Missing required fields: event, type, or settings",
+      });
+    }
+
+    // Find the event
+    const event_ = await Event.findById(event);
+    if (!event_) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Find the code setting
+    const CodeSettings = require("../models/codeSettingsModel");
+    const codeSetting = await CodeSettings.findById(settings);
+
+    if (!codeSetting) {
+      return res.status(404).json({ message: "Code setting not found" });
+    }
+
+    // Check if the code setting is enabled
+    if (!codeSetting.isEnabled) {
+      return res.status(400).json({
+        message: `${codeSetting.name} is not enabled for this event`,
+      });
+    }
+
+    // Generate a unique code
+    const code = await generateUniqueCode();
+
+    // Generate a security token for additional validation
+    const securityToken = crypto.randomBytes(16).toString("hex");
+
+    // Create QR code data with enhanced security
+    const qrData = {
+      code,
+      securityToken,
+      type,
+      eventId: event,
+      name: name || codeSetting.name,
+      timestamp: Date.now(),
+    };
+
+    // Generate QR code
+    const qrCode = await generateQR(qrData);
+
+    // Create the dynamic code in the database with enhanced features
+    const newCode = new Code({
+      eventId: event,
+      codeSettingId: settings,
+      type,
+      name: name || codeSetting.name,
+      code,
+      qrCode,
+      securityToken,
+      condition: condition || codeSetting.condition || "",
+      maxPax: pax || codeSetting.maxPax || 1,
+      limit: codeSetting.limit || 0,
+      createdBy: hostId || req.user._id,
+      // Additional fields specific to this type
+      tableNumber,
+      // Dynamic code specific fields
+      isDynamic: true,
+      metadata: {
+        generatedFrom: "CodeGenerator",
+        hostInfo: req.user
+          ? {
+              id: req.user._id,
+              username: req.user.username,
+            }
+          : null,
+      },
+    });
+
+    await newCode.save();
+
+    // Return the generated code data for display
+    return res.status(201).json({
+      message: "Code generated successfully",
+      code: {
+        _id: newCode._id,
+        code: newCode.code,
+        qrCode: newCode.qrCode,
+        name: newCode.name,
+        type: newCode.type,
+        maxPax: newCode.maxPax,
+        condition: newCode.condition,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating dynamic code:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Get all codes for an event
 const getEventCodes = async (req, res) => {
   try {
@@ -347,25 +457,47 @@ const getEventCodes = async (req, res) => {
     const CodeSettings = require("../models/codeSettingsModel");
     const codeSettings = await CodeSettings.find({ eventId });
 
-    // Combine codes with their settings
+    // Combine codes with their settings and format for frontend display
     const codesWithSettings = codes.map((code) => {
-      const setting = codeSettings.find(
-        (s) =>
-          s._id.toString() === code.codeSettingId?.toString() ||
-          s.type === code.type
-      );
+      // Find the corresponding code setting if it exists
+      const codeSetting = code.codeSettingId
+        ? codeSettings.find(
+            (s) => s._id.toString() === code.codeSettingId.toString()
+          )
+        : null;
 
+      // Format data for frontend display
       return {
-        ...code.toObject(),
-        setting: setting ? setting.toObject() : null,
+        _id: code._id,
+        code: code.code,
+        qrCode: code.qrCode,
+        name: code.name || "Guest",
+        guestName: code.guestName || code.name,
+        condition: code.condition || "",
+        type: code.type,
+        status: code.status,
+        maxPax: code.maxPax || 1,
+        paxChecked: code.paxChecked || 0,
+        usageCount: code.usageCount || 0,
+        limit: code.limit || 0,
+        isDynamic: code.isDynamic || false,
+        tableNumber: code.tableNumber || "",
+        createdAt: code.createdAt,
+        updatedAt: code.updatedAt,
+        // Include codeSetting details if available
+        setting: codeSetting
+          ? {
+              name: codeSetting.name,
+              type: codeSetting.type,
+              condition: codeSetting.condition,
+            }
+          : null,
       };
     });
 
-    return res.status(200).json({
-      codes: codesWithSettings,
-    });
+    return res.status(200).json(codesWithSettings);
   } catch (error) {
-    console.error("Error fetching event codes:", error);
+    console.error("Error fetching codes:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -634,15 +766,93 @@ const verifyCode = async (req, res) => {
   }
 };
 
+// Track detailed usage of a code
+const trackCodeUsage = async (req, res) => {
+  try {
+    const { codeId, paxUsed, location, deviceInfo } = req.body;
+
+    // Find the code
+    const code = await Code.findById(codeId);
+    if (!code) {
+      return res.status(404).json({ message: "Code not found" });
+    }
+
+    // Check if code is active
+    if (code.status !== "active") {
+      return res.status(400).json({
+        message: `This code is ${code.status}`,
+      });
+    }
+
+    // Check if code is expired
+    if (code.expiryDate && new Date() > code.expiryDate) {
+      code.status = "expired";
+      await code.save();
+      return res.status(400).json({
+        message: "This code has expired",
+      });
+    }
+
+    // Check if code has reached its usage limit
+    if (code.limit > 0 && code.usageCount >= code.limit) {
+      code.status = "used";
+      await code.save();
+      return res.status(400).json({
+        message: "This code has reached its usage limit",
+      });
+    }
+
+    // Add usage record
+    code.usage.push({
+      timestamp: new Date(),
+      paxUsed: paxUsed || 1,
+      userId: req.user._id,
+      location,
+      deviceInfo,
+    });
+
+    // Update overall usage stats
+    code.usageCount += 1;
+    code.paxChecked += paxUsed || 1;
+
+    // If this usage hits the limit, mark code as used
+    if (code.limit > 0 && code.usageCount >= code.limit) {
+      code.status = "used";
+    }
+
+    await code.save();
+
+    return res.status(200).json({
+      message: "Code usage tracked successfully",
+      code: {
+        _id: code._id,
+        code: code.code,
+        status: code.status,
+        usageCount: code.usageCount,
+        paxChecked: code.paxChecked,
+        remainingUses:
+          code.limit > 0
+            ? Math.max(0, code.limit - code.usageCount)
+            : "unlimited",
+      },
+    });
+  } catch (error) {
+    console.error("Error tracking code usage:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   configureCodeSettings,
   getCodeSettings,
   deleteCodeSetting,
   createCode,
+  createDynamicCode,
   getEventCodes,
   getCode,
   updateCode,
   deleteCode,
   generateCodeImage,
   verifyCode,
+  trackCodeUsage,
 };

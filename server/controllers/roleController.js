@@ -160,6 +160,97 @@ exports.getRoles = async (req, res) => {
   }
 };
 
+// Get user roles for a specific brand
+exports.getUserRolesForBrand = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const userId = req.user._id;
+
+    if (!brandId) {
+      return res.status(400).json({ message: "Brand ID is required" });
+    }
+
+    // Find the brand to check if user is owner
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    // Prepare roles array
+    const userRoles = [];
+
+    // Check if user is the owner
+    const isOwner = brand.owner.toString() === userId.toString();
+    if (isOwner) {
+      // Add OWNER role
+      const ownerRole = await Role.findOne({
+        brandId,
+        name: "OWNER",
+        isDefault: true,
+      });
+
+      if (ownerRole) {
+        userRoles.push(ownerRole);
+      }
+    }
+
+    // Check if user is a team member
+    const isMember =
+      brand.team &&
+      brand.team.some(
+        (member) => member.user && member.user.toString() === userId.toString()
+      );
+
+    if (isMember) {
+      // Find team member's role
+      const teamMember = brand.team.find(
+        (member) => member.user && member.user.toString() === userId.toString()
+      );
+
+      if (teamMember && teamMember.role) {
+        // Find the role object for this role name
+        const memberRole = await Role.findOne({
+          brandId,
+          name: teamMember.role,
+        });
+
+        if (memberRole) {
+          userRoles.push(memberRole);
+        }
+      }
+
+      // Always add MEMBER role
+      const memberRole = await Role.findOne({
+        brandId,
+        name: "MEMBER",
+        isDefault: true,
+      });
+
+      if (memberRole) {
+        userRoles.push(memberRole);
+      }
+    }
+
+    // Add any custom roles assigned directly to the user
+    const customRoles = await Role.find({
+      brandId,
+      assignedUsers: userId,
+    });
+
+    if (customRoles && customRoles.length > 0) {
+      userRoles.push(...customRoles);
+    }
+
+    res.status(200).json(userRoles);
+  } catch (error) {
+    console.error("[RoleController:getUserRolesForBrand] Error:", error);
+    res.status(500).json({
+      message: "Error fetching user roles",
+      error: error.message,
+    });
+  }
+};
+
 // Create a new role
 exports.createRole = async (req, res) => {
   try {

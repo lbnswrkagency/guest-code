@@ -14,9 +14,15 @@ const DashboardMenu = ({
   user,
   selectedBrand,
   codeSettings = [],
+  codePermissions = [],
+  accessSummary = {},
   setShowStatistic,
   setShowScanner,
   setCodeType,
+  setShowSettings,
+  setShowDropFiles,
+  setShowTableSystem,
+  isOnline,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [permissions, setPermissions] = useState({
@@ -38,80 +44,44 @@ const DashboardMenu = ({
     return str1 === str2;
   };
 
+  // Debug logging to verify we're receiving data
+  useEffect(() => {
+    console.log("🧰 DashboardMenu received:", {
+      userRoles: userRoles.length,
+      codeSettings: codeSettings.length,
+      codePermissions: codePermissions.length,
+      accessSummary,
+      selectedBrand: selectedBrand?.name,
+    });
+  }, [userRoles, codeSettings, codePermissions, accessSummary, selectedBrand]);
+
   useEffect(() => {
     if (selectedBrand && user) {
-      console.log(
-        "[DashboardMenu] Determining permissions for brand:",
-        selectedBrand.name
-      );
-
-      // Initialize permissions
-      let effectivePermissions = {
-        analytics: { view: false },
-        scanner: { use: false },
+      // Use the access summary directly instead of recalculating permissions
+      const effectivePermissions = {
+        analytics: {
+          view: accessSummary.hasAnalyticsPermission || false,
+        },
+        scanner: {
+          use: accessSummary.hasScannerPermission || false,
+        },
         codes: {
-          canGenerateAny: false,
-          settings: codeSettings,
+          canGenerateAny: accessSummary.canCreateCodes || false,
+          canReadAny: accessSummary.canReadCodes || false,
+          canEditAny: accessSummary.canEditCodes || false,
+          canDeleteAny: accessSummary.canDeleteCodes || false,
+          settings: codeSettings || [],
+          permissions: codePermissions || [],
         },
       };
 
-      // Check if user is owner
-      const isOwner = compareIds(selectedBrand.owner, user._id);
-
-      if (isOwner) {
-        console.log("[DashboardMenu] User is owner - granting all permissions");
-        effectivePermissions = {
-          analytics: { view: true },
-          scanner: { use: true },
-          codes: {
-            canGenerateAny: true,
-            settings: codeSettings,
-          },
-        };
-      } else {
-        // Find user's role in team
-        const teamMember = selectedBrand.team?.find((member) =>
-          compareIds(member.user, user._id)
-        );
-
-        if (teamMember) {
-          console.log(
-            "[DashboardMenu] User is team member with role:",
-            teamMember.role
-          );
-
-          // Find role definition
-          const roleDefinition = userRoles.find(
-            (role) =>
-              role.name === teamMember.role &&
-              compareIds(role.brandId, selectedBrand._id)
-          );
-
-          if (roleDefinition?.permissions) {
-            console.log(
-              "[DashboardMenu] Found role permissions:",
-              roleDefinition.permissions
-            );
-
-            effectivePermissions.analytics.view =
-              roleDefinition.permissions.analytics?.view || false;
-            effectivePermissions.scanner.use =
-              roleDefinition.permissions.scanner?.use || false;
-
-            // Check if user can generate any type of code
-            const canGenerateAny = Object.values(
-              roleDefinition.permissions.codes || {}
-            ).some((codePerm) => codePerm.generate);
-
-            effectivePermissions.codes.canGenerateAny = canGenerateAny;
-          }
-        }
-      }
-
-      console.log("[DashboardMenu] Final permissions:", effectivePermissions);
+      console.log(
+        "🔍 DashboardMenu effective permissions:",
+        effectivePermissions
+      );
       setPermissions(effectivePermissions);
     }
-  }, [selectedBrand, user, userRoles, codeSettings]);
+  }, [selectedBrand, user, accessSummary, codeSettings, codePermissions]);
 
   const handleMenuClick = () => {
     setIsOpen(!isOpen);
@@ -131,6 +101,45 @@ const DashboardMenu = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
+
+  // Helper to determine which code type to use when clicking the Codes menu item
+  const getDefaultCodeType = () => {
+    // Look for any enabled code setting
+    if (codeSettings.length > 0) {
+      // Find the first available code setting that is enabled
+      const firstEnabled = codeSettings.find((setting) => setting.isEnabled);
+      if (firstEnabled) {
+        console.log(
+          `📋 Using first enabled code setting: ${
+            firstEnabled.name || firstEnabled.type || firstEnabled.codeType
+          }`
+        );
+        return firstEnabled.type || firstEnabled.codeType || "guest";
+      }
+
+      // If no enabled setting found, use the first setting
+      console.log(
+        `📋 Using first code setting (not enabled): ${
+          codeSettings[0].name ||
+          codeSettings[0].type ||
+          codeSettings[0].codeType
+        }`
+      );
+      return codeSettings[0].type || codeSettings[0].codeType || "guest";
+    }
+
+    // If no code settings available, check permissions
+    if (codePermissions.length > 0) {
+      console.log(
+        `📋 No code settings, using permission type: ${codePermissions[0].type}`
+      );
+      return codePermissions[0].type || "guest";
+    }
+
+    // Default fallback
+    console.log("📋 No code settings or permissions, defaulting to guest");
+    return "guest";
+  };
 
   return (
     <div className={`menuDashboard ${isOpen ? "open" : ""}`}>
@@ -174,11 +183,14 @@ const DashboardMenu = ({
                 </div>
               )}
 
-              {permissions.codes.canGenerateAny && (
+              {/* Show Codes option if user can generate codes and there are code settings */}
+              {permissions.codes.canGenerateAny && codeSettings.length > 0 && (
                 <div
                   className="menu-item"
                   onClick={() => {
-                    setCodeType("guest"); // Default to guest type, CodeGenerator will handle available types
+                    const defaultType = getDefaultCodeType();
+                    console.log(`🎟️ Setting code type to: ${defaultType}`);
+                    setCodeType(defaultType);
                     setIsOpen(false);
                   }}
                 >

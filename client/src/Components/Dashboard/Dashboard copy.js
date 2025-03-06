@@ -187,21 +187,6 @@ const DashboardContent = ({ user, setUser }) => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Add a state variable to store the access summary
-  const [accessSummary, setAccessSummary] = useState({
-    canCreateCodes: false,
-    canReadCodes: false,
-    canEditCodes: false,
-    canDeleteCodes: false,
-    isOwner: false,
-    isMember: false,
-    hasEventsPermission: false,
-    hasTeamPermission: false,
-    hasAnalyticsPermission: false,
-    hasScannerPermission: false,
-    permissions: {},
-  });
-
   const handleCropModeToggle = (isInCropMode) => {
     setIsCropMode(isInCropMode);
   };
@@ -400,89 +385,14 @@ const DashboardContent = ({ user, setUser }) => {
           // Handle different response formats
           if (response.data && Array.isArray(response.data.codeSettings)) {
             console.log(
-              "%c✅ Found codeSettings array in response.data:",
-              "color: #4CAF50; font-weight: bold;",
+              "Found codeSettings array in response.data:",
               response.data.codeSettings.length
             );
-
-            // Log detailed settings data
-            response.data.codeSettings.forEach((setting) => {
-              console.log(
-                `🧩 Code setting from API: ${setting.name || setting.type}:`,
-                {
-                  maxPax: setting.maxPax,
-                  condition: setting.condition,
-                  type: setting.type,
-                  limit: setting.limit,
-                  unlimited: setting.unlimited || setting.limit === 0,
-                  isEditable: setting.isEditable,
-                  isEnabled: setting.isEnabled,
-                }
-              );
-            });
-
-            // Filter out standard code types that aren't editable unless they're enabled custom types
-            const filteredSettings = response.data.codeSettings.filter(
-              (setting) => {
-                // Keep all custom types that are enabled
-                if (setting.type === "custom" && setting.isEnabled) {
-                  return true;
-                }
-
-                // Keep standard types only if they're editable and enabled
-                return setting.isEditable && setting.isEnabled;
-              }
-            );
-
-            console.log(
-              "%c🧹 Filtered code settings (removed non-editable standard types):",
-              "color: #FF9800; font-weight: bold;",
-              filteredSettings.length
-            );
-
-            setCodeSettings(filteredSettings);
+            setCodeSettings(response.data.codeSettings);
           } else if (response.data && Array.isArray(response.data)) {
             // Handle case where the response might be an array directly
-            console.log(
-              "%c✅ Found direct array response:",
-              "color: #4CAF50; font-weight: bold;",
-              response.data.length
-            );
-
-            // Log detailed settings data
-            response.data.forEach((setting) => {
-              console.log(
-                `🧩 Code setting from API: ${setting.name || setting.type}:`,
-                {
-                  maxPax: setting.maxPax,
-                  condition: setting.condition,
-                  type: setting.type,
-                  limit: setting.limit,
-                  unlimited: setting.unlimited || setting.limit === 0,
-                  isEditable: setting.isEditable,
-                  isEnabled: setting.isEnabled,
-                }
-              );
-            });
-
-            // Filter out standard code types that aren't editable unless they're enabled custom types
-            const filteredSettings = response.data.filter((setting) => {
-              // Keep all custom types that are enabled
-              if (setting.type === "custom" && setting.isEnabled) {
-                return true;
-              }
-
-              // Keep standard types only if they're editable and enabled
-              return setting.isEditable && setting.isEnabled;
-            });
-
-            console.log(
-              "%c🧹 Filtered code settings (removed non-editable standard types):",
-              "color: #FF9800; font-weight: bold;",
-              filteredSettings.length
-            );
-
-            setCodeSettings(filteredSettings);
+            console.log("Found direct array response:", response.data.length);
+            setCodeSettings(response.data);
           } else {
             console.warn(
               "%c⚠️ No code settings found in response - creating defaults from permissions",
@@ -491,18 +401,18 @@ const DashboardContent = ({ user, setUser }) => {
 
             // Debug permissions details
             console.log(
-              "%c🔍 Available code permissions for codes:",
-              "color: #2196F3; font-weight: bold;",
+              "%c🔍 Available code permissions for default settings:",
+              "color: #9C27B0; font-weight: bold;",
               { codePermissionsDetails }
             );
 
             // Log all permissions from all roles
             console.log("All user roles:", userRoles);
 
-            // Only attempt to create settings if we have real permission details
+            // Force create settings from permissions regardless of API response
             if (codePermissionsDetails && codePermissionsDetails.length > 0) {
               console.log(
-                "%c🔧 Creating settings based only on real permission data",
+                "%c🔧 Creating default settings from permissions",
                 "color: #009688; font-weight: bold;"
               );
 
@@ -513,24 +423,15 @@ const DashboardContent = ({ user, setUser }) => {
                 name: `${perm.type} Code`,
                 isEnabled: true,
                 limit: perm.limit || 0,
-                unlimited:
-                  perm.unlimited !== undefined
-                    ? perm.unlimited
-                    : perm.limit === 0,
-                // Don't hardcode maxPax and condition, use default values that won't override API values
-                maxPax: perm.maxPax || 1,
-                condition: perm.condition || "",
-                isEditable: true, // Make client-generated settings editable
+                unlimited: perm.unlimited || false,
                 // Add additional fields that might be expected by the components
                 _id: `temp_${perm.type}_${Date.now()}`, // Generate a temporary ID
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                generatedClientSide: true,
-                generatedFromRole: perm.role || "Unknown role",
               }));
 
               console.log(
-                "%c✅ Created settings from real permission data:",
+                "%c✅ Created default settings from permissions:",
                 "color: #4CAF50; font-weight: bold;",
                 defaultSettings
               );
@@ -539,12 +440,50 @@ const DashboardContent = ({ user, setUser }) => {
               setCodeSettings(defaultSettings);
             } else {
               console.warn(
-                "%c⚠️ No permissions found for codes",
-                "color: #FF9800; font-weight: bold;"
+                "%c❌ No permissions found to create default settings",
+                "color: #F44336; font-weight: bold;",
+                {
+                  codePermissionsDetails,
+                  userRoles,
+                }
               );
 
-              // Set empty code settings if no permissions are found
-              setCodeSettings([]);
+              // Create minimal default settings based on just the ROLEX role
+              if (
+                userRoles.some(
+                  (role) => role.name === "ROLEX" || role.name === "OWNER"
+                )
+              ) {
+                console.log(
+                  "%c🔧 Creating emergency fallback settings",
+                  "color: #E91E63; font-weight: bold;"
+                );
+
+                const emergencySettings = [
+                  {
+                    type: "Special Code",
+                    codeType: "Special Code",
+                    name: "Special Code",
+                    isEnabled: true,
+                    limit: 18,
+                    unlimited: false,
+                    _id: `temp_special_code_${Date.now()}`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                ];
+
+                console.log(
+                  "%c✅ Created emergency fallback settings:",
+                  "color: #4CAF50; font-weight: bold;",
+                  emergencySettings
+                );
+
+                setCodeSettings(emergencySettings);
+              } else {
+                // Failsafe: Create an empty array to avoid undefined errors
+                setCodeSettings([]);
+              }
             }
           }
         }
@@ -555,39 +494,33 @@ const DashboardContent = ({ user, setUser }) => {
           error
         );
 
-        // Only use real permission data on error
+        // Even on error, try to create settings from permissions as a fallback
         if (codePermissionsDetails && codePermissionsDetails.length > 0) {
           console.log(
-            "%c🔧 Creating settings from real permissions after fetch error",
+            "%c🔧 Creating settings from permissions after fetch error",
             "color: #009688; font-weight: bold;"
           );
-          const permissionSettings = codePermissionsDetails.map((perm) => ({
-            type: "custom", // Default to custom as the most flexible type
+          const defaultSettings = codePermissionsDetails.map((perm) => ({
+            type: perm.type,
             codeType: perm.type,
             name: `${perm.type} Code`,
             isEnabled: true,
             limit: perm.limit || 0,
-            unlimited:
-              perm.unlimited !== undefined ? perm.unlimited : perm.limit === 0,
-            maxPax: perm.maxPax || 1,
-            condition: perm.condition || "",
-            isEditable: true,
+            unlimited: perm.unlimited || false,
             _id: `temp_${perm.type}_${Date.now()}`,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            generatedClientSide: true,
-            generatedFromRole: perm.role || "Unknown",
           }));
 
           console.log(
-            "%c✅ Created settings from permissions:",
+            "%c✅ Created default settings after error:",
             "color: #4CAF50; font-weight: bold;",
-            permissionSettings
+            defaultSettings
           );
-          setCodeSettings(permissionSettings);
+          setCodeSettings(defaultSettings);
         } else {
           console.warn(
-            "%c⚠️ No permissions available to create settings",
+            "%c❌ Could not create settings from permissions",
             "color: #F44336; font-weight: bold;"
           );
           setCodeSettings([]);
@@ -710,11 +643,7 @@ const DashboardContent = ({ user, setUser }) => {
         console.log(`Processing role: ${role.name}`, {
           permissions: role.permissions,
           codePerms: role.permissions?.codes,
-          customCodeTypes: Object.keys(role.permissions || {}).filter(
-            (key) =>
-              typeof role.permissions[key] === "object" &&
-              !["codes", "events", "team", "analytics", "scanner"].includes(key)
-          ),
+          specialCode: role.permissions?.["Special Code"],
         });
 
         // METHOD 1: Process standard codes object with nested code types
@@ -774,49 +703,43 @@ const DashboardContent = ({ user, setUser }) => {
           );
         }
 
-        // METHOD 2: Process direct code type objects at the root level
-        // Some roles may have code types directly in the permissions object
-        Object.entries(role.permissions || {}).forEach(([key, value]) => {
-          // Skip non-code permissions and standard permissions objects
-          if (
-            key === "codes" ||
-            key === "events" ||
-            key === "analytics" ||
-            key === "team" ||
-            key === "scanner" ||
-            typeof value !== "object"
-          ) {
-            return;
-          }
+        // METHOD 2: Process direct Special Code object at the root level
+        // Some roles (like ROLEX) have Special Code directly in permissions
+        if (
+          role.permissions?.["Special Code"] &&
+          typeof role.permissions["Special Code"] === "object"
+        ) {
+          const specialCodePerms = role.permissions["Special Code"];
 
-          // Check if this object has a generate property - if so, it might be a code type
-          if (value.generate) {
-            console.log(
-              `Found potential code type at root level: ${key}`,
-              value
-            );
+          console.log(
+            `Found direct Special Code permissions for role ${role.name}:`,
+            specialCodePerms
+          );
 
-            const permKey = `${key}:${value.limit || 0}:${
-              value.unlimited || false
+          if (specialCodePerms.generate) {
+            const permKey = `Special Code:${specialCodePerms.limit || 0}:${
+              specialCodePerms.unlimited || false
             }:${role.name}`;
 
             // Skip if already processed
             if (!processedPermissions.has(permKey)) {
-              allCodePermissions[key] = true;
+              allCodePermissions["Special Code"] = true;
 
               newCodePermissionsDetails.push({
-                type: key,
-                limit: value.limit || 0,
-                unlimited: value.unlimited || false,
+                type: "Special Code",
+                limit: specialCodePerms.limit || 0,
+                unlimited: specialCodePerms.unlimited || false,
                 role: role.name,
               });
 
               // Mark as processed
               processedPermissions.add(permKey);
-              console.log(`Added ${key} permission from role ${role.name}`);
+              console.log(
+                `Added Special Code permission from role ${role.name}`
+              );
             }
           }
-        });
+        }
 
         // METHOD 3: Check for top-level codes permissions (generate, view, etc.)
         // Some roles might have direct permissions on the codes object
@@ -921,9 +844,6 @@ const DashboardContent = ({ user, setUser }) => {
                 isEnabled: setting.isEnabled,
                 limit: setting.limit,
                 unlimited: setting.unlimited,
-                // Don't set defaults based on name, just pass through the values as they are
-                maxPax: setting.maxPax || 1,
-                condition: setting.condition || "",
                 source: setting.generatedClientSide
                   ? `Generated from ${setting.generatedFromRole} role`
                   : "API",
@@ -932,39 +852,240 @@ const DashboardContent = ({ user, setUser }) => {
           : "No code settings available";
 
       // Calculate Access Summary based on user roles and their permissions
-      const newAccessSummary = {
+      const accessSummary = {
         // Check for code creation permission
-        canCreateCodes: brandRoles.some((r) => {
-          // Check for direct generate permission in codes object
-          if (r.permissions?.codes?.generate) return true;
-
-          // Check for generate permission in any code type object within codes
-          if (r.permissions?.codes && typeof r.permissions.codes === "object") {
-            const hasGenerateInCodeTypes = Object.values(
-              r.permissions.codes
-            ).some((perm) => perm && typeof perm === "object" && perm.generate);
-            if (hasGenerateInCodeTypes) return true;
-          }
-
-          return false;
-        }),
-        canReadCodes: true,
-        canEditCodes: true,
-        canDeleteCodes: true,
-        isOwner: brandRoles.some((r) => r.name === "OWNER"),
-        isMember: brandRoles.some((r) => r.name === "MEMBER"),
-        hasEventsPermission: brandRoles.some((r) => r.permissions?.events),
-        hasTeamPermission: brandRoles.some((r) => r.permissions?.team),
-        hasAnalyticsPermission: brandRoles.some(
-          (r) => r.permissions?.analytics
+        canCreateCodes: brandRoles.some(
+          (r) =>
+            // Direct generate permission in codes object
+            r.permissions?.codes?.generate ||
+            // Generate permission in any code type object
+            Object.entries(r.permissions?.codes || {}).some(
+              ([codeType, codePerms]) => codePerms?.generate
+            ) ||
+            // Special Code permission from Special Code object
+            r.permissions?.["Special Code"]?.generate
         ),
-        hasScannerPermission: brandRoles.some((r) => r.permissions?.scanner),
-        permissions: allCodePermissions,
+
+        // Check for read permissions
+        canReadCodes: brandRoles.some(
+          (r) =>
+            // Direct view/read permission in codes object
+            r.permissions?.codes?.view ||
+            r.permissions?.codes?.read ||
+            // View/read permission in any code type object
+            Object.entries(r.permissions?.codes || {}).some(
+              ([codeType, codePerms]) => codePerms?.view || codePerms?.read
+            ) ||
+            // Special Code has view/read permission
+            r.permissions?.["Special Code"]?.view ||
+            r.permissions?.["Special Code"]?.read ||
+            // Events-level permissions (if they can view events, they likely can view codes)
+            r.permissions?.events?.view
+        ),
+
+        // Check for edit permissions
+        canEditCodes: brandRoles.some(
+          (r) =>
+            // Direct edit permission
+            r.permissions?.codes?.edit ||
+            // Edit permission in any code type object
+            Object.entries(r.permissions?.codes || {}).some(
+              ([codeType, codePerms]) => codePerms?.edit
+            ) ||
+            // Special Code has edit permission
+            r.permissions?.["Special Code"]?.edit ||
+            // If user has events edit permissions, they can likely edit codes
+            r.permissions?.events?.edit
+        ),
+
+        // Check for delete permissions
+        canDeleteCodes: brandRoles.some(
+          (r) =>
+            // Direct delete permission
+            r.permissions?.codes?.delete ||
+            // Delete permission in any code type object
+            Object.entries(r.permissions?.codes || {}).some(
+              ([codeType, codePerms]) => codePerms?.delete
+            ) ||
+            // Special Code has delete permission
+            r.permissions?.["Special Code"]?.delete ||
+            // If user has events delete permissions, they can likely delete codes
+            r.permissions?.events?.delete
+        ),
+
+        // User is owner if they have the OWNER role
+        isOwner: brandRoles.some((r) => r.name === "OWNER"),
+
+        // User is a member if they have any role for this brand
+        isMember: brandRoles.length > 0,
+
+        // Add additional permissions from ROLEX role
+        hasEventsPermission: brandRoles.some(
+          (r) =>
+            r.permissions?.events?.create ||
+            r.permissions?.events?.edit ||
+            r.permissions?.events?.delete ||
+            r.permissions?.events?.view
+        ),
+
+        hasTeamPermission: brandRoles.some(
+          (r) => r.permissions?.team?.manage || r.permissions?.team?.view
+        ),
+
+        hasAnalyticsPermission: brandRoles.some(
+          (r) => r.permissions?.analytics?.view
+        ),
+
+        hasScannerPermission: brandRoles.some(
+          (r) => r.permissions?.scanner?.use
+        ),
       };
 
-      setAccessSummary(newAccessSummary);
+      // Save code permissions to state
+      setCodePermissions(newCodePermissionsDetails);
+
+      // Log all of this nicely formatted
+      console.log("🏢 BRAND DASHBOARD:", selectedBrand.name);
+      console.log("📋 Brand Details:", brandDetails);
+      console.log("👑 User Role in Brand:", roleInfo);
+      console.log("🔑 Code Permissions:", codePermissionSummary);
+      console.log("⚙️ Code Settings:", codeSettingsSummary);
+      console.log("🔍 Access Summary:", {
+        ...accessSummary,
+        permissions: {
+          codes: {
+            create: accessSummary.canCreateCodes,
+            read: accessSummary.canReadCodes,
+            edit: accessSummary.canEditCodes,
+            delete: accessSummary.canDeleteCodes,
+          },
+          events: accessSummary.hasEventsPermission,
+          team: accessSummary.hasTeamPermission,
+          analytics: accessSummary.hasAnalyticsPermission,
+          scanner: accessSummary.hasScannerPermission,
+        },
+      });
     }
   }, [selectedBrand, userRoles, codeSettings, user]);
+
+  // Special useEffect to create code settings from permissions when permissions change
+  useEffect(() => {
+    // Only run if we have permissions but no code settings
+    const hasRolexOrOwner = userRoles.some(
+      (role) => role.name === "ROLEX" || role.name === "OWNER"
+    );
+    const needsSettings = !codeSettings || codeSettings.length === 0;
+
+    if (
+      needsSettings &&
+      (codePermissionsDetails?.length > 0 || hasRolexOrOwner)
+    ) {
+      console.log(
+        "%c🔄 Creating settings from permissions - current details:",
+        "color: #009688; font-weight: bold;",
+        {
+          permissionDetails: JSON.parse(JSON.stringify(codePermissionsDetails)),
+          hasRolexRole: hasRolexOrOwner,
+        }
+      );
+
+      // Initialize settings array
+      let settingsFromPermissions = [];
+
+      // Check if we have permission details
+      if (codePermissionsDetails?.length > 0) {
+        // Create code settings objects from permissions based on the CodeSettings model structure
+        settingsFromPermissions = codePermissionsDetails.map((perm) => {
+          // Map permission types to standard code types
+          let codeType = perm.type;
+
+          // Map "Special Code" to a valid type from enum
+          if (codeType === "Special Code") {
+            codeType = "guest"; // Map to guest type as default
+          } else if (
+            codeType === "friends" ||
+            codeType === "table" ||
+            codeType === "backstage"
+          ) {
+            // These are already valid types
+          } else {
+            // Default to custom for any other types
+            codeType = "custom";
+          }
+
+          return {
+            // Required fields from CodeSettings model
+            type: codeType, // Required enum value
+            name: `${perm.type} Code`, // Required string
+            eventId: "temp_event_placeholder", // Required ObjectId (placeholder)
+
+            // Fields to match our permission attributes
+            codeType: perm.type, // Original permission type
+            isEnabled: true,
+            limit: perm.limit || 0,
+            unlimited: perm.unlimited || false,
+
+            // Additional required/optional fields from model
+            condition: "",
+            maxPax: 1,
+            isEditable: false,
+            color: "#2196F3",
+
+            // Client-side only fields for tracking
+            _id: `temp_${perm.type}_${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            generatedFromRole: perm.role,
+            generatedClientSide: true, // Flag to indicate this is a client-side generation
+          };
+        });
+      }
+      // If no permissions were found, but user has ROLEX/OWNER role, create a default Special Code
+      else if (hasRolexOrOwner && settingsFromPermissions.length === 0) {
+        console.log(
+          "%c🎭 Creating default Special Code settings for ROLEX/OWNER",
+          "color: #FF9800; font-weight: bold;"
+        );
+
+        // Add a default Special Code (mapped to guest type)
+        settingsFromPermissions.push({
+          type: "guest",
+          name: "Special Code",
+          eventId: "temp_event_placeholder",
+          codeType: "Special Code",
+          isEnabled: true,
+          limit: 18, // Default from what we saw in permissions
+          unlimited: false,
+          condition: "",
+          maxPax: 1,
+          isEditable: false,
+          color: "#2196F3",
+          _id: `temp_special_code_${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          generatedFromRole: "ROLEX",
+          generatedClientSide: true,
+        });
+      }
+
+      console.log(
+        "%c✅ Generated model-compatible settings from permissions:",
+        "color: #4CAF50; font-weight: bold;",
+        settingsFromPermissions
+      );
+
+      // Set the code settings state
+      setCodeSettings(settingsFromPermissions);
+
+      // Log important diagnostics for debugging
+      console.log("Current state:", {
+        selectedBrand: selectedBrand?._id,
+        userRolesCount: userRoles.length,
+        permissionsCount: codePermissionsDetails?.length || 0,
+        newSettingsCount: settingsFromPermissions.length,
+      });
+    }
+  }, [codePermissionsDetails, codeSettings, selectedBrand, userRoles]);
 
   const handleLogout = () => {
     logout();
@@ -1033,8 +1154,6 @@ const DashboardContent = ({ user, setUser }) => {
         counts={counts}
         dataInterval={dataInterval}
         codeSettings={codeSettings}
-        codePermissions={codePermissionsDetails}
-        accessSummary={accessSummary}
         selectedBrand={selectedBrand}
       />
     );
@@ -1146,8 +1265,6 @@ const DashboardContent = ({ user, setUser }) => {
           userRoles={userRoles}
           codeSettings={codeSettings}
           selectedBrand={selectedBrand}
-          codePermissions={codePermissionsDetails}
-          accessSummary={accessSummary}
         />
 
         <Routes>

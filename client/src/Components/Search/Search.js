@@ -139,9 +139,7 @@ const Search = ({ isOpen, onClose }) => {
 
           console.log("[Search] Formatted date slug:", dateSlug);
 
-          // No longer using title part in URL as requested and removing /e/ segment
-
-          // Construct the URL path without the /e/ and title
+          // Construct the URL path with /@username/@brandusername/dateSlug format
           const eventPath = user
             ? `/@${user.username}/@${brandUsername}/${dateSlug}`
             : `/@${brandUsername}/${dateSlug}`;
@@ -152,7 +150,7 @@ const Search = ({ isOpen, onClose }) => {
             : eventPath.replace(`/${brandUsername}`, `/@${brandUsername}`);
 
           console.log(
-            "[Search] Navigating to event with pretty URL:",
+            "[Search] Navigating to event with new format URL:",
             finalPath
           );
           navigate(finalPath);

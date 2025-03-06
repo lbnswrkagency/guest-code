@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "./EventProfile.scss";
 import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Navigation from "../Navigation/Navigation";
+import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -35,8 +37,9 @@ const EventProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
+  const [currentEventId, setCurrentEventId] = useState(null);
   const [event, setEvent] = useState(null);
   const [lineups, setLineups] = useState([]);
   const [ticketSettings, setTicketSettings] = useState([]);
@@ -59,6 +62,13 @@ const EventProfile = () => {
   const [guestPax, setGuestPax] = useState(1);
   const [countdowns, setCountdowns] = useState({});
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [hasFetchAttempted, setHasFetchAttempted] = useState(false);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+
+  // Add effect to log navigation state changes
+  useEffect(() => {
+    console.log("[EventProfile] DashboardNavigation isOpen:", isNavigationOpen);
+  }, [isNavigationOpen]);
 
   // Fetch event data
   useEffect(() => {
@@ -97,7 +107,6 @@ const EventProfile = () => {
       fetchEventData();
     }
   }, [eventId, toast]);
-  const [hasFetchAttempted, setHasFetchAttempted] = useState(false);
 
   // Extract URL parameters
   const {
@@ -108,7 +117,31 @@ const EventProfile = () => {
     eventSlug: urlEventSlug,
   } = useParams();
 
-  const pathname = location.pathname;
+  const { pathname } = location;
+
+  // Special handling for the path parameters when using the new URL format
+  const extractedParams = useMemo(() => {
+    const pathParts = pathname.split("/").filter((p) => p);
+
+    // For the special format /@username/@brandusername/XXYYZZ
+    if (
+      pathParts.length === 3 &&
+      pathParts[0].startsWith("@") &&
+      pathParts[1].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[2])
+    ) {
+      return {
+        userUsername: pathParts[0].substring(1), // Remove @ from first part
+        brandUsername: pathParts[1].substring(1), // Remove @ from second part
+        dateSlug: pathParts[2], // The date part
+      };
+    }
+
+    return {
+      brandUsername: urlBrandUsername?.replace(/^@/, "") || "", // Remove @ if present
+      dateSlug: urlDateSlug || urlEventUsername, // Use eventUsername as dateSlug for special format
+    };
+  }, [pathname, urlBrandUsername, urlDateSlug, urlEventUsername]);
 
   console.log("[EventProfile] URL parameters:", {
     urlEventId,
@@ -117,6 +150,7 @@ const EventProfile = () => {
     urlDateSlug,
     urlEventSlug,
     pathname,
+    extractedParams,
   });
 
   // Helper function to format date for URL (MMDDYY)
@@ -148,7 +182,6 @@ const EventProfile = () => {
 
     // For URL pattern /@userUsername/@brandUsername/dateSlug
     // Example: /@hendricks/@whitechocolate/032225
-    // The key insight is that @whitechocolate is the BRAND username, not an event username
     return (
       pathParts.length === 3 &&
       pathParts[0].startsWith("@") &&
@@ -157,69 +190,39 @@ const EventProfile = () => {
     );
   }, [pathname]);
 
-  // Utility function to get the correct path parts for the special format
-  const getSpecialFormatParts = useCallback(() => {
-    const pathParts = pathname.split("/").filter((p) => p);
-
-    // IMPORTANT: For URL /@hendricks/@whitechocolate/032225
-    // pathParts[0] = @hendricks (user username, not relevant for API call)
-    // pathParts[1] = @whitechocolate (THIS is the actual brand username)
-    // pathParts[2] = 032225 (date)
-
-    // We need to log this before returning to help with debugging
-    const parts = {
-      // CORRECTION: The SECOND part is the brand username
-      realBrandUsername: pathParts[1].substring(1), // Remove @ from @whitechocolate
-      userUsername: pathParts[0].substring(1), // Remove @ from @hendricks
-      realDateSlug: pathParts[2], // 032225
-    };
-
-    console.log("[EventProfile] CORRECTED path parts extraction:", parts);
-
-    return parts;
-  }, [pathname]);
-
-  // The original format check for /brandUsername/e/dateSlug
+  // The original format check for new URL patterns
   const isNewUrlFormat = useCallback(() => {
     console.log("[EventProfile] Checking URL format:", {
-      urlBrandUsername,
-      urlEventUsername,
-      urlDateSlug,
-      urlEventSlug,
+      extractedParams,
+      pathname,
     });
 
     // Check for special format /@brandUsername/@eventUsername/dateSlug
     if (isSpecialFormat()) {
       console.log(
-        "[EventProfile] Detected special format /@brandUsername/@eventUsername/dateSlug"
+        "[EventProfile] Detected special format /@userUsername/@brandUsername/dateSlug"
       );
       return true;
     }
 
-    // Check for original new format /brandUsername/e/dateSlug
-    if (urlBrandUsername && urlDateSlug) {
-      console.log("[EventProfile] Detected format /brandUsername/e/dateSlug");
+    // Check if we have the necessary parameters for any other format
+    if (extractedParams.brandUsername && extractedParams.dateSlug) {
+      console.log(
+        "[EventProfile] Detected parameters for date-based URL format"
+      );
       return true;
     }
 
     console.log("[EventProfile] No recognized format detected");
     return false;
-  }, [
-    urlBrandUsername,
-    urlDateSlug,
-    urlEventSlug,
-    urlEventUsername,
-    isSpecialFormat,
-  ]);
+  }, [extractedParams, pathname, isSpecialFormat]);
 
   // Fetch event data
   const fetchEventData = useCallback(async () => {
     console.log("[EventProfile] Starting fetchEventData with params:", {
-      urlEventId,
-      urlBrandUsername,
-      urlEventUsername,
-      urlDateSlug,
-      urlEventSlug,
+      urlEventId: eventId,
+      currentEventId,
+      extractedParams,
       pathname,
     });
 
@@ -230,69 +233,59 @@ const EventProfile = () => {
 
       // Special format: /@brandUsername/@eventUsername/dateSlug
       if (isSpecialFormat()) {
-        const { realBrandUsername, userUsername, realDateSlug } =
-          getSpecialFormatParts();
+        const { brandUsername, dateSlug } = extractedParams;
 
         console.log(
-          "[EventProfile] Using CORRECTED special format with extracted parts:",
+          "[EventProfile] Using special format with extracted params:",
           {
-            realBrandUsername, // This is whitechocolate
-            userUsername, // This is hendricks (not used for API call)
-            realDateSlug, // This is 032225
+            brandUsername, // Without @ symbol
+            dateSlug,
           }
         );
 
-        // Use the date endpoint instead of a special endpoint since there is no /special/ endpoint
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${realBrandUsername}/${realDateSlug}`;
-        console.log(
-          "[EventProfile] Fetching with CORRECTED endpoint:",
-          endpoint
-        );
+        // Use the date endpoint with clean params
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
+        console.log("[EventProfile] Fetching with new endpoint:", endpoint);
 
-        response = await axios.get(endpoint);
+        response = await axiosInstance.get(endpoint);
         console.log(
           "[EventProfile] Special format API response:",
           response.status,
           response.data
         );
       } else if (isNewUrlFormat()) {
-        // Check for the special format with @eventUsername
-        if (urlEventUsername && urlDateSlug) {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
+        // Using the cleaned brandUsername from extractedParams
+        const { brandUsername, dateSlug } = extractedParams;
+
+        if (dateSlug && /^\d{6}(-\d+)?$/.test(dateSlug)) {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
           console.log(
-            `[EventProfile] Fetching data for special format (using date endpoint): ${endpoint}`
+            `[EventProfile] Fetching data for simplified format: ${endpoint}`
           );
 
-          response = await axios.get(endpoint);
-        }
-        // Accept both MMDDYY and MMDDYY-N formats for numbered events on the same day
-        else if (urlDateSlug && /^\d{6}(-\d+)?$/.test(urlDateSlug)) {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
-          console.log(
-            `[EventProfile] Fetching data for ultra-simplified format: ${endpoint}`
-          );
-
-          response = await axios.get(endpoint);
+          response = await axiosInstance.get(endpoint);
         } else if (urlEventSlug) {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/slug/${urlBrandUsername}/${urlDateSlug}/${urlEventSlug}`;
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/slug/${brandUsername}/${dateSlug}/${urlEventSlug}`;
           console.log(
             `[EventProfile] Fetching data for full slug format: ${endpoint}`
           );
 
-          response = await axios.get(endpoint);
+          response = await axiosInstance.get(endpoint);
         } else {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${urlBrandUsername}/${urlDateSlug}`;
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
           console.log(
-            `[EventProfile] Fetching data with /e/ format: ${endpoint}`
+            `[EventProfile] Fetching data with simplified format: ${endpoint}`
           );
 
-          response = await axios.get(endpoint);
+          response = await axiosInstance.get(endpoint);
         }
-      } else if (urlEventId) {
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${urlEventId}`;
+      } else if (eventId || currentEventId) {
+        // Use currentEventId if available, otherwise fall back to eventId from useParams
+        const effectiveEventId = currentEventId || eventId;
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${effectiveEventId}`;
         console.log(`[EventProfile] Fetching data for event ID: ${endpoint}`);
 
-        response = await axios.get(endpoint);
+        response = await axiosInstance.get(endpoint);
       } else {
         console.log("[EventProfile] No valid format detected, skipping fetch");
         setLoading(false);
@@ -308,6 +301,43 @@ const EventProfile = () => {
           "[EventProfile] Event data loaded successfully:",
           response.data.event
         );
+
+        // Explicitly set the related data with detailed logging
+        if (response.data.lineups) {
+          console.log(
+            "[EventProfile] Setting lineups:",
+            response.data.lineups.length,
+            "items"
+          );
+          setLineups(response.data.lineups);
+        } else {
+          console.log("[EventProfile] No lineups data in response");
+          setLineups([]);
+        }
+
+        if (response.data.ticketSettings) {
+          console.log(
+            "[EventProfile] Setting ticketSettings:",
+            response.data.ticketSettings.length,
+            "items"
+          );
+          setTicketSettings(response.data.ticketSettings);
+        } else {
+          console.log("[EventProfile] No ticketSettings data in response");
+          setTicketSettings([]);
+        }
+
+        if (response.data.codeSettings) {
+          console.log(
+            "[EventProfile] Setting codeSettings:",
+            response.data.codeSettings.length,
+            "items"
+          );
+          setCodeSettings(response.data.codeSettings);
+        } else {
+          console.log("[EventProfile] No codeSettings data in response");
+          setCodeSettings([]);
+        }
 
         // If we found the event by ID but we have the new URL format available,
         // update the URL without reloading the page
@@ -339,19 +369,16 @@ const EventProfile = () => {
       if (toast && toast.showError && !hasFetchAttempted) {
         toast.showError("Failed to load event information");
       }
-
+    } finally {
       setLoading(false);
     }
   }, [
-    urlEventId,
-    urlBrandUsername,
-    urlEventUsername,
-    urlDateSlug,
-    urlEventSlug,
+    eventId,
+    currentEventId,
+    extractedParams,
     pathname,
     isSpecialFormat,
     isNewUrlFormat,
-    getSpecialFormatParts,
     setEvent,
     setLoading,
     setError,
@@ -361,69 +388,48 @@ const EventProfile = () => {
     hasFetchAttempted,
   ]);
 
-  // Load event data when component mounts or URL changes
+  // Fetch event data when URL parameters change
   useEffect(() => {
-    console.log("[EventProfile] useEffect triggered with path:", pathname);
+    console.log("[EventProfile] URL parameters changed, checking format:", {
+      eventId,
+      currentEventId,
+      extractedParams,
+      isSpecialFormat: isSpecialFormat(),
+      isNewUrlFormat: isNewUrlFormat(),
+    });
 
-    // If we've already tried fetching and got an error, don't try again
-    if (hasFetchAttempted && error) {
-      console.log(
-        "[EventProfile] Already attempted fetch with error, not trying again"
-      );
+    if (hasFetchAttempted) {
+      console.log("[EventProfile] Already attempted fetch, skipping");
       return;
     }
 
-    // Reset state when URL changes
-    setEvent(null);
-    setLoading(true);
-    setError(null);
-
-    // Check URL pattern directly to avoid potential circular dependencies
-    const pathParts = pathname.split("/").filter((p) => p);
-    const isSpecialUrlPattern =
-      pathParts.length === 3 &&
-      pathParts[0].startsWith("@") &&
-      pathParts[1].startsWith("@") &&
-      /^\d{6}(-\d+)?$/.test(pathParts[2]);
-
-    // IMPORTANT DEBUGGING: When we have a special URL pattern, the params from useParams
-    // will be wrong because React Router doesn't know about our custom format
-    if (isSpecialUrlPattern) {
+    // Only fetch for formats other than direct eventId (which is handled by the other useEffect)
+    if (!eventId && (isNewUrlFormat() || isSpecialFormat())) {
       console.log(
-        "[EventProfile] Detected special URL pattern, useParams may not match:"
+        "[EventProfile] Fetching event data due to valid format parameters"
       );
-      console.log("    Path parts:", pathParts);
-      console.log("    Expected brand username:", pathParts[1].substring(1));
-      console.log("    Got from useParams:", urlBrandUsername);
-    }
-
-    console.log("[EventProfile] Path pattern check:", {
-      pathParts,
-      isSpecialUrlPattern,
-      hasEventId: !!urlEventId,
-      hasFetchAttempted,
-    });
-
-    // Call fetchEventData if we have an ID or a valid URL pattern
-    if (urlEventId || isSpecialUrlPattern) {
-      console.log("[EventProfile] Conditions met, calling fetchEventData");
-      setHasFetchAttempted(true);
       fetchEventData();
-    } else {
-      console.log("[EventProfile] Conditions not met, skipping fetchEventData");
-      setLoading(false);
+      setHasFetchAttempted(true);
     }
   }, [
-    urlEventId,
-    urlBrandUsername,
-    urlEventUsername,
-    urlDateSlug,
-    urlEventSlug,
-    pathname,
+    eventId,
+    currentEventId,
+    extractedParams,
+    isSpecialFormat,
+    isNewUrlFormat,
     fetchEventData,
     hasFetchAttempted,
-    error,
   ]);
+
+  // Initial data loading for ID-based URLs
+  useEffect(() => {
+    // If we have an ID directly from the URL, load the event
+    if (eventId && !hasFetchAttempted) {
+      console.log(`[EventProfile] Loading event with direct ID: ${eventId}`);
+      fetchEventData();
+      setHasFetchAttempted(true);
+    }
+  }, [eventId, fetchEventData, hasFetchAttempted]);
 
   // Get appropriate flyer image or fallback
   const getEventImage = () => {
@@ -708,6 +714,83 @@ const EventProfile = () => {
     return () => clearInterval(intervalId);
   }, [ticketSettings]);
 
+  // Set eventId when event is loaded
+  useEffect(() => {
+    if (event && event._id) {
+      console.log(
+        "[EventProfile] Setting eventId from loaded event:",
+        event._id
+      );
+      setCurrentEventId(event._id);
+
+      // Set safety timeout for loading state
+      console.log("[EventProfile] Setting safety timeout for loading state");
+      const timeoutId = setTimeout(() => {
+        console.log(
+          "[EventProfile] Safety timeout triggered - resetting loading state"
+        );
+        setLoading(false);
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [event]);
+
+  // Fetch ticket settings and code settings if they're not included in the initial response
+  useEffect(() => {
+    const fetchMissingSettings = async () => {
+      if (!event || !event._id) return;
+
+      try {
+        // Only fetch if we don't have the data yet
+        if (ticketSettings.length === 0) {
+          console.log(
+            "[EventProfile] Fetching missing ticket settings for event:",
+            event._id
+          );
+          const ticketResponse = await axiosInstance.get(
+            `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${event._id}`
+          );
+
+          if (ticketResponse.data && ticketResponse.data.ticketSettings) {
+            console.log(
+              "[EventProfile] Loaded ticket settings:",
+              ticketResponse.data.ticketSettings.length,
+              "items"
+            );
+            setTicketSettings(ticketResponse.data.ticketSettings);
+          }
+        }
+
+        if (codeSettings.length === 0) {
+          console.log(
+            "[EventProfile] Fetching missing code settings for event:",
+            event._id
+          );
+          const codeSettingsResponse = await axios.get(
+            `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${event._id}`
+          );
+
+          if (
+            codeSettingsResponse.data &&
+            codeSettingsResponse.data.codeSettings
+          ) {
+            console.log(
+              "[EventProfile] Loaded code settings:",
+              codeSettingsResponse.data.codeSettings.length,
+              "items"
+            );
+            setCodeSettings(codeSettingsResponse.data.codeSettings);
+          }
+        }
+      } catch (error) {
+        console.error("[EventProfile] Error fetching missing settings:", error);
+      }
+    };
+
+    fetchMissingSettings();
+  }, [event, ticketSettings.length, codeSettings.length]);
+
   // Rendering logic with loading, error, and event states
   if (loading) {
     return (
@@ -774,7 +857,10 @@ const EventProfile = () => {
   // Render the event content if we have event data
   return (
     <div className="page-wrapper">
-      <Navigation onBack={() => navigate(-1)} />
+      <Navigation
+        onBack={() => navigate(-1)}
+        onMenuClick={() => setIsNavigationOpen(true)}
+      />
 
       <div className="event-profile">
         {/* Event Header Section */}
@@ -1271,6 +1357,13 @@ const EventProfile = () => {
           />
         )}
       </div>
+
+      <DashboardNavigation
+        isOpen={isNavigationOpen}
+        onClose={() => setIsNavigationOpen(false)}
+        currentUser={user}
+        setUser={setUser}
+      />
     </div>
   );
 };
