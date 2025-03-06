@@ -148,7 +148,7 @@ const AfterPayment = () => {
                 <p>
                   Invoice Number: {generateInvoiceNumber(order.stripeSessionId)}
                 </p>
-                <p>Total Amount: ${order.totalAmount?.toFixed(2)}</p>
+                <p>Total Amount: {order.totalAmount?.toFixed(2)}€</p>
               </div>
             )}
             <motion.button

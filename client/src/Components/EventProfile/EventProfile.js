@@ -1147,12 +1147,12 @@ const EventProfile = () => {
 
                         <div className="ticket-price">
                           <span className="current-price">
-                            ${ticket.price.toFixed(2)}
+                            {ticket.price.toFixed(2)}€
                           </span>
                           {ticket.originalPrice &&
                             ticket.originalPrice > ticket.price && (
                               <span className="original-price">
-                                ${ticket.originalPrice.toFixed(2)}
+                                {ticket.originalPrice.toFixed(2)}€
                               </span>
                             )}
                         </div>
@@ -1223,10 +1223,10 @@ const EventProfile = () => {
                                 {ticketQuantities[ticket._id]}x {ticket.name}
                               </span>
                               <span>
-                                $
                                 {(
                                   ticket.price * ticketQuantities[ticket._id]
                                 ).toFixed(2)}
+                                €
                               </span>
                             </div>
                           )
@@ -1235,7 +1235,7 @@ const EventProfile = () => {
 
                     <div className="total-amount">
                       <span>Total</span>
-                      <span>${calculateTotal()}</span>
+                      <span>{calculateTotal()}€</span>
                     </div>
 
                     {hasSelectedTickets && (

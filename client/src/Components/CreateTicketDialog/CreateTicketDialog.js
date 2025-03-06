@@ -171,7 +171,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Price ($)</label>
+              <label>Price (€)</label>
               <input
                 type="number"
                 value={ticketData.price}
@@ -187,7 +187,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
             </div>
 
             <div className="form-group">
-              <label className="strikethrough">Original Price ($)</label>
+              <label className="strikethrough">Original Price (€)</label>
               <input
                 type="number"
                 value={ticketData.originalPrice}

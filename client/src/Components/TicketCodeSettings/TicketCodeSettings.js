@@ -185,17 +185,17 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                       className="current-price"
                       style={{ color: ticket.color || "#2196F3" }}
                     >
-                      $
                       {typeof ticket.price === "number"
                         ? ticket.price.toFixed(2)
                         : parseFloat(ticket.price).toFixed(2)}
+                      €
                     </span>
                     {ticket.originalPrice && (
                       <span className="original-price">
-                        $
                         {typeof ticket.originalPrice === "number"
                           ? ticket.originalPrice.toFixed(2)
                           : parseFloat(ticket.originalPrice).toFixed(2)}
+                        €
                       </span>
                     )}
                   </div>
