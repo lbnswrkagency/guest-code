@@ -1,4 +1,104 @@
 @import "../../../variables";
+@import "../../../_animations";
+
+// Alpha password variables
+$primary-gold: #ffc807;
+$secondary-gold: #d1a300;
+$dark-gold: #a58300;
+$light-gold: #ffdf80;
+$highlight-gold: #ffe680;
+$black: #000000;
+$dark-gray: #1c1c1c;
+$darker-gray: #0f0f0f;
+$deep-black: #050505;
+
+// Animation durations
+$particle-duration-min: 15s;
+$particle-duration-max: 45s;
+$pulse-duration: 8s;
+$shimmer-duration: 3s;
+$float-duration: 6s;
+$nebula-duration: 20s;
+$star-twinkle-duration: 4s;
+
+// Alpha password keyframes
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-15px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(15px) rotate(-2deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: var(--min-brightness, 0.3);
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: var(--max-brightness, 1);
+    transform: scale(1.2);
+  }
+}
+
+@keyframes nebulaPulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    filter: blur(var(--min-blur, 40px));
+  }
+  50% {
+    opacity: 0.4;
+    filter: blur(var(--max-blur, 60px));
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--max-opacity, 0.8);
+  }
+  90% {
+    opacity: var(--min-opacity, 0.6);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(var(--s));
+    opacity: 0;
+  }
+}
 
 .login {
   min-height: 100vh;
@@ -25,6 +125,406 @@
     );
     z-index: 0;
     pointer-events: none;
+  }
+
+  // Alpha password container
+  .alpha-password-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    overflow: hidden;
+
+    // Animated background
+    .animated-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: hidden;
+
+      // Base gradient background
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+            ellipse at 20% 20%,
+            rgba($primary-gold, 0.08) 0%,
+            transparent 40%
+          ),
+          radial-gradient(
+            ellipse at 80% 80%,
+            rgba($primary-gold, 0.05) 0%,
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            $deep-black 0%,
+            $black 40%,
+            $dark-gray 100%
+          );
+        background-size: 200% 200%;
+        animation: backgroundShift 30s ease infinite;
+        transform-style: preserve-3d;
+      }
+
+      // Subtle pattern overlay
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(255,200,7,0.05)' fill-rule='evenodd'/%3E%3C/svg%3E"),
+          linear-gradient(to bottom, transparent, rgba($black, 0.8));
+        opacity: 0.3;
+      }
+    }
+
+    // Nebula effect
+    .nebula-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+
+      .nebula {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.2;
+        filter: blur(40px);
+
+        &:nth-child(1) {
+          --min-blur: 40px;
+          --max-blur: 60px;
+          top: 20%;
+          left: 30%;
+          width: 40vmin;
+          height: 40vmin;
+          background: radial-gradient(
+            circle at center,
+            rgba($light-gold, 0.3),
+            rgba($primary-gold, 0.1),
+            transparent 70%
+          );
+          animation: nebulaPulse #{$nebula-duration * 1.2} ease-in-out infinite;
+        }
+
+        &:nth-child(2) {
+          --min-blur: 50px;
+          --max-blur: 70px;
+          top: 60%;
+          left: 70%;
+          width: 50vmin;
+          height: 35vmin;
+          background: radial-gradient(
+            ellipse at center,
+            rgba($primary-gold, 0.2),
+            rgba($secondary-gold, 0.1),
+            transparent 70%
+          );
+          animation: nebulaPulse #{$nebula-duration * 0.8} ease-in-out infinite reverse;
+        }
+      }
+    }
+
+    // Star field
+    .star-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 2;
+
+      .star {
+        position: absolute;
+        border-radius: 50%;
+        background: #fff;
+
+        @for $i from 1 through 30 {
+          &:nth-child(#{$i}) {
+            --min-brightness: #{0.3 + random() * 0.3};
+            --max-brightness: #{0.7 + random() * 0.3};
+
+            $size: 1px + random(2) + px;
+            $duration: 2s + random(4) + s;
+            $delay: random(5) + s;
+
+            width: $size;
+            height: $size;
+            top: #{random(100)}vh;
+            left: #{random(100)}vw;
+            opacity: 0.7;
+            box-shadow: 0 0 #{2 + random(4)}px rgba(255, 255, 255, 0.8);
+            animation: starTwinkle $duration ease-in-out $delay infinite;
+          }
+        }
+      }
+    }
+
+    // Particles
+    .particles-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 3;
+    }
+
+    // Particle styling
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+
+      // Generate different particles with custom properties
+      @for $i from 1 through 15 {
+        &.particle-#{$i} {
+          --tx: #{random(120) - 60}vw;
+          --ty: #{random(120) - 60}vh;
+          --r: #{random(360)}deg;
+          --s: #{0.5 + random() * 0.8};
+          --max-opacity: #{0.7 + random() * 0.3};
+          --min-opacity: #{0.3 + random() * 0.3};
+
+          $size: 3px + random(25) + px;
+          $duration: $particle-duration-min +
+            random($particle-duration-max - $particle-duration-min) +
+            s;
+          $delay: random(15) + s;
+
+          width: $size;
+          height: $size;
+          top: #{random(100)}vh;
+          left: #{random(100)}vw;
+
+          @if $i % 5 == 0 {
+            // Large glowing gold particles
+            background: radial-gradient(
+              circle at center,
+              rgba($primary-gold, 0.9),
+              rgba($secondary-gold, 0.3)
+            );
+            filter: blur(1px);
+            box-shadow: 0 0 #{random(20) + 10}px rgba($primary-gold, 0.7);
+          } @else if $i % 5 == 1 {
+            // Medium light gold particles
+            background: radial-gradient(
+              circle at center,
+              rgba($light-gold, 0.8),
+              rgba($primary-gold, 0.2)
+            );
+            filter: blur(2px);
+            box-shadow: 0 0 #{random(15) + 5}px rgba($primary-gold, 0.5);
+          } @else if $i % 5 == 2 {
+            // Small white/gold particles
+            background: radial-gradient(
+              circle at center,
+              rgba(255, 255, 255, 0.9),
+              rgba($light-gold, 0.1)
+            );
+            filter: blur(1px);
+            box-shadow: 0 0 #{random(10) + 3}px rgba($primary-gold, 0.4);
+          } @else if $i % 5 == 3 {
+            // Tiny bright particles
+            background: #fff;
+            filter: blur(0.5px);
+            box-shadow: 0 0 #{random(8) + 2}px rgba(255, 255, 255, 0.8);
+          } @else {
+            // Highlight gold particles
+            background: radial-gradient(
+              circle at center,
+              rgba($highlight-gold, 0.9),
+              rgba($light-gold, 0.3)
+            );
+            filter: blur(1.5px);
+            box-shadow: 0 0 #{random(12) + 4}px rgba($highlight-gold, 0.6);
+          }
+
+          animation: particleFloat
+            $duration
+            cubic-bezier(0.4, 0, 0.2, 1)
+            $delay
+            infinite;
+        }
+      }
+    }
+
+    // Glow overlay
+    .glow-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90vmin;
+      height: 90vmin;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at center,
+        rgba($primary-gold, 0.05) 0%,
+        rgba($primary-gold, 0.02) 30%,
+        transparent 70%
+      );
+      filter: blur(40px);
+      animation: pulse $pulse-duration ease-in-out infinite;
+      z-index: 4;
+    }
+
+    // Alpha content
+    .alpha-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 400px;
+      padding: 2rem;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      h1 {
+        font-size: clamp(2.5rem, 8vw, 3.5rem);
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+        background: linear-gradient(
+          135deg,
+          $light-gold 0%,
+          $primary-gold 50%,
+          $secondary-gold 100%
+        );
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shimmer $shimmer-duration ease-in-out infinite;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 40%;
+          height: 3px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            $primary-gold,
+            transparent
+          );
+          border-radius: 3px;
+        }
+      }
+
+      .alpha-subtitle {
+        font-size: clamp(1.2rem, 4vw, 1.5rem);
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 2rem;
+        font-weight: 300;
+        letter-spacing: 1px;
+        animation: float $float-duration ease-in-out infinite;
+      }
+
+      .alpha-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+
+        .alpha-input-group {
+          position: relative;
+        }
+
+        .alpha-input {
+          width: 100%;
+          padding: 1rem 1.5rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          color: #fff;
+          font-size: 1rem;
+          text-align: center;
+          letter-spacing: 2px;
+          transition: all 0.3s ease;
+
+          &::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0;
+          }
+
+          &:focus {
+            outline: none;
+            border-color: $primary-gold;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba($primary-gold, 0.3);
+          }
+
+          &.error {
+            border-color: #ff4d4d;
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+          }
+        }
+
+        .alpha-error {
+          position: absolute;
+          bottom: -25px;
+          left: 0;
+          width: 100%;
+          text-align: center;
+          color: #ff4d4d;
+          font-size: 0.9rem;
+        }
+
+        .alpha-submit {
+          padding: 1rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          letter-spacing: 1px;
+          background: linear-gradient(
+            314deg,
+            $dark-gold 0%,
+            $primary-gold 100%
+          );
+          color: #000;
+          box-shadow: 0 4px 12px rgba($primary-gold, 0.25);
+          margin-top: 0.5rem;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba($primary-gold, 0.35);
+          }
+
+          &:focus {
+            outline: none;
+          }
+        }
+      }
+    }
   }
 
   .login-container {
@@ -151,6 +651,43 @@
   }
 }
 
+// Shake animation for error
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes backgroundShift {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .login {
     .login-container {
@@ -160,6 +697,22 @@
 
     .login-title {
       font-size: 1.75rem;
+    }
+
+    .alpha-password-container {
+      .alpha-content {
+        max-width: 90%;
+        padding: 1.5rem;
+
+        h1 {
+          font-size: 2.5rem;
+        }
+
+        .alpha-subtitle {
+          font-size: 1.2rem;
+          margin-bottom: 1.5rem;
+        }
+      }
     }
   }
 }
@@ -204,6 +757,34 @@
       margin-top: 1.25rem;
       font-size: 0.9rem;
     }
+
+    .alpha-password-container {
+      .alpha-content {
+        padding: 1.25rem;
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .alpha-subtitle {
+          font-size: 1rem;
+          margin-bottom: 1.25rem;
+        }
+
+        .alpha-form {
+          gap: 1.25rem;
+
+          .alpha-input {
+            padding: 0.875rem 1.25rem;
+          }
+
+          .alpha-submit {
+            padding: 0.875rem;
+            font-size: 0.95rem;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -217,6 +798,22 @@
     .login-form {
       .login-input {
         padding: 0.7rem 0.75rem;
+      }
+    }
+
+    .alpha-password-container {
+      .alpha-content {
+        padding: 1rem;
+
+        h1 {
+          font-size: 1.75rem;
+        }
+
+        .alpha-form {
+          .alpha-input {
+            padding: 0.75rem 1rem;
+          }
+        }
       }
     }
   }
