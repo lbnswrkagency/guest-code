@@ -98,7 +98,12 @@ app.post(
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
-      ? process.env.CLIENT_BASE_URL
+      ? [
+          process.env.CLIENT_BASE_URL,
+          "https://www.guest-code.com",
+          "https://guest-code.com",
+          "https://guestcode-server.onrender.com",
+        ]
       : [
           "http://localhost:3000",
           "http://127.0.0.1:3000",
@@ -128,7 +133,18 @@ app.options("*", cors(corsOptions));
 
 // Global middleware to ensure CORS headers are always set
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  const origin = req.headers.origin;
+  if (
+    origin &&
+    (origin === "https://www.guest-code.com" ||
+      origin === "https://guest-code.com" ||
+      origin === process.env.CLIENT_BASE_URL ||
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1") ||
+      origin.includes("onrender.com"))
+  ) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
   res.header("Access-Control-Allow-Credentials", "true");
   res.header(
     "Access-Control-Allow-Methods",
