@@ -470,14 +470,14 @@ const EventProfile = () => {
   const getEventImage = () => {
     if (!event || !event.flyer) return null;
 
-    // Check for portrait image first (best for mobile)
-    if (event.flyer.portrait && event.flyer.portrait.full) {
-      return event.flyer.portrait.full;
-    }
-
-    // Fallback to landscape
+    // Check for landscape image first (best for desktop/event profile)
     if (event.flyer.landscape && event.flyer.landscape.full) {
       return event.flyer.landscape.full;
+    }
+
+    // Fallback to portrait
+    if (event.flyer.portrait && event.flyer.portrait.full) {
+      return event.flyer.portrait.full;
     }
 
     // Final fallback to square
