@@ -1,12 +1,7 @@
 import React from "react";
-<<<<<<< HEAD
-import { Link } from "react-router-dom";
-import Navigation from "./Navigation/Navigation";
-=======
 import { Link, useLocation, useParams } from "react-router-dom";
 import Navigation from "../Navigation/Navigation";
 import Footer from "./Footer/Footer";
->>>>>>> 35731d13aa759b979c858d07d8359e48d742375c
 import "./Home.scss";
 
 const Home = () => {
@@ -86,6 +81,8 @@ const Home = () => {
           <span className="alpha-badge">Alpha</span>
         </div>
       </header>
+
+      <Footer />
     </div>
   );
 };
