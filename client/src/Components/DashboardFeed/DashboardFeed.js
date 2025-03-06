@@ -19,7 +19,7 @@ import axiosInstance from "../../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
-const DashboardFeed = ({ selectedBrand, selectedDate }) => {
+const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -27,9 +27,46 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
   const [eventData, setEventData] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Log props for debugging
+  useEffect(() => {
+    console.group("🔍 FEED: Props");
+    console.log(
+      "Selected Brand:",
+      selectedBrand
+        ? {
+            _id: selectedBrand._id,
+            name: selectedBrand.name,
+          }
+        : "undefined"
+    );
+    console.log("Selected Date:", selectedDate);
+    console.log(
+      "Selected Event:",
+      selectedEvent
+        ? {
+            _id: selectedEvent._id,
+            name: selectedEvent.name,
+            date: selectedEvent.date,
+          }
+        : "undefined"
+    );
+    console.groupEnd();
+  }, [selectedBrand, selectedDate, selectedEvent]);
+
   // Effect to fetch event data when brand or date changes
   useEffect(() => {
     const fetchEventData = async () => {
+      // If we already have a selected event, use it directly
+      if (selectedEvent) {
+        console.log(
+          "🔍 FEED: Using provided selectedEvent:",
+          selectedEvent._id
+        );
+        setEventData(selectedEvent);
+        setIsLoading(false);
+        return;
+      }
+
       if (!selectedBrand || !selectedDate) {
         setIsLoading(false);
         return;
@@ -74,7 +111,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate }) => {
     };
 
     fetchEventData();
-  }, [selectedBrand, selectedDate]);
+  }, [selectedBrand, selectedDate, selectedEvent]);
 
   // Helper function to preload event image
   const preloadEventImage = (event) => {

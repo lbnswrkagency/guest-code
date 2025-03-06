@@ -23,6 +23,8 @@ const DashboardHeader = ({
   setSelectedBrand,
   selectedDate,
   setSelectedDate,
+  selectedEvent,
+  setSelectedEvent,
   userRoles = [], // User roles prop with default empty array
 }) => {
   const { isConnected } = useSocket();
@@ -122,6 +124,10 @@ const DashboardHeader = ({
       if (!selectedBrand) return;
 
       try {
+        console.log(
+          `🔍 HEADER: Fetching events for brand ${selectedBrand._id}`
+        );
+
         // Use the same endpoint as in Events.js
         const response = await axiosInstance.get(
           `/events/brand/${selectedBrand._id}`
@@ -133,15 +139,45 @@ const DashboardHeader = ({
             (a, b) => new Date(a.date) - new Date(b.date)
           );
 
+          console.log(
+            `✅ HEADER: Fetched ${sortedEvents.length} events for brand ${selectedBrand._id}`
+          );
+
+          // Log the first few events for debugging
+          if (sortedEvents.length > 0) {
+            console.group("🔍 HEADER: First few events");
+            sortedEvents.slice(0, 3).forEach((event) => {
+              console.log("Event:", {
+                _id: event._id,
+                name: event.name || "Unnamed Event",
+                date: event.date,
+                user: event.user,
+              });
+            });
+            console.groupEnd();
+          }
+
           setBrandEvents(sortedEvents);
 
           // Set the first event date as selected if available and no date is selected
-          if (sortedEvents.length > 0 && !selectedDate) {
-            setSelectedDate(new Date(sortedEvents[0].date));
+          if (sortedEvents.length > 0) {
+            if (!selectedDate) {
+              setSelectedDate(new Date(sortedEvents[0].date));
+            }
+
+            // If no event is selected, set the first event as the selected event
+            if (!selectedEvent) {
+              console.log("🔍 HEADER: Setting first event as selected event:", {
+                _id: sortedEvents[0]._id,
+                name: sortedEvents[0].name || "Unnamed Event",
+                date: sortedEvents[0].date,
+              });
+              setSelectedEvent(sortedEvents[0]);
+            }
           }
         }
       } catch (error) {
-        // Error handling without console log
+        console.error("❌ HEADER ERROR:", error);
         setBrandEvents([]);
       }
     };
@@ -171,22 +207,118 @@ const DashboardHeader = ({
   }, []);
 
   const handleBrandSelect = (brand) => {
-    setSelectedBrand(brand);
+    console.group("🔍 HEADER: Brand Selected");
+    console.log("Brand:", {
+      _id: brand._id,
+      name: brand.name,
+    });
+    console.log(
+      "Previous Selected Brand:",
+      selectedBrand
+        ? {
+            _id: selectedBrand._id,
+            name: selectedBrand.name,
+          }
+        : "undefined"
+    );
+    console.log(
+      "Previous Selected Event:",
+      selectedEvent
+        ? {
+            _id: selectedEvent._id,
+            name: selectedEvent.name,
+          }
+        : "undefined"
+    );
+    console.groupEnd();
+
+    // Only update if a different brand is selected
+    if (!selectedBrand || brand._id !== selectedBrand._id) {
+      setSelectedBrand(brand);
+      // Reset selected event when changing brands
+      setSelectedEvent(null);
+      // Reset selected date when changing brands
+      setSelectedDate(null);
+    }
+
     setBrandDropdown(false);
-    // Reset selected date when changing brands
-    setSelectedDate(null);
   };
 
   const handleDateSelect = (date) => {
+    console.group("🔍 HEADER: Date Selected");
+    console.log("Selected Date:", new Date(date));
+
+    // Find the event that corresponds to this date
+    const selectedDate = new Date(date);
+    const matchingEvent = brandEvents.find((event) => {
+      const eventDate = new Date(event.date);
+      return eventDate.toDateString() === selectedDate.toDateString();
+    });
+
+    console.log(
+      "Matching Event:",
+      matchingEvent
+        ? {
+            _id: matchingEvent._id,
+            date: matchingEvent.date,
+            name: matchingEvent.name || "Unnamed Event",
+          }
+        : "No matching event found"
+    );
+    console.groupEnd();
+
+    // Set the selected date
     setSelectedDate(new Date(date));
+
+    // If we found a matching event, set it as the selected event
+    if (matchingEvent) {
+      setSelectedEvent(matchingEvent);
+    }
+
     setDateDropdown(false);
   };
 
   const handleEventSelect = (event) => {
+    console.group("🔍 HEADER: Event Selected");
+    console.log("Event:", {
+      _id: event._id,
+      name: event.name,
+      date: event.date,
+      user: event.user,
+      brand: event.brand,
+      // Log the entire object for debugging
+      fullObject: event,
+    });
+    console.log(
+      "Previous Selected Event:",
+      selectedEvent
+        ? {
+            _id: selectedEvent._id,
+            name: selectedEvent.name,
+          }
+        : "undefined"
+    );
+    console.groupEnd();
+
     // Handle event selection - navigate to event page or update state
     setSelectedDate(new Date(event.date));
+    setSelectedEvent(event); // Set the selected event
     setShowEventsPopup(false);
-    // Implementation depends on your app's navigation/state management
+
+    // Log after setting the state
+    setTimeout(() => {
+      console.group("🔍 HEADER: After Event Selection");
+      console.log(
+        "New Selected Event:",
+        selectedEvent
+          ? {
+              _id: selectedEvent._id,
+              name: selectedEvent.name,
+            }
+          : "undefined"
+      );
+      console.groupEnd();
+    }, 0);
   };
 
   const formatDate = (date) => {

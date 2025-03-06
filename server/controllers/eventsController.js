@@ -1372,15 +1372,24 @@ exports.getEventByLink = async (req, res) => {
 
 exports.getEvent = async (req, res) => {
   try {
-    const eventData = await Event.findById(req.params.eventId).populate(
-      "lineups"
-    );
+    const eventData = await Event.findById(req.params.eventId)
+      .populate("lineups")
+      .populate("brand"); // Populate the brand to get brand data including colors
+
     if (!eventData) {
       return res
         .status(404)
         .json({ success: false, message: "Event not found." });
     }
-    res.status(200).json({ success: true, event: eventData });
+
+    // Make sure all necessary fields are included in the response
+    const responseData = {
+      ...eventData._doc,
+      name: eventData.title, // Ensure name is set (using title as fallback)
+      primaryColor: eventData.brand?.colors?.primary || "#ffc807", // Include primary color from brand
+    };
+
+    res.status(200).json({ success: true, event: responseData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });

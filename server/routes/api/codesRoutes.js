@@ -52,12 +52,15 @@ router.post("/generate", authenticate, codesController.createDynamicCode);
 // Get all codes for an event
 router.get(
   "/events/:eventId/:type?",
-  authenticate,
+  optionalAuth,
   codesController.getEventCodes
 );
 
+// Get code counts for an event
+router.get("/counts/:eventId", optionalAuth, codesController.getCodeCounts);
+
 // Get a specific code
-router.get("/:codeId", authenticate, codesController.getCode);
+router.get("/:id", optionalAuth, codesController.getCode);
 
 // Update a code
 router.put("/:codeId", authenticate, codesController.updateCode);

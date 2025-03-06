@@ -89,8 +89,8 @@ const getCodeSettings = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Find the event to verify it exists
-    const event = await Event.findById(eventId);
+    // Find the event to verify it exists and populate the brand
+    const event = await Event.findById(eventId).populate("brand");
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
@@ -170,8 +170,14 @@ const getCodeSettings = async (req, res) => {
       uniqueSettingsCount: uniqueCodeSettings.length,
     });
 
+    // Include the brand's primary color in the response
+    const primaryColor = event.brand?.colors?.primary || "#ffc807";
+
     return res.status(200).json({
       codeSettings: uniqueCodeSettings,
+      eventName: event.title, // Include event name
+      eventLogo: event.flyer, // Include event flyer/logo
+      primaryColor: primaryColor, // Include brand's primary color
     });
   } catch (error) {
     console.error("Error fetching code settings:", error);

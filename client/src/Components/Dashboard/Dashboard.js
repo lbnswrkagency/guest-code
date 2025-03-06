@@ -41,6 +41,7 @@ import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import Loader from "../Loader/Loader";
 import DashboardFeed from "../DashboardFeed/DashboardFeed";
 import { useAuth } from "../../contexts/AuthContext";
+import CodeManagement from "../CodeManagement/CodeManagement";
 
 const Dashboard = () => {
   const { user, setUser, loading } = useAuth();
@@ -186,6 +187,37 @@ const DashboardContent = ({ user, setUser }) => {
   // Add state for selected brand and date to pass to DashboardFeed
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Add a useEffect to log selectedEvent changes
+  useEffect(() => {
+    console.group("🔍 DASHBOARD: Selected Event Changed");
+    console.log(
+      "Selected Event:",
+      selectedEvent
+        ? {
+            _id: selectedEvent._id,
+            name: selectedEvent.name,
+            date: selectedEvent.date,
+            user: selectedEvent.user,
+            brand: selectedEvent.brand,
+            // Log the entire object for debugging
+            fullObject: selectedEvent,
+          }
+        : "undefined"
+    );
+    console.log(
+      "Selected Brand:",
+      selectedBrand
+        ? {
+            _id: selectedBrand._id,
+            name: selectedBrand.name,
+          }
+        : "undefined"
+    );
+    console.log("Selected Date:", selectedDate);
+    console.groupEnd();
+  }, [selectedEvent, selectedBrand, selectedDate]);
 
   // Add a state variable to store the access summary
   const [accessSummary, setAccessSummary] = useState({
@@ -996,6 +1028,19 @@ const DashboardContent = ({ user, setUser }) => {
     }
   };
 
+  // Add a handler function to update the selected event data
+  const handleEventDataUpdate = (updatedEvent) => {
+    console.log("🔄 Dashboard: Updating event data with:", {
+      id: updatedEvent._id,
+      name: updatedEvent.name,
+      logo: updatedEvent.logo ? "Available" : "Not available",
+      primaryColor: updatedEvent.primaryColor,
+    });
+
+    // Update the selected event with the new data
+    setSelectedEvent(updatedEvent);
+  };
+
   if (codeType === "Table") {
     return (
       <TableSystem
@@ -1014,17 +1059,10 @@ const DashboardContent = ({ user, setUser }) => {
     return (
       <CodeGenerator
         user={user}
-        onClose={() => setCodeType("")}
-        weeklyCount={
-          codeType === "Friends"
-            ? getThisWeeksFriendsCount()
-            : codeType === "Backstage"
-            ? getThisWeeksBackstageCount()
-            : codeType === "Table"
-            ? getThisWeeksTableCount()
-            : 0
-        }
-        refreshCounts={refreshCounts}
+        onClose={() => {
+          setCodeType("");
+          resetEventDateToToday();
+        }}
         type={codeType}
         currentEventDate={currentEventDate}
         onPrevWeek={handlePrevWeek}
@@ -1036,6 +1074,8 @@ const DashboardContent = ({ user, setUser }) => {
         codePermissions={codePermissionsDetails}
         accessSummary={accessSummary}
         selectedBrand={selectedBrand}
+        selectedEvent={selectedEvent}
+        onEventDataUpdate={handleEventDataUpdate}
       />
     );
   }
@@ -1131,6 +1171,8 @@ const DashboardContent = ({ user, setUser }) => {
           setSelectedBrand={setSelectedBrand}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
+          selectedEvent={selectedEvent}
+          setSelectedEvent={setSelectedEvent}
           userRoles={userRoles}
         />
 
@@ -1157,6 +1199,7 @@ const DashboardContent = ({ user, setUser }) => {
               <DashboardFeed
                 selectedBrand={selectedBrand}
                 selectedDate={selectedDate}
+                selectedEvent={selectedEvent}
               />
             }
           />

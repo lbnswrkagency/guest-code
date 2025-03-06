@@ -104,6 +104,38 @@ const DashboardMenu = ({
 
   // Helper to determine which code type to use when clicking the Codes menu item
   const getDefaultCodeType = () => {
+    console.group("🔍 MENU: Getting Default Code Type");
+    console.log(
+      "Code Settings:",
+      codeSettings.length > 0
+        ? codeSettings.map((s) => ({
+            name: s.name,
+            type: s.type,
+            codeType: s.codeType,
+            isEnabled: s.isEnabled,
+          }))
+        : "None"
+    );
+    console.log(
+      "Code Permissions:",
+      codePermissions.length > 0
+        ? codePermissions.map((p) => ({
+            type: p.type,
+            generate: p.generate,
+          }))
+        : "None"
+    );
+    console.log(
+      "Selected Brand:",
+      selectedBrand
+        ? {
+            _id: selectedBrand._id,
+            name: selectedBrand.name,
+          }
+        : "undefined"
+    );
+    console.groupEnd();
+
     // Look for any enabled code setting
     if (codeSettings.length > 0) {
       // Find the first available code setting that is enabled
@@ -189,7 +221,20 @@ const DashboardMenu = ({
                   className="menu-item"
                   onClick={() => {
                     const defaultType = getDefaultCodeType();
-                    console.log(`🎟️ Setting code type to: ${defaultType}`);
+                    console.group("🎟️ MENU: Setting code type");
+                    console.log("Code type:", defaultType);
+                    console.log(
+                      "Selected Brand:",
+                      selectedBrand
+                        ? {
+                            _id: selectedBrand._id,
+                            name: selectedBrand.name,
+                          }
+                        : "undefined"
+                    );
+                    console.log("Code Settings:", codeSettings.length);
+                    console.log("Code Permissions:", codePermissions.length);
+                    console.groupEnd();
                     setCodeType(defaultType);
                     setIsOpen(false);
                   }}

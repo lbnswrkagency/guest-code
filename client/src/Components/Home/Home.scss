@@ -1,525 +1,843 @@
 @import "../../_variables";
 @import "../../_animations";
 
-// Responsive breakpoints
-$breakpoint-xs: 320px; // Small smartphones
-$breakpoint-sm: 375px; // iPhone XR, newer smartphones
-$breakpoint-md: 768px; // Tablets, iPad Mini
-$breakpoint-lg: 1024px; // iPad Pro, small laptops
-$breakpoint-xl: 1280px; // Laptops, desktops
-$breakpoint-xxl: 1536px; // Large desktops
+// Enhanced color variables
+$primary-gold: #ffc807;
+$secondary-gold: #d1a300;
+$dark-gold: #a58300;
+$light-gold: #ffdf80;
+$highlight-gold: #ffe680;
+$black: #000000;
+$dark-gray: #1c1c1c;
+$darker-gray: #0f0f0f;
+$deep-black: #050505;
 
-.home {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #1c1c1c 0%, #000000 100%);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  position: relative;
-  width: 100%;
-  max-width: 100%;
+// Animation durations and variables
+$particle-duration-min: 15s;
+$particle-duration-max: 45s;
+$pulse-duration: 8s;
+$shimmer-duration: 3s;
+$float-duration: 6s;
+$nebula-duration: 20s;
+$star-twinkle-duration: 4s;
+$constellation-duration: 15s;
+$lightning-duration: 10s;
+$vortex-duration: 30s;
 
-  &::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-        circle at 20% 20%,
-        rgba(255, 200, 7, 0.15) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 80%,
-        rgba(255, 200, 7, 0.1) 0%,
-        transparent 50%
-      );
-    pointer-events: none;
-    z-index: 0;
+// Enhanced keyframes for animations
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
   }
-
-  .home-main {
-    flex: 1;
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+  25% {
+    transform: translateY(-15px) rotate(2deg);
   }
-
-  .hero {
-    min-height: 100vh;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    margin: 0;
-    width: 100%;
-
-    @media (max-width: $breakpoint-sm) {
-      min-height: calc(100vh - 60px);
-      padding: 0;
-    }
-
-    @media (orientation: landscape) and (max-height: 600px) {
-      min-height: auto;
-      padding: 4rem 1rem;
-    }
-
-    .hero-content {
-      max-width: min(90vw, 800px);
-      width: 90%;
-      text-align: center;
-      position: relative;
-      backdrop-filter: blur(10px);
-      padding: clamp(1.5rem, 4vw, 3rem);
-      border-radius: clamp(16px, 4vw, 24px);
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      animation: fadeInUp 0.8s ease-out;
-      margin: 0 auto;
-
-      @media (max-width: $breakpoint-sm) {
-        width: 85%;
-        padding: 1.5rem;
-        margin: 0 auto;
-      }
-
-      h1 {
-        font-size: clamp(2rem, 6vw, 4.5rem);
-        font-weight: 800;
-        margin-bottom: clamp(0.5rem, 2vw, 1rem);
-        background: linear-gradient(135deg, #ffc807 0%, #d1a300 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-        position: relative;
-        display: inline-block;
-
-        @media (max-width: $breakpoint-sm) {
-          font-size: 2.25rem;
-          margin-bottom: 0.5rem;
-        }
-      }
-
-      .subtitle {
-        font-size: clamp(1rem, 3vw, 1.75rem);
-        color: rgba(255, 255, 255, 0.9);
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-
-        @media (max-width: $breakpoint-sm) {
-          font-size: 1.125rem;
-          margin-bottom: 0.5rem;
-        }
-      }
-
-      .alpha-badge {
-        display: inline-flex;
-        align-items: center;
-        background: linear-gradient(135deg, #ffc807 0%, #d1a300 100%);
-        color: #000;
-        padding: 0.35rem 1.25rem;
-        border-radius: 100px;
-        font-weight: 700;
-        font-size: 0.875rem;
-        margin: 0.75rem 0;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
-        transform: translateY(0);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-        @media (max-width: $breakpoint-sm) {
-          padding: 0.25rem 1rem;
-          font-size: 0.75rem;
-          margin: 0.5rem 0;
-        }
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(255, 200, 7, 0.35);
-        }
-      }
-
-      .description {
-        font-size: clamp(0.875rem, 2vw, 1.1rem);
-        color: rgba(255, 255, 255, 0.8);
-        max-width: min(100%, 600px);
-        margin: 1.25rem auto;
-        line-height: 1.6;
-        padding: 0;
-
-        @media (max-width: $breakpoint-sm) {
-          font-size: 0.875rem;
-          line-height: 1.5;
-          margin: 1rem auto;
-          padding: 0 0.5rem;
-        }
-      }
-
-      .cta-buttons {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 1.5rem;
-        padding: 0;
-
-        @media (max-width: $breakpoint-sm) {
-          flex-direction: column;
-          gap: 0.75rem;
-          margin-top: 1rem;
-          padding: 0 0.5rem;
-        }
-
-        .cta-button {
-          padding: clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 2rem);
-          border-radius: 12px;
-          font-weight: 600;
-          font-size: clamp(0.875rem, 2vw, 1rem);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          text-decoration: none;
-          min-width: clamp(140px, 30vw, 160px);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-          white-space: nowrap;
-
-          @media (max-width: $breakpoint-sm) {
-            width: 100%;
-            min-width: unset;
-            padding: 0.875rem 1.5rem;
-          }
-
-          &.primary {
-            background: linear-gradient(135deg, #ffc807 0%, #d1a300 100%);
-            color: #000;
-            box-shadow: 0 4px 12px rgba(255, 200, 7, 0.25);
-
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 16px rgba(255, 200, 7, 0.35);
-            }
-
-            &:active {
-              transform: translateY(0);
-            }
-          }
-
-          &.secondary {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 200, 7, 0.3);
-            color: #ffc807;
-
-            &:hover {
-              background: rgba(255, 200, 7, 0.15);
-              transform: translateY(-2px);
-              border-color: #ffc807;
-            }
-
-            &:active {
-              transform: translateY(0);
-            }
-          }
-        }
-      }
-    }
+  50% {
+    transform: translateY(0) rotate(0deg);
   }
-
-  .features {
-    padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 3vw, 2rem);
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-    gap: clamp(1.25rem, 3vw, 2.5rem);
-    max-width: min(90vw, 1200px);
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-
-    @media (max-width: $breakpoint-md) {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-      padding: 2rem 1rem;
-    }
-
-    @media (max-width: $breakpoint-sm) {
-      grid-template-columns: 1fr;
-      padding: 1.5rem 1rem;
-      gap: 1rem;
-    }
-
-    .feature {
-      position: relative;
-      padding: clamp(1.5rem, 4vw, 2.5rem);
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: clamp(16px, 4vw, 24px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(12px);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      text-align: center;
-      animation: fadeInUp 0.8s ease-out;
-      animation-fill-mode: both;
-
-      @for $i from 1 through 3 {
-        &:nth-child(#{$i}) {
-          animation-delay: #{$i * 0.1}s;
-        }
-      }
-
-      @media (max-width: $breakpoint-sm) {
-        padding: 1.25rem;
-      }
-
-      &:hover {
-        transform: translateY(-5px);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 200, 7, 0.2);
-      }
-
-      .feature-icon {
-        width: clamp(48px, 8vw, 64px);
-        height: clamp(48px, 8vw, 64px);
-        margin: 0 auto 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: clamp(1.5rem, 4vw, 2rem);
-        background: rgba(255, 200, 7, 0.1);
-        border-radius: clamp(12px, 3vw, 16px);
-        color: #ffc807;
-        transition: all 0.3s ease;
-
-        @media (max-width: $breakpoint-sm) {
-          margin-bottom: 0.75rem;
-        }
-
-        &:hover {
-          transform: scale(1.05);
-          background: rgba(255, 200, 7, 0.15);
-        }
-      }
-
-      h3 {
-        color: #fff;
-        font-size: clamp(1rem, 2.5vw, 1.25rem);
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-
-        @media (max-width: $breakpoint-sm) {
-          font-size: 1.125rem;
-          margin-bottom: 0.5rem;
-        }
-      }
-
-      p {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: clamp(0.875rem, 2vw, 1rem);
-        line-height: 1.6;
-        max-width: min(100%, 300px);
-        margin: 0 auto;
-
-        @media (max-width: $breakpoint-sm) {
-          font-size: 0.875rem;
-          line-height: 1.5;
-        }
-      }
-    }
-  }
-}
-
-// Landscape mode optimizations
-@media (orientation: landscape) and (max-height: 600px) {
-  .home {
-    .hero {
-      .hero-content {
-        padding: 1.5rem;
-
-        h1 {
-          font-size: 2rem;
-        }
-
-        .subtitle {
-          font-size: 1rem;
-        }
-
-        .description {
-          font-size: 0.875rem;
-          margin: 0.75rem auto;
-        }
-
-        .cta-buttons {
-          margin-top: 1rem;
-          flex-direction: row;
-
-          .cta-button {
-            padding: 0.5rem 1.25rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-// iPad and tablet optimizations
-@media (min-width: $breakpoint-md) and (max-width: $breakpoint-lg) {
-  .home {
-    .hero {
-      .hero-content {
-        max-width: min(85vw, 700px);
-      }
-    }
-
-    .features {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-}
-
-// Large screen optimizations
-@media (min-width: $breakpoint-xl) {
-  .home {
-    .hero-content {
-      max-width: 900px;
-    }
-
-    .features {
-      max-width: 1400px;
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  75% {
+    transform: translateY(15px) rotate(-2deg);
   }
 }
 
 @keyframes pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+    transform: scale(1);
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.05);
+    opacity: 0.7;
+    transform: scale(1.05);
   }
 }
 
-@keyframes float {
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--max-opacity, 0.8);
+  }
+  90% {
+    opacity: var(--min-opacity, 0.6);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(var(--s));
+    opacity: 0;
+  }
+}
+
+@keyframes glow {
   0%,
   100% {
-    transform: translateY(0) rotate(0);
+    box-shadow: 0 0 30px 5px rgba($primary-gold, 0.3);
   }
   50% {
-    transform: translateY(-20px) rotate(5deg);
+    box-shadow: 0 0 50px 10px rgba($primary-gold, 0.5);
   }
 }
 
+@keyframes backgroundShift {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: var(--min-brightness, 0.3);
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: var(--max-brightness, 1);
+    transform: scale(1.2);
+  }
+}
+
+@keyframes nebulaPulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    filter: blur(var(--min-blur, 40px));
+  }
+  50% {
+    opacity: 0.4;
+    filter: blur(var(--max-blur, 60px));
+  }
+}
+
+@keyframes constellationDraw {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes lightningFlash {
+  0%,
+  95%,
+  100% {
+    opacity: 0;
+    filter: brightness(1);
+  }
+  96%,
+  98% {
+    opacity: var(--flash-opacity, 0.8);
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes vortexSpin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg) scale(1);
+  }
+}
+
+@keyframes dustFloat {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.1;
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-15px) translateX(0);
+    opacity: 0.2;
+  }
+  75% {
+    transform: translateY(-5px) translateX(-5px);
+    opacity: 0.3;
+  }
+}
+
+// Main styles
+.home {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  background: $black;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-header {
+  height: 100vh;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  perspective: 1000px;
+}
+
+// Enhanced animated background
+.animated-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+
+  // Base gradient background
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at 20% 20%,
+        rgba($primary-gold, 0.08) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        ellipse at 80% 80%,
+        rgba($primary-gold, 0.05) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        $deep-black 0%,
+        $black 40%,
+        $dark-gray 100%
+      );
+    background-size: 200% 200%;
+    animation: backgroundShift 30s ease infinite;
+    transform-style: preserve-3d;
+  }
+
+  // Subtle pattern overlay
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(255,200,7,0.05)' fill-rule='evenodd'/%3E%3C/svg%3E"),
+      linear-gradient(to bottom, transparent, rgba($black, 0.8));
+    opacity: 0.3;
+  }
+}
+
+// Nebula effect
+.nebula-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+
+  .nebula {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.2;
+    filter: blur(40px);
+
+    &:nth-child(1) {
+      --min-blur: 40px;
+      --max-blur: 60px;
+      top: 20%;
+      left: 30%;
+      width: 40vmin;
+      height: 40vmin;
+      background: radial-gradient(
+        circle at center,
+        rgba($light-gold, 0.3),
+        rgba($primary-gold, 0.1),
+        transparent 70%
+      );
+      animation: nebulaPulse #{$nebula-duration * 1.2} ease-in-out infinite;
+    }
+
+    &:nth-child(2) {
+      --min-blur: 50px;
+      --max-blur: 70px;
+      top: 60%;
+      left: 70%;
+      width: 50vmin;
+      height: 35vmin;
+      background: radial-gradient(
+        ellipse at center,
+        rgba($primary-gold, 0.2),
+        rgba($secondary-gold, 0.1),
+        transparent 70%
+      );
+      animation: nebulaPulse #{$nebula-duration * 0.8} ease-in-out infinite reverse;
+    }
+
+    &:nth-child(3) {
+      --min-blur: 30px;
+      --max-blur: 50px;
+      top: 70%;
+      left: 20%;
+      width: 30vmin;
+      height: 30vmin;
+      background: radial-gradient(
+        circle at center,
+        rgba($highlight-gold, 0.15),
+        rgba($light-gold, 0.05),
+        transparent 70%
+      );
+      animation: nebulaPulse #{$nebula-duration * 1.5} ease-in-out infinite;
+    }
+  }
+}
+
+// Star field
+.star-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 2;
+
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+
+    @for $i from 1 through 50 {
+      &:nth-child(#{$i}) {
+        --min-brightness: #{0.3 + random() * 0.3};
+        --max-brightness: #{0.7 + random() * 0.3};
+
+        $size: 1px + random(2) + px;
+        $duration: 2s + random(4) + s;
+        $delay: random(5) + s;
+
+        width: $size;
+        height: $size;
+        top: #{random(100)}vh;
+        left: #{random(100)}vw;
+        opacity: 0.7;
+        box-shadow: 0 0 #{2 + random(4)}px rgba(255, 255, 255, 0.8);
+        animation: starTwinkle $duration ease-in-out $delay infinite;
+      }
+    }
+  }
+}
+
+// Constellation effect
+.constellation-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 3;
+
+  .constellation {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    stroke: rgba($primary-gold, 0.3);
+    stroke-width: 1px;
+    fill: none;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    opacity: 0;
+
+    &:nth-child(1) {
+      top: 10%;
+      left: 20%;
+      width: 30%;
+      height: 30%;
+      animation: constellationDraw #{$constellation-duration * 1.2} ease-in-out infinite;
+      animation-delay: 2s;
+    }
+
+    &:nth-child(2) {
+      top: 50%;
+      left: 60%;
+      width: 25%;
+      height: 25%;
+      animation: constellationDraw #{$constellation-duration * 0.8} ease-in-out infinite;
+      animation-delay: 5s;
+    }
+  }
+}
+
+// Enhanced particles container
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 4;
+}
+
+// Enhanced particle styling with more variety
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+
+  // Generate different particles with custom properties
+  @for $i from 1 through 25 {
+    &.particle-#{$i} {
+      --tx: #{random(120) - 60}vw;
+      --ty: #{random(120) - 60}vh;
+      --r: #{random(360)}deg;
+      --s: #{0.5 + random() * 0.8};
+      --max-opacity: #{0.7 + random() * 0.3};
+      --min-opacity: #{0.3 + random() * 0.3};
+
+      $size: 3px + random(25) + px;
+      $duration: $particle-duration-min +
+        random($particle-duration-max - $particle-duration-min) +
+        s;
+      $delay: random(15) + s;
+
+      width: $size;
+      height: $size;
+      top: #{random(100)}vh;
+      left: #{random(100)}vw;
+
+      @if $i % 5 == 0 {
+        // Large glowing gold particles
+        background: radial-gradient(
+          circle at center,
+          rgba($primary-gold, 0.9),
+          rgba($secondary-gold, 0.3)
+        );
+        filter: blur(1px);
+        box-shadow: 0 0 #{random(20) + 10}px rgba($primary-gold, 0.7);
+      } @else if $i % 5 == 1 {
+        // Medium light gold particles
+        background: radial-gradient(
+          circle at center,
+          rgba($light-gold, 0.8),
+          rgba($primary-gold, 0.2)
+        );
+        filter: blur(2px);
+        box-shadow: 0 0 #{random(15) + 5}px rgba($primary-gold, 0.5);
+      } @else if $i % 5 == 2 {
+        // Small white/gold particles
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 255, 255, 0.9),
+          rgba($light-gold, 0.1)
+        );
+        filter: blur(1px);
+        box-shadow: 0 0 #{random(10) + 3}px rgba($primary-gold, 0.4);
+      } @else if $i % 5 == 3 {
+        // Tiny bright particles
+        background: #fff;
+        filter: blur(0.5px);
+        box-shadow: 0 0 #{random(8) + 2}px rgba(255, 255, 255, 0.8);
+      } @else {
+        // Highlight gold particles
+        background: radial-gradient(
+          circle at center,
+          rgba($highlight-gold, 0.9),
+          rgba($light-gold, 0.3)
+        );
+        filter: blur(1.5px);
+        box-shadow: 0 0 #{random(12) + 4}px rgba($highlight-gold, 0.6);
+      }
+
+      animation: particleFloat
+        $duration
+        cubic-bezier(0.4, 0, 0.2, 1)
+        $delay
+        infinite;
+    }
+  }
+}
+
+// Gold dust effect
+.dust-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 5;
+
+  .dust-particle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    background: rgba($primary-gold, 0.3);
+    border-radius: 50%;
+
+    @for $i from 1 through 100 {
+      &:nth-child(#{$i}) {
+        top: #{random(100)}vh;
+        left: #{random(100)}vw;
+        opacity: 0.1 + random() * 0.2;
+        box-shadow: 0 0 #{1 + random(2)}px rgba($primary-gold, 0.5);
+        animation: dustFloat
+          #{5 +
+          random(10)}s
+          ease-in-out
+          #{random(10)}s
+          infinite;
+      }
+    }
+  }
+}
+
+// Lightning effect
+.lightning-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 6;
+  pointer-events: none;
+
+  .lightning {
+    position: absolute;
+    opacity: 0;
+
+    &:nth-child(1) {
+      --flash-opacity: 0.4;
+      top: 30%;
+      left: 20%;
+      width: 30%;
+      height: 40%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba($primary-gold, 0.3),
+        transparent 70%
+      );
+      filter: blur(20px);
+      animation: lightningFlash #{$lightning-duration * 1.5} ease-in-out infinite;
+      animation-delay: 3s;
+    }
+
+    &:nth-child(2) {
+      --flash-opacity: 0.3;
+      top: 50%;
+      left: 70%;
+      width: 20%;
+      height: 30%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba($light-gold, 0.2),
+        transparent 70%
+      );
+      filter: blur(15px);
+      animation: lightningFlash #{$lightning-duration * 0.8} ease-in-out infinite;
+      animation-delay: 7s;
+    }
+  }
+}
+
+// Vortex effect
+.vortex {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vmin;
+  height: 100vmin;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba($primary-gold, 0.01) 10%,
+    rgba($primary-gold, 0.02) 20%,
+    rgba($primary-gold, 0.01) 30%,
+    transparent 40%,
+    transparent 60%,
+    rgba($primary-gold, 0.01) 70%,
+    rgba($primary-gold, 0.02) 80%,
+    rgba($primary-gold, 0.01) 90%,
+    transparent
+  );
+  border-radius: 50%;
+  opacity: 0.5;
+  filter: blur(30px);
+  animation: vortexSpin $vortex-duration linear infinite;
+  z-index: 7;
+}
+
+// Enhanced glow overlay
+.glow-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vmin;
+  height: 90vmin;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba($primary-gold, 0.05) 0%,
+    rgba($primary-gold, 0.02) 30%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  animation: pulse $pulse-duration ease-in-out infinite;
+  z-index: 8;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at center,
+      rgba($primary-gold, 0.03) 0%,
+      transparent 60%
+    );
+    filter: blur(60px);
+    animation: pulse $pulse-duration ease-in-out infinite reverse;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at center,
+      rgba($light-gold, 0.01) 0%,
+      transparent 70%
+    );
+    filter: blur(50px);
+    animation: pulse #{$pulse-duration * 1.5} ease-in-out infinite;
+  }
+}
+
+// Header content
+.header-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 800px;
+  padding: 2rem;
+  animation: fadeIn 1.5s ease-out;
+
+  h1 {
+    font-size: clamp(3rem, 10vw, 6rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(
+      135deg,
+      $light-gold 0%,
+      $primary-gold 50%,
+      $secondary-gold 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer $shimmer-duration ease-in-out infinite;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40%;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        $primary-gold,
+        transparent
+      );
+      border-radius: 3px;
+    }
+  }
+
+  .subtitle {
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 1px;
+    animation: float $float-duration ease-in-out infinite;
+  }
+
+  .alpha-badge {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, $primary-gold 0%, $secondary-gold 100%);
+    color: $black;
+    padding: 0.5rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px rgba($primary-gold, 0.5);
+    animation: glow 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(30deg);
+      animation: shimmer 3s linear infinite;
+      pointer-events: none;
+    }
+  }
+}
+
+// Media queries for responsiveness
 @media (max-width: 768px) {
-  .hero {
-    padding: 6rem 1rem 3rem;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+  .header-content {
+    padding: 1.5rem;
 
-    .description {
-      padding: 0 0.5rem;
-    }
+    h1 {
+      font-size: clamp(2.5rem, 8vw, 4rem);
 
-    .cta-buttons {
-      flex-direction: column;
-      padding: 0 1rem;
-      width: 100%;
-      max-width: 100%;
-
-      .cta-button {
-        width: 100%;
-        text-align: center;
-        padding: 1rem 1.5rem;
+      &::after {
+        bottom: -8px;
+        height: 2px;
       }
     }
-  }
 
-  .features {
-    grid-template-columns: 1fr;
-    padding: 2rem 1rem;
-    gap: 1.5rem;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+    .subtitle {
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      margin-bottom: 1.25rem;
+    }
 
-    .feature {
-      padding: 2rem 1.5rem;
+    .alpha-badge {
+      padding: 0.4rem 1.25rem;
+      font-size: 0.875rem;
     }
   }
-}
 
-@media (max-width: 480px) {
-  .hero {
-    padding-top: 5rem;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+  // Reduce particle count for better performance
+  .particle {
+    &.particle-#{20},
+    &.particle-#{21},
+    &.particle-#{22},
+    &.particle-#{23},
+    &.particle-#{24},
+    &.particle-#{25} {
+      display: none;
+    }
+  }
+
+  .dust-container {
+    .dust-particle:nth-child(n + 50) {
+      display: none;
+    }
   }
 }
 
-@media (max-width: 375px) {
-  .home {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+// Additional effects for high-end devices
+@media (min-width: 1200px) {
+  .animated-background {
+    &::before {
+      background-size: 300% 300%;
+    }
+  }
 
-    .hero {
-      .hero-content {
-        width: 90%;
-        padding: 1.25rem;
+  .particle {
+    filter: blur(0);
 
-        h1 {
-          font-size: 2rem;
-        }
-
-        .subtitle {
-          font-size: 1rem;
-        }
-
-        .description {
-          font-size: 0.875rem;
-          padding: 0;
-        }
-
-        .cta-buttons {
-          padding: 0;
-          margin-top: 1rem;
-
-          .cta-button {
-            padding: 0.875rem 1rem;
-            font-size: 0.875rem;
-          }
-        }
+    @for $i from 1 through 25 {
+      &.particle-#{$i} {
+        box-shadow: 0 0 #{random(30) + 15}px rgba($primary-gold, 0.8);
       }
     }
+  }
 
-    .features {
-      padding: 1.5rem 1rem;
-      gap: 1rem;
+  .glow-overlay {
+    width: 120vmin;
+    height: 120vmin;
+    filter: blur(50px);
+  }
 
-      .feature {
-        padding: 1.25rem;
-      }
-    }
+  .nebula {
+    filter: blur(60px) !important;
+  }
+
+  .vortex {
+    width: 120vmin;
+    height: 120vmin;
+    filter: blur(40px);
   }
 }
