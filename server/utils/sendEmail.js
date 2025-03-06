@@ -31,11 +31,20 @@ const formattedDate = () => {
   return dd + "." + mm + "." + yyyy;
 };
 
-// Generate a shorter invoice number
+// Generate a shorter invoice number with random digits
 const generateInvoiceNumber = (sessionId) => {
-  // Take the last 4 characters of the session ID
-  const shortId = sessionId.slice(-4).toUpperCase();
-  return `GC${shortId}`;
+  // Generate a random 4-digit number (between 1000-9999)
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+
+  // Add timestamp component to ensure uniqueness (last 2 digits of current timestamp)
+  const timestamp = Date.now().toString().slice(-2);
+
+  // Combine for a unique 4-digit code
+  const uniqueCode = (parseInt(randomNum.toString() + timestamp) % 10000)
+    .toString()
+    .padStart(4, "0");
+
+  return `GC${uniqueCode}`;
 };
 
 // Format date with leading zeros

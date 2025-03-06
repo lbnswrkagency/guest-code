@@ -251,14 +251,12 @@ const generateTicketPDF = async (ticket) => {
           </div>
         </div>
 
-        <div style="color: black; position: absolute; bottom: 2.938rem; left: 2rem; background-color: white; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+        <!-- QR Code section with centered QR and floating code -->
+        <div style="position: absolute; bottom: 2.938rem; left: 2rem; background-color: #222222; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center;">
           <div style="position: relative; width: 100%; height: 100%;">
-            <!-- Decorative diagonal stripe in brand color -->
-            <div style="position: absolute; top: -2rem; right: -2rem; width: 12rem; height: 4rem; background-color: ${primaryColor}; transform: rotate(45deg);"></div>
-            
             <!-- Centered QR code -->
-            <div style="text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-              <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" src="${qrCodeDataUrl}"></img>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+              <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem;" src="${qrCodeDataUrl}"></img>
             </div>
             
             <!-- Ticket code displayed in the top right corner -->
