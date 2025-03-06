@@ -242,7 +242,7 @@ const createTicketPDFInvitation = async (
     <div class="ticket">
       <div class="header">
         <h1 class="header-title">Invitation Code</h1>
-        <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" alt="" class="header-logo" />
+        <img src="/image/logo_w.svg" alt="" class="header-logo" />
       </div>
 
       <div class="event">
@@ -250,7 +250,7 @@ const createTicketPDFInvitation = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Sunday, 26.01.2025</p>
+          <p>Sunday, 02.03.2025</p>
         </div>
 
         <div class="event-beats">
@@ -262,6 +262,7 @@ const createTicketPDFInvitation = async (
           <h3>Line Up</h3>
           <p>Hulk</p>
           <p>Hendricks</p>
+          <p>Tokyo</p>
           <p>J Fyah</p>
         </div>
 

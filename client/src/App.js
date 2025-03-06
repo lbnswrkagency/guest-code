@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -10,6 +11,10 @@ import {
   Outlet,
   Navigate,
 } from "react-router-dom";
+=======
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+>>>>>>> master
 import { Toaster } from "react-hot-toast";
 import { ToastProvider } from "./Components/Toast/ToastContext";
 
@@ -28,6 +33,7 @@ import EventDetails from "./Components/EventDetails/EventDetails";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
 import Locations from "./Components/Locations/Locations";
+<<<<<<< HEAD
 import BrandProfile from "./Components/BrandProfile/BrandProfile";
 import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
@@ -340,6 +346,21 @@ const AppRoutes = () => {
           </RouteDebug>
         }
       />
+=======
+import UnderConstruction from "./Components/UnderConstruction/UnderConstruction";
+
+function App() {
+  const eventId = "l9xm6f9c";
+  const [showConstruction, setShowConstruction] = useState(true);
+
+  // Uncomment this to allow hiding the overlay after a set time
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setShowConstruction(false);
+  //   }, 10000); // Hide after 10 seconds
+  //   return () => clearTimeout(timer);
+  // }, []);
+>>>>>>> master
 
       {/* Specific routes */}
       <Route
@@ -533,6 +554,7 @@ function App() {
     <Router>
       <AuthProvider>
         <SocketProvider>
+<<<<<<< HEAD
           <ChatProvider>
             <NotificationProvider>
               <Toaster position="top-center" />
@@ -543,6 +565,42 @@ function App() {
               </ToastProvider>
             </NotificationProvider>
           </ChatProvider>
+=======
+          <NotificationProvider>
+            <Toaster position="top-center" />
+
+            {showConstruction && <UnderConstruction />}
+
+            <Routes>
+              <Route path="/" element={<EventPage passedEventId={eventId} />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard/*" element={<Dashboard />}>
+                <Route path="chat/:chatId" element={<PersonalChat />} />
+              </Route>
+              <Route
+                path="/registration-success"
+                element={<RegistrationSuccess />}
+              />
+              <Route path="/verify/:token" element={<EmailVerification />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/create" element={<CreateEvent />} />
+              <Route path="/events/:eventId" element={<EventDetails />} />
+              <Route path="/events/page/:eventId" element={<EventPage />} />
+              <Route
+                path="/guest-code-settings"
+                element={<GuestCodeSettings />}
+              />
+              <Route
+                path="/upload"
+                element={<DropFiles showDashboard={false} />}
+              />
+              <Route path="/share" element={<RedirectToDropbox />} />
+              <Route path="/brands" element={<Brands />} />
+              <Route path="/locations" element={<Locations />} />
+            </Routes>
+          </NotificationProvider>
+>>>>>>> master
         </SocketProvider>
       </AuthProvider>
     </Router>

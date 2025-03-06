@@ -9,10 +9,14 @@ const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const { sendQRCodeEmail } = require("../utils/email");
 const { sendQRCodeInvitation } = require("../utils/email");
+<<<<<<< HEAD
 const { createTicketPDF } = require("../utils/pdf-invite");
 const CodeSettings = require("../models/codeSettingsModel");
 const LineUp = require("../models/lineupModel");
 const TicketSettings = require("../models/ticketSettingsModel");
+=======
+const createTicketPDF = require("../utils/pdf");
+>>>>>>> master
 
 const {
   uploadToS3,
@@ -1889,6 +1893,11 @@ exports.getEventProfile = async (req, res) => {
 exports.generateGuestCode = async (req, res) => {
   try {
     const { name, email, condition, eventId, pax } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !eventId || !condition || !pax) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     // Capitalize names
     const formattedName = name

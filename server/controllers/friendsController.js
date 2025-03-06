@@ -50,7 +50,7 @@ const addFriendsCode = async (req, res) => {
           <body
           style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: Manrope;">
           <h1 style="position: absolute; top: 3.25rem; left: 2.313rem; margin: 0; font-weight: 500; font-size: 1.85rem">Friends Code</h1>
-          <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
+          <img src="/image/logo_w.svg" style="position: absolute; top: 4rem; right: 2.313rem; width: 4rem;">
           <div style="color: black; position: absolute; width: 20.375rem; height: 27rem; background-color: #FAE28C; border-radius: 1.75rem; top: 7.5rem; left: 2rem;">
           
            <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem;">Afro Spiti</h3>   
@@ -65,7 +65,7 @@ const addFriendsCode = async (req, res) => {
                 <div>
                   <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Date</p>
                   <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">Sunday</p>
-                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">26.01.2025</p>
+                             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">02.03.2025</p>
                          <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">23:00 H</p>
                 </div>
             </div>
@@ -76,10 +76,13 @@ const addFriendsCode = async (req, res) => {
               <div> 
                 <div style="margin-top: 0.5rem;">
                     <p style="margin: 0; color: #A6965D; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Line Up</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks (Bday)</p>
                     <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hulk</p>
-                  <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Hendricks</p>
-                         <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
-                    </div>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Klou</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Maro</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">Dim Kay</p>
+                    <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">J Fyah</p>
+                  </div>
 
               </div>
 

@@ -178,11 +178,11 @@ const EventPage = ({ passedEventId }) => {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/events/generateGuestCode`,
         {
-          eventId: event._id,
+          eventId: "67c45ff9cb3101ecab825a0a",
           email,
           phone,
           name,
-          condition: event.guestCodeCondition,
+          condition: "Free Entrance until 00:30 H",
           pax: 1,
           paxChecked: 0,
         }
@@ -339,6 +339,9 @@ const EventPage = ({ passedEventId }) => {
                       <div className="mc-single">
                         <img
                           src="./image/jfyah.jpg"
+                          onError={(e) =>
+                            (e.target.src = "./image/default-artist.png")
+                          }
                           alt=""
                           className="mc-single-image"
                         />
@@ -348,41 +351,40 @@ const EventPage = ({ passedEventId }) => {
                     <div className="djs">
                       <p className="djs-title">DJs</p>
 
-                      {/* <div className="djs-single djs-single-guest">
-                        <img
-                          src="./image/hulk.jpg"
-                          alt=""
-                          className="djs-single-image"
-                        />
-                        <p className="djs-single-name">Hulk</p>
-                        <p className="origin"></p>
-                      </div>
-                      */}
-
                       <div className="djs-single">
                         <img
-                          src="./image/hulk.jpg"
+                          src="./image/lartistique.png"
+                          onError={(e) =>
+                            (e.target.src = "./image/default-artist.png")
+                          }
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hulk</p>
+                        <p className="djs-single-name">L'artistique</p>
                       </div>
-                      {/* <div className="djs-single">
+
+                      <div className="djs-single">
                         <img
                           src="./image/hendricks.jpg"
+                          onError={(e) =>
+                            (e.target.src = "./image/default-artist.png")
+                          }
                           alt=""
                           className="djs-single-image"
                         />
                         <p className="djs-single-name">Hendricks</p>
-                      </div> */}
+                      </div>
 
                       <div className="djs-single">
                         <img
-                          src="./image/hendricks.png"
+                          src="./image/dimkay.jpg"
+                          onError={(e) =>
+                            (e.target.src = "./image/default-artist.png")
+                          }
                           alt=""
                           className="djs-single-image"
                         />
-                        <p className="djs-single-name">Hendricks</p>
+                        <p className="djs-single-name">Dim Kay</p>
                       </div>
                     </div>
                   </div>
@@ -394,7 +396,7 @@ const EventPage = ({ passedEventId }) => {
                   <div>
                     <h5 className="lineup-title">LINE UP</h5>
                     <h4 className="lineup-event">Afro Spiti</h4>
-                    <p>SUN 26 JAN 2025</p>
+                    <p>SUN 02 MAR 2025</p>
                   </div>
 
                   <img
@@ -484,7 +486,7 @@ const EventPage = ({ passedEventId }) => {
                 Athens home of Afrobeats.
               </h3>
               <p className="event-page-banner-info">
-                Sunday · 26.01.2025 · 23:00 H
+                Sunday · 02.03.2025 · 23:00 H
               </p>
 
               <div
@@ -516,39 +518,38 @@ const EventPage = ({ passedEventId }) => {
                 </>
               )}
             </div>
-            {event.guestCode && (
-              <form
-                ref={guestCodeRef}
-                className="event-page-guestcode"
-                onSubmit={handleGuestCodeFormSubmit}
-              >
-                <h1 className="event-page-guestcode-title">GUEST CODE</h1>
-                <div className="event-page-guestcode-form">
-                  <p className="event-page-guestcode-condition">
-                    free entrance until 00:30 H
-                  </p>
-                  <p>Studio 24 - Sunday - 26.01.2025</p>
-                  <input
-                    type="text"
-                    className="event-page-guestcode-form-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Name"
-                    required
-                  />
-                  <input
-                    type="email"
-                    className="event-page-guestcode-form-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email Address"
-                  />
-                </div>
-                <button type="submit" className="event-page-guestcode-button">
-                  Generate GuestCode
-                </button>
-              </form>
-            )}
+
+            <form
+              ref={guestCodeRef}
+              className="event-page-guestcode"
+              onSubmit={handleGuestCodeFormSubmit}
+            >
+              <h1 className="event-page-guestcode-title">GUEST CODE</h1>
+              <div className="event-page-guestcode-form">
+                <p className="event-page-guestcode-condition">
+                  free entrance until 00:30 H
+                </p>
+                <p>Studio 24 - Sunday - 02.03.2025</p>
+                <input
+                  type="text"
+                  className="event-page-guestcode-form-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name"
+                  required
+                />
+                <input
+                  type="email"
+                  className="event-page-guestcode-form-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
+                />
+              </div>
+              <button type="submit" className="event-page-guestcode-button">
+                Generate GuestCode
+              </button>
+            </form>
 
             <div ref={eventRef} className="event-page-info">
               <div className="event-page-info-wrapper">

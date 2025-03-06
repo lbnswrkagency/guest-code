@@ -56,11 +56,7 @@ function FriendsCode({ user, onClose, weeklyFriendsCount, refreshCounts }) {
       <div className="login-back-arrow" onClick={onClose}>
         ← Back
       </div>
-      <img
-        className="friendscode-logo"
-        src="https://guest-code.s3.eu-north-1.amazonaws.com/server/AfroSpitiLogo.png"
-        alt=""
-      />
+      <img className="friendscode-logo" src="public/limage/logo.svg" alt="" />
       <h1 className="friendscode-title">Invite your Friends!</h1>
       <p className="friendscode-description">
         with this Friends Code you get free entrance ALL NIGHT.
