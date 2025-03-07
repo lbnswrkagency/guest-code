@@ -668,7 +668,7 @@ const EventProfile = () => {
         }));
 
       const response = await axiosInstance.post(
-        `/api/stripe/create-checkout-session`,
+        `/stripe/create-checkout-session`,
         {
           firstName,
           lastName,
