@@ -200,7 +200,9 @@ const generateGuestCodePDF = async (code, event) => {
 
             <div style="margin-top: 0.5rem;">
               <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">End</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">04:00</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                event?.endTime || "04:00"
+              }</p>
             </div>
           </div>
           
@@ -457,7 +459,8 @@ const generateGuestCode = async (req, res) => {
     // Fetch the event with brand and lineups
     const event = await Event.findById(eventId)
       .populate("brand")
-      .populate("lineups");
+      .populate("lineups")
+      .select("title date startTime endTime location brand lineups");
     if (!event) {
       console.log("[GuestCode] Event not found:", eventId);
       return res.status(404).json({ message: "Event not found" });
@@ -584,7 +587,7 @@ const validateGuestCode = async (req, res) => {
     const event = await Event.findById(code.eventId)
       .populate("brand")
       .populate("lineups")
-      .select("title date startTime location brand lineups");
+      .select("title date startTime endTime location brand lineups");
 
     // Return success with code and event details
     res.status(200).json({
@@ -615,7 +618,8 @@ const getGuestCodePDF = async (req, res) => {
     // Get the event
     const event = await Event.findById(code.eventId)
       .populate("brand")
-      .populate("lineups");
+      .populate("lineups")
+      .select("title date startTime endTime location brand lineups");
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }

@@ -175,15 +175,15 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
         `[UpcomingEvent] Fetching complete code settings for event: ${eventId}`
       );
 
-      // Use the correct endpoint for code settings
-      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${eventId}`;
-      console.log(`[UpcomingEvent] Using endpoint: ${endpoint}`);
+      // Use the event profile endpoint which has optional authentication
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+      console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
       const response = await axiosInstance.get(endpoint);
 
       if (response.data && response.data.codeSettings) {
         console.log(
-          "[UpcomingEvent] Received complete code settings:",
+          "[UpcomingEvent] Received code settings from event profile:",
           response.data.codeSettings
         );
 
@@ -194,7 +194,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
         if (guestCodeSetting) {
           console.log(
-            "[UpcomingEvent] Complete guest code setting:",
+            "[UpcomingEvent] Guest code setting from event profile:",
             guestCodeSetting
           );
 
@@ -239,10 +239,14 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             return updatedEvents;
           });
         }
+      } else {
+        console.log(
+          "[UpcomingEvent] No code settings found in event profile response"
+        );
       }
     } catch (error) {
       console.error(
-        "[UpcomingEvent] Error fetching complete code settings:",
+        "[UpcomingEvent] Error fetching from event profile endpoint:",
         error
       );
 
@@ -257,84 +261,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
         console.error("[UpcomingEvent] Error request:", error.request);
       } else {
         console.error("[UpcomingEvent] Error message:", error.message);
-      }
-
-      // Try an alternative endpoint as fallback
-      try {
-        console.log(
-          "[UpcomingEvent] Trying alternative endpoint for code settings"
-        );
-        const alternativeEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/${eventId}`;
-        console.log(
-          `[UpcomingEvent] Using alternative endpoint: ${alternativeEndpoint}`
-        );
-
-        const response = await axiosInstance.get(alternativeEndpoint);
-
-        if (response.data && response.data.codeSettings) {
-          console.log(
-            "[UpcomingEvent] Received code settings from event endpoint:",
-            response.data.codeSettings
-          );
-
-          // Find the guest code setting
-          const guestCodeSetting = response.data.codeSettings.find(
-            (cs) => cs.type === "guest"
-          );
-
-          if (guestCodeSetting) {
-            console.log(
-              "[UpcomingEvent] Guest code setting from event endpoint:",
-              guestCodeSetting
-            );
-
-            // Update the events array with the complete code settings
-            setEvents((prevEvents) => {
-              const updatedEvents = [...prevEvents];
-              const currentEvent = updatedEvents[currentIndex];
-
-              // Find the index of the guest code setting in the current event
-              const settingIndex = currentEvent.codeSettings.findIndex(
-                (cs) => cs.type === "guest"
-              );
-
-              if (settingIndex !== -1) {
-                // Update the guest code setting with all the complete data
-                currentEvent.codeSettings[settingIndex] = {
-                  ...currentEvent.codeSettings[settingIndex],
-                  condition: guestCodeSetting.condition || "",
-                  maxPax: guestCodeSetting.maxPax || 1,
-                  limit: guestCodeSetting.limit || 0,
-                  isEnabled:
-                    guestCodeSetting.isEnabled !== undefined
-                      ? guestCodeSetting.isEnabled
-                      : false,
-                  isEditable:
-                    guestCodeSetting.isEditable !== undefined
-                      ? guestCodeSetting.isEditable
-                      : false,
-                };
-
-                // Also update the maxPax state
-                if (guestCodeSetting.maxPax) {
-                  setMaxPax(guestCodeSetting.maxPax);
-                }
-
-                console.log(
-                  "[UpcomingEvent] Updated guest code setting from alternative endpoint:",
-                  currentEvent.codeSettings[settingIndex]
-                );
-              }
-
-              return updatedEvents;
-            });
-          }
-        }
-      } catch (fallbackError) {
-        console.error(
-          "[UpcomingEvent] Error with alternative endpoint:",
-          fallbackError
-        );
       }
     }
   };
@@ -409,85 +335,98 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   // Function to fetch ticket settings for the current event
   const fetchTicketSettings = async (eventId) => {
-    if (!eventId) {
-      console.log(
-        "[UpcomingEvent] Cannot fetch ticket settings: No eventId provided"
-      );
-      return;
-    }
-
     setLoadingTickets(true);
     try {
       console.log(
-        "[UpcomingEvent] Fetching ticket settings for event:",
-        eventId
+        "[UpcomingEvent] Current event changed, fetching ticket settings:",
+        {
+          eventId: eventId,
+          eventTitle: events[currentIndex]?.title,
+          ticketsAvailable: events[currentIndex]?.ticketsAvailable,
+          hasTicketsAvailableProperty:
+            "ticketsAvailable" in events[currentIndex],
+          timestamp: new Date().toISOString(),
+        }
       );
 
-      // Try different API endpoints in sequence
-      const endpoints = [
-        // First try with full URL
-        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`,
-        // Then try with relative URL
-        `/ticket-settings/events/${eventId}`,
-        // Then try alternative format
-        `/ticket-settings/event/${eventId}`,
-        // Then try another alternative
-        `/api/ticket-settings/events/${eventId}`,
-      ];
+      // Try the event profile endpoint which has optional authentication
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+      console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
-      let ticketsData = null;
-      let successEndpoint = null;
+      try {
+        const response = await axiosInstance.get(endpoint);
+        console.log(`[UpcomingEvent] Response from ${endpoint}:`, response);
 
-      // Try each endpoint until one works
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`[UpcomingEvent] Trying endpoint: ${endpoint}`);
-          const response = await axiosInstance.get(endpoint);
-          console.log(`[UpcomingEvent] Response from ${endpoint}:`, response);
-
-          if (response.data) {
-            if (
-              response.data.ticketSettings &&
-              Array.isArray(response.data.ticketSettings)
-            ) {
-              ticketsData = response.data.ticketSettings;
-              successEndpoint = endpoint;
-              break;
-            } else if (Array.isArray(response.data)) {
-              ticketsData = response.data;
-              successEndpoint = endpoint;
-              break;
-            } else if (
-              response.data.tickets &&
-              Array.isArray(response.data.tickets)
-            ) {
-              ticketsData = response.data.tickets;
-              successEndpoint = endpoint;
-              break;
-            }
-          }
-        } catch (error) {
+        if (
+          response.data &&
+          response.data.ticketSettings &&
+          Array.isArray(response.data.ticketSettings)
+        ) {
           console.log(
-            `[UpcomingEvent] Endpoint ${endpoint} failed:`,
-            error.message
+            `[UpcomingEvent] Successfully fetched tickets from event profile:`,
+            response.data.ticketSettings
+          );
+          setTicketSettings(response.data.ticketSettings);
+          return;
+        } else {
+          console.log(
+            "[UpcomingEvent] No ticket settings found in event profile response"
           );
         }
+      } catch (error) {
+        console.error(
+          `[UpcomingEvent] Error fetching from event profile endpoint:`,
+          error.message
+        );
       }
 
-      if (ticketsData && ticketsData.length > 0) {
+      // Fallback to ticket-settings endpoint if event profile doesn't have ticket settings
+      const ticketEndpoint = `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`;
+      console.log(
+        `[UpcomingEvent] Trying ticket settings endpoint: ${ticketEndpoint}`
+      );
+
+      try {
+        const response = await axiosInstance.get(ticketEndpoint);
+
+        if (response.data) {
+          let ticketsData = null;
+
+          if (Array.isArray(response.data)) {
+            ticketsData = response.data;
+          } else if (
+            response.data.ticketSettings &&
+            Array.isArray(response.data.ticketSettings)
+          ) {
+            ticketsData = response.data.ticketSettings;
+          } else if (
+            response.data.tickets &&
+            Array.isArray(response.data.tickets)
+          ) {
+            ticketsData = response.data.tickets;
+          }
+
+          if (ticketsData && ticketsData.length > 0) {
+            console.log(
+              `[UpcomingEvent] Successfully fetched tickets from ticket settings endpoint:`,
+              ticketsData
+            );
+            setTicketSettings(ticketsData);
+            return;
+          }
+        }
+      } catch (error) {
         console.log(
-          `[UpcomingEvent] Successfully fetched tickets from ${successEndpoint}:`,
-          ticketsData
+          `[UpcomingEvent] Ticket settings endpoint failed:`,
+          error.message
         );
-        setTicketSettings(ticketsData);
-      } else {
-        console.log(
-          "[UpcomingEvent] No valid ticket data found from any endpoint"
-        );
-        // Use sample tickets for testing if needed
-        // setTicketSettings(createSampleTicket(eventId));
-        setTicketSettings([]);
       }
+
+      // If we get here, no tickets were found
+      console.log(
+        "[UpcomingEvent] No valid ticket data found from any endpoint"
+      );
+      setTicketSettings([]);
     } catch (error) {
       console.error("[UpcomingEvent] Error fetching ticket settings:", error);
       console.error("[UpcomingEvent] Error details:", {
@@ -1077,9 +1016,15 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                     </span>
                   </div>
                 )}
+              {currentEvent.music && (
+                <div className="info-item music">
+                  <RiMusic2Line />
+                  <span>{currentEvent.music}</span>
+                </div>
+              )}
             </div>
 
-            {/* Action Buttons - Moved below event info */}
+            {/* Action Buttons - Minimalistic style */}
             <div className="action-buttons">
               <button
                 className="action-button guest-code-button"
@@ -1094,7 +1039,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   }
                 }}
               >
-                Generate Guest Code
+                GENERATE GUEST CODE
               </button>
 
               <button
@@ -1113,7 +1058,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   }
                 }}
               >
-                Buy Ticket
+                BUY TICKET
               </button>
             </div>
 
