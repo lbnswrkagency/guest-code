@@ -21,6 +21,8 @@ import {
   RiMusic2Line,
   RiArrowRightLine,
   RiVipCrownLine,
+  RiRefreshLine,
+  RiTestTubeLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -1067,6 +1069,94 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
               currentEvent.lineups.length > 0 &&
               renderLineups(currentEvent.lineups)}
 
+            {/* Ticket Purchase Section */}
+            <div ref={ticketSectionRef} className="ticket-section">
+              {currentEvent && currentEvent.ticketsAvailable && (
+                <>
+                  <h3>Buy Tickets</h3>
+                  <p className="ticket-info">
+                    Purchase tickets for {currentEvent.title} on{" "}
+                    {formatDate(currentEvent.date)}.
+                  </p>
+
+                  {console.log("[UpcomingEvent] Ticket section rendering:", {
+                    hasTicketSettings: !!ticketSettings,
+                    ticketSettingsLength: ticketSettings?.length || 0,
+                    ticketSettingsData: ticketSettings,
+                    loadingTickets,
+                    timestamp: new Date().toISOString(),
+                  })}
+
+                  {ticketSettings && ticketSettings.length > 0 ? (
+                    <>
+                      {console.log(
+                        "[UpcomingEvent] Rendering Stripe component with:",
+                        {
+                          ticketCount: ticketSettings.length,
+                          eventId: currentEvent._id,
+                          timestamp: new Date().toISOString(),
+                        }
+                      )}
+                      <Stripe
+                        ticketSettings={ticketSettings}
+                        eventId={currentEvent._id}
+                        colors={{
+                          primary: "#ffc807",
+                          secondary: "#2196F3",
+                          background: "rgba(255, 255, 255, 0.05)",
+                        }}
+                        onCheckoutComplete={(result) => {
+                          console.log(
+                            "[UpcomingEvent] Checkout completed:",
+                            result
+                          );
+                          toast.showSuccess("Redirecting to checkout...");
+                          setLoadingTickets(false);
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <div className="no-tickets-message">
+                      {loadingTickets ? (
+                        <div className="loading-tickets">
+                          <LoadingSpinner />
+                          <span>Loading ticket information...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p>
+                            No tickets are currently available for this event.
+                          </p>
+                          <div className="ticket-actions">
+                            <button
+                              className="retry-button"
+                              onClick={() =>
+                                fetchTicketSettings(currentEvent._id)
+                              }
+                            >
+                              <RiRefreshLine /> Retry
+                            </button>
+                            {user && user.isAdmin && (
+                              <button
+                                className="sample-button"
+                                onClick={() =>
+                                  setTicketSettings(
+                                    createSampleTicket(currentEvent._id)
+                                  )
+                                }
+                              >
+                                <RiTestTubeLine /> Use Sample Tickets
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             {/* Show the guest code section for all users */}
             <div ref={guestCodeSectionRef} className="guest-code-section">
               <h4>Request Guest Code</h4>
@@ -1187,95 +1277,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   </motion.button>
                 </div>
               </div>
-            </div>
-
-            {/* Ticket Purchase Section */}
-            <div ref={ticketSectionRef} className="ticket-section">
-              {currentEvent && currentEvent.ticketsAvailable && (
-                <>
-                  <h3>Buy Tickets</h3>
-                  <p className="ticket-info">
-                    Purchase tickets for {currentEvent.title} on{" "}
-                    {formatDate(currentEvent.date)}.
-                  </p>
-
-                  {console.log("[UpcomingEvent] Ticket section rendering:", {
-                    hasTicketSettings: !!ticketSettings,
-                    ticketSettingsLength: ticketSettings?.length || 0,
-                    ticketSettingsData: ticketSettings,
-                    loadingTickets,
-                    timestamp: new Date().toISOString(),
-                  })}
-
-                  {ticketSettings && ticketSettings.length > 0 ? (
-                    <>
-                      {console.log(
-                        "[UpcomingEvent] Rendering Stripe component with:",
-                        {
-                          ticketCount: ticketSettings.length,
-                          eventId: currentEvent._id,
-                          timestamp: new Date().toISOString(),
-                        }
-                      )}
-                      <Stripe
-                        ticketSettings={ticketSettings}
-                        eventId={currentEvent._id}
-                        colors={{
-                          primary: "#ffc807",
-                          secondary: "#2196F3",
-                          background: "rgba(255, 255, 255, 0.05)",
-                        }}
-                        onCheckoutComplete={(result) => {
-                          console.log(
-                            "[UpcomingEvent] Checkout completed:",
-                            result
-                          );
-                          toast.showSuccess("Redirecting to checkout...");
-                          setLoadingTickets(false);
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <div className="no-tickets-message">
-                      {loadingTickets ? (
-                        <div className="loading-tickets">
-                          <LoadingSpinner />
-                          <span>Loading ticket information...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <p>
-                            No tickets are currently available for this event.
-                          </p>
-                          <div className="ticket-actions">
-                            <button
-                              className="retry-button"
-                              onClick={() =>
-                                fetchTicketSettings(currentEvent._id)
-                              }
-                            >
-                              Retry Loading Tickets
-                            </button>
-                            <button
-                              className="sample-button"
-                              onClick={() => {
-                                console.log(
-                                  "[UpcomingEvent] Using sample ticket data"
-                                );
-                                setTicketSettings(
-                                  createSampleTicket(currentEvent._id)
-                                );
-                              }}
-                            >
-                              Use Sample Ticket (Testing)
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
             </div>
 
             {/* Add See Full Event button after the guest code section */}

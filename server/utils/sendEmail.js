@@ -460,6 +460,7 @@ const sendEmail = async (order) => {
     // Prepare and send email using Brevo with improved email template
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: order.email }];
+    sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
     sendSmtpEmail.sender = {
       name: brand?.name || "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",

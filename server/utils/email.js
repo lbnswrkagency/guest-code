@@ -93,6 +93,7 @@ const sendQRCodeEmail = async (
     // Configure the QR code email
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
+    sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
     sendSmtpEmail.sender = {
       name: "Afro Spiti",
       email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
@@ -147,6 +148,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
+    sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
     sendSmtpEmail.sender = {
       name: "Afro Spiti",
       email: process.env.SENDER_EMAIL || "contact@afrospiti.com",

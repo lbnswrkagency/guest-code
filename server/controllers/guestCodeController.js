@@ -312,8 +312,13 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
           name: code.guestName || "Guest",
         },
       ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
       replyTo: {
-        email: "no-reply@guestcode.io",
+        email: "contact@guestcode.com",
         name: "GuestCode",
       },
       subject: `Your Guest Code for ${event?.title || "Event"}`,
