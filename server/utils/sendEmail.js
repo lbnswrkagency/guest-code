@@ -361,19 +361,19 @@ const sendEmail = async (order) => {
             )} EUR</p>
           </div>
 
-          <!-- German VAT Information -->
+          <!-- International VAT Information -->
           <div style="margin-top: 1rem; text-align: right; padding-right: 1rem;">
-            <p style="margin: 0; font-size: 0.9rem;">Netto: ${(
+            <p style="margin: 0; font-size: 0.9rem;">Net Amount: ${(
               order.totalAmount / 1.19
             ).toFixed(2)} EUR</p>
-            <p style="margin: 0; font-size: 0.9rem;">zzgl. 19% MwSt: ${(
+            <p style="margin: 0; font-size: 0.9rem;">VAT (19%): ${(
               order.totalAmount -
               order.totalAmount / 1.19
             ).toFixed(2)} EUR</p>
-            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Brutto: ${order.totalAmount.toFixed(
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Gross Amount: ${order.totalAmount.toFixed(
               2
             )} EUR</p>
-            <p style="margin: 0.5rem 0 0; font-size: 0.8rem; color: #777;">Gemäß § 19 UStG enthält der Rechnungsbetrag 19% Mehrwertsteuer.</p>
+            <p style="margin: 0.5rem 0 0; font-size: 0.8rem; color: #777;">This invoice includes 19% Value Added Tax (VAT).</p>
           </div>
 
           <div class="footer-message">

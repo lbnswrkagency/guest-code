@@ -134,8 +134,8 @@ const generateTicketPDF = async (ticket) => {
       formattedTicketName = "BACKSTAGE";
     }
 
-    // Create a short ticket code for display
-    const ticketCode = ticket.securityToken.substring(0, 8).toUpperCase();
+    // Create a short ticket code for display - shorter version (6 characters)
+    const ticketCode = ticket.securityToken.substring(0, 6).toUpperCase();
 
     // Create HTML template for the ticket
     const htmlTemplate = `

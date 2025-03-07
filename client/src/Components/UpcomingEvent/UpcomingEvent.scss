@@ -9,6 +9,7 @@
   margin-bottom: 1.5rem;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 100%;
 
   &.loading {
     min-height: 200px;
@@ -432,6 +433,8 @@
   padding: 1.25rem;
   border: 1px solid rgba(255, 200, 7, 0.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  max-width: 100%;
+  overflow-x: hidden;
 
   h5 {
     color: #fff;
@@ -456,6 +459,8 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   .lineup-category-group {
@@ -463,6 +468,9 @@
     background: rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 
     .category-title {
       color: #ffc807;
@@ -499,6 +507,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 
     @media (min-width: 768px) {
       display: grid;
@@ -514,11 +525,21 @@
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.2);
       transition: all 0.2s ease;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
 
       &:hover {
         background: rgba(255, 200, 7, 0.1);
         transform: translateX(5px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Adjust hover effect for mobile to prevent overflow */
+      @media (max-width: 767px) {
+        &:hover {
+          transform: translateX(3px); /* Smaller transform on mobile */
+        }
       }
 
       .artist-avatar {
@@ -559,6 +580,8 @@
       .artist-info {
         flex: 1;
         min-width: 0;
+        max-width: calc(100% - 70px); /* Account for avatar width and gap */
+        overflow: hidden; /* Prevent text overflow */
 
         .artist-name {
           color: #fff;
@@ -601,6 +624,36 @@
 
     svg {
       transform: translateX(3px);
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .event-lineups {
+    padding: 1rem 0.75rem;
+
+    .lineup-category-group {
+      padding: 0.5rem;
+    }
+
+    .lineup-artists {
+      .artist {
+        padding: 0.5rem 0.75rem;
+        gap: 0.75rem;
+
+        .artist-avatar {
+          width: 50px;
+          height: 50px;
+        }
+
+        .artist-info {
+          max-width: calc(100% - 60px);
+
+          .artist-name {
+            font-size: 0.95rem;
+          }
+        }
+      }
     }
   }
 }

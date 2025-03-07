@@ -76,6 +76,17 @@ const BrandProfile = () => {
     cleanUsername = pathParts[0]; // Take only the first part after /@
   }
 
+  // For nested paths like /@hendricks/@whitechocolate, we want the last username
+  if (
+    location.pathname.includes("/@") &&
+    location.pathname.lastIndexOf("/@") > 0
+  ) {
+    const lastPath = location.pathname.substring(
+      location.pathname.lastIndexOf("/@") + 1
+    );
+    cleanUsername = lastPath.replace(/^@/, "");
+  }
+
   // Enhanced logging for debugging
   console.log("[BrandProfile] Detailed params:", {
     brandUsername,

@@ -542,6 +542,9 @@
 }
 
 .brand-profile-feed {
+  width: 100%;
+  overflow-x: hidden;
+
   .feed-section {
     background: #151515;
     border-radius: 1rem;
@@ -584,6 +587,11 @@
         margin-top: 0.5rem;
         display: block;
       }
+    }
+
+    .events-list {
+      width: 100%;
+      max-width: 100%;
     }
   }
 }

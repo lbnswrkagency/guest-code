@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./UpcomingEvent.scss";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
+import Stripe from "../Stripe/Stripe";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -50,10 +51,17 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPax, setGuestPax] = useState(1);
+  const [maxPax, setMaxPax] = useState(5);
   const [generatingCode, setGeneratingCode] = useState(false);
-  const [maxPax, setMaxPax] = useState(1);
-  const [codeSettings, setCodeSettings] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Ticket settings state
+  const [ticketSettings, setTicketSettings] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+
+  // Action buttons refs for scrolling
+  const guestCodeSectionRef = useRef(null);
+  const ticketSectionRef = useRef(null);
 
   useEffect(() => {
     if (brandId || brandUsername) {
@@ -755,6 +763,51 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             >
               See Full Event <RiArrowRightLine />
             </button>
+
+            {currentEvent.music && (
+              <p className="music">
+                <span>Music:</span> {currentEvent.music}
+              </p>
+            )}
+
+            {currentEvent.ticketsAvailable && (
+              <p className="tickets">
+                <span>Tickets:</span> Available
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="action-buttons">
+              <button
+                className="action-button guest-code-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowGuestCodeForm(true);
+                  if (guestCodeSectionRef.current) {
+                    guestCodeSectionRef.current.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }
+                }}
+              >
+                Generate Guest Code
+              </button>
+
+              <button
+                className="action-button buy-ticket-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLoadingTickets(true);
+                  if (ticketSectionRef.current) {
+                    ticketSectionRef.current.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }
+                }}
+              >
+                Buy Ticket
+              </button>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

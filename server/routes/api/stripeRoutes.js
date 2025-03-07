@@ -167,6 +167,34 @@ router.post("/create-checkout-session", async (req, res) => {
         },
         customer_creation: "always",
       });
+
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items,
+        mode: "payment",
+        success_url: validSuccessUrl,
+        cancel_url: validCancelUrl,
+        customer_email: email,
+        billing_address_collection: "required",
+        metadata: {
+          eventId,
+          firstName,
+          lastName,
+          email,
+          ticketsCount: tickets.length,
+          tickets: JSON.stringify(tickets),
+        },
+        automatic_tax: {
+          enabled: process.env.STRIPE_ENABLE_TAX === "true",
+        },
+        customer_creation: "always",
+        // Disable Link payment option
+        payment_method_options: {
+          link: {
+            enabled: false,
+          },
+        },
+      });
     } catch (stripeError) {
       console.error("[Stripe API] Stripe session creation error:", {
         message: stripeError.message,
