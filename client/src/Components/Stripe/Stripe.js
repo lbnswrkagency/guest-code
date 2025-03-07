@@ -25,6 +25,13 @@ const Stripe = ({
   },
   onCheckoutComplete,
 }) => {
+  console.log("[Stripe] Component initialized with props:", {
+    ticketSettingsCount: ticketSettings?.length || 0,
+    ticketSettingsData: ticketSettings,
+    eventId,
+    timestamp: new Date().toISOString(),
+  });
+
   const toast = useToast();
 
   // Form state
@@ -215,6 +222,14 @@ const Stripe = ({
   useEffect(() => {
     if (!ticketSettings || ticketSettings.length === 0) return;
 
+    console.log("[Stripe] Setting up countdowns for tickets:", {
+      ticketCount: ticketSettings.length,
+      ticketsWithCountdown: ticketSettings.filter(
+        (t) => t.hasCountdown && t.endDate
+      ).length,
+      timestamp: new Date().toISOString(),
+    });
+
     // Initialize countdowns
     const initialCountdowns = {};
     ticketSettings.forEach((ticket) => {
@@ -252,160 +267,209 @@ const Stripe = ({
     return () => clearInterval(interval);
   }, [ticketSettings]);
 
+  console.log("[Stripe] Rendering component with:", {
+    ticketSettingsCount: ticketSettings?.length || 0,
+    hasTickets: ticketSettings && ticketSettings.length > 0,
+    ticketIds: ticketSettings?.map((t) => t._id) || [],
+    timestamp: new Date().toISOString(),
+  });
+
+  // Validate ticket data to ensure it has required properties
+  const validatedTickets = ticketSettings.filter((ticket) => {
+    const isValid =
+      ticket &&
+      ticket._id &&
+      typeof ticket.name === "string" &&
+      typeof ticket.price === "number";
+
+    if (!isValid) {
+      console.error("[Stripe] Invalid ticket data:", ticket);
+    }
+
+    return isValid;
+  });
+
+  if (validatedTickets.length === 0 && ticketSettings.length > 0) {
+    console.error("[Stripe] No valid tickets found after validation");
+  }
+
   return (
     <div className="stripe-checkout">
       <div className="tickets-container">
-        {ticketSettings.map((ticket, index) => (
-          <motion.div
-            key={ticket._id}
-            className="ticket-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            style={{
-              borderColor: ticket.color || colors.secondary,
-              background: colors.background,
-            }}
-          >
-            <div className="ticket-header">
-              <h4>{ticket.name}</h4>
-              {ticket.originalPrice && ticket.originalPrice > ticket.price && (
-                <span
-                  className="ticket-discount"
-                  style={{
-                    backgroundColor: `rgba(${parseInt(
-                      colors.primary.slice(1, 3),
-                      16
-                    )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                      colors.primary.slice(5, 7),
-                      16
-                    )}, 0.15)`,
-                    color: colors.primary,
-                  }}
-                >
-                  {Math.round(
-                    ((ticket.originalPrice - ticket.price) /
-                      ticket.originalPrice) *
-                      100
-                  )}
-                  % OFF
-                </span>
-              )}
-            </div>
-
-            {/* Add countdown display for Early Bird tickets */}
-            {countdowns[ticket._id] && (
-              <div
-                className="ticket-countdown"
+        {validatedTickets && validatedTickets.length > 0 ? (
+          validatedTickets.map((ticket, index) => {
+            console.log("[Stripe] Rendering ticket:", {
+              ticketId: ticket._id,
+              ticketName: ticket.name,
+              ticketPrice: ticket.price,
+              index,
+            });
+            return (
+              <motion.div
+                key={ticket._id}
+                className="ticket-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
                 style={{
-                  backgroundColor: `rgba(${parseInt(
-                    colors.primary.slice(1, 3),
-                    16
-                  )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                    colors.primary.slice(5, 7),
-                    16
-                  )}, 0.1)`,
+                  borderColor: ticket.color || colors.secondary,
+                  background: colors.background,
                 }}
               >
-                <span
-                  className="countdown-text"
-                  style={{ color: colors.primary }}
-                >
-                  {countdowns[ticket._id].days > 0
-                    ? `${countdowns[ticket._id].days}d `
-                    : ""}
-                  {countdowns[ticket._id].hours}h remaining
-                </span>
-              </div>
-            )}
-
-            <div className="ticket-price">
-              <span className="current-price">{ticket.price.toFixed(2)}€</span>
-              {ticket.originalPrice && ticket.originalPrice > ticket.price && (
-                <span className="original-price">
-                  {ticket.originalPrice.toFixed(2)}€
-                </span>
-              )}
-            </div>
-
-            {ticket.description && (
-              <p className="ticket-description">{ticket.description}</p>
-            )}
-
-            {ticket.isLimited && (
-              <div className="ticket-availability">
-                <div className="availability-bar">
-                  <div
-                    className="availability-fill"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.round((ticket.soldCount / ticket.maxTickets) * 100)
-                      )}%`,
-                      backgroundColor: colors.primary,
-                    }}
-                  ></div>
+                <div className="ticket-header">
+                  <h4>{ticket.name}</h4>
+                  {ticket.originalPrice &&
+                    ticket.originalPrice > ticket.price && (
+                      <span
+                        className="ticket-discount"
+                        style={{
+                          backgroundColor: `rgba(${parseInt(
+                            colors.primary.slice(1, 3),
+                            16
+                          )}, ${parseInt(
+                            colors.primary.slice(3, 5),
+                            16
+                          )}, ${parseInt(
+                            colors.primary.slice(5, 7),
+                            16
+                          )}, 0.15)`,
+                          color: colors.primary,
+                        }}
+                      >
+                        {Math.round(
+                          ((ticket.originalPrice - ticket.price) /
+                            ticket.originalPrice) *
+                            100
+                        )}
+                        % OFF
+                      </span>
+                    )}
                 </div>
-                <span className="availability-text">
-                  {Math.max(0, ticket.maxTickets - ticket.soldCount)} tickets
-                  left
-                </span>
-              </div>
-            )}
 
-            <div className="ticket-quantity">
-              <button
-                className="quantity-btn"
-                onClick={() => handleQuantityChange(ticket._id, -1)}
-                style={{
-                  borderColor: `rgba(${parseInt(
-                    colors.primary.slice(1, 3),
-                    16
-                  )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                    colors.primary.slice(5, 7),
-                    16
-                  )}, 0.3)`,
-                  backgroundColor: `rgba(${parseInt(
-                    colors.primary.slice(1, 3),
-                    16
-                  )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                    colors.primary.slice(5, 7),
-                    16
-                  )}, 0.15)`,
-                  color: colors.primary,
-                }}
-              >
-                -
-              </button>
-              <span className="quantity">
-                {ticketQuantities[ticket._id] || 0}
-              </span>
-              <button
-                className="quantity-btn"
-                onClick={() => handleQuantityChange(ticket._id, 1)}
-                style={{
-                  borderColor: `rgba(${parseInt(
-                    colors.primary.slice(1, 3),
-                    16
-                  )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                    colors.primary.slice(5, 7),
-                    16
-                  )}, 0.3)`,
-                  backgroundColor: `rgba(${parseInt(
-                    colors.primary.slice(1, 3),
-                    16
-                  )}, ${parseInt(colors.primary.slice(3, 5), 16)}, ${parseInt(
-                    colors.primary.slice(5, 7),
-                    16
-                  )}, 0.15)`,
-                  color: colors.primary,
-                }}
-              >
-                +
-              </button>
-            </div>
-          </motion.div>
-        ))}
+                {/* Add countdown display for Early Bird tickets */}
+                {countdowns[ticket._id] && (
+                  <div
+                    className="ticket-countdown"
+                    style={{
+                      backgroundColor: `rgba(${parseInt(
+                        colors.primary.slice(1, 3),
+                        16
+                      )}, ${parseInt(
+                        colors.primary.slice(3, 5),
+                        16
+                      )}, ${parseInt(colors.primary.slice(5, 7), 16)}, 0.1)`,
+                    }}
+                  >
+                    <span
+                      className="countdown-text"
+                      style={{ color: colors.primary }}
+                    >
+                      {countdowns[ticket._id].days > 0
+                        ? `${countdowns[ticket._id].days}d `
+                        : ""}
+                      {countdowns[ticket._id].hours}h remaining
+                    </span>
+                  </div>
+                )}
+
+                <div className="ticket-price">
+                  <span className="current-price">
+                    {ticket.price.toFixed(2)}€
+                  </span>
+                  {ticket.originalPrice &&
+                    ticket.originalPrice > ticket.price && (
+                      <span className="original-price">
+                        {ticket.originalPrice.toFixed(2)}€
+                      </span>
+                    )}
+                </div>
+
+                {ticket.description && (
+                  <p className="ticket-description">{ticket.description}</p>
+                )}
+
+                {ticket.isLimited && (
+                  <div className="ticket-availability">
+                    <div className="availability-bar">
+                      <div
+                        className="availability-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              (ticket.soldCount / ticket.maxTickets) * 100
+                            )
+                          )}%`,
+                          backgroundColor: colors.primary,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="availability-text">
+                      {Math.max(0, ticket.maxTickets - ticket.soldCount)}{" "}
+                      tickets left
+                    </span>
+                  </div>
+                )}
+
+                <div className="ticket-quantity">
+                  <button
+                    className="quantity-btn"
+                    onClick={() => handleQuantityChange(ticket._id, -1)}
+                    style={{
+                      borderColor: `rgba(${parseInt(
+                        colors.primary.slice(1, 3),
+                        16
+                      )}, ${parseInt(
+                        colors.primary.slice(3, 5),
+                        16
+                      )}, ${parseInt(colors.primary.slice(5, 7), 16)}, 0.3)`,
+                      backgroundColor: `rgba(${parseInt(
+                        colors.primary.slice(1, 3),
+                        16
+                      )}, ${parseInt(
+                        colors.primary.slice(3, 5),
+                        16
+                      )}, ${parseInt(colors.primary.slice(5, 7), 16)}, 0.15)`,
+                      color: colors.primary,
+                    }}
+                  >
+                    -
+                  </button>
+                  <span className="quantity">
+                    {ticketQuantities[ticket._id] || 0}
+                  </span>
+                  <button
+                    className="quantity-btn"
+                    onClick={() => handleQuantityChange(ticket._id, 1)}
+                    style={{
+                      borderColor: `rgba(${parseInt(
+                        colors.primary.slice(1, 3),
+                        16
+                      )}, ${parseInt(
+                        colors.primary.slice(3, 5),
+                        16
+                      )}, ${parseInt(colors.primary.slice(5, 7), 16)}, 0.3)`,
+                      backgroundColor: `rgba(${parseInt(
+                        colors.primary.slice(1, 3),
+                        16
+                      )}, ${parseInt(
+                        colors.primary.slice(3, 5),
+                        16
+                      )}, ${parseInt(colors.primary.slice(5, 7), 16)}, 0.15)`,
+                      color: colors.primary,
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })
+        ) : (
+          <div className="no-tickets-message">
+            <p>No ticket options available for this event.</p>
+          </div>
+        )}
       </div>
 
       <div

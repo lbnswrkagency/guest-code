@@ -99,13 +99,56 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   useEffect(() => {
     if (events.length > 0) {
       const currentEvent = events[currentIndex];
-      fetchTicketSettings(currentEvent._id);
+      console.log(
+        "[UpcomingEvent] Current event changed, fetching ticket settings:",
+        {
+          eventId: currentEvent._id,
+          eventTitle: currentEvent.title,
+          ticketsAvailable: currentEvent.ticketsAvailable,
+          hasTicketsAvailableProperty: "ticketsAvailable" in currentEvent,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      // Only fetch ticket settings if the event has tickets available
+      if (currentEvent.ticketsAvailable) {
+        fetchTicketSettings(currentEvent._id);
+      } else {
+        console.log(
+          "[UpcomingEvent] Skipping ticket settings fetch - event does not have tickets available"
+        );
+        setTicketSettings([]);
+      }
     }
   }, [currentIndex, events]);
 
+  // Function to create a sample ticket for testing if no tickets are found
+  const createSampleTicket = (eventId) => {
+    console.log("[UpcomingEvent] Creating sample ticket for testing");
+    return [
+      {
+        _id: `sample-${eventId}`,
+        name: "General Admission",
+        description: "Standard entry ticket",
+        price: 25.0,
+        originalPrice: 30.0,
+        isLimited: true,
+        maxTickets: 100,
+        soldCount: 20,
+        hasCountdown: false,
+        eventId: eventId,
+      },
+    ];
+  };
+
   // Function to fetch ticket settings for the current event
   const fetchTicketSettings = async (eventId) => {
-    if (!eventId) return;
+    if (!eventId) {
+      console.log(
+        "[UpcomingEvent] Cannot fetch ticket settings: No eventId provided"
+      );
+      return;
+    }
 
     setLoadingTickets(true);
     try {
@@ -118,30 +161,77 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
         `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
       );
 
-      const response = await axiosInstance.get(
-        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
-      );
-      console.log("[UpcomingEvent] Ticket settings response:", response);
-      console.log("[UpcomingEvent] Ticket settings data:", response.data);
+      // Try the first endpoint format
+      try {
+        console.log("[UpcomingEvent] Attempting first endpoint format...");
+        const response = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
+        );
+        console.log("[UpcomingEvent] First endpoint response:", response);
 
-      if (response.data && response.data.ticketSettings) {
-        console.log(
-          "[UpcomingEvent] Setting ticket settings:",
-          response.data.ticketSettings
-        );
-        setTicketSettings(response.data.ticketSettings);
-      } else if (response.data && Array.isArray(response.data)) {
-        console.log(
-          "[UpcomingEvent] Setting ticket settings from array:",
-          response.data
-        );
-        setTicketSettings(response.data);
-      } else {
-        console.log(
-          "[UpcomingEvent] No valid ticket settings found in response"
-        );
-        setTicketSettings([]);
+        if (response.data && response.data.ticketSettings) {
+          console.log(
+            "[UpcomingEvent] Setting ticket settings from first endpoint:",
+            response.data.ticketSettings
+          );
+          setTicketSettings(response.data.ticketSettings);
+          setLoadingTickets(false);
+          return;
+        } else if (response.data && Array.isArray(response.data)) {
+          console.log(
+            "[UpcomingEvent] Setting ticket settings array from first endpoint:",
+            response.data
+          );
+          setTicketSettings(response.data);
+          setLoadingTickets(false);
+          return;
+        }
+      } catch (error) {
+        console.log("[UpcomingEvent] First endpoint failed:", error.message);
       }
+
+      // Try the second endpoint format as fallback
+      try {
+        console.log("[UpcomingEvent] Attempting second endpoint format...");
+        const fallbackResponse = await axiosInstance.get(
+          `/ticket-settings/event/${eventId}`
+        );
+        console.log(
+          "[UpcomingEvent] Second endpoint response:",
+          fallbackResponse
+        );
+
+        if (fallbackResponse.data) {
+          if (Array.isArray(fallbackResponse.data)) {
+            console.log(
+              "[UpcomingEvent] Setting ticket settings from second endpoint:",
+              fallbackResponse.data
+            );
+            setTicketSettings(fallbackResponse.data);
+            setLoadingTickets(false);
+            return;
+          } else if (fallbackResponse.data.ticketSettings) {
+            console.log(
+              "[UpcomingEvent] Setting ticket settings from second endpoint:",
+              fallbackResponse.data.ticketSettings
+            );
+            setTicketSettings(fallbackResponse.data.ticketSettings);
+            setLoadingTickets(false);
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.log(
+          "[UpcomingEvent] Second endpoint failed:",
+          fallbackError.message
+        );
+      }
+
+      // If we get here, both attempts failed but didn't throw an error that was caught by the outer catch
+      console.log(
+        "[UpcomingEvent] No valid ticket settings found in any response"
+      );
+      setTicketSettings([]);
     } catch (error) {
       console.error("[UpcomingEvent] Error fetching ticket settings:", error);
       console.error("[UpcomingEvent] Error details:", {
@@ -863,24 +953,42 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                     {formatDate(currentEvent.date)}.
                   </p>
 
+                  {console.log("[UpcomingEvent] Ticket section rendering:", {
+                    hasTicketSettings: !!ticketSettings,
+                    ticketSettingsLength: ticketSettings?.length || 0,
+                    ticketSettingsData: ticketSettings,
+                    loadingTickets,
+                    timestamp: new Date().toISOString(),
+                  })}
+
                   {ticketSettings && ticketSettings.length > 0 ? (
-                    <Stripe
-                      ticketSettings={ticketSettings}
-                      eventId={currentEvent._id}
-                      colors={{
-                        primary: "#ffc807",
-                        secondary: "#2196F3",
-                        background: "rgba(255, 255, 255, 0.05)",
-                      }}
-                      onCheckoutComplete={(result) => {
-                        console.log(
-                          "[UpcomingEvent] Checkout completed:",
-                          result
-                        );
-                        toast.showSuccess("Redirecting to checkout...");
-                        setLoadingTickets(false);
-                      }}
-                    />
+                    <>
+                      {console.log(
+                        "[UpcomingEvent] Rendering Stripe component with:",
+                        {
+                          ticketCount: ticketSettings.length,
+                          eventId: currentEvent._id,
+                          timestamp: new Date().toISOString(),
+                        }
+                      )}
+                      {/* <Stripe
+                        ticketSettings={ticketSettings}
+                        eventId={currentEvent._id}
+                        colors={{
+                          primary: "#ffc807",
+                          secondary: "#2196F3",
+                          background: "rgba(255, 255, 255, 0.05)",
+                        }}
+                        onCheckoutComplete={(result) => {
+                          console.log(
+                            "[UpcomingEvent] Checkout completed:",
+                            result
+                          );
+                          toast.showSuccess("Redirecting to checkout...");
+                          setLoadingTickets(false);
+                        }}
+                      /> */}
+                    </>
                   ) : (
                     <div className="no-tickets-message">
                       {loadingTickets ? (
@@ -893,14 +1001,29 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                           <p>
                             No tickets are currently available for this event.
                           </p>
-                          <button
-                            className="retry-button"
-                            onClick={() =>
-                              fetchTicketSettings(currentEvent._id)
-                            }
-                          >
-                            Retry Loading Tickets
-                          </button>
+                          <div className="ticket-actions">
+                            <button
+                              className="retry-button"
+                              onClick={() =>
+                                fetchTicketSettings(currentEvent._id)
+                              }
+                            >
+                              Retry Loading Tickets
+                            </button>
+                            <button
+                              className="sample-button"
+                              onClick={() => {
+                                console.log(
+                                  "[UpcomingEvent] Using sample ticket data"
+                                );
+                                setTicketSettings(
+                                  createSampleTicket(currentEvent._id)
+                                );
+                              }}
+                            >
+                              Use Sample Ticket (Testing)
+                            </button>
+                          </div>
                         </>
                       )}
                     </div>
