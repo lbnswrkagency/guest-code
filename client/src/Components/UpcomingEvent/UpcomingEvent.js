@@ -95,6 +95,68 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
     }
   }, [currentIndex, events]);
 
+  // Fetch ticket settings when the current event changes
+  useEffect(() => {
+    if (events.length > 0) {
+      const currentEvent = events[currentIndex];
+      fetchTicketSettings(currentEvent._id);
+    }
+  }, [currentIndex, events]);
+
+  // Function to fetch ticket settings for the current event
+  const fetchTicketSettings = async (eventId) => {
+    if (!eventId) return;
+
+    setLoadingTickets(true);
+    try {
+      console.log(
+        "[UpcomingEvent] Fetching ticket settings for event:",
+        eventId
+      );
+      console.log(
+        "[UpcomingEvent] Using API URL:",
+        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
+      );
+
+      const response = await axiosInstance.get(
+        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
+      );
+      console.log("[UpcomingEvent] Ticket settings response:", response);
+      console.log("[UpcomingEvent] Ticket settings data:", response.data);
+
+      if (response.data && response.data.ticketSettings) {
+        console.log(
+          "[UpcomingEvent] Setting ticket settings:",
+          response.data.ticketSettings
+        );
+        setTicketSettings(response.data.ticketSettings);
+      } else if (response.data && Array.isArray(response.data)) {
+        console.log(
+          "[UpcomingEvent] Setting ticket settings from array:",
+          response.data
+        );
+        setTicketSettings(response.data);
+      } else {
+        console.log(
+          "[UpcomingEvent] No valid ticket settings found in response"
+        );
+        setTicketSettings([]);
+      }
+    } catch (error) {
+      console.error("[UpcomingEvent] Error fetching ticket settings:", error);
+      console.error("[UpcomingEvent] Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+      setTicketSettings([]);
+      toast.showError("Failed to load ticket information");
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
   const fetchUpcomingEvents = async () => {
     setLoading(true);
     try {
@@ -616,11 +678,11 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
               </div>
               <div className="info-item">
                 <RiTimeLine />
-                <span>{currentEvent.startTime}</span>
+                <span>{currentEvent.startTime || "TBA"}</span>
               </div>
               <div className="info-item">
                 <RiMapPinLine />
-                <span>{currentEvent.location}</span>
+                <span>{currentEvent.location || "TBA"}</span>
               </div>
               {currentEvent.music && (
                 <div className="info-item">
@@ -628,21 +690,59 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   <span>{currentEvent.music}</span>
                 </div>
               )}
-              {currentEvent.ticketCode && (
+              {currentEvent.ticketsAvailable && (
                 <div className="info-item ticket">
                   <RiTicketLine />
-                  <span>Tickets available</span>
+                  <span>Tickets Available</span>
                 </div>
               )}
             </div>
 
-            {/* Lineup Section */}
+            {/* Action Buttons - Moved below event info */}
+            <div className="action-buttons">
+              <button
+                className="action-button guest-code-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowGuestCodeForm(true);
+                  if (guestCodeSectionRef.current) {
+                    guestCodeSectionRef.current.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                }}
+              >
+                Generate Guest Code
+              </button>
+
+              <button
+                className="action-button buy-ticket-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Fetch ticket settings if not already loaded
+                  if (ticketSettings.length === 0 && !loadingTickets) {
+                    fetchTicketSettings(currentEvent._id);
+                  }
+                  if (ticketSectionRef.current) {
+                    ticketSectionRef.current.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                }}
+              >
+                Buy Ticket
+              </button>
+            </div>
+
+            {/* Lineup section */}
             {currentEvent.lineups &&
               currentEvent.lineups.length > 0 &&
               renderLineups(currentEvent.lineups)}
 
             {/* Show the guest code section for all users */}
-            <div className="guest-code-section">
+            <div ref={guestCodeSectionRef} className="guest-code-section">
               <h4>Request Guest Code</h4>
 
               {/* Condition text from code settings if available */}
@@ -753,6 +853,62 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
               </div>
             </div>
 
+            {/* Ticket Purchase Section */}
+            <div ref={ticketSectionRef} className="ticket-section">
+              {currentEvent && currentEvent.ticketsAvailable && (
+                <>
+                  <h3>Buy Tickets</h3>
+                  <p className="ticket-info">
+                    Purchase tickets for {currentEvent.title} on{" "}
+                    {formatDate(currentEvent.date)}.
+                  </p>
+
+                  {ticketSettings && ticketSettings.length > 0 ? (
+                    <Stripe
+                      ticketSettings={ticketSettings}
+                      eventId={currentEvent._id}
+                      colors={{
+                        primary: "#ffc807",
+                        secondary: "#2196F3",
+                        background: "rgba(255, 255, 255, 0.05)",
+                      }}
+                      onCheckoutComplete={(result) => {
+                        console.log(
+                          "[UpcomingEvent] Checkout completed:",
+                          result
+                        );
+                        toast.showSuccess("Redirecting to checkout...");
+                        setLoadingTickets(false);
+                      }}
+                    />
+                  ) : (
+                    <div className="no-tickets-message">
+                      {loadingTickets ? (
+                        <div className="loading-tickets">
+                          <LoadingSpinner />
+                          <span>Loading ticket information...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p>
+                            No tickets are currently available for this event.
+                          </p>
+                          <button
+                            className="retry-button"
+                            onClick={() =>
+                              fetchTicketSettings(currentEvent._id)
+                            }
+                          >
+                            Retry Loading Tickets
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             {/* Add See Full Event button after the guest code section */}
             <button
               className="see-full-event-btn"
@@ -775,39 +931,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                 <span>Tickets:</span> Available
               </p>
             )}
-
-            {/* Action Buttons */}
-            <div className="action-buttons">
-              <button
-                className="action-button guest-code-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowGuestCodeForm(true);
-                  if (guestCodeSectionRef.current) {
-                    guestCodeSectionRef.current.scrollIntoView({
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-              >
-                Generate Guest Code
-              </button>
-
-              <button
-                className="action-button buy-ticket-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLoadingTickets(true);
-                  if (ticketSectionRef.current) {
-                    ticketSectionRef.current.scrollIntoView({
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-              >
-                Buy Ticket
-              </button>
-            </div>
           </div>
         </motion.div>
       </AnimatePresence>
