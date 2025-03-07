@@ -49,7 +49,7 @@ function Login() {
 
   const handleAlphaPasswordSubmit = (e) => {
     e.preventDefault();
-    if (alphaPassword === "YAELOMATICO") {
+    if (alphaPassword === process.env.REACT_APP_ALPHA_PW) {
       setIsAlphaVerified(true);
       sessionStorage.setItem("alphaVerified", "true");
     } else {

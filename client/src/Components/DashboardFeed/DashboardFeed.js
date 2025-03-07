@@ -251,7 +251,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
         <div
           className="event-hero-image"
           style={
-            imageLoaded && getEventImage(eventData)
+            getEventImage(eventData)
               ? { backgroundImage: `url(${getEventImage(eventData)})` }
               : { background: "linear-gradient(145deg, #1a1a1a, #2a2a2a)" }
           }

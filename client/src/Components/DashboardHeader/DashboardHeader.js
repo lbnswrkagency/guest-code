@@ -367,7 +367,7 @@ const DashboardHeader = ({
 
   return (
     <div className="dashboard-header">
-      <div className="header-content">
+      <div className="dashboard-header-content">
         {/* Profile Section */}
         <div className="profile-section">
           <div className="avatar-wrapper">

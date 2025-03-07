@@ -277,7 +277,7 @@ const sendEmail = async (order) => {
           <div class="address-section">
             <div class="company-address">
               <p style="font-size: 0.6rem; margin-bottom: .5rem; color: #777;">
-                GuestCode - Sonnenallee 101 - 12045 Berlin
+                GuestCode - Davaki Pindou 14 - 15773 Athens
               </p>
               ${addressHTML}
             </div>
@@ -385,8 +385,8 @@ const sendEmail = async (order) => {
         <div class="footer">
           <div class="footer-left">
             <p style="margin:0; font-weight: 600;">GuestCode</p>
-            <p style="margin:2px 0 0;">Sonnenallee 101</p>
-            <p style="margin:2px 0 0;">12045 Berlin</p>
+            <p style="margin:2px 0 0;">Davaki Pindou 14</p>
+            <p style="margin:2px 0 0;">15773 Athens</p>
           </div>
 
           <div class="footer-center">

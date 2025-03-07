@@ -667,8 +667,8 @@ const EventProfile = () => {
           quantity: ticketQuantities[ticket._id],
         }));
 
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/stripe/create-checkout-session`,
+      const response = await axiosInstance.post(
+        `/api/stripe/create-checkout-session`,
         {
           firstName,
           lastName,
