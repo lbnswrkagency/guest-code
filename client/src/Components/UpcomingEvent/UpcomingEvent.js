@@ -1069,227 +1069,230 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
               currentEvent.lineups.length > 0 &&
               renderLineups(currentEvent.lineups)}
 
-            {/* Ticket Purchase Section */}
-            <div ref={ticketSectionRef} className="ticket-section">
-              {currentEvent && currentEvent.ticketsAvailable && (
-                <>
-                  <h3>Buy Tickets</h3>
-                  <p className="ticket-info">
-                    Purchase tickets for {currentEvent.title} on{" "}
-                    {formatDate(currentEvent.date)}.
-                  </p>
+            {/* Content sections wrapper for responsive layout */}
+            <div className="content-sections">
+              {/* Ticket Purchase Section */}
+              <div ref={ticketSectionRef} className="ticket-section">
+                {currentEvent && currentEvent.ticketsAvailable && (
+                  <>
+                    <h3>Buy Tickets</h3>
+                    <p className="ticket-info">
+                      Purchase tickets for {currentEvent.title} on{" "}
+                      {formatDate(currentEvent.date)}.
+                    </p>
 
-                  {console.log("[UpcomingEvent] Ticket section rendering:", {
-                    hasTicketSettings: !!ticketSettings,
-                    ticketSettingsLength: ticketSettings?.length || 0,
-                    ticketSettingsData: ticketSettings,
-                    loadingTickets,
-                    timestamp: new Date().toISOString(),
-                  })}
+                    {console.log("[UpcomingEvent] Ticket section rendering:", {
+                      hasTicketSettings: !!ticketSettings,
+                      ticketSettingsLength: ticketSettings?.length || 0,
+                      ticketSettingsData: ticketSettings,
+                      loadingTickets,
+                      timestamp: new Date().toISOString(),
+                    })}
 
-                  {ticketSettings && ticketSettings.length > 0 ? (
-                    <>
-                      {console.log(
-                        "[UpcomingEvent] Rendering Stripe component with:",
-                        {
-                          ticketCount: ticketSettings.length,
-                          eventId: currentEvent._id,
-                          timestamp: new Date().toISOString(),
-                        }
-                      )}
-                      <Stripe
-                        ticketSettings={ticketSettings}
-                        eventId={currentEvent._id}
-                        colors={{
-                          primary: "#ffc807",
-                          secondary: "#2196F3",
-                          background: "rgba(255, 255, 255, 0.05)",
-                        }}
-                        onCheckoutComplete={(result) => {
-                          console.log(
-                            "[UpcomingEvent] Checkout completed:",
-                            result
-                          );
-                          toast.showSuccess("Redirecting to checkout...");
-                          setLoadingTickets(false);
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <div className="no-tickets-message">
-                      {loadingTickets ? (
-                        <div className="loading-tickets">
-                          <LoadingSpinner />
-                          <span>Loading ticket information...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <p>
-                            No tickets are currently available for this event.
-                          </p>
-                          <div className="ticket-actions">
-                            <button
-                              className="retry-button"
-                              onClick={() =>
-                                fetchTicketSettings(currentEvent._id)
-                              }
-                            >
-                              <RiRefreshLine /> Retry
-                            </button>
-                            {user && user.isAdmin && (
-                              <button
-                                className="sample-button"
-                                onClick={() =>
-                                  setTicketSettings(
-                                    createSampleTicket(currentEvent._id)
-                                  )
-                                }
-                              >
-                                <RiTestTubeLine /> Use Sample Tickets
-                              </button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Show the guest code section for all users */}
-            <div ref={guestCodeSectionRef} className="guest-code-section">
-              <h4>Request Guest Code</h4>
-
-              {/* Condition text from code settings if available */}
-              {currentEvent.codeSettings &&
-              currentEvent.codeSettings.find((cs) => cs.type === "guest")
-                ?.condition ? (
-                <p className="condition-text">
-                  {(() => {
-                    const guestCodeSetting = currentEvent.codeSettings.find(
-                      (cs) => cs.type === "guest"
-                    );
-                    console.log(
-                      "[UpcomingEvent] Displaying condition in guest code section:",
-                      guestCodeSetting.condition
-                    );
-                    return guestCodeSetting.condition;
-                  })()}
-                </p>
-              ) : (
-                <p className="condition-text">
-                  Fill in your details below to request a guest code for this
-                  event.
-                </p>
-              )}
-
-              {/* Success message */}
-              {successMessage && (
-                <div className="success-message">
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="success-content"
-                  >
-                    {successMessage}
-                  </motion.div>
-                </div>
-              )}
-
-              <div
-                className="guest-code-form"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="form-group">
-                  <div className="input-icon">
-                    <RiUserLine />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <div className="input-icon">
-                    <RiMailLine />
-                  </div>
-                  <input
-                    type="email"
-                    placeholder="Your Email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <div className="input-icon">
-                    <RiUserLine />
-                  </div>
-                  <select
-                    value={guestPax}
-                    onChange={(e) => setGuestPax(Number(e.target.value))}
-                    className="pax-selector"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {Array.from({ length: maxPax }, (_, i) => i + 1).map(
-                      (num) => (
-                        <option key={num} value={num}>
-                          {num} {num === 1 ? "Person" : "People"}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-
-                <div className="form-buttons">
-                  <motion.button
-                    className="submit-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleGenerateGuestCode();
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={
-                      generatingCode ||
-                      !guestName ||
-                      !guestEmail ||
-                      !guestEmail.includes("@")
-                    }
-                  >
-                    {generatingCode ? (
+                    {ticketSettings && ticketSettings.length > 0 ? (
                       <>
-                        <span className="loading-spinner-small"></span>
-                        Generating...
+                        {console.log(
+                          "[UpcomingEvent] Rendering Stripe component with:",
+                          {
+                            ticketCount: ticketSettings.length,
+                            eventId: currentEvent._id,
+                            timestamp: new Date().toISOString(),
+                          }
+                        )}
+                        <Stripe
+                          ticketSettings={ticketSettings}
+                          eventId={currentEvent._id}
+                          colors={{
+                            primary: "#ffc807",
+                            secondary: "#2196F3",
+                            background: "rgba(255, 255, 255, 0.05)",
+                          }}
+                          onCheckoutComplete={(result) => {
+                            console.log(
+                              "[UpcomingEvent] Checkout completed:",
+                              result
+                            );
+                            toast.showSuccess("Redirecting to checkout...");
+                            setLoadingTickets(false);
+                          }}
+                        />
                       </>
                     ) : (
-                      <>
-                        <RiCodeSSlashLine /> Get Guest Code
-                      </>
+                      <div className="no-tickets-message">
+                        {loadingTickets ? (
+                          <div className="loading-tickets">
+                            <LoadingSpinner />
+                            <span>Loading ticket information...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <p>
+                              No tickets are currently available for this event.
+                            </p>
+                            <div className="ticket-actions">
+                              <button
+                                className="retry-button"
+                                onClick={() =>
+                                  fetchTicketSettings(currentEvent._id)
+                                }
+                              >
+                                <RiRefreshLine /> Retry
+                              </button>
+                              {user && user.isAdmin && (
+                                <button
+                                  className="sample-button"
+                                  onClick={() =>
+                                    setTicketSettings(
+                                      createSampleTicket(currentEvent._id)
+                                    )
+                                  }
+                                >
+                                  <RiTestTubeLine /> Use Sample Tickets
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
-                  </motion.button>
+                  </>
+                )}
+              </div>
+
+              {/* Show the guest code section for all users */}
+              <div ref={guestCodeSectionRef} className="guest-code-section">
+                <h4>Request Guest Code</h4>
+
+                {/* Condition text from code settings if available */}
+                {currentEvent.codeSettings &&
+                currentEvent.codeSettings.find((cs) => cs.type === "guest")
+                  ?.condition ? (
+                  <p className="condition-text">
+                    {(() => {
+                      const guestCodeSetting = currentEvent.codeSettings.find(
+                        (cs) => cs.type === "guest"
+                      );
+                      console.log(
+                        "[UpcomingEvent] Displaying condition in guest code section:",
+                        guestCodeSetting.condition
+                      );
+                      return guestCodeSetting.condition;
+                    })()}
+                  </p>
+                ) : (
+                  <p className="condition-text">
+                    Fill in your details below to request a guest code for this
+                    event.
+                  </p>
+                )}
+
+                {/* Success message */}
+                {successMessage && (
+                  <div className="success-message">
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="success-content"
+                    >
+                      {successMessage}
+                    </motion.div>
+                  </div>
+                )}
+
+                <div
+                  className="guest-code-form"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiMailLine />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Your Email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <select
+                      value={guestPax}
+                      onChange={(e) => setGuestPax(Number(e.target.value))}
+                      className="pax-selector"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Array.from({ length: maxPax }, (_, i) => i + 1).map(
+                        (num) => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? "Person" : "People"}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-buttons">
+                    <motion.button
+                      className="submit-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGenerateGuestCode();
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={
+                        generatingCode ||
+                        !guestName ||
+                        !guestEmail ||
+                        !guestEmail.includes("@")
+                      }
+                    >
+                      {generatingCode ? (
+                        <>
+                          <span className="loading-spinner-small"></span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <RiCodeSSlashLine /> Get Guest Code
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Add See Full Event button after the guest code section */}
-            <button
-              className="see-full-event-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewEvent(currentEvent);
-              }}
-            >
-              See Full Event <RiArrowRightLine />
-            </button>
           </div>
+
+          {/* Add See Full Event button after the guest code section */}
+          <button
+            className="see-full-event-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewEvent(currentEvent);
+            }}
+          >
+            See Full Event <RiArrowRightLine />
+          </button>
         </motion.div>
       </AnimatePresence>
     </div>

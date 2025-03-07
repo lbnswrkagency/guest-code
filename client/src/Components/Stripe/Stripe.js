@@ -45,6 +45,9 @@ const Stripe = ({
   // Countdown timers for early bird tickets
   const [countdowns, setCountdowns] = useState({});
 
+  // Loading state
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
   // Handle ticket quantity changes
   const handleQuantityChange = (ticketId, change) => {
     setTicketQuantities((prev) => ({
@@ -80,8 +83,22 @@ const Stripe = ({
 
   // Handle checkout
   const handleCheckout = async () => {
+    // Prevent multiple clicks
+    if (isCheckoutLoading) {
+      console.log(
+        "[Stripe Checkout] Checkout already in progress, ignoring click"
+      );
+      return;
+    }
+
     console.log("[Stripe Checkout] Starting checkout process...");
+
+    // Create a reference to the loading toast
+    let loadingToast = null;
+
     try {
+      setIsCheckoutLoading(true);
+
       const selectedTickets = ticketSettings
         .filter((ticket) => ticketQuantities[ticket._id] > 0)
         .map((ticket) => ({
@@ -94,6 +111,7 @@ const Stripe = ({
 
       if (selectedTickets.length === 0) {
         toast.showError("Please select at least one ticket");
+        setIsCheckoutLoading(false);
         return;
       }
 
@@ -118,8 +136,8 @@ const Stripe = ({
         "/stripe/create-checkout-session"
       );
 
-      // Show loading state
-      toast.showInfo("Preparing checkout...");
+      // Show loading state with the loading toast
+      loadingToast = toast.showLoading("Preparing checkout...");
 
       const response = await axiosInstance.post(
         `/stripe/create-checkout-session`,
@@ -140,6 +158,14 @@ const Stripe = ({
           response.data.url
         );
 
+        // Update the loading toast to show success
+        if (loadingToast) {
+          loadingToast.update({
+            message: "Redirecting to checkout...",
+            type: "success",
+          });
+        }
+
         // Call the onCheckoutComplete callback if provided
         if (onCheckoutComplete) {
           onCheckoutComplete({
@@ -150,11 +176,21 @@ const Stripe = ({
           });
         }
 
-        // Redirect to Stripe checkout
-        window.location = response.data.url;
+        // Short delay to ensure the toast is visible before redirect
+        setTimeout(() => {
+          // Redirect to Stripe checkout
+          window.location = response.data.url;
+        }, 500);
       } else {
         console.error("[Stripe Checkout] No URL in response:", response.data);
+
+        // Dismiss the loading toast
+        if (loadingToast) {
+          loadingToast.dismiss();
+        }
+
         toast.showError("Invalid checkout response. Please try again.");
+        setIsCheckoutLoading(false);
       }
     } catch (error) {
       // Log the full error object
@@ -189,6 +225,11 @@ const Stripe = ({
         );
       }
 
+      // Dismiss the loading toast
+      if (loadingToast) {
+        loadingToast.dismiss();
+      }
+
       // Try to get a more specific error message
       let errorMessage = "Failed to process checkout. Please try again later.";
       if (error.response?.data?.error) {
@@ -198,15 +239,7 @@ const Stripe = ({
       }
 
       toast.showError(errorMessage);
-
-      // Log the error to the server if you have error tracking
-      console.error("[Stripe Checkout] Error occurred during checkout:", {
-        eventId,
-        customerEmail: email,
-        errorMessage: error.message,
-        errorCode: error.code,
-        errorStatus: error.response?.status,
-      });
+      setIsCheckoutLoading(false);
     }
   };
 
@@ -576,12 +609,22 @@ const Stripe = ({
             <motion.button
               className="checkout-button"
               onClick={handleCheckout}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={!isFormValid()}
-              style={{ backgroundColor: colors.primary }}
+              whileHover={{ scale: isCheckoutLoading ? 1 : 1.02 }}
+              whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
+              disabled={!isFormValid() || isCheckoutLoading}
+              style={{
+                backgroundColor: colors.primary,
+                opacity: isCheckoutLoading ? 0.7 : 1,
+              }}
             >
-              Buy Tickets
+              {isCheckoutLoading ? (
+                <div className="button-loading">
+                  <div className="loading-spinner"></div>
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                "Buy Tickets"
+              )}
             </motion.button>
           </div>
         )}
