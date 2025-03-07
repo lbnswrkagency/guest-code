@@ -41,7 +41,33 @@ router.post("/create-checkout-session", async (req, res) => {
     }
 
     // Ensure CLIENT_BASE_URL is properly set
-    const baseUrl = process.env.CLIENT_BASE_URL || "http://localhost:3000";
+    let baseUrl = process.env.CLIENT_BASE_URL || "http://localhost:3000";
+
+    // Log the raw environment variable for debugging
+    console.log(
+      "[Stripe API] Raw CLIENT_BASE_URL:",
+      process.env.CLIENT_BASE_URL
+    );
+
+    // Check for common issues in the URL
+    if (baseUrl) {
+      // Remove any whitespace, newlines, or carriage returns
+      baseUrl = baseUrl.trim().replace(/[\r\n\s]+/g, "");
+
+      // Make sure the URL starts with http:// or https://
+      if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+        baseUrl = `https://${baseUrl}`;
+      }
+
+      // Ensure there's no trailing slash
+      if (baseUrl.endsWith("/")) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+    } else {
+      // Use a default URL if none is provided
+      baseUrl = "https://www.guest-code.com";
+    }
+
     console.log("[Stripe API] Using base URL:", baseUrl);
 
     // Log Stripe key status (not the actual key)
@@ -66,37 +92,66 @@ router.post("/create-checkout-session", async (req, res) => {
     console.log("[Stripe API] Creating Stripe checkout session...");
     let session;
     try {
-      // Log the session parameters for debugging
-      console.log("[Stripe API] Session parameters:", {
-        payment_method_types: ["card"],
-        line_items: line_items.map((item) => ({
-          currency: item.price_data.currency,
-          amount: item.price_data.unit_amount,
-          name: item.price_data.product_data.name,
-          quantity: item.quantity,
-        })),
-        mode: "payment",
-        success_url: `${baseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`,
-        cancel_url: `${baseUrl}/events/${eventId}`,
-        customer_email: email,
-        metadata: {
-          eventId,
-          firstName,
-          lastName,
-          email,
-          ticketsCount: tickets.length,
-        },
-        automatic_tax: {
-          enabled: process.env.STRIPE_ENABLE_TAX === "true",
-        },
+      // Validate the URLs before creating the session
+      const cleanBaseUrl = baseUrl
+        ? baseUrl.trim().replace(/[\r\n]+/g, "")
+        : "";
+
+      // Create the URLs with the cleaned baseUrl
+      let successUrl, cancelUrl, validSuccessUrl, validCancelUrl;
+
+      try {
+        successUrl = cleanBaseUrl
+          ? `${cleanBaseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`
+          : `https://www.guest-code.com/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
+
+        cancelUrl = cleanBaseUrl
+          ? `${cleanBaseUrl}/events/${eventId}`
+          : `https://www.guest-code.com/events/${eventId}`;
+
+        // Ensure the URLs are valid by checking if they start with http:// or https://
+        validSuccessUrl =
+          successUrl.startsWith("http://") || successUrl.startsWith("https://")
+            ? successUrl
+            : `https://www.guest-code.com/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
+
+        validCancelUrl =
+          cancelUrl.startsWith("http://") || cancelUrl.startsWith("https://")
+            ? cancelUrl
+            : `https://www.guest-code.com/events/${eventId}`;
+
+        // Final validation - ensure no newlines or invalid characters
+        validSuccessUrl = validSuccessUrl.replace(/[\r\n\s]+/g, "");
+        validCancelUrl = validCancelUrl.replace(/[\r\n\s]+/g, "");
+
+        // Validate URLs with a URL constructor
+        new URL(validSuccessUrl);
+        new URL(validCancelUrl);
+      } catch (urlError) {
+        console.error("[Stripe API] Error creating URLs:", urlError);
+        // Fallback to hardcoded URLs
+        validSuccessUrl = `https://www.guest-code.com/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
+        validCancelUrl = `https://www.guest-code.com/events/${eventId}`;
+      }
+
+      console.log("[Stripe API] Using URLs:", {
+        successUrl,
+        cancelUrl,
+      });
+
+      console.log("[Stripe API] Using URLs:", {
+        successUrl: validSuccessUrl,
+        cancelUrl: validCancelUrl,
+        originalBaseUrl: baseUrl,
+        cleanedBaseUrl: cleanBaseUrl,
       });
 
       session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items,
         mode: "payment",
-        success_url: `${baseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`,
-        cancel_url: `${baseUrl}/events/${eventId}`,
+        success_url: validSuccessUrl,
+        cancel_url: validCancelUrl,
         customer_email: email,
         billing_address_collection: "required",
         metadata: {
@@ -104,6 +159,7 @@ router.post("/create-checkout-session", async (req, res) => {
           firstName,
           lastName,
           email,
+          ticketsCount: tickets.length,
           tickets: JSON.stringify(tickets),
         },
         automatic_tax: {
