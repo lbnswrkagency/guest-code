@@ -219,7 +219,9 @@ const generateTicketPDF = async (ticket) => {
 
             <div style="margin-top: 0.5rem;">
               <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">End</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">04:00</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
+                event?.endTime
+              }</p>
             </div>
           </div>
           
