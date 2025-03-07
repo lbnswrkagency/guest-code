@@ -5,11 +5,50 @@ const Order = require("../../models/orderModel");
 
 // Create checkout session
 router.post("/create-checkout-session", async (req, res) => {
+  console.log("[Stripe API] Received checkout session request");
   try {
+    // Log the request body
+    console.log("[Stripe API] Request body:", {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      eventId: req.body.eventId,
+      tickets: req.body.tickets,
+    });
+
     const { firstName, lastName, email, eventId, tickets } = req.body;
+
+    // Validate required fields
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !eventId ||
+      !tickets ||
+      !Array.isArray(tickets) ||
+      tickets.length === 0
+    ) {
+      console.error("[Stripe API] Missing required fields:", {
+        firstName,
+        lastName,
+        email,
+        eventId,
+        tickets,
+      });
+      return res
+        .status(400)
+        .json({ error: "Missing required fields for checkout" });
+    }
 
     // Ensure CLIENT_BASE_URL is properly set
     const baseUrl = process.env.CLIENT_BASE_URL || "http://localhost:3000";
+    console.log("[Stripe API] Using base URL:", baseUrl);
+
+    // Log Stripe key status (not the actual key)
+    console.log(
+      "[Stripe API] Stripe key status:",
+      process.env.STRIPE_SECRET_KEY ? "Present" : "Missing"
+    );
 
     const line_items = tickets.map((ticket) => ({
       price_data: {
@@ -22,7 +61,9 @@ router.post("/create-checkout-session", async (req, res) => {
       },
       quantity: ticket.quantity,
     }));
+    console.log("[Stripe API] Prepared line items:", line_items);
 
+    console.log("[Stripe API] Creating Stripe checkout session...");
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
@@ -43,11 +84,26 @@ router.post("/create-checkout-session", async (req, res) => {
       },
       customer_creation: "always",
     });
+    console.log("[Stripe API] Checkout session created successfully:", {
+      sessionId: session.id,
+      url: session.url,
+    });
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
-    res.status(500).json({ error: "Failed to create checkout session" });
+    console.error("[Stripe API] Error creating checkout session:", {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      stack: error.stack,
+    });
+
+    // Send a more detailed error response
+    res.status(500).json({
+      error: "Failed to create checkout session",
+      message: error.message,
+      code: error.code || "unknown",
+    });
   }
 });
 

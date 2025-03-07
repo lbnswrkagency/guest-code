@@ -13,10 +13,16 @@ const generateInvoiceNumber = (sessionId) => {
 };
 
 const fulfillOrder = async (session, billingAddress) => {
+  console.log("[FulfillOrder] Starting order fulfillment process");
   try {
+    console.log("[FulfillOrder] Session metadata:", session.metadata);
+
     // Parse the tickets from session metadata
     const tickets = JSON.parse(session.metadata.tickets || "[]");
+    console.log("[FulfillOrder] Parsed tickets:", tickets);
+
     const eventId = session.metadata.eventId;
+    console.log("[FulfillOrder] Event ID:", eventId);
 
     // Get customer email from session (try multiple possible locations)
     const email =
@@ -24,6 +30,7 @@ const fulfillOrder = async (session, billingAddress) => {
       session.customer_email ||
       session.customer_details?.email ||
       "";
+    console.log("[FulfillOrder] Customer email:", email);
 
     // Get customer name from session
     const firstName =
@@ -36,8 +43,10 @@ const fulfillOrder = async (session, billingAddress) => {
       (session.customer_details?.name
         ? session.customer_details.name.split(" ").slice(1).join(" ")
         : "");
+    console.log("[FulfillOrder] Customer name:", { firstName, lastName });
 
     if (!email) {
+      console.error("[FulfillOrder] Missing customer email");
       throw new Error(
         "Customer email is required but was not found in the session data"
       );
@@ -45,7 +54,9 @@ const fulfillOrder = async (session, billingAddress) => {
 
     // Generate invoice number
     const invoiceNumber = generateInvoiceNumber(session.id);
+    console.log("[FulfillOrder] Generated invoice number:", invoiceNumber);
 
+    console.log("[FulfillOrder] Creating order in database...");
     // Create the order
     const order = await Order.create({
       eventId,
@@ -73,26 +84,63 @@ const fulfillOrder = async (session, billingAddress) => {
       paymentStatus: "paid",
     });
 
+    console.log("[FulfillOrder] Order created successfully:", {
+      orderId: order._id,
+      invoiceNumber: order.invoiceNumber,
+      totalAmount: order.totalAmount,
+      ticketCount: order.tickets.length,
+    });
+
+    console.log("[FulfillOrder] Updating ticket counts in TicketSettings...");
     // Update ticket counts in TicketSettings
     for (const ticket of tickets) {
-      // Find the ticket settings and increment the soldCount
-      await TicketSettings.findByIdAndUpdate(
-        ticket.ticketId,
-        { $inc: { soldCount: ticket.quantity } },
-        { new: true }
-      );
-
       console.log(
-        `Updated soldCount for ticket ${ticket.name} (${ticket.ticketId}), sold ${ticket.quantity} tickets`
+        `[FulfillOrder] Processing ticket: ${ticket.name} (${ticket.ticketId})`
       );
+      try {
+        // Find the ticket settings and increment the soldCount
+        const updatedTicket = await TicketSettings.findByIdAndUpdate(
+          ticket.ticketId,
+          { $inc: { soldCount: ticket.quantity } },
+          { new: true }
+        );
+
+        console.log(
+          `[FulfillOrder] Updated soldCount for ticket ${ticket.name} (${
+            ticket.ticketId
+          }), sold ${ticket.quantity} tickets. New total: ${
+            updatedTicket?.soldCount || "unknown"
+          }`
+        );
+      } catch (ticketError) {
+        console.error(
+          `[FulfillOrder] Error updating ticket ${ticket.ticketId}:`,
+          ticketError
+        );
+      }
     }
 
     // Send confirmation email
-    await sendEmail(order);
+    console.log("[FulfillOrder] Sending confirmation email to customer...");
+    try {
+      await sendEmail(order);
+      console.log("[FulfillOrder] Confirmation email sent successfully");
+    } catch (emailError) {
+      console.error(
+        "[FulfillOrder] Error sending confirmation email:",
+        emailError
+      );
+      // Don't throw here, we want to continue even if email fails
+    }
 
+    console.log("[FulfillOrder] Order fulfillment completed successfully");
     return order;
   } catch (error) {
-    console.error("Error fulfilling order:", error);
+    console.error("[FulfillOrder] Critical error during order fulfillment:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     throw error;
   }
 };

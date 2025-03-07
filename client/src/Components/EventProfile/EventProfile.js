@@ -656,6 +656,7 @@ const EventProfile = () => {
   };
 
   const handleCheckout = async () => {
+    console.log("[Stripe Checkout] Starting checkout process...");
     try {
       const selectedTickets = ticketSettings
         .filter((ticket) => ticketQuantities[ticket._id] > 0)
@@ -667,6 +668,17 @@ const EventProfile = () => {
           quantity: ticketQuantities[ticket._id],
         }));
 
+      console.log("[Stripe Checkout] Selected tickets:", selectedTickets);
+      console.log("[Stripe Checkout] Customer info:", {
+        firstName,
+        lastName,
+        email,
+      });
+      console.log("[Stripe Checkout] Event ID:", event._id);
+
+      console.log(
+        "[Stripe Checkout] Making API request to create checkout session..."
+      );
       const response = await axiosInstance.post(
         `/stripe/create-checkout-session`,
         {
@@ -678,12 +690,44 @@ const EventProfile = () => {
         }
       );
 
+      console.log("[Stripe Checkout] Response received:", response.data);
+
       if (response.data.url) {
+        console.log(
+          "[Stripe Checkout] Redirecting to Stripe checkout URL:",
+          response.data.url
+        );
         window.location = response.data.url;
+      } else {
+        console.error("[Stripe Checkout] No URL in response:", response.data);
+        toast.showError("Invalid checkout response. Please try again.");
       }
     } catch (error) {
-      console.error("Checkout error:", error);
-      toast.showError("Failed to process checkout");
+      // Log the full error object
+      console.error("[Stripe Checkout] Full error object:", error);
+
+      console.error("[Stripe Checkout] Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          withCredentials: error.config?.withCredentials,
+        },
+      });
+
+      // Log response data if available
+      if (error.response?.data) {
+        console.error(
+          "[Stripe Checkout] Server error response:",
+          error.response.data
+        );
+      }
+
+      toast.showError("Failed to process checkout. Please try again later.");
     }
   };
 

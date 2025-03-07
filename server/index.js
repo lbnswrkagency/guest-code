@@ -69,26 +69,58 @@ app.post(
     }
 
     try {
+      console.log("[Stripe Webhook] Received webhook event");
+      console.log("[Stripe Webhook] Signature:", sig);
+
       // Verify the signature using the raw body and secret
+      console.log("[Stripe Webhook] Verifying signature with endpoint secret");
       const event = stripe.webhooks.constructEvent(
         request.body,
         sig,
         endpointSecret
       );
 
+      console.log("[Stripe Webhook] Event verified successfully");
+      console.log("[Stripe Webhook] Event type:", event.type);
+      console.log("[Stripe Webhook] Event ID:", event.id);
+
       // Handle the event
       if (event.type === "checkout.session.completed") {
+        console.log(
+          "[Stripe Webhook] Processing checkout.session.completed event"
+        );
         const session = event.data.object;
+
+        console.log("[Stripe Webhook] Session ID:", session.id);
+        console.log("[Stripe Webhook] Customer:", session.customer);
+        console.log("[Stripe Webhook] Payment status:", session.payment_status);
+        console.log(
+          "[Stripe Webhook] Customer details:",
+          session.customer_details
+        );
 
         // Get the billing address from the session
         const billingAddress = session.customer_details?.address;
+        console.log("[Stripe Webhook] Billing address:", billingAddress);
 
         // Fulfill the order
+        console.log("[Stripe Webhook] Fulfilling order...");
         await fulfillOrder(session, billingAddress);
+        console.log("[Stripe Webhook] Order fulfilled successfully");
+      } else {
+        console.log(
+          "[Stripe Webhook] Ignoring non-checkout event:",
+          event.type
+        );
       }
 
+      console.log("[Stripe Webhook] Sending success response");
       response.json({ received: true });
     } catch (err) {
+      console.error("[Stripe Webhook] Error processing webhook:", {
+        message: err.message,
+        stack: err.stack,
+      });
       return response.status(400).send(`Webhook Error: ${err.message}`);
     }
   }
