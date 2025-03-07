@@ -38,12 +38,45 @@ const generateSecurityToken = async () => {
 const formatGuestCodeDate = (dateString) => {
   if (!dateString) return { day: "", date: "", time: "" };
 
-  const date = new Date(dateString);
-  return {
-    day: format(date, "EEEE"),
-    date: format(date, "dd.MM.yyyy"),
-    time: format(date, "HH:mm"),
-  };
+  try {
+    const date = new Date(dateString);
+
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      console.error("Invalid date string:", dateString);
+      return { day: "", date: "", time: "" };
+    }
+
+    // Get event time from the event object if available
+    let timeString = "";
+
+    // If the date has time information, use it
+    if (date.getHours() !== 0 || date.getMinutes() !== 0) {
+      timeString = format(date, "HH:mm");
+    } else {
+      // Default time if not specified
+      timeString = "20:00";
+    }
+
+    console.log("Formatting date:", {
+      original: dateString,
+      parsed: date,
+      formatted: {
+        day: format(date, "EEEE"),
+        date: format(date, "dd.MM.yyyy"),
+        time: timeString,
+      },
+    });
+
+    return {
+      day: format(date, "EEEE"),
+      date: format(date, "dd.MM.yyyy"),
+      time: timeString,
+    };
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return { day: "", date: "", time: "" };
+  }
 };
 
 // Generate QR code for the guest code
@@ -87,6 +120,12 @@ const generateGuestCodePDF = async (code, event) => {
 
     // Format date
     const eventDate = formatGuestCodeDate(event?.date);
+
+    // Use event's startTime if available
+    if (event?.startTime && eventDate.time === "20:00") {
+      eventDate.time = event.startTime;
+      console.log("Using event's startTime:", event.startTime);
+    }
 
     // Create HTML template for the guest code - white theme, opposite of tickets
     const htmlTemplate = `

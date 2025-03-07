@@ -235,6 +235,39 @@
               color: #4caf50;
             }
           }
+
+          &.guest-code {
+            grid-column: span 2;
+            color: #ffeb3b;
+            background: rgba(255, 200, 7, 0.1);
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.25rem;
+
+            svg {
+              color: #ffc807;
+            }
+
+            .condition-text {
+              display: inline-block;
+              font-weight: 600;
+              color: #ffc807;
+              margin-left: 4px;
+            }
+          }
+
+          &.music {
+            grid-column: span 2;
+            color: #64b5f6;
+            background: rgba(33, 150, 243, 0.1);
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.25rem;
+
+            svg {
+              color: #2196f3;
+            }
+          }
         }
       }
 
@@ -268,6 +301,10 @@
           color: rgba(255, 255, 255, 0.7);
           font-size: 0.9rem;
           margin: 0.75rem 0 1.25rem;
+          background: rgba(255, 200, 7, 0.1);
+          padding: 0.75rem;
+          border-radius: 8px;
+          border-left: 3px solid #ffc807;
         }
 
         .success-message {
@@ -417,7 +454,8 @@
         .event-info {
           grid-template-columns: 1fr 1fr 1fr;
 
-          .info-item.ticket {
+          .info-item.ticket,
+          .info-item.guest-code {
             grid-column: auto;
           }
         }

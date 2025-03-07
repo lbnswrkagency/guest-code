@@ -166,34 +166,7 @@ router.post("/create-checkout-session", async (req, res) => {
           enabled: process.env.STRIPE_ENABLE_TAX === "true",
         },
         customer_creation: "always",
-      });
-
-      session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items,
-        mode: "payment",
-        success_url: validSuccessUrl,
-        cancel_url: validCancelUrl,
-        customer_email: email,
-        billing_address_collection: "required",
-        metadata: {
-          eventId,
-          firstName,
-          lastName,
-          email,
-          ticketsCount: tickets.length,
-          tickets: JSON.stringify(tickets),
-        },
-        automatic_tax: {
-          enabled: process.env.STRIPE_ENABLE_TAX === "true",
-        },
-        customer_creation: "always",
-        // Disable Link payment option
-        payment_method_options: {
-          link: {
-            enabled: false,
-          },
-        },
+        // Note: payment_method_options.link.enabled is not supported in the current Stripe API version
       });
     } catch (stripeError) {
       console.error("[Stripe API] Stripe session creation error:", {
@@ -202,10 +175,57 @@ router.post("/create-checkout-session", async (req, res) => {
         code: stripeError.code,
         param: stripeError.param,
         detail: stripeError.detail,
-        docUrl: stripeError.doc_url,
+        docUrl: stripeError.docUrl,
+        requestId: stripeError.requestId,
+        stack: stripeError.stack,
+      });
+
+      console.error("[Stripe API] Error creating checkout session:", {
+        message: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        stack: stripeError.stack,
+      });
+
+      // Log more detailed information about the request
+      console.error("[Stripe API] Invalid request details:", {
+        param: stripeError.param,
+        detail: stripeError.detail,
+        docUrl: stripeError.docUrl,
+        statusCode: stripeError.statusCode,
         requestId: stripeError.requestId,
       });
-      throw stripeError; // Re-throw to be caught by the outer catch block
+
+      // Log Stripe configuration
+      console.error("[Stripe API] Stripe configuration:", {
+        keyProvided: !!process.env.STRIPE_SECRET_KEY,
+        keyLength: process.env.STRIPE_SECRET_KEY
+          ? process.env.STRIPE_SECRET_KEY.length
+          : 0,
+        keyPrefix: process.env.STRIPE_SECRET_KEY
+          ? process.env.STRIPE_SECRET_KEY.substring(0, 3) + "_"
+          : "none",
+        environment: process.env.NODE_ENV || "development",
+      });
+
+      // Log request details
+      console.error("[Stripe API] Request details:", {
+        body: req.body,
+        headers: {
+          host: req.headers.host,
+          origin: req.headers.origin,
+          referer: req.headers.referer,
+          "user-agent": req.headers["user-agent"],
+        },
+        baseUrl: baseUrl,
+      });
+
+      return res.status(400).json({
+        error: "Failed to create checkout session",
+        message: stripeError.message,
+        code: stripeError.code,
+        docUrl: stripeError.docUrl,
+      });
     }
 
     console.log("[Stripe API] Checkout session created successfully:", {
@@ -215,54 +235,31 @@ router.post("/create-checkout-session", async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error("[Stripe API] Error creating checkout session:", {
-      message: error.message,
-      type: error.type,
-      code: error.code,
-      stack: error.stack,
-    });
+    console.error(
+      "[Stripe API] Unhandled error in checkout session creation:",
+      {
+        message: error.message,
+        type: error.type || error.name,
+        code: error.code,
+        stack: error.stack,
+      }
+    );
 
-    // Log more details about the error
+    // Only log detailed Stripe errors if they haven't been handled already
     if (error.type === "StripeInvalidRequestError") {
-      console.error("[Stripe API] Invalid request details:", {
+      console.error("[Stripe API] Stripe API error details:", {
         param: error.param,
         detail: error.detail,
-        docUrl: error.doc_url,
+        docUrl: error.docUrl || error.doc_url,
         statusCode: error.statusCode,
         requestId: error.requestId,
       });
     }
 
-    // Check if Stripe key is valid
-    console.error("[Stripe API] Stripe configuration:", {
-      keyProvided: !!process.env.STRIPE_SECRET_KEY,
-      keyLength: process.env.STRIPE_SECRET_KEY
-        ? process.env.STRIPE_SECRET_KEY.length
-        : 0,
-      keyPrefix: process.env.STRIPE_SECRET_KEY
-        ? process.env.STRIPE_SECRET_KEY.substring(0, 3)
-        : "none",
-      environment: process.env.NODE_ENV,
-    });
-
-    // Log request details for debugging
-    console.error("[Stripe API] Request details:", {
-      body: req.body,
-      headers: {
-        host: req.headers.host,
-        origin: req.headers.origin,
-        referer: req.headers.referer,
-        "user-agent": req.headers["user-agent"],
-      },
-      baseUrl: process.env.CLIENT_BASE_URL,
-    });
-
-    // Send a more detailed error response
-    res.status(500).json({
-      error: "Failed to create checkout session",
+    // Return a generic error message to the client
+    return res.status(500).json({
+      error: "An unexpected error occurred while creating the checkout session",
       message: error.message,
-      code: error.code || "unknown",
-      type: error.type || "unknown",
     });
   }
 });

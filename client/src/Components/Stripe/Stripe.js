@@ -92,6 +92,11 @@ const Stripe = ({
           quantity: ticketQuantities[ticket._id],
         }));
 
+      if (selectedTickets.length === 0) {
+        toast.showError("Please select at least one ticket");
+        return;
+      }
+
       console.log("[Stripe Checkout] Selected tickets:", selectedTickets);
       console.log("[Stripe Checkout] Customer info:", {
         firstName,
@@ -112,6 +117,9 @@ const Stripe = ({
         "[Stripe Checkout] Endpoint path:",
         "/stripe/create-checkout-session"
       );
+
+      // Show loading state
+      toast.showInfo("Preparing checkout...");
 
       const response = await axiosInstance.post(
         `/stripe/create-checkout-session`,
@@ -271,26 +279,59 @@ const Stripe = ({
     ticketSettingsCount: ticketSettings?.length || 0,
     hasTickets: ticketSettings && ticketSettings.length > 0,
     ticketIds: ticketSettings?.map((t) => t._id) || [],
+    rawTicketData: JSON.stringify(ticketSettings),
     timestamp: new Date().toISOString(),
   });
 
-  // Validate ticket data to ensure it has required properties
-  const validatedTickets = ticketSettings.filter((ticket) => {
-    const isValid =
-      ticket &&
-      ticket._id &&
-      typeof ticket.name === "string" &&
-      typeof ticket.price === "number";
+  // Normalize and validate ticket data to ensure it has required properties
+  const validatedTickets = (ticketSettings || [])
+    .map((ticket) => {
+      // If ticket is missing required properties, try to normalize it
+      if (!ticket || typeof ticket !== "object") {
+        console.error("[Stripe] Invalid ticket data (not an object):", ticket);
+        return null;
+      }
 
-    if (!isValid) {
-      console.error("[Stripe] Invalid ticket data:", ticket);
-    }
+      // Create a normalized ticket with default values for missing properties
+      const normalizedTicket = {
+        _id: ticket._id || `temp-${Math.random().toString(36).substring(2, 9)}`,
+        name: ticket.name || "Standard Ticket",
+        description: ticket.description || "Entry ticket",
+        price: typeof ticket.price === "number" ? ticket.price : 0,
+        originalPrice:
+          typeof ticket.originalPrice === "number"
+            ? ticket.originalPrice
+            : null,
+        isLimited: !!ticket.isLimited,
+        maxTickets: ticket.maxTickets || 100,
+        soldCount: ticket.soldCount || 0,
+        hasCountdown: !!ticket.hasCountdown,
+        endDate: ticket.endDate || null,
+        eventId: ticket.eventId || eventId,
+        // Keep any other properties
+        ...ticket,
+      };
 
-    return isValid;
-  });
+      console.log("[Stripe] Normalized ticket:", {
+        id: normalizedTicket._id,
+        name: normalizedTicket.name,
+        price: normalizedTicket.price,
+        wasNormalized:
+          ticket._id !== normalizedTicket._id ||
+          ticket.name !== normalizedTicket.name ||
+          ticket.price !== normalizedTicket.price,
+      });
 
-  if (validatedTickets.length === 0 && ticketSettings.length > 0) {
-    console.error("[Stripe] No valid tickets found after validation");
+      return normalizedTicket;
+    })
+    .filter(Boolean); // Remove null entries
+
+  if (
+    validatedTickets.length === 0 &&
+    ticketSettings &&
+    ticketSettings.length > 0
+  ) {
+    console.error("[Stripe] No valid tickets found after normalization");
   }
 
   return (

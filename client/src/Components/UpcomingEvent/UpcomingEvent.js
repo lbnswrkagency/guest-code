@@ -20,6 +20,7 @@ import {
   RiInformationLine,
   RiMusic2Line,
   RiArrowRightLine,
+  RiVipCrownLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -79,26 +80,278 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
     if (events.length > 0) {
       const currentEvent = events[currentIndex];
 
+      console.log(
+        "[UpcomingEvent] Processing code settings for event:",
+        currentEvent._id,
+        "with title:",
+        currentEvent.title
+      );
+
       // Try to get the max pax from code settings
       if (currentEvent.codeSettings && currentEvent.codeSettings.length > 0) {
+        console.log(
+          "[UpcomingEvent] Code settings found:",
+          currentEvent.codeSettings.map((cs) => ({
+            type: cs.type,
+            name: cs.name,
+            condition: cs.condition,
+            maxPax: cs.maxPax,
+            isEnabled: cs.isEnabled,
+          }))
+        );
+
         const guestCodeSetting = currentEvent.codeSettings.find(
           (cs) => cs.type === "guest"
         );
-        if (guestCodeSetting && guestCodeSetting.maxPax) {
-          setMaxPax(guestCodeSetting.maxPax);
+
+        console.log("[UpcomingEvent] Guest code setting:", guestCodeSetting);
+
+        if (guestCodeSetting) {
+          // Check if we have all the necessary data
+          const hasCompleteData =
+            guestCodeSetting.maxPax !== undefined &&
+            guestCodeSetting.condition !== undefined;
+
+          console.log(
+            "[UpcomingEvent] Guest code setting has complete data:",
+            hasCompleteData
+          );
+
+          // Set maxPax if available
+          if (guestCodeSetting.maxPax) {
+            console.log(
+              "[UpcomingEvent] Setting maxPax to:",
+              guestCodeSetting.maxPax
+            );
+            setMaxPax(guestCodeSetting.maxPax);
+          } else {
+            console.warn(
+              "[UpcomingEvent] maxPax is missing or invalid:",
+              guestCodeSetting.maxPax
+            );
+          }
+
+          // Check if condition is empty or missing
+          if (!guestCodeSetting.condition && guestCodeSetting.condition !== 0) {
+            console.warn(
+              "[UpcomingEvent] Guest code condition is empty or missing, should be populated from DB"
+            );
+
+            // If we have an event ID, fetch the complete code settings
+            if (currentEvent._id) {
+              console.log(
+                "[UpcomingEvent] Attempting to fetch complete code settings for event:",
+                currentEvent._id
+              );
+              fetchCompleteCodeSettings(currentEvent._id);
+            }
+          } else {
+            console.log(
+              "[UpcomingEvent] Guest code condition is present:",
+              guestCodeSetting.condition
+            );
+          }
+
           return;
+        } else {
+          console.log(
+            "[UpcomingEvent] No guest code setting found in event code settings"
+          );
         }
+      } else {
+        console.log("[UpcomingEvent] No code settings found for event");
       }
 
       // Default max pax if no settings are found
+      console.log("[UpcomingEvent] Using default maxPax: 4");
       setMaxPax(4);
     }
   }, [currentIndex, events]);
+
+  // Function to fetch complete code settings for an event
+  const fetchCompleteCodeSettings = async (eventId) => {
+    try {
+      console.log(
+        `[UpcomingEvent] Fetching complete code settings for event: ${eventId}`
+      );
+
+      // Use the correct endpoint for code settings
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${eventId}`;
+      console.log(`[UpcomingEvent] Using endpoint: ${endpoint}`);
+
+      const response = await axiosInstance.get(endpoint);
+
+      if (response.data && response.data.codeSettings) {
+        console.log(
+          "[UpcomingEvent] Received complete code settings:",
+          response.data.codeSettings
+        );
+
+        // Find the guest code setting
+        const guestCodeSetting = response.data.codeSettings.find(
+          (cs) => cs.type === "guest"
+        );
+
+        if (guestCodeSetting) {
+          console.log(
+            "[UpcomingEvent] Complete guest code setting:",
+            guestCodeSetting
+          );
+
+          // Update the events array with the complete code settings
+          setEvents((prevEvents) => {
+            const updatedEvents = [...prevEvents];
+            const currentEvent = updatedEvents[currentIndex];
+
+            // Find the index of the guest code setting in the current event
+            const settingIndex = currentEvent.codeSettings.findIndex(
+              (cs) => cs.type === "guest"
+            );
+
+            if (settingIndex !== -1) {
+              // Update the guest code setting with all the complete data
+              currentEvent.codeSettings[settingIndex] = {
+                ...currentEvent.codeSettings[settingIndex],
+                condition: guestCodeSetting.condition || "",
+                maxPax: guestCodeSetting.maxPax || 1,
+                limit: guestCodeSetting.limit || 0,
+                isEnabled:
+                  guestCodeSetting.isEnabled !== undefined
+                    ? guestCodeSetting.isEnabled
+                    : false,
+                isEditable:
+                  guestCodeSetting.isEditable !== undefined
+                    ? guestCodeSetting.isEditable
+                    : false,
+              };
+
+              // Also update the maxPax state
+              if (guestCodeSetting.maxPax) {
+                setMaxPax(guestCodeSetting.maxPax);
+              }
+
+              console.log(
+                "[UpcomingEvent] Updated guest code setting in event:",
+                currentEvent.codeSettings[settingIndex]
+              );
+            }
+
+            return updatedEvents;
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        "[UpcomingEvent] Error fetching complete code settings:",
+        error
+      );
+
+      // Log more details about the error
+      if (error.response) {
+        console.error("[UpcomingEvent] Error response:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+      } else if (error.request) {
+        console.error("[UpcomingEvent] Error request:", error.request);
+      } else {
+        console.error("[UpcomingEvent] Error message:", error.message);
+      }
+
+      // Try an alternative endpoint as fallback
+      try {
+        console.log(
+          "[UpcomingEvent] Trying alternative endpoint for code settings"
+        );
+        const alternativeEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/${eventId}`;
+        console.log(
+          `[UpcomingEvent] Using alternative endpoint: ${alternativeEndpoint}`
+        );
+
+        const response = await axiosInstance.get(alternativeEndpoint);
+
+        if (response.data && response.data.codeSettings) {
+          console.log(
+            "[UpcomingEvent] Received code settings from event endpoint:",
+            response.data.codeSettings
+          );
+
+          // Find the guest code setting
+          const guestCodeSetting = response.data.codeSettings.find(
+            (cs) => cs.type === "guest"
+          );
+
+          if (guestCodeSetting) {
+            console.log(
+              "[UpcomingEvent] Guest code setting from event endpoint:",
+              guestCodeSetting
+            );
+
+            // Update the events array with the complete code settings
+            setEvents((prevEvents) => {
+              const updatedEvents = [...prevEvents];
+              const currentEvent = updatedEvents[currentIndex];
+
+              // Find the index of the guest code setting in the current event
+              const settingIndex = currentEvent.codeSettings.findIndex(
+                (cs) => cs.type === "guest"
+              );
+
+              if (settingIndex !== -1) {
+                // Update the guest code setting with all the complete data
+                currentEvent.codeSettings[settingIndex] = {
+                  ...currentEvent.codeSettings[settingIndex],
+                  condition: guestCodeSetting.condition || "",
+                  maxPax: guestCodeSetting.maxPax || 1,
+                  limit: guestCodeSetting.limit || 0,
+                  isEnabled:
+                    guestCodeSetting.isEnabled !== undefined
+                      ? guestCodeSetting.isEnabled
+                      : false,
+                  isEditable:
+                    guestCodeSetting.isEditable !== undefined
+                      ? guestCodeSetting.isEditable
+                      : false,
+                };
+
+                // Also update the maxPax state
+                if (guestCodeSetting.maxPax) {
+                  setMaxPax(guestCodeSetting.maxPax);
+                }
+
+                console.log(
+                  "[UpcomingEvent] Updated guest code setting from alternative endpoint:",
+                  currentEvent.codeSettings[settingIndex]
+                );
+              }
+
+              return updatedEvents;
+            });
+          }
+        }
+      } catch (fallbackError) {
+        console.error(
+          "[UpcomingEvent] Error with alternative endpoint:",
+          fallbackError
+        );
+      }
+    }
+  };
 
   // Fetch ticket settings when the current event changes
   useEffect(() => {
     if (events.length > 0) {
       const currentEvent = events[currentIndex];
+
+      // Ensure ticketsAvailable property exists
+      if (currentEvent.ticketsAvailable === undefined) {
+        console.log(
+          "[UpcomingEvent] ticketsAvailable property is undefined, setting default to true"
+        );
+        currentEvent.ticketsAvailable = true; // Default to true if not specified
+      }
+
       console.log(
         "[UpcomingEvent] Current event changed, fetching ticket settings:",
         {
@@ -138,6 +391,19 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
         hasCountdown: false,
         eventId: eventId,
       },
+      {
+        _id: `early-${eventId}`,
+        name: "Early Bird",
+        description: "Limited early bird discount",
+        price: 15.0,
+        originalPrice: 25.0,
+        isLimited: true,
+        maxTickets: 50,
+        soldCount: 35,
+        hasCountdown: true,
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        eventId: eventId,
+      },
     ];
   };
 
@@ -156,82 +422,72 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
         "[UpcomingEvent] Fetching ticket settings for event:",
         eventId
       );
-      console.log(
-        "[UpcomingEvent] Using API URL:",
-        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
-      );
 
-      // Try the first endpoint format
-      try {
-        console.log("[UpcomingEvent] Attempting first endpoint format...");
-        const response = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`
-        );
-        console.log("[UpcomingEvent] First endpoint response:", response);
+      // Try different API endpoints in sequence
+      const endpoints = [
+        // First try with full URL
+        `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`,
+        // Then try with relative URL
+        `/ticket-settings/events/${eventId}`,
+        // Then try alternative format
+        `/ticket-settings/event/${eventId}`,
+        // Then try another alternative
+        `/api/ticket-settings/events/${eventId}`,
+      ];
 
-        if (response.data && response.data.ticketSettings) {
-          console.log(
-            "[UpcomingEvent] Setting ticket settings from first endpoint:",
-            response.data.ticketSettings
-          );
-          setTicketSettings(response.data.ticketSettings);
-          setLoadingTickets(false);
-          return;
-        } else if (response.data && Array.isArray(response.data)) {
-          console.log(
-            "[UpcomingEvent] Setting ticket settings array from first endpoint:",
-            response.data
-          );
-          setTicketSettings(response.data);
-          setLoadingTickets(false);
-          return;
-        }
-      } catch (error) {
-        console.log("[UpcomingEvent] First endpoint failed:", error.message);
-      }
+      let ticketsData = null;
+      let successEndpoint = null;
 
-      // Try the second endpoint format as fallback
-      try {
-        console.log("[UpcomingEvent] Attempting second endpoint format...");
-        const fallbackResponse = await axiosInstance.get(
-          `/ticket-settings/event/${eventId}`
-        );
-        console.log(
-          "[UpcomingEvent] Second endpoint response:",
-          fallbackResponse
-        );
+      // Try each endpoint until one works
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`[UpcomingEvent] Trying endpoint: ${endpoint}`);
+          const response = await axiosInstance.get(endpoint);
+          console.log(`[UpcomingEvent] Response from ${endpoint}:`, response);
 
-        if (fallbackResponse.data) {
-          if (Array.isArray(fallbackResponse.data)) {
-            console.log(
-              "[UpcomingEvent] Setting ticket settings from second endpoint:",
-              fallbackResponse.data
-            );
-            setTicketSettings(fallbackResponse.data);
-            setLoadingTickets(false);
-            return;
-          } else if (fallbackResponse.data.ticketSettings) {
-            console.log(
-              "[UpcomingEvent] Setting ticket settings from second endpoint:",
-              fallbackResponse.data.ticketSettings
-            );
-            setTicketSettings(fallbackResponse.data.ticketSettings);
-            setLoadingTickets(false);
-            return;
+          if (response.data) {
+            if (
+              response.data.ticketSettings &&
+              Array.isArray(response.data.ticketSettings)
+            ) {
+              ticketsData = response.data.ticketSettings;
+              successEndpoint = endpoint;
+              break;
+            } else if (Array.isArray(response.data)) {
+              ticketsData = response.data;
+              successEndpoint = endpoint;
+              break;
+            } else if (
+              response.data.tickets &&
+              Array.isArray(response.data.tickets)
+            ) {
+              ticketsData = response.data.tickets;
+              successEndpoint = endpoint;
+              break;
+            }
           }
+        } catch (error) {
+          console.log(
+            `[UpcomingEvent] Endpoint ${endpoint} failed:`,
+            error.message
+          );
         }
-      } catch (fallbackError) {
-        console.log(
-          "[UpcomingEvent] Second endpoint failed:",
-          fallbackError.message
-        );
       }
 
-      // If we get here, both attempts failed but didn't throw an error that was caught by the outer catch
-      console.log(
-        "[UpcomingEvent] No valid ticket settings found in any response"
-      );
-      setTicketSettings([]);
+      if (ticketsData && ticketsData.length > 0) {
+        console.log(
+          `[UpcomingEvent] Successfully fetched tickets from ${successEndpoint}:`,
+          ticketsData
+        );
+        setTicketSettings(ticketsData);
+      } else {
+        console.log(
+          "[UpcomingEvent] No valid ticket data found from any endpoint"
+        );
+        // Use sample tickets for testing if needed
+        // setTicketSettings(createSampleTicket(eventId));
+        setTicketSettings([]);
+      }
     } catch (error) {
       console.error("[UpcomingEvent] Error fetching ticket settings:", error);
       console.error("[UpcomingEvent] Error details:", {
@@ -691,6 +947,24 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   const currentEvent = events[currentIndex];
   const eventImage = getEventImage();
 
+  // Add console log to check code settings
+  console.log(
+    "[UpcomingEvent] Current event code settings:",
+    currentEvent?.codeSettings
+  );
+
+  // Add more detailed logging for guest code settings
+  if (currentEvent?.codeSettings) {
+    const guestCodeSetting = currentEvent.codeSettings.find(
+      (cs) => cs.type === "guest"
+    );
+    console.log("[UpcomingEvent] Guest code setting:", guestCodeSetting);
+    console.log(
+      "[UpcomingEvent] Guest code condition:",
+      guestCodeSetting?.condition
+    );
+  }
+
   return (
     <div className="upcoming-event-container">
       <div className="event-navigation">
@@ -774,18 +1048,35 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                 <RiMapPinLine />
                 <span>{currentEvent.location || "TBA"}</span>
               </div>
-              {currentEvent.music && (
-                <div className="info-item">
-                  <RiMusic2Line />
-                  <span>{currentEvent.music}</span>
-                </div>
-              )}
               {currentEvent.ticketsAvailable && (
                 <div className="info-item ticket">
                   <RiTicketLine />
                   <span>Tickets Available</span>
                 </div>
               )}
+              {currentEvent.codeSettings &&
+                currentEvent.codeSettings.find((cs) => cs.type === "guest") && (
+                  <div className="info-item guest-code">
+                    <RiVipCrownLine />
+                    <span>
+                      Guest Code Available
+                      {(() => {
+                        const guestCodeSetting = currentEvent.codeSettings.find(
+                          (cs) => cs.type === "guest"
+                        );
+                        if (guestCodeSetting && guestCodeSetting.condition) {
+                          return (
+                            <span className="condition-text">
+                              {" "}
+                              - {guestCodeSetting.condition}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </span>
+                  </div>
+                )}
             </div>
 
             {/* Action Buttons - Moved below event info */}
@@ -837,16 +1128,26 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
               {/* Condition text from code settings if available */}
               {currentEvent.codeSettings &&
-                currentEvent.codeSettings.find((cs) => cs.type === "guest")
-                  ?.condition && (
-                  <p className="condition-text">
-                    {
-                      currentEvent.codeSettings.find(
-                        (cs) => cs.type === "guest"
-                      ).condition
-                    }
-                  </p>
-                )}
+              currentEvent.codeSettings.find((cs) => cs.type === "guest")
+                ?.condition ? (
+                <p className="condition-text">
+                  {(() => {
+                    const guestCodeSetting = currentEvent.codeSettings.find(
+                      (cs) => cs.type === "guest"
+                    );
+                    console.log(
+                      "[UpcomingEvent] Displaying condition in guest code section:",
+                      guestCodeSetting.condition
+                    );
+                    return guestCodeSetting.condition;
+                  })()}
+                </p>
+              ) : (
+                <p className="condition-text">
+                  Fill in your details below to request a guest code for this
+                  event.
+                </p>
+              )}
 
               {/* Success message */}
               {successMessage && (
@@ -971,7 +1272,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                           timestamp: new Date().toISOString(),
                         }
                       )}
-                      {/* <Stripe
+                      <Stripe
                         ticketSettings={ticketSettings}
                         eventId={currentEvent._id}
                         colors={{
@@ -987,7 +1288,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                           toast.showSuccess("Redirecting to checkout...");
                           setLoadingTickets(false);
                         }}
-                      /> */}
+                      />
                     </>
                   ) : (
                     <div className="no-tickets-message">
@@ -1042,18 +1343,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             >
               See Full Event <RiArrowRightLine />
             </button>
-
-            {currentEvent.music && (
-              <p className="music">
-                <span>Music:</span> {currentEvent.music}
-              </p>
-            )}
-
-            {currentEvent.ticketsAvailable && (
-              <p className="tickets">
-                <span>Tickets:</span> Available
-              </p>
-            )}
           </div>
         </motion.div>
       </AnimatePresence>

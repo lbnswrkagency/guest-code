@@ -66,25 +66,22 @@ const BrandProfile = () => {
 
   // Clean username for API calls - handle both param and direct path extraction
   let cleanUsername;
-  if (brandUsername) {
-    // Normal route param
-    cleanUsername = brandUsername.replace(/^@/, "");
-  } else if (location.pathname.startsWith("/@")) {
-    // Direct path matching
-    // Extract only the username part, not including any date slug
-    const pathParts = location.pathname.substring(2).split("/");
-    cleanUsername = pathParts[0]; // Take only the first part after /@
-  }
 
   // For nested paths like /@hendricks/@whitechocolate, we want the last username
-  if (
-    location.pathname.includes("/@") &&
-    location.pathname.lastIndexOf("/@") > 0
-  ) {
-    const lastPath = location.pathname.substring(
-      location.pathname.lastIndexOf("/@") + 1
-    );
-    cleanUsername = lastPath.replace(/^@/, "");
+  if (location.pathname.includes("/@")) {
+    // Find the last occurrence of /@
+    const lastAtIndex = location.pathname.lastIndexOf("/@");
+    if (lastAtIndex >= 0) {
+      // Extract everything after the last /@
+      const lastPath = location.pathname.substring(lastAtIndex + 1);
+      // Remove @ if present and get the username part (before any slashes)
+      cleanUsername = lastPath.replace(/^@/, "").split("/")[0];
+    }
+  }
+
+  // If we still don't have a username, try the route param
+  if (!cleanUsername && brandUsername) {
+    cleanUsername = brandUsername.replace(/^@/, "");
   }
 
   // Enhanced logging for debugging
@@ -93,8 +90,7 @@ const BrandProfile = () => {
     cleanUsername,
     rawParams: useParams(),
     pathname: location.pathname,
-    pathParts: location.pathname.substring(2).split("/"),
-    isExactMatch: location.pathname === `/@${cleanUsername}`,
+    lastAtIndex: location.pathname.lastIndexOf("/@"),
     timestamp: new Date().toISOString(),
   });
 
