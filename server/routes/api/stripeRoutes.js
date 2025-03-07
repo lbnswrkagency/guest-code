@@ -52,7 +52,7 @@ router.post("/create-checkout-session", async (req, res) => {
 
     const line_items = tickets.map((ticket) => ({
       price_data: {
-        currency: "usd",
+        currency: "eur",
         product_data: {
           name: ticket.name,
           description: ticket.description || undefined,
@@ -64,26 +64,66 @@ router.post("/create-checkout-session", async (req, res) => {
     console.log("[Stripe API] Prepared line items:", line_items);
 
     console.log("[Stripe API] Creating Stripe checkout session...");
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items,
-      mode: "payment",
-      success_url: `${baseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`,
-      cancel_url: `${baseUrl}/events/${eventId}`,
-      customer_email: email,
-      billing_address_collection: "required",
-      metadata: {
-        eventId,
-        firstName,
-        lastName,
-        email,
-        tickets: JSON.stringify(tickets),
-      },
-      automatic_tax: {
-        enabled: true,
-      },
-      customer_creation: "always",
-    });
+    let session;
+    try {
+      // Log the session parameters for debugging
+      console.log("[Stripe API] Session parameters:", {
+        payment_method_types: ["card"],
+        line_items: line_items.map((item) => ({
+          currency: item.price_data.currency,
+          amount: item.price_data.unit_amount,
+          name: item.price_data.product_data.name,
+          quantity: item.quantity,
+        })),
+        mode: "payment",
+        success_url: `${baseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`,
+        cancel_url: `${baseUrl}/events/${eventId}`,
+        customer_email: email,
+        metadata: {
+          eventId,
+          firstName,
+          lastName,
+          email,
+          ticketsCount: tickets.length,
+        },
+        automatic_tax: {
+          enabled: process.env.STRIPE_ENABLE_TAX === "true",
+        },
+      });
+
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items,
+        mode: "payment",
+        success_url: `${baseUrl}/paid?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`,
+        cancel_url: `${baseUrl}/events/${eventId}`,
+        customer_email: email,
+        billing_address_collection: "required",
+        metadata: {
+          eventId,
+          firstName,
+          lastName,
+          email,
+          tickets: JSON.stringify(tickets),
+        },
+        automatic_tax: {
+          enabled: process.env.STRIPE_ENABLE_TAX === "true",
+        },
+        customer_creation: "always",
+      });
+    } catch (stripeError) {
+      console.error("[Stripe API] Stripe session creation error:", {
+        message: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        param: stripeError.param,
+        detail: stripeError.detail,
+        docUrl: stripeError.doc_url,
+        requestId: stripeError.requestId,
+      });
+      throw stripeError; // Re-throw to be caught by the outer catch block
+    }
+
     console.log("[Stripe API] Checkout session created successfully:", {
       sessionId: session.id,
       url: session.url,
@@ -98,11 +138,47 @@ router.post("/create-checkout-session", async (req, res) => {
       stack: error.stack,
     });
 
+    // Log more details about the error
+    if (error.type === "StripeInvalidRequestError") {
+      console.error("[Stripe API] Invalid request details:", {
+        param: error.param,
+        detail: error.detail,
+        docUrl: error.doc_url,
+        statusCode: error.statusCode,
+        requestId: error.requestId,
+      });
+    }
+
+    // Check if Stripe key is valid
+    console.error("[Stripe API] Stripe configuration:", {
+      keyProvided: !!process.env.STRIPE_SECRET_KEY,
+      keyLength: process.env.STRIPE_SECRET_KEY
+        ? process.env.STRIPE_SECRET_KEY.length
+        : 0,
+      keyPrefix: process.env.STRIPE_SECRET_KEY
+        ? process.env.STRIPE_SECRET_KEY.substring(0, 3)
+        : "none",
+      environment: process.env.NODE_ENV,
+    });
+
+    // Log request details for debugging
+    console.error("[Stripe API] Request details:", {
+      body: req.body,
+      headers: {
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        "user-agent": req.headers["user-agent"],
+      },
+      baseUrl: process.env.CLIENT_BASE_URL,
+    });
+
     // Send a more detailed error response
     res.status(500).json({
       error: "Failed to create checkout session",
       message: error.message,
       code: error.code || "unknown",
+      type: error.type || "unknown",
     });
   }
 });

@@ -679,6 +679,16 @@ const EventProfile = () => {
       console.log(
         "[Stripe Checkout] Making API request to create checkout session..."
       );
+      // Log the API base URL for debugging
+      console.log(
+        "[Stripe Checkout] API base URL:",
+        process.env.REACT_APP_API_BASE_URL
+      );
+      console.log(
+        "[Stripe Checkout] Endpoint path:",
+        "/stripe/create-checkout-session"
+      );
+
       const response = await axiosInstance.post(
         `/stripe/create-checkout-session`,
         {
@@ -706,17 +716,25 @@ const EventProfile = () => {
       // Log the full error object
       console.error("[Stripe Checkout] Full error object:", error);
 
+      // Log detailed error information
       console.error("[Stripe Checkout] Error details:", {
         message: error.message,
+        name: error.name,
+        code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          withCredentials: error.config?.withCredentials,
-        },
+        stack: error.stack,
+      });
+
+      // Log request configuration
+      console.error("[Stripe Checkout] Request configuration:", {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        withCredentials: error.config?.withCredentials,
+        data: error.config?.data ? JSON.parse(error.config?.data) : null,
       });
 
       // Log response data if available
@@ -727,7 +745,24 @@ const EventProfile = () => {
         );
       }
 
-      toast.showError("Failed to process checkout. Please try again later.");
+      // Try to get a more specific error message
+      let errorMessage = "Failed to process checkout. Please try again later.";
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast.showError(errorMessage);
+
+      // Log the error to the server if you have error tracking
+      console.error("[Stripe Checkout] Error occurred during checkout:", {
+        eventId: event._id,
+        customerEmail: email,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorStatus: error.response?.status,
+      });
     }
   };
 
