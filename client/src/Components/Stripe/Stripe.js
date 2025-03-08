@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import "./Stripe.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
+import axios from "axios";
 
 /**
  * Reusable Stripe checkout component
@@ -25,19 +26,16 @@ const Stripe = ({
   },
   onCheckoutComplete,
 }) => {
-  console.log("[Stripe] Component initialized with props:", {
-    ticketSettingsCount: ticketSettings?.length || 0,
-    ticketSettingsData: ticketSettings,
-    eventId,
-    timestamp: new Date().toISOString(),
-  });
-
-  const toast = useToast();
-
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [formTouched, setFormTouched] = useState({});
+
+  // Get toast context
+  const toast = useToast();
 
   // Ticket quantities
   const [ticketQuantities, setTicketQuantities] = useState({});
@@ -45,8 +43,10 @@ const Stripe = ({
   // Countdown timers for early bird tickets
   const [countdowns, setCountdowns] = useState({});
 
-  // Loading state
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const axiosInstance = axios.create({
+    baseURL: process.env.REACT_APP_API_BASE_URL,
+    withCredentials: true,
+  });
 
   // Handle ticket quantity changes
   const handleQuantityChange = (ticketId, change) => {
@@ -70,28 +70,87 @@ const Stripe = ({
     (quantity) => quantity > 0
   );
 
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Validate form
   const isFormValid = () => {
-    return (
-      firstName &&
-      lastName &&
-      email &&
-      email.includes("@") &&
-      hasSelectedTickets
-    );
+    const errors = {};
+
+    if (!firstName.trim()) {
+      errors.firstName = "First name is required";
+    }
+
+    if (!lastName.trim()) {
+      errors.lastName = "Last name is required";
+    }
+
+    if (!email.trim()) {
+      errors.email = "Email is required";
+    } else if (!isValidEmail(email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!hasSelectedTickets) {
+      errors.tickets = "Please select at least one ticket";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle field change
+  const handleFieldChange = (field, value) => {
+    // Update form touched state
+    setFormTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+
+    // Update field value
+    switch (field) {
+      case "firstName":
+        setFirstName(value);
+        break;
+      case "lastName":
+        setLastName(value);
+        break;
+      case "email":
+        setEmail(value);
+        break;
+      default:
+        break;
+    }
+
+    // Clear error for this field if it exists
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [field]: null,
+      }));
+    }
   };
 
   // Handle checkout
   const handleCheckout = async () => {
-    // Prevent multiple clicks
-    if (isCheckoutLoading) {
-      console.log(
-        "[Stripe Checkout] Checkout already in progress, ignoring click"
-      );
+    // Validate form before proceeding
+    if (!isFormValid()) {
+      // Show toast for validation errors
+      if (formErrors.tickets) {
+        toast.showError(formErrors.tickets);
+      } else if (Object.keys(formErrors).length > 0) {
+        toast.showError("Please fill in all required fields correctly");
+      }
       return;
     }
 
-    console.log("[Stripe Checkout] Starting checkout process...");
+    // Prevent multiple clicks
+    if (isCheckoutLoading) {
+      return;
+    }
 
     // Create a reference to the loading toast
     let loadingToast = null;
@@ -115,27 +174,6 @@ const Stripe = ({
         return;
       }
 
-      console.log("[Stripe Checkout] Selected tickets:", selectedTickets);
-      console.log("[Stripe Checkout] Customer info:", {
-        firstName,
-        lastName,
-        email,
-      });
-      console.log("[Stripe Checkout] Event ID:", eventId);
-
-      console.log(
-        "[Stripe Checkout] Making API request to create checkout session..."
-      );
-      // Log the API base URL for debugging
-      console.log(
-        "[Stripe Checkout] API base URL:",
-        process.env.REACT_APP_API_BASE_URL
-      );
-      console.log(
-        "[Stripe Checkout] Endpoint path:",
-        "/stripe/create-checkout-session"
-      );
-
       // Show loading state with the loading toast
       loadingToast = toast.showLoading("Preparing checkout...");
 
@@ -150,14 +188,7 @@ const Stripe = ({
         }
       );
 
-      console.log("[Stripe Checkout] Response received:", response.data);
-
       if (response.data.url) {
-        console.log(
-          "[Stripe Checkout] Redirecting to Stripe checkout URL:",
-          response.data.url
-        );
-
         // Update the loading toast to show success
         if (loadingToast) {
           loadingToast.update({
@@ -182,8 +213,6 @@ const Stripe = ({
           window.location = response.data.url;
         }, 500);
       } else {
-        console.error("[Stripe Checkout] No URL in response:", response.data);
-
         // Dismiss the loading toast
         if (loadingToast) {
           loadingToast.dismiss();
@@ -193,38 +222,6 @@ const Stripe = ({
         setIsCheckoutLoading(false);
       }
     } catch (error) {
-      // Log the full error object
-      console.error("[Stripe Checkout] Full error object:", error);
-
-      // Log detailed error information
-      console.error("[Stripe Checkout] Error details:", {
-        message: error.message,
-        name: error.name,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        stack: error.stack,
-      });
-
-      // Log request configuration
-      console.error("[Stripe Checkout] Request configuration:", {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        withCredentials: error.config?.withCredentials,
-        data: error.config?.data ? JSON.parse(error.config?.data) : null,
-      });
-
-      // Log response data if available
-      if (error.response?.data) {
-        console.error(
-          "[Stripe Checkout] Server error response:",
-          error.response.data
-        );
-      }
-
       // Dismiss the loading toast
       if (loadingToast) {
         loadingToast.dismiss();
@@ -263,14 +260,6 @@ const Stripe = ({
   useEffect(() => {
     if (!ticketSettings || ticketSettings.length === 0) return;
 
-    console.log("[Stripe] Setting up countdowns for tickets:", {
-      ticketCount: ticketSettings.length,
-      ticketsWithCountdown: ticketSettings.filter(
-        (t) => t.hasCountdown && t.endDate
-      ).length,
-      timestamp: new Date().toISOString(),
-    });
-
     // Initialize countdowns
     const initialCountdowns = {};
     ticketSettings.forEach((ticket) => {
@@ -308,63 +297,38 @@ const Stripe = ({
     return () => clearInterval(interval);
   }, [ticketSettings]);
 
-  console.log("[Stripe] Rendering component with:", {
-    ticketSettingsCount: ticketSettings?.length || 0,
-    hasTickets: ticketSettings && ticketSettings.length > 0,
-    ticketIds: ticketSettings?.map((t) => t._id) || [],
-    rawTicketData: JSON.stringify(ticketSettings),
-    timestamp: new Date().toISOString(),
-  });
-
   // Normalize and validate ticket data to ensure it has required properties
-  const validatedTickets = (ticketSettings || [])
+  const validatedTickets = ticketSettings
     .map((ticket) => {
-      // If ticket is missing required properties, try to normalize it
       if (!ticket || typeof ticket !== "object") {
-        console.error("[Stripe] Invalid ticket data (not an object):", ticket);
         return null;
       }
 
-      // Create a normalized ticket with default values for missing properties
+      // Ensure ticket has required properties
       const normalizedTicket = {
-        _id: ticket._id || `temp-${Math.random().toString(36).substring(2, 9)}`,
-        name: ticket.name || "Standard Ticket",
-        description: ticket.description || "Entry ticket",
-        price: typeof ticket.price === "number" ? ticket.price : 0,
-        originalPrice:
-          typeof ticket.originalPrice === "number"
-            ? ticket.originalPrice
-            : null,
-        isLimited: !!ticket.isLimited,
-        maxTickets: ticket.maxTickets || 100,
-        soldCount: ticket.soldCount || 0,
-        hasCountdown: !!ticket.hasCountdown,
+        _id: ticket._id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
+        name: ticket.name || "Unnamed Ticket",
+        description: ticket.description || "",
+        price: parseFloat(ticket.price) || 0,
+        quantity: ticket.quantity || 0,
+        available: ticket.available !== undefined ? ticket.available : true,
+        hasCountdown: !!ticket.endDate,
         endDate: ticket.endDate || null,
-        eventId: ticket.eventId || eventId,
-        // Keep any other properties
         ...ticket,
       };
 
-      console.log("[Stripe] Normalized ticket:", {
-        id: normalizedTicket._id,
-        name: normalizedTicket.name,
-        price: normalizedTicket.price,
-        wasNormalized:
-          ticket._id !== normalizedTicket._id ||
-          ticket.name !== normalizedTicket.name ||
-          ticket.price !== normalizedTicket.price,
-      });
-
       return normalizedTicket;
     })
-    .filter(Boolean); // Remove null entries
+    .filter(Boolean);
 
-  if (
-    validatedTickets.length === 0 &&
-    ticketSettings &&
-    ticketSettings.length > 0
-  ) {
-    console.error("[Stripe] No valid tickets found after normalization");
+  if (!validatedTickets || validatedTickets.length === 0) {
+    return (
+      <div className="stripe-checkout">
+        <div className="no-tickets-message">
+          No valid ticket options available.
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -372,12 +336,6 @@ const Stripe = ({
       <div className="tickets-container">
         {validatedTickets && validatedTickets.length > 0 ? (
           validatedTickets.map((ticket, index) => {
-            console.log("[Stripe] Rendering ticket:", {
-              ticketId: ticket._id,
-              ticketName: ticket.name,
-              ticketPrice: ticket.price,
-              index,
-            });
             return (
               <motion.div
                 key={ticket._id}
@@ -580,38 +538,74 @@ const Stripe = ({
           <span>{calculateTotal()}€</span>
         </div>
 
-        {hasSelectedTickets && (
+        {calculateTotal() > 0 && (
           <div className="checkout-form">
-            <div className="form-group">
+            <div
+              className={`form-group ${
+                formTouched.firstName && formErrors.firstName ? "error" : ""
+              }`}
+            >
               <input
                 type="text"
                 placeholder="First Name"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => handleFieldChange("firstName", e.target.value)}
+                className={
+                  formTouched.firstName && formErrors.firstName ? "error" : ""
+                }
               />
+              {formTouched.firstName && formErrors.firstName && (
+                <div className="error-message">{formErrors.firstName}</div>
+              )}
             </div>
-            <div className="form-group">
+            <div
+              className={`form-group ${
+                formTouched.lastName && formErrors.lastName ? "error" : ""
+              }`}
+            >
               <input
                 type="text"
                 placeholder="Last Name"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => handleFieldChange("lastName", e.target.value)}
+                className={
+                  formTouched.lastName && formErrors.lastName ? "error" : ""
+                }
               />
+              {formTouched.lastName && formErrors.lastName && (
+                <div className="error-message">{formErrors.lastName}</div>
+              )}
             </div>
-            <div className="form-group">
+            <div
+              className={`form-group ${
+                formTouched.email && formErrors.email ? "error" : ""
+              }`}
+            >
               <input
                 type="email"
                 placeholder="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleFieldChange("email", e.target.value)}
+                className={formTouched.email && formErrors.email ? "error" : ""}
+                onBlur={() => {
+                  if (email && !isValidEmail(email)) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      email: "Please enter a valid email address",
+                    }));
+                  }
+                }}
               />
+              {formTouched.email && formErrors.email && (
+                <div className="error-message">{formErrors.email}</div>
+              )}
             </div>
             <motion.button
               className="checkout-button"
               onClick={handleCheckout}
               whileHover={{ scale: isCheckoutLoading ? 1 : 1.02 }}
               whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
-              disabled={!isFormValid() || isCheckoutLoading}
+              disabled={isCheckoutLoading}
               style={{
                 backgroundColor: colors.primary,
                 opacity: isCheckoutLoading ? 0.7 : 1,

@@ -14,6 +14,13 @@ import {
   RiBroadcastLine,
   RiEyeLine,
   RiEyeOffLine,
+  RiArrowLeftLine,
+  RiSettings3Line,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiCalendarLine,
+  RiGlobalLine,
+  RiRepeatLine,
 } from "react-icons/ri";
 import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
@@ -24,6 +31,7 @@ import { useToast } from "../Toast/ToastContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import AuthContext from "../../contexts/AuthContext";
 import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 
 // Helper function to check if a user has permissions to edit an event
 const hasEventPermissions = (event, user, userBrands) => {
@@ -222,31 +230,19 @@ const Events = () => {
   const fetchEvents = async () => {
     if (!selectedBrand?._id) return;
 
-    const loadingToast = toast.showLoading("Loading events...");
     try {
       console.log("Fetching events for brand:", selectedBrand._id);
       const response = await axiosInstance.get(
         `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`
       );
-      console.log("Events response:", {
-        count: response.data?.length,
-        firstEvent: response.data?.[0]
-          ? {
-              id: response.data[0]._id,
-              title: response.data[0].title,
-              hasLineups: !!response.data[0].lineups,
-              lineupCount: response.data[0].lineups?.length,
-            }
-          : null,
-      });
-      setEvents(response.data || []);
+      console.log("Events fetched:", response.data);
+      setEvents(response.data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.showError("Failed to load events");
       setEvents([]);
-    } finally {
       setLoading(false);
-      loadingToast.dismiss();
     }
   };
 
@@ -531,11 +527,30 @@ const Events = () => {
           )}
         </div>
 
-        {userBrands && userBrands.length > 0 && (
+        {/* Loading State */}
+        {loading && (
+          <div className="events-loading-container">
+            <LoadingSpinner size="large" color="primary" />
+          </div>
+        )}
+
+        {/* No Brands State - Only show when not loading and brands are loaded */}
+        {!loading && brandsLoaded && userBrands.length === 0 && (
+          <div className="no-brands-message">
+            <p>You don't have any brands yet.</p>
+            <button
+              className="create-brand-button"
+              onClick={() => navigate("/dashboard/brands/new")}
+            >
+              Create Brand
+            </button>
+          </div>
+        )}
+
+        {/* Events Grid - Only show when not loading and has brands */}
+        {!loading && userBrands.length > 0 && (
           <div className="events-grid">
-            {loading ? (
-              <div className="loading-state">Loading events...</div>
-            ) : events.length > 0 ? (
+            {events.length > 0 ? (
               <>
                 {events.map((event) => (
                   <EventCard

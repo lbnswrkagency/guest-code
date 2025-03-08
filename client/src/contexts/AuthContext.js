@@ -144,6 +144,12 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      console.log("[AuthContext] Attempting login with:", {
+        credential: credentials.email,
+        isEmail: credentials.email.includes("@"),
+        timestamp: new Date().toISOString(),
+      });
+
       const response = await axiosInstance.post("/auth/login", credentials);
 
       // Clean the username when logging in
@@ -151,6 +157,15 @@ const AuthProviderWithRouter = ({ children }) => {
         response.data.user.username = cleanUsername(
           response.data.user.username
         );
+
+        console.log("[AuthContext] Login successful:", {
+          userId: response.data.user._id,
+          username: response.data.user.username,
+          email: response.data.user.email,
+          hasToken: !!response.data.token,
+          hasRefreshToken: !!response.data.refreshToken,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       localStorage.setItem("token", response.data.token);
@@ -164,6 +179,15 @@ const AuthProviderWithRouter = ({ children }) => {
 
       navigate(`/@${response.data.user.username}`);
     } catch (error) {
+      console.error("[AuthContext] Login failed:", {
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        credential: credentials.email,
+        isEmail: credentials.email.includes("@"),
+        timestamp: new Date().toISOString(),
+      });
+
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);

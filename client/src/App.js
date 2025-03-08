@@ -33,6 +33,7 @@ import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
+import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
 
 // Main routing component
 const AppRoutes = () => {
@@ -537,9 +538,11 @@ function App() {
             <NotificationProvider>
               <Toaster position="top-center" />
               <ToastProvider>
-                <div className="app">
-                  <AppRoutes />
-                </div>
+                <DeviceRestriction>
+                  <div className="app">
+                    <AppRoutes />
+                  </div>
+                </DeviceRestriction>
               </ToastProvider>
             </NotificationProvider>
           </ChatProvider>

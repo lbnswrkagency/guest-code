@@ -83,7 +83,7 @@ const DashboardHeader = ({
         (typeof selectedBrand.owner === "object" &&
           selectedBrand.owner._id === user._id)
       ) {
-        setUserRole(`Owner ${selectedBrand.name}`);
+        setUserRole("Owner");
         return;
       }
 
@@ -106,13 +106,13 @@ const DashboardHeader = ({
               teamMember.role.slice(1).toLowerCase();
           }
 
-          setUserRole(`${formattedRole} ${selectedBrand.name}`);
+          setUserRole(formattedRole);
           return;
         }
       }
 
       // Default role if no specific role found
-      setUserRole(`Member ${selectedBrand.name}`);
+      setUserRole("Member");
     } else {
       setUserRole(""); // Reset if no brand selected
     }

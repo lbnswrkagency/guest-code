@@ -239,11 +239,7 @@ const BrandProfile = () => {
               isFollowing: newFollowingState,
             },
           };
-          console.log("[BrandProfile:handleFollow] Updated brand state:", {
-            previousFollowers: prev.followers,
-            newFollowers: updatedBrand.followers,
-            followersCount: updatedBrand.followers.length,
-          });
+
           return updatedBrand;
         });
       }
@@ -619,20 +615,25 @@ const BrandProfile = () => {
             {renderActions()}
           </div>
 
-          <div className="brand-stats">
-            <div className="stat-item">
-              <span className="stat-value">{brand.team?.length || 0}</span>
-              <span className="stat-label">Members</span>
+          {/* Only show brand stats for authenticated users */}
+          {user && (
+            <div className="brand-stats">
+              <div className="stat-item">
+                <span className="stat-value">{brand.team?.length || 0}</span>
+                <span className="stat-label">Members</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">
+                  {brand.followers?.length || 0}
+                </span>
+                <span className="stat-label">Followers</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{brand.events?.length || 0}</span>
+                <span className="stat-label">Events</span>
+              </div>
             </div>
-            <div className="stat-item">
-              <span className="stat-value">{brand.followers?.length || 0}</span>
-              <span className="stat-label">Followers</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{brand.events?.length || 0}</span>
-              <span className="stat-label">Events</span>
-            </div>
-          </div>
+          )}
 
           {brand.social &&
             Object.keys(brand.social).some((key) => brand.social[key]) && (

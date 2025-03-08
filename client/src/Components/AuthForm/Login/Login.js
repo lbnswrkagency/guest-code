@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Login.scss";
 import AuthContext from "../../../contexts/AuthContext";
@@ -10,8 +10,21 @@ import { useToast } from "../../Toast/ToastContext";
 const debugLog = (area, message, data = null) => {
   const timestamp = new Date().toISOString();
   const logMessage = `[Auth:${area}] ${message}`;
+
+  // Enhanced logging with more details
   if (data) {
     console.log(logMessage, { ...data, timestamp });
+
+    // Log to server if in development
+    if (process.env.NODE_ENV === "development") {
+      try {
+        fetch("/api/debug-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ area, message, data, timestamp }),
+        }).catch(() => {});
+      } catch (e) {}
+    }
   } else {
     console.log(logMessage, { timestamp });
   }
@@ -65,21 +78,42 @@ function Login() {
     debugLog("Login", "Starting login process", {
       email: formData.email,
       hasPassword: !!formData.password,
+      passwordLength: formData.password?.length,
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        cookiesEnabled: navigator.cookieEnabled,
+      },
+      timestamp: new Date().toISOString(),
     });
 
     try {
       debugLog("Login", "Calling AuthContext login function");
+
+      // Track request timing
+      const startTime = performance.now();
       await login(formData);
+      const endTime = performance.now();
 
       debugLog("Login", "Login successful", {
+        email: formData.email,
+        responseTime: `${Math.round(endTime - startTime)}ms`,
         hasToken: !!localStorage.getItem("token"),
         tokenLength: localStorage.getItem("token")?.length,
         availableKeys: Object.keys(localStorage),
+        cookies: document.cookie
+          .split(";")
+          .map((c) => c.trim())
+          .filter((c) => c),
       });
 
       toast.showSuccess("Welcome back!");
     } catch (error) {
       debugLog("Error", "Login failed", {
+        email: formData.email,
+        errorType: error.name,
+        errorMessage: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
@@ -89,15 +123,30 @@ function Login() {
           method: error.config?.method,
           headers: error.config?.headers,
           withCredentials: error.config?.withCredentials,
+          timeout: error.config?.timeout,
         },
+        stack: error.stack,
       });
+
+      // Additional logging for network errors
+      if (error.message === "Network Error") {
+        debugLog("Network", "Network error details", {
+          online: navigator.onLine,
+          readyState: document.readyState,
+          connectionType: navigator.connection
+            ? navigator.connection.effectiveType
+            : "unknown",
+        });
+      }
 
       const errorMessage =
         error.response?.data?.message || "Login failed. Please try again.";
       toast.showError(errorMessage);
     } finally {
       debugLog("Login", "Login attempt completed", {
+        email: formData.email,
         success: !!localStorage.getItem("token"),
+        timestamp: new Date().toISOString(),
       });
       setIsLoading(false);
     }
@@ -260,30 +309,33 @@ function Login() {
                 />
               </div>
 
-              <div className="forgot-password">
-                <span onClick={handleForgotPassword}>Forgot Password?</span>
-              </div>
-
-              <motion.button
+              <button
                 type="submit"
-                className={`login-submit ${isLoading ? "loading" : ""}`}
+                className="login-button"
                 disabled={isLoading}
-                whileHover={!isLoading ? { scale: 1.02 } : {}}
-                whileTap={!isLoading ? { scale: 0.98 } : {}}
               >
-                {isLoading ? "Logging in..." : "Login"}
-              </motion.button>
-            </motion.form>
+                {isLoading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    Logging in...
+                  </>
+                ) : (
+                  "Log In"
+                )}
+              </button>
 
-            <motion.p
-              className="login-register-link"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            >
-              Don't have an account?{" "}
-              <span onClick={() => navigate("/register")}>Sign up here</span>
-            </motion.p>
+              <div className="login-options">
+                <span
+                  className="forgot-password"
+                  onClick={handleForgotPassword}
+                >
+                  Forgot Password?
+                </span>
+                <Link to="/register" className="register-link">
+                  Create Account
+                </Link>
+              </div>
+            </motion.form>
           </motion.div>
         )}
       </AnimatePresence>

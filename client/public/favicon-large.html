@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guest Code Favicon Preview</title>
+    <style>
+      body {
+        background-color: #1a1a1a;
+        color: white;
+        font-family: "Arial", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #ffc807;
+        margin-bottom: 40px;
+        text-align: center;
+      }
+
+      .favicon-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 40px;
+      }
+
+      .favicon-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+      }
+
+      .favicon-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .favicon-item img,
+      .favicon-item svg {
+        margin-bottom: 10px;
+        border-radius: 10px;
+      }
+
+      .favicon-caption {
+        font-size: 14px;
+        color: #aaa;
+      }
+
+      .large-favicon {
+        width: 300px;
+        height: 300px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border-radius: 30px;
+      }
+
+      .medium-favicon {
+        width: 128px;
+        height: 128px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .small-favicon {
+        width: 64px;
+        height: 64px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .tiny-favicon {
+        width: 32px;
+        height: 32px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      }
+
+      .favicon-info {
+        max-width: 600px;
+        margin-top: 40px;
+        padding: 20px;
+        background-color: rgba(255, 200, 7, 0.1);
+        border-radius: 10px;
+        border-left: 4px solid #ffc807;
+      }
+
+      .favicon-info h2 {
+        color: #ffc807;
+        margin-top: 0;
+      }
+
+      .favicon-info p {
+        line-height: 1.6;
+      }
+
+      .favicon-info code {
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Guest Code Favicon Preview</h1>
+
+    <div class="favicon-container">
+      <div class="favicon-item">
+        <svg
+          class="large-favicon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 500 500"
+          width="300"
+          height="300"
+        >
+          <defs>
+            <style>
+              .main-color {
+                fill: #ffc807;
+              }
+              .bg-color {
+                fill: #000000;
+              }
+              .qr-element {
+                fill: #ffc807;
+              }
+              .shadow {
+                filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.3));
+              }
+            </style>
+          </defs>
+
+          <!-- Background -->
+          <rect class="bg-color" width="500" height="500" rx="50" ry="50" />
+
+          <!-- Stylized G with QR code elements -->
+          <path
+            class="main-color shadow"
+            d="M150,125c-25,0-50,10-65,25c-15,15-25,40-25,65v75c0,25,10,50,25,65c15,15,40,25,65,25h50c35,0,65-15,80-40v-75H200v50h50c-10,10-25,15-50,15h-25c-15,0-30-5-40-15c-10-10-15-25-15-40v-50c0-15,5-30,15-40c10-10,25-15,40-15h25c25,0,40,10,50,25h50c-10-25-40-45-75-45H150z"
+          />
+
+          <!-- QR Code Elements -->
+          <rect
+            class="qr-element shadow"
+            x="325"
+            y="125"
+            width="50"
+            height="50"
+            rx="5"
+            ry="5"
+          />
+          <rect
+            class="qr-element shadow"
+            x="325"
+            y="325"
+            width="50"
+            height="50"
+            rx="5"
+            ry="5"
+          />
+          <rect
+            class="qr-element shadow"
+            x="125"
+            y="325"
+            width="50"
+            height="50"
+            rx="5"
+            ry="5"
+          />
+          <rect
+            class="qr-element shadow"
+            x="225"
+            y="225"
+            width="50"
+            height="50"
+            rx="5"
+            ry="5"
+          />
+          <rect
+            class="qr-element shadow"
+            x="375"
+            y="225"
+            width="25"
+            height="25"
+            rx="3"
+            ry="3"
+          />
+          <rect
+            class="qr-element shadow"
+            x="225"
+            y="375"
+            width="25"
+            height="25"
+            rx="3"
+            ry="3"
+          />
+          <rect
+            class="qr-element shadow"
+            x="375"
+            y="375"
+            width="25"
+            height="25"
+            rx="3"
+            ry="3"
+          />
+
+          <!-- Title -->
+          <text
+            x="250"
+            y="450"
+            font-family="Arial, sans-serif"
+            font-size="24"
+            font-weight="bold"
+            fill="#ffc807"
+            text-anchor="middle"
+          >
+            GUEST CODE
+          </text>
+        </svg>
+        <div class="favicon-caption">300×300 SVG Preview</div>
+      </div>
+
+      <div class="favicon-row">
+        <div class="favicon-item">
+          <svg
+            class="medium-favicon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 100 100"
+            width="128"
+            height="128"
+          >
+            <defs>
+              <style>
+                .main-color {
+                  fill: #ffc807;
+                }
+                .bg-color {
+                  fill: #000000;
+                }
+                .qr-element {
+                  fill: #ffc807;
+                }
+              </style>
+            </defs>
+
+            <!-- Background -->
+            <rect class="bg-color" width="100" height="100" rx="10" ry="10" />
+
+            <!-- Stylized G with QR code elements -->
+            <path
+              class="main-color"
+              d="M30,25c-5,0-10,2-13,5c-3,3-5,8-5,13v15c0,5,2,10,5,13c3,3,8,5,13,5h10c7,0,13-3,16-8v-15H40v10h10c-2,2-5,3-10,3h-5c-3,0-6-1-8-3c-2-2-3-5-3-8v-10c0-3,1-6,3-8c2-2,5-3,8-3h5c5,0,8,2,10,5h10c-2-5-8-9-15-9H30z"
+            />
+
+            <!-- QR Code Elements -->
+            <rect class="qr-element" x="65" y="25" width="10" height="10" />
+            <rect class="qr-element" x="65" y="65" width="10" height="10" />
+            <rect class="qr-element" x="25" y="65" width="10" height="10" />
+            <rect class="qr-element" x="45" y="45" width="10" height="10" />
+            <rect class="qr-element" x="75" y="45" width="5" height="5" />
+            <rect class="qr-element" x="45" y="75" width="5" height="5" />
+            <rect class="qr-element" x="75" y="75" width="5" height="5" />
+          </svg>
+          <div class="favicon-caption">128×128</div>
+        </div>
+
+        <div class="favicon-item">
+          <svg
+            class="small-favicon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 100 100"
+            width="64"
+            height="64"
+          >
+            <defs>
+              <style>
+                .main-color {
+                  fill: #ffc807;
+                }
+                .bg-color {
+                  fill: #000000;
+                }
+                .qr-element {
+                  fill: #ffc807;
+                }
+              </style>
+            </defs>
+
+            <!-- Background -->
+            <rect class="bg-color" width="100" height="100" rx="10" ry="10" />
+
+            <!-- Stylized G with QR code elements -->
+            <path
+              class="main-color"
+              d="M30,25c-5,0-10,2-13,5c-3,3-5,8-5,13v15c0,5,2,10,5,13c3,3,8,5,13,5h10c7,0,13-3,16-8v-15H40v10h10c-2,2-5,3-10,3h-5c-3,0-6-1-8-3c-2-2-3-5-3-8v-10c0-3,1-6,3-8c2-2,5-3,8-3h5c5,0,8,2,10,5h10c-2-5-8-9-15-9H30z"
+            />
+
+            <!-- QR Code Elements -->
+            <rect class="qr-element" x="65" y="25" width="10" height="10" />
+            <rect class="qr-element" x="65" y="65" width="10" height="10" />
+            <rect class="qr-element" x="25" y="65" width="10" height="10" />
+            <rect class="qr-element" x="45" y="45" width="10" height="10" />
+            <rect class="qr-element" x="75" y="45" width="5" height="5" />
+            <rect class="qr-element" x="45" y="75" width="5" height="5" />
+            <rect class="qr-element" x="75" y="75" width="5" height="5" />
+          </svg>
+          <div class="favicon-caption">64×64</div>
+        </div>
+
+        <div class="favicon-item">
+          <svg
+            class="tiny-favicon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 100 100"
+            width="32"
+            height="32"
+          >
+            <defs>
+              <style>
+                .main-color {
+                  fill: #ffc807;
+                }
+                .bg-color {
+                  fill: #000000;
+                }
+                .qr-element {
+                  fill: #ffc807;
+                }
+              </style>
+            </defs>
+
+            <!-- Background -->
+            <rect class="bg-color" width="100" height="100" rx="10" ry="10" />
+
+            <!-- Stylized G with QR code elements -->
+            <path
+              class="main-color"
+              d="M30,25c-5,0-10,2-13,5c-3,3-5,8-5,13v15c0,5,2,10,5,13c3,3,8,5,13,5h10c7,0,13-3,16-8v-15H40v10h10c-2,2-5,3-10,3h-5c-3,0-6-1-8-3c-2-2-3-5-3-8v-10c0-3,1-6,3-8c2-2,5-3,8-3h5c5,0,8,2,10,5h10c-2-5-8-9-15-9H30z"
+            />
+
+            <!-- QR Code Elements -->
+            <rect class="qr-element" x="65" y="25" width="10" height="10" />
+            <rect class="qr-element" x="65" y="65" width="10" height="10" />
+            <rect class="qr-element" x="25" y="65" width="10" height="10" />
+            <rect class="qr-element" x="45" y="45" width="10" height="10" />
+            <rect class="qr-element" x="75" y="45" width="5" height="5" />
+            <rect class="qr-element" x="45" y="75" width="5" height="5" />
+            <rect class="qr-element" x="75" y="75" width="5" height="5" />
+          </svg>
+          <div class="favicon-caption">32×32</div>
+        </div>
+
+        <div class="favicon-item">
+          <svg
+            class="tiny-favicon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 100 100"
+            width="16"
+            height="16"
+          >
+            <defs>
+              <style>
+                .main-color {
+                  fill: #ffc807;
+                }
+                .bg-color {
+                  fill: #000000;
+                }
+                .qr-element {
+                  fill: #ffc807;
+                }
+              </style>
+            </defs>
+
+            <!-- Background -->
+            <rect class="bg-color" width="100" height="100" rx="10" ry="10" />
+
+            <!-- Stylized G with QR code elements -->
+            <path
+              class="main-color"
+              d="M30,25c-5,0-10,2-13,5c-3,3-5,8-5,13v15c0,5,2,10,5,13c3,3,8,5,13,5h10c7,0,13-3,16-8v-15H40v10h10c-2,2-5,3-10,3h-5c-3,0-6-1-8-3c-2-2-3-5-3-8v-10c0-3,1-6,3-8c2-2,5-3,8-3h5c5,0,8,2,10,5h10c-2-5-8-9-15-9H30z"
+            />
+
+            <!-- QR Code Elements -->
+            <rect class="qr-element" x="65" y="25" width="10" height="10" />
+            <rect class="qr-element" x="65" y="65" width="10" height="10" />
+            <rect class="qr-element" x="25" y="65" width="10" height="10" />
+            <rect class="qr-element" x="45" y="45" width="10" height="10" />
+            <rect class="qr-element" x="75" y="45" width="5" height="5" />
+            <rect class="qr-element" x="45" y="75" width="5" height="5" />
+            <rect class="qr-element" x="75" y="75" width="5" height="5" />
+          </svg>
+          <div class="favicon-caption">16×16</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="favicon-info">
+      <h2>About This Favicon</h2>
+      <p>
+        The Guest Code favicon is designed as a stylized "G" with QR code
+        elements, representing the app's focus on event access and digital
+        tickets. The design uses SVG format for crisp rendering at any size.
+      </p>
+      <p>
+        The favicon is implemented with multiple sizes to ensure compatibility
+        across all devices and platforms:
+      </p>
+      <ul>
+        <li>SVG vector format for modern browsers</li>
+        <li>PNG fallbacks at 192×192, 512×512 for PWA support</li>
+        <li>16×16, 32×32 for traditional browser tabs and bookmarks</li>
+        <li>Apple Touch Icon for iOS devices</li>
+      </ul>
+      <p>
+        The color scheme matches the app's branding with #ffc807 (gold) on a
+        black background.
+      </p>
+    </div>
+  </body>
+</html>

@@ -57,24 +57,39 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   const [maxPax, setMaxPax] = useState(5);
   const [generatingCode, setGeneratingCode] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketQuantities, setTicketQuantities] = useState({});
 
   // Action buttons refs for scrolling
   const guestCodeSectionRef = useRef(null);
   const ticketSectionRef = useRef(null);
 
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   useEffect(() => {
-    if (brandId || brandUsername) {
-      console.log("[UpcomingEvent] Initializing with:", {
-        brandId,
-        brandUsername,
-        limit,
-      });
-      fetchUpcomingEvents();
-    }
+    // Initialize component
+    setLoading(true);
+    setError(null);
+    setEvents([]);
+    setCurrentIndex(0);
+    setTicketSettings([]);
+    setLoadingTickets(false);
+    setShowGuestCodeForm(false);
+    setSuccessMessage(null);
+    setGuestName("");
+    setGuestEmail("");
+    setGuestPax(1);
+    setGeneratingCode(false);
+
+    fetchUpcomingEvents();
   }, [brandId, brandUsername]);
 
   // Fetch the code settings when the current event changes
@@ -82,31 +97,11 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
     if (events.length > 0) {
       const currentEvent = events[currentIndex];
 
-      console.log(
-        "[UpcomingEvent] Processing code settings for event:",
-        currentEvent._id,
-        "with title:",
-        currentEvent.title
-      );
-
       // Try to get the max pax from code settings
       if (currentEvent.codeSettings && currentEvent.codeSettings.length > 0) {
-        console.log(
-          "[UpcomingEvent] Code settings found:",
-          currentEvent.codeSettings.map((cs) => ({
-            type: cs.type,
-            name: cs.name,
-            condition: cs.condition,
-            maxPax: cs.maxPax,
-            isEnabled: cs.isEnabled,
-          }))
-        );
-
         const guestCodeSetting = currentEvent.codeSettings.find(
           (cs) => cs.type === "guest"
         );
-
-        console.log("[UpcomingEvent] Guest code setting:", guestCodeSetting);
 
         if (guestCodeSetting) {
           // Check if we have all the necessary data
@@ -114,17 +109,8 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             guestCodeSetting.maxPax !== undefined &&
             guestCodeSetting.condition !== undefined;
 
-          console.log(
-            "[UpcomingEvent] Guest code setting has complete data:",
-            hasCompleteData
-          );
-
           // Set maxPax if available
           if (guestCodeSetting.maxPax) {
-            console.log(
-              "[UpcomingEvent] Setting maxPax to:",
-              guestCodeSetting.maxPax
-            );
             setMaxPax(guestCodeSetting.maxPax);
           } else {
             console.warn(
@@ -145,7 +131,48 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                 "[UpcomingEvent] Attempting to fetch complete code settings for event:",
                 currentEvent._id
               );
-              fetchCompleteCodeSettings(currentEvent._id);
+
+              // Create an async function to fetch and update settings
+              const fetchAndUpdateSettings = async () => {
+                // Fetch the complete code settings and update the state
+                const completeSettings = await fetchCompleteCodeSettings(
+                  currentEvent._id
+                );
+
+                if (completeSettings) {
+                  console.log(
+                    "[UpcomingEvent] Received complete code settings:",
+                    completeSettings
+                  );
+
+                  // Update the events array with the complete code settings
+                  setEvents((prevEvents) => {
+                    const updatedEvents = [...prevEvents];
+                    const currentEvent = updatedEvents[currentIndex];
+
+                    // Update the code settings in the current event
+                    currentEvent.codeSettings = completeSettings;
+
+                    // Find the guest code setting
+                    const guestCodeSetting = completeSettings.find(
+                      (cs) => cs.type === "guest"
+                    );
+
+                    if (guestCodeSetting && guestCodeSetting.maxPax) {
+                      setMaxPax(guestCodeSetting.maxPax);
+                    }
+
+                    return updatedEvents;
+                  });
+                } else {
+                  console.log(
+                    "[UpcomingEvent] Failed to fetch complete code settings or no settings found"
+                  );
+                }
+              };
+
+              // Execute the async function
+              fetchAndUpdateSettings();
             }
           } else {
             console.log(
@@ -184,86 +211,13 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       const response = await axiosInstance.get(endpoint);
 
       if (response.data && response.data.codeSettings) {
-        console.log(
-          "[UpcomingEvent] Received code settings from event profile:",
-          response.data.codeSettings
-        );
-
-        // Find the guest code setting
-        const guestCodeSetting = response.data.codeSettings.find(
-          (cs) => cs.type === "guest"
-        );
-
-        if (guestCodeSetting) {
-          console.log(
-            "[UpcomingEvent] Guest code setting from event profile:",
-            guestCodeSetting
-          );
-
-          // Update the events array with the complete code settings
-          setEvents((prevEvents) => {
-            const updatedEvents = [...prevEvents];
-            const currentEvent = updatedEvents[currentIndex];
-
-            // Find the index of the guest code setting in the current event
-            const settingIndex = currentEvent.codeSettings.findIndex(
-              (cs) => cs.type === "guest"
-            );
-
-            if (settingIndex !== -1) {
-              // Update the guest code setting with all the complete data
-              currentEvent.codeSettings[settingIndex] = {
-                ...currentEvent.codeSettings[settingIndex],
-                condition: guestCodeSetting.condition || "",
-                maxPax: guestCodeSetting.maxPax || 1,
-                limit: guestCodeSetting.limit || 0,
-                isEnabled:
-                  guestCodeSetting.isEnabled !== undefined
-                    ? guestCodeSetting.isEnabled
-                    : false,
-                isEditable:
-                  guestCodeSetting.isEditable !== undefined
-                    ? guestCodeSetting.isEditable
-                    : false,
-              };
-
-              // Also update the maxPax state
-              if (guestCodeSetting.maxPax) {
-                setMaxPax(guestCodeSetting.maxPax);
-              }
-
-              console.log(
-                "[UpcomingEvent] Updated guest code setting in event:",
-                currentEvent.codeSettings[settingIndex]
-              );
-            }
-
-            return updatedEvents;
-          });
-        }
-      } else {
-        console.log(
-          "[UpcomingEvent] No code settings found in event profile response"
-        );
+        return response.data.codeSettings;
       }
+
+      return null;
     } catch (error) {
-      console.error(
-        "[UpcomingEvent] Error fetching from event profile endpoint:",
-        error
-      );
-
-      // Log more details about the error
-      if (error.response) {
-        console.error("[UpcomingEvent] Error response:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers,
-        });
-      } else if (error.request) {
-        console.error("[UpcomingEvent] Error request:", error.request);
-      } else {
-        console.error("[UpcomingEvent] Error message:", error.message);
-      }
+      // Handle error silently
+      return null;
     }
   };
 
@@ -305,31 +259,29 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   // Function to create a sample ticket for testing if no tickets are found
   const createSampleTicket = (eventId) => {
-    console.log("[UpcomingEvent] Creating sample ticket for testing");
+    // Create a sample ticket for testing
     return [
       {
-        _id: `sample-${eventId}`,
-        name: "General Admission",
-        description: "Standard entry ticket",
-        price: 25.0,
-        originalPrice: 30.0,
+        _id: `sample-${Math.random().toString(36).substring(2, 9)}`,
+        name: "Standard Ticket",
+        description: "General admission ticket",
+        price: 25,
+        originalPrice: 30,
         isLimited: true,
         maxTickets: 100,
-        soldCount: 20,
-        hasCountdown: false,
+        soldCount: 45,
+        hasCountdown: true,
+        endDate: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
         eventId: eventId,
       },
       {
-        _id: `early-${eventId}`,
-        name: "Early Bird",
-        description: "Limited early bird discount",
-        price: 15.0,
-        originalPrice: 25.0,
+        _id: `sample-${Math.random().toString(36).substring(2, 9)}`,
+        name: "VIP Ticket",
+        description: "VIP access with special perks",
+        price: 50,
         isLimited: true,
         maxTickets: 50,
-        soldCount: 35,
-        hasCountdown: true,
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        soldCount: 15,
         eventId: eventId,
       },
     ];
@@ -355,90 +307,17 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
       console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
-      try {
-        const response = await axiosInstance.get(endpoint);
-        console.log(`[UpcomingEvent] Response from ${endpoint}:`, response);
+      const response = await axiosInstance.get(endpoint);
 
-        if (
-          response.data &&
-          response.data.ticketSettings &&
-          Array.isArray(response.data.ticketSettings)
-        ) {
-          console.log(
-            `[UpcomingEvent] Successfully fetched tickets from event profile:`,
-            response.data.ticketSettings
-          );
-          setTicketSettings(response.data.ticketSettings);
-          return;
-        } else {
-          console.log(
-            "[UpcomingEvent] No ticket settings found in event profile response"
-          );
-        }
-      } catch (error) {
-        console.error(
-          `[UpcomingEvent] Error fetching from event profile endpoint:`,
-          error.message
-        );
+      if (response.data && response.data.ticketSettings) {
+        setTicketSettings(response.data.ticketSettings);
+      } else {
+        // No ticket settings found
+        setTicketSettings([]);
       }
-
-      // Fallback to ticket-settings endpoint if event profile doesn't have ticket settings
-      const ticketEndpoint = `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${eventId}`;
-      console.log(
-        `[UpcomingEvent] Trying ticket settings endpoint: ${ticketEndpoint}`
-      );
-
-      try {
-        const response = await axiosInstance.get(ticketEndpoint);
-
-        if (response.data) {
-          let ticketsData = null;
-
-          if (Array.isArray(response.data)) {
-            ticketsData = response.data;
-          } else if (
-            response.data.ticketSettings &&
-            Array.isArray(response.data.ticketSettings)
-          ) {
-            ticketsData = response.data.ticketSettings;
-          } else if (
-            response.data.tickets &&
-            Array.isArray(response.data.tickets)
-          ) {
-            ticketsData = response.data.tickets;
-          }
-
-          if (ticketsData && ticketsData.length > 0) {
-            console.log(
-              `[UpcomingEvent] Successfully fetched tickets from ticket settings endpoint:`,
-              ticketsData
-            );
-            setTicketSettings(ticketsData);
-            return;
-          }
-        }
-      } catch (error) {
-        console.log(
-          `[UpcomingEvent] Ticket settings endpoint failed:`,
-          error.message
-        );
-      }
-
-      // If we get here, no tickets were found
-      console.log(
-        "[UpcomingEvent] No valid ticket data found from any endpoint"
-      );
-      setTicketSettings([]);
     } catch (error) {
-      console.error("[UpcomingEvent] Error fetching ticket settings:", error);
-      console.error("[UpcomingEvent] Error details:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-      });
+      // Handle error silently
       setTicketSettings([]);
-      toast.showError("Failed to load ticket information");
     } finally {
       setLoadingTickets(false);
     }
@@ -446,99 +325,47 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   const fetchUpcomingEvents = async () => {
     setLoading(true);
+    setError(null);
+
     try {
       let endpoint;
       let events = [];
 
-      console.log("[UpcomingEvent] Fetching with params:", {
-        brandId,
-        brandUsername,
-        isAuthenticated: !!user,
-        timestamp: new Date().toISOString(),
-      });
-
-      // If we only have brandUsername (public view or authenticated without brandId)
-      if (brandUsername && !brandId) {
-        // If we use the public endpoint, remove @ if present
-        const cleanUsername = brandUsername.replace(/^@/, "");
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
-
-        console.log(`[UpcomingEvent] Using username endpoint: ${endpoint}`);
+      // Try to fetch by brandId first if available
+      if (brandId) {
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
 
         try {
           const response = await axiosInstance.get(endpoint);
+
           if (response.data && Array.isArray(response.data)) {
             events = response.data;
-            console.log(
-              `[UpcomingEvent] Successfully fetched ${events.length} events from username endpoint`
-            );
-          } else {
-            console.log("[UpcomingEvent] No events returned from API");
-            events = [];
           }
-        } catch (error) {
-          console.error(
-            "[UpcomingEvent] Error fetching events from username endpoint:",
-            error
-          );
-          if (error.response && error.response.status === 404) {
-            // Brand not found
-            setError("Brand not found");
-          } else {
-            // Other errors
-            setError("Failed to fetch upcoming events");
-          }
-          setLoading(false);
-          return;
-        }
-      }
-      // If we have brandId (authenticated view)
-      else if (brandId) {
-        // First fetch parent events
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
-        console.log(`[UpcomingEvent] Fetching parent events from: ${endpoint}`);
 
-        try {
-          const parentResponse = await axiosInstance.get(endpoint);
+          // If we have parent events, fetch their children too
+          const parentEvents = events.filter((event) => event.isParentEvent);
 
-          // Get all parent events
-          const parentEvents = parentResponse.data;
-          events = [...parentEvents];
-
-          // Now fetch child events for each weekly parent event
           for (const parentEvent of parentEvents) {
-            if (parentEvent.isWeekly) {
-              try {
-                // Fetch all child events that already exist for this parent
-                const childrenResponse = await axiosInstance.get(
-                  `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
-                );
+            try {
+              // Fetch all child events that already exist for this parent
+              const childrenResponse = await axiosInstance.get(
+                `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+              );
 
-                if (
-                  childrenResponse.data &&
-                  Array.isArray(childrenResponse.data)
-                ) {
-                  events = [...events, ...childrenResponse.data];
-                }
-              } catch (childError) {
-                console.error(
-                  `[UpcomingEvent] Error fetching child events for parent ${parentEvent._id}:`,
-                  childError
-                );
+              if (
+                childrenResponse.data &&
+                Array.isArray(childrenResponse.data)
+              ) {
+                events = [...events, ...childrenResponse.data];
               }
+            } catch (childError) {
+              // Handle child events error silently
             }
           }
         } catch (error) {
-          console.error(
-            "[UpcomingEvent] Error fetching events by brandId:",
-            error
-          );
           if (error.response && error.response.status === 401) {
             // Not authenticated, try using brandUsername as fallback
             if (brandUsername) {
-              console.log(
-                "[UpcomingEvent] Authentication failed, falling back to public endpoint"
-              );
               const cleanUsername = brandUsername.replace(/^@/, "");
               endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
 
@@ -549,52 +376,61 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                 } else {
                   events = [];
                 }
-              } catch (fallbackError) {
-                console.error(
-                  "[UpcomingEvent] Error with fallback endpoint:",
-                  fallbackError
-                );
-                setError("Failed to fetch upcoming events");
-                setLoading(false);
-                return;
+              } catch (usernameError) {
+                // Handle username error silently
+                events = [];
               }
-            } else {
-              setError("Authentication required");
-              setLoading(false);
-              return;
             }
-          } else {
-            setError("Failed to fetch upcoming events");
-            setLoading(false);
-            return;
           }
         }
-      } else {
-        throw new Error("Either brandId or brandUsername must be provided");
+      } else if (brandUsername) {
+        // No brandId, try using brandUsername
+        const cleanUsername = brandUsername.replace(/^@/, "");
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+
+        try {
+          const response = await axiosInstance.get(endpoint);
+
+          if (response.data && Array.isArray(response.data)) {
+            events = response.data;
+          } else {
+            events = [];
+          }
+        } catch (err) {
+          // Handle error silently
+          events = [];
+        }
       }
 
-      console.log(
-        "[UpcomingEvent] Total events before filtering:",
-        events.length
-      );
-
-      // Filter for upcoming events and sort by date
+      // Filter out past events and sort by date
       const now = new Date();
       const upcomingEvents = events
         .filter((event) => new Date(event.date) >= now)
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .slice(0, limit);
-
-      console.log(
-        "[UpcomingEvent] Filtered upcoming events:",
-        upcomingEvents.length
-      );
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       setEvents(upcomingEvents);
+
+      if (upcomingEvents.length > 0) {
+        // Preload the first event's image
+        const firstEvent = upcomingEvents[0];
+        if (
+          firstEvent.media &&
+          firstEvent.media.images &&
+          firstEvent.media.images.length > 0
+        ) {
+          const img = new Image();
+          img.src = firstEvent.media.images[0].url;
+        }
+
+        // Fetch ticket settings for the first event
+        fetchTicketSettings(firstEvent._id);
+      }
+
+      setLoading(false);
     } catch (err) {
-      console.error("[UpcomingEvent] Error fetching upcoming events:", err);
-      setError("Failed to fetch upcoming events");
-    } finally {
+      // Handle error silently
+      setEvents([]);
+      setError("Failed to load upcoming events");
       setLoading(false);
     }
   };
@@ -656,77 +492,60 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   };
 
   const handleGenerateGuestCode = async () => {
+    if (!currentEvent || !currentEvent._id) return;
+
+    // Validate form fields
+    const errors = {};
+    if (!guestName.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!guestEmail.trim()) {
+      errors.email = "Email is required";
+    } else if (!isValidEmail(guestEmail)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast.showError("Please enter valid name and email");
+      return;
+    }
+
+    setGeneratingCode(true);
+    setSuccessMessage(null);
+
     try {
-      // Validate guest name and email
-      if (
-        !guestName.trim() ||
-        !guestEmail.trim() ||
-        !guestEmail.includes("@")
-      ) {
-        toast.showError("Please enter a valid name and email");
-        return;
-      }
+      const eventId = currentEvent._id;
 
-      // Set generating state
-      setGeneratingCode(true);
-
-      // Use info toast to let the user know we're processing
-      toast.showInfo("Processing your request...");
-
-      // Make sure we're using the current event ID
-      const eventId = events[currentIndex]._id;
-      console.log("[UpcomingEvent] Generating guest code for event:", eventId);
-      console.log("[UpcomingEvent] Guest details:", {
-        name: guestName,
-        email: guestEmail,
-        pax: guestPax,
-        isAuthenticated: !!user,
-      });
-
-      const response = await axiosInstance.post("/guest-code/generate", {
-        eventId: eventId,
-        guestName: guestName,
-        guestEmail: guestEmail,
-        maxPax: guestPax,
-      });
-
-      console.log(
-        "[UpcomingEvent] Guest code generated and sent:",
-        response.data
+      const response = await axiosInstance.post(
+        `${process.env.REACT_APP_API_BASE_URL}/guest-code/generate`,
+        {
+          eventId,
+          guestName,
+          guestEmail,
+          maxPax: guestPax,
+        }
       );
 
-      if (response.data && response.data.code) {
-        // Clear form fields
+      if (response.data && response.data.success) {
+        setSuccessMessage(
+          "Guest code generated successfully! Check your email for details."
+        );
         setGuestName("");
         setGuestEmail("");
         setGuestPax(1);
-
-        // Show success message
-        setSuccessMessage(
-          `Guest code sent to ${guestEmail}. Please check your email.`
-        );
-        setTimeout(() => {
-          setSuccessMessage("");
-        }, 5000); // Clear the message after 5 seconds
-
-        // Show success toast
-        toast.showSuccess(`Guest code sent to ${guestEmail}`);
-      }
-    } catch (err) {
-      console.error("[UpcomingEvent] Error generating guest code:", err);
-
-      // Handle specific error cases
-      if (err.response?.status === 401) {
-        toast.showError("Please log in to generate guest codes");
-      } else if (err.response?.status === 403) {
-        toast.showError(
-          "You don't have permission to generate guest codes for this event"
-        );
+        toast.showSuccess("Guest code generated successfully!");
       } else {
         toast.showError(
-          err.response?.data?.message || "Failed to generate guest code"
+          response.data?.message || "Failed to generate guest code"
         );
       }
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to generate guest code";
+      toast.showError(errorMessage);
     } finally {
       setGeneratingCode(false);
     }
@@ -854,6 +673,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
     );
   };
 
+  // Check if we have a current event to display
   if (loading) {
     return (
       <div className="upcoming-event-container loading">
@@ -866,20 +686,25 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
     return (
       <div className="upcoming-event-container error">
         <div className="empty-state">
-          <RiCalendarEventLine className="empty-icon" />
+          <div className="empty-icon">⚠️</div>
           <p>{error}</p>
+          <button className="retry-button" onClick={fetchUpcomingEvents}>
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
-  if (events.length === 0) {
+  if (!events || events.length === 0) {
     return (
       <div className="upcoming-event-container empty">
         <div className="empty-state">
-          <RiCalendarEventLine className="empty-icon" />
-          <p>No upcoming events scheduled at this time</p>
-          <p className="empty-state-subtext">Check back later for new events</p>
+          <div className="empty-icon">📅</div>
+          <p>No upcoming events found</p>
+          <span className="empty-state-subtext">
+            Check back later for new events
+          </span>
         </div>
       </div>
     );
@@ -887,24 +712,14 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   const currentEvent = events[currentIndex];
   const eventImage = getEventImage();
-
-  // Add console log to check code settings
-  console.log(
-    "[UpcomingEvent] Current event code settings:",
-    currentEvent?.codeSettings
+  const hasSelectedTickets = Object.values(ticketQuantities).some(
+    (quantity) => quantity > 0
   );
 
-  // Add more detailed logging for guest code settings
-  if (currentEvent?.codeSettings) {
-    const guestCodeSetting = currentEvent.codeSettings.find(
-      (cs) => cs.type === "guest"
-    );
-    console.log("[UpcomingEvent] Guest code setting:", guestCodeSetting);
-    console.log(
-      "[UpcomingEvent] Guest code condition:",
-      guestCodeSetting?.condition
-    );
-  }
+  // Get guest code setting if available
+  const guestCodeSetting = currentEvent.codeSettings?.find(
+    (cs) => cs.type === "guest"
+  );
 
   return (
     <div className="upcoming-event-container">
@@ -1081,24 +896,8 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                       {formatDate(currentEvent.date)}.
                     </p>
 
-                    {console.log("[UpcomingEvent] Ticket section rendering:", {
-                      hasTicketSettings: !!ticketSettings,
-                      ticketSettingsLength: ticketSettings?.length || 0,
-                      ticketSettingsData: ticketSettings,
-                      loadingTickets,
-                      timestamp: new Date().toISOString(),
-                    })}
-
                     {ticketSettings && ticketSettings.length > 0 ? (
                       <>
-                        {console.log(
-                          "[UpcomingEvent] Rendering Stripe component with:",
-                          {
-                            ticketCount: ticketSettings.length,
-                            eventId: currentEvent._id,
-                            timestamp: new Date().toISOString(),
-                          }
-                        )}
                         <Stripe
                           ticketSettings={ticketSettings}
                           eventId={currentEvent._id}
@@ -1108,10 +907,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                             background: "rgba(255, 255, 255, 0.05)",
                           }}
                           onCheckoutComplete={(result) => {
-                            console.log(
-                              "[UpcomingEvent] Checkout completed:",
-                              result
-                            );
                             toast.showSuccess("Redirecting to checkout...");
                             setLoadingTickets(false);
                           }}
@@ -1172,10 +967,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                       const guestCodeSetting = currentEvent.codeSettings.find(
                         (cs) => cs.type === "guest"
                       );
-                      console.log(
-                        "[UpcomingEvent] Displaying condition in guest code section:",
-                        guestCodeSetting.condition
-                      );
                       return guestCodeSetting.condition;
                     })()}
                   </p>
@@ -1200,99 +991,137 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   </div>
                 )}
 
-                <div
-                  className="guest-code-form"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiMailLine />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <select
-                      value={guestPax}
-                      onChange={(e) => setGuestPax(Number(e.target.value))}
-                      className="pax-selector"
-                      onClick={(e) => e.stopPropagation()}
+                {/* Guest code form */}
+                {showGuestCodeForm && (
+                  <div
+                    className="guest-code-form"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      className={`form-group ${formErrors.name ? "error" : ""}`}
                     >
-                      {Array.from({ length: maxPax }, (_, i) => i + 1).map(
-                        (num) => (
-                          <option key={num} value={num}>
-                            {num} {num === 1 ? "Person" : "People"}
-                          </option>
-                        )
+                      <div className="input-icon">
+                        <RiUserLine />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Your Name"
+                        value={guestName}
+                        onChange={(e) => {
+                          setGuestName(e.target.value);
+                          if (e.target.value.trim()) {
+                            setFormErrors({ ...formErrors, name: null });
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className={formErrors.name ? "error-input" : ""}
+                      />
+                      {formErrors.name && (
+                        <div className="error-message">{formErrors.name}</div>
                       )}
-                    </select>
-                  </div>
+                    </div>
 
-                  <div className="form-buttons">
-                    <motion.button
-                      className="submit-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleGenerateGuestCode();
-                      }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={
-                        generatingCode ||
-                        !guestName ||
-                        !guestEmail ||
-                        !guestEmail.includes("@")
-                      }
+                    <div
+                      className={`form-group ${
+                        formErrors.email ? "error" : ""
+                      }`}
                     >
-                      {generatingCode ? (
-                        <>
-                          <span className="loading-spinner-small"></span>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <RiCodeSSlashLine /> Get Guest Code
-                        </>
+                      <div className="input-icon">
+                        <RiMailLine />
+                      </div>
+                      <input
+                        type="email"
+                        placeholder="Your Email"
+                        value={guestEmail}
+                        onChange={(e) => {
+                          setGuestEmail(e.target.value);
+                          if (
+                            e.target.value.trim() &&
+                            isValidEmail(e.target.value)
+                          ) {
+                            setFormErrors({ ...formErrors, email: null });
+                          }
+                        }}
+                        onBlur={() => {
+                          if (guestEmail && !isValidEmail(guestEmail)) {
+                            setFormErrors({
+                              ...formErrors,
+                              email: "Please enter a valid email address",
+                            });
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className={formErrors.email ? "error-input" : ""}
+                      />
+                      {formErrors.email && (
+                        <div className="error-message">{formErrors.email}</div>
                       )}
-                    </motion.button>
+                    </div>
+
+                    <div className="form-group">
+                      <div className="input-icon">
+                        <RiUserLine />
+                      </div>
+                      <select
+                        value={guestPax}
+                        onChange={(e) => setGuestPax(Number(e.target.value))}
+                        className="pax-selector"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {Array.from({ length: maxPax }, (_, i) => i + 1).map(
+                          (num) => (
+                            <option key={num} value={num}>
+                              {num} {num === 1 ? "Person" : "People"}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    <div className="form-buttons">
+                      <motion.button
+                        className="submit-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGenerateGuestCode();
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        disabled={
+                          generatingCode ||
+                          !guestName ||
+                          !guestEmail ||
+                          !guestEmail.includes("@")
+                        }
+                      >
+                        {generatingCode ? (
+                          <>
+                            <span className="loading-spinner-small"></span>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <RiCodeSSlashLine /> Get Guest Code
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Add See Full Event button after the guest code section */}
-          <button
-            className="see-full-event-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewEvent(currentEvent);
-            }}
-          >
-            See Full Event <RiArrowRightLine />
-          </button>
+            {/* Add See Full Event button after the guest code section */}
+            <button
+              className="see-full-event-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewEvent(currentEvent);
+              }}
+            >
+              See Full Event <RiArrowRightLine />
+            </button>
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

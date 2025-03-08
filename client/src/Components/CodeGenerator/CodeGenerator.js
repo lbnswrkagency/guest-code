@@ -871,20 +871,6 @@ function CodeGenerator({
                   {selectedEvent.name ? selectedEvent.name.charAt(0) : "G"}
                 </div>
               )}
-              <div
-                className="brand-name"
-                style={
-                  selectedEvent.primaryColor
-                    ? {
-                        color: selectedEvent.primaryColor,
-                      }
-                    : {}
-                }
-              >
-                {selectedEvent.name ||
-                  selectedEvent.title ||
-                  (selectedBrand ? selectedBrand.name : "Guest Code")}
-              </div>
             </>
           )}
         </div>
