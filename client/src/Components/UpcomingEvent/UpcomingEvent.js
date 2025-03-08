@@ -452,6 +452,15 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   };
 
   const handleViewEvent = (event) => {
+    if (!event || !event.date) {
+      console.error(
+        "[UpcomingEvent] Invalid event data for navigation:",
+        event
+      );
+      toast.showError("Cannot navigate to event: Missing event data");
+      return;
+    }
+
     // Get the brand username either from the event or from props
     let brandUser = "";
 
@@ -461,10 +470,10 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       event.brand.username
     ) {
       // If brand is populated as an object
-      brandUser = event.brand.username.replace("@", "");
+      brandUser = event.brand.username.replace(/^@/, "");
     } else if (brandUsername) {
       // Use the prop if available
-      brandUser = brandUsername.replace("@", "");
+      brandUser = brandUsername.replace(/^@/, "");
     }
 
     // Generate date slug from event date
@@ -476,76 +485,119 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       eventDate.getFullYear()
     ).slice(-2)}`;
 
+    console.log("[UpcomingEvent] Navigation details:", {
+      brandUser,
+      dateSlug,
+      eventDate: event.date,
+      formattedDate: eventDate.toISOString(),
+      userLoggedIn: !!user,
+      userUsername: user?.username,
+    });
+
+    // Make sure we have valid parameters before navigating
+    if (!brandUser) {
+      console.error("[UpcomingEvent] Missing brand username for navigation");
+      toast.showError("Cannot navigate to event: Missing brand information");
+      return;
+    }
+
+    if (!dateSlug) {
+      console.error("[UpcomingEvent] Missing date slug for navigation");
+      toast.showError("Cannot navigate to event: Invalid date");
+      return;
+    }
+
     // If user is logged in, navigate to the user-specific route
-    if (user) {
-      console.log(
-        `[UpcomingEvent] Navigating to user event: /@${user.username}/@${brandUser}/${dateSlug}`
-      );
-      navigate(`/@${user.username}/@${brandUser}/${dateSlug}`);
+    if (user && user.username) {
+      const path = `/@${user.username}/@${brandUser}/${dateSlug}`;
+      console.log(`[UpcomingEvent] Navigating to user event: ${path}`);
+      navigate(path);
     } else {
       // If no user, use the public route
-      console.log(
-        `[UpcomingEvent] Navigating to public event: /@${brandUser}/${dateSlug}`
-      );
-      navigate(`/@${brandUser}/${dateSlug}`);
+      const path = `/@${brandUser}/${dateSlug}`;
+      console.log(`[UpcomingEvent] Navigating to public event: ${path}`);
+      navigate(path);
     }
   };
 
   const handleGenerateGuestCode = async () => {
-    if (!currentEvent || !currentEvent._id) return;
-
-    // Validate form fields
-    const errors = {};
-    if (!guestName.trim()) {
-      errors.name = "Name is required";
-    }
-
-    if (!guestEmail.trim()) {
-      errors.email = "Email is required";
-    } else if (!isValidEmail(guestEmail)) {
-      errors.email = "Please enter a valid email address";
-    }
-
-    setFormErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      toast.showError("Please enter valid name and email");
-      return;
-    }
-
-    setGeneratingCode(true);
-    setSuccessMessage(null);
-
     try {
-      const eventId = currentEvent._id;
+      // Validate guest name and email
+      if (
+        !guestName.trim() ||
+        !guestEmail.trim() ||
+        !guestEmail.includes("@")
+      ) {
+        toast.showError("Please enter a valid name and email");
+        return;
+      }
 
-      const response = await axiosInstance.post(
-        `${process.env.REACT_APP_API_BASE_URL}/guest-code/generate`,
-        {
-          eventId,
-          guestName,
-          guestEmail,
-          maxPax: guestPax,
-        }
+      // Set generating state
+      setGeneratingCode(true);
+
+      // Use info toast to let the user know we're processing
+      toast.showInfo("Processing your request...");
+
+      // Make sure we're using the current event ID
+      const eventId = events[currentIndex]._id;
+      console.log("[UpcomingEvent] Generating guest code for event:", eventId);
+      console.log("[UpcomingEvent] Guest details:", {
+        name: guestName,
+        email: guestEmail,
+        pax: guestPax,
+        isAuthenticated: !!user,
+      });
+
+      const response = await axiosInstance.post("/guest-code/generate", {
+        eventId: eventId,
+        guestName: guestName,
+        guestEmail: guestEmail,
+        maxPax: guestPax,
+      });
+
+      console.log(
+        "[UpcomingEvent] Guest code generated and sent:",
+        response.data
       );
 
-      if (response.data && response.data.success) {
-        setSuccessMessage(
-          "Guest code generated successfully! Check your email for details."
-        );
+      // Check if the response contains a success property or code property
+      if (response.data && (response.data.success || response.data.code)) {
+        // Clear form fields
         setGuestName("");
         setGuestEmail("");
         setGuestPax(1);
-        toast.showSuccess("Guest code generated successfully!");
+
+        // Show success message
+        setSuccessMessage(
+          `Guest code sent to ${guestEmail}. Please check your email.`
+        );
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 5000); // Clear the message after 5 seconds
+
+        // Show success toast
+        toast.showSuccess("Guest code generated and sent successfully");
       } else {
+        // If response doesn't have expected success properties, show an error
         toast.showError(
           response.data?.message || "Failed to generate guest code"
         );
       }
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to generate guest code";
-      toast.showError(errorMessage);
+      console.error("[UpcomingEvent] Error generating guest code:", err);
+
+      // Handle specific error cases
+      if (err.response?.status === 401) {
+        toast.showError("Please log in to generate guest codes");
+      } else if (err.response?.status === 403) {
+        toast.showError(
+          "You don't have permission to generate guest codes for this event"
+        );
+      } else {
+        toast.showError(
+          err.response?.data?.message || "Failed to generate guest code"
+        );
+      }
     } finally {
       setGeneratingCode(false);
     }
@@ -967,6 +1019,10 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                       const guestCodeSetting = currentEvent.codeSettings.find(
                         (cs) => cs.type === "guest"
                       );
+                      console.log(
+                        "[UpcomingEvent] Displaying condition in guest code section:",
+                        guestCodeSetting.condition
+                      );
                       return guestCodeSetting.condition;
                     })()}
                   </p>
@@ -991,123 +1047,86 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
                   </div>
                 )}
 
-                {/* Guest code form */}
-                {showGuestCodeForm && (
-                  <div
-                    className="guest-code-form"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div
-                      className={`form-group ${formErrors.name ? "error" : ""}`}
-                    >
-                      <div className="input-icon">
-                        <RiUserLine />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Your Name"
-                        value={guestName}
-                        onChange={(e) => {
-                          setGuestName(e.target.value);
-                          if (e.target.value.trim()) {
-                            setFormErrors({ ...formErrors, name: null });
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className={formErrors.name ? "error-input" : ""}
-                      />
-                      {formErrors.name && (
-                        <div className="error-message">{formErrors.name}</div>
-                      )}
+                {/* Always show the form, removing the conditional rendering */}
+                <div
+                  className="guest-code-form"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
                     </div>
-
-                    <div
-                      className={`form-group ${
-                        formErrors.email ? "error" : ""
-                      }`}
-                    >
-                      <div className="input-icon">
-                        <RiMailLine />
-                      </div>
-                      <input
-                        type="email"
-                        placeholder="Your Email"
-                        value={guestEmail}
-                        onChange={(e) => {
-                          setGuestEmail(e.target.value);
-                          if (
-                            e.target.value.trim() &&
-                            isValidEmail(e.target.value)
-                          ) {
-                            setFormErrors({ ...formErrors, email: null });
-                          }
-                        }}
-                        onBlur={() => {
-                          if (guestEmail && !isValidEmail(guestEmail)) {
-                            setFormErrors({
-                              ...formErrors,
-                              email: "Please enter a valid email address",
-                            });
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className={formErrors.email ? "error-input" : ""}
-                      />
-                      {formErrors.email && (
-                        <div className="error-message">{formErrors.email}</div>
-                      )}
-                    </div>
-
-                    <div className="form-group">
-                      <div className="input-icon">
-                        <RiUserLine />
-                      </div>
-                      <select
-                        value={guestPax}
-                        onChange={(e) => setGuestPax(Number(e.target.value))}
-                        className="pax-selector"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {Array.from({ length: maxPax }, (_, i) => i + 1).map(
-                          (num) => (
-                            <option key={num} value={num}>
-                              {num} {num === 1 ? "Person" : "People"}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-
-                    <div className="form-buttons">
-                      <motion.button
-                        className="submit-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGenerateGuestCode();
-                        }}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        disabled={
-                          generatingCode ||
-                          !guestName ||
-                          !guestEmail ||
-                          !guestEmail.includes("@")
-                        }
-                      >
-                        {generatingCode ? (
-                          <>
-                            <span className="loading-spinner-small"></span>
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <RiCodeSSlashLine /> Get Guest Code
-                          </>
-                        )}
-                      </motion.button>
-                    </div>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </div>
-                )}
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiMailLine />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Your Email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <div className="input-icon">
+                      <RiUserLine />
+                    </div>
+                    <select
+                      value={guestPax}
+                      onChange={(e) => setGuestPax(Number(e.target.value))}
+                      className="pax-selector"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Array.from({ length: maxPax }, (_, i) => i + 1).map(
+                        (num) => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? "Person" : "People"}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-buttons">
+                    <motion.button
+                      className="submit-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGenerateGuestCode();
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={
+                        generatingCode ||
+                        !guestName ||
+                        !guestEmail ||
+                        !guestEmail.includes("@")
+                      }
+                    >
+                      {generatingCode ? (
+                        <>
+                          <span className="loading-spinner-small"></span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <RiCodeSSlashLine /> Get Guest Code
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
               </div>
             </div>
 
