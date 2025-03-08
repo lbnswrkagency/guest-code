@@ -356,6 +356,9 @@ const createDynamicCode = async (req, res) => {
       maxPax = pax,
       createdBy = hostId || req.body.createdBy, // Use createdBy from request body as fallback
       metadata = {}, // Get metadata if provided
+      // Additional fields that might be sent from the client
+      status = "active",
+      isDynamic = true,
     } = req.body;
 
     // Use the first valid value found for each required field
@@ -505,10 +508,11 @@ const createDynamicCode = async (req, res) => {
       paxChecked: paxChecked || 0,
       limit: codeSetting.limit || 0,
       createdBy: effectiveCreatedBy,
+      status: status || "active",
       // Additional fields specific to this type
       tableNumber,
       // Dynamic code specific fields
-      isDynamic: true,
+      isDynamic: isDynamic || true,
       metadata: {
         ...metadata,
         generatedFrom: "CodeGenerator",
@@ -526,6 +530,8 @@ const createDynamicCode = async (req, res) => {
       name: newCode.name,
       createdBy: newCode.createdBy,
       condition: newCode.condition,
+      maxPax: newCode.maxPax,
+      paxChecked: newCode.paxChecked,
       metadata: newCode.metadata,
     });
 
@@ -542,7 +548,9 @@ const createDynamicCode = async (req, res) => {
         name: newCode.name,
         type: newCode.type,
         maxPax: newCode.maxPax,
+        paxChecked: newCode.paxChecked,
         condition: newCode.condition,
+        metadata: newCode.metadata,
       },
     });
   } catch (error) {
@@ -1221,7 +1229,7 @@ const getCodeCounts = async (req, res) => {
     // Count codes
     const count = await Code.countDocuments(query);
 
-    // Calculate total pax used
+    // Get all codes for this event and type
     const codes = await Code.find(query);
 
     // If displayType is provided, filter codes by metadata.codeType or metadata.settingName
@@ -1230,13 +1238,15 @@ const getCodeCounts = async (req, res) => {
       filteredCodes = codes.filter(
         (code) =>
           code.metadata?.codeType === displayType ||
-          code.metadata?.settingName === displayType
+          code.metadata?.settingName === displayType ||
+          code.metadata?.displayName === displayType
       );
       console.log(
         `🔍 SERVER: Filtered ${codes.length} codes to ${filteredCodes.length} codes with displayType=${displayType}`
       );
     }
 
+    // Calculate pax used and total pax for the filtered codes
     const paxUsed = filteredCodes.reduce(
       (sum, code) => sum + (code.paxChecked || 0),
       0
@@ -1247,7 +1257,7 @@ const getCodeCounts = async (req, res) => {
     );
 
     console.log(
-      `📊 SERVER: Counts for event=${eventId}, type=${type}: count=${count}, paxUsed=${paxUsed}, totalPax=${totalPax}`
+      `📊 SERVER: Counts for event=${eventId}, type=${type}, displayType=${displayType}: count=${filteredCodes.length}, paxUsed=${paxUsed}, totalPax=${totalPax}`
     );
 
     // Get code settings for this type
@@ -1264,15 +1274,16 @@ const getCodeCounts = async (req, res) => {
 
     const codeSetting = await CodeSettings.findOne(codeSettingQuery);
 
+    // Get limit and unlimited status from code setting
     const limit = codeSetting ? codeSetting.limit : 0;
-    const unlimited = codeSetting ? codeSetting.unlimited : false;
+    const unlimited = limit === 0; // If limit is 0, it's unlimited
 
     console.log(
       `📊 SERVER: Code setting for type=${type}: limit=${limit}, unlimited=${unlimited}`
     );
 
     return res.status(200).json({
-      count,
+      count: filteredCodes.length, // Return the count of filtered codes
       paxUsed,
       totalPax,
       limit,

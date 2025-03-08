@@ -452,15 +452,6 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   };
 
   const handleViewEvent = (event) => {
-    if (!event || !event.date) {
-      console.error(
-        "[UpcomingEvent] Invalid event data for navigation:",
-        event
-      );
-      toast.showError("Cannot navigate to event: Missing event data");
-      return;
-    }
-
     // Get the brand username either from the event or from props
     let brandUser = "";
 
@@ -470,10 +461,10 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       event.brand.username
     ) {
       // If brand is populated as an object
-      brandUser = event.brand.username.replace(/^@/, "");
+      brandUser = event.brand.username.replace("@", "");
     } else if (brandUsername) {
       // Use the prop if available
-      brandUser = brandUsername.replace(/^@/, "");
+      brandUser = brandUsername.replace("@", "");
     }
 
     // Generate date slug from event date
@@ -485,38 +476,18 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       eventDate.getFullYear()
     ).slice(-2)}`;
 
-    console.log("[UpcomingEvent] Navigation details:", {
-      brandUser,
-      dateSlug,
-      eventDate: event.date,
-      formattedDate: eventDate.toISOString(),
-      userLoggedIn: !!user,
-      userUsername: user?.username,
-    });
-
-    // Make sure we have valid parameters before navigating
-    if (!brandUser) {
-      console.error("[UpcomingEvent] Missing brand username for navigation");
-      toast.showError("Cannot navigate to event: Missing brand information");
-      return;
-    }
-
-    if (!dateSlug) {
-      console.error("[UpcomingEvent] Missing date slug for navigation");
-      toast.showError("Cannot navigate to event: Invalid date");
-      return;
-    }
-
     // If user is logged in, navigate to the user-specific route
-    if (user && user.username) {
-      const path = `/@${user.username}/@${brandUser}/${dateSlug}`;
-      console.log(`[UpcomingEvent] Navigating to user event: ${path}`);
-      navigate(path);
+    if (user) {
+      console.log(
+        `[UpcomingEvent] Navigating to user event: /@${user.username}/@${brandUser}/${dateSlug}`
+      );
+      navigate(`/@${user.username}/@${brandUser}/${dateSlug}`);
     } else {
       // If no user, use the public route
-      const path = `/@${brandUser}/${dateSlug}`;
-      console.log(`[UpcomingEvent] Navigating to public event: ${path}`);
-      navigate(path);
+      console.log(
+        `[UpcomingEvent] Navigating to public event: /@${brandUser}/${dateSlug}`
+      );
+      navigate(`/@${brandUser}/${dateSlug}`);
     }
   };
 

@@ -66,59 +66,13 @@ const EventProfile = () => {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
-  const [extractedParams, setExtractedParams] = useState({});
+
+  const { pathname } = location;
 
   // Add effect to log navigation state changes
   useEffect(() => {
-    // Silent error handling where appropriate
+    console.log("[EventProfile] DashboardNavigation isOpen:", isNavigationOpen);
   }, [isNavigationOpen]);
-
-  // Fetch event data
-  useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        setLoading(true);
-        // Fetch all event data in a single request
-        const response = await axiosInstance.get(
-          `/api/events/profile/${eventId}`
-        );
-
-        if (response.data.success) {
-          // Set all data from the single response
-          setEvent(response.data.event);
-          setLineups(response.data.lineups || []);
-          setTicketSettings(response.data.ticketSettings || []);
-          setCodeSettings(response.data.codeSettings || []);
-
-          // Set user status values only if user is logged in
-          if (user) {
-            setIsFollowing(response.data.isFollowing || false);
-            setIsFavorited(response.data.isFavorited || false);
-            setIsMember(response.data.isMember || false);
-            setJoinRequestStatus(response.data.joinRequestStatus || "");
-          } else {
-            // Set default values for anonymous users
-            setIsFollowing(false);
-            setIsFavorited(false);
-            setIsMember(false);
-            setJoinRequestStatus("");
-          }
-        } else {
-          throw new Error(response.data.message || "Failed to load event data");
-        }
-      } catch (err) {
-        // Handle error silently or with toast notification if user-facing
-        setError("Failed to load event information");
-        toast.showError("Failed to load event information");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (eventId) {
-      fetchEventData();
-    }
-  }, [eventId, toast, user]);
 
   // Extract URL parameters
   const {
@@ -129,37 +83,57 @@ const EventProfile = () => {
     eventSlug: urlEventSlug,
   } = useParams();
 
-  const { pathname } = location;
-
-  // Extract parameters from the URL
-  useEffect(() => {
+  // Special handling for the path parameters when using the new URL format
+  const extractedParams = useMemo(() => {
     const pathParts = pathname.split("/").filter((p) => p);
-    const params = {};
 
-    // Extract parameters from the URL path
-    if (pathParts.length >= 1 && pathParts[0].startsWith("@")) {
-      params.brandUsername = pathParts[0].substring(1); // Remove @ symbol
+    console.log(
+      "[EventProfile] Extracting parameters from path parts:",
+      pathParts
+    );
+
+    // For the special format /@username/@brandusername/XXYYZZ
+    if (
+      pathParts.length === 3 &&
+      pathParts[0].startsWith("@") &&
+      pathParts[1].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[2])
+    ) {
+      const result = {
+        userUsername: pathParts[0].substring(1), // Remove @ from first part
+        brandUsername: pathParts[1].substring(1), // Remove @ from second part
+        dateSlug: pathParts[2], // The date part
+      };
+      console.log(
+        "[EventProfile] Extracted special format parameters:",
+        result
+      );
+      return result;
     }
 
-    if (pathParts.length >= 2) {
-      if (pathParts[1] === "e" && pathParts.length >= 4) {
-        // Format: /@brandUsername/e/dateSlug/eventSlug
-        params.dateSlug = pathParts[2];
-        params.eventSlug = pathParts[3];
-      } else if (pathParts[1].startsWith("@")) {
-        // Format: /@userUsername/@brandUsername/dateSlug
-        params.brandUsername = pathParts[1].substring(1); // Remove @ symbol
-        if (pathParts.length >= 3) {
-          params.dateSlug = pathParts[2];
-        }
-      } else if (/^\d{6}(-\d+)?$/.test(pathParts[1])) {
-        // Format: /@brandUsername/dateSlug
-        params.dateSlug = pathParts[1];
-      }
+    // For the format /@brandUsername/XXYYZZ (e.g., /@afrospiti/030925)
+    if (
+      pathParts.length === 2 &&
+      pathParts[0].startsWith("@") &&
+      /^\d{6}(-\d+)?$/.test(pathParts[1])
+    ) {
+      const result = {
+        brandUsername: pathParts[0].substring(1), // Remove @ from first part
+        dateSlug: pathParts[1], // The date part
+      };
+      console.log("[EventProfile] Extracted simple format parameters:", result);
+      return result;
     }
 
-    setExtractedParams(params);
-  }, [pathname]);
+    // Default case - use URL parameters
+    const result = {
+      brandUsername: urlBrandUsername?.replace(/^@/, "") || "", // Remove @ if present
+      dateSlug: urlDateSlug || urlEventUsername, // Use eventUsername as dateSlug for special format
+      eventSlug: urlEventSlug || "", // Include eventSlug if available
+    };
+    console.log("[EventProfile] Using URL parameters:", result);
+    return result;
+  }, [pathname, urlBrandUsername, urlDateSlug, urlEventUsername, urlEventSlug]);
 
   // Helper function to format date for URL (MMDDYY)
   const formatDateForUrl = useCallback((date) => {
@@ -219,100 +193,245 @@ const EventProfile = () => {
   }, [extractedParams, pathname, isSpecialFormat]);
 
   // Fetch event data
-  const fetchEventData = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchEventData = useCallback(async () => {
+    console.log("[EventProfile] Starting fetchEventData with params:", {
+      urlEventId: eventId,
+      currentEventId,
+      extractedParams,
+      pathname,
+    });
 
     try {
+      setLoading(true);
       let response;
       let endpoint;
 
-      // Try to fetch using the appropriate format
+      // Special format: /@brandUsername/@eventUsername/dateSlug
       if (isSpecialFormat()) {
         const { brandUsername, dateSlug } = extractedParams;
 
+        console.log(
+          "[EventProfile] Using special format with extracted params:",
+          {
+            brandUsername, // Without @ symbol
+            dateSlug,
+            pathParts: pathname.split("/").filter((p) => p),
+          }
+        );
+
+        // Validate parameters before constructing endpoint
+        if (!brandUsername || !dateSlug) {
+          console.error(
+            "[EventProfile] Missing required parameters for special format:",
+            {
+              brandUsername,
+              dateSlug,
+            }
+          );
+          setError("Invalid URL parameters");
+          setLoading(false);
+          return;
+        }
+
         // Use the date endpoint with clean params
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
+        console.log("[EventProfile] Fetching with new endpoint:", endpoint);
 
         response = await axiosInstance.get(endpoint);
+        console.log(
+          "[EventProfile] Special format API response:",
+          response.status,
+          response.data
+        );
       } else if (isNewUrlFormat()) {
         // Using the cleaned brandUsername from extractedParams
-        const { brandUsername, dateSlug, eventSlug } = extractedParams;
-        const urlEventSlug = eventSlug || null;
+        const { brandUsername, dateSlug } = extractedParams;
 
-        // Try different endpoint formats based on available parameters
-        if (dateSlug && /^\d{6}(-\d+)?$/.test(dateSlug)) {
+        console.log("[EventProfile] URL parameters for new format:", {
+          brandUsername,
+          dateSlug,
+          pathParts: pathname.split("/").filter((p) => p),
+          extractedParams,
+        });
+
+        // Only proceed if we have both parameters
+        if (brandUsername && dateSlug && /^\d{6}(-\d+)?$/.test(dateSlug)) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
+          console.log(
+            `[EventProfile] Fetching data for simplified format: ${endpoint}`
+          );
 
           response = await axiosInstance.get(endpoint);
-        } else if (urlEventSlug) {
+        } else if (brandUsername && urlEventSlug) {
+          console.log("[EventProfile] Using event slug format with:", {
+            brandUsername,
+            dateSlug,
+            urlEventSlug,
+          });
+
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/slug/${brandUsername}/${dateSlug}/${urlEventSlug}`;
+          console.log(
+            `[EventProfile] Fetching data for full slug format: ${endpoint}`
+          );
 
           response = await axiosInstance.get(endpoint);
         } else {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
-
-          response = await axiosInstance.get(endpoint);
+          console.error(
+            "[EventProfile] Missing required parameters for API call:",
+            {
+              brandUsername,
+              dateSlug,
+              urlEventSlug,
+            }
+          );
+          setError("Invalid URL parameters");
+          setLoading(false);
+          return; // Early return to prevent further processing with invalid parameters
         }
-      } else if (currentEventId || eventId) {
-        // Direct ID lookup
+      } else if (eventId || currentEventId) {
+        // Use currentEventId if available, otherwise fall back to eventId from useParams
         const effectiveEventId = currentEventId || eventId;
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/api/events/profile/${effectiveEventId}`;
+
+        if (!effectiveEventId) {
+          console.error("[EventProfile] No event ID available for fetching");
+          setError("Missing event ID");
+          setLoading(false);
+          return;
+        }
+
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${effectiveEventId}`;
+        console.log(`[EventProfile] Fetching data for event ID: ${endpoint}`);
 
         response = await axiosInstance.get(endpoint);
       } else {
-        // No valid format detected
+        console.log("[EventProfile] No valid format detected, skipping fetch");
+        setError("Invalid URL format");
         setLoading(false);
-        setError("Invalid event URL format");
         return; // Early return to prevent further processing
       }
 
-      if (response && response.data && response.data.success) {
-        setEvent(response.data.event);
+      console.log("[EventProfile] API Response status:", response.status);
+      console.log("[EventProfile] API Response data:", response.data);
+
+      if (response && response.data) {
+        // Check if we have a valid event in the response
+        const eventData = response.data.event || response.data;
+
+        if (!eventData || !eventData._id) {
+          console.error(
+            "[EventProfile] No valid event data in response:",
+            response.data
+          );
+          setError("Event not found");
+          setLoading(false);
+          return;
+        }
+
+        console.log("[EventProfile] Successfully loaded event:", {
+          eventId: eventData._id,
+          title: eventData.title,
+          date: eventData.date,
+          brand: eventData.brand?.username || "unknown",
+        });
+
+        setEvent(eventData);
 
         // Explicitly set the related data with detailed logging
         if (response.data.lineups) {
+          console.log(
+            "[EventProfile] Setting lineups:",
+            response.data.lineups.length,
+            "items"
+          );
           setLineups(response.data.lineups);
         } else {
+          console.log("[EventProfile] No lineups data in response");
           setLineups([]);
         }
 
         if (response.data.ticketSettings) {
+          console.log(
+            "[EventProfile] Setting ticketSettings:",
+            response.data.ticketSettings.length,
+            "items"
+          );
           setTicketSettings(response.data.ticketSettings);
         } else {
+          console.log("[EventProfile] No ticketSettings data in response");
           setTicketSettings([]);
         }
 
         if (response.data.codeSettings) {
+          console.log(
+            "[EventProfile] Setting codeSettings:",
+            response.data.codeSettings.length,
+            "items"
+          );
           setCodeSettings(response.data.codeSettings);
         } else {
+          console.log("[EventProfile] No codeSettings data in response");
           setCodeSettings([]);
         }
 
-        // Update URL to new format if needed
-        if (response.data.event) {
-          const { _id, brand, date, slug } = response.data.event;
-          if (brand && brand.username && date && slug) {
+        // If we found the event by ID but we have the new URL format available,
+        // update the URL without reloading the page
+        if (urlEventId && !isNewUrlFormat() && eventData.slug) {
+          const { brand, date, slug } = eventData;
+          if (brand && brand.username && date) {
+            // Use the now properly defined formatDateForUrl
             const formattedDate = formatDateForUrl(new Date(date));
             const newPath = `/@${brand.username}/e/${formattedDate}/${slug}`;
+            console.log(
+              `[EventProfile] Updating URL to new format: ${newPath}`
+            );
             navigate(newPath, { replace: true });
           }
-        } else {
-          setError("Could not find event information");
-          throw new Error(response.data.message || "Failed to load event data");
         }
+      } else {
+        console.log("[EventProfile] API returned empty or invalid data");
+        setError("Could not find event information");
+        throw new Error("Failed to load event data");
       }
     } catch (error) {
-      setError("Failed to load event information");
+      console.error("[EventProfile] Error fetching event data:", error);
+      console.error("[EventProfile] Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
 
-      // Show a user-friendly error message, but only once
-      if (toast && toast.showError && !hasFetchAttempted) {
-        toast.showError("Failed to load event information");
+      // Set appropriate error message based on the error
+      if (error.response?.status === 404) {
+        setError("Event not found");
+        toast.showError("Event not found");
+      } else {
+        setError("Failed to load event information");
+        // Show a user-friendly error message, but only once
+        if (!hasFetchAttempted) {
+          toast.showError("Failed to load event information");
+        }
       }
     } finally {
       setLoading(false);
+      // Mark that we've attempted to fetch data
+      setHasFetchAttempted(true);
     }
-  };
+  }, [
+    eventId,
+    currentEventId,
+    extractedParams,
+    pathname,
+    isSpecialFormat,
+    isNewUrlFormat,
+    formatDateForUrl,
+    navigate,
+    toast,
+    hasFetchAttempted,
+    urlEventSlug,
+  ]);
 
   // Fetch event data when URL parameters change
   useEffect(() => {

@@ -36,29 +36,64 @@ function CodeManagement({
   const [currentEditingCodePax, setCurrentEditingCodePax] = useState(0);
   const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [codes, setCodes] = useState([]);
+  const [stableCodesRef] = useState({ current: [] });
 
+  // Stabilize the codes state to prevent flickering
   useEffect(() => {
     if (codesFromParent && codesFromParent.length > 0) {
+      console.log(
+        `📋 MANAGEMENT: Received ${codesFromParent.length} codes from parent`
+      );
+      // Update both the state and the stable reference
       setCodes(codesFromParent);
+      stableCodesRef.current = codesFromParent;
+
+      // Log the count to help with debugging
+      console.log(
+        `📊 MANAGEMENT: Updated codes count: ${codesFromParent.length}`
+      );
     }
   }, [codesFromParent]);
 
-  // Fetch codes when component mounts or when dependencies change
+  // Only fetch codes if we don't have codes from parent and we have a selected event
   useEffect(() => {
-    if (selectedEvent && type) {
+    if (
+      selectedEvent &&
+      type &&
+      (!codesFromParent || codesFromParent.length === 0)
+    ) {
       console.log(
         `🔄 MANAGEMENT: Refreshing codes for type=${type}, event=${selectedEvent._id}`
       );
       fetchCodes();
+    } else if (codesFromParent && codesFromParent.length > 0) {
+      // If we have codes from parent, make sure to update the total pax used
+      setTotalPaxUsed(calculateTotalPax(codesFromParent));
     }
-  }, [selectedEvent, type, dataInterval]);
+  }, [selectedEvent, type, codesFromParent]);
+
+  // Separate useEffect for dataInterval to prevent unnecessary fetches
+  useEffect(() => {
+    if (
+      selectedEvent &&
+      type &&
+      dataInterval &&
+      (!codesFromParent || codesFromParent.length === 0)
+    ) {
+      console.log(
+        `🔄 MANAGEMENT: Data interval changed, refreshing codes for type=${type}, event=${selectedEvent._id}`
+      );
+      fetchCodes();
+    }
+  }, [dataInterval]);
 
   // Add debugging for props with detailed event info
   useEffect(() => {
     console.group("🔍 MANAGEMENT PROPS");
     console.log("User:", user?._id);
     console.log("Type:", type);
-    console.log("Codes Length:", codes?.length);
+    console.log("Codes from Parent:", codesFromParent?.length);
+    console.log("Current Codes Length:", codes?.length);
     console.log(
       "Selected Event:",
       selectedEvent
@@ -89,7 +124,7 @@ function CodeManagement({
     }
 
     console.groupEnd();
-  }, [user, type, codes, selectedEvent, dataInterval]);
+  }, [user, type, codes, codesFromParent, selectedEvent, dataInterval]);
 
   // Add debugging for selectedEvent changes
   useEffect(() => {
@@ -115,6 +150,7 @@ function CodeManagement({
     }
   }, [selectedEvent]);
 
+  // Completely rewritten fetchCodes function for stability
   const fetchCodes = async () => {
     if (!selectedEvent || !type) {
       console.warn(
@@ -123,17 +159,17 @@ function CodeManagement({
       return;
     }
 
+    // Don't fetch if we already have codes from parent
+    if (codesFromParent && codesFromParent.length > 0) {
+      console.log("📋 MANAGEMENT: Using codes from parent, skipping fetch");
+      return;
+    }
+
     try {
       setLoading(true);
       console.log(
         `🔄 MANAGEMENT: Fetching codes for event=${selectedEvent._id}, type=${type}`
       );
-      console.log("Event data:", {
-        id: selectedEvent._id,
-        name: selectedEvent.name,
-        logo: selectedEvent.logo,
-        brand: selectedEvent.brand,
-      });
 
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${type}`,
@@ -144,46 +180,29 @@ function CodeManagement({
         }
       );
 
-      console.log(`✅ MANAGEMENT: Fetched ${response.data.codes.length} codes`);
+      // Handle different response structures
+      const codesData = response.data.codes || response.data;
 
-      // Log the first code to check for color and settings
-      if (response.data.codes.length > 0) {
-        const sampleCode = response.data.codes[0];
-        console.log("Sample code data:", {
-          id: sampleCode._id,
-          name: sampleCode.name,
-          type: sampleCode.type,
-          color: sampleCode.color,
-          codeSettings: sampleCode.codeSettings,
-          eventId: sampleCode.eventId,
-          paxChecked: sampleCode.paxChecked,
-          maxPax: sampleCode.maxPax,
-        });
+      console.log(`✅ MANAGEMENT: Fetched ${codesData.length} codes`);
+
+      // Only update if we got data
+      if (codesData && codesData.length > 0) {
+        // Update both the state and the ref
+        setCodes(codesData);
+        stableCodesRef.current = codesData;
+        setTotalPaxUsed(calculateTotalPax(codesData));
       }
-
-      setCodes(response.data.codes);
-      setTotalPaxUsed(calculateTotalPax());
-      setLoading(false);
     } catch (error) {
       console.error("❌ MANAGEMENT: Error fetching codes:", error);
-
-      // Show a more specific error message if available
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        console.error("Error message:", error.response.data.message);
-      }
-
+    } finally {
       setLoading(false);
-      setCodes([]);
     }
   };
 
-  const calculateTotalPax = () => {
-    if (!codes || codes.length === 0) return 0;
-    return codes.reduce((total, code) => total + (code.maxPax || 1), 0);
+  // Modified calculateTotalPax to accept codes as parameter
+  const calculateTotalPax = (codesArray = codes) => {
+    if (!codesArray || codesArray.length === 0) return 0;
+    return codesArray.reduce((total, code) => total + (code.maxPax || 1), 0);
   };
 
   const loadMore = () => {
@@ -198,6 +217,10 @@ function CodeManagement({
 
       console.log(`🔍 CLIENT: Attempting to delete code: ${deleteCodeId}`);
 
+      // Find the code to be deleted to get its pax value
+      const codeToDelete = codes.find((code) => code._id === deleteCodeId);
+      const paxToRemove = codeToDelete ? codeToDelete.maxPax || 1 : 1;
+
       // Use the API endpoint for deleting codes
       const response = await axios.delete(
         `${process.env.REACT_APP_API_BASE_URL}/codes/${deleteCodeId}`,
@@ -210,12 +233,29 @@ function CodeManagement({
 
       console.log("✅ CLIENT: Delete response:", response.data);
 
-      // Refresh codes instead of manually updating state
-      await refreshCodes();
+      // Update both the state and the stable reference
+      const updatedCodes = codes.filter((code) => code._id !== deleteCodeId);
+      setCodes(updatedCodes);
+      stableCodesRef.current = updatedCodes;
+
+      // Update the parent component if setCodes is provided
+      if (setCodesParent) {
+        console.log(
+          `📊 MANAGEMENT: Notifying parent of code deletion, remaining codes: ${updatedCodes.length}`
+        );
+        setCodesParent(updatedCodes);
+      }
 
       // Refresh counts
       if (refreshCounts) {
+        console.log(`📊 MANAGEMENT: Refreshing counts after deletion`);
         await refreshCounts();
+      }
+
+      // Refresh codes if needed
+      if (refreshCodes) {
+        console.log(`📊 MANAGEMENT: Refreshing codes after deletion`);
+        await refreshCodes();
       }
 
       showSuccess("Code deleted successfully");
@@ -283,9 +323,15 @@ function CodeManagement({
     try {
       showLoading("Updating code...");
 
+      // Find the code being edited to get its current pax value
+      const codeBeingEdited = codes.find((code) => code._id === editCodeId);
+      const oldPax = codeBeingEdited ? codeBeingEdited.maxPax || 1 : 1;
+      const newPax = parseInt(editPax);
+      const paxDifference = newPax - oldPax;
+
       const updateData = {
         name: editName,
-        maxPax: parseInt(editPax), // Update maxPax instead of paxChecked
+        maxPax: newPax, // Update maxPax instead of paxChecked
       };
 
       if (type === "Table Code" && editTableNumber) {
@@ -295,6 +341,9 @@ function CodeManagement({
       console.log(
         `🔍 CLIENT: Attempting to update code: ${editCodeId}`,
         updateData
+      );
+      console.log(
+        `📊 MANAGEMENT: Pax change: ${oldPax} -> ${newPax} (difference: ${paxDifference})`
       );
 
       // Use the API endpoint for updating codes
@@ -310,8 +359,31 @@ function CodeManagement({
 
       console.log("✅ CLIENT: Update response:", response.data);
 
-      // Refresh codes instead of manually updating state
-      await refreshCodes();
+      // Update the code in both the state and the stable reference
+      const updatedCode = response.data.code || response.data;
+
+      if (updatedCode) {
+        const updatedCodes = codes.map((code) =>
+          code._id === editCodeId ? { ...code, ...updateData } : code
+        );
+
+        setCodes(updatedCodes);
+        stableCodesRef.current = updatedCodes;
+
+        // Update the parent component if setCodes is provided
+        if (setCodesParent) {
+          console.log(
+            `📊 MANAGEMENT: Notifying parent of code update, pax difference: ${paxDifference}`
+          );
+          setCodesParent(updatedCodes);
+        }
+      }
+
+      // Refresh counts to update the counter
+      if (refreshCounts) {
+        console.log(`📊 MANAGEMENT: Refreshing counts after edit`);
+        await refreshCounts();
+      }
 
       // Reset edit state
       setEditCodeId(null);
@@ -416,8 +488,14 @@ function CodeManagement({
 
   // Render function with debugging
   const renderCodes = () => {
+    // Use the stable reference to codes if available
+    const codesToRender =
+      stableCodesRef.current.length > 0 ? stableCodesRef.current : codes;
+
     console.log("🔍 MANAGEMENT RENDER:", {
-      codes: codes?.length,
+      stableCodesLength: stableCodesRef.current.length,
+      stateCodesLength: codes.length,
+      codesToRender: codesToRender.length,
       visibleCodes,
       loading,
       type,
@@ -432,11 +510,12 @@ function CodeManagement({
       );
     }
 
-    if (loading) {
+    // Show loading only if we have no codes yet
+    if (loading && codesToRender.length === 0) {
       return <div className="loading">Loading codes...</div>;
     }
 
-    if (!codes || codes.length === 0) {
+    if (!codesToRender || codesToRender.length === 0) {
       console.log("❌ MANAGEMENT: No codes found for type:", type);
       return (
         <div className="no-codes">
@@ -445,16 +524,27 @@ function CodeManagement({
       );
     }
 
+    // IMPORTANT: Notify parent of code count if setCodesParent is provided
+    if (setCodesParent && codesToRender.length > 0) {
+      console.log(
+        `📊 MANAGEMENT: Notifying parent of ${codesToRender.length} codes`
+      );
+      // This ensures the parent component has the most up-to-date code count
+      setTimeout(() => {
+        setCodesParent(codesToRender);
+      }, 0);
+    }
+
     console.log(
       `✅ MANAGEMENT RENDER: Displaying ${Math.min(
         visibleCodes,
-        codes.length
-      )} of ${codes.length} codes`
+        codesToRender.length
+      )} of ${codesToRender.length} codes`
     );
 
     return (
       <>
-        {codes.slice(0, visibleCodes).map((code) => {
+        {codesToRender.slice(0, visibleCodes).map((code) => {
           // Get first letter of name for icon
           const firstLetter = code.name
             ? code.name.charAt(0).toUpperCase()
@@ -618,10 +708,10 @@ function CodeManagement({
           );
         })}
 
-        {codes.length > visibleCodes && (
+        {codesToRender.length > visibleCodes && (
           <button
             className="load-more-btn"
-            onClick={() => setVisibleCodes(visibleCodes + 10)}
+            onClick={loadMore}
             style={
               selectedEvent?.primaryColor
                 ? {
