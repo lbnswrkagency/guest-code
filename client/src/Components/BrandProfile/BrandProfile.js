@@ -84,6 +84,18 @@ const BrandProfile = () => {
     cleanUsername = brandUsername.replace(/^@/, "");
   }
 
+  // If we're on a dashboard path that doesn't have a brand username, don't try to fetch
+  const isDashboardPath =
+    location.pathname.includes("/dashboard") ||
+    location.pathname === "/" ||
+    location.pathname === "";
+
+  if (isDashboardPath && !cleanUsername) {
+    console.log(
+      "[BrandProfile] On dashboard path without brand username, skipping fetch"
+    );
+  }
+
   // Enhanced logging for debugging
   console.log("[BrandProfile] Detailed params:", {
     brandUsername,
@@ -91,6 +103,7 @@ const BrandProfile = () => {
     rawParams: useParams(),
     pathname: location.pathname,
     lastAtIndex: location.pathname.lastIndexOf("/@"),
+    isDashboardPath,
     timestamp: new Date().toISOString(),
   });
 
@@ -98,17 +111,32 @@ const BrandProfile = () => {
     console.log("[BrandProfile] useEffect triggered with:", {
       cleanUsername,
       user: !!user,
+      isDashboardPath,
       timestamp: new Date().toISOString(),
     });
 
+    // Skip fetching if we're on a dashboard path without a brand username
+    if (isDashboardPath && !cleanUsername) {
+      console.log("[BrandProfile] Skipping brand fetch on dashboard path");
+      setLoading(false);
+      return;
+    }
+
     if (cleanUsername) {
-      fetchBrand();
+      // Only fetch if we have a username and user authentication is ready
+      if (user) {
+        fetchBrand();
+      } else {
+        console.log(
+          "[BrandProfile] Waiting for authentication before fetching brand data"
+        );
+      }
     } else {
       console.error("[BrandProfile] No username found in params or path");
       toast.showError("Invalid brand profile");
       navigate("/");
     }
-  }, [cleanUsername, user]);
+  }, [cleanUsername, user, isDashboardPath]);
 
   useEffect(() => {
     if (brand?.userStatus) {
@@ -120,6 +148,14 @@ const BrandProfile = () => {
   }, [brand?.userStatus]);
 
   const fetchBrand = async () => {
+    // Only proceed if user authentication is ready
+    if (!user) {
+      console.log(
+        "[BrandProfile] Cannot fetch brand data: User not authenticated"
+      );
+      return;
+    }
+
     console.log("[BrandProfile] Fetching brand data:", {
       brandUsername,
       cleanUsername,
@@ -159,15 +195,21 @@ const BrandProfile = () => {
         timestamp: new Date().toISOString(),
       });
 
-      // Only redirect to home if it's not a 404 error
-      if (error.response?.status === 404) {
-        toast.showError(`Brand "${cleanUsername}" not found`);
-        // Stay on the page but show a not found message
-        setBrand(null);
-        setLoading(false);
-      } else {
-        toast.showError("Failed to load brand profile");
-        navigate("/");
+      // Don't show error toast for 404 errors during initial load
+      // This prevents error messages when the component is mounted before auth is ready
+      if (error.response?.status !== 404 || loading === false) {
+        toast.showError("Could not load brand profile");
+      }
+
+      // If this is a network error or 5xx server error, we might want to retry
+      if (
+        !error.response ||
+        (error.response.status >= 500 && error.response.status < 600)
+      ) {
+        console.log(
+          "[BrandProfile] Network or server error, might retry later"
+        );
+        // Could implement retry logic here if needed
       }
     } finally {
       setLoading(false);

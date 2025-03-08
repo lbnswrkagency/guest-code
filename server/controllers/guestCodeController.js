@@ -142,14 +142,14 @@ const generateGuestCodePDF = async (code, event) => {
           }
         </style>
       </head>
-      <body style="position: relative; background-color: white; width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
+      <body style="position: relative; background-color: ${primaryColor}; width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
         <!-- Header section with logo -->
         <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 3.25rem 2.313rem 0;">
           <h1 style="margin: 0; font-weight: 700; font-size: 1.85rem; color: #000000;">Guest Code</h1>
           ${
             brand?.logo?.medium
               ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; padding: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><img src="${brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
-              : `<div style="width: 3.5rem; height: 3.5rem; background-color: ${primaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              : `<div style="width: 3.5rem; height: 3.5rem; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: bold; font-size: 1.5rem;">${
                 brand?.name?.charAt(0) || "G"
               }</span>

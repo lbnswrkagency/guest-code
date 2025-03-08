@@ -7,6 +7,8 @@ import {
   RiShieldUserLine,
   RiSearchLine,
   RiDeleteBin6Line,
+  RiBanLine,
+  RiUser3Line,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
@@ -23,6 +25,13 @@ const UserInterface = ({ brand, onClose }) => {
     message: "",
     confirmAction: null,
   });
+
+  // Helper function to get the avatar URL from the avatar object
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return null;
+    if (typeof avatar === "string") return avatar;
+    return avatar.medium || avatar.full || avatar.thumbnail;
+  };
 
   useEffect(() => {
     fetchTeamMembers();
@@ -156,15 +165,15 @@ const UserInterface = ({ brand, onClose }) => {
               layout
             >
               <div className="member-info">
-                {member.avatar ? (
+                {member.avatar && getAvatarUrl(member.avatar) ? (
                   <img
-                    src={member.avatar}
+                    src={getAvatarUrl(member.avatar)}
                     alt={member.name}
                     className="member-avatar"
                   />
                 ) : (
                   <div className="member-avatar-placeholder">
-                    {member.name.charAt(0).toUpperCase()}
+                    <RiUser3Line className="placeholder-icon" />
                   </div>
                 )}
                 <div className="member-details">

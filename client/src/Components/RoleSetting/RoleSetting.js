@@ -327,15 +327,26 @@ const RoleSetting = ({ brand, onClose }) => {
     if (!newRole.name.trim() || !editingRole) return;
 
     try {
+      console.log("Updating role:", editingRole);
+      console.log("New role data:", newRole);
+
       const normalizedRole = {
         ...newRole,
         name: newRole.name.toUpperCase(),
       };
 
+      console.log("Normalized role data:", normalizedRole);
+      console.log(
+        `Sending request to: /roles/brands/${brand._id}/roles/${editingRole._id}`
+      );
+
       const response = await axiosInstance.put(
         `/roles/brands/${brand._id}/roles/${editingRole._id}`,
         normalizedRole
       );
+
+      console.log("Update role response:", response.data);
+
       setRoles(
         roles.map((role) =>
           role._id === editingRole._id ? response.data : role

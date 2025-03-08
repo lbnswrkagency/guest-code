@@ -5,7 +5,12 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "./AvatarUpload.scss";
 import { motion, AnimatePresence } from "framer-motion";
-import { RiUpload2Line, RiCloseLine, RiCheckLine } from "react-icons/ri";
+import {
+  RiUpload2Line,
+  RiCloseLine,
+  RiCheckLine,
+  RiEditLine,
+} from "react-icons/ri";
 import { createPortal } from "react-dom";
 import { useToast } from "../Toast/ToastContext";
 
@@ -317,7 +322,7 @@ const AvatarUpload = ({
             }
           }}
         >
-          {user?.avatar ? (
+          {user?.avatar && getAvatarUrl(user.avatar) ? (
             <img
               src={getAvatarUrl(user.avatar)}
               alt="User avatar"
@@ -328,12 +333,12 @@ const AvatarUpload = ({
               {isLineUpMode ? (
                 <RiUpload2Line className="upload-icon" />
               ) : (
-                <img src="/image/profile-icon.svg" alt="Default profile" />
+                <RiUpload2Line className="upload-icon" />
               )}
             </div>
           )}
           <div className="avatar-overlay">
-            <img src="/image/edit-icon.svg" alt="Edit" className="edit-icon" />
+            <RiEditLine className="edit-icon" />
           </div>
         </div>
       </div>

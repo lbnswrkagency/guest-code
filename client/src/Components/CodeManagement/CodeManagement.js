@@ -1,11 +1,13 @@
 // CodeManagement.js
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useCallback } from "react";
+import axiosInstance from "../../utils/axiosConfig";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
 import moment from "moment";
-import TableLayout from "../TableLayout/TableLayout"; // Import if needed for table codes
+import TableLayout from "../TableLayout/TableLayout";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import { FaEye, FaEdit, FaTrash, FaDownload } from "react-icons/fa";
+import { BsPeopleFill } from "react-icons/bs";
 
 function CodeManagement({
   user,
@@ -33,145 +35,47 @@ function CodeManagement({
   const [editName, setEditName] = useState("");
   const [editPax, setEditPax] = useState("");
   const [editTableNumber, setEditTableNumber] = useState("");
-  const [currentEditingCodePax, setCurrentEditingCodePax] = useState(0);
   const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [codes, setCodes] = useState([]);
   const [stableCodesRef] = useState({ current: [] });
+  const [currentCodeId, setCurrentCodeId] = useState(null);
+
+  // Calculate total pax
+  const calculateTotalPax = useCallback(
+    (codesArray = codes) => {
+      if (!codesArray?.length) return 0;
+      return codesArray.reduce((total, code) => total + (code.maxPax || 1), 0);
+    },
+    [codes]
+  );
 
   // Stabilize the codes state to prevent flickering
   useEffect(() => {
-    if (codesFromParent && codesFromParent.length > 0) {
-      console.log(
-        `📋 MANAGEMENT: Received ${codesFromParent.length} codes from parent`
-      );
-      // Update both the state and the stable reference
+    if (codesFromParent?.length) {
       setCodes(codesFromParent);
       stableCodesRef.current = codesFromParent;
-
-      // Log the count to help with debugging
-      console.log(
-        `📊 MANAGEMENT: Updated codes count: ${codesFromParent.length}`
-      );
-    }
-  }, [codesFromParent]);
-
-  // Only fetch codes if we don't have codes from parent and we have a selected event
-  useEffect(() => {
-    if (
-      selectedEvent &&
-      type &&
-      (!codesFromParent || codesFromParent.length === 0)
-    ) {
-      console.log(
-        `🔄 MANAGEMENT: Refreshing codes for type=${type}, event=${selectedEvent._id}`
-      );
-      fetchCodes();
-    } else if (codesFromParent && codesFromParent.length > 0) {
-      // If we have codes from parent, make sure to update the total pax used
       setTotalPaxUsed(calculateTotalPax(codesFromParent));
     }
-  }, [selectedEvent, type, codesFromParent]);
+  }, [codesFromParent, calculateTotalPax]);
 
-  // Separate useEffect for dataInterval to prevent unnecessary fetches
+  // Fetch codes when needed
   useEffect(() => {
     if (
       selectedEvent &&
       type &&
-      dataInterval &&
-      (!codesFromParent || codesFromParent.length === 0)
+      (!codesFromParent || !codesFromParent.length)
     ) {
-      console.log(
-        `🔄 MANAGEMENT: Data interval changed, refreshing codes for type=${type}, event=${selectedEvent._id}`
-      );
       fetchCodes();
     }
-  }, [dataInterval]);
+  }, [selectedEvent, type, codesFromParent, dataInterval]);
 
-  // Add debugging for props with detailed event info
-  useEffect(() => {
-    console.group("🔍 MANAGEMENT PROPS");
-    console.log("User:", user?._id);
-    console.log("Type:", type);
-    console.log("Codes from Parent:", codesFromParent?.length);
-    console.log("Current Codes Length:", codes?.length);
-    console.log(
-      "Selected Event:",
-      selectedEvent
-        ? {
-            _id: selectedEvent._id,
-            name: selectedEvent.name,
-            date: selectedEvent.date,
-            user: selectedEvent.user,
-            brand: selectedEvent.brand,
-            logo: selectedEvent.logo, // Check if logo exists
-            // Log the entire object for debugging
-            fullObject: selectedEvent,
-          }
-        : "undefined"
-    );
-    console.log("Data Interval:", dataInterval);
-
-    // Check if codes have color information
-    if (codes && codes.length > 0) {
-      console.log("Sample Code Data:", {
-        id: codes[0]._id,
-        name: codes[0].name,
-        type: codes[0].type,
-        color: codes[0].color, // Check if color exists in code data
-        codeSettings: codes[0].codeSettings, // Check if codeSettings exists
-        fullObject: codes[0],
-      });
-    }
-
-    console.groupEnd();
-  }, [user, type, codes, codesFromParent, selectedEvent, dataInterval]);
-
-  // Add debugging for selectedEvent changes
-  useEffect(() => {
-    console.log(
-      `🔍 MANAGEMENT: selectedEvent changed to ${
-        selectedEvent ? selectedEvent._id : "undefined"
-      }`
-    );
-    if (selectedEvent && type) {
-      console.log(
-        `🔄 MANAGEMENT: Refreshing codes for event=${selectedEvent._id}, type=${type}`
-      );
-      fetchCodes();
-    }
-  }, [selectedEvent, type]);
-
-  // Add a warning if selectedEvent is undefined
-  useEffect(() => {
-    if (!selectedEvent) {
-      console.warn(
-        "⚠️ MANAGEMENT: No event selected. Please select an event in the header."
-      );
-    }
-  }, [selectedEvent]);
-
-  // Completely rewritten fetchCodes function for stability
+  // Fetch codes function
   const fetchCodes = async () => {
-    if (!selectedEvent || !type) {
-      console.warn(
-        "⚠️ MANAGEMENT: Cannot fetch codes without selectedEvent and type"
-      );
-      return;
-    }
-
-    // Don't fetch if we already have codes from parent
-    if (codesFromParent && codesFromParent.length > 0) {
-      console.log("📋 MANAGEMENT: Using codes from parent, skipping fetch");
-      return;
-    }
+    if (!selectedEvent || !type || codesFromParent?.length) return;
 
     try {
       setLoading(true);
-      console.log(
-        `🔄 MANAGEMENT: Fetching codes for event=${selectedEvent._id}, type=${type}`
-      );
-
-      const response = await axios.get(
+      const response = await axiosInstance.get(
         `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${type}`,
         {
           headers: {
@@ -180,49 +84,41 @@ function CodeManagement({
         }
       );
 
-      // Handle different response structures
       const codesData = response.data.codes || response.data;
 
-      console.log(`✅ MANAGEMENT: Fetched ${codesData.length} codes`);
-
-      // Only update if we got data
-      if (codesData && codesData.length > 0) {
-        // Update both the state and the ref
+      if (codesData?.length) {
         setCodes(codesData);
         stableCodesRef.current = codesData;
         setTotalPaxUsed(calculateTotalPax(codesData));
       }
     } catch (error) {
-      console.error("❌ MANAGEMENT: Error fetching codes:", error);
+      // Error handling
     } finally {
       setLoading(false);
     }
   };
 
-  // Modified calculateTotalPax to accept codes as parameter
-  const calculateTotalPax = (codesArray = codes) => {
-    if (!codesArray || codesArray.length === 0) return 0;
-    return codesArray.reduce((total, code) => total + (code.maxPax || 1), 0);
-  };
-
+  // Load more codes
   const loadMore = () => {
     setVisibleCodes((prev) => prev + 10);
   };
 
+  // Reset edit state
+  const resetEditState = () => {
+    setEditCodeId(null);
+    setEditName("");
+    setEditPax("");
+    setEditTableNumber("");
+  };
+
+  // Delete a code
   const confirmDelete = async () => {
     if (!deleteCodeId) return;
 
     try {
       showLoading("Deleting code...");
 
-      console.log(`🔍 CLIENT: Attempting to delete code: ${deleteCodeId}`);
-
-      // Find the code to be deleted to get its pax value
-      const codeToDelete = codes.find((code) => code._id === deleteCodeId);
-      const paxToRemove = codeToDelete ? codeToDelete.maxPax || 1 : 1;
-
-      // Use the API endpoint for deleting codes
-      const response = await axios.delete(
+      await axiosInstance.delete(
         `${process.env.REACT_APP_API_BASE_URL}/codes/${deleteCodeId}`,
         {
           headers: {
@@ -231,8 +127,6 @@ function CodeManagement({
         }
       );
 
-      console.log("✅ CLIENT: Delete response:", response.data);
-
       // Update both the state and the stable reference
       const updatedCodes = codes.filter((code) => code._id !== deleteCodeId);
       setCodes(updatedCodes);
@@ -240,114 +134,58 @@ function CodeManagement({
 
       // Update the parent component if setCodes is provided
       if (setCodesParent) {
-        console.log(
-          `📊 MANAGEMENT: Notifying parent of code deletion, remaining codes: ${updatedCodes.length}`
-        );
         setCodesParent(updatedCodes);
       }
 
-      // Refresh counts
-      if (refreshCounts) {
-        console.log(`📊 MANAGEMENT: Refreshing counts after deletion`);
-        await refreshCounts();
-      }
-
-      // Refresh codes if needed
-      if (refreshCodes) {
-        console.log(`📊 MANAGEMENT: Refreshing codes after deletion`);
-        await refreshCodes();
-      }
+      // Refresh counts and codes if needed
+      if (refreshCounts) await refreshCounts();
+      if (refreshCodes) await refreshCodes();
 
       showSuccess("Code deleted successfully");
-      setShowConfirmDelete(false);
-      setDeleteCodeId(null);
     } catch (error) {
-      console.error("❌ CLIENT: Error deleting code:", error);
-
-      // Show a more specific error message if available
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        showError(error.response.data.message);
-      } else {
-        showError("Failed to delete code. Please try again.");
-      }
-
+      showError(
+        error.response?.data?.message ||
+          "Failed to delete code. Please try again."
+      );
+    } finally {
       setShowConfirmDelete(false);
       setDeleteCodeId(null);
     }
   };
 
-  const getMaxAllowedPax = () => {
-    // Find the maximum allowed pax for this code type
-    if (type === "Table") {
-      return 20; // Default max for tables
-    }
-
-    // For other code types, check if there's a limit in the code settings
-    const relevantCode = codes.find(
-      (code) => code.type.toLowerCase() === type.toLowerCase()
-    );
-    if (relevantCode && relevantCode.setting && relevantCode.setting.maxPax) {
-      return relevantCode.setting.maxPax;
-    }
-
-    return 10; // Default fallback
-  };
-
+  // Handle delete click
   const handleDeleteClick = (codeId) => {
     setDeleteCodeId(codeId);
     setShowConfirmDelete(true);
   };
 
+  // Start editing a code
   const startEdit = (code) => {
     setEditCodeId(code._id);
     setEditName(code.name || "");
-
-    // Use maxPax for editing, not paxChecked
     setEditPax(code.maxPax || 1);
-
-    // Store the current maxPax value
-    setCurrentEditingCodePax(code.maxPax || 1);
-
     if (code.tableNumber) {
       setEditTableNumber(code.tableNumber);
     }
   };
 
+  // Handle edit submission
   const handleEdit = async () => {
     if (!editCodeId) return;
 
     try {
       showLoading("Updating code...");
 
-      // Find the code being edited to get its current pax value
-      const codeBeingEdited = codes.find((code) => code._id === editCodeId);
-      const oldPax = codeBeingEdited ? codeBeingEdited.maxPax || 1 : 1;
-      const newPax = parseInt(editPax);
-      const paxDifference = newPax - oldPax;
-
       const updateData = {
         name: editName,
-        maxPax: newPax, // Update maxPax instead of paxChecked
+        maxPax: parseInt(editPax),
       };
 
       if (type === "Table Code" && editTableNumber) {
         updateData.tableNumber = editTableNumber;
       }
 
-      console.log(
-        `🔍 CLIENT: Attempting to update code: ${editCodeId}`,
-        updateData
-      );
-      console.log(
-        `📊 MANAGEMENT: Pax change: ${oldPax} -> ${newPax} (difference: ${paxDifference})`
-      );
-
-      // Use the API endpoint for updating codes
-      const response = await axios.put(
+      const response = await axiosInstance.put(
         `${process.env.REACT_APP_API_BASE_URL}/codes/${editCodeId}`,
         updateData,
         {
@@ -357,12 +195,7 @@ function CodeManagement({
         }
       );
 
-      console.log("✅ CLIENT: Update response:", response.data);
-
-      // Update the code in both the state and the stable reference
-      const updatedCode = response.data.code || response.data;
-
-      if (updatedCode) {
+      if (response.data) {
         const updatedCodes = codes.map((code) =>
           code._id === editCodeId ? { ...code, ...updateData } : code
         );
@@ -370,114 +203,100 @@ function CodeManagement({
         setCodes(updatedCodes);
         stableCodesRef.current = updatedCodes;
 
-        // Update the parent component if setCodes is provided
         if (setCodesParent) {
-          console.log(
-            `📊 MANAGEMENT: Notifying parent of code update, pax difference: ${paxDifference}`
-          );
           setCodesParent(updatedCodes);
         }
       }
 
-      // Refresh counts to update the counter
       if (refreshCounts) {
-        console.log(`📊 MANAGEMENT: Refreshing counts after edit`);
         await refreshCounts();
       }
 
-      // Reset edit state
-      setEditCodeId(null);
-      setEditName("");
-      setEditPax("");
-      setEditTableNumber("");
-      setCurrentEditingCodePax(0);
-
+      resetEditState();
       showSuccess("Code updated successfully");
     } catch (error) {
-      console.error("❌ CLIENT: Error updating code:", error);
-
-      // Show a more specific error message if available
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        showError(error.response.data.message);
-      } else {
-        showError("Failed to update code. Please try again.");
-      }
-
-      // Don't reset edit state on error so user can try again
+      showError(
+        error.response?.data?.message ||
+          "Failed to update code. Please try again."
+      );
     }
   };
 
+  // Cancel editing
   const cancelEdit = () => {
-    setEditCodeId(null);
-    setEditName("");
-    setEditPax("");
-    setEditTableNumber("");
-    setCurrentEditingCodePax(0);
+    resetEditState();
   };
 
+  // Handle code click to view QR code
   const handleCodeClick = async (codeId) => {
     try {
-      // Use the new API endpoint for generating code images
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/${codeId}/image`,
-        {
-          responseType: "text",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      setLoading(true);
+      setCurrentCodeId(codeId);
 
-      setCodeViewUrl(response.data);
-      setShowCodeView(true);
+      // Use the view endpoint to get the PDF for viewing in browser
+      const viewUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/view`;
+
+      // Use axiosInstance to get the PDF with proper authentication
+      const response = await axiosInstance.get(viewUrl, {
+        responseType: "blob",
+      });
+
+      // Create a blob URL from the response
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+
+      // Open the PDF in a new tab
+      window.open(url, "_blank");
+
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching code image:", error);
-      showError("Failed to load code image");
+      console.error("Error viewing code:", error);
+      showError("Failed to view code");
+      setLoading(false);
     }
   };
 
-  const closeCodeView = () => setShowCodeView(false);
+  // Close code view
+  const closeCodeView = () => {
+    setShowCodeView(false);
+    setCurrentCodeId(null);
+  };
 
+  // Handle code download
   const handleDownload = async (codeId) => {
     try {
-      showLoading("Preparing download...");
+      setLoading(true);
 
-      // Use the new API endpoint for generating code images
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/${codeId}/image`,
-        {
-          responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Create a link to download the PDF
+      const downloadUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/pdf`;
 
-      // Find the code object
-      const code = codes.find((c) => c._id === codeId);
+      // Use axiosInstance to get the PDF with proper authentication
+      const response = await axiosInstance.get(downloadUrl, {
+        responseType: "blob",
+      });
 
-      // Create a filename based on the code's name and type
-      let filename = `${code.name}-${type}Code.png`;
+      // Create a blob URL from the response
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
 
-      // Sanitize filename
-      filename = filename.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-
-      // Use response.data directly as it's already a Blob
-      const url = window.URL.createObjectURL(response.data);
+      // Create a temporary link element
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", filename);
+      link.setAttribute("download", `code-${codeId}.pdf`);
+
+      // Append to the document, click it, and remove it
       document.body.appendChild(link);
       link.click();
-      link.parentNode.removeChild(link);
-      showSuccess("Code downloaded successfully.");
+      document.body.removeChild(link);
+
+      // Clean up the blob URL
+      window.URL.revokeObjectURL(url);
+
+      setLoading(false);
     } catch (error) {
       console.error("Error downloading code:", error);
-      showError("Failed to download the code.");
+      showError("Failed to download code");
+      setLoading(false);
     }
   };
 
@@ -486,21 +305,30 @@ function CodeManagement({
     return moment(dateString).format("MMM D, YYYY • h:mm A");
   };
 
-  // Render function with debugging
+  // Helper function to determine text color based on background color
+  const getContrastColor = (hexColor) => {
+    if (!hexColor) return "#FFFFFF";
+
+    // Remove the # if it exists
+    hexColor = hexColor.replace("#", "");
+
+    // Convert to RGB
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return black for bright colors, white for dark colors
+    return luminance > 0.5 ? "#000000" : "#FFFFFF";
+  };
+
+  // Render codes
   const renderCodes = () => {
     // Use the stable reference to codes if available
     const codesToRender =
       stableCodesRef.current.length > 0 ? stableCodesRef.current : codes;
-
-    console.log("🔍 MANAGEMENT RENDER:", {
-      stableCodesLength: stableCodesRef.current.length,
-      stateCodesLength: codes.length,
-      codesToRender: codesToRender.length,
-      visibleCodes,
-      loading,
-      type,
-      selectedEvent: selectedEvent?._id,
-    });
 
     if (!selectedEvent) {
       return (
@@ -511,12 +339,11 @@ function CodeManagement({
     }
 
     // Show loading only if we have no codes yet
-    if (loading && codesToRender.length === 0) {
+    if (loading && !codesToRender.length) {
       return <div className="loading">Loading codes...</div>;
     }
 
-    if (!codesToRender || codesToRender.length === 0) {
-      console.log("❌ MANAGEMENT: No codes found for type:", type);
+    if (!codesToRender?.length) {
       return (
         <div className="no-codes">
           No {type?.toLowerCase()} codes found for this event.
@@ -524,32 +351,14 @@ function CodeManagement({
       );
     }
 
-    // IMPORTANT: Notify parent of code count if setCodesParent is provided
+    // Notify parent of code count if setCodesParent is provided
     if (setCodesParent && codesToRender.length > 0) {
-      console.log(
-        `📊 MANAGEMENT: Notifying parent of ${codesToRender.length} codes`
-      );
-      // This ensures the parent component has the most up-to-date code count
-      setTimeout(() => {
-        setCodesParent(codesToRender);
-      }, 0);
+      setTimeout(() => setCodesParent(codesToRender), 0);
     }
-
-    console.log(
-      `✅ MANAGEMENT RENDER: Displaying ${Math.min(
-        visibleCodes,
-        codesToRender.length
-      )} of ${codesToRender.length} codes`
-    );
 
     return (
       <>
         {codesToRender.slice(0, visibleCodes).map((code) => {
-          // Get first letter of name for icon
-          const firstLetter = code.name
-            ? code.name.charAt(0).toUpperCase()
-            : "C";
-
           // Determine code type class for styling
           let codeTypeClass = "";
           if (type === "Bottle Code") codeTypeClass = "bottle";
@@ -571,18 +380,13 @@ function CodeManagement({
             : {};
 
           const isEditing = editCodeId === code._id;
+          const primaryColor = selectedEvent?.primaryColor;
 
           return (
             <div
               key={code._id}
               className={`code-management-item ${isEditing ? "editing" : ""}`}
-              style={
-                selectedEvent?.primaryColor
-                  ? {
-                      borderColor: `${selectedEvent.primaryColor}30`, // 30 adds 19% opacity
-                    }
-                  : {}
-              }
+              style={primaryColor ? { borderColor: `${primaryColor}30` } : {}}
             >
               <div className="code-management-item-info">
                 <div
@@ -618,13 +422,7 @@ function CodeManagement({
                 <span className="people-icon">👤</span>
                 <span
                   className="people-count"
-                  style={
-                    selectedEvent?.primaryColor
-                      ? {
-                          color: selectedEvent.primaryColor,
-                        }
-                      : {}
-                  }
+                  style={primaryColor ? { color: primaryColor } : {}}
                 >
                   {code.paxChecked || 0}
                 </span>
@@ -670,13 +468,7 @@ function CodeManagement({
                       className="edit-btn"
                       onClick={() => startEdit(code)}
                       title="Edit"
-                      style={
-                        selectedEvent?.primaryColor
-                          ? {
-                              color: selectedEvent.primaryColor,
-                            }
-                          : {}
-                      }
+                      style={primaryColor ? { color: primaryColor } : {}}
                     >
                       ✏️
                     </button>
@@ -725,7 +517,6 @@ function CodeManagement({
           </button>
         )}
 
-        {/* Use ConfirmDialog for delete confirmation */}
         {showConfirmDelete && (
           <ConfirmDialog
             title="Delete Code"
@@ -741,42 +532,17 @@ function CodeManagement({
     );
   };
 
-  // Helper function to determine text color based on background color
-  const getContrastColor = (hexColor) => {
-    // Remove the # if it exists
-    hexColor = hexColor.replace("#", "");
-
-    // Convert to RGB
-    const r = parseInt(hexColor.substr(0, 2), 16);
-    const g = parseInt(hexColor.substr(2, 2), 16);
-    const b = parseInt(hexColor.substr(4, 2), 16);
-
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    // Return black for bright colors, white for dark colors
-    return luminance > 0.5 ? "#000000" : "#FFFFFF";
-  };
-
-  // Render the code view modal
+  // Render the code view modal - no longer needed as we open in new tab
   const renderCodeView = () => {
-    if (!showCodeView) return null;
-
-    return (
-      <div className="code-management-view">
-        <div className="modal-content">
-          <button className="close-btn" onClick={() => setShowCodeView(false)}>
-            ×
-          </button>
-          <img src={codeViewUrl} alt="QR Code" />
-        </div>
-      </div>
-    );
+    // We're not using the modal anymore, but keeping the function
+    // in case we need to revert or modify the approach
+    return null;
   };
 
   return (
     <div className="code-management">
       {renderCodes()}
+      {/* renderCodeView is now a no-op */}
       {renderCodeView()}
     </div>
   );
