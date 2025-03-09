@@ -442,11 +442,13 @@ const DashboardHeader = ({
                 <span className="username">@{user.username}</span>
               </div>
               <div className="user-stats">
+                {/* 
                 <div className="stat-item">
                   <span className="stat-value">{stats.members}</span>{" "}
                   {formatStatLabel(stats.members, "Member", "Members")}
                 </div>
                 <div className="stat-divider">·</div>
+                */}
                 <div className="stat-item">
                   <span className="stat-value">{stats.brands}</span>{" "}
                   {formatStatLabel(stats.brands, "Brand", "Brands")}

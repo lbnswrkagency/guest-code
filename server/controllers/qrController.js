@@ -3,6 +3,7 @@ const BackstageCode = require("../models/BackstageCode");
 const GuestCode = require("../models/GuestCode");
 const TableCode = require("../models/TableCode");
 const User = require("../models/User");
+const Code = require("../models/codesModel");
 const moment = require("moment-timezone");
 moment.tz.setDefault("Europe/Athens");
 const InvitationCode = require("../models/InvitationModel"); // Ensure this path is correct
@@ -45,6 +46,15 @@ const validateTicket = async (req, res) => {
             if (invitationCodeTicket) {
               ticket = invitationCodeTicket;
               typeOfTicket = "Invitation-Code";
+            } else {
+              const newCodeTicket = await Code.findById(ticketId);
+              if (newCodeTicket) {
+                ticket = newCodeTicket;
+                const type =
+                  newCodeTicket.type.charAt(0).toUpperCase() +
+                  newCodeTicket.type.slice(1);
+                typeOfTicket = `${type}-Code`;
+              }
             }
           }
         }
@@ -104,6 +114,37 @@ const increasePax = async (req, res) => {
     }
 
     if (!ticket) {
+      const newCodeTicket = await Code.findById(ticketId);
+
+      if (newCodeTicket) {
+        if (newCodeTicket.paxChecked < newCodeTicket.maxPax) {
+          ticket = await Code.findByIdAndUpdate(
+            ticketId,
+            {
+              $inc: { paxChecked: 1, usageCount: 1 },
+              $push: {
+                usage: {
+                  timestamp: new Date(),
+                  paxUsed: 1,
+                  userId: req.user._id,
+                  location: "Scanner App",
+                  deviceInfo: req.headers["user-agent"] || "Unknown Device",
+                },
+              },
+            },
+            { new: true }
+          );
+        } else {
+          return res.status(400).json({
+            message: "Maximum allowed pax reached",
+            paxChecked: newCodeTicket.paxChecked,
+            maxPax: newCodeTicket.maxPax,
+          });
+        }
+      }
+    }
+
+    if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
@@ -155,6 +196,36 @@ const decreasePax = async (req, res) => {
     }
 
     if (!ticket) {
+      const newCodeTicket = await Code.findById(ticketId);
+
+      if (newCodeTicket) {
+        if (newCodeTicket.paxChecked > 0) {
+          ticket = await Code.findByIdAndUpdate(
+            ticketId,
+            {
+              $inc: { paxChecked: -1 },
+              $push: {
+                usage: {
+                  timestamp: new Date(),
+                  paxUsed: -1,
+                  userId: req.user._id,
+                  location: "Scanner App",
+                  deviceInfo: req.headers["user-agent"] || "Unknown Device",
+                },
+              },
+            },
+            { new: true }
+          );
+        } else {
+          return res.status(400).json({
+            message: "Pax checked is already at minimum",
+            paxChecked: newCodeTicket.paxChecked,
+          });
+        }
+      }
+    }
+
+    if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
@@ -166,12 +237,15 @@ const decreasePax = async (req, res) => {
 
 const getCounts = async (req, res) => {
   try {
-    const { startDate, endDate, userId } = req.query;
+    const { startDate, endDate, userId, eventId } = req.query;
     const matchCondition = {};
 
-    // Adding user filter if userId is provided
     if (userId) {
       matchCondition.userId = mongoose.Types.ObjectId(userId);
+    }
+
+    if (eventId) {
+      matchCondition.eventId = mongoose.Types.ObjectId(eventId);
     }
 
     if (startDate) {
@@ -186,9 +260,9 @@ const getCounts = async (req, res) => {
       { $match: matchCondition },
       {
         $group: {
-          _id: "$name", // Group by name to differentiate different invitations
-          totalPax: { $sum: "$pax" }, // Sum of all pax for this invitation
-          totalPaxChecked: { $sum: "$paxChecked" }, // Sum of all checked-in pax
+          _id: "$name",
+          totalPax: { $sum: "$pax" },
+          totalPaxChecked: { $sum: "$paxChecked" },
         },
       },
       {
@@ -196,7 +270,7 @@ const getCounts = async (req, res) => {
           name: "$_id",
           total: "$totalPax",
           used: "$totalPaxChecked",
-          _id: 0, // Omit the _id in the output
+          _id: 0,
         },
       },
     ]);
@@ -257,14 +331,13 @@ const getCounts = async (req, res) => {
       },
     ]);
 
-    // Aggregate GuestCodes with the match condition
     const guestCounts = await GuestCode.aggregate([
       { $match: matchCondition },
       {
         $group: {
-          _id: "$name", // Group by name to differentiate different guests
-          totalPax: { $sum: "$pax" }, // Sum of all pax for this guest
-          totalPaxChecked: { $sum: "$paxChecked" }, // Sum of all checked-in pax
+          _id: "$name",
+          totalPax: { $sum: "$pax" },
+          totalPaxChecked: { $sum: "$paxChecked" },
         },
       },
       {
@@ -272,7 +345,7 @@ const getCounts = async (req, res) => {
           name: "$_id",
           total: "$totalPax",
           used: "$totalPaxChecked",
-          _id: 0, // Omit the _id in the output
+          _id: 0,
         },
       },
     ]);
@@ -296,11 +369,47 @@ const getCounts = async (req, res) => {
           total: "$pax",
           used: "$paxChecked",
           table: "$tableNumber",
-          status: 1, // Add this line to include the status field
+          status: 1,
           createdAt: 1,
         },
       },
     ]);
+
+    let newCodeCounts = [];
+    if (eventId) {
+      newCodeCounts = await Code.aggregate([
+        {
+          $match: {
+            ...matchCondition,
+            eventId: mongoose.Types.ObjectId(eventId),
+          },
+        },
+        {
+          $group: {
+            _id: "$type",
+            count: { $sum: 1 },
+            totalPax: { $sum: "$maxPax" },
+            usedPax: { $sum: "$paxChecked" },
+          },
+        },
+        {
+          $project: {
+            type: "$_id",
+            name: {
+              $concat: [
+                { $toUpper: { $substrCP: ["$_id", 0, 1] } },
+                { $substrCP: ["$_id", 1, { $strLenCP: "$_id" }] },
+                " Code",
+              ],
+            },
+            count: 1,
+            total: "$totalPax",
+            used: "$usedPax",
+            _id: 0,
+          },
+        },
+      ]);
+    }
 
     res.json({
       friendsCounts,
@@ -308,6 +417,7 @@ const getCounts = async (req, res) => {
       backstageCounts,
       tableCounts,
       invitationCounts,
+      newCodeCounts,
     });
   } catch (error) {
     console.error("Error fetching counts", error);
@@ -316,21 +426,21 @@ const getCounts = async (req, res) => {
 };
 
 const getUserSpecificCounts = async (req, res) => {
-  const userId = req.query.userId; // Ensure the userID is passed as a query parameter
+  const userId = req.query.userId;
+  const eventId = req.query.eventId;
 
   if (!userId) {
     return res.status(400).json({ message: "User ID is required" });
   }
 
   try {
-    // Correctly instantiate ObjectId
     const objectId = new mongoose.Types.ObjectId(userId);
     const aggregateQuery = [
       { $match: { hostId: objectId } },
       {
         $group: {
           _id: null,
-          totalGenerated: { $sum: { $ifNull: ["$pax", 0] } }, // Using $ifNull to handle missing values
+          totalGenerated: { $sum: { $ifNull: ["$pax", 0] } },
           totalChecked: { $sum: { $ifNull: ["$paxChecked", 0] } },
         },
       },
@@ -340,7 +450,6 @@ const getUserSpecificCounts = async (req, res) => {
     const backstageCounts = await BackstageCode.aggregate(aggregateQuery);
     const tableCounts = await TableCode.aggregate(aggregateQuery);
 
-    // Calculate total generated and checked-in counts
     const totalGenerated =
       (friendsCounts[0]?.totalGenerated || 0) +
       (backstageCounts[0]?.totalGenerated || 0) +
@@ -351,9 +460,60 @@ const getUserSpecificCounts = async (req, res) => {
       (backstageCounts[0]?.totalChecked || 0) +
       (tableCounts[0]?.totalChecked || 0);
 
+    let newCodeGenerated = 0;
+    let newCodeChecked = 0;
+
+    if (eventId) {
+      const newCodeMatch = {
+        createdBy: objectId,
+        eventId: mongoose.Types.ObjectId(eventId),
+      };
+
+      const newCodeCounts = await Code.aggregate([
+        { $match: newCodeMatch },
+        {
+          $group: {
+            _id: null,
+            totalGenerated: { $sum: "$maxPax" },
+            totalChecked: { $sum: "$paxChecked" },
+          },
+        },
+      ]);
+
+      if (newCodeCounts.length > 0) {
+        newCodeGenerated = newCodeCounts[0].totalGenerated || 0;
+        newCodeChecked = newCodeCounts[0].totalChecked || 0;
+      }
+    } else {
+      const newCodeMatch = { createdBy: objectId };
+
+      const newCodeCounts = await Code.aggregate([
+        { $match: newCodeMatch },
+        {
+          $group: {
+            _id: null,
+            totalGenerated: { $sum: "$maxPax" },
+            totalChecked: { $sum: "$paxChecked" },
+          },
+        },
+      ]);
+
+      if (newCodeCounts.length > 0) {
+        newCodeGenerated = newCodeCounts[0].totalGenerated || 0;
+        newCodeChecked = newCodeCounts[0].totalChecked || 0;
+      }
+    }
+
+    const combinedGenerated = totalGenerated + newCodeGenerated;
+    const combinedChecked = totalChecked + newCodeChecked;
+
     res.json({
-      totalGenerated,
-      totalChecked,
+      legacyGenerated: totalGenerated,
+      legacyChecked: totalChecked,
+      newGenerated: newCodeGenerated,
+      newChecked: newCodeChecked,
+      totalGenerated: combinedGenerated,
+      totalChecked: combinedChecked,
     });
   } catch (error) {
     console.error("Error fetching user-specific counts", error);

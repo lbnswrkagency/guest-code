@@ -128,13 +128,50 @@ const DashboardMenu = ({
 
   useEffect(() => {
     if (selectedBrand && user) {
-      // Use the access summary directly instead of recalculating permissions
+      console.log("🔑 Setting permissions from user roles:", {
+        userRoles,
+        accessSummary,
+      });
+
+      // Check user role permissions directly
+      let hasAnalyticsPermission = false;
+      let hasScannerPermission = false;
+
+      // Loop through all user roles to check permissions
+      userRoles.forEach((role) => {
+        // Check if role has permissions object
+        if (role.permissions) {
+          // Check analytics permission
+          if (
+            role.permissions.analytics &&
+            role.permissions.analytics.view === true
+          ) {
+            hasAnalyticsPermission = true;
+          }
+
+          // Check scanner permission
+          if (
+            role.permissions.scanner &&
+            role.permissions.scanner.use === true
+          ) {
+            hasScannerPermission = true;
+          }
+        }
+      });
+
+      console.log("🔑 Permission check results:", {
+        hasAnalyticsPermission,
+        hasScannerPermission,
+        canCreateCodes: accessSummary.canCreateCodes || false,
+      });
+
+      // Build permissions object
       const effectivePermissions = {
         analytics: {
-          view: accessSummary.hasAnalyticsPermission || false,
+          view: hasAnalyticsPermission,
         },
         scanner: {
-          use: accessSummary.hasScannerPermission || false,
+          use: hasScannerPermission,
         },
         codes: {
           canGenerateAny: accessSummary.canCreateCodes || false,
@@ -148,7 +185,14 @@ const DashboardMenu = ({
 
       setPermissions(effectivePermissions);
     }
-  }, [selectedBrand, user, accessSummary, codeSettings, codePermissions]);
+  }, [
+    selectedBrand,
+    user,
+    accessSummary,
+    codeSettings,
+    codePermissions,
+    userRoles,
+  ]);
 
   const handleMenuClick = () => {
     setIsOpen(!isOpen);

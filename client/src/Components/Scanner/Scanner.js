@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
+import Navigation from "../Navigation/Navigation";
+import axiosInstance from "../../utils/axiosConfig";
+import { useToast } from "../Toast/ToastContext";
 import "./Scanner.scss";
 import jsQR from "jsqr";
-import Navigation from "../Navigation/Navigation";
 
 function Scanner({ onClose }) {
   const [scanResult, setScanResult] = useState(null);
@@ -15,6 +16,7 @@ function Scanner({ onClose }) {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const streamRef = useRef(null);
+  const toast = useToast();
 
   // Function to initialize camera
   const initializeCamera = async () => {
@@ -32,7 +34,7 @@ function Scanner({ onClose }) {
     } catch (err) {
       console.error("Camera initialization error:", err);
       setScannerError(true);
-      toast.error(
+      toast.showError(
         "Failed to access camera. Please ensure camera permissions are granted."
       );
     }
@@ -80,21 +82,39 @@ function Scanner({ onClose }) {
   const handleQRCode = async (data) => {
     setIsProcessing(true);
     if (!data || data.trim() === "") {
-      toast.error("Invalid QR code content", {
-        toastId: "invalid-qr",
-      });
+      toast.showError("Invalid QR code content");
       setIsProcessing(false);
       return;
     }
 
     try {
-      await validateTicket(data);
+      console.log("QR code data:", data);
+
+      // Check if the data is JSON
+      let codeData;
+      try {
+        codeData = JSON.parse(data);
+        console.log("Parsed QR code JSON data:", codeData);
+
+        // Check if we have a code property in the parsed object
+        if (codeData && codeData.code) {
+          await validateTicket(codeData.code);
+        } else {
+          // Try using the raw data as a fallback
+          await validateTicket(data);
+        }
+      } catch (parseError) {
+        // If not JSON, treat as a raw code
+        console.log("QR code is not JSON, treating as raw code");
+        await validateTicket(data);
+      }
     } catch (error) {
       console.error("QR processing error:", error);
     } finally {
       setIsProcessing(false);
     }
   };
+
   // Clean up function
   const cleanupCamera = () => {
     if (animationFrameRef.current) {
@@ -119,50 +139,100 @@ function Scanner({ onClose }) {
     return () => cleanupCamera();
   }, [scanning, scanResult]);
 
-  const validateTicket = async (ticketId) => {
+  const validateTicket = async (codeValue) => {
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/qr/validate`,
-        { ticketId }
-      );
-      setScanResult(response.data);
+      console.log("Validating code:", codeValue);
+
+      // Try using the new endpoint structure first
+      const response = await axiosInstance.post("/codes/verify", {
+        code: codeValue,
+      });
+
+      console.log("Verification response:", response.data);
+
+      // Map the response data to our scanResult structure
+      const codeData = response.data.code;
+      const eventData = response.data.event;
+      const codeSettingData = response.data.codeSetting;
+
+      const formattedResult = {
+        _id: codeData._id,
+        code: codeData.code,
+        typeOfTicket:
+          codeData.type.charAt(0).toUpperCase() +
+          codeData.type.slice(1) +
+          " Code",
+        name: codeData.name || codeSettingData?.name || "Guest",
+        pax: codeData.maxPax || 1,
+        paxChecked: codeData.paxChecked || 0,
+        condition: codeData.condition || "",
+        tableNumber: codeData.tableNumber || "",
+        status: codeData.status,
+        eventDetails: {
+          _id: eventData?._id,
+          title: eventData?.title,
+          date: eventData?.date,
+          location: eventData?.location,
+        },
+        metadata: codeData.metadata || {},
+      };
+
+      console.log("Formatted result:", formattedResult);
+      setScanResult(formattedResult);
       setScanning(false);
       cleanupCamera();
+
+      toast.showSuccess("Code verified successfully");
     } catch (error) {
+      console.error("Validation error:", error);
+
       // More user-friendly error messages based on error type
       const errorMessage =
         error.response?.status === 404
-          ? "Invalid ticket code"
+          ? "Invalid code"
           : error.response?.status === 400
-          ? "Invalid QR code format"
-          : error.response?.data?.message || "Error validating ticket";
+          ? error.response?.data?.message || "Invalid QR code format"
+          : error.response?.data?.message || "Error validating code";
 
-      // Use toastId to prevent duplicate toasts
-      toast.error(errorMessage, {
-        toastId: "validation-error",
-        autoClose: 2000,
-      });
-
+      toast.showError(errorMessage);
       setIsProcessing(false);
     }
   };
 
   const updatePax = async (increment) => {
     try {
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/qr/${
-          increment ? "increase" : "decrease"
-        }/${scanResult._id}`
+      console.log(
+        `Updating pax, increment: ${increment}, codeId: ${scanResult._id}`
       );
-      setScanResult({ ...scanResult, paxChecked: response.data.paxChecked });
-      toast.success(`Checked ${increment ? "in" : "out"} successfully`, {
-        autoClose: 2000,
-        toastId: "pax-update", // Prevent duplicate toasts
+
+      // Use the new endpoint structure
+      const response = await axiosInstance.post(
+        `/codes/${scanResult._id}/usage`,
+        {
+          paxUsed: increment ? 1 : -1,
+          location: "Scanner App",
+          deviceInfo: navigator.userAgent,
+        }
+      );
+
+      console.log("Update pax response:", response.data);
+
+      setScanResult({
+        ...scanResult,
+        paxChecked: increment
+          ? Math.min(scanResult.paxChecked + 1, scanResult.pax)
+          : Math.max(scanResult.paxChecked - 1, 0),
       });
+
+      toast.showSuccess(`Checked ${increment ? "in" : "out"} successfully`);
     } catch (error) {
-      toast.error(`Error ${increment ? "increasing" : "decreasing"} pax`, {
-        toastId: "pax-error", // Prevent duplicate toasts
-      });
+      console.error("Pax update error:", error);
+
+      const errorMessage =
+        error.response?.data?.message ||
+        `Error ${increment ? "increasing" : "decreasing"} pax`;
+
+      toast.showError(errorMessage);
     }
   };
 
@@ -171,9 +241,7 @@ function Scanner({ onClose }) {
       validateTicket(manualId);
       setManualId("");
     } else {
-      toast.error("Please enter a code ID", {
-        toastId: "manual-input-error", // Prevent duplicate toasts
-      });
+      toast.showError("Please enter a code ID");
     }
   };
 
@@ -185,18 +253,27 @@ function Scanner({ onClose }) {
     setScannerError(false);
   };
 
+  // Helper function to determine code color class
+  const getCodeColorClass = () => {
+    if (!scanResult) return "";
+
+    const type = scanResult.typeOfTicket?.toLowerCase() || "";
+
+    if (type.includes("guest")) return "guest-code";
+    if (type.includes("friends")) return "friends-code";
+    if (type.includes("backstage")) return "backstage-code";
+    if (type.includes("table")) return "table-code";
+    if (type.includes("ticket")) return "ticket-code";
+
+    return "custom-code"; // Default for custom types
+  };
+
   return (
     <div className="scanner">
-      <ToastContainer />
       <Navigation onBack={onClose} />
 
       <div className="scanner-header">
         <h1 className="scanner-header-title">Scanner</h1>
-        {/* <img
-          className="scanner-header-logo"
-          src="public/limage/logo.svg"
-          alt="Logo"
-        /> */}
       </div>
 
       <div className="scanner-content">
@@ -246,70 +323,68 @@ function Scanner({ onClose }) {
           <div className="scanner-result">
             <div className="scanner-result-data">
               <div
-                className={`scanner-result-data-item ${
-                  scanResult.typeOfTicket === "Guest-Code"
-                    ? "guest-code"
-                    : "friends-code"
-                }`}
+                className={`scanner-result-data-item ${getCodeColorClass()}`}
               >
                 <h2>Type</h2>
                 <p>{scanResult.typeOfTicket}</p>
               </div>
 
               <div
-                className={`scanner-result-data-item ${
-                  scanResult.typeOfTicket === "Guest-Code"
-                    ? "guest-code"
-                    : "friends-code"
-                }`}
+                className={`scanner-result-data-item ${getCodeColorClass()}`}
               >
                 <h2>Name</h2>
                 <p>{scanResult.name}</p>
               </div>
 
               <div
-                className={`scanner-result-data-item ${
-                  scanResult.typeOfTicket === "Guest-Code"
-                    ? "guest-code"
-                    : "friends-code"
-                }`}
+                className={`scanner-result-data-item ${getCodeColorClass()}`}
               >
                 <h2>Used</h2>
                 <p>{scanResult.paxChecked}</p>
               </div>
 
               <div
-                className={`scanner-result-data-item ${
-                  scanResult.typeOfTicket === "Guest-Code"
-                    ? "guest-code"
-                    : "friends-code"
-                }`}
+                className={`scanner-result-data-item ${getCodeColorClass()}`}
               >
                 <h2>Allowed</h2>
                 <p>{scanResult.pax}</p>
               </div>
 
-              {scanResult.typeOfTicket === "Table-Code" ? (
+              {scanResult.typeOfTicket?.toLowerCase().includes("table") ? (
                 <>
-                  <div className="scanner-result-data-item friends-code">
+                  <div
+                    className={`scanner-result-data-item ${getCodeColorClass()}`}
+                  >
                     <h2>Table</h2>
-                    <p>{scanResult.tableNumber}</p>
-                  </div>
-                  <div className="scanner-result-data-item friends-code">
-                    <h2>Backstage Pass</h2>
-                    <p>{scanResult.backstagePass ? "Yes" : "No"}</p>
+                    <p>{scanResult.tableNumber || "N/A"}</p>
                   </div>
                 </>
               ) : (
                 <div
-                  className={`scanner-result-data-item condition ${
-                    scanResult.typeOfTicket === "Guest-Code"
-                      ? "guest-code"
-                      : "friends-code"
-                  }`}
+                  className={`scanner-result-data-item condition ${getCodeColorClass()}`}
                 >
                   <h2>Condition</h2>
-                  <p>{scanResult.condition}</p>
+                  <p>{scanResult.condition || "None"}</p>
+                </div>
+              )}
+
+              {/* Display any additional metadata if available */}
+              {scanResult.metadata && scanResult.metadata.hostName && (
+                <div
+                  className={`scanner-result-data-item ${getCodeColorClass()}`}
+                >
+                  <h2>Created By</h2>
+                  <p>{scanResult.metadata.hostName}</p>
+                </div>
+              )}
+
+              {/* Display the event name if available */}
+              {scanResult.eventDetails && scanResult.eventDetails.title && (
+                <div
+                  className={`scanner-result-data-item ${getCodeColorClass()}`}
+                >
+                  <h2>Event</h2>
+                  <p>{scanResult.eventDetails.title}</p>
                 </div>
               )}
             </div>
