@@ -210,6 +210,25 @@
             outline: none;
             border-color: rgba(255, 200, 7, 0.5);
           }
+
+          &.error {
+            border-color: rgba(255, 87, 87, 0.7);
+            background-color: rgba(255, 87, 87, 0.05);
+          }
+        }
+
+        &.error {
+          margin-bottom: 2rem;
+          position: relative;
+        }
+
+        .error-message {
+          position: absolute;
+          bottom: -1.5rem;
+          left: 0;
+          font-size: 0.8rem;
+          color: rgba(255, 87, 87, 1);
+          margin-top: 0.25rem;
         }
       }
 

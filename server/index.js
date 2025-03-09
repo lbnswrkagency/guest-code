@@ -22,6 +22,7 @@ const tableRoutes = require("./routes/api/tableRoutes");
 const backstageRoutes = require("./routes/api/backstageRoutes");
 const codeRoutes = require("./routes/api/codeRoutes");
 const codesRoutes = require("./routes/api/codesRoutes");
+const codesCreationRoutes = require("./routes/codesCreationRoutes");
 const guestCodeRoutes = require("./routes/api/guestCodeRoutes");
 const qrRoutes = require("./routes/api/qrRoutes");
 const contactRoutes = require("./routes/api/contactRoutes");
@@ -39,6 +40,7 @@ const searchRoutes = require("./routes/searchRoute");
 const roleRoutes = require("./routes/roleRoutes");
 const stripeRoutes = require("./routes/api/stripeRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
+const debugRoutes = require("./routes/api/debugRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -212,6 +214,7 @@ app.use("/api/table", tableRoutes);
 app.use("/api/backstage", backstageRoutes);
 app.use("/api/code", codeRoutes);
 app.use("/api/codes", codesRoutes);
+app.use("/api/codes-creation", codesCreationRoutes);
 app.use("/api/guest-code", guestCodeRoutes);
 app.use("/api/code-settings", require("./routes/api/codeSettingsRoutes"));
 app.use("/api/ticket-settings", require("./routes/api/ticketSettingsRoutes"));
@@ -230,6 +233,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api", searchRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api", debugRoutes);
 
 // MongoDB connection
 mongoose

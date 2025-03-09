@@ -58,6 +58,7 @@ const getCodeSettingsByBrand = async (req, res) => {
     console.log(
       `[CodeSettings] Found ${codeSettings.length} code settings for brand ${brandId} with fields:`,
       codeSettings.map((cs) => ({
+        _id: cs._id,
         name: cs.name,
         type: cs.type,
         maxPax: cs.maxPax,
@@ -73,6 +74,9 @@ const getCodeSettingsByBrand = async (req, res) => {
 
       // If limit is 0, it's unlimited
       settingObj.unlimited = settingObj.limit === 0;
+
+      // Ensure _id is included and properly formatted
+      settingObj._id = setting._id.toString();
 
       return settingObj;
     });
@@ -173,10 +177,20 @@ const getCodeSettings = async (req, res) => {
     // Include the brand's primary color in the response
     const primaryColor = event.brand?.colors?.primary || "#ffc807";
 
+    // Convert settings to plain objects and ensure _id is included
+    const formattedSettings = uniqueCodeSettings.map((setting) => {
+      const settingObj = setting.toObject();
+      // Ensure _id is included and properly formatted
+      settingObj._id = setting._id.toString();
+      // If limit is 0, it's unlimited
+      settingObj.unlimited = settingObj.limit === 0;
+      return settingObj;
+    });
+
     return res.status(200).json({
-      codeSettings: uniqueCodeSettings,
+      codeSettings: formattedSettings,
       eventName: event.title, // Include event name
-      eventLogo: event.flyer, // Include event flyer/logo
+      eventLogo: event.flyer, // Include event logo
       primaryColor: primaryColor, // Include brand's primary color
     });
   } catch (error) {

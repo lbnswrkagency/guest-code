@@ -1,21 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useToast } from "../Toast/ToastContext";
 import "./CodeGenerator.scss";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import CodeManagement from "../CodeManagement/CodeManagement";
+import { BsPeopleFill } from "react-icons/bs";
 
 function CodeGenerator({
   user,
   onClose,
   type,
   refreshCounts,
-  currentEventDate,
-  onPrevWeek,
-  onNextWeek,
-  isStartingEvent,
-  dataInterval,
   codeSettings = [],
   codePermissions = [],
   accessSummary = {},
@@ -30,209 +26,181 @@ function CodeGenerator({
   const [tableNumber, setTableNumber] = useState("");
   const [activeSetting, setActiveSetting] = useState(null);
   const [availableSettings, setAvailableSettings] = useState([]);
-  const [codes, setCodes] = useState([]);
-  const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [selectedCodeType, setSelectedCodeType] = useState(null);
   const [codesGenerated, setCodesGenerated] = useState(0);
   const [maxPeopleOptions, setMaxPeopleOptions] = useState([1]);
-
-  // Add a ref to stabilize counter values
-  const counterValueRef = useRef({});
-
-  // Debug - log the initial code settings data
-  console.log(
-    "🔄 CodeGenerator received settings:",
-    JSON.parse(JSON.stringify(codeSettings))
-  );
-
-  // Log detailed information about maxPax for each code setting
-  codeSettings.forEach((setting) => {
-    console.log(
-      `🔍 Code setting details for ${setting.name || setting.type}:`,
-      {
-        maxPax: setting.maxPax,
-        condition: setting.condition,
-        type: setting.type,
-        limit: setting.limit,
-        unlimited: setting.unlimited,
-        hasMaxPax: !!setting.maxPax,
-      }
-    );
+  const [isFetchingCodes, setIsFetchingCodes] = useState(false);
+  const [userCodeCounts, setUserCodeCounts] = useState({
+    byName: {},
+    bySettingId: {},
+    codesBySettingId: {},
   });
 
-  // Calculate total pax used whenever codes change
-  useEffect(() => {
-    const calculateTotalPax = () => {
-      const total = codes.reduce((sum, code) => sum + (code.pax || 1), 0);
-      setTotalPaxUsed(total);
-    };
-    calculateTotalPax();
-  }, [codes]);
+  // Store the current codes in state to ensure consistency
+  const [currentTypeCodes, setCurrentTypeCodes] = useState([]);
 
-  // Debug received code settings and permissions
+  // Add state to track the previous code type data for smooth transitions
+  const [previousTypeData, setPreviousTypeData] = useState({
+    codeType: null,
+    codes: [],
+    count: 0,
+  });
+
+  // Reference to track previous selectedCodeType for logging
+  const previousCodeTypeRef = useRef(null);
+
+  // Reference to track last fetch times to prevent duplicate requests
+  const lastFetchRef = useRef({
+    counts: {},
+    userCounts: {},
+  });
+
+  // Reference to track if we've already logged the code summary
+  const hasLoggedCodeSummaryRef = useRef(false);
+
+  // Initialize component with settings and permissions
   useEffect(() => {
-    console.log("🎟️ CodeGenerator received:", {
+    // Log initialization info
+    console.log("🔄 CodeGenerator Initialization:", {
       type,
       codeSettings: codeSettings.length,
       codePermissions: codePermissions.length,
-      selectedBrand: selectedBrand?.name,
-      settings: codeSettings,
-      permissions: codePermissions,
-      accessSummary,
     });
 
-    // Add detailed debug of code settings to find missing maxPax
-    console.log(
-      "🔎 Detailed code settings:",
-      codeSettings.map((s) => ({
-        name: s.name,
-        type: s.type,
-        maxPax: s.maxPax,
-        limit: s.limit,
-        unlimited: s.unlimited,
-      }))
+    if (!codeSettings.length || !codePermissions.length) {
+      return; // Wait until we have both settings and permissions
+    }
+
+    // Set available settings based on permissions
+    const availableCodeTypes = codePermissions
+      .filter((permission) => permission.hasAccess)
+      .map((permission) => permission.type);
+
+    // Find settings that match the available types
+    const filteredSettings = codeSettings.filter((setting) =>
+      availableCodeTypes.includes(setting.type)
     );
 
-    // Log which permissions match the requested code type
-    if (type) {
-      const matchingPermissions = codePermissions.filter(
-        (perm) =>
-          perm.type === type ||
-          type.includes(perm.type) ||
-          perm.type.includes(type)
-      );
+    console.log("✅ Available code types:", availableCodeTypes);
+    console.log(
+      "✅ Filtered settings:",
+      filteredSettings.map((s) => s.name || s.type)
+    );
 
+    setAvailableSettings(filteredSettings);
+
+    // Always use the first available setting regardless of type prop
+    if (filteredSettings.length > 0) {
+      const defaultSetting = filteredSettings[0];
+      const defaultType = defaultSetting.name || defaultSetting.type;
+
+      console.log(`🔄 Setting default code type to ${defaultType}`);
+
+      // Set all the necessary state for the default code type
+      setSelectedCodeType(defaultType);
+      setActiveSetting(defaultSetting);
+      setCondition(defaultSetting.condition || "");
+      updateMaxPeopleOptions(defaultSetting);
+
+      // Store as previous type data to avoid flashes
+      setPreviousTypeData({
+        codeType: defaultType,
+        codes: [],
+        count: 0,
+      });
+    }
+  }, [codeSettings, codePermissions]);
+
+  // When the component mounts, ensure we fetch data for the selected type
+  useEffect(() => {
+    // This useEffect will run once when the component mounts and selectedEvent is available
+    if (selectedEvent && selectedCodeType && !hasLoggedCodeSummaryRef.current) {
+      console.log(`🔄 Initial fetch for ${selectedCodeType}`);
+      fetchUserSpecificCodeCounts();
+    }
+  }, [selectedEvent, selectedCodeType]); // Only depend on these two props
+
+  // Separate useEffect to handle tab changes
+  useEffect(() => {
+    if (
+      previousTypeData.codeType &&
+      selectedCodeType !== previousTypeData.codeType &&
+      selectedEvent
+    ) {
       console.log(
-        `🎯 Permissions matching type "${type}":`,
-        matchingPermissions
+        `🔄 Tab changed from ${previousTypeData.codeType} to ${selectedCodeType}`
       );
+      fetchUserSpecificCodeCounts();
     }
+  }, [selectedCodeType]);
 
-    // Set the initial selected code type
-    if (codePermissions && codePermissions.length > 0) {
-      setSelectedCodeType(codePermissions[0].type);
-    }
-
-    // Count existing codes
-    fetchCodeCounts();
-  }, [type, codeSettings, codePermissions, accessSummary, selectedBrand]);
-
-  // Fetch the count of existing codes
-  const fetchCodeCounts = async () => {
-    if (!selectedEvent) {
-      console.log("❌ GENERATOR: No event selected, skipping code count fetch");
-      return;
-    }
-
-    if (!selectedCodeType) {
+  // When the selected code type changes, handle transitions smoothly
+  useEffect(() => {
+    if (
+      selectedCodeType &&
+      previousTypeData.codeType &&
+      selectedCodeType !== previousTypeData.codeType
+    ) {
+      // When switching code types, keep previous data until new data is fetched
       console.log(
-        "❌ GENERATOR: No code type selected, skipping code count fetch"
-      );
-      return;
-    }
-
-    // Get the actual type value from the active setting
-    const actualType = activeSetting?.type || "custom";
-
-    try {
-      console.log(
-        `🔍 GENERATOR: Fetching code counts for event=${selectedEvent._id}, type=${selectedCodeType} (actual type=${actualType})`
-      );
-
-      // Use the correct API endpoint based on the server routes
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/counts/${
-          selectedEvent._id
-        }?type=${actualType}&displayType=${encodeURIComponent(
-          selectedCodeType
-        )}`,
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      console.log(`✅ GENERATOR: Fetched code counts`, response.data);
-
-      // Get the active permission to determine if we should show generated or remaining
-      const activePermission = getActivePermission();
-
-      // Update the counts state based on the response
-      if (response.data) {
-        // For unlimited types, show the count of generated codes
-        if (activePermission?.unlimited) {
-          // Only update if the value has changed significantly to prevent re-renders
-          if (Math.abs(codesGenerated - (response.data.count || 0)) > 0) {
-            setCodesGenerated(response.data.count || 0);
-          }
-        }
-        // For limited types, update the total pax used
-        // Only update if the value has changed significantly to prevent re-renders
-        if (Math.abs(totalPaxUsed - (response.data.paxUsed || 0)) > 0) {
-          setTotalPaxUsed(response.data.paxUsed || 0);
-        }
-      }
-    } catch (error) {
-      console.log("❌ GENERATOR COUNT ERROR:", error);
-      console.log(
-        "❌ GENERATOR COUNT ERROR DETAILS:",
-        error.response?.data || error.message
+        `🔄 Switching from ${previousTypeData.codeType} to ${selectedCodeType}`
       );
     }
+  }, [selectedCodeType, previousTypeData.codeType]);
+
+  // Find the active permission matching the selected code type
+  const getActivePermission = () => {
+    if (!selectedCodeType || !codePermissions) return null;
+
+    // Try to find a permission that matches by type or name
+    const matchingPermission = codePermissions.find(
+      (perm) => perm.type === selectedCodeType || perm.name === selectedCodeType
+    );
+
+    // Store the current code type for reference
+    previousCodeTypeRef.current = selectedCodeType;
+
+    // If no matching permission was found, log it for debugging
+    if (!matchingPermission && selectedCodeType) {
+      console.log(`⚠️ No matching permission found for ${selectedCodeType}`);
+      console.log("Available permissions:", codePermissions);
+    }
+
+    return matchingPermission;
   };
 
-  // Fetch complete code settings if they're missing maxPax
-  const fetchCompleteCodeSettings = async () => {
-    if (!selectedEvent || !selectedCodeType) return;
-
-    // Check if we already have complete settings
-    const hasCompleteSettings = codeSettings.some(
-      (s) => s.maxPax !== undefined
-    );
-    if (hasCompleteSettings) return;
-
-    try {
-      console.log(
-        "⚠️ Code settings missing maxPax, fetching complete settings..."
-      );
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code-settings/all/${
-          selectedBrand?.id || selectedBrand?._id
-        }`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data?.codeSettings) {
-        console.log(
-          "✅ Fetched complete code settings:",
-          response.data.codeSettings
-        );
-        setAvailableSettings(response.data.codeSettings);
-
-        // Find the matching setting for current code type
-        const matchingSetting = response.data.codeSettings.find(
-          (s) =>
-            s.type === selectedCodeType || s.name.includes(selectedCodeType)
-        );
-
-        if (matchingSetting) {
-          console.log(
-            "🎯 Found complete setting with maxPax:",
-            matchingSetting
-          );
-          setActiveSetting(matchingSetting);
-          updateMaxPeopleOptions(matchingSetting);
-        }
+  // Fetch code counts when the selected event or code type changes
+  useEffect(() => {
+    if (selectedEvent && selectedCodeType) {
+      // Before fetching new data, store the current data as previous
+      if (currentTypeCodes.length > 0) {
+        setPreviousTypeData({
+          codeType: selectedCodeType,
+          codes: currentTypeCodes,
+          count: codesGenerated,
+        });
       }
-    } catch (error) {
-      console.error("Failed to fetch complete code settings:", error);
+
+      fetchUserSpecificCodeCounts();
     }
+  }, [selectedEvent?._id, selectedCodeType]);
+
+  // Update max people options based on the active setting
+  const updateMaxPeopleOptions = (setting) => {
+    if (!setting) {
+      setMaxPeopleOptions([1]);
+      return;
+    }
+
+    // Get the maximum allowed people count
+    const maxAllowed =
+      setting.maxPax || (setting.name?.includes("Bottle") ? 5 : 1);
+
+    // Generate array of options from 1 to maxAllowed
+    setMaxPeopleOptions(Array.from({ length: maxAllowed }, (_, i) => i + 1));
+
+    // Reset pax to 1 when changing options
+    setPax(1);
   };
 
   // Fetch event-specific code settings if not provided
@@ -241,11 +209,6 @@ function CodeGenerator({
       if (!selectedEvent) return;
 
       try {
-        console.log(
-          "🔍 Fetching event-specific code settings for:",
-          selectedEvent._id
-        );
-
         const response = await axios.get(
           `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${selectedEvent._id}`,
           {
@@ -260,18 +223,17 @@ function CodeGenerator({
           const settings = response.data.codeSettings.filter(
             (s) => s.isEnabled
           );
-          console.log("✅ Fetched event code settings:", settings.length);
           setAvailableSettings(settings);
 
           // Set active setting based on type prop or first available setting
           const matchingSetting =
             settings.find((s) => s.type === type || s.codeType === type) ||
             settings[0];
+
           if (matchingSetting) {
-            console.log("🎯 Setting active setting:", matchingSetting);
             setActiveSetting(matchingSetting);
             setCondition(matchingSetting.condition || "");
-            setPax(1); // Reset pax to 1 when changing settings
+            setPax(1);
             updateMaxPeopleOptions(matchingSetting);
           }
 
@@ -281,13 +243,6 @@ function CodeGenerator({
             response.data.eventLogo ||
             response.data.primaryColor
           ) {
-            console.log("📝 Updating event data with:", {
-              name: response.data.eventName,
-              logo: response.data.eventLogo ? "Available" : "Not available",
-              primaryColor: response.data.primaryColor,
-            });
-
-            // Create an updated event object with the new data
             const updatedEvent = {
               ...selectedEvent,
               name:
@@ -301,24 +256,19 @@ function CodeGenerator({
               primaryColor: response.data.primaryColor,
             };
 
-            // Pass the updated event to any child components that need it
-            // This is done by updating the state in the parent component
             if (onEventDataUpdate) {
               onEventDataUpdate(updatedEvent);
             }
           }
         }
       } catch (error) {
-        console.error("❌ Failed to load event code settings:", error);
         showError("Failed to load code settings");
       }
     };
 
     if (codeSettings.length === 0) {
-      console.log("⚠️ No code settings provided, fetching from event");
       fetchEventCodeSettings();
     } else {
-      console.log("✅ Using provided code settings:", codeSettings.length);
       const enabledSettings = codeSettings.filter((s) => s.isEnabled);
       setAvailableSettings(enabledSettings);
 
@@ -335,57 +285,12 @@ function CodeGenerator({
         ) || enabledSettings[0];
 
       if (matchingSetting) {
-        console.log(
-          "🎯 Setting active setting from provided settings:",
-          matchingSetting
-        );
         setActiveSetting(matchingSetting);
         setCondition(matchingSetting.condition || "");
         updateMaxPeopleOptions(matchingSetting);
-
-        // If maxPax is missing, try fetching complete settings
-        if (matchingSetting.maxPax === undefined) {
-          fetchCompleteCodeSettings();
-        }
-      } else {
-        console.warn(
-          "⚠️ No matching setting found for type:",
-          selectedTypeOrDefault
-        );
       }
     }
   }, [selectedEvent, type, codeSettings, selectedCodeType]);
-
-  // Update max people options based on the active setting
-  const updateMaxPeopleOptions = (setting) => {
-    console.log("🔄 Updating max people options for setting:", setting);
-
-    if (!setting) {
-      setMaxPeopleOptions([1]);
-      return;
-    }
-
-    // Get the maximum allowed people count
-    let maxAllowed;
-    if (setting.maxPax) {
-      maxAllowed = setting.maxPax;
-      console.log("📊 Using maxPax from setting:", maxAllowed);
-    } else if (setting.name && setting.name.includes("Bottle")) {
-      maxAllowed = 5; // Default for Bottle Code
-      console.log("📊 Using default maxPax for Bottle:", maxAllowed);
-    } else {
-      maxAllowed = 1;
-      console.log("📊 Using default maxPax:", maxAllowed);
-    }
-
-    // Generate array of options from 1 to maxAllowed
-    const options = Array.from({ length: maxAllowed }, (_, i) => i + 1);
-    setMaxPeopleOptions(options);
-    console.log("📋 Updated max people options:", options);
-
-    // Reset pax to 1 when changing options
-    setPax(1);
-  };
 
   // Update active setting when code type changes
   useEffect(() => {
@@ -394,93 +299,114 @@ function CodeGenerator({
         (s) =>
           s.type === selectedCodeType ||
           s.codeType === selectedCodeType ||
-          s.name.includes(selectedCodeType)
+          s.name?.includes(selectedCodeType)
       );
 
       if (matchingSetting) {
         console.log(
-          "🔄 Updating active setting for new code type:",
+          `✅ Found matching setting for ${selectedCodeType}:`,
           matchingSetting
         );
         setActiveSetting(matchingSetting);
 
         // Set condition based on code type
-        if (selectedCodeType === "Bottle Code") {
-          setCondition("1 Free Bottle");
-        } else {
-          setCondition(matchingSetting.condition || "");
-        }
+        setCondition(
+          selectedCodeType === "Bottle Code"
+            ? "1 Free Bottle"
+            : matchingSetting.condition || ""
+        );
 
-        setPax(1); // Reset pax when changing settings
-        fetchCodeCounts(); // Refresh code counts when changing type
+        setPax(1);
         updateMaxPeopleOptions(matchingSetting);
 
-        // If maxPax is missing, try fetching complete settings
-        if (matchingSetting.maxPax === undefined) {
-          fetchCompleteCodeSettings();
+        // Ensure we fetch data for this setting
+        if (selectedEvent) {
+          // Delay fetch slightly to ensure state updates have completed
+          setTimeout(() => {
+            console.log(`🔄 Triggering fetch for ${selectedCodeType}`);
+            fetchUserSpecificCodeCounts(matchingSetting._id);
+          }, 100);
         }
+      } else {
+        console.log(
+          `⚠️ No matching setting found for ${selectedCodeType} among:`,
+          availableSettings.map((s) => ({ name: s.name, type: s.type }))
+        );
       }
     }
-  }, [selectedCodeType, availableSettings]);
+  }, [selectedCodeType, availableSettings, selectedEvent]);
 
-  // Find the active permission matching the selected code type
-  const getActivePermission = () => {
-    if (!selectedCodeType || !codePermissions) return null;
-    return codePermissions.find((perm) => perm.type === selectedCodeType);
+  // Reset the log flag when the selected code type changes
+  useEffect(() => {
+    if (selectedCodeType !== previousCodeTypeRef.current) {
+      previousCodeTypeRef.current = selectedCodeType;
+      hasLoggedCodeSummaryRef.current = false;
+    }
+  }, [selectedCodeType]);
+
+  // Get the code objects for a specific setting
+  const getCodesForSetting = (settingId) => {
+    if (!settingId || !userCodeCounts.codesBySettingId) {
+      return [];
+    }
+    return userCodeCounts.codesBySettingId[settingId] || [];
   };
 
-  // Get matching code setting for the selected code type - used for maxPax
-  const getMatchingCodeSetting = () => {
-    if (!selectedCodeType || !codeSettings || codeSettings.length === 0)
-      return null;
-
-    return codeSettings.find(
+  // Get the code objects for the current selected code type
+  const getCodesForSelectedType = () => {
+    const matchingSetting = codeSettings.find(
       (setting) =>
-        setting.name.includes(selectedCodeType) ||
-        setting.type === selectedCodeType
+        setting.name === selectedCodeType || setting.type === selectedCodeType
     );
+
+    if (!matchingSetting) {
+      return [];
+    }
+
+    return getCodesForSetting(matchingSetting._id);
   };
 
-  const handleCode = async () => {
-    console.group("🔍 GENERATOR: Handle Code");
-    console.log(
-      "Selected Event:",
-      selectedEvent
-        ? {
-            _id: selectedEvent._id,
-            name: selectedEvent.name,
-          }
-        : "undefined"
-    );
-    console.log(
-      "Active Setting:",
-      activeSetting
-        ? {
-            _id: activeSetting._id,
-            name: activeSetting.name,
-            type: activeSetting.type,
-          }
-        : "undefined"
-    );
-    console.log("Name:", name);
-    console.log("Pax:", pax);
-    console.log("Condition:", condition);
-    console.log("Selected Code Type:", selectedCodeType);
-    console.groupEnd();
+  // Update codes when selected code type changes
+  useEffect(() => {
+    if (selectedCodeType) {
+      // Get user-specific codes for the selected type
+      const userSpecificCodes = getCodesForSelectedType();
+      setCodesGenerated(userSpecificCodes.length);
+      // Update the current codes state to ensure consistency
+      setCurrentTypeCodes(userSpecificCodes);
 
+      // Fetch fresh data when code type changes
+      fetchUserSpecificCodeCounts();
+    }
+  }, [selectedCodeType, userCodeCounts.codesBySettingId]);
+
+  // Get max people allowed for current code type
+  const getMaxPeopleAllowed = () => {
+    if (!activeSetting) return 1;
+    return activeSetting.maxPax || 1;
+  };
+
+  // Check if pax exceeds maxPax
+  const isPaxExceedingMaximum = () => {
+    return pax > getMaxPeopleAllowed();
+  };
+
+  // Determine if we should show the people selector
+  const shouldShowPeopleSelector = () => {
+    return activeSetting?.maxPax > 1;
+  };
+
+  // Handle code generation
+  const handleCode = async () => {
     if (!selectedEvent) {
-      console.error("❌ GENERATOR: No event selected, cannot generate code");
       showError("Please select an event first");
       return;
     }
 
     if (!activeSetting) {
-      console.error("❌ GENERATOR: No active setting selected");
       showError("Please select a code type");
       return;
     }
-
-    const eventId = selectedEvent._id;
 
     if (!name) {
       showError("Please enter a name");
@@ -492,7 +418,6 @@ function CodeGenerator({
       return;
     }
 
-    // Check if we're exceeding the maximum allowed pax
     if (isPaxExceedingMaximum()) {
       showError(`Maximum ${getMaxPeopleAllowed()} people allowed`);
       return;
@@ -507,7 +432,7 @@ function CodeGenerator({
 
       // Prepare the code data
       const codeData = {
-        eventId,
+        eventId: selectedEvent._id,
         name,
         pax,
         condition: condition || activeSetting.condition || "",
@@ -525,11 +450,12 @@ function CodeGenerator({
           actualType: activeSetting.type,
           generatedFrom: "CodeGenerator",
         },
+        maxPax: pax,
+        paxChecked: 0,
+        status: "active",
+        isDynamic: true,
       };
 
-      console.log(`🔍 GENERATOR: Creating code with data:`, codeData);
-
-      // Use the correct API endpoint based on the server routes
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/codes/create-dynamic`,
         codeData,
@@ -541,7 +467,6 @@ function CodeGenerator({
         }
       );
 
-      console.log(`✅ GENERATOR: Code created successfully:`, response.data);
       showSuccess("Code generated successfully!");
 
       // Reset form fields
@@ -550,246 +475,384 @@ function CodeGenerator({
       setCondition("");
       setTableNumber("");
 
-      // Refresh code counts and codes after a short delay
-      setTimeout(() => {
-        console.log("🔄 GENERATOR: Refreshing data after code generation");
-        fetchCodeCounts();
-        fetchCodes();
-        if (refreshCounts) {
-          refreshCounts();
+      // Get the new code from the response
+      const newCode = response.data.code || response.data;
+
+      // Log the newly created code
+      console.log("✅ NEW CODE CREATED:", {
+        id: newCode._id,
+        name: newCode.name,
+        code: newCode.code,
+        pax: newCode.pax || newCode.maxPax,
+      });
+
+      // Add the new code to the codes array
+      if (newCode) {
+        setCodesGenerated(codesGenerated + 1);
+
+        // Update user code counts with the new code
+        const matchingSetting = codeSettings.find(
+          (setting) =>
+            setting.name === selectedCodeType ||
+            setting.type === selectedCodeType
+        );
+
+        if (matchingSetting) {
+          const updatedCodesBySettingId = {
+            ...userCodeCounts.codesBySettingId,
+            [matchingSetting._id]: [
+              ...(userCodeCounts.codesBySettingId[matchingSetting._id] || []),
+              newCode,
+            ],
+          };
+
+          setUserCodeCounts((prev) => ({
+            ...prev,
+            codesBySettingId: updatedCodesBySettingId,
+          }));
         }
-      }, 1000);
+      }
+
+      // Refresh counts if needed
+      if (refreshCounts) {
+        refreshCounts();
+      }
+
+      // Refresh code counts
+      fetchUserSpecificCodeCounts();
+
+      // Reset the log flag so we can see the updated logs
+      hasLoggedCodeSummaryRef.current = false;
     } catch (error) {
-      console.error("❌ GENERATOR ERROR:", error);
       showError(error.response?.data?.message || "Failed to generate code");
     }
   };
 
-  // Get the counter display based on whether there's a limit or not
+  // Get the counter text based on whether there's a limit or not
   const getCounterText = () => {
     const activePermission = getActivePermission();
-    if (!activePermission) return "Generated";
-
-    if (activePermission.unlimited) {
-      return "Generated";
-    } else {
-      return "Remaining";
+    if (!activePermission || activePermission.unlimited) {
+      return "GENERATED";
     }
+    return "REMAINING";
   };
 
-  // Get the counter value
+  // Get the counter value for the current code type
   const getCounterValue = () => {
     const activePermission = getActivePermission();
-    if (!activePermission) return "0";
+    if (!activePermission) {
+      return "0";
+    }
 
-    console.log(`📊 COUNTER: Getting value for ${selectedCodeType}:`, {
-      unlimited: activePermission.unlimited,
-      limit: activePermission.limit,
-      codesGenerated,
-      totalPaxUsed,
-    });
+    // Find the matching setting for the selected code type
+    const matchingSetting = codeSettings.find(
+      (setting) =>
+        setting.name === selectedCodeType || setting.type === selectedCodeType
+    );
 
+    // Get the user's generated count for this code type
+    let userGeneratedCount = 0;
+
+    // Try to get the count by setting ID if we have a matching setting
+    if (
+      matchingSetting &&
+      userCodeCounts.bySettingId &&
+      userCodeCounts.bySettingId[matchingSetting._id] !== undefined
+    ) {
+      userGeneratedCount = userCodeCounts.bySettingId[matchingSetting._id];
+    }
+    // Try to get the count by name as a fallback
+    else if (
+      userCodeCounts.byName &&
+      userCodeCounts.byName[selectedCodeType] !== undefined
+    ) {
+      userGeneratedCount = userCodeCounts.byName[selectedCodeType];
+    }
+
+    // For unlimited types, show the count of generated codes
     if (activePermission.unlimited) {
-      // Show the count of codes for this specific type
-      console.log(
-        `📊 COUNTER: Unlimited type, showing generated count: ${codesGenerated}`
+      return userGeneratedCount.toString(); // Show the count of generated codes
+    }
+
+    // For limited types, calculate remaining based on the user's limit and their usage
+    const remaining = Math.max(0, activePermission.limit - userGeneratedCount);
+    return remaining.toString();
+  };
+
+  // Log the codes for the selected type whenever it changes
+  useEffect(() => {
+    const codes = getCodesForSelectedType();
+    if (codes.length > 0 && !hasLoggedCodeSummaryRef.current) {
+      console.log(`📊 Current codes for ${selectedCodeType}:`, codes);
+
+      // Display codes in a more structured way
+      console.table(
+        codes.map((code) => ({
+          id: code.id,
+          name: code.name,
+          code: code.code,
+          pax: code.pax,
+          createdAt: new Date(code.createdAt).toLocaleString(),
+        }))
       );
-      return codesGenerated.toString();
-    } else {
-      // Calculate remaining based on the limit and used pax for this specific type
-      // Use the ref to stabilize the value and prevent jumping
-      if (!counterValueRef.current[selectedCodeType]) {
-        const remaining = Math.max(0, activePermission.limit - totalPaxUsed);
-        counterValueRef.current[selectedCodeType] = remaining;
-      }
+    }
+  }, [selectedCodeType, userCodeCounts.codesBySettingId]);
 
-      // Only update the ref value if there's a significant change
-      const newRemaining = Math.max(0, activePermission.limit - totalPaxUsed);
-      if (
-        Math.abs(counterValueRef.current[selectedCodeType] - newRemaining) > 1
-      ) {
-        counterValueRef.current[selectedCodeType] = newRemaining;
-      }
+  // Log all codes when the component mounts
+  useEffect(() => {
+    if (
+      Object.keys(userCodeCounts.codesBySettingId).length > 0 &&
+      !hasLoggedCodeSummaryRef.current
+    ) {
+      // Set the ref to true to prevent repeated logs
+      hasLoggedCodeSummaryRef.current = true;
 
       console.log(
-        `📊 COUNTER: Limited type, showing remaining: ${counterValueRef.current[selectedCodeType]} (limit: ${activePermission.limit}, used: ${totalPaxUsed})`
+        "🔍 ALL CODE OBJECTS BY SETTING ID:",
+        userCodeCounts.codesBySettingId
       );
-      return counterValueRef.current[selectedCodeType].toString();
-    }
-  };
 
-  // Determine if we should show the people selector
-  const shouldShowPeopleSelector = () => {
-    if (!activeSetting) return false;
+      // Display a summary of codes by setting
+      console.log("📊 CODES SUMMARY:");
+      Object.entries(userCodeCounts.codesBySettingId).forEach(
+        ([settingId, codes]) => {
+          const setting = codeSettings.find((s) => s._id === settingId);
+          console.log(
+            `Setting: ${setting?.name || settingId} (${codes.length} codes)`
+          );
 
-    // If we have maxPax defined and it's greater than 1, show the selector
-    if (activeSetting.maxPax && activeSetting.maxPax > 1) {
-      return true;
-    }
-
-    return false;
-  };
-
-  // Get max people allowed for current code type
-  const getMaxPeopleAllowed = () => {
-    if (!activeSetting) return 1;
-
-    // If maxPax is defined, use it
-    if (activeSetting.maxPax) {
-      return activeSetting.maxPax;
-    }
-
-    // Default to 1 if no maxPax specified
-    return 1;
-  };
-
-  // Check if pax exceeds maxPax
-  const isPaxExceedingMaximum = () => {
-    const maxAllowed = getMaxPeopleAllowed();
-    return pax > maxAllowed;
-  };
-
-  // Calculate total pax used
-  const calculateTotalPax = () => {
-    if (!activeSetting) return 0;
-    return totalPaxUsed;
-  };
-
-  // Fetch codes for the current event and type
-  const fetchCodes = async () => {
-    if (!selectedEvent) {
-      console.log("❌ GENERATOR: No event selected, skipping code fetch");
-      return;
-    }
-
-    if (!selectedCodeType) {
-      console.log("❌ GENERATOR: No code type selected, skipping code fetch");
-      return;
-    }
-
-    // Get the actual type value from the active setting
-    const actualType = activeSetting?.type || "custom";
-
-    try {
-      console.group("🔍 GENERATOR: Fetching codes");
-      console.log("Event ID:", selectedEvent._id);
-      console.log("Selected Code Type:", selectedCodeType);
-      console.log("Actual Type for API:", actualType);
-      console.log(
-        "API URL:",
-        `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${actualType}`
-      );
-      console.groupEnd();
-
-      // Use the correct API endpoint based on the server routes
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${actualType}`,
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          if (codes.length > 0) {
+            console.table(
+              codes.map((code) => ({
+                id: code.id?.substring(0, 10) + "...",
+                name: code.name,
+                code: code.code,
+                pax: code.pax,
+                createdAt: new Date(code.createdAt).toLocaleString(),
+              }))
+            );
+          }
         }
       );
+    }
+  }, [userCodeCounts.codesBySettingId, codeSettings]);
 
-      console.log(`✅ GENERATOR: Fetched ${response.data.length} codes`);
+  // Modify the fetchUserSpecificCodeCounts function
+  const fetchUserSpecificCodeCounts = async (forcedSettingId) => {
+    // Check if we have a valid user and event
+    const hasUser = user && (typeof user === "string" || user?.id || user?._id);
+    if (!selectedEvent || !hasUser) {
+      console.log("⚠️ Missing user or event for fetch");
+      return;
+    }
 
-      // Filter codes by metadata.codeType to match the selected code type
-      const filteredCodes = response.data.filter(
-        (code) =>
-          code.metadata?.codeType === selectedCodeType ||
-          code.metadata?.settingName === selectedCodeType
+    // Extract the key IDs we need
+    const userId = typeof user === "string" ? user : user?.id || user?._id;
+    const eventId = selectedEvent._id || selectedEvent.id;
+
+    // Get the active setting ID - either use the forced ID or find the matching setting
+    let activeSettingId = forcedSettingId;
+
+    if (!activeSettingId) {
+      const matchingSetting = codeSettings.find(
+        (setting) =>
+          setting.name === selectedCodeType || setting.type === selectedCodeType
       );
+
+      if (matchingSetting) {
+        activeSettingId = matchingSetting._id;
+      } else if (activeSetting) {
+        activeSettingId = activeSetting._id;
+      }
+    }
+
+    if (!activeSettingId) {
+      console.log(`⚠️ No active setting ID found for ${selectedCodeType}`);
+      return;
+    }
+
+    // Create a key to identify this specific fetch
+    const fetchKey = `user_${userId}_event_${eventId}_setting_${activeSettingId}`;
+
+    // Check if we've fetched this data recently (within the last 1 second)
+    const now = Date.now();
+    if (
+      lastFetchRef.current.userCounts &&
+      lastFetchRef.current.userCounts[fetchKey] &&
+      now - lastFetchRef.current.userCounts[fetchKey] < 1000 &&
+      !forcedSettingId // Skip the cache check if a specific setting ID is forced
+    ) {
+      console.log(`⏭️ Skipping recent fetch for setting: ${activeSettingId}`);
+      return;
+    }
+
+    // Update the last fetch time for this key
+    if (!lastFetchRef.current.userCounts) {
+      lastFetchRef.current.userCounts = {};
+    }
+    lastFetchRef.current.userCounts[fetchKey] = now;
+
+    console.log(
+      `🔍 Fetching codes for setting: ${activeSettingId} (${
+        selectedCodeType || "unknown"
+      })`
+    );
+    setIsFetchingCodes(true);
+
+    try {
+      // Prepare the request URL and parameters
+      const requestUrl = `${process.env.REACT_APP_API_BASE_URL}/codes/user-counts/${eventId}/${userId}`;
+      const requestParams = {
+        settingId: activeSettingId,
+      };
 
       console.log(
-        `📋 GENERATOR CODES: ${filteredCodes.length} codes for ${selectedCodeType}`
+        `🔄 Making API request to ${requestUrl} with params:`,
+        requestParams
       );
 
-      // Update the codes state
-      setCodes(filteredCodes);
+      const response = await axios.get(requestUrl, {
+        params: requestParams,
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.data) {
+        // Extract the settings and summary from the response
+        const { settings = {}, summary = {} } = response.data;
+
+        console.log(
+          `✅ Received data for setting ${activeSettingId}:`,
+          Object.keys(settings).map((id) => ({
+            id,
+            name: settings[id]?.setting?.name,
+            count: settings[id]?.codes?.length,
+          }))
+        );
+
+        // Convert the response data to a format that maps code setting names to counts
+        const countsByName = {};
+        const countsBySettingId = {};
+        const codesBySettingId = {};
+
+        // Process each code setting
+        Object.entries(settings).forEach(([settingId, data]) => {
+          const { setting, count, codes = [] } = data;
+
+          // Store counts by setting ID
+          countsBySettingId[settingId] = count;
+
+          // Store codes by setting ID
+          codesBySettingId[settingId] = codes;
+
+          // Store counts by setting name
+          if (setting && setting.name) {
+            countsByName[setting.name] = count;
+          }
+        });
+
+        // Update the state with the new counts
+        setUserCodeCounts({
+          byName: countsByName,
+          bySettingId: countsBySettingId,
+          codesBySettingId: codesBySettingId,
+        });
+
+        // Double check that we're setting the correct current type codes
+        if (activeSettingId && codesBySettingId[activeSettingId]) {
+          console.log(
+            `✅ Setting ${codesBySettingId[activeSettingId].length} codes for ${activeSettingId}`
+          );
+          setCurrentTypeCodes(codesBySettingId[activeSettingId]);
+          setCodesGenerated(codesBySettingId[activeSettingId].length);
+
+          // Also update the previous type data
+          setPreviousTypeData({
+            codeType: selectedCodeType,
+            codes: codesBySettingId[activeSettingId],
+            count: codesBySettingId[activeSettingId].length,
+          });
+        } else {
+          console.log(
+            `⚠️ No codes found for setting ${activeSettingId} in:`,
+            Object.keys(codesBySettingId)
+          );
+          // If no codes found, set to empty array
+          setCurrentTypeCodes([]);
+          setCodesGenerated(0);
+        }
+
+        // Mark that we've logged the summary
+        hasLoggedCodeSummaryRef.current = true;
+      }
     } catch (error) {
-      console.group("❌ GENERATOR ERROR");
-      console.log("Error:", error);
-      console.log("Error Details:", error.response?.data || error.message);
-      console.log("Status:", error.response?.status);
-      console.log("Status Text:", error.response?.statusText);
-      console.groupEnd();
+      console.error("Error fetching user-specific code counts:", error.message);
+
+      // Log additional details about the error
+      if (error.response) {
+        console.log("Error response:", {
+          status: error.response.status,
+          data: error.response.data,
+        });
+      }
+
+      // Fallback mechanism for 404 errors
+      if (error.response && error.response.status === 404) {
+        console.log(`⚠️ 404 error for setting ${activeSettingId}`);
+
+        // Create fallback empty data structure for the active setting
+        setUserCodeCounts((prev) => ({
+          ...prev,
+          byName: {
+            ...prev.byName,
+            [selectedCodeType]: 0,
+          },
+          bySettingId: {
+            ...prev.bySettingId,
+            [activeSettingId]: 0,
+          },
+          codesBySettingId: {
+            ...prev.codesBySettingId,
+            [activeSettingId]: [],
+          },
+        }));
+
+        // Update currentTypeCodes for the fallback case
+        setCurrentTypeCodes([]);
+        setCodesGenerated(0);
+
+        // Reset previous data for this code type
+        setPreviousTypeData({
+          codeType: selectedCodeType,
+          codes: [],
+          count: 0,
+        });
+      }
+    } finally {
+      setIsFetchingCodes(false);
     }
   };
 
-  // Fetch codes when component mounts or when selectedCodeType changes
-  useEffect(() => {
-    if (selectedEvent && selectedCodeType) {
-      console.log(
-        `🔄 GENERATOR: Refreshing codes for type=${selectedCodeType}`
-      );
-      fetchCodeCounts();
-      fetchCodes();
-    }
-  }, [selectedEvent, selectedCodeType]);
+  // Improve the handleTabClick function to be more robust
+  const handleTabClick = (codeType) => {
+    if (codeType === selectedCodeType || isFetchingCodes) return;
 
-  // Add debugging for codes state
-  useEffect(() => {
-    console.log(
-      `📋 GENERATOR CODES: ${codes.length} codes for ${selectedCodeType}`
-    );
-    codes.forEach((code) => {
-      console.log(
-        `📋 GENERATOR CODE: id=${code._id}, type=${code.type}, metadata.codeType=${code.metadata?.codeType}`
-      );
+    console.log(`🔄 Tab clicked: ${codeType}`);
+
+    // Store current data before switching
+    setPreviousTypeData({
+      codeType: selectedCodeType,
+      codes: currentTypeCodes,
+      count: codesGenerated,
     });
-  }, [codes, selectedCodeType]);
 
-  // Add debugging for selectedEvent
-  useEffect(() => {
-    console.log(`🔍 GENERATOR: selectedEvent=${selectedEvent?._id}`);
-  }, [selectedEvent]);
+    // Set the new code type
+    setSelectedCodeType(codeType);
 
-  // Add a ref to store filtered codes by type
-  const filteredCodesByTypeRef = React.useRef({});
-
-  // Add more detailed debugging for props
-  useEffect(() => {
-    console.group("🔍 GENERATOR PROPS");
-    console.log("User:", user?._id);
-    console.log("Type:", type);
-    console.log(
-      "Selected Brand:",
-      selectedBrand
-        ? {
-            _id: selectedBrand._id,
-            name: selectedBrand.name,
-          }
-        : "undefined"
-    );
-    console.log(
-      "Selected Event:",
-      selectedEvent
-        ? {
-            _id: selectedEvent._id,
-            name: selectedEvent.name,
-            date: selectedEvent.date,
-            user: selectedEvent.user,
-            brand: selectedEvent.brand,
-            // Log the entire object for debugging
-            fullObject: selectedEvent,
-          }
-        : "undefined"
-    );
-    console.log("Code Settings:", codeSettings?.length);
-    console.log("Code Permissions:", codePermissions?.length);
-    console.groupEnd();
-  }, [user, type, selectedBrand, selectedEvent, codeSettings, codePermissions]);
-
-  // Add a warning if selectedEvent is undefined
-  useEffect(() => {
-    if (!selectedEvent) {
-      console.warn(
-        "⚠️ GENERATOR: No event selected. Please select an event in the header."
-      );
-      showError("Please select an event to generate codes");
-    }
-  }, [selectedEvent]);
+    // The useEffect will handle the rest of the setup and data fetching
+  };
 
   if (!activeSetting) {
     return (
@@ -811,13 +874,12 @@ function CodeGenerator({
 
   return (
     <div className="code-generator">
-      <Navigation onBack={onClose} title={`${type} Codes`} />
+      <Navigation onBack={onClose} title={`${type || "Event"} Codes`} />
       <div className="code-generator-container">
-        {/* Add event logo container */}
+        {/* Event logo container */}
         <div className="brand-logo-container">
           {selectedEvent && (
             <>
-              {/* Use brand logo if available */}
               {selectedEvent.brand &&
               selectedEvent.brand.logo &&
               (selectedEvent.brand.logo.full ||
@@ -833,9 +895,7 @@ function CodeGenerator({
                   className="code-logo"
                   style={
                     selectedEvent.primaryColor
-                      ? {
-                          borderColor: selectedEvent.primaryColor,
-                        }
+                      ? { borderColor: selectedEvent.primaryColor }
                       : {}
                   }
                 />
@@ -851,9 +911,7 @@ function CodeGenerator({
                   className="code-logo"
                   style={
                     selectedEvent.primaryColor
-                      ? {
-                          borderColor: selectedEvent.primaryColor,
-                        }
+                      ? { borderColor: selectedEvent.primaryColor }
                       : {}
                   }
                 />
@@ -862,75 +920,25 @@ function CodeGenerator({
                   className="code-logo-placeholder"
                   style={
                     selectedEvent.primaryColor
-                      ? {
-                          backgroundColor: selectedEvent.primaryColor,
-                        }
+                      ? { backgroundColor: selectedEvent.primaryColor }
                       : {}
                   }
                 >
                   {selectedEvent.name ? selectedEvent.name.charAt(0) : "G"}
                 </div>
               )}
-              <div
-                className="brand-name"
-                style={
-                  selectedEvent.primaryColor
-                    ? {
-                        color: selectedEvent.primaryColor,
-                      }
-                    : {}
-                }
-              >
-                {selectedEvent.name ||
-                  selectedEvent.title ||
-                  (selectedBrand ? selectedBrand.name : "Guest Code")}
-              </div>
             </>
           )}
         </div>
 
         <div className="code-generator-header">
-          <div
-            className="code-counter"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "1rem 0",
-              position: "relative",
-            }}
-          >
-            <div
-              className="counter-label"
-              style={{
-                fontSize: "0.9rem",
-                color: "rgba(255, 255, 255, 0.7)",
-                marginBottom: "0.5rem",
-                fontWeight: "500",
-                textTransform: "uppercase",
-                letterSpacing: "0.05rem",
-              }}
-            >
-              {getCounterText()}
-            </div>
-            <div
-              className="counter-value"
-              style={{
-                fontSize: "2.5rem",
-                fontWeight: "700",
-                color: selectedEvent?.primaryColor || "#ffc807",
-                textShadow: "0 2px 10px rgba(255, 200, 7, 0.3)",
-                transition: "all 0.3s ease",
-                animation: "pulse 2s infinite ease-in-out",
-              }}
-            >
-              {getCounterValue()}
-            </div>
+          <div className="counter-container">
+            <div className="counter-label">{getCounterText()}</div>
+            <div className="counter-value">{getCounterValue()}</div>
           </div>
         </div>
 
-        {/* Always show Code Generator View */}
+        {/* Code Generator View */}
         <div className="code-generator-section">
           {codePermissions && codePermissions.length > 1 && (
             <div className="code-type-selector">
@@ -941,7 +949,7 @@ function CodeGenerator({
                     className={`type-tab ${
                       selectedCodeType === permission.type ? "selected" : ""
                     }`}
-                    onClick={() => setSelectedCodeType(permission.type)}
+                    onClick={() => handleTabClick(permission.type)}
                   >
                     <div className="tab-name">{permission.type}</div>
                     <div className="tab-limit">
@@ -1005,29 +1013,47 @@ function CodeGenerator({
 
             <button
               className="code-btn"
-              disabled={!name || pax < 1 || !activeSetting}
+              disabled={!name || pax < 1 || !activeSetting || isFetchingCodes}
               onClick={handleCode}
             >
-              Generate Code
+              {isFetchingCodes ? "Loading..." : "Generate Code"}
             </button>
           </div>
         </div>
 
-        {/* Always show Code Management View */}
+        {/* Replace user-codes-container with CodeManagement */}
         <div className="code-management-container">
           <CodeManagement
             user={user}
             type={selectedCodeType}
-            setCodes={setCodes}
-            codes={filteredCodesByTypeRef.current[selectedCodeType] || codes}
-            refreshCodes={fetchCodes}
+            setCodes={(newCodes) => {
+              // Update user code counts with the new codes
+              const matchingSetting = codeSettings.find(
+                (setting) =>
+                  setting.name === selectedCodeType ||
+                  setting.type === selectedCodeType
+              );
+
+              if (matchingSetting) {
+                const updatedCodesBySettingId = {
+                  ...userCodeCounts.codesBySettingId,
+                  [matchingSetting._id]: newCodes,
+                };
+
+                setUserCodeCounts((prev) => ({
+                  ...prev,
+                  codesBySettingId: updatedCodesBySettingId,
+                }));
+
+                setCodesGenerated(newCodes.length);
+                // Also update the current codes state
+                setCurrentTypeCodes(newCodes);
+              }
+            }}
+            codes={currentTypeCodes}
+            refreshCodes={fetchUserSpecificCodeCounts}
             refreshCounts={refreshCounts}
-            currentEventDate={currentEventDate}
             counts={codesGenerated}
-            onPrevWeek={onPrevWeek}
-            onNextWeek={onNextWeek}
-            isStartingEvent={isStartingEvent}
-            dataInterval={dataInterval}
             selectedEvent={selectedEvent}
           />
         </div>

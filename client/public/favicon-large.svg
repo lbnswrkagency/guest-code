@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <style>
+      .main-color {
+        fill: #ffc807;
+      }
+      .bg-color {
+        fill: #000000;
+      }
+      .qr-element {
+        fill: #ffc807;
+      }
+      .shadow {
+        filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.3));
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect class="bg-color" width="500" height="500" rx="50" ry="50"/>
+  
+  <!-- Stylized G with QR code elements -->
+  <path class="main-color shadow" d="M150,125c-25,0-50,10-65,25c-15,15-25,40-25,65v75c0,25,10,50,25,65c15,15,40,25,65,25h50c35,0,65-15,80-40v-75H200v50h50c-10,10-25,15-50,15h-25c-15,0-30-5-40-15c-10-10-15-25-15-40v-50c0-15,5-30,15-40c10-10,25-15,40-15h25c25,0,40,10,50,25h50c-10-25-40-45-75-45H150z"/>
+  
+  <!-- QR Code Elements -->
+  <rect class="qr-element shadow" x="325" y="125" width="50" height="50" rx="5" ry="5"/>
+  <rect class="qr-element shadow" x="325" y="325" width="50" height="50" rx="5" ry="5"/>
+  <rect class="qr-element shadow" x="125" y="325" width="50" height="50" rx="5" ry="5"/>
+  <rect class="qr-element shadow" x="225" y="225" width="50" height="50" rx="5" ry="5"/>
+  <rect class="qr-element shadow" x="375" y="225" width="25" height="25" rx="3" ry="3"/>
+  <rect class="qr-element shadow" x="225" y="375" width="25" height="25" rx="3" ry="3"/>
+  <rect class="qr-element shadow" x="375" y="375" width="25" height="25" rx="3" ry="3"/>
+  
+  <!-- Title -->
+  <text x="250" y="450" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffc807" text-anchor="middle">GUEST CODE</text>
+</svg> 

@@ -77,4 +77,13 @@ router.post("/verify", authenticate, codesController.verifyCode);
 // Track detailed usage of a code
 router.post("/:codeId/usage", authenticate, codesController.trackCodeUsage);
 
+// Add a new route for fetching user-specific code counts
+router.get(
+  "/user-counts/:eventId/:userId",
+  authenticate,
+  codesController.getUserCodeCounts
+);
+
+console.log("✅ Registered route: GET /codes/user-counts/:eventId/:userId");
+
 module.exports = router;

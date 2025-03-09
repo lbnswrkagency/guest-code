@@ -20,6 +20,8 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
 
   if (!currentUser) return null;
 
+  const isAuthorizedUser = currentUser._id === "65707f8da826dc13721ef735";
+
   const menuItems = [
     {
       title: "Profile",
@@ -30,34 +32,49 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         onClose();
       },
     },
-    {
-      title: "Brands",
-      icon: <RiBuildingLine />,
-      path: `/@${currentUser.username}/brands`,
-      action: () => {
-        navigate(`/@${currentUser.username}/brands`);
-        onClose();
-      },
-    },
-    {
-      title: "Events",
-      icon: <RiCalendarEventLine />,
-      path: `/@${currentUser.username}/events`,
-      action: () => {
-        navigate(`/@${currentUser.username}/events`);
-        onClose();
-      },
-    },
-    {
-      title: "Settings",
-      icon: <RiSettings4Line />,
-      path: "/settings",
-      action: (e) => {
-        // No action for now, will implement later
-        e.stopPropagation();
-        onClose();
-      },
-    },
+    // Only show Brands for authorized user
+    ...(isAuthorizedUser
+      ? [
+          {
+            title: "Brands",
+            icon: <RiBuildingLine />,
+            path: `/@${currentUser.username}/brands`,
+            action: () => {
+              navigate(`/@${currentUser.username}/brands`);
+              onClose();
+            },
+          },
+        ]
+      : []),
+    // Only show Events for authorized user
+    ...(isAuthorizedUser
+      ? [
+          {
+            title: "Events",
+            icon: <RiCalendarEventLine />,
+            path: `/@${currentUser.username}/events`,
+            action: () => {
+              navigate(`/@${currentUser.username}/events`);
+              onClose();
+            },
+          },
+        ]
+      : []),
+    // Only show Settings for authorized user
+    ...(isAuthorizedUser
+      ? [
+          {
+            title: "Settings",
+            icon: <RiSettings4Line />,
+            path: "/settings",
+            action: (e) => {
+              // No action for now, will implement later
+              e.stopPropagation();
+              onClose();
+            },
+          },
+        ]
+      : []),
   ];
 
   const overlayVariants = {

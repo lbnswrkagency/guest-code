@@ -44,26 +44,134 @@ const DashboardMenu = ({
     return str1 === str2;
   };
 
-  // Debug logging to verify we're receiving data
+  // Add a comprehensive console log to understand the data flow
   useEffect(() => {
-    console.log("🧰 DashboardMenu received:", {
-      userRoles: userRoles.length,
-      codeSettings: codeSettings.length,
-      codePermissions: codePermissions.length,
-      accessSummary,
-      selectedBrand: selectedBrand?.name,
-    });
-  }, [userRoles, codeSettings, codePermissions, accessSummary, selectedBrand]);
+    // Only log when we have meaningful data
+    if (
+      selectedBrand &&
+      (codeSettings.length > 0 || codePermissions.length > 0)
+    ) {
+      // Map code settings to a more readable format
+      const mappedSettings = codeSettings.map((setting) => ({
+        _id: setting._id,
+        name: setting.name,
+        type: setting.type,
+        isEnabled: setting.isEnabled,
+        maxPax: setting.maxPax,
+        condition: setting.condition,
+        limit: setting.limit,
+      }));
+
+      // Map code permissions to a more readable format
+      const mappedPermissions = codePermissions.map((perm) => ({
+        name: perm.name,
+        type: perm.type,
+        generate: perm.generate,
+        limit: perm.limit,
+        unlimited: perm.unlimited,
+        remaining:
+          perm.limit -
+          (accessSummary[perm.name?.toLowerCase()]?.generated || 0),
+      }));
+
+      // Create a mapping between settings and permissions
+      const codeTypeMapping = {};
+
+      // First add all settings
+      mappedSettings.forEach((setting) => {
+        codeTypeMapping[setting.name] = {
+          setting,
+          permission: null,
+        };
+      });
+
+      // Then match permissions to settings
+      mappedPermissions.forEach((perm) => {
+        // Try to find a matching setting by name
+        if (codeTypeMapping[perm.name]) {
+          codeTypeMapping[perm.name].permission = perm;
+        } else {
+          // If no matching setting, add just the permission
+          codeTypeMapping[perm.name] = {
+            setting: null,
+            permission: perm,
+          };
+        }
+      });
+
+      console.log("🔑 CODE TYPES SUMMARY", {
+        selectedBrand: {
+          id: selectedBrand._id,
+          name: selectedBrand.name,
+        },
+        codeTypes: Object.entries(codeTypeMapping).reduce(
+          (acc, [key, value]) => {
+            acc[key] = {
+              ...value,
+              setting: value.setting
+                ? {
+                    ...value.setting,
+                    _id: value.setting._id,
+                  }
+                : null,
+            };
+            return acc;
+          },
+          {}
+        ),
+        accessSummary,
+        userRoles: userRoles.map((role) => role.name || role),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [selectedBrand, codeSettings, codePermissions, accessSummary, userRoles]);
 
   useEffect(() => {
     if (selectedBrand && user) {
-      // Use the access summary directly instead of recalculating permissions
+      console.log("🔑 Setting permissions from user roles:", {
+        userRoles,
+        accessSummary,
+      });
+
+      // Check user role permissions directly
+      let hasAnalyticsPermission = false;
+      let hasScannerPermission = false;
+
+      // Loop through all user roles to check permissions
+      userRoles.forEach((role) => {
+        // Check if role has permissions object
+        if (role.permissions) {
+          // Check analytics permission
+          if (
+            role.permissions.analytics &&
+            role.permissions.analytics.view === true
+          ) {
+            hasAnalyticsPermission = true;
+          }
+
+          // Check scanner permission
+          if (
+            role.permissions.scanner &&
+            role.permissions.scanner.use === true
+          ) {
+            hasScannerPermission = true;
+          }
+        }
+      });
+
+      console.log("🔑 Permission check results:", {
+        hasAnalyticsPermission,
+        hasScannerPermission,
+        canCreateCodes: accessSummary.canCreateCodes || false,
+      });
+
+      // Build permissions object
       const effectivePermissions = {
         analytics: {
-          view: accessSummary.hasAnalyticsPermission || false,
+          view: hasAnalyticsPermission,
         },
         scanner: {
-          use: accessSummary.hasScannerPermission || false,
+          use: hasScannerPermission,
         },
         codes: {
           canGenerateAny: accessSummary.canCreateCodes || false,
@@ -75,13 +183,16 @@ const DashboardMenu = ({
         },
       };
 
-      console.log(
-        "🔍 DashboardMenu effective permissions:",
-        effectivePermissions
-      );
       setPermissions(effectivePermissions);
     }
-  }, [selectedBrand, user, accessSummary, codeSettings, codePermissions]);
+  }, [
+    selectedBrand,
+    user,
+    accessSummary,
+    codeSettings,
+    codePermissions,
+    userRoles,
+  ]);
 
   const handleMenuClick = () => {
     setIsOpen(!isOpen);
@@ -104,68 +215,42 @@ const DashboardMenu = ({
 
   // Helper to determine which code type to use when clicking the Codes menu item
   const getDefaultCodeType = () => {
-    console.group("🔍 MENU: Getting Default Code Type");
-    console.log(
-      "Code Settings:",
-      codeSettings.length > 0
-        ? codeSettings.map((s) => ({
-            name: s.name,
-            type: s.type,
-            codeType: s.codeType,
-            isEnabled: s.isEnabled,
-          }))
-        : "None"
-    );
-    console.log(
-      "Code Permissions:",
-      codePermissions.length > 0
-        ? codePermissions.map((p) => ({
-            type: p.type,
-            generate: p.generate,
-          }))
-        : "None"
-    );
-    console.log(
-      "Selected Brand:",
-      selectedBrand
-        ? {
-            _id: selectedBrand._id,
-            name: selectedBrand.name,
-          }
-        : "undefined"
-    );
-    console.groupEnd();
+    console.log("🔍 Finding default code type:", {
+      codeSettings: codeSettings.map((s) => ({
+        name: s.name,
+        type: s.type,
+        isEnabled: s.isEnabled,
+      })),
+      codePermissions: codePermissions.map((p) => ({
+        name: p.name,
+        type: p.type,
+        limit: p.limit,
+        unlimited: p.unlimited,
+      })),
+    });
 
     // Look for any enabled code setting
     if (codeSettings.length > 0) {
       // Find the first available code setting that is enabled
       const firstEnabled = codeSettings.find((setting) => setting.isEnabled);
       if (firstEnabled) {
-        console.log(
-          `📋 Using first enabled code setting: ${
-            firstEnabled.name || firstEnabled.type || firstEnabled.codeType
-          }`
-        );
-        return firstEnabled.type || firstEnabled.codeType || "guest";
+        // Prefer the name over the type for better matching
+        const codeType = firstEnabled.name || firstEnabled.type;
+        console.log(`📋 Using first enabled code setting: ${codeType}`);
+        return codeType;
       }
 
       // If no enabled setting found, use the first setting
-      console.log(
-        `📋 Using first code setting (not enabled): ${
-          codeSettings[0].name ||
-          codeSettings[0].type ||
-          codeSettings[0].codeType
-        }`
-      );
-      return codeSettings[0].type || codeSettings[0].codeType || "guest";
+      const codeType = codeSettings[0].name || codeSettings[0].type;
+      console.log(`📋 Using first code setting (not enabled): ${codeType}`);
+      return codeType;
     }
 
     // If no code settings available, check permissions
     if (codePermissions.length > 0) {
-      console.log(
-        `📋 No code settings, using permission type: ${codePermissions[0].type}`
-      );
-      return codePermissions[0].type || "guest";
+      const codeType = codePermissions[0].name || codePermissions[0].type;
+      console.log(`📋 No code settings, using permission type: ${codeType}`);
+      return codeType;
     }
 
     // Default fallback
@@ -221,20 +306,15 @@ const DashboardMenu = ({
                   className="menu-item"
                   onClick={() => {
                     const defaultType = getDefaultCodeType();
-                    console.group("🎟️ MENU: Setting code type");
-                    console.log("Code type:", defaultType);
-                    console.log(
-                      "Selected Brand:",
-                      selectedBrand
+                    console.log("🎟️ Setting code type:", {
+                      type: defaultType,
+                      selectedBrand: selectedBrand
                         ? {
-                            _id: selectedBrand._id,
+                            id: selectedBrand._id,
                             name: selectedBrand.name,
                           }
-                        : "undefined"
-                    );
-                    console.log("Code Settings:", codeSettings.length);
-                    console.log("Code Permissions:", codePermissions.length);
-                    console.groupEnd();
+                        : "No brand selected",
+                    });
                     setCodeType(defaultType);
                     setIsOpen(false);
                   }}

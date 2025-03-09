@@ -117,11 +117,69 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and validate password
-    const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    console.log("[AuthController:Login] Login attempt", {
+      email,
+      hasPassword: !!password,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      timestamp: new Date().toISOString(),
+    });
+
+    // Find user by email or username
+    const user = await User.findOne({
+      $or: [
+        { email: email },
+        { username: email }, // Check if the provided email field matches a username
+      ],
+    });
+
+    if (!user) {
+      console.log("[AuthController:Login] User not found", {
+        email,
+        timestamp: new Date().toISOString(),
+      });
       return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    console.log("[AuthController:Login] User found", {
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      loginAttemptWith: email,
+      matchedWith: email === user.email ? "email" : "username",
+      isVerified: user.isVerified,
+      hasRefreshToken: !!user.refreshToken,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      console.log("[AuthController:Login] User not verified", {
+        userId: user._id,
+        email,
+        timestamp: new Date().toISOString(),
+      });
+      return res
+        .status(401)
+        .json({ message: "Please verify your email before logging in" });
+    }
+
+    // Validate password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      console.log("[AuthController:Login] Invalid password", {
+        userId: user._id,
+        email,
+        timestamp: new Date().toISOString(),
+      });
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    console.log("[AuthController:Login] Password validated successfully", {
+      userId: user._id,
+      timestamp: new Date().toISOString(),
+    });
 
     // Generate tokens
     const accessToken = generateAccessToken(user._id);
@@ -131,9 +189,23 @@ exports.login = async (req, res) => {
     user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
+    console.log("[AuthController:Login] Refresh token stored", {
+      userId: user._id,
+      timestamp: new Date().toISOString(),
+    });
+
     // Set cookies
     res.cookie("accessToken", accessToken, accessTokenCookieOptions);
     res.cookie("refreshToken", refreshToken, refreshTokenCookieOptions);
+
+    console.log("[AuthController:Login] Cookies set", {
+      userId: user._id,
+      cookieOptions: {
+        accessToken: { ...accessTokenCookieOptions },
+        refreshToken: { ...refreshTokenCookieOptions },
+      },
+      timestamp: new Date().toISOString(),
+    });
 
     // Return user data and tokens
     const userData = {
@@ -145,12 +217,24 @@ exports.login = async (req, res) => {
       avatar: user.avatar,
     };
 
+    console.log("[AuthController:Login] Login successful", {
+      userId: user._id,
+      username: user.username,
+      timestamp: new Date().toISOString(),
+    });
+
     res.json({
       user: userData,
       token: accessToken,
       refreshToken: refreshToken,
     });
   } catch (error) {
+    console.error("[AuthController:Login] Login error", {
+      error: error.message,
+      stack: error.stack,
+      email: req.body?.email,
+      timestamp: new Date().toISOString(),
+    });
     res.status(500).json({ message: "Internal server error" });
   }
 };

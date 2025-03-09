@@ -64,59 +64,15 @@ const EventProfile = () => {
   const [generatingCode, setGeneratingCode] = useState(false);
   const [hasFetchAttempted, setHasFetchAttempted] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+
+  const { pathname } = location;
 
   // Add effect to log navigation state changes
   useEffect(() => {
     console.log("[EventProfile] DashboardNavigation isOpen:", isNavigationOpen);
   }, [isNavigationOpen]);
-
-  // Fetch event data
-  useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        setLoading(true);
-        console.log(`[EventProfile] Fetching data for event ID: ${eventId}`);
-
-        // Fetch all event data in a single request
-        const response = await axiosInstance.get(`/events/profile/${eventId}`);
-        console.log("[EventProfile] Received event data:", response.data);
-
-        if (response.data.success) {
-          // Set all data from the single response
-          setEvent(response.data.event);
-          setLineups(response.data.lineups || []);
-          setTicketSettings(response.data.ticketSettings || []);
-          setCodeSettings(response.data.codeSettings || []);
-
-          // Set user status values only if user is logged in
-          if (user) {
-            setIsFollowing(response.data.isFollowing || false);
-            setIsFavorited(response.data.isFavorited || false);
-            setIsMember(response.data.isMember || false);
-            setJoinRequestStatus(response.data.joinRequestStatus || "");
-          } else {
-            // Set default values for anonymous users
-            setIsFollowing(false);
-            setIsFavorited(false);
-            setIsMember(false);
-            setJoinRequestStatus("");
-          }
-        } else {
-          throw new Error(response.data.message || "Failed to load event data");
-        }
-      } catch (err) {
-        console.error("[EventProfile] Error fetching event data:", err);
-        setError("Failed to load event information");
-        toast.showError("Failed to load event information");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (eventId) {
-      fetchEventData();
-    }
-  }, [eventId, toast, user]);
 
   // Extract URL parameters
   const {
@@ -127,11 +83,14 @@ const EventProfile = () => {
     eventSlug: urlEventSlug,
   } = useParams();
 
-  const { pathname } = location;
-
   // Special handling for the path parameters when using the new URL format
   const extractedParams = useMemo(() => {
     const pathParts = pathname.split("/").filter((p) => p);
+
+    console.log(
+      "[EventProfile] Extracting parameters from path parts:",
+      pathParts
+    );
 
     // For the special format /@username/@brandusername/XXYYZZ
     if (
@@ -140,11 +99,16 @@ const EventProfile = () => {
       pathParts[1].startsWith("@") &&
       /^\d{6}(-\d+)?$/.test(pathParts[2])
     ) {
-      return {
+      const result = {
         userUsername: pathParts[0].substring(1), // Remove @ from first part
         brandUsername: pathParts[1].substring(1), // Remove @ from second part
         dateSlug: pathParts[2], // The date part
       };
+      console.log(
+        "[EventProfile] Extracted special format parameters:",
+        result
+      );
+      return result;
     }
 
     // For the format /@brandUsername/XXYYZZ (e.g., /@afrospiti/030925)
@@ -153,27 +117,23 @@ const EventProfile = () => {
       pathParts[0].startsWith("@") &&
       /^\d{6}(-\d+)?$/.test(pathParts[1])
     ) {
-      return {
+      const result = {
         brandUsername: pathParts[0].substring(1), // Remove @ from first part
         dateSlug: pathParts[1], // The date part
       };
+      console.log("[EventProfile] Extracted simple format parameters:", result);
+      return result;
     }
 
-    return {
+    // Default case - use URL parameters
+    const result = {
       brandUsername: urlBrandUsername?.replace(/^@/, "") || "", // Remove @ if present
       dateSlug: urlDateSlug || urlEventUsername, // Use eventUsername as dateSlug for special format
+      eventSlug: urlEventSlug || "", // Include eventSlug if available
     };
-  }, [pathname, urlBrandUsername, urlDateSlug, urlEventUsername]);
-
-  console.log("[EventProfile] URL parameters:", {
-    urlEventId,
-    urlBrandUsername,
-    urlEventUsername,
-    urlDateSlug,
-    urlEventSlug,
-    pathname,
-    extractedParams,
-  });
+    console.log("[EventProfile] Using URL parameters:", result);
+    return result;
+  }, [pathname, urlBrandUsername, urlDateSlug, urlEventUsername, urlEventSlug]);
 
   // Helper function to format date for URL (MMDDYY)
   const formatDateForUrl = useCallback((date) => {
@@ -194,18 +154,13 @@ const EventProfile = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   }, []);
 
-  // Create stable versions of the format checking functions
+  // Extract parameters from the URL path
   const isSpecialFormat = useCallback(() => {
     const pathParts = pathname.split("/").filter((p) => p);
-    console.log(
-      "[EventProfile] Path parts for special format check:",
-      pathParts
-    );
 
     // For URL pattern /@userUsername/@brandUsername/dateSlug
-    // Example: /@hendricks/@whitechocolate/032225
     return (
-      pathParts.length === 3 &&
+      pathParts.length >= 3 &&
       pathParts[0].startsWith("@") &&
       pathParts[1].startsWith("@") &&
       /^\d{6}(-\d+)?$/.test(pathParts[2])
@@ -214,41 +169,26 @@ const EventProfile = () => {
 
   // The original format check for new URL patterns
   const isNewUrlFormat = useCallback(() => {
-    console.log("[EventProfile] Checking URL format:", {
-      extractedParams,
-      pathname,
-    });
-
     // Check for special format /@brandUsername/@eventUsername/dateSlug
     if (isSpecialFormat()) {
-      console.log(
-        "[EventProfile] Detected special format /@userUsername/@brandUsername/dateSlug"
-      );
       return true;
     }
 
-    // Check for simple format /@brandUsername/dateSlug (e.g., /@afrospiti/030925)
+    // Check for simple format /@brandUsername/dateSlug
     const pathParts = pathname.split("/").filter((p) => p);
     if (
-      pathParts.length === 2 &&
+      pathParts.length >= 2 &&
       pathParts[0].startsWith("@") &&
       /^\d{6}(-\d+)?$/.test(pathParts[1])
     ) {
-      console.log(
-        "[EventProfile] Detected simple format /@brandUsername/dateSlug"
-      );
       return true;
     }
 
     // Check if we have the necessary parameters for any other format
     if (extractedParams.brandUsername && extractedParams.dateSlug) {
-      console.log(
-        "[EventProfile] Detected parameters for date-based URL format"
-      );
       return true;
     }
 
-    console.log("[EventProfile] No recognized format detected");
     return false;
   }, [extractedParams, pathname, isSpecialFormat]);
 
@@ -275,8 +215,23 @@ const EventProfile = () => {
           {
             brandUsername, // Without @ symbol
             dateSlug,
+            pathParts: pathname.split("/").filter((p) => p),
           }
         );
+
+        // Validate parameters before constructing endpoint
+        if (!brandUsername || !dateSlug) {
+          console.error(
+            "[EventProfile] Missing required parameters for special format:",
+            {
+              brandUsername,
+              dateSlug,
+            }
+          );
+          setError("Invalid URL parameters");
+          setLoading(false);
+          return;
+        }
 
         // Use the date endpoint with clean params
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
@@ -292,14 +247,28 @@ const EventProfile = () => {
         // Using the cleaned brandUsername from extractedParams
         const { brandUsername, dateSlug } = extractedParams;
 
-        if (dateSlug && /^\d{6}(-\d+)?$/.test(dateSlug)) {
+        console.log("[EventProfile] URL parameters for new format:", {
+          brandUsername,
+          dateSlug,
+          pathParts: pathname.split("/").filter((p) => p),
+          extractedParams,
+        });
+
+        // Only proceed if we have both parameters
+        if (brandUsername && dateSlug && /^\d{6}(-\d+)?$/.test(dateSlug)) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
           console.log(
             `[EventProfile] Fetching data for simplified format: ${endpoint}`
           );
 
           response = await axiosInstance.get(endpoint);
-        } else if (urlEventSlug) {
+        } else if (brandUsername && urlEventSlug) {
+          console.log("[EventProfile] Using event slug format with:", {
+            brandUsername,
+            dateSlug,
+            urlEventSlug,
+          });
+
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/slug/${brandUsername}/${dateSlug}/${urlEventSlug}`;
           console.log(
             `[EventProfile] Fetching data for full slug format: ${endpoint}`
@@ -307,22 +276,36 @@ const EventProfile = () => {
 
           response = await axiosInstance.get(endpoint);
         } else {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${brandUsername}/${dateSlug}`;
-          console.log(
-            `[EventProfile] Fetching data with simplified format: ${endpoint}`
+          console.error(
+            "[EventProfile] Missing required parameters for API call:",
+            {
+              brandUsername,
+              dateSlug,
+              urlEventSlug,
+            }
           );
-
-          response = await axiosInstance.get(endpoint);
+          setError("Invalid URL parameters");
+          setLoading(false);
+          return; // Early return to prevent further processing with invalid parameters
         }
       } else if (eventId || currentEventId) {
         // Use currentEventId if available, otherwise fall back to eventId from useParams
         const effectiveEventId = currentEventId || eventId;
+
+        if (!effectiveEventId) {
+          console.error("[EventProfile] No event ID available for fetching");
+          setError("Missing event ID");
+          setLoading(false);
+          return;
+        }
+
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${effectiveEventId}`;
         console.log(`[EventProfile] Fetching data for event ID: ${endpoint}`);
 
         response = await axiosInstance.get(endpoint);
       } else {
         console.log("[EventProfile] No valid format detected, skipping fetch");
+        setError("Invalid URL format");
         setLoading(false);
         return; // Early return to prevent further processing
       }
@@ -330,12 +313,28 @@ const EventProfile = () => {
       console.log("[EventProfile] API Response status:", response.status);
       console.log("[EventProfile] API Response data:", response.data);
 
-      if (response && response.data && response.data.success) {
-        setEvent(response.data.event);
-        console.log(
-          "[EventProfile] Event data loaded successfully:",
-          response.data.event
-        );
+      if (response && response.data) {
+        // Check if we have a valid event in the response
+        const eventData = response.data.event || response.data;
+
+        if (!eventData || !eventData._id) {
+          console.error(
+            "[EventProfile] No valid event data in response:",
+            response.data
+          );
+          setError("Event not found");
+          setLoading(false);
+          return;
+        }
+
+        console.log("[EventProfile] Successfully loaded event:", {
+          eventId: eventData._id,
+          title: eventData.title,
+          date: eventData.date,
+          brand: eventData.brand?.username || "unknown",
+        });
+
+        setEvent(eventData);
 
         // Explicitly set the related data with detailed logging
         if (response.data.lineups) {
@@ -376,36 +375,49 @@ const EventProfile = () => {
 
         // If we found the event by ID but we have the new URL format available,
         // update the URL without reloading the page
-        if (urlEventId && !isNewUrlFormat() && response.data.event.slug) {
-          const { brand, date, slug } = response.data.event;
-          // Use the now properly defined formatDateForUrl
-          const formattedDate = formatDateForUrl(new Date(date));
-          const newPath = `/@${brand.username}/e/${formattedDate}/${slug}`;
-          console.log(`[EventProfile] Updating URL to new format: ${newPath}`);
-          navigate(newPath, { replace: true });
+        if (urlEventId && !isNewUrlFormat() && eventData.slug) {
+          const { brand, date, slug } = eventData;
+          if (brand && brand.username && date) {
+            // Use the now properly defined formatDateForUrl
+            const formattedDate = formatDateForUrl(new Date(date));
+            const newPath = `/@${brand.username}/e/${formattedDate}/${slug}`;
+            console.log(
+              `[EventProfile] Updating URL to new format: ${newPath}`
+            );
+            navigate(newPath, { replace: true });
+          }
         }
       } else {
-        console.log(
-          "[EventProfile] API returned success:false or invalid data"
-        );
+        console.log("[EventProfile] API returned empty or invalid data");
         setError("Could not find event information");
-        throw new Error(response.data.message || "Failed to load event data");
+        throw new Error("Failed to load event data");
       }
     } catch (error) {
-      console.log("[EventProfile] Error fetching event data:", error);
-      console.log("[EventProfile] Error details:", {
+      console.error("[EventProfile] Error fetching event data:", error);
+      console.error("[EventProfile] Error details:", {
         message: error.message,
-        response: error.response,
-        stack: error.stack,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
       });
-      setError("Failed to load event information");
 
-      // Show a user-friendly error message, but only once
-      if (toast && toast.showError && !hasFetchAttempted) {
-        toast.showError("Failed to load event information");
+      // Set appropriate error message based on the error
+      if (error.response?.status === 404) {
+        setError("Event not found");
+        toast.showError("Event not found");
+      } else {
+        setError("Failed to load event information");
+        // Show a user-friendly error message, but only once
+        if (!hasFetchAttempted) {
+          toast.showError("Failed to load event information");
+        }
       }
     } finally {
       setLoading(false);
+      // Mark that we've attempted to fetch data
+      setHasFetchAttempted(true);
     }
   }, [
     eventId,
@@ -414,35 +426,21 @@ const EventProfile = () => {
     pathname,
     isSpecialFormat,
     isNewUrlFormat,
-    setEvent,
-    setLoading,
-    setError,
-    navigate,
     formatDateForUrl,
+    navigate,
     toast,
     hasFetchAttempted,
+    urlEventSlug,
   ]);
 
   // Fetch event data when URL parameters change
   useEffect(() => {
-    console.log("[EventProfile] URL parameters changed, checking format:", {
-      eventId,
-      currentEventId,
-      extractedParams,
-      isSpecialFormat: isSpecialFormat(),
-      isNewUrlFormat: isNewUrlFormat(),
-    });
-
     if (hasFetchAttempted) {
-      console.log("[EventProfile] Already attempted fetch, skipping");
       return;
     }
 
     // Only fetch for formats other than direct eventId (which is handled by the other useEffect)
     if (!eventId && (isNewUrlFormat() || isSpecialFormat())) {
-      console.log(
-        "[EventProfile] Fetching event data due to valid format parameters"
-      );
       fetchEventData();
       setHasFetchAttempted(true);
     }
@@ -460,7 +458,6 @@ const EventProfile = () => {
   useEffect(() => {
     // If we have an ID directly from the URL, load the event
     if (eventId && !hasFetchAttempted) {
-      console.log(`[EventProfile] Loading event with direct ID: ${eventId}`);
       fetchEventData();
       setHasFetchAttempted(true);
     }
@@ -507,19 +504,12 @@ const EventProfile = () => {
       // Use info toast to let the user know we're processing
       toast.showInfo("Processing your request...");
 
-      console.log("[EventProfile] Generating guest code for event:", event._id);
-
       const response = await axiosInstance.post("/guest-code/generate", {
         eventId: event._id,
         guestName: guestName,
         guestEmail: guestEmail,
         maxPax: guestPax,
       });
-
-      console.log(
-        "[EventProfile] Guest code generated and sent:",
-        response.data
-      );
 
       // Only update state and show success once at the end
       if (response.data && response.data.code) {
@@ -531,7 +521,6 @@ const EventProfile = () => {
         toast.showSuccess(`Guest code sent to ${guestEmail}`);
       }
     } catch (err) {
-      console.error("[EventProfile] Error generating guest code:", err);
       toast.showError(
         err.response?.data?.message || "Failed to generate guest code"
       );
@@ -550,8 +539,12 @@ const EventProfile = () => {
           text: `Check out this event: ${event.title}`,
           url: window.location.href,
         })
-        .then(() => console.log("Shared successfully"))
-        .catch((error) => console.log("Error sharing:", error));
+        .then(() => {
+          // Shared successfully
+        })
+        .catch((error) => {
+          // Handle error silently
+        });
     } else {
       // Fallback for browsers that don't support the Web Share API
       navigator.clipboard.writeText(window.location.href);
@@ -561,53 +554,24 @@ const EventProfile = () => {
 
   // Handle ticket purchase
   const handleBuyTicket = (ticket) => {
-    console.log("[EventProfile] Buy ticket clicked:", ticket);
-
-    // Check if ticket is available
-    if (ticket.isLimited && ticket.soldCount >= ticket.maxTickets) {
-      toast.showError("Sorry, this ticket is sold out");
-      return;
-    }
-
-    if (
-      ticket.hasCountdown &&
-      ticket.endDate &&
-      new Date() > new Date(ticket.endDate)
-    ) {
-      toast.showError("Sorry, this ticket sale has ended");
-      return;
-    }
-
-    // If user is not logged in, redirect to login
-    if (!user) {
-      toast.showInfo("Please log in to purchase tickets");
-      navigate("/login", { state: { from: window.location.pathname } });
-      return;
-    }
-
-    // Here you would typically redirect to a checkout page or open a modal
-    // For now, we'll just show a toast message
-    toast.showSuccess(
-      `Ticket purchase flow for ${ticket.name} would start here`
-    );
+    // Set the selected ticket and show the checkout form
+    setSelectedTicket(ticket);
+    setShowCheckoutForm(true);
   };
 
   // Handle follow event
   const handleFollow = () => {
-    console.log("[EventProfile] Handle follow event");
-    // Implementation of handleFollow function
+    // Handle follow event logic
   };
 
   // Handle join request
   const handleJoinRequest = () => {
-    console.log("[EventProfile] Handle join request");
-    // Implementation of handleJoinRequest function
+    // Handle join request logic
   };
 
   // Handle favorite event
   const handleFavorite = () => {
-    console.log("[EventProfile] Handle favorite event");
-    // Implementation of handleFavorite function
+    // Handle favorite event logic
   };
 
   const getJoinButtonClass = () => {
@@ -656,38 +620,16 @@ const EventProfile = () => {
   };
 
   const handleCheckout = async () => {
-    console.log("[Stripe Checkout] Starting checkout process...");
     try {
-      const selectedTickets = ticketSettings
-        .filter((ticket) => ticketQuantities[ticket._id] > 0)
-        .map((ticket) => ({
-          ticketId: ticket._id,
-          name: ticket.name,
-          description: ticket.description,
-          price: ticket.price,
-          quantity: ticketQuantities[ticket._id],
-        }));
-
-      console.log("[Stripe Checkout] Selected tickets:", selectedTickets);
-      console.log("[Stripe Checkout] Customer info:", {
-        firstName,
-        lastName,
-        email,
-      });
-      console.log("[Stripe Checkout] Event ID:", event._id);
-
-      console.log(
-        "[Stripe Checkout] Making API request to create checkout session..."
-      );
-      // Log the API base URL for debugging
-      console.log(
-        "[Stripe Checkout] API base URL:",
-        process.env.REACT_APP_API_BASE_URL
-      );
-      console.log(
-        "[Stripe Checkout] Endpoint path:",
-        "/stripe/create-checkout-session"
-      );
+      const selectedTickets = [
+        {
+          ticketId: selectedTicket._id,
+          name: selectedTicket.name,
+          description: selectedTicket.description,
+          price: selectedTicket.price,
+          quantity: 1,
+        },
+      ];
 
       const response = await axiosInstance.post(
         `/stripe/create-checkout-session`,
@@ -700,69 +642,13 @@ const EventProfile = () => {
         }
       );
 
-      console.log("[Stripe Checkout] Response received:", response.data);
-
       if (response.data.url) {
-        console.log(
-          "[Stripe Checkout] Redirecting to Stripe checkout URL:",
-          response.data.url
-        );
         window.location = response.data.url;
       } else {
-        console.error("[Stripe Checkout] No URL in response:", response.data);
         toast.showError("Invalid checkout response. Please try again.");
       }
     } catch (error) {
-      // Log the full error object
-      console.error("[Stripe Checkout] Full error object:", error);
-
-      // Log detailed error information
-      console.error("[Stripe Checkout] Error details:", {
-        message: error.message,
-        name: error.name,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        stack: error.stack,
-      });
-
-      // Log request configuration
-      console.error("[Stripe Checkout] Request configuration:", {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        withCredentials: error.config?.withCredentials,
-        data: error.config?.data ? JSON.parse(error.config?.data) : null,
-      });
-
-      // Log response data if available
-      if (error.response?.data) {
-        console.error(
-          "[Stripe Checkout] Server error response:",
-          error.response.data
-        );
-      }
-
-      // Try to get a more specific error message
-      let errorMessage = "Failed to process checkout. Please try again later.";
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-
-      toast.showError(errorMessage);
-
-      // Log the error to the server if you have error tracking
-      console.error("[Stripe Checkout] Error occurred during checkout:", {
-        eventId: event._id,
-        customerEmail: email,
-        errorMessage: error.message,
-        errorCode: error.code,
-        errorStatus: error.response?.status,
-      });
+      toast.showError("Failed to process checkout. Please try again later.");
     }
   };
 
@@ -831,18 +717,10 @@ const EventProfile = () => {
   // Set eventId when event is loaded
   useEffect(() => {
     if (event && event._id) {
-      console.log(
-        "[EventProfile] Setting eventId from loaded event:",
-        event._id
-      );
       setCurrentEventId(event._id);
 
       // Set safety timeout for loading state
-      console.log("[EventProfile] Setting safety timeout for loading state");
       const timeoutId = setTimeout(() => {
-        console.log(
-          "[EventProfile] Safety timeout triggered - resetting loading state"
-        );
         setLoading(false);
       }, 5000);
 
@@ -858,29 +736,16 @@ const EventProfile = () => {
       try {
         // Only fetch if we don't have the data yet
         if (ticketSettings.length === 0) {
-          console.log(
-            "[EventProfile] Fetching missing ticket settings for event:",
-            event._id
-          );
           const ticketResponse = await axiosInstance.get(
             `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${event._id}`
           );
 
           if (ticketResponse.data && ticketResponse.data.ticketSettings) {
-            console.log(
-              "[EventProfile] Loaded ticket settings:",
-              ticketResponse.data.ticketSettings.length,
-              "items"
-            );
             setTicketSettings(ticketResponse.data.ticketSettings);
           }
         }
 
         if (codeSettings.length === 0) {
-          console.log(
-            "[EventProfile] Fetching missing code settings for event:",
-            event._id
-          );
           const codeSettingsResponse = await axios.get(
             `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${event._id}`
           );
@@ -889,16 +754,11 @@ const EventProfile = () => {
             codeSettingsResponse.data &&
             codeSettingsResponse.data.codeSettings
           ) {
-            console.log(
-              "[EventProfile] Loaded code settings:",
-              codeSettingsResponse.data.codeSettings.length,
-              "items"
-            );
             setCodeSettings(codeSettingsResponse.data.codeSettings);
           }
         }
       } catch (error) {
-        console.error("[EventProfile] Error fetching missing settings:", error);
+        // Handle error silently
       }
     };
 

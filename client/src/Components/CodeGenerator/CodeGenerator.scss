@@ -733,23 +733,20 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     margin-top: 1rem;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(209, 163, 0, 0.3);
-    }
+    position: relative;
+    overflow: hidden;
 
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.7;
       cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+      &::after {
+        display: none;
+      }
     }
 
-    @media (max-width: 768px) {
-      padding: 0.875rem;
-      border-radius: 0.5rem;
-      font-size: 0.95rem;
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(209, 163, 0, 0.3);
     }
   }
 
@@ -955,5 +952,200 @@ body {
     &:hover {
       background: rgba(255, 200, 7, 0.5);
     }
+  }
+}
+
+// Update the counter container styling
+.counter-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.2rem;
+  border-radius: 0.75rem;
+  background-color: rgba(15, 15, 15, 0.9);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(255, 200, 7, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  margin: 0.5rem auto 1.5rem;
+  max-width: 160px;
+  border: 1px solid rgba(255, 200, 7, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  perspective: 800px;
+
+  // Outer frame effect
+  &::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 0.85rem;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 15%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    z-index: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.2);
+  }
+
+  // Glass overlay effect
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
+    border-radius: 0.75rem;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05),
+      inset 0 0 5px rgba(255, 200, 7, 0.05);
+
+    // Subtle glass texture
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 6px
+    );
+  }
+
+  // Top light reflection
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 35%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.05) 60%,
+      transparent
+    );
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    z-index: 1;
+    opacity: 0.8;
+  }
+
+  // Bottom edge shadow
+  &:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 10%;
+    background: rgba(0, 0, 0, 0.2);
+    filter: blur(4px);
+    z-index: 0;
+  }
+
+  &:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6),
+      inset 0 0 15px rgba(255, 200, 7, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.12);
+
+    .counter-value {
+      text-shadow: 0 0 12px rgba(255, 200, 7, 0.9),
+        0 0 20px rgba(255, 200, 7, 0.4);
+    }
+  }
+
+  // Inner display area
+  &:before {
+    content: "";
+    position: absolute;
+    top: 25%;
+    left: 10%;
+    right: 10%;
+    bottom: 15%;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 0.25rem;
+    z-index: 1;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5),
+      inset 0 0 4px rgba(255, 200, 7, 0.1);
+  }
+
+  .counter-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 200, 7, 0.9);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
+    text-shadow: 0 0 5px rgba(255, 200, 7, 0.5);
+    position: relative;
+    z-index: 3;
+  }
+
+  .counter-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffc807;
+    text-shadow: 0 0 10px rgba(255, 200, 7, 0.7),
+      0 0 20px rgba(255, 200, 7, 0.3);
+    font-family: "Digital-7", "DS-Digital", monospace;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 3;
+    line-height: 1;
+    transform: translateZ(5px);
+
+    // Retro LCD segments effect
+    -webkit-text-stroke: 0.5px rgba(255, 200, 7, 0.5);
+    letter-spacing: 0.05em;
+
+    // Add subtle LCD segment effect
+    background-image: linear-gradient(
+      0deg,
+      rgba(255, 200, 7, 0.9) 0%,
+      rgba(255, 220, 100, 1) 50%,
+      rgba(255, 200, 7, 0.9) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+
+    // Glow animation
+    animation: digitalGlow 2s infinite alternate;
+  }
+}
+
+// Digital glow animation
+@keyframes digitalGlow {
+  0% {
+    text-shadow: 0 0 5px rgba(255, 200, 7, 0.7), 0 0 10px rgba(255, 200, 7, 0.3);
+    opacity: 0.9;
+    filter: brightness(0.95);
+  }
+  50% {
+    text-shadow: 0 0 7px rgba(255, 200, 7, 0.8), 0 0 12px rgba(255, 200, 7, 0.4);
+    opacity: 0.95;
+    filter: brightness(1);
+  }
+  100% {
+    text-shadow: 0 0 8px rgba(255, 200, 7, 0.9), 0 0 15px rgba(255, 200, 7, 0.5);
+    opacity: 1;
+    filter: brightness(1.05);
   }
 }

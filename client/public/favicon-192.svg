@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <style>
+      .main-color { fill: #ffc807; }
+      .bg-color { fill: #000000; }
+      .qr-element { fill: #ffc807; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect class="bg-color" width="192" height="192" rx="24" ry="24"/>
+  
+  <!-- Stylized G with QR code elements -->
+  <path class="main-color" d="M57.6,48c-9.6,0-19.2,3.84-24.96,9.6c-5.76,5.76-9.6,15.36-9.6,24.96v28.8c0,9.6,3.84,19.2,9.6,24.96c5.76,5.76,15.36,9.6,24.96,9.6h19.2c13.44,0,24.96-5.76,30.72-15.36v-28.8H76.8v19.2h19.2c-3.84,3.84-9.6,5.76-19.2,5.76h-9.6c-5.76,0-11.52-1.92-15.36-5.76c-3.84-3.84-5.76-9.6-5.76-15.36v-19.2c0-5.76,1.92-11.52,5.76-15.36c3.84-3.84,9.6-5.76,15.36-5.76h9.6c9.6,0,15.36,3.84,19.2,9.6h19.2c-3.84-9.6-15.36-17.28-28.8-17.28H57.6z"/>
+  
+  <!-- QR Code Elements -->
+  <rect class="qr-element" x="124.8" y="48" width="19.2" height="19.2" rx="2" ry="2"/>
+  <rect class="qr-element" x="124.8" y="124.8" width="19.2" height="19.2" rx="2" ry="2"/>
+  <rect class="qr-element" x="48" y="124.8" width="19.2" height="19.2" rx="2" ry="2"/>
+  <rect class="qr-element" x="86.4" y="86.4" width="19.2" height="19.2" rx="2" ry="2"/>
+  <rect class="qr-element" x="144" y="86.4" width="9.6" height="9.6" rx="1" ry="1"/>
+  <rect class="qr-element" x="86.4" y="144" width="9.6" height="9.6" rx="1" ry="1"/>
+  <rect class="qr-element" x="144" y="144" width="9.6" height="9.6" rx="1" ry="1"/>
+</svg> 

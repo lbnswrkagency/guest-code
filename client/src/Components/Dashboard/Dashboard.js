@@ -791,9 +791,11 @@ const DashboardContent = ({ user, setUser }) => {
                 // Add detailed permission
                 newCodePermissionsDetails.push({
                   type: codeType,
+                  name: codeType,
                   limit: permissions.limit || 0,
                   unlimited: permissions.unlimited || false,
                   role: role.name,
+                  generate: permissions.generate || false,
                 });
 
                 // Mark as processed
@@ -838,9 +840,11 @@ const DashboardContent = ({ user, setUser }) => {
 
               newCodePermissionsDetails.push({
                 type: key,
+                name: key,
                 limit: value.limit || 0,
                 unlimited: value.unlimited || false,
                 role: role.name,
+                generate: value.generate || false,
               });
 
               // Mark as processed
@@ -864,9 +868,11 @@ const DashboardContent = ({ user, setUser }) => {
 
             newCodePermissionsDetails.push({
               type: "Code",
+              name: "Code",
               limit: role.permissions.codes.limit || 0,
               unlimited: role.permissions.codes.unlimited || false,
               role: role.name,
+              generate: role.permissions.codes.generate || false,
             });
 
             processedPermissions.add(permKey);

@@ -38,13 +38,11 @@ const DashboardHeader = ({
   const [showEventsPopup, setShowEventsPopup] = useState(false);
   const [userBrands, setUserBrands] = useState([]);
   const [brandEvents, setBrandEvents] = useState([]);
-
-  // Sample data (replace with real data later)
-  const stats = {
-    members: 25,
-    brands: 1,
-    events: 23,
-  };
+  const [stats, setStats] = useState({
+    members: 0,
+    brands: 0,
+    events: 0,
+  });
 
   // Fetch user brands
   useEffect(() => {
@@ -53,6 +51,11 @@ const DashboardHeader = ({
         const response = await axiosInstance.get("/brands");
         if (response.data && response.data.length > 0) {
           setUserBrands(response.data);
+          // Update brands count in stats
+          setStats((prevStats) => ({
+            ...prevStats,
+            brands: response.data.length,
+          }));
           // Set the first brand as selected if none is selected
           if (!selectedBrand) {
             setSelectedBrand(response.data[0]);
@@ -65,6 +68,52 @@ const DashboardHeader = ({
 
     fetchBrands();
   }, []);
+
+  // Fetch events count
+  useEffect(() => {
+    const fetchEventsCount = async () => {
+      try {
+        // Fetch all events for the user
+        const response = await axiosInstance.get("/events");
+        if (response.data) {
+          // Update events count in stats
+          setStats((prevStats) => ({
+            ...prevStats,
+            events: response.data.length,
+          }));
+        }
+      } catch (error) {
+        // Error handling without console log
+      }
+    };
+
+    fetchEventsCount();
+  }, []);
+
+  // Fetch team members count
+  useEffect(() => {
+    const fetchTeamMembersCount = async () => {
+      if (!selectedBrand) return;
+
+      try {
+        // Fetch team members for the selected brand
+        const response = await axiosInstance.get(
+          `/brands/${selectedBrand._id}/team`
+        );
+        if (response.data) {
+          // Update members count in stats
+          setStats((prevStats) => ({
+            ...prevStats,
+            members: response.data.length || 0,
+          }));
+        }
+      } catch (error) {
+        // Error handling without console log
+      }
+    };
+
+    fetchTeamMembersCount();
+  }, [selectedBrand]);
 
   // Determine user's role in the selected brand
   useEffect(() => {
@@ -83,7 +132,7 @@ const DashboardHeader = ({
         (typeof selectedBrand.owner === "object" &&
           selectedBrand.owner._id === user._id)
       ) {
-        setUserRole(`Owner ${selectedBrand.name}`);
+        setUserRole("Owner");
         return;
       }
 
@@ -106,13 +155,13 @@ const DashboardHeader = ({
               teamMember.role.slice(1).toLowerCase();
           }
 
-          setUserRole(`${formattedRole} ${selectedBrand.name}`);
+          setUserRole(formattedRole);
           return;
         }
       }
 
       // Default role if no specific role found
-      setUserRole(`Member ${selectedBrand.name}`);
+      setUserRole("Member");
     } else {
       setUserRole(""); // Reset if no brand selected
     }
@@ -393,11 +442,13 @@ const DashboardHeader = ({
                 <span className="username">@{user.username}</span>
               </div>
               <div className="user-stats">
+                {/* 
                 <div className="stat-item">
                   <span className="stat-value">{stats.members}</span>{" "}
                   {formatStatLabel(stats.members, "Member", "Members")}
                 </div>
                 <div className="stat-divider">·</div>
+                */}
                 <div className="stat-item">
                   <span className="stat-value">{stats.brands}</span>{" "}
                   {formatStatLabel(stats.brands, "Brand", "Brands")}
