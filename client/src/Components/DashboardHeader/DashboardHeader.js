@@ -90,20 +90,21 @@ const DashboardHeader = ({
     fetchEventsCount();
   }, []);
 
-  /* Commenting out team members count fetch since we're not displaying members stat
   // Fetch team members count
   useEffect(() => {
     const fetchTeamMembersCount = async () => {
       if (!selectedBrand) return;
-      
+
       try {
         // Fetch team members for the selected brand
-        const response = await axiosInstance.get(`/brands/${selectedBrand._id}/team`);
+        const response = await axiosInstance.get(
+          `/brands/${selectedBrand._id}/team`
+        );
         if (response.data) {
           // Update members count in stats
-          setStats(prevStats => ({
+          setStats((prevStats) => ({
             ...prevStats,
-            members: response.data.length || 0
+            members: response.data.length || 0,
           }));
         }
       } catch (error) {
@@ -113,7 +114,6 @@ const DashboardHeader = ({
 
     fetchTeamMembersCount();
   }, [selectedBrand]);
-  */
 
   // Determine user's role in the selected brand
   useEffect(() => {
@@ -442,13 +442,11 @@ const DashboardHeader = ({
                 <span className="username">@{user.username}</span>
               </div>
               <div className="user-stats">
-                {/* Commenting out the members stat as requested
                 <div className="stat-item">
                   <span className="stat-value">{stats.members}</span>{" "}
                   {formatStatLabel(stats.members, "Member", "Members")}
                 </div>
                 <div className="stat-divider">·</div>
-                */}
                 <div className="stat-item">
                   <span className="stat-value">{stats.brands}</span>{" "}
                   {formatStatLabel(stats.brands, "Brand", "Brands")}

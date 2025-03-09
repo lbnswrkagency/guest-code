@@ -75,8 +75,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       : []),
   ];
 
-  console.log("CURRENT USER", currentUser);
-
   const overlayVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },

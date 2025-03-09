@@ -16,7 +16,12 @@ function CodeManagement({
   codes: codesFromParent,
   refreshCounts,
   refreshCodes,
+  currentEventDate,
   counts,
+  onPrevWeek,
+  onNextWeek,
+  isStartingEvent,
+  dataInterval,
   selectedEvent,
 }) {
   const { showSuccess, showError, showLoading } = useToast();
@@ -44,22 +49,54 @@ function CodeManagement({
     [codes]
   );
 
-  // Update codes when codesFromParent changes
+  // Stabilize the codes state to prevent flickering
   useEffect(() => {
     if (codesFromParent?.length) {
-      console.log(
-        `📊 CodeManagement: Received ${codesFromParent.length} codes for ${type}`
-      );
       setCodes(codesFromParent);
       stableCodesRef.current = codesFromParent;
       setTotalPaxUsed(calculateTotalPax(codesFromParent));
-    } else {
-      // Reset codes if none are provided
-      setCodes([]);
-      stableCodesRef.current = [];
-      setTotalPaxUsed(0);
     }
-  }, [codesFromParent, calculateTotalPax, type]);
+  }, [codesFromParent, calculateTotalPax]);
+
+  // Fetch codes when needed
+  useEffect(() => {
+    if (
+      selectedEvent &&
+      type &&
+      (!codesFromParent || !codesFromParent.length)
+    ) {
+      fetchCodes();
+    }
+  }, [selectedEvent, type, codesFromParent, dataInterval]);
+
+  // Fetch codes function
+  const fetchCodes = async () => {
+    if (!selectedEvent || !type || codesFromParent?.length) return;
+
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${type}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const codesData = response.data.codes || response.data;
+
+      if (codesData?.length) {
+        setCodes(codesData);
+        stableCodesRef.current = codesData;
+        setTotalPaxUsed(calculateTotalPax(codesData));
+      }
+    } catch (error) {
+      // Error handling
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load more codes
   const loadMore = () => {
@@ -286,59 +323,6 @@ function CodeManagement({
     // Return black for bright colors, white for dark colors
     return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
-
-  // Add comprehensive console log to display important information about codes
-  useEffect(() => {
-    if (codes && codes.length > 0) {
-      // Group codes by status
-      const activeCount = codes.filter((code) => code.active).length;
-      const inactiveCount = codes.filter((code) => !code.active).length;
-
-      // Group codes by usage
-      const usedCount = codes.filter((code) => code.usageCount > 0).length;
-      const unusedCount = codes.filter((code) => code.usageCount === 0).length;
-
-      // Calculate total people admitted with these codes
-      const totalPeopleAdmitted = codes.reduce(
-        (total, code) => total + code.usageCount * code.maxPax,
-        0
-      );
-
-      // Group by maxPax
-      const codesByMaxPax = {};
-      codes.forEach((code) => {
-        codesByMaxPax[code.maxPax] = (codesByMaxPax[code.maxPax] || 0) + 1;
-      });
-
-      console.log("📊 CODE MANAGEMENT DATA SUMMARY", {
-        codeType: type,
-        selectedEvent: selectedEvent
-          ? {
-              id: selectedEvent._id,
-              name: selectedEvent.name,
-              date: selectedEvent.date,
-            }
-          : "No event selected",
-        codeStats: {
-          total: codes.length,
-          active: activeCount,
-          inactive: inactiveCount,
-          used: usedCount,
-          unused: unusedCount,
-          totalPeopleAdmitted,
-        },
-        codeDistribution: {
-          byMaxPax: codesByMaxPax,
-        },
-        paginationInfo: {
-          visibleCodes,
-          totalCodes: codes.length,
-          hasMoreToShow: visibleCodes < codes.length,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [codes, type, selectedEvent, visibleCodes]);
 
   // Render codes
   const renderCodes = () => {

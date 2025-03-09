@@ -1,9 +1,7 @@
 const Code = require("../models/codesModel");
 const Event = require("../models/eventsModel");
-const CodeSettings = require("../models/codeSettingsModel");
 const QRCode = require("qrcode");
 const crypto = require("crypto");
-const { v4: uuidv4 } = require("uuid");
 
 // Helper function to generate a unique code
 const generateUniqueCode = async (length = 8) => {
@@ -265,6 +263,7 @@ const createCode = async (req, res) => {
     }
 
     // Find the code setting
+    const CodeSettings = require("../models/codeSettingsModel");
     const codeSetting = await CodeSettings.findById(codeSettingId);
 
     if (!codeSetting) {
@@ -516,11 +515,6 @@ const createDynamicCode = async (req, res) => {
       isDynamic: isDynamic || true,
       metadata: {
         ...metadata,
-        codeType: codeSetting.name,
-        settingId: codeSetting._id.toString(),
-        settingName: codeSetting.name,
-        displayName: codeSetting.name,
-        actualType: effectiveType,
         generatedFrom: "CodeGenerator",
         host: effectiveHost,
         hostInfo: {
@@ -1303,202 +1297,6 @@ const getCodeCounts = async (req, res) => {
   }
 };
 
-/**
- * Get code counts for a specific user
- */
-const getUserCodeCounts = async (req, res) => {
-  console.log("==================================================");
-  console.log("🚀 SERVER: getUserCodeCounts CALLED");
-  console.log("==================================================");
-
-  try {
-    const { eventId, userId } = req.params;
-    const { settingId } = req.query;
-
-    console.log("🔍 SERVER: RAW REQUEST:", {
-      url: req.url,
-      method: req.method,
-      params: req.params,
-      query: req.query,
-      body: req.body,
-      headers: {
-        authorization: req.headers.authorization
-          ? "Bearer [token]"
-          : "No authorization header",
-        cookie: req.headers.cookie ? "Cookie present" : "No cookie",
-      },
-    });
-
-    // Validate that we have both eventId and userId
-    if (!eventId || !userId) {
-      console.log(
-        `⚠️ SERVER: Missing required parameters: eventId=${eventId}, userId=${userId}`
-      );
-
-      // Try to get userId from the authenticated user if it's missing in the path
-      let effectiveUserId = userId;
-      if (!effectiveUserId && req.user) {
-        effectiveUserId = req.user.userId || req.user._id;
-        console.log(
-          `🔄 SERVER: Using userId from authenticated user: ${effectiveUserId}`
-        );
-      }
-
-      // If we still don't have a userId, return an error
-      if (!eventId || !effectiveUserId) {
-        return res
-          .status(400)
-          .json({ message: "Event ID and User ID are required" });
-      }
-
-      // Continue with the effectiveUserId
-      console.log(`🔍 SERVER: Continuing with userId=${effectiveUserId}`);
-
-      // Update userId for the rest of the function
-      userId = effectiveUserId;
-    }
-
-    console.log(
-      `🔍 SERVER: Fetching user code counts for event=${eventId}, userId=${userId}${
-        settingId ? `, settingId=${settingId}` : ""
-      }`
-    );
-
-    // Step 1: Get all code settings for this event
-    const codeSettings = await CodeSettings.find({ eventId });
-    console.log(
-      `✅ SERVER: Found ${codeSettings.length} code settings for event ${eventId}`
-    );
-
-    // Create a map of codeSettingId to code setting details
-    const codeSettingsMap = {};
-    codeSettings.forEach((setting) => {
-      codeSettingsMap[setting._id.toString()] = {
-        id: setting._id.toString(),
-        name: setting.name,
-        type: setting.type,
-        maxPax: setting.maxPax,
-        condition: setting.condition,
-        limit: setting.limit,
-        unlimited: setting.unlimited || setting.limit === 0,
-      };
-    });
-
-    // Step 2: Build the query to find codes created by this user for this event
-    const query = {
-      eventId,
-      createdBy: userId,
-    };
-
-    // Add settingId to query if provided
-    if (settingId) {
-      query.codeSettingId = settingId;
-      console.log(`🔍 SERVER: Filtering by specific settingId=${settingId}`);
-    }
-
-    // Step 3: Find all codes created by this user for this event
-    const userCodes = await Code.find(query).populate("codeSettingId");
-
-    console.log(
-      `✅ SERVER: Found ${userCodes.length} codes created by user ${userId}${
-        settingId ? ` for setting ${settingId}` : ""
-      }`
-    );
-
-    // Step 4: Group codes by codeSettingId
-    const codeCountsBySettingId = {};
-
-    userCodes.forEach((code) => {
-      // Get the setting ID from the code
-      const settingId = code.codeSettingId
-        ? typeof code.codeSettingId === "object"
-          ? code.codeSettingId._id.toString()
-          : code.codeSettingId.toString()
-        : null;
-
-      if (!settingId) {
-        console.log(`⚠️ SERVER: Code ${code._id} has no codeSettingId`);
-        return;
-      }
-
-      // Initialize the counter and codes array if needed
-      if (!codeCountsBySettingId[settingId]) {
-        codeCountsBySettingId[settingId] = {
-          count: 0,
-          codes: [],
-        };
-      }
-
-      // Increment the counter and add the code to the array
-      codeCountsBySettingId[settingId].count++;
-      codeCountsBySettingId[settingId].codes.push({
-        id: code._id.toString(),
-        name: code.name,
-        type: code.type,
-        code: code.code,
-        pax: code.maxPax,
-        condition: code.condition,
-        metadata: code.metadata,
-        createdAt: code.createdAt,
-      });
-
-      console.log(
-        `📋 SERVER USER CODE: id=${code._id}, settingId=${settingId}, name=${code.name}`
-      );
-    });
-
-    // Step 5: Combine the code counts with the code settings details
-    const result = {};
-
-    // Include all code settings, even if the user hasn't created any codes for them
-    Object.keys(codeSettingsMap).forEach((settingId) => {
-      const setting = codeSettingsMap[settingId];
-      const counts = codeCountsBySettingId[settingId] || {
-        count: 0,
-        codes: [],
-      };
-
-      result[settingId] = {
-        setting,
-        count: counts.count,
-        codes: counts.codes,
-      };
-    });
-
-    console.log(
-      `📊 SERVER: User code counts by setting ID:`,
-      Object.keys(result).map((id) => ({
-        settingId: id,
-        settingName: result[id].setting.name,
-        count: result[id].count,
-        codesCount: result[id].codes.length,
-      }))
-    );
-
-    // Step 6: Return the response
-    const response = {
-      settings: result,
-      summary: {
-        totalCodes: userCodes.length,
-        settingsCount: Object.keys(result).length,
-        activeSettingId: settingId || null,
-        activeSettingCodes: settingId ? result[settingId]?.count || 0 : null,
-      },
-    };
-
-    console.log(
-      `📊 SERVER: Returning user code counts response with ${
-        Object.keys(result).length
-      } settings`
-    );
-
-    return res.json(response);
-  } catch (error) {
-    console.error("Error getting user code counts:", error);
-    return res.status(500).json({ message: "Server error: " + error.message });
-  }
-};
-
 module.exports = {
   configureCodeSettings,
   getCodeSettings,
@@ -1513,5 +1311,4 @@ module.exports = {
   verifyCode,
   trackCodeUsage,
   getCodeCounts,
-  getUserCodeCounts,
 };

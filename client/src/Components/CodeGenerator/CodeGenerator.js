@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useToast } from "../Toast/ToastContext";
 import "./CodeGenerator.scss";
@@ -11,6 +11,11 @@ function CodeGenerator({
   onClose,
   type,
   refreshCounts,
+  currentEventDate,
+  onPrevWeek,
+  onNextWeek,
+  isStartingEvent,
+  dataInterval,
   codeSettings = [],
   codePermissions = [],
   accessSummary = {},
@@ -25,92 +30,89 @@ function CodeGenerator({
   const [tableNumber, setTableNumber] = useState("");
   const [activeSetting, setActiveSetting] = useState(null);
   const [availableSettings, setAvailableSettings] = useState([]);
+  const [codes, setCodes] = useState([]);
+  const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [selectedCodeType, setSelectedCodeType] = useState(null);
   const [codesGenerated, setCodesGenerated] = useState(0);
   const [maxPeopleOptions, setMaxPeopleOptions] = useState([1]);
+  const [codeCountsByType, setCodeCountsByType] = useState({});
   const [isFetchingCodes, setIsFetchingCodes] = useState(false);
-  const [userCodeCounts, setUserCodeCounts] = useState({
-    byName: {},
-    bySettingId: {},
-    codesBySettingId: {},
-  });
 
-  // Store the current codes in state to ensure consistency
-  const [currentTypeCodes, setCurrentTypeCodes] = useState([]);
+  // Reference to store filtered codes by type for better performance
+  const filteredCodesByTypeRef = useRef({});
 
-  // Reference to track previous selectedCodeType for logging
-  const previousCodeTypeRef = useRef(null);
-
-  // Reference to track last fetch times to prevent duplicate requests
-  const lastFetchRef = useRef({
-    counts: {},
-    userCounts: {},
-  });
-
-  // Reference to track if we've already logged the code summary
-  const hasLoggedCodeSummaryRef = useRef(false);
-
-  // Initialize component with settings and permissions
+  // Calculate total pax used whenever codes change
   useEffect(() => {
-    // Log initialization info
-    console.log("🔄 CodeGenerator Initialization:", {
-      type,
-      codeSettings: codeSettings.length,
-      codePermissions: codePermissions.length,
-    });
+    setTotalPaxUsed(codes.reduce((sum, code) => sum + (code.pax || 1), 0));
+  }, [codes]);
 
-    // Set available settings based on permissions
-    const availableCodeTypes = codePermissions
-      .filter((permission) => permission.hasAccess)
-      .map((permission) => permission.type);
-
-    // Find settings that match the available types
-    const filteredSettings = codeSettings.filter((setting) =>
-      availableCodeTypes.includes(setting.type)
-    );
-
-    setAvailableSettings(filteredSettings);
-
-    // Set initial code type if provided
-    if (type) {
-      console.log(`🔄 Setting initial code type to ${type}`);
-      setSelectedCodeType(type);
-    } else if (filteredSettings.length > 0) {
-      // Set default code type to the first available setting
-      const defaultType = filteredSettings[0].name;
-      console.log(`🔄 Setting default code type to ${defaultType}`);
-      setSelectedCodeType(defaultType);
+  // Initialize code type and fetch counts
+  useEffect(() => {
+    if (codePermissions?.length > 0) {
+      setSelectedCodeType(codePermissions[0].type);
     }
-  }, [type, codeSettings, codePermissions]);
+    fetchCodeCounts();
+  }, [type, codeSettings, codePermissions, accessSummary, selectedBrand]);
 
   // Find the active permission matching the selected code type
   const getActivePermission = () => {
     if (!selectedCodeType || !codePermissions) return null;
-
-    // Try to find a permission that matches by type or name
-    const matchingPermission = codePermissions.find(
-      (perm) => perm.type === selectedCodeType || perm.name === selectedCodeType
-    );
-
-    // Store the current code type for reference
-    previousCodeTypeRef.current = selectedCodeType;
-
-    return matchingPermission;
+    return codePermissions.find((perm) => perm.type === selectedCodeType);
   };
 
-  // Fetch code counts when the selected event or code type changes
-  useEffect(() => {
-    if (selectedEvent && selectedCodeType) {
-      fetchUserSpecificCodeCounts();
-    }
-  }, [selectedEvent?._id, selectedCodeType]);
+  // Fetch the count of existing codes
+  const fetchCodeCounts = async () => {
+    if (!selectedEvent || !selectedCodeType) return;
 
-  // Fetch user-specific code counts when the component mounts or when the event changes
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchUserSpecificCodeCounts();
+    const actualType = activeSetting?.type || "custom";
+
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/counts/${
+          selectedEvent._id
+        }?type=${actualType}&displayType=${encodeURIComponent(
+          selectedCodeType
+        )}`,
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const activePermission = getActivePermission();
+
+      if (response.data) {
+        const actualCount =
+          response.data.filteredCount || response.data.count || 0;
+        const actualPaxUsed = response.data.paxUsed || 0;
+
+        setCodeCountsByType((prev) => ({
+          ...prev,
+          [selectedCodeType]: {
+            count: actualCount,
+            paxUsed: actualPaxUsed,
+            unlimited: activePermission?.unlimited || false,
+            limit: activePermission?.limit || 0,
+          },
+        }));
+
+        if (
+          activePermission?.unlimited &&
+          Math.abs(codesGenerated - actualCount) > 0
+        ) {
+          setCodesGenerated(actualCount);
+        }
+
+        if (Math.abs(totalPaxUsed - actualPaxUsed) > 0) {
+          setTotalPaxUsed(actualPaxUsed);
+        }
+      }
+    } catch (error) {
+      // Error handling without console logs
     }
-  }, [selectedEvent?._id]);
+  };
 
   // Update max people options based on the active setting
   const updateMaxPeopleOptions = (setting) => {
@@ -240,55 +242,99 @@ function CodeGenerator({
         );
 
         setPax(1);
-        fetchUserSpecificCodeCounts();
+        fetchCodeCounts();
         updateMaxPeopleOptions(matchingSetting);
       }
     }
   }, [selectedCodeType, availableSettings]);
 
-  // Reset the log flag when the selected code type changes
+  // Fetch codes for the current event and type
+  const fetchCodes = async () => {
+    if (!selectedEvent || !selectedCodeType || isFetchingCodes) return;
+
+    const actualType = activeSetting?.type || "custom";
+
+    try {
+      setIsFetchingCodes(true);
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/events/${selectedEvent._id}/${actualType}`,
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // Get and filter codes
+      const allCodes = response.data.codes || response.data;
+      const filteredCodes = allCodes.filter(
+        (code) =>
+          code.metadata?.codeType === selectedCodeType ||
+          code.metadata?.settingName === selectedCodeType ||
+          code.metadata?.displayName === selectedCodeType ||
+          code.type === selectedCodeType
+      );
+
+      // Store filtered codes by type in the ref and update state
+      filteredCodesByTypeRef.current[selectedCodeType] = filteredCodes;
+      setCodes(filteredCodes);
+
+      if (filteredCodes.length > 0) {
+        setCodesGenerated(filteredCodes.length);
+      }
+
+      // Update the count in codeCountsByType
+      setCodeCountsByType((prev) => {
+        const currentTypeCounts = prev[selectedCodeType] || {
+          count: 0,
+          paxUsed: 0,
+          unlimited: false,
+          limit: 0,
+        };
+
+        // Calculate paxUsed from the filtered codes
+        const paxUsed = filteredCodes.reduce(
+          (sum, code) => sum + (code.paxChecked || 0),
+          0
+        );
+
+        return {
+          ...prev,
+          [selectedCodeType]: {
+            ...currentTypeCounts,
+            count: filteredCodes.length,
+            paxUsed: paxUsed,
+          },
+        };
+      });
+    } catch (error) {
+      // Error handling without console logs
+    } finally {
+      setIsFetchingCodes(false);
+    }
+  };
+
+  // Fetch codes when necessary
   useEffect(() => {
-    if (selectedCodeType !== previousCodeTypeRef.current) {
-      previousCodeTypeRef.current = selectedCodeType;
-      hasLoggedCodeSummaryRef.current = false;
+    if (selectedEvent && selectedCodeType && !isFetchingCodes) {
+      fetchCodes();
+      fetchCodeCounts();
+    }
+  }, [selectedEvent, selectedCodeType]);
+
+  // Use cached codes when code type changes
+  useEffect(() => {
+    if (
+      selectedCodeType &&
+      filteredCodesByTypeRef.current[selectedCodeType]?.length > 0
+    ) {
+      const cachedCodes = filteredCodesByTypeRef.current[selectedCodeType];
+      setCodes(cachedCodes);
+      setCodesGenerated(cachedCodes.length);
     }
   }, [selectedCodeType]);
-
-  // Get the code objects for a specific setting
-  const getCodesForSetting = (settingId) => {
-    if (!settingId || !userCodeCounts.codesBySettingId) {
-      return [];
-    }
-    return userCodeCounts.codesBySettingId[settingId] || [];
-  };
-
-  // Get the code objects for the current selected code type
-  const getCodesForSelectedType = () => {
-    const matchingSetting = codeSettings.find(
-      (setting) =>
-        setting.name === selectedCodeType || setting.type === selectedCodeType
-    );
-
-    if (!matchingSetting) {
-      return [];
-    }
-
-    return getCodesForSetting(matchingSetting._id);
-  };
-
-  // Update codes when selected code type changes
-  useEffect(() => {
-    if (selectedCodeType) {
-      // Get user-specific codes for the selected type
-      const userSpecificCodes = getCodesForSelectedType();
-      setCodesGenerated(userSpecificCodes.length);
-      // Update the current codes state to ensure consistency
-      setCurrentTypeCodes(userSpecificCodes);
-
-      // Fetch fresh data when code type changes
-      fetchUserSpecificCodeCounts();
-    }
-  }, [selectedCodeType, userCodeCounts.codesBySettingId]);
 
   // Get max people allowed for current code type
   const getMaxPeopleAllowed = () => {
@@ -388,39 +434,49 @@ function CodeGenerator({
       // Get the new code from the response
       const newCode = response.data.code || response.data;
 
-      // Log the newly created code
-      console.log("✅ NEW CODE CREATED:", {
-        id: newCode._id,
-        name: newCode.name,
-        code: newCode.code,
-        pax: newCode.pax || newCode.maxPax,
-      });
-
       // Add the new code to the codes array
       if (newCode) {
-        setCodesGenerated(codesGenerated + 1);
+        setCodes((prevCodes) => {
+          // Check if code already exists
+          if (prevCodes.some((code) => code._id === newCode._id))
+            return prevCodes;
 
-        // Update user code counts with the new code
-        const matchingSetting = codeSettings.find(
-          (setting) =>
-            setting.name === selectedCodeType ||
-            setting.type === selectedCodeType
-        );
+          // Add the new code to the beginning of the array instead of the end
+          const updatedCodes = [newCode, ...prevCodes];
 
-        if (matchingSetting) {
-          const updatedCodesBySettingId = {
-            ...userCodeCounts.codesBySettingId,
-            [matchingSetting._id]: [
-              ...(userCodeCounts.codesBySettingId[matchingSetting._id] || []),
-              newCode,
-            ],
-          };
+          // Update the ref as well
+          filteredCodesByTypeRef.current[selectedCodeType] = updatedCodes;
 
-          setUserCodeCounts((prev) => ({
-            ...prev,
-            codesBySettingId: updatedCodesBySettingId,
-          }));
-        }
+          // Update the count for this specific code type
+          setCodeCountsByType((prev) => {
+            const currentTypeCounts = prev[selectedCodeType] || {
+              count: 0,
+              paxUsed: 0,
+              unlimited: false,
+              limit: 0,
+            };
+
+            // Increment the count and paxUsed
+            const newCount = currentTypeCounts.count + 1;
+            const newPaxUsed = currentTypeCounts.paxUsed + parseInt(pax);
+
+            // Also update the codesGenerated state if this is an unlimited type
+            if (currentTypeCounts.unlimited) {
+              setCodesGenerated(newCount);
+            }
+
+            return {
+              ...prev,
+              [selectedCodeType]: {
+                ...currentTypeCounts,
+                count: newCount,
+                paxUsed: newPaxUsed,
+              },
+            };
+          });
+
+          return updatedCodes;
+        });
       }
 
       // Refresh counts if needed
@@ -429,10 +485,7 @@ function CodeGenerator({
       }
 
       // Refresh code counts
-      fetchUserSpecificCodeCounts();
-
-      // Reset the log flag so we can see the updated logs
-      hasLoggedCodeSummaryRef.current = false;
+      fetchCodeCounts();
     } catch (error) {
       showError(error.response?.data?.message || "Failed to generate code");
     }
@@ -450,321 +503,83 @@ function CodeGenerator({
   // Get the counter value for the current code type
   const getCounterValue = () => {
     const activePermission = getActivePermission();
-    if (!activePermission) {
-      return "0";
+    if (!activePermission) return "0";
+
+    // Use the actual codes array length as the primary source of truth
+    const actualCodesCount = codes.length;
+
+    // Get the counts for the current code type
+    const currentTypeCounts = codeCountsByType[selectedCodeType] || {
+      count: 0,
+      paxUsed: 0,
+      unlimited: activePermission.unlimited,
+      limit: activePermission.limit,
+    };
+
+    // For unlimited types, show the actual count of codes
+    if (currentTypeCounts.unlimited) {
+      return Math.max(actualCodesCount, currentTypeCounts.count).toString();
     }
 
-    // Find the matching setting for the selected code type
-    const matchingSetting = codeSettings.find(
-      (setting) =>
-        setting.name === selectedCodeType || setting.type === selectedCodeType
-    );
-
-    // Get the user's generated count for this code type
-    let userGeneratedCount = 0;
-
-    // Try to get the count by setting ID if we have a matching setting
-    if (
-      matchingSetting &&
-      userCodeCounts.bySettingId &&
-      userCodeCounts.bySettingId[matchingSetting._id] !== undefined
-    ) {
-      userGeneratedCount = userCodeCounts.bySettingId[matchingSetting._id];
-    }
-    // Try to get the count by name as a fallback
-    else if (
-      userCodeCounts.byName &&
-      userCodeCounts.byName[selectedCodeType] !== undefined
-    ) {
-      userGeneratedCount = userCodeCounts.byName[selectedCodeType];
-    }
-
-    // For unlimited types, show the count of generated codes
-    if (activePermission.unlimited) {
-      return userGeneratedCount.toString(); // Show the count of generated codes
-    }
-
-    // For limited types, calculate remaining based on the user's limit and their usage
-    const remaining = Math.max(0, activePermission.limit - userGeneratedCount);
-    return remaining.toString();
+    // For limited types, calculate remaining based on the limit and used pax
+    return Math.max(
+      0,
+      currentTypeCounts.limit - currentTypeCounts.paxUsed
+    ).toString();
   };
 
-  // Log the codes for the selected type whenever it changes
+  // Initialize counts for all code types
   useEffect(() => {
-    const codes = getCodesForSelectedType();
-    if (codes.length > 0 && !hasLoggedCodeSummaryRef.current) {
-      console.log(`📊 Current codes for ${selectedCodeType}:`, codes);
+    if (selectedEvent && codePermissions?.length > 0) {
+      const fetchAllCounts = async () => {
+        for (const permission of codePermissions) {
+          // Skip if we already have counts for this type
+          if (codeCountsByType[permission.type]) continue;
 
-      // Display codes in a more structured way
-      console.table(
-        codes.map((code) => ({
-          id: code.id,
-          name: code.name,
-          code: code.code,
-          pax: code.pax,
-          createdAt: new Date(code.createdAt).toLocaleString(),
-        }))
-      );
-    }
-  }, [selectedCodeType, userCodeCounts.codesBySettingId]);
-
-  // Log all codes when the component mounts
-  useEffect(() => {
-    if (
-      Object.keys(userCodeCounts.codesBySettingId).length > 0 &&
-      !hasLoggedCodeSummaryRef.current
-    ) {
-      // Set the ref to true to prevent repeated logs
-      hasLoggedCodeSummaryRef.current = true;
-
-      console.log(
-        "🔍 ALL CODE OBJECTS BY SETTING ID:",
-        userCodeCounts.codesBySettingId
-      );
-
-      // Display a summary of codes by setting
-      console.log("📊 CODES SUMMARY:");
-      Object.entries(userCodeCounts.codesBySettingId).forEach(
-        ([settingId, codes]) => {
-          const setting = codeSettings.find((s) => s._id === settingId);
-          console.log(
-            `Setting: ${setting?.name || settingId} (${codes.length} codes)`
+          // Find the matching code setting
+          const matchingSetting = codeSettings.find(
+            (setting) =>
+              setting.type === permission.type ||
+              setting.name === permission.type
           );
 
-          if (codes.length > 0) {
-            console.table(
-              codes.map((code) => ({
-                id: code.id?.substring(0, 10) + "...",
-                name: code.name,
-                code: code.code,
-                pax: code.pax,
-                createdAt: new Date(code.createdAt).toLocaleString(),
-              }))
+          if (!matchingSetting) continue;
+
+          try {
+            const response = await axios.get(
+              `${process.env.REACT_APP_API_BASE_URL}/codes/counts/${
+                selectedEvent._id
+              }?type=${matchingSetting.type}&displayType=${encodeURIComponent(
+                permission.type
+              )}`,
+              {
+                withCredentials: true,
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
             );
+
+            if (response.data) {
+              setCodeCountsByType((prev) => ({
+                ...prev,
+                [permission.type]: {
+                  count: response.data.count || 0,
+                  paxUsed: response.data.paxUsed || 0,
+                  unlimited: permission.unlimited || false,
+                  limit: permission.limit || 0,
+                },
+              }));
+            }
+          } catch (error) {
+            // Error handling without console logs
           }
         }
-      );
-    }
-  }, [userCodeCounts.codesBySettingId, codeSettings]);
-
-  // Add a function to fetch user-specific code counts
-  const fetchUserSpecificCodeCounts = async () => {
-    // Check if we have a valid user and event
-    const hasUser = user && (typeof user === "string" || user?.id || user?._id);
-    if (!selectedEvent || !hasUser) {
-      return;
-    }
-
-    // Extract the key IDs we need
-    const userId = typeof user === "string" ? user : user?.id || user?._id;
-    const eventId = selectedEvent._id || selectedEvent.id;
-    const activeSettingId = activeSetting?._id;
-
-    // Create a key to identify this specific fetch
-    const fetchKey = `user_${userId}_event_${eventId}_setting_${
-      activeSettingId || "all"
-    }`;
-
-    // Check if we've fetched this data recently (within the last 2 seconds)
-    const now = Date.now();
-    if (
-      lastFetchRef.current.userCounts &&
-      lastFetchRef.current.userCounts[fetchKey] &&
-      now - lastFetchRef.current.userCounts[fetchKey] < 2000
-    ) {
-      // Skip this fetch as we've done it recently
-      return;
-    }
-
-    // Update the last fetch time for this key
-    if (!lastFetchRef.current.userCounts) {
-      lastFetchRef.current.userCounts = {};
-    }
-    lastFetchRef.current.userCounts[fetchKey] = now;
-
-    try {
-      // Prepare the request URL and parameters
-      const requestUrl = `${process.env.REACT_APP_API_BASE_URL}/codes/user-counts/${eventId}/${userId}`;
-      const requestParams = {
-        settingId: activeSettingId,
       };
 
-      const response = await axios.get(requestUrl, {
-        params: requestParams,
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.data) {
-        // Extract the settings and summary from the response
-        const { settings = {}, summary = {} } = response.data;
-
-        // Convert the response data to a format that maps code setting names to counts
-        const countsByName = {};
-        const countsBySettingId = {};
-        const codesBySettingId = {};
-
-        // Process each code setting
-        Object.entries(settings).forEach(([settingId, data]) => {
-          const { setting, count, codes = [] } = data;
-
-          // Store counts by setting ID
-          countsBySettingId[settingId] = count;
-
-          // Store codes by setting ID
-          codesBySettingId[settingId] = codes;
-
-          // Store counts by setting name
-          if (setting && setting.name) {
-            countsByName[setting.name] = count;
-          }
-        });
-
-        // Update the state with the new counts
-        setUserCodeCounts({
-          byName: countsByName,
-          bySettingId: countsBySettingId,
-          codesBySettingId: codesBySettingId,
-        });
-
-        // Update currentTypeCodes based on the newly fetched data
-        if (selectedCodeType) {
-          const matchingSetting = codeSettings.find(
-            (setting) =>
-              setting.name === selectedCodeType ||
-              setting.type === selectedCodeType
-          );
-
-          if (matchingSetting && codesBySettingId[matchingSetting._id]) {
-            setCurrentTypeCodes(codesBySettingId[matchingSetting._id]);
-            setCodesGenerated(codesBySettingId[matchingSetting._id].length);
-          }
-        }
-
-        // Only log if we haven't logged before or if this is a refresh
-        if (!hasLoggedCodeSummaryRef.current) {
-          // Log a summary of all code objects by setting ID
-          console.log("🔍 ALL CODE OBJECTS BY SETTING ID:", codesBySettingId);
-
-          // Log a summary of codes by setting
-          console.log("📊 CODES SUMMARY:");
-          Object.entries(codesBySettingId).forEach(([settingId, codes]) => {
-            // Find the setting name if available
-            const settingName =
-              codeSettings.find((s) => s._id === settingId)?.name || settingId;
-            console.log(`Setting: ${settingName} (${codes.length} codes)`);
-
-            if (codes.length > 0) {
-              console.table(
-                codes.map((code) => ({
-                  id: code.id?.substring(0, 10) + "...",
-                  name: code.name,
-                  code: code.code,
-                  pax: code.pax,
-                  createdAt: new Date(code.createdAt).toLocaleString(),
-                }))
-              );
-            }
-          });
-
-          // Mark that we've logged the summary
-          hasLoggedCodeSummaryRef.current = true;
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching user-specific code counts:", error.message);
-
-      // Fallback mechanism for 404 errors
-      if (error.response && error.response.status === 404) {
-        // Create fallback data structure
-        const fallbackSettings = {};
-        const countsByName = {};
-        const countsBySettingId = {};
-        const fallbackSummary = {
-          totalCodes: 0,
-          settingsCount: 0,
-          activeSettingId: activeSetting?._id || null,
-          activeSettingCodes: 0,
-        };
-
-        // Filter codes by the current user
-        const userCodes = getCodesForSelectedType().filter(
-          (code) => code.createdBy === (user.id || user._id)
-        );
-
-        if (userCodes.length > 0) {
-          // Group by code setting ID
-          userCodes.forEach((code) => {
-            const settingId = code.codeSettingId?.toString();
-            if (!settingId) return;
-
-            // Initialize if needed
-            if (!countsBySettingId[settingId]) {
-              countsBySettingId[settingId] = 0;
-              fallbackSettings[settingId] = {
-                setting: codeSettings.find((s) => s._id === settingId) || {
-                  id: settingId,
-                  name: code.metadata?.settingName || code.name,
-                  type: code.type,
-                },
-                count: 0,
-                codes: [],
-              };
-              fallbackSummary.settingsCount++;
-            }
-
-            // Update counts
-            countsBySettingId[settingId]++;
-            fallbackSettings[settingId].count++;
-
-            // Update active setting count
-            if (settingId === (activeSetting?._id || null)) {
-              fallbackSummary.activeSettingCodes++;
-            }
-
-            // Store the code
-            fallbackSettings[settingId].codes.push({
-              id: code._id.toString(),
-              name: code.name,
-              type: code.type,
-            });
-
-            // Update name-based counts
-            const codeName = code.metadata?.settingName || code.name;
-            if (codeName) {
-              countsByName[codeName] = (countsByName[codeName] || 0) + 1;
-            }
-          });
-        }
-
-        // Update state with fallback data
-        setUserCodeCounts({
-          byName: countsByName,
-          bySettingId: countsBySettingId,
-          codesBySettingId: fallbackSettings,
-          summary: fallbackSummary,
-        });
-
-        // Update currentTypeCodes for the fallback case
-        if (selectedCodeType) {
-          const matchingSetting = codeSettings.find(
-            (setting) =>
-              setting.name === selectedCodeType ||
-              setting.type === selectedCodeType
-          );
-
-          if (matchingSetting && fallbackSettings[matchingSetting._id]?.codes) {
-            setCurrentTypeCodes(fallbackSettings[matchingSetting._id].codes);
-            setCodesGenerated(
-              fallbackSettings[matchingSetting._id].codes.length
-            );
-          }
-        }
-      }
+      fetchAllCounts();
     }
-  };
+  }, [selectedEvent, codePermissions, codeSettings]);
 
   if (!activeSetting) {
     return (
@@ -935,41 +750,22 @@ function CodeGenerator({
 
         {/* Code Management View */}
         <div className="code-management-container">
-          {!hasLoggedCodeSummaryRef.current &&
-            console.log(
-              `📊 PASSING TO CODEMANAGEMENT: ${currentTypeCodes.length} codes for ${selectedCodeType}`
-            )}
           <CodeManagement
             user={user}
             type={selectedCodeType}
             setCodes={(newCodes) => {
-              // Update user code counts with the new codes
-              const matchingSetting = codeSettings.find(
-                (setting) =>
-                  setting.name === selectedCodeType ||
-                  setting.type === selectedCodeType
-              );
-
-              if (matchingSetting) {
-                const updatedCodesBySettingId = {
-                  ...userCodeCounts.codesBySettingId,
-                  [matchingSetting._id]: newCodes,
-                };
-
-                setUserCodeCounts((prev) => ({
-                  ...prev,
-                  codesBySettingId: updatedCodesBySettingId,
-                }));
-
-                setCodesGenerated(newCodes.length);
-                // Also update the current codes state
-                setCurrentTypeCodes(newCodes);
-              }
+              setCodes(newCodes);
+              filteredCodesByTypeRef.current[selectedCodeType] = newCodes;
             }}
-            codes={currentTypeCodes}
-            refreshCodes={fetchUserSpecificCodeCounts}
+            codes={codes}
+            refreshCodes={fetchCodes}
             refreshCounts={refreshCounts}
+            currentEventDate={currentEventDate}
             counts={codesGenerated}
+            onPrevWeek={onPrevWeek}
+            onNextWeek={onNextWeek}
+            isStartingEvent={isStartingEvent}
+            dataInterval={dataInterval}
             selectedEvent={selectedEvent}
           />
         </div>
