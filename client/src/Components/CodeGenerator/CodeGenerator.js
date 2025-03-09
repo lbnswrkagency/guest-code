@@ -1013,7 +1013,13 @@ function CodeGenerator({
 
             <button
               className="code-btn"
-              disabled={!name || pax < 1 || !activeSetting || isFetchingCodes}
+              disabled={
+                !name ||
+                pax < 1 ||
+                !activeSetting ||
+                isFetchingCodes ||
+                !selectedCodeType
+              }
               onClick={handleCode}
             >
               {isFetchingCodes ? "Loading..." : "Generate Code"}

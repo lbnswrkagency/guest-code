@@ -1130,3 +1130,22 @@ $meteor-duration: 3s;
     }
   }
 }
+
+// Add new alpha-badge-link style
+.alpha-badge-link {
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    .alpha-badge {
+      box-shadow: 0 0 15px rgba($primary-gold, 0.7);
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

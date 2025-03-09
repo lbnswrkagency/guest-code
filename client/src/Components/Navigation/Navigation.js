@@ -163,7 +163,7 @@ const Navigation = ({
           </motion.div>
 
           {/* Authenticated-only elements */}
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <>
               {/* Notifications */}
               <motion.div
@@ -219,8 +219,17 @@ const Navigation = ({
                 <RiLogoutBoxRLine className="icon" />
               </motion.div>
             </>
+          ) : (
+            /* Login button for non-authenticated users */
+            <motion.div
+              className="nav-icon-wrapper"
+              onClick={handleLogin}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RiLoginBoxLine className="icon" />
+            </motion.div>
           )}
-          {/* Removed login button for unauthenticated users as requested */}
         </div>
       </div>
 

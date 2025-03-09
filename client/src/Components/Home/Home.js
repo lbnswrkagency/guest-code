@@ -110,7 +110,9 @@ const Home = () => {
         <div className="header-content">
           <h1>GuestCode</h1>
           <p className="subtitle">The Future of Event Management</p>
-          <span className="alpha-badge">Alpha</span>
+          <Link to="/login" className="alpha-badge-link">
+            <span className="alpha-badge">Alpha</span>
+          </Link>
         </div>
       </header>
 
