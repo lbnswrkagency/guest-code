@@ -1,14 +1,16 @@
 // CodeManagement.js
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axiosInstance from "../../utils/axiosConfig";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
 import moment from "moment";
-import TableLayout from "../TableLayout/TableLayout";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
-import { FaEye, FaEdit, FaTrash, FaDownload } from "react-icons/fa";
 import { BsPeopleFill } from "react-icons/bs";
 
+/**
+ * CodeManagement displays and manages the codes that have been generated.
+ * It receives codes from CodeGenerator and allows editing, deleting, viewing, and downloading.
+ */
 function CodeManagement({
   user,
   type,
@@ -22,44 +24,31 @@ function CodeManagement({
   const { showSuccess, showError, showLoading } = useToast();
   const [loading, setLoading] = useState(false);
   const [visibleCodes, setVisibleCodes] = useState(10);
-  const [showCodeView, setShowCodeView] = useState(false);
-  const [codeViewUrl, setCodeViewUrl] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteCodeId, setDeleteCodeId] = useState(null);
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editPax, setEditPax] = useState("");
-  const [editTableNumber, setEditTableNumber] = useState("");
-  const [totalPaxUsed, setTotalPaxUsed] = useState(0);
   const [codes, setCodes] = useState([]);
-  const [stableCodesRef] = useState({ current: [] });
-  const [currentCodeId, setCurrentCodeId] = useState(null);
-
-  // Calculate total pax
-  const calculateTotalPax = useCallback(
-    (codesArray = codes) => {
-      if (!codesArray?.length) return 0;
-      return codesArray.reduce((total, code) => total + (code.maxPax || 1), 0);
-    },
-    [codes]
-  );
 
   // Update codes when codesFromParent changes
   useEffect(() => {
     if (codesFromParent?.length) {
       console.log(
-        `📊 CodeManagement: Received ${codesFromParent.length} codes for ${type}`
+        `📊 CodeManagement: Received ${codesFromParent.length} codes`
       );
-      setCodes(codesFromParent);
-      stableCodesRef.current = codesFromParent;
-      setTotalPaxUsed(calculateTotalPax(codesFromParent));
+
+      // Sort codes by createdAt in descending order (newest first)
+      const sortedCodes = [...codesFromParent].sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      setCodes(sortedCodes);
     } else {
       // Reset codes if none are provided
       setCodes([]);
-      stableCodesRef.current = [];
-      setTotalPaxUsed(0);
     }
-  }, [codesFromParent, calculateTotalPax, type]);
+  }, [codesFromParent]);
 
   // Load more codes
   const loadMore = () => {
@@ -71,7 +60,6 @@ function CodeManagement({
     setEditCodeId(null);
     setEditName("");
     setEditPax("");
-    setEditTableNumber("");
   };
 
   // Delete a code
@@ -90,22 +78,37 @@ function CodeManagement({
         }
       );
 
-      // Update both the state and the stable reference
-      const updatedCodes = codes.filter((code) => code._id !== deleteCodeId);
+      // Update codes state
+      const updatedCodes = codes.filter(
+        (code) => code._id !== deleteCodeId && code.id !== deleteCodeId
+      );
       setCodes(updatedCodes);
-      stableCodesRef.current = updatedCodes;
 
-      // Update the parent component if setCodes is provided
+      // Update the parent component
       if (setCodesParent) {
         setCodesParent(updatedCodes);
       }
 
-      // Refresh counts and codes if needed
-      if (refreshCounts) await refreshCounts();
-      if (refreshCodes) await refreshCodes();
+      // Refresh counts and codes if provided
+      if (refreshCounts) {
+        try {
+          await refreshCounts();
+        } catch (error) {
+          console.error("Error refreshing counts:", error);
+        }
+      }
+
+      if (refreshCodes) {
+        try {
+          await refreshCodes();
+        } catch (error) {
+          console.error("Error refreshing codes:", error);
+        }
+      }
 
       showSuccess("Code deleted successfully");
     } catch (error) {
+      console.error("Error deleting code:", error);
       showError(
         error.response?.data?.message ||
           "Failed to delete code. Please try again."
@@ -124,12 +127,9 @@ function CodeManagement({
 
   // Start editing a code
   const startEdit = (code) => {
-    setEditCodeId(code._id);
+    setEditCodeId(code._id || code.id);
     setEditName(code.name || "");
-    setEditPax(code.maxPax || 1);
-    if (code.tableNumber) {
-      setEditTableNumber(code.tableNumber);
-    }
+    setEditPax(code.maxPax || code.pax || 1);
   };
 
   // Handle edit submission
@@ -144,10 +144,6 @@ function CodeManagement({
         maxPax: parseInt(editPax),
       };
 
-      if (type === "Table Code" && editTableNumber) {
-        updateData.tableNumber = editTableNumber;
-      }
-
       const response = await axiosInstance.put(
         `${process.env.REACT_APP_API_BASE_URL}/codes/${editCodeId}`,
         updateData,
@@ -159,25 +155,33 @@ function CodeManagement({
       );
 
       if (response.data) {
-        const updatedCodes = codes.map((code) =>
-          code._id === editCodeId ? { ...code, ...updateData } : code
-        );
+        // Update codes with the new data
+        const updatedCodes = codes.map((code) => {
+          const codeId = code._id || code.id;
+          return codeId === editCodeId ? { ...code, ...updateData } : code;
+        });
 
         setCodes(updatedCodes);
-        stableCodesRef.current = updatedCodes;
 
+        // Update the parent component
         if (setCodesParent) {
           setCodesParent(updatedCodes);
         }
       }
 
+      // Refresh counts if provided
       if (refreshCounts) {
-        await refreshCounts();
+        try {
+          await refreshCounts();
+        } catch (error) {
+          console.error("Error refreshing counts:", error);
+        }
       }
 
       resetEditState();
       showSuccess("Code updated successfully");
     } catch (error) {
+      console.error("Error updating code:", error);
       showError(
         error.response?.data?.message ||
           "Failed to update code. Please try again."
@@ -194,7 +198,6 @@ function CodeManagement({
   const handleCodeClick = async (codeId) => {
     try {
       setLoading(true);
-      setCurrentCodeId(codeId);
 
       // Use the view endpoint to get the PDF for viewing in browser
       const viewUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/view`;
@@ -217,12 +220,6 @@ function CodeManagement({
       showError("Failed to view code");
       setLoading(false);
     }
-  };
-
-  // Close code view
-  const closeCodeView = () => {
-    setShowCodeView(false);
-    setCurrentCodeId(null);
   };
 
   // Handle code download
@@ -263,11 +260,6 @@ function CodeManagement({
     }
   };
 
-  // Format the creation date
-  const formatCreationDate = (dateString) => {
-    return moment(dateString).format("MMM D, YYYY • h:mm A");
-  };
-
   // Helper function to determine text color based on background color
   const getContrastColor = (hexColor) => {
     if (!hexColor) return "#FFFFFF";
@@ -287,65 +279,26 @@ function CodeManagement({
     return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
 
-  // Add comprehensive console log to display important information about codes
-  useEffect(() => {
-    if (codes && codes.length > 0) {
-      // Group codes by status
-      const activeCount = codes.filter((code) => code.active).length;
-      const inactiveCount = codes.filter((code) => !code.active).length;
+  // Helper to get code color based on type
+  const getCodeColor = (code) => {
+    // First try to get color from code or codeSettings
+    if (code.color) return code.color;
+    if (code.codeSettings?.color) return code.codeSettings.color;
 
-      // Group codes by usage
-      const usedCount = codes.filter((code) => code.usageCount > 0).length;
-      const unusedCount = codes.filter((code) => code.usageCount === 0).length;
+    // If code type matches specific types, use predefined colors
+    const codeType = code.type || type;
+    if (codeType === "Bottle Code") return "#e3a31d"; // Gold
+    if (codeType === "Special Code") return "#b92b27"; // Red
+    if (codeType === "Table Code") return "#7b1fa2"; // Purple
+    if (codeType === "Friends Code") return "#1976d2"; // Blue
+    if (codeType === "Backstage Code") return "#0d47a1"; // Dark Blue
 
-      // Calculate total people admitted with these codes
-      const totalPeopleAdmitted = codes.reduce(
-        (total, code) => total + code.usageCount * code.maxPax,
-        0
-      );
-
-      // Group by maxPax
-      const codesByMaxPax = {};
-      codes.forEach((code) => {
-        codesByMaxPax[code.maxPax] = (codesByMaxPax[code.maxPax] || 0) + 1;
-      });
-
-      console.log("📊 CODE MANAGEMENT DATA SUMMARY", {
-        codeType: type,
-        selectedEvent: selectedEvent
-          ? {
-              id: selectedEvent._id,
-              name: selectedEvent.name,
-              date: selectedEvent.date,
-            }
-          : "No event selected",
-        codeStats: {
-          total: codes.length,
-          active: activeCount,
-          inactive: inactiveCount,
-          used: usedCount,
-          unused: unusedCount,
-          totalPeopleAdmitted,
-        },
-        codeDistribution: {
-          byMaxPax: codesByMaxPax,
-        },
-        paginationInfo: {
-          visibleCodes,
-          totalCodes: codes.length,
-          hasMoreToShow: visibleCodes < codes.length,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [codes, type, selectedEvent, visibleCodes]);
+    // Default to event's primary color
+    return selectedEvent?.primaryColor || "#1976d2";
+  };
 
   // Render codes
   const renderCodes = () => {
-    // Use the stable reference to codes if available
-    const codesToRender =
-      stableCodesRef.current.length > 0 ? stableCodesRef.current : codes;
-
     if (!selectedEvent) {
       return (
         <div className="no-codes">
@@ -354,40 +307,24 @@ function CodeManagement({
       );
     }
 
-    // Show loading only if we have no codes yet
-    if (loading && !codesToRender.length) {
+    if (loading && !codes.length) {
       return <div className="loading">Loading codes...</div>;
     }
 
-    if (!codesToRender?.length) {
-      return (
-        <div className="no-codes">
-          No {type?.toLowerCase()} codes found for this event.
-        </div>
-      );
-    }
-
-    // Notify parent of code count if setCodesParent is provided
-    if (setCodesParent && codesToRender.length > 0) {
-      setTimeout(() => setCodesParent(codesToRender), 0);
+    if (!codes?.length) {
+      return <div className="no-codes">No codes found for this event.</div>;
     }
 
     return (
       <>
-        {codesToRender.slice(0, visibleCodes).map((code) => {
-          // Determine code type class for styling
-          let codeTypeClass = "";
-          if (type === "Bottle Code") codeTypeClass = "bottle";
-          else if (type === "Special Code") codeTypeClass = "special";
-          else if (type === "Table Code") codeTypeClass = "table";
-          else if (type === "Friends Code") codeTypeClass = "friends";
-          else if (type === "Backstage Code") codeTypeClass = "backstage";
+        {codes.slice(0, visibleCodes).map((code) => {
+          // Get code ID (handle different formats)
+          const codeId = code._id || code.id;
+          const isEditing = editCodeId === codeId;
+          const primaryColor = selectedEvent?.primaryColor;
 
-          // Use code's color if available, or fall back to event's primary color
-          const codeColor =
-            code.color ||
-            code.codeSettings?.color ||
-            selectedEvent?.primaryColor;
+          // Get color for this code
+          const codeColor = getCodeColor(code);
           const customStyle = codeColor
             ? {
                 background: codeColor,
@@ -395,20 +332,14 @@ function CodeManagement({
               }
             : {};
 
-          const isEditing = editCodeId === code._id;
-          const primaryColor = selectedEvent?.primaryColor;
-
           return (
             <div
-              key={code._id}
+              key={codeId}
               className={`code-management-item ${isEditing ? "editing" : ""}`}
               style={primaryColor ? { borderColor: `${primaryColor}30` } : {}}
             >
               <div className="code-management-item-info">
-                <div
-                  className={`code-icon ${codeTypeClass}`}
-                  style={customStyle}
-                >
+                <div className="code-icon" style={customStyle}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -435,7 +366,7 @@ function CodeManagement({
               </div>
 
               <div className="code-management-item-people">
-                <span className="people-icon">👤</span>
+                <BsPeopleFill className="people-icon" />
                 <span
                   className="people-count"
                   style={primaryColor ? { color: primaryColor } : {}}
@@ -456,7 +387,9 @@ function CodeManagement({
                     ))}
                   </select>
                 ) : (
-                  <span className="people-max">{code.maxPax || 1}</span>
+                  <span className="people-max">
+                    {code.maxPax || code.pax || 1}
+                  </span>
                 )}
               </div>
 
@@ -484,27 +417,26 @@ function CodeManagement({
                       className="edit-btn"
                       onClick={() => startEdit(code)}
                       title="Edit"
-                      style={primaryColor ? { color: primaryColor } : {}}
                     >
                       ✏️
                     </button>
                     <button
                       className="download-btn"
-                      onClick={() => handleDownload(code._id)}
+                      onClick={() => handleDownload(codeId)}
                       title="Download QR"
                     >
                       ⬇️
                     </button>
                     <button
                       className="view-btn"
-                      onClick={() => handleCodeClick(code._id)}
+                      onClick={() => handleCodeClick(codeId)}
                       title="View QR"
                     >
                       👁️
                     </button>
                     <button
                       className="delete-btn"
-                      onClick={() => handleDeleteClick(code._id)}
+                      onClick={() => handleDeleteClick(codeId)}
                       title="Delete"
                     >
                       🗑️
@@ -516,7 +448,7 @@ function CodeManagement({
           );
         })}
 
-        {codesToRender.length > visibleCodes && (
+        {codes.length > visibleCodes && (
           <button
             className="load-more-btn"
             onClick={loadMore}
@@ -524,7 +456,7 @@ function CodeManagement({
               selectedEvent?.primaryColor
                 ? {
                     backgroundColor: selectedEvent.primaryColor,
-                    color: getContrastColor(selectedEvent.primaryColor),
+                    color: "#fff",
                   }
                 : {}
             }
@@ -548,20 +480,7 @@ function CodeManagement({
     );
   };
 
-  // Render the code view modal - no longer needed as we open in new tab
-  const renderCodeView = () => {
-    // We're not using the modal anymore, but keeping the function
-    // in case we need to revert or modify the approach
-    return null;
-  };
-
-  return (
-    <div className="code-management">
-      {renderCodes()}
-      {/* renderCodeView is now a no-op */}
-      {renderCodeView()}
-    </div>
-  );
+  return <div className="code-management">{renderCodes()}</div>;
 }
 
 export default CodeManagement;
