@@ -432,13 +432,13 @@ function CodeManagement({
                     >
                       ⬇️
                     </button>
-                    <button
+                    {/* <button
                       className="view-btn"
                       onClick={() => handleCodeClick(codeId)}
                       title="View QR"
                     >
                       👁️
-                    </button>
+                    </button> */}
                     <button
                       className="delete-btn"
                       onClick={() => handleDeleteClick(codeId)}
