@@ -90,10 +90,19 @@ function Scanner({ onClose }) {
     try {
       console.log("QR code data:", data);
 
-      // Check if the data is JSON
-      let codeData;
+      // Extract codeId from URL pattern "/validate/objectID/securityToken"
+      const validateUrlPattern = /\/validate\/([a-f0-9]+)\/([a-f0-9]+)/i;
+      const urlMatch = data.match(validateUrlPattern);
+
+      if (urlMatch && urlMatch[1]) {
+        console.log("Extracted code ID from URL:", urlMatch[1]);
+        await validateTicket(urlMatch[1]);
+        return;
+      }
+
+      // If not URL pattern, check if it's JSON
       try {
-        codeData = JSON.parse(data);
+        const codeData = JSON.parse(data);
         console.log("Parsed QR code JSON data:", codeData);
 
         // Check if we have a code property in the parsed object
@@ -143,60 +152,91 @@ function Scanner({ onClose }) {
     try {
       console.log("Validating code:", codeValue);
 
-      // Try using the new endpoint structure first
-      const response = await axiosInstance.post("/codes/verify", {
-        code: codeValue,
-      });
+      try {
+        // Try using the new endpoint structure first
+        const response = await axiosInstance.post("/codes/verify", {
+          code: codeValue,
+        });
 
-      console.log("Verification response:", response.data);
+        console.log("Verification response:", response.data);
 
-      // Map the response data to our scanResult structure
-      const codeData = response.data.code;
-      const eventData = response.data.event;
-      const codeSettingData = response.data.codeSetting;
+        // Map the response data to our scanResult structure
+        const codeData = response.data.code;
+        const eventData = response.data.event;
+        const codeSettingData = response.data.codeSetting;
 
-      const formattedResult = {
-        _id: codeData._id,
-        code: codeData.code,
-        typeOfTicket:
-          codeData.type.charAt(0).toUpperCase() +
-          codeData.type.slice(1) +
-          " Code",
-        name: codeData.name || codeSettingData?.name || "Guest",
-        pax: codeData.maxPax || 1,
-        paxChecked: codeData.paxChecked || 0,
-        condition: codeData.condition || "",
-        tableNumber: codeData.tableNumber || "",
-        status: codeData.status,
-        eventDetails: {
-          _id: eventData?._id,
-          title: eventData?.title,
-          date: eventData?.date,
-          location: eventData?.location,
-        },
-        metadata: codeData.metadata || {},
-      };
+        const formattedResult = {
+          _id: codeData._id,
+          code: codeData.code,
+          typeOfTicket:
+            codeData.type.charAt(0).toUpperCase() +
+            codeData.type.slice(1) +
+            " Code",
+          name: codeData.name || codeSettingData?.name || "Guest",
+          pax: codeData.maxPax || 1,
+          paxChecked: codeData.paxChecked || 0,
+          condition: codeData.condition || "",
+          tableNumber: codeData.tableNumber || "",
+          status: codeData.status,
+          eventDetails: {
+            _id: eventData?._id,
+            title: eventData?.title,
+            date: eventData?.date,
+            location: eventData?.location,
+          },
+          metadata: codeData.metadata || {},
+        };
 
-      console.log("Formatted result:", formattedResult);
-      setScanResult(formattedResult);
-      setScanning(false);
-      cleanupCamera();
+        console.log("Formatted result:", formattedResult);
+        setScanResult(formattedResult);
+        setScanning(false);
+        cleanupCamera();
 
-      toast.showSuccess("Code verified successfully");
+        toast.showSuccess("Code verified successfully");
+      } catch (error) {
+        // If the new endpoint fails, try the legacy endpoint
+        if (error.response?.status === 404 || error.response?.status === 400) {
+          console.log("New verification failed, trying legacy endpoint...");
+          try {
+            // Try legacy QR validation endpoint
+            const legacyResponse = await axiosInstance.post("/qr/validate", {
+              ticketId: codeValue,
+            });
+
+            console.log("Legacy verification response:", legacyResponse.data);
+
+            // Set the scan result from legacy data
+            setScanResult(legacyResponse.data);
+            setScanning(false);
+            cleanupCamera();
+
+            toast.showSuccess("Code verified successfully");
+          } catch (legacyError) {
+            handleValidationError(legacyError);
+          }
+        } else {
+          handleValidationError(error);
+        }
+      }
     } catch (error) {
-      console.error("Validation error:", error);
-
-      // More user-friendly error messages based on error type
-      const errorMessage =
-        error.response?.status === 404
-          ? "Invalid code"
-          : error.response?.status === 400
-          ? error.response?.data?.message || "Invalid QR code format"
-          : error.response?.data?.message || "Error validating code";
-
-      toast.showError(errorMessage);
-      setIsProcessing(false);
+      handleValidationError(error);
     }
+  };
+
+  // Helper function to handle validation errors
+  const handleValidationError = (error) => {
+    console.error("Validation error:", error);
+
+    // More user-friendly error messages based on error type
+    const errorMessage =
+      error.response?.status === 404
+        ? "Invalid code"
+        : error.response?.status === 400
+        ? error.response?.data?.message || "Invalid QR code format"
+        : error.response?.data?.message || "Error validating code";
+
+    toast.showError(errorMessage);
+    setIsProcessing(false);
   };
 
   const updatePax = async (increment) => {

@@ -1046,8 +1046,21 @@ const generateCodeImage = async (req, res) => {
 const verifyCode = async (req, res) => {
   try {
     const { code } = req.body;
+    let codeDoc = null;
 
-    const codeDoc = await Code.findOne({ code });
+    // Check if the code is a valid MongoDB ObjectID
+    const isValidObjectId = code && code.match(/^[0-9a-fA-F]{24}$/);
+
+    if (isValidObjectId) {
+      // First try to find by ID
+      codeDoc = await Code.findById(code);
+    }
+
+    // If not found by ID, try to find by code string
+    if (!codeDoc) {
+      codeDoc = await Code.findOne({ code });
+    }
+
     if (!codeDoc) {
       return res.status(404).json({ message: "Invalid code" });
     }
