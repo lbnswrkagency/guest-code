@@ -30,35 +30,52 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         onClose();
       },
     },
-    {
-      title: "Brands",
-      icon: <RiBuildingLine />,
-      path: `/@${currentUser.username}/brands`,
-      action: () => {
-        navigate(`/@${currentUser.username}/brands`);
-        onClose();
-      },
-    },
-    {
-      title: "Events",
-      icon: <RiCalendarEventLine />,
-      path: `/@${currentUser.username}/events`,
-      action: () => {
-        navigate(`/@${currentUser.username}/events`);
-        onClose();
-      },
-    },
-    {
-      title: "Settings",
-      icon: <RiSettings4Line />,
-      path: "/settings",
-      action: (e) => {
-        // No action for now, will implement later
-        e.stopPropagation();
-        onClose();
-      },
-    },
+    // Only show Brands for developers
+    ...(currentUser.isDeveloper
+      ? [
+          {
+            title: "Brands",
+            icon: <RiBuildingLine />,
+            path: `/@${currentUser.username}/brands`,
+            action: () => {
+              navigate(`/@${currentUser.username}/brands`);
+              onClose();
+            },
+          },
+        ]
+      : []),
+    // Only show Events for developers
+    ...(currentUser.isDeveloper
+      ? [
+          {
+            title: "Events",
+            icon: <RiCalendarEventLine />,
+            path: `/@${currentUser.username}/events`,
+            action: () => {
+              navigate(`/@${currentUser.username}/events`);
+              onClose();
+            },
+          },
+        ]
+      : []),
+    // Only show Settings for developers
+    ...(currentUser.isDeveloper
+      ? [
+          {
+            title: "Settings",
+            icon: <RiSettings4Line />,
+            path: "/settings",
+            action: (e) => {
+              // No action for now, will implement later
+              e.stopPropagation();
+              onClose();
+            },
+          },
+        ]
+      : []),
   ];
+
+  console.log("CURRENT USER", currentUser);
 
   const overlayVariants = {
     hidden: { opacity: 0 },
