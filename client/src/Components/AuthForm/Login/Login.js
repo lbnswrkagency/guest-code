@@ -36,39 +36,12 @@ function Login() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [alphaPassword, setAlphaPassword] = useState("");
-  const [isAlphaVerified, setIsAlphaVerified] = useState(false);
-  const [showPasswordError, setShowPasswordError] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const toast = useToast();
 
-  // Check if alpha password is already verified in session storage
-  useEffect(() => {
-    const verified = sessionStorage.getItem("alphaVerified") === "true";
-    if (verified) {
-      setIsAlphaVerified(true);
-    }
-  }, []);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleAlphaPasswordChange = (e) => {
-    setAlphaPassword(e.target.value);
-    if (showPasswordError) setShowPasswordError(false);
-  };
-
-  const handleAlphaPasswordSubmit = (e) => {
-    e.preventDefault();
-    if (alphaPassword === process.env.REACT_APP_ALPHA_PW) {
-      setIsAlphaVerified(true);
-      sessionStorage.setItem("alphaVerified", "true");
-    } else {
-      setShowPasswordError(true);
-      setAlphaPassword("");
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -152,193 +125,71 @@ function Login() {
     }
   };
 
-  const handleForgotPassword = () => {
-    debugLog("Navigation", "User clicked forgot password");
-    toast.showInfo("Forgot password functionality coming soon!");
-  };
-
   return (
     <div className="login">
       <Navigation />
 
-      <AnimatePresence mode="wait">
-        {!isAlphaVerified ? (
-          <motion.div
-            className="alpha-password-container"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            key="alpha-password"
-          >
-            <div className="animated-background">
-              {/* Nebula effects */}
-              <div className="nebula-container">
-                <div className="nebula"></div>
-                <div className="nebula"></div>
-              </div>
+      <motion.div
+        className="login-container"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        key="login-form"
+      >
+        <motion.h1
+          className="login-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          Welcome Back
+        </motion.h1>
 
-              {/* Star field */}
-              <div className="star-container">
-                {[...Array(30)].map((_, i) => (
-                  <div key={`star-${i}`} className="star"></div>
-                ))}
-              </div>
+        <motion.form
+          className="login-form"
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <div className="input-group">
+            <input
+              type="text"
+              name="email"
+              placeholder="Email or Username"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="login-input"
+              autoComplete="username"
+            />
+          </div>
 
-              {/* Particles */}
-              <div className="particles-container">
-                {[...Array(15)].map((_, i) => (
-                  <div
-                    key={`particle-${i}`}
-                    className={`particle particle-${i + 1}`}
-                  ></div>
-                ))}
-              </div>
+          <div className="input-group">
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="login-input"
+              autoComplete="current-password"
+            />
+          </div>
 
-              {/* Glow overlay */}
-              <div className="glow-overlay"></div>
-            </div>
-
-            <motion.div
-              className="alpha-content"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <motion.h1
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                GuestCode
-              </motion.h1>
-              <motion.p
-                className="alpha-subtitle"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
-                Alpha Access
-              </motion.p>
-              <motion.form
-                onSubmit={handleAlphaPasswordSubmit}
-                className="alpha-form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-              >
-                <div className="alpha-input-group">
-                  <input
-                    type="password"
-                    value={alphaPassword}
-                    onChange={handleAlphaPasswordChange}
-                    placeholder="Enter access code"
-                    className={`alpha-input ${
-                      showPasswordError ? "error" : ""
-                    }`}
-                    autoFocus
-                    autoComplete="new-password"
-                  />
-                  {showPasswordError && (
-                    <motion.p
-                      className="alpha-error"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      Invalid access code
-                    </motion.p>
-                  )}
-                </div>
-                <motion.button
-                  type="submit"
-                  className="alpha-submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Enter
-                </motion.button>
-              </motion.form>
-            </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div
-            className="login-container"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            key="login-form"
-          >
-            <motion.h1
-              className="login-title"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              Welcome Back
-            </motion.h1>
-
-            <motion.form
-              className="login-form"
-              onSubmit={handleSubmit}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <div className="input-group">
-                <input
-                  type="text"
-                  name="email"
-                  placeholder="Email or Username"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="login-input"
-                  autoComplete="username"
-                />
-              </div>
-
-              <div className="input-group">
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="login-input"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="login-button"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Logging in...
-                  </>
-                ) : (
-                  "Log In"
-                )}
-              </button>
-
-              <div className="login-options">
-                <span
-                  className="forgot-password"
-                  onClick={handleForgotPassword}
-                >
-                  Forgot Password?
-                </span>
-                <Link to="/register" className="register-link">
-                  Create Account
-                </Link>
-              </div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <span className="loading-spinner"></span>
+                Logging in...
+              </>
+            ) : (
+              "Log In"
+            )}
+          </button>
+        </motion.form>
+      </motion.div>
     </div>
   );
 }

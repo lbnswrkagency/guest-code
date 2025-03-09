@@ -18,7 +18,12 @@ function CodeManagement({
   codes: codesFromParent,
   refreshCounts,
   refreshCodes,
+  currentEventDate,
   counts,
+  onPrevWeek,
+  onNextWeek,
+  isStartingEvent,
+  dataInterval,
   selectedEvent,
 }) {
   const { showSuccess, showError, showLoading } = useToast();
@@ -31,7 +36,7 @@ function CodeManagement({
   const [editPax, setEditPax] = useState("");
   const [codes, setCodes] = useState([]);
 
-  // Update codes when codesFromParent changes
+  // Stabilize the codes state to prevent flickering
   useEffect(() => {
     if (codesFromParent?.length) {
       console.log(
