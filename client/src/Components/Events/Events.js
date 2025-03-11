@@ -95,6 +95,25 @@ const hasEventPermissions = (event, user, userBrands) => {
     });
 
     if (teamMember) {
+      // Parse permissions if they're a string
+      let parsedPermissions = teamMember.permissions;
+
+      // Check if permissions is a string and try to parse it
+      if (typeof teamMember.permissions === "string") {
+        try {
+          parsedPermissions = JSON.parse(teamMember.permissions);
+          console.log(
+            "[hasEventPermissions] Successfully parsed permissions from string"
+          );
+        } catch (error) {
+          console.error(
+            "[hasEventPermissions] Error parsing permissions string:",
+            error
+          );
+          parsedPermissions = {};
+        }
+      }
+
       // Log team member details
       console.log("[hasEventPermissions] Found team member:", {
         memberId:
@@ -102,7 +121,11 @@ const hasEventPermissions = (event, user, userBrands) => {
             ? teamMember.user._id
             : teamMember.user,
         memberRole: teamMember.role,
-        permissions: JSON.stringify(teamMember.permissions || {}),
+        permissions:
+          typeof parsedPermissions === "object"
+            ? JSON.stringify(parsedPermissions)
+            : "{}",
+        parsedPermissionsType: typeof parsedPermissions,
       });
 
       // Define roles that should have edit permissions by default
@@ -114,6 +137,7 @@ const hasEventPermissions = (event, user, userBrands) => {
         "VERANSTALTER",
         "ORGANIZER",
         "EDITOR",
+        "MEDIA MANAGER", // Adding MEDIA MANAGER to the list of roles with edit permissions
       ];
 
       // Check if the user's role is in the editRoles list (case insensitive)
@@ -140,9 +164,9 @@ const hasEventPermissions = (event, user, userBrands) => {
       }
 
       // Only check the permissions object if the role doesn't automatically grant access
-      if (teamMember.permissions) {
+      if (parsedPermissions) {
         // Check if the team member has edit permissions for events
-        const hasEditPermission = teamMember.permissions?.events?.edit === true;
+        const hasEditPermission = parsedPermissions?.events?.edit === true;
 
         // Log detailed information about the permissions
         console.log(
@@ -150,15 +174,13 @@ const hasEventPermissions = (event, user, userBrands) => {
           {
             role: teamMember.role,
             hasEditPermission,
-            eventsPermissions: JSON.stringify(
-              teamMember.permissions?.events || {}
-            ),
-            allPermissions: JSON.stringify(teamMember.permissions || {}),
+            eventsPermissions: JSON.stringify(parsedPermissions?.events || {}),
+            allPermissions: JSON.stringify(parsedPermissions || {}),
           }
         );
 
         // If the permissions object has events.edit defined, use that value
-        if (typeof teamMember.permissions?.events?.edit === "boolean") {
+        if (typeof parsedPermissions?.events?.edit === "boolean") {
           return hasEditPermission;
         }
       }

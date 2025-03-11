@@ -1,0 +1,277 @@
+@import "../../_variables";
+
+.tickets-container {
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  // Seamless mode - removes ALL container styling completely
+  &.seamless {
+    background-color: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    overflow: visible;
+
+    // Override any potential parent constraints
+    width: 100%;
+    max-width: 100%;
+
+    // Remove any Stripe container styling in seamless mode
+    :global(.stripe-checkout) {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100%;
+
+      .tickets-container {
+        margin: 0;
+        padding: 0;
+        gap: 1rem;
+      }
+
+      .ticket-card {
+        background: rgba(0, 0, 0, 0.15);
+        border: none;
+        border-left: 8px solid #ffc807;
+        margin-bottom: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+        // Adjust padding for mobile
+        @media (max-width: 480px) {
+          padding: 1.5rem;
+        }
+      }
+
+      .checkout-summary {
+        background: rgba(0, 0, 0, 0.15);
+        border: none;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
+        // Adjust padding for mobile
+        @media (max-width: 480px) {
+          padding: 1.5rem;
+        }
+      }
+    }
+  }
+
+  .tickets-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .ticket-info {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+
+  .no-tickets-message {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+
+    p {
+      margin-bottom: 15px;
+    }
+
+    .ticket-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+
+      button {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        color: #fff;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        &.retry-button {
+          background-color: rgba(33, 150, 243, 0.2);
+          color: #2196f3;
+
+          &:hover {
+            background-color: rgba(33, 150, 243, 0.3);
+          }
+        }
+
+        &.sample-button {
+          background-color: rgba(255, 200, 7, 0.2);
+          color: #ffc807;
+
+          &:hover {
+            background-color: rgba(255, 200, 7, 0.3);
+          }
+        }
+      }
+    }
+  }
+
+  .loading-tickets {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.7);
+
+    .spinner {
+      border: 3px solid rgba(255, 200, 7, 0.3);
+      border-top: 3px solid #ffc807;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+  }
+
+  // Override Stripe component styles for better integration
+  :global(.stripe-checkout) {
+    width: 100%;
+
+    .tickets-container {
+      width: 100%;
+    }
+
+    .ticket-card {
+      width: 100%;
+      position: relative;
+      overflow: visible;
+      padding: 2rem;
+      border: none;
+      border-left: 8px solid #ffc807;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      border-radius: 18px;
+
+      // Adjust for mobile screens
+      @media (max-width: 480px) {
+        padding: 1.5rem;
+
+        .ticket-price {
+          .current-price {
+            font-size: 2rem;
+          }
+        }
+
+        .ticket-quantity {
+          padding: 0.75rem;
+
+          .quantity-btn {
+            width: 42px;
+            height: 42px;
+            font-size: 1.75rem;
+          }
+
+          .quantity {
+            font-size: 1.5rem;
+            min-width: 2.5rem;
+          }
+        }
+      }
+
+      // Creative countdown styling
+      .ticket-countdown {
+        position: absolute;
+        top: -15px;
+        right: -15px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 200, 7, 0.3),
+          rgba(255, 200, 7, 0.15)
+        );
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-size: 1rem;
+        color: #ffc807;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(4px);
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 200, 7, 0.4);
+        transform: rotate(2deg);
+
+        svg {
+          font-size: 1.2rem;
+        }
+      }
+
+      // Creative discount badge styling
+      .ticket-discount {
+        position: absolute !important;
+        top: -15px !important;
+        left: -15px !important;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 200, 7, 0.4),
+          rgba(255, 200, 7, 0.2)
+        ) !important;
+        padding: 8px 16px !important;
+        border-radius: 25px !important;
+        font-size: 1rem !important;
+        color: #ffc807 !important;
+        font-weight: 600 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 10 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 200, 7, 0.4) !important;
+        transform: rotate(-2deg) !important;
+        margin: 0 !important;
+      }
+    }
+
+    .checkout-summary {
+      width: 100%;
+      padding: 2rem;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      border-radius: 18px;
+
+      // Adjust for mobile screens
+      @media (max-width: 480px) {
+        padding: 1.5rem;
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Create an index.js file for easier imports

@@ -30,9 +30,14 @@ const BrandProfileFeed = ({ brand }) => {
               brandId={brand?._id}
               brandUsername={brand?.username}
               limit={5}
+              seamless={true}
             />
           ) : (
-            <UpcomingEvent brandUsername={brand?.username} limit={5} />
+            <UpcomingEvent
+              brandUsername={brand?.username}
+              limit={5}
+              seamless={true}
+            />
           )}
         </div>
       </div>

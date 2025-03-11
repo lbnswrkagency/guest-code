@@ -6,6 +6,7 @@ import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Stripe from "../Stripe/Stripe";
+import Tickets from "../Tickets/Tickets";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -40,7 +41,12 @@ const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
   );
 };
 
-const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
+const UpcomingEvent = ({
+  brandId,
+  brandUsername,
+  limit = 5,
+  seamless = false,
+}) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -363,8 +369,12 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             }
           }
         } catch (error) {
-          if (error.response && error.response.status === 401) {
-            // Not authenticated, try using brandUsername as fallback
+          // Handle both 401 (Unauthorized) and 403 (Forbidden) errors by falling back to public endpoint
+          if (
+            error.response &&
+            (error.response.status === 401 || error.response.status === 403)
+          ) {
+            // Not authenticated or not authorized, try using brandUsername as fallback
             if (brandUsername) {
               const cleanUsername = brandUsername.replace(/^@/, "");
               endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
@@ -699,7 +709,11 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   // Check if we have a current event to display
   if (loading) {
     return (
-      <div className="upcoming-event-container loading">
+      <div
+        className={`upcoming-event-container loading ${
+          seamless ? "seamless" : ""
+        }`}
+      >
         <div className="loading-spinner"></div>
       </div>
     );
@@ -707,7 +721,11 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   if (error) {
     return (
-      <div className="upcoming-event-container error">
+      <div
+        className={`upcoming-event-container error ${
+          seamless ? "seamless" : ""
+        }`}
+      >
         <div className="empty-state">
           <div className="empty-icon">⚠️</div>
           <p>{error}</p>
@@ -721,7 +739,11 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
 
   if (!events || events.length === 0) {
     return (
-      <div className="upcoming-event-container empty">
+      <div
+        className={`upcoming-event-container empty ${
+          seamless ? "seamless" : ""
+        }`}
+      >
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <p>No upcoming events found</p>
@@ -745,7 +767,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
   );
 
   return (
-    <div className="upcoming-event-container">
+    <div className={`upcoming-event-container ${seamless ? "seamless" : ""}`}>
       <div className="event-navigation">
         <button
           className={`nav-button prev ${currentIndex === 0 ? "disabled" : ""}`}
@@ -910,70 +932,35 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
             {/* Content sections wrapper for responsive layout */}
             <div className="content-sections">
               {/* Ticket Purchase Section */}
-              <div ref={ticketSectionRef} className="ticket-section">
+              <div ref={ticketSectionRef} className="ticket-section full-width">
                 {currentEvent && currentEvent.ticketsAvailable && (
-                  <>
-                    <h3>Buy Tickets</h3>
-                    <p className="ticket-info">
-                      Purchase tickets for {currentEvent.title} on{" "}
-                      {formatDate(currentEvent.date)}.
-                    </p>
+                  <Tickets
+                    eventId={currentEvent._id}
+                    eventTitle={currentEvent.title}
+                    eventDate={currentEvent.date}
+                    seamless={seamless}
+                    fetchTicketSettings={async (eventId) => {
+                      try {
+                        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+                        console.log(
+                          `[UpcomingEvent] Using event profile endpoint: ${endpoint}`
+                        );
 
-                    {ticketSettings && ticketSettings.length > 0 ? (
-                      <>
-                        <Stripe
-                          ticketSettings={ticketSettings}
-                          eventId={currentEvent._id}
-                          colors={{
-                            primary: "#ffc807",
-                            secondary: "#2196F3",
-                            background: "rgba(255, 255, 255, 0.05)",
-                          }}
-                          onCheckoutComplete={(result) => {
-                            toast.showSuccess("Redirecting to checkout...");
-                            setLoadingTickets(false);
-                          }}
-                        />
-                      </>
-                    ) : (
-                      <div className="no-tickets-message">
-                        {loadingTickets ? (
-                          <div className="loading-tickets">
-                            <LoadingSpinner />
-                            <span>Loading ticket information...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <p>
-                              No tickets are currently available for this event.
-                            </p>
-                            <div className="ticket-actions">
-                              <button
-                                className="retry-button"
-                                onClick={() =>
-                                  fetchTicketSettings(currentEvent._id)
-                                }
-                              >
-                                <RiRefreshLine /> Retry
-                              </button>
-                              {user && user.isAdmin && (
-                                <button
-                                  className="sample-button"
-                                  onClick={() =>
-                                    setTicketSettings(
-                                      createSampleTicket(currentEvent._id)
-                                    )
-                                  }
-                                >
-                                  <RiTestTubeLine /> Use Sample Tickets
-                                </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </>
+                        const response = await axiosInstance.get(endpoint);
+
+                        if (response.data && response.data.ticketSettings) {
+                          return response.data.ticketSettings;
+                        }
+                        return [];
+                      } catch (error) {
+                        console.error(
+                          "[UpcomingEvent] Error fetching ticket settings:",
+                          error
+                        );
+                        return [];
+                      }
+                    }}
+                  />
                 )}
               </div>
 

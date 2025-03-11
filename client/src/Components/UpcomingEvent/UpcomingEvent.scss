@@ -11,11 +11,66 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 100%;
 
+  // Seamless mode - removes container styling
+  &.seamless {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: transparent;
+    margin-bottom: 0;
+
+    .event-navigation {
+      background: transparent;
+      border-bottom: none;
+      padding: 0.75rem 0;
+    }
+
+    .event-card {
+      border: none;
+      background: transparent;
+
+      .event-image-container {
+        border-radius: 8px;
+        overflow: hidden;
+      }
+    }
+
+    .event-details {
+      padding: 1rem 0;
+    }
+
+    .ticket-section {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .action-buttons {
+      margin-top: 1rem;
+
+      .action-button {
+        background: rgba(255, 200, 7, 0.1);
+        border: 1px solid rgba(255, 200, 7, 0.2);
+
+        &:hover {
+          background: rgba(255, 200, 7, 0.15);
+        }
+      }
+    }
+  }
+
   &.loading {
     min-height: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
+
+    // Seamless loading state
+    &.seamless {
+      min-height: 150px;
+      background: transparent;
+    }
 
     .loading-spinner {
       width: 40px;
@@ -452,6 +507,14 @@
         }
       }
     }
+  }
+
+  // Full width class for sections that need to take up all available space
+  .full-width {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
   }
 }
 

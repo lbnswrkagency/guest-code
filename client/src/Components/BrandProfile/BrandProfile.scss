@@ -592,6 +592,24 @@
     .events-list {
       width: 100%;
       max-width: 100%;
+
+      // Styling for seamless UpcomingEvent
+      .event-navigation {
+        margin-top: -0.5rem;
+      }
+
+      .event-card {
+        margin-top: 0.5rem;
+      }
+
+      .event-image-container {
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .event-details {
+        padding: 1rem 0;
+      }
     }
   }
 }
