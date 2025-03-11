@@ -83,9 +83,25 @@ const calculateMD5 = async (buffer) => {
 };
 
 const getImageUrl = (key) => {
-  if (USE_CLOUDFRONT === "true" && S3_CLOUDFRONT_URL) {
+  if (
+    (USE_CLOUDFRONT === "true" || USE_CLOUDFRONT === true) &&
+    S3_CLOUDFRONT_URL
+  ) {
+    console.log(chalk.blue("[S3Service] Using CloudFront URL:"), {
+      cloudfrontDomain: S3_CLOUDFRONT_URL,
+      key,
+      fullUrl: `${S3_CLOUDFRONT_URL}/${key}`,
+    });
     return `${S3_CLOUDFRONT_URL}/${key}`;
   }
+
+  console.log(chalk.yellow("[S3Service] Using direct S3 URL:"), {
+    useCloudfront: USE_CLOUDFRONT,
+    cloudfrontUrl: S3_CLOUDFRONT_URL,
+    reason: !USE_CLOUDFRONT
+      ? "USE_CLOUDFRONT is not enabled"
+      : "S3_CLOUDFRONT_URL is not set",
+  });
   return `https://${AWS_S3_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
 };
 
