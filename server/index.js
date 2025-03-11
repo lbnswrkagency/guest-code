@@ -41,6 +41,7 @@ const roleRoutes = require("./routes/roleRoutes");
 const stripeRoutes = require("./routes/api/stripeRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const debugRoutes = require("./routes/api/debugRoutes");
+const alphaKeysRoutes = require("./routes/alphaKeysRoute");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -233,6 +234,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api", searchRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api/alpha-keys", alphaKeysRoutes);
 app.use("/api", debugRoutes);
 
 // MongoDB connection

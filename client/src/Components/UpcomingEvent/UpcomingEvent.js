@@ -405,32 +405,7 @@ const UpcomingEvent = ({ brandId, brandUsername, limit = 5 }) => {
       // Filter out past events and sort by date
       const now = new Date();
       const upcomingEvents = events
-        .filter((event) => {
-          // Get event date
-          const eventDate = new Date(event.date);
-
-          // Create a date object for the event's end time on the next day
-          const eventEndDate = new Date(eventDate);
-
-          // If event has endTime, parse it and set it for the end date
-          if (event.endTime) {
-            // Parse hours and minutes from endTime (format: "HH:MM")
-            const [hours, minutes] = event.endTime.split(":").map(Number);
-
-            // If hours are less than 12, it's likely ending the next day (like "06:00" meaning 6 AM next day)
-            if (hours < 12) {
-              eventEndDate.setDate(eventEndDate.getDate() + 1);
-            }
-
-            eventEndDate.setHours(hours, minutes, 0, 0);
-          } else {
-            // If no endTime specified, default to end of day
-            eventEndDate.setHours(23, 59, 59, 999);
-          }
-
-          // Event is upcoming if its end date/time is in the future
-          return eventEndDate >= now;
-        })
+        .filter((event) => new Date(event.date) >= now)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       setEvents(upcomingEvents);

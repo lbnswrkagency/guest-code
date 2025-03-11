@@ -175,6 +175,32 @@
               box-shadow: 0 0 12px rgba(255, 200, 7, 0.1);
             }
           }
+
+          .alpha-badge {
+            color: #000;
+            background: #ffc807;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+            box-shadow: 0 2px 8px rgba(255, 200, 7, 0.3);
+            animation: pulse 2s infinite;
+          }
+
+          @keyframes pulse {
+            0% {
+              box-shadow: 0 0 0 0 rgba(255, 200, 7, 0.4);
+            }
+            70% {
+              box-shadow: 0 0 0 10px rgba(255, 200, 7, 0);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(255, 200, 7, 0);
+            }
+          }
         }
       }
     }
@@ -286,37 +312,25 @@
       }
 
       &.disabled {
-        opacity: 0.65;
+        opacity: 0.5;
         cursor: not-allowed;
-        background: linear-gradient(145deg, #4e4e4e, #3a3a3a);
-        color: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        position: relative;
+        pointer-events: none;
+      }
 
-        &::after {
-          content: "Coming Soon";
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          font-size: 0.6rem;
-          background: rgba(255, 200, 7, 0.85);
-          color: #000;
-          padding: 3px 8px;
-          border-radius: 10px;
-          font-weight: 600;
-          transform: rotate(5deg);
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-          z-index: 2;
-        }
-
-        &:hover {
-          box-shadow: 0 2px 8px rgba(78, 78, 78, 0.25);
-          transform: none !important;
-        }
+      &.alpha-active {
+        background: rgba(255, 200, 7, 0.1);
+        border-color: rgba(255, 200, 7, 0.2);
 
         .menu-item-icon {
-          background: rgba(255, 255, 255, 0.1) !important;
-          color: rgba(255, 255, 255, 0.7) !important;
+          background: rgba(255, 200, 7, 0.2);
+        }
+
+        &::after {
+          content: "✓";
+          position: absolute;
+          right: 1rem;
+          color: #ffc807;
+          font-weight: bold;
         }
       }
     }
@@ -378,6 +392,52 @@
         .menu-item-text h4 {
           font-size: 1rem;
         }
+      }
+    }
+  }
+}
+
+.alpha-access-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  .alpha-access-modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+
+    .close-alpha-modal {
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 40px;
+      height: 40px;
+      background: rgba(21, 21, 21, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1101;
+
+      svg {
+        font-size: 1.5rem;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        transform: rotate(90deg);
       }
     }
   }

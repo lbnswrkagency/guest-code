@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./DashboardNavigation.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,23 +7,54 @@ import {
   RiCloseLine,
   RiBuildingLine,
   RiSettings4Line,
+  RiKeyLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../contexts/SocketContext";
 import AvatarUpload from "../AvatarUpload/AvatarUpload";
 import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
+import AlphaAccess from "../AlphaAccess/AlphaAccess";
 
 const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   const navigate = useNavigate();
   const { isConnected } = useSocket();
   const [isCropMode, setIsCropMode] = useState(false);
+  const [showAlphaAccess, setShowAlphaAccess] = useState(false);
+
+  // Log isAlpha status whenever currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      console.log("🔍 DashboardNavigation: User object:", currentUser);
+      console.log("🔍 DashboardNavigation: User isAlpha status:", {
+        username: currentUser.username,
+        isAlpha: currentUser.isAlpha,
+        isDeveloper: currentUser.isDeveloper,
+        userKeys: Object.keys(currentUser),
+      });
+    }
+  }, [currentUser]);
 
   if (!currentUser) return null;
 
-  const isAuthorizedUser = currentUser._id === "65707f8da826dc13721ef735";
+  // FIXED: Only use isAlpha for access control, not isDeveloper
+  const hasAlphaAccess = Boolean(currentUser.isAlpha);
 
-  const menuItems = [
-    {
+  console.log(
+    "🔍 DashboardNavigation: Rendering with hasAlphaAccess =",
+    hasAlphaAccess,
+    "isAlpha =",
+    Boolean(currentUser.isAlpha),
+    "isDeveloper =",
+    Boolean(currentUser.isDeveloper)
+  );
+
+  // Force debug - remove this in production
+  // This is just for debugging to see what's happening
+  const debugMenuItems = () => {
+    const items = [];
+
+    // Always add Profile
+    items.push({
       title: "Profile",
       icon: <RiHome5Line />,
       path: `/@${currentUser.username}`,
@@ -31,51 +62,98 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         navigate(`/@${currentUser.username}`);
         onClose();
       },
-    },
-    // Only show Brands for authorized user
-    ...(isAuthorizedUser
-      ? [
-          {
-            title: "Brands",
-            icon: <RiBuildingLine />,
-            path: `/@${currentUser.username}/brands`,
-            action: () => {
-              navigate(`/@${currentUser.username}/brands`);
-              onClose();
-            },
-          },
-        ]
-      : []),
-    // Only show Events for authorized user
-    ...(isAuthorizedUser
-      ? [
-          {
-            title: "Events",
-            icon: <RiCalendarEventLine />,
-            path: `/@${currentUser.username}/events`,
-            action: () => {
-              navigate(`/@${currentUser.username}/events`);
-              onClose();
-            },
-          },
-        ]
-      : []),
-    // Only show Settings for authorized user
-    ...(isAuthorizedUser
-      ? [
-          {
-            title: "Settings",
-            icon: <RiSettings4Line />,
-            path: "/settings",
-            action: (e) => {
-              // No action for now, will implement later
-              e.stopPropagation();
-              onClose();
-            },
-          },
-        ]
-      : []),
-  ];
+    });
+
+    // Check Brands condition
+    if (hasAlphaAccess) {
+      console.log(
+        "🔍 Adding Brands menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+      items.push({
+        title: "Brands",
+        icon: <RiBuildingLine />,
+        path: `/@${currentUser.username}/brands`,
+        action: () => {
+          navigate(`/@${currentUser.username}/brands`);
+          onClose();
+        },
+      });
+    } else {
+      console.log(
+        "🔍 NOT adding Brands menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+    }
+
+    // Check Events condition
+    if (hasAlphaAccess) {
+      console.log(
+        "🔍 Adding Events menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+      items.push({
+        title: "Events",
+        icon: <RiCalendarEventLine />,
+        path: `/@${currentUser.username}/events`,
+        action: () => {
+          navigate(`/@${currentUser.username}/events`);
+          onClose();
+        },
+      });
+    } else {
+      console.log(
+        "🔍 NOT adding Events menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+    }
+
+    // Check Settings condition
+    if (hasAlphaAccess) {
+      console.log(
+        "🔍 Adding Settings menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+      items.push({
+        title: "Settings",
+        icon: <RiSettings4Line />,
+        path: "/settings",
+        action: () => {
+          navigate("/settings");
+          onClose();
+        },
+      });
+    } else {
+      console.log(
+        "🔍 NOT adding Settings menu item because hasAlphaAccess =",
+        hasAlphaAccess
+      );
+    }
+
+    // Only show Alpha Access option if user doesn't have alpha access
+    if (!hasAlphaAccess) {
+      console.log(
+        "🔍 Adding Alpha Access menu item because user doesn't have alpha access"
+      );
+      items.push({
+        title: "Alpha Access",
+        icon: <RiKeyLine />,
+        action: () => {
+          console.log("Opening Alpha Access modal");
+          setShowAlphaAccess(true);
+        },
+      });
+    } else {
+      console.log(
+        "🔍 NOT adding Alpha Access menu item because user already has alpha access"
+      );
+    }
+
+    return items;
+  };
+
+  // Use the debug function instead of the spread operator approach
+  const menuItems = debugMenuItems();
 
   const overlayVariants = {
     hidden: { opacity: 0 },
@@ -104,6 +182,11 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         duration: 0.2,
       },
     }),
+  };
+
+  const handleCloseAlphaAccess = () => {
+    console.log("Closing Alpha Access modal");
+    setShowAlphaAccess(false);
   };
 
   return (
@@ -156,6 +239,9 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                       {currentUser.firstName}
                     </span>
                     <span className="username">@{currentUser.username}</span>
+                    {currentUser.isAlpha && (
+                      <span className="alpha-badge">Alpha</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -166,7 +252,9 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                 <motion.div
                   key={item.title}
                   className={`menu-item ${
-                    item.title === "Settings" ? "disabled" : ""
+                    item.title === "Alpha Access" && currentUser.isAlpha
+                      ? "alpha-active"
+                      : ""
                   }`}
                   variants={menuItemVariants}
                   custom={index}
@@ -181,6 +269,25 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                 </motion.div>
               ))}
             </div>
+
+            {/* Alpha Access Modal */}
+            {showAlphaAccess && (
+              <div className="alpha-access-modal">
+                <div className="alpha-access-modal-content">
+                  <button
+                    className="close-alpha-modal"
+                    onClick={handleCloseAlphaAccess}
+                  >
+                    <RiCloseLine />
+                  </button>
+                  <AlphaAccess
+                    user={currentUser}
+                    setUser={setUser}
+                    onSuccess={handleCloseAlphaAccess}
+                  />
+                </div>
+              </div>
+            )}
           </motion.div>
         </>
       )}
