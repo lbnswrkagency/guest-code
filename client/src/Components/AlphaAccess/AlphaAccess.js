@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import "./AlphaAccess.scss";
@@ -77,20 +78,10 @@ const AlphaAccess = ({ user, setUser, onSuccess }) => {
     try {
       console.log("Submitting alpha code:", fullCode);
 
-      // Get the API URL from environment or use default
-      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
-      const response = await axios.post(
-        `${API_URL}/api/alpha-keys/verify`,
-        { code: fullCode },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use axiosInstance instead of direct axios call with hardcoded URL
+      const response = await axiosInstance.post(`/alpha-keys/verify`, {
+        code: fullCode,
+      });
 
       console.log("Alpha code verification response:", response.data);
 

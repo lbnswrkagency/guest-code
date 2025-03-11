@@ -203,25 +203,22 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
     }
 
     .crop-controls {
-      padding: 0.75rem 1rem;
       display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      flex-direction: column;
+      padding: 1rem;
       background: #151515;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       z-index: 10;
-      height: 70px;
 
+      // Slider container
       .zoom-slider {
         -webkit-appearance: none;
-        width: 65%;
+        width: 100%;
         height: 6px;
         background: rgba(255, 200, 7, 0.15);
         outline: none;
         border-radius: 3px;
-        margin: 0;
+        margin: 0 0 1rem 0;
 
         &::-webkit-slider-thumb {
           -webkit-appearance: none;
@@ -254,23 +251,26 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
         }
       }
 
+      // Action buttons container
       .action-buttons {
-        display: flex;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(min-content, max-content));
+        align-items: center;
         gap: 1rem;
-        width: 30%;
-
+        width: 100%;
+        margin-top: 0.5rem;
+        justify-content: center;
         button {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
+          width: 30px;
+          height: 30px;
+          border-radius: 12px;
           border: none;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          font-size: 1.5rem;
+          font-size: 2rem;
 
           &.cancel-button {
             background: rgba(255, 255, 255, 0.15);
@@ -341,13 +341,11 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
       }
 
       .crop-controls {
-        padding: 0.5rem 0.75rem;
-        height: 60px;
-        gap: 0.75rem;
+        padding: 0.75rem;
 
         .zoom-slider {
-          width: 60%;
           height: 5px;
+          margin-bottom: 0.75rem;
 
           &::-webkit-slider-thumb {
             width: 22px;
@@ -361,13 +359,12 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
         }
 
         .action-buttons {
-          width: 35%;
           gap: 0.75rem;
 
           button {
-            width: 40px;
-            height: 40px;
-            font-size: 1.4rem;
+            width: 50px;
+            height: 50px;
+            font-size: 1.8rem;
           }
         }
       }
