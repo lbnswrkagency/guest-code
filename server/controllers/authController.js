@@ -215,6 +215,15 @@ exports.login = async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       avatar: user.avatar,
+      isAlpha: user.isAlpha,
+      isAdmin: user.isAdmin,
+      isDeveloper: user.isDeveloper,
+      isScanner: user.isScanner,
+      isPromoter: user.isPromoter,
+      isStaff: user.isStaff,
+      isBackstage: user.isBackstage,
+      isSpitixBattle: user.isSpitixBattle,
+      isTable: user.isTable,
     };
 
     console.log("[AuthController:Login] Login successful", {

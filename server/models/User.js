@@ -31,6 +31,7 @@ const UserSchema = new Schema(
     isBackstage: { type: Boolean, default: false },
     isSpitixBattle: { type: Boolean, default: false },
     isTable: { type: Boolean, default: false },
+    isAlpha: { type: Boolean, default: false },
     backstageCodeLimit: { type: Number, default: false },
     friendsCodeLimit: { type: Number, default: false },
     createdAt: { type: Date, default: Date.now },

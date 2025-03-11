@@ -781,38 +781,6 @@ const EventProfile = () => {
         <h2>Oops! Something went wrong</h2>
         <p>{error}</p>
         <button onClick={() => navigate(-1)}>Go Back</button>
-
-        {/* Add a debugging section visible in development */}
-        {process.env.NODE_ENV === "development" && (
-          <div
-            className="debug-info"
-            style={{
-              marginTop: "20px",
-              padding: "10px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              backgroundColor: "#f5f5f5",
-            }}
-          >
-            <h3>Debug Information:</h3>
-            <pre style={{ overflow: "auto" }}>
-              {JSON.stringify(
-                {
-                  path: pathname,
-                  params: {
-                    urlEventId,
-                    urlBrandUsername,
-                    urlEventUsername,
-                    urlDateSlug,
-                    urlEventSlug,
-                  },
-                },
-                null,
-                2
-              )}
-            </pre>
-          </div>
-        )}
       </div>
     );
   }
