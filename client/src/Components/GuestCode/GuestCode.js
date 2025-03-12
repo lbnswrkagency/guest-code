@@ -22,6 +22,7 @@ const GuestCode = ({ event }) => {
   const [generatingCode, setGeneratingCode] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [formErrors, setFormErrors] = useState({});
+  const [existingCodeWarning, setExistingCodeWarning] = useState("");
 
   // Validate email format
   const isValidEmail = (email) => {
@@ -93,8 +94,9 @@ const GuestCode = ({ event }) => {
         return;
       }
 
-      // Clear previous errors
+      // Clear previous errors and warnings
       setFormErrors({});
+      setExistingCodeWarning("");
 
       // Set generating state
       setGeneratingCode(true);
@@ -124,10 +126,18 @@ const GuestCode = ({ event }) => {
         maxPax: guestPax,
       });
 
-      console.log("[GuestCode] Guest code generated and sent:", response.data);
+      console.log("[GuestCode] API response:", response);
 
-      // Check if the response contains a success property or code property
-      if (response.data && (response.data.success || response.data.code)) {
+      // Check for the already exists case (status 409)
+      if (response.data && response.data.alreadyExists) {
+        setExistingCodeWarning(
+          response.data.message ||
+            "You already received a Guest Code for this event."
+        );
+        toast.showInfo("Guest code already exists");
+      }
+      // Check for success
+      else if (response.data && (response.data.success || response.data.code)) {
         // Clear form fields
         setGuestName("");
         setGuestEmail("");
@@ -149,19 +159,19 @@ const GuestCode = ({ event }) => {
           response.data?.message || "Failed to generate guest code"
         );
       }
-    } catch (err) {
-      console.error("[GuestCode] Error generating guest code:", err);
+    } catch (error) {
+      console.error("[GuestCode] Error generating guest code:", error);
 
-      // Handle specific error cases
-      if (err.response?.status === 401) {
-        toast.showError("Please log in to generate guest codes");
-      } else if (err.response?.status === 403) {
-        toast.showError(
-          "You don't have permission to generate guest codes for this event"
+      // Check for 409 Conflict status (already exists)
+      if (error.response && error.response.status === 409) {
+        setExistingCodeWarning(
+          error.response.data.message ||
+            "You already received a Guest Code for this event."
         );
+        toast.showInfo("Guest code already exists");
       } else {
         toast.showError(
-          err.response?.data?.message || "Failed to generate guest code"
+          error.response?.data?.message || "Failed to generate guest code"
         );
       }
     } finally {
@@ -193,6 +203,21 @@ const GuestCode = ({ event }) => {
               className="success-content"
             >
               {successMessage}
+            </motion.div>
+          </div>
+        )}
+
+        {/* Existing code warning message */}
+        {existingCodeWarning && (
+          <div className="warning-message">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="warning-content"
+            >
+              <RiCodeSSlashLine className="warning-icon" />
+              {existingCodeWarning}
             </motion.div>
           </div>
         )}

@@ -198,11 +198,14 @@
 
     .event-image-container {
       width: 100%;
-      height: 240px;
+      min-height: 150px;
       overflow: hidden;
       background-color: #000;
       cursor: pointer;
       position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
 
       &::after {
         content: "";
@@ -218,9 +221,10 @@
 
       .event-image {
         width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center 25%;
+        height: auto;
+        max-height: 500px; /* Set a reasonable max-height to prevent extremely tall images */
+        object-fit: contain;
+        object-position: center;
         transition: transform 0.8s ease;
       }
 
@@ -230,7 +234,7 @@
 
       .no-image {
         width: 100%;
-        height: 100%;
+        height: 240px; /* Keep a default height for the no-image state */
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -250,6 +254,25 @@
       }
     }
 
+    // Additional styles for different aspect ratios
+    &.has-landscape-flyer .event-image-container {
+      .event-image {
+        max-height: 240px; /* Landscape images shouldn't be too tall */
+      }
+    }
+
+    &.has-portrait-flyer .event-image-container {
+      .event-image {
+        max-height: 350px; /* Portrait images can be a bit taller */
+      }
+    }
+
+    &.has-vertical-flyer .event-image-container {
+      .event-image {
+        max-height: 450px; /* 9:16 or vertical images can be quite tall */
+      }
+    }
+
     .event-details {
       padding: 1.25rem;
       background-color: #151515;
@@ -264,7 +287,8 @@
       .event-title {
         font-size: 2.2rem;
         font-weight: 700;
-        margin: 1.5rem 0 0.5rem;
+        margin: 0rem 0 0.5rem;
+
         color: #fff;
         cursor: pointer;
         display: block;
@@ -356,8 +380,10 @@
 
       .event-image-container {
         width: 35%;
-        height: auto;
         min-height: 280px;
+        max-height: 450px;
+        display: flex;
+        align-items: center;
       }
 
       .event-details {
@@ -380,6 +406,19 @@
         .event-subtitle {
           text-align: left;
         }
+      }
+
+      // Adjust the max heights for different flyer types in desktop view
+      &.has-landscape-flyer .event-image-container .event-image {
+        max-height: 280px;
+      }
+
+      &.has-portrait-flyer .event-image-container .event-image {
+        max-height: 350px;
+      }
+
+      &.has-vertical-flyer .event-image-container .event-image {
+        max-height: 420px;
       }
     }
   }
@@ -406,6 +445,7 @@
       .event-image-container {
         width: 40%;
         min-height: 320px;
+        max-height: 500px;
       }
 
       .event-details {
@@ -426,6 +466,19 @@
           font-size: 1.1rem;
           margin-bottom: 2rem;
         }
+      }
+
+      // Larger max heights for wider screens
+      &.has-landscape-flyer .event-image-container .event-image {
+        max-height: 320px;
+      }
+
+      &.has-portrait-flyer .event-image-container .event-image {
+        max-height: 400px;
+      }
+
+      &.has-vertical-flyer .event-image-container .event-image {
+        max-height: 480px;
       }
     }
   }
@@ -448,7 +501,8 @@
 
       .event-image-container {
         width: 100%;
-        height: 450px;
+        min-height: 200px;
+        max-height: unset;
         grid-column: 1 / -1;
         grid-row: 1;
         position: relative;
@@ -473,9 +527,33 @@
 
         .event-image {
           width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center 20%;
+          max-width: 100%;
+          margin: 0 auto;
+          object-fit: contain;
+        }
+      }
+
+      &.has-landscape-flyer .event-image-container {
+        height: auto;
+
+        .event-image {
+          max-height: 450px;
+        }
+      }
+
+      &.has-portrait-flyer .event-image-container {
+        height: auto;
+
+        .event-image {
+          max-height: 500px;
+        }
+      }
+
+      &.has-vertical-flyer .event-image-container {
+        height: auto;
+
+        .event-image {
+          max-height: 550px;
         }
       }
 
@@ -861,17 +939,14 @@
 .ticket-section {
   margin: 1.5rem 0;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 200, 7, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
   max-width: 100%;
   overflow-x: hidden;
 
   h3 {
     color: #fff;
     font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
     position: relative;
     display: inline-block;
     font-weight: 600;
