@@ -1512,6 +1512,36 @@ const getUserCodeCounts = async (req, res) => {
   }
 };
 
+// Find a code by security token
+const findBySecurityToken = async (req, res) => {
+  try {
+    const { securityToken } = req.body;
+
+    if (!securityToken) {
+      return res.status(400).json({ message: "Security token is required" });
+    }
+
+    console.log("Looking for code with securityToken:", securityToken);
+
+    // Find the code by security token
+    const code = await Code.findOne({ securityToken });
+
+    if (!code) {
+      return res.status(404).json({ message: "Code not found" });
+    }
+
+    console.log("Found code by securityToken:", code.code);
+
+    return res.status(200).json({
+      message: "Code found",
+      code,
+    });
+  } catch (error) {
+    console.error("Error finding code by security token:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   configureCodeSettings,
   getCodeSettings,
@@ -1527,4 +1557,5 @@ module.exports = {
   trackCodeUsage,
   getCodeCounts,
   getUserCodeCounts,
+  findBySecurityToken,
 };

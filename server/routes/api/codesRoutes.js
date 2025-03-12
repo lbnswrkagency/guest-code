@@ -86,4 +86,11 @@ router.get(
 
 console.log("✅ Registered route: GET /codes/user-counts/:eventId/:userId");
 
+// Find a code by security token
+router.post(
+  "/findBySecurityToken",
+  authenticate,
+  codesController.findBySecurityToken
+);
+
 module.exports = router;

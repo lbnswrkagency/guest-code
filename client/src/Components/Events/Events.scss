@@ -4,6 +4,8 @@
   background: #000;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 2rem;
 }
 
 .events {
@@ -11,6 +13,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding-top: 6rem;
+  padding-bottom: 4rem;
 
   .events-header {
     text-align: center;
@@ -172,6 +175,7 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
     padding: 1rem;
+    margin-bottom: 2rem;
   }
 
   .loading-state {
@@ -613,6 +617,7 @@
   .events {
     padding: 1rem;
     padding-top: 5rem;
+    padding-bottom: 5rem;
 
     .events-header {
       h1 {
@@ -627,7 +632,6 @@
   }
 
   .event-card {
-    min-height: 550px;
   }
 
   .event-form-overlay {

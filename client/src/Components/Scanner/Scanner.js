@@ -1,10 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import Navigation from "../Navigation/Navigation";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import "./Scanner.scss";
 import jsQR from "jsqr";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  RiQrScanLine,
+  RiCloseLine,
+  RiCheckLine,
+  RiUserLine,
+  RiTimeLine,
+  RiArrowLeftLine,
+  RiArrowRightLine,
+  RiErrorWarningLine,
+} from "react-icons/ri";
 
 function Scanner({ onClose }) {
   const [scanResult, setScanResult] = useState(null);
@@ -12,6 +22,8 @@ function Scanner({ onClose }) {
   const [scanning, setScanning] = useState(true);
   const [scannerError, setScannerError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -42,10 +54,15 @@ function Scanner({ onClose }) {
 
   // Function to handle QR code scanning
   const startScanning = () => {
+    if (errorMessage) {
+      return; // Don't start scanning if there's an error
+    }
+
     const tick = () => {
       if (
         videoRef.current?.readyState === videoRef.current?.HAVE_ENOUGH_DATA &&
-        !isProcessing
+        !isProcessing &&
+        !errorMessage // Don't scan if there's an error
       ) {
         const canvasElement = canvasRef.current;
         const context = canvasElement.getContext("2d");
@@ -68,7 +85,7 @@ function Scanner({ onClose }) {
 
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-        if (code && !isProcessing) {
+        if (code && !isProcessing && !errorMessage) {
           handleQRCode(code.data);
         }
       }
@@ -80,6 +97,10 @@ function Scanner({ onClose }) {
 
   // Function to handle QR code data
   const handleQRCode = async (data) => {
+    if (isProcessing || errorMessage) {
+      return; // Don't process if already processing or if there's an error
+    }
+
     setIsProcessing(true);
     if (!data || data.trim() === "") {
       toast.showError("Invalid QR code content");
@@ -92,25 +113,30 @@ function Scanner({ onClose }) {
 
       // Check if the data is JSON
       let codeData;
+      let codeToValidate = data;
+
       try {
         codeData = JSON.parse(data);
         console.log("Parsed QR code JSON data:", codeData);
 
         // Check if we have a code property in the parsed object
         if (codeData && codeData.code) {
-          await validateTicket(codeData.code);
-        } else {
-          // Try using the raw data as a fallback
-          await validateTicket(data);
+          codeToValidate = codeData.code;
+        } else if (codeData && codeData.securityToken) {
+          codeToValidate = codeData.securityToken;
         }
       } catch (parseError) {
         // If not JSON, treat as a raw code
         console.log("QR code is not JSON, treating as raw code");
-        await validateTicket(data);
       }
+
+      // Validate the code
+      await validateTicket(codeToValidate);
     } catch (error) {
       console.error("QR processing error:", error);
-    } finally {
+      setErrorMessage("Failed to process QR code. Please try again.");
+      cleanupCamera(); // Stop the camera when there's an error
+      setShowCamera(false);
       setIsProcessing(false);
     }
   };
@@ -132,54 +158,70 @@ function Scanner({ onClose }) {
 
   // Initialize camera on mount
   useEffect(() => {
-    if (scanning && !scanResult) {
+    if (scanning && !scanResult && showCamera && !errorMessage) {
       initializeCamera();
     }
 
     return () => cleanupCamera();
-  }, [scanning, scanResult]);
+  }, [scanning, scanResult, showCamera, errorMessage]);
 
   const validateTicket = async (codeValue) => {
     try {
+      setIsProcessing(true);
       console.log("Validating code:", codeValue);
 
-      // Try using the new endpoint structure first
-      const response = await axiosInstance.post("/codes/verify", {
-        code: codeValue,
+      // Single API call to validate the code - will handle security tokens, IDs, and code values
+      const response = await axiosInstance.post("/qr/validate", {
+        ticketId: codeValue,
       });
 
       console.log("Verification response:", response.data);
 
       // Map the response data to our scanResult structure
-      const codeData = response.data.code;
-      const eventData = response.data.event;
-      const codeSettingData = response.data.codeSetting;
+      const ticketData = response.data;
+
+      // Determine the appropriate name to display based on ticket type
+      let displayName = "Guest";
+
+      if (ticketData.typeOfTicket === "Ticket-Code" && ticketData.ticketName) {
+        // For tickets, use the ticket name
+        displayName = ticketData.ticketName;
+      } else if (ticketData.guestName) {
+        // For guest codes, use the guest name
+        displayName = ticketData.guestName;
+      } else if (ticketData.name && ticketData.name !== "Guest Code") {
+        // For other codes with a meaningful name
+        displayName = ticketData.name;
+      }
 
       const formattedResult = {
-        _id: codeData._id,
-        code: codeData.code,
-        typeOfTicket:
-          codeData.type.charAt(0).toUpperCase() +
-          codeData.type.slice(1) +
-          " Code",
-        name: codeData.name || codeSettingData?.name || "Guest",
-        pax: codeData.maxPax || 1,
-        paxChecked: codeData.paxChecked || 0,
-        condition: codeData.condition || "",
-        tableNumber: codeData.tableNumber || "",
-        status: codeData.status,
-        eventDetails: {
-          _id: eventData?._id,
-          title: eventData?.title,
-          date: eventData?.date,
-          location: eventData?.location,
+        _id: ticketData._id,
+        code: ticketData.code || ticketData.securityToken || codeValue,
+        typeOfTicket: ticketData.typeOfTicket || "Unknown Code",
+        name: displayName,
+        pax: ticketData.pax || ticketData.maxPax || 1,
+        paxChecked: ticketData.paxChecked || 0,
+        condition: ticketData.condition || "",
+        tableNumber: ticketData.tableNumber || "",
+        status: ticketData.status,
+        ticketType: ticketData.ticketType || "",
+        eventDetails: ticketData.eventDetails || {
+          title: ticketData.eventName || "Unknown Event",
         },
-        metadata: codeData.metadata || {},
+        metadata: {
+          ...(ticketData.metadata || {}),
+          hostName:
+            ticketData.hostName ||
+            (ticketData.metadata && ticketData.metadata.hostName) ||
+            "",
+        },
       };
 
       console.log("Formatted result:", formattedResult);
       setScanResult(formattedResult);
       setScanning(false);
+      setShowCamera(false);
+      setErrorMessage(null);
       cleanupCamera();
 
       toast.showSuccess("Code verified successfully");
@@ -189,30 +231,20 @@ function Scanner({ onClose }) {
       // More user-friendly error messages based on error type
       const errorMessage =
         error.response?.status === 404
-          ? "Invalid code"
+          ? "Invalid code or code not found"
+          : error.response?.status === 401
+          ? "Authentication required. Please log in again."
           : error.response?.status === 400
           ? error.response?.data?.message || "Invalid QR code format"
           : error.response?.data?.message || "Error validating code";
 
       toast.showError(errorMessage);
+      setErrorMessage(errorMessage);
+      cleanupCamera();
+      setShowCamera(false);
+    } finally {
       setIsProcessing(false);
     }
-  };
-
-  // Helper function to handle validation errors
-  const handleValidationError = (error) => {
-    console.error("Validation error:", error);
-
-    // More user-friendly error messages based on error type
-    const errorMessage =
-      error.response?.status === 404
-        ? "Invalid code"
-        : error.response?.status === 400
-        ? error.response?.data?.message || "Invalid QR code format"
-        : error.response?.data?.message || "Error validating code";
-
-    toast.showError(errorMessage);
-    setIsProcessing(false);
   };
 
   const updatePax = async (increment) => {
@@ -221,15 +253,12 @@ function Scanner({ onClose }) {
         `Updating pax, increment: ${increment}, codeId: ${scanResult._id}`
       );
 
-      // Use the new endpoint structure
-      const response = await axiosInstance.post(
-        `/codes/${scanResult._id}/usage`,
-        {
-          paxUsed: increment ? 1 : -1,
-          location: "Scanner App",
-          deviceInfo: navigator.userAgent,
-        }
-      );
+      // Use the QR routes for increasing/decreasing pax
+      const endpoint = increment
+        ? `/qr/increase/${scanResult._id}`
+        : `/qr/decrease/${scanResult._id}`;
+
+      const response = await axiosInstance.put(endpoint);
 
       console.log("Update pax response:", response.data);
 
@@ -267,6 +296,8 @@ function Scanner({ onClose }) {
     setScanning(true);
     setIsProcessing(false);
     setScannerError(false);
+    setShowCamera(false);
+    setErrorMessage(null);
   };
 
   // Helper function to determine code color class
@@ -284,154 +315,251 @@ function Scanner({ onClose }) {
     return "custom-code"; // Default for custom types
   };
 
+  const handleStartScan = () => {
+    setShowCamera(true);
+    setScanning(true);
+    setErrorMessage(null);
+  };
+
   return (
-    <div className="scanner">
+    <div className="scanner-container">
       <Navigation onBack={onClose} />
 
-      <div className="scanner-header">
-        <h1 className="scanner-header-title">Scanner</h1>
-      </div>
-
       <div className="scanner-content">
-        {scanning && !scanResult && (
-          <>
-            <div className="scanner-reader-container">
-              {!scannerError ? (
-                <>
-                  <video
-                    ref={videoRef}
-                    playsInline
-                    muted
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
+        <AnimatePresence mode="wait">
+          {!scanResult && !showCamera && !errorMessage && (
+            <motion.div
+              className="scanner-home"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="scanner-title">
+                <h1>Guest Scanner</h1>
+                <p>Scan QR codes or enter code manually</p>
+              </div>
+
+              <div className="scanner-actions">
+                <motion.button
+                  className="scan-button"
+                  onClick={handleStartScan}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RiQrScanLine />
+                  <span>Scan QR Code</span>
+                </motion.button>
+
+                <div className="manual-input">
+                  <input
+                    type="text"
+                    value={manualId}
+                    onChange={(e) => setManualId(e.target.value)}
+                    placeholder="Enter code manually"
                   />
-                  <canvas ref={canvasRef} style={{ display: "none" }} />
-                </>
-              ) : (
-                <div className="scanner-error">
-                  <p>Scanner error. Please ensure your device has a webcam.</p>
-                </div>
-              )}
-            </div>
-
-            <div className="scanner-manual">
-              <input
-                className="scanner-manual-input"
-                type="text"
-                value={manualId}
-                onChange={(e) => setManualId(e.target.value)}
-                placeholder="Plan B: Enter Code ID"
-              />
-              <button
-                className="scanner-manual-submit"
-                onClick={handleManualSubmit}
-              >
-                Validate
-              </button>
-            </div>
-          </>
-        )}
-
-        {scanResult && (
-          <div className="scanner-result">
-            <div className="scanner-result-data">
-              <div
-                className={`scanner-result-data-item ${getCodeColorClass()}`}
-              >
-                <h2>Type</h2>
-                <p>{scanResult.typeOfTicket}</p>
-              </div>
-
-              <div
-                className={`scanner-result-data-item ${getCodeColorClass()}`}
-              >
-                <h2>Name</h2>
-                <p>{scanResult.name}</p>
-              </div>
-
-              <div
-                className={`scanner-result-data-item ${getCodeColorClass()}`}
-              >
-                <h2>Used</h2>
-                <p>{scanResult.paxChecked}</p>
-              </div>
-
-              <div
-                className={`scanner-result-data-item ${getCodeColorClass()}`}
-              >
-                <h2>Allowed</h2>
-                <p>{scanResult.pax}</p>
-              </div>
-
-              {scanResult.typeOfTicket?.toLowerCase().includes("table") ? (
-                <>
-                  <div
-                    className={`scanner-result-data-item ${getCodeColorClass()}`}
+                  <motion.button
+                    onClick={handleManualSubmit}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <h2>Table</h2>
-                    <p>{scanResult.tableNumber || "N/A"}</p>
+                    Verify
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {errorMessage && (
+            <motion.div
+              className="error-container"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="error-icon">
+                <RiErrorWarningLine />
+              </div>
+              <h2>Verification Failed</h2>
+              <p>{errorMessage}</p>
+              <motion.button
+                className="try-again-btn"
+                onClick={resetScanner}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Try Again
+              </motion.button>
+            </motion.div>
+          )}
+
+          {showCamera && !errorMessage && (
+            <motion.div
+              className="scanner-camera"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="camera-container">
+                {!scannerError ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      playsInline
+                      muted
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                    <canvas ref={canvasRef} style={{ display: "none" }} />
+                    <div className="scan-overlay">
+                      <div className="scan-frame"></div>
+                      <p>Position QR code within the frame</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="scanner-error">
+                    <p>Camera access error. Please check permissions.</p>
                   </div>
-                </>
-              ) : (
-                <div
-                  className={`scanner-result-data-item condition ${getCodeColorClass()}`}
-                >
-                  <h2>Condition</h2>
-                  <p>{scanResult.condition || "None"}</p>
-                </div>
-              )}
-
-              {/* Display any additional metadata if available */}
-              {scanResult.metadata && scanResult.metadata.hostName && (
-                <div
-                  className={`scanner-result-data-item ${getCodeColorClass()}`}
-                >
-                  <h2>Created By</h2>
-                  <p>{scanResult.metadata.hostName}</p>
-                </div>
-              )}
-
-              {/* Display the event name if available */}
-              {scanResult.eventDetails && scanResult.eventDetails.title && (
-                <div
-                  className={`scanner-result-data-item ${getCodeColorClass()}`}
-                >
-                  <h2>Event</h2>
-                  <p>{scanResult.eventDetails.title}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="scanner-result-controls">
-              <div className="scanner-result-controls-counter">
-                <button
-                  onClick={() => updatePax(false)}
-                  disabled={scanResult.paxChecked <= 0}
-                >
-                  -
-                </button>
-                <div className="scanner-result-controls-counter-value">
-                  <p>People</p>
-                  <span>{scanResult.paxChecked}</span>
-                </div>
-                <button
-                  onClick={() => updatePax(true)}
-                  disabled={scanResult.paxChecked >= scanResult.pax}
-                >
-                  +
-                </button>
+                )}
               </div>
 
-              <button
-                className="scanner-result-controls-scan"
-                onClick={resetScanner}
+              <motion.button
+                className="cancel-scan"
+                onClick={() => {
+                  cleanupCamera();
+                  setShowCamera(false);
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Scan Again
-              </button>
-            </div>
+                <RiCloseLine />
+                <span>Cancel</span>
+              </motion.button>
+            </motion.div>
+          )}
+
+          {scanResult && (
+            <motion.div
+              className="scan-result"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className={`result-header ${getCodeColorClass()}`}>
+                <h2>{scanResult.typeOfTicket}</h2>
+                <div className="result-event">
+                  {scanResult.eventDetails?.title && (
+                    <p>{scanResult.eventDetails.title}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="result-details">
+                <div className="detail-item">
+                  <RiUserLine />
+                  <div>
+                    <label>Name</label>
+                    <p>{scanResult.name}</p>
+                  </div>
+                </div>
+
+                {scanResult.typeOfTicket?.toLowerCase().includes("ticket") && (
+                  <div className="detail-item">
+                    <RiTimeLine />
+                    <div>
+                      <label>Ticket Type</label>
+                      <p>{scanResult.ticketType || "Standard"}</p>
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.typeOfTicket?.toLowerCase().includes("table") && (
+                  <div className="detail-item">
+                    <RiTimeLine />
+                    <div>
+                      <label>Table</label>
+                      <p>{scanResult.tableNumber || "N/A"}</p>
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.condition && (
+                  <div className="detail-item">
+                    <RiTimeLine />
+                    <div>
+                      <label>Condition</label>
+                      <p>{scanResult.condition}</p>
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.metadata?.hostName && (
+                  <div className="detail-item">
+                    <RiUserLine />
+                    <div>
+                      <label>Created By</label>
+                      <p>{scanResult.metadata.hostName}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="counter-section">
+                <div className="counter-label">
+                  <span>People</span>
+                  <div className="counter-info">
+                    <span className="current">{scanResult.paxChecked}</span>
+                    <span className="divider">/</span>
+                    <span className="max">{scanResult.pax}</span>
+                  </div>
+                </div>
+
+                <div className="counter-controls">
+                  <motion.button
+                    className="counter-btn decrease"
+                    onClick={() => updatePax(false)}
+                    disabled={scanResult.paxChecked <= 0}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RiArrowLeftLine />
+                  </motion.button>
+
+                  <motion.button
+                    className="counter-btn increase"
+                    onClick={() => updatePax(true)}
+                    disabled={scanResult.paxChecked >= scanResult.pax}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RiArrowRightLine />
+                  </motion.button>
+                </div>
+              </div>
+
+              <motion.button
+                className="scan-again-btn"
+                onClick={resetScanner}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <RiQrScanLine />
+                <span>Scan Again</span>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {isProcessing && (
+          <div className="processing-overlay">
+            <div className="loader"></div>
+            <p>Processing...</p>
           </div>
         )}
       </div>

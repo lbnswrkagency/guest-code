@@ -359,7 +359,7 @@ $star-twinkle-duration: 2s;
   &__message {
     color: white;
     text-align: center;
-    max-width: 400px;
+
     z-index: 5;
     animation: float $float-duration ease-in-out infinite;
 
