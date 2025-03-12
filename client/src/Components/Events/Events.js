@@ -535,18 +535,7 @@ const Events = () => {
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="no-brands-message">
-              <h2>Create Your First Brand</h2>
-              <p>To create an Event you need to join or create a brand</p>
-              <button
-                className="brand-button"
-                onClick={() => navigate("/brands")}
-              >
-                Brands
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Loading State */}
@@ -558,14 +547,42 @@ const Events = () => {
 
         {/* No Brands State - Only show when not loading and brands are loaded */}
         {!loading && brandsLoaded && userBrands.length === 0 && (
-          <div className="no-brands-message">
-            <p>You don't have any brands yet.</p>
-            <button
-              className="create-brand-button"
-              onClick={() => navigate("/dashboard/brands/new")}
-            >
-              Create Brand
-            </button>
+          <div className="no-content-container">
+            <div className="no-content-card">
+              <motion.div
+                className="icon-container"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <RiGroupLine className="icon" />
+              </motion.div>
+              <motion.h3
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                No Brands Available
+              </motion.h3>
+              <motion.p
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                You need to create or join a brand before you can manage events
+              </motion.p>
+              <motion.button
+                className="primary-button"
+                onClick={() => navigate("/dashboard/brands/new")}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
+              >
+                <RiAddLine /> Create Brand
+              </motion.button>
+            </div>
           </div>
         )}
 

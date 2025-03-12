@@ -270,7 +270,31 @@ const NotificationPanel = ({ onClose }) => {
     const { type, metadata, read, requestId } = notification;
     // console.log("Rendering notification:", { type, metadata });
 
-    const showAvatar = type === "new_follower" && metadata?.follower?.avatar;
+    // Check if we should show an avatar (expand this for more notification types)
+    const showAvatar =
+      (type === "new_follower" && metadata?.follower) ||
+      (type === "join_request" && metadata?.user) ||
+      metadata?.user?.avatar;
+
+    // Get the avatar URL based on notification type
+    const getAvatarUrl = () => {
+      if (type === "new_follower" && metadata?.follower?.avatar) {
+        return metadata.follower.avatar;
+      } else if (metadata?.user?.avatar) {
+        return metadata.user.avatar;
+      }
+      return null;
+    };
+
+    // Get the first letter for placeholder avatar
+    const getAvatarInitial = () => {
+      if (type === "new_follower" && metadata?.follower?.username) {
+        return metadata.follower.username.charAt(0).toUpperCase();
+      } else if (metadata?.user?.username) {
+        return metadata.user.username.charAt(0).toUpperCase();
+      }
+      return "U";
+    };
 
     const renderMessage = () => {
       let messageContent;
@@ -368,7 +392,20 @@ const NotificationPanel = ({ onClose }) => {
         )}
         {showAvatar && (
           <div className="notification-avatar">
-            <img src={metadata.follower.avatar} alt="Avatar" />
+            {getAvatarUrl() ? (
+              <img
+                src={getAvatarUrl()}
+                alt="Avatar"
+                className="profile-pic"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                  e.target.parentNode.classList.add("show-default");
+                }}
+              />
+            ) : (
+              <div className="default-avatar">{getAvatarInitial()}</div>
+            )}
           </div>
         )}
         <div className="content-wrapper">

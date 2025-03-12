@@ -818,18 +818,22 @@ const UpcomingEvent = ({
       eventDate.getFullYear()
     ).slice(-2)}`;
 
+    // Extract section to navigate to if it exists on the clicked event item
+    const section = event.navigateToSection || "";
+    const sectionParam = section ? `?section=${section}` : "";
+
     // If user is logged in, navigate to the user-specific route
     if (user) {
       console.log(
-        `[UpcomingEvent] Navigating to user event: /@${user.username}/@${brandUser}/${dateSlug}`
+        `[UpcomingEvent] Navigating to user event: /@${user.username}/@${brandUser}/${dateSlug}${sectionParam}`
       );
-      navigate(`/@${user.username}/@${brandUser}/${dateSlug}`);
+      navigate(`/@${user.username}/@${brandUser}/${dateSlug}${sectionParam}`);
     } else {
       // If no user, use the public route
       console.log(
-        `[UpcomingEvent] Navigating to public event: /@${brandUser}/${dateSlug}`
+        `[UpcomingEvent] Navigating to public event: /@${brandUser}/${dateSlug}${sectionParam}`
       );
-      navigate(`/@${brandUser}/${dateSlug}`);
+      navigate(`/@${brandUser}/${dateSlug}${sectionParam}`);
     }
   };
 
@@ -840,42 +844,46 @@ const UpcomingEvent = ({
 
   // Function to determine which flyer image to use
   const getEventImage = () => {
-    if (!events[currentIndex]?.flyer) return null;
+    const event = events[currentIndex];
+    if (!event?.flyer) return null;
 
-    // Check different formats in order of preference
-    if (
-      events[currentIndex].flyer.landscape &&
-      (events[currentIndex].flyer.landscape.medium ||
-        events[currentIndex].flyer.landscape.thumbnail)
-    ) {
+    // Try formats in order of preference: landscape, portrait, square
+    // For each format, prefer full > medium > thumbnail for quality
+
+    // First check landscape
+    if (event.flyer.landscape) {
       return (
-        events[currentIndex].flyer.landscape.medium ||
-        events[currentIndex].flyer.landscape.thumbnail
+        event.flyer.landscape.full ||
+        event.flyer.landscape.medium ||
+        event.flyer.landscape.thumbnail
       );
     }
 
-    if (
-      events[currentIndex].flyer.portrait &&
-      (events[currentIndex].flyer.portrait.medium ||
-        events[currentIndex].flyer.portrait.thumbnail)
-    ) {
+    // Next check portrait
+    if (event.flyer.portrait) {
       return (
-        events[currentIndex].flyer.portrait.medium ||
-        events[currentIndex].flyer.portrait.thumbnail
+        event.flyer.portrait.full ||
+        event.flyer.portrait.medium ||
+        event.flyer.portrait.thumbnail
       );
     }
 
-    if (
-      events[currentIndex].flyer.square &&
-      (events[currentIndex].flyer.square.medium ||
-        events[currentIndex].flyer.square.thumbnail)
-    ) {
+    // Finally check square
+    if (event.flyer.square) {
       return (
-        events[currentIndex].flyer.square.medium ||
-        events[currentIndex].flyer.square.thumbnail
+        event.flyer.square.full ||
+        event.flyer.square.medium ||
+        event.flyer.square.thumbnail
       );
     }
 
+    // If we have a flyer object but none of the expected formats,
+    // check if there's a direct URL in the object
+    if (typeof event.flyer === "string") {
+      return event.flyer;
+    }
+
+    // Last resort: return null if no suitable image was found
     return null;
   };
 
@@ -970,6 +978,92 @@ const UpcomingEvent = ({
         }
       }
     }
+  };
+
+  // Determine the aspect ratio of the current event's flyer
+  const determineAspectRatioClass = () => {
+    if (!events[currentIndex] || !events[currentIndex].flyer) return "";
+
+    // Check if landscape exists and should be prioritized
+    if (events[currentIndex].flyer.landscape) {
+      return "has-landscape-flyer";
+    }
+
+    // Next check for portrait format
+    if (events[currentIndex].flyer.portrait) {
+      return "has-portrait-flyer";
+    }
+
+    // Finally check for square or any other format (including the 9:16 tall format)
+    if (events[currentIndex].flyer.square) {
+      return "has-vertical-flyer";
+    }
+
+    return "";
+  };
+
+  // Add state to track image loading
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Handler for image load event
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  // Handler for image error
+  const handleImageError = () => {
+    console.error("Failed to load event image");
+    setImageLoaded(true); // Still mark as loaded so UI doesn't wait indefinitely
+  };
+
+  const handleTicketsClick = (event, e) => {
+    e.stopPropagation(); // Prevent the main event click handler from firing
+
+    // In BrandProfile context, scroll to the ticket section instead of navigating
+    if (seamless) {
+      // Scroll to the ticket section if ref exists
+      if (ticketSectionRef.current) {
+        ticketSectionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+      return;
+    }
+
+    // Default behavior for other contexts: navigate to event profile
+    const eventWithSection = {
+      ...event,
+      navigateToSection: "tickets",
+    };
+
+    // Call the view event handler with our modified event object
+    handleViewEvent(eventWithSection);
+  };
+
+  const handleGuestCodeClick = (event, e) => {
+    e.stopPropagation(); // Prevent the main event click handler from firing
+
+    // In BrandProfile context, scroll to the guest code section instead of navigating
+    if (seamless) {
+      // Scroll to the guest code section if ref exists
+      if (guestCodeSectionRef.current) {
+        guestCodeSectionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+      return;
+    }
+
+    // Default behavior for other contexts: navigate to event profile
+    const eventWithSection = {
+      ...event,
+      navigateToSection: "codes",
+    };
+
+    // Call the view event handler with our modified event object
+    handleViewEvent(eventWithSection);
   };
 
   // Check if we have a current event to display
@@ -1067,7 +1161,7 @@ const UpcomingEvent = ({
       <AnimatePresence mode="wait">
         <motion.div
           key={currentEvent._id}
-          className="event-card"
+          className={`event-card ${determineAspectRatioClass()}`}
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }}
@@ -1082,6 +1176,8 @@ const UpcomingEvent = ({
                 src={eventImage}
                 alt={currentEvent.title}
                 className="event-image"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
               />
             ) : (
               <div className="no-image">
@@ -1110,26 +1206,13 @@ const UpcomingEvent = ({
                 event={currentEvent}
                 scrollToTickets={(e) => {
                   e.stopPropagation();
-                  // Fetch ticket settings if not already loaded
-                  if (ticketSettings.length === 0 && !loadingTickets) {
-                    fetchTicketSettings(currentEvent._id);
-                  }
-                  if (ticketSectionRef.current) {
-                    ticketSectionRef.current.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
+                  // Use the new handler with navigation integration
+                  handleTicketsClick(currentEvent, e);
                 }}
                 scrollToGuestCode={(e) => {
                   e.stopPropagation();
-                  setShowGuestCodeForm(true);
-                  if (guestCodeSectionRef.current) {
-                    guestCodeSectionRef.current.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
+                  // Use the new handler with navigation integration
+                  handleGuestCodeClick(currentEvent, e);
                 }}
               />
             </div>

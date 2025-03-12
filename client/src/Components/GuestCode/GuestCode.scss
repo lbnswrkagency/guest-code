@@ -107,30 +107,39 @@
 }
 
 .success-message {
-  background: rgba(39, 174, 96, 0.1);
-  border: 1px solid rgba(39, 174, 96, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  color: #2ecc71;
+  background-color: rgba(39, 174, 96, 0.15);
+  border-left: 3px solid #27ae60;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 4px;
 
   .success-content {
+    color: #27ae60;
+    font-size: 0.9rem;
+  }
+}
+
+// Warning message for existing guest codes
+.warning-message {
+  background-color: rgba(255, 200, 7, 0.15);
+  border-left: 3px solid #ffc807;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+
+  .warning-content {
+    color: #ffc807;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    line-height: 1.4;
 
-    &::before {
-      content: "✓";
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      background: #2ecc71;
-      color: #fff;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 20px;
-      font-size: 12px;
-      font-weight: bold;
+    .warning-icon {
+      margin-right: 8px;
+      font-size: 1.1rem;
+      flex-shrink: 0;
     }
   }
 }

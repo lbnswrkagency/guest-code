@@ -485,6 +485,29 @@ const generateGuestCode = async (req, res) => {
     const sanitizedName = guestName.trim();
     const sanitizedEmail = guestEmail.trim();
 
+    // Check if a guest code already exists for this email and event
+    const existingCode = await Code.findOne({
+      eventId,
+      guestEmail: sanitizedEmail,
+      type: "guest",
+    });
+
+    if (existingCode) {
+      console.log(
+        "[GuestCode] Guest code already exists for email:",
+        sanitizedEmail
+      );
+      return res.status(409).json({
+        message: "You already received a Guest Code for this event.",
+        code: {
+          id: existingCode._id,
+          guestName: existingCode.guestName,
+          code: existingCode.code,
+        },
+        alreadyExists: true,
+      });
+    }
+
     // Get the current user ID if authenticated, otherwise use null
     const userId = req.user ? req.user._id : null;
     console.log("[GuestCode] User ID for code generation:", userId);

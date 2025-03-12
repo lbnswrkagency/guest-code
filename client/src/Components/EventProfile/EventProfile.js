@@ -64,6 +64,21 @@ const EventProfile = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
 
+  // Check for section parameter in URL
+  useEffect(() => {
+    // Get the section from the URL search parameters
+    const searchParams = new URLSearchParams(location.search);
+    const sectionParam = searchParams.get("section");
+
+    // Set active section if the parameter exists and is valid
+    if (sectionParam && ["event", "tickets", "codes"].includes(sectionParam)) {
+      setActiveSection(sectionParam);
+      console.log(
+        `[EventProfile] Setting active section from URL: ${sectionParam}`
+      );
+    }
+  }, [location.search]);
+
   const { pathname } = location;
 
   // Add effect to log navigation state changes
@@ -465,18 +480,30 @@ const EventProfile = () => {
     if (!event || !event.flyer) return null;
 
     // Check for landscape image first (best for desktop/event profile)
-    if (event.flyer.landscape && event.flyer.landscape.full) {
-      return event.flyer.landscape.full;
+    if (event.flyer.landscape) {
+      return (
+        event.flyer.landscape.full ||
+        event.flyer.landscape.medium ||
+        event.flyer.landscape.thumbnail
+      );
     }
 
-    // Fallback to square
-    if (event.flyer.square && event.flyer.square.full) {
-      return event.flyer.square.full;
+    // Fallback to portrait
+    if (event.flyer.portrait) {
+      return (
+        event.flyer.portrait.full ||
+        event.flyer.portrait.medium ||
+        event.flyer.portrait.thumbnail
+      );
     }
 
-    // Final fallback to portrait
-    if (event.flyer.portrait && event.flyer.portrait.full) {
-      return event.flyer.portrait.full;
+    // Final fallback to square
+    if (event.flyer.square) {
+      return (
+        event.flyer.square.full ||
+        event.flyer.square.medium ||
+        event.flyer.square.thumbnail
+      );
     }
 
     return null;
@@ -765,6 +792,13 @@ const EventProfile = () => {
                 src={getEventImage()}
                 alt={event.title}
                 className="cover-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                  e.target.parentNode.querySelector(
+                    ".cover-placeholder"
+                  ).style.display = "block";
+                }}
               />
             ) : (
               <div className="cover-placeholder" />
@@ -772,54 +806,64 @@ const EventProfile = () => {
             <div className="cover-gradient"></div>
           </div>
 
-          <div className="event-info">
-            <div className="brand-logo">
-              {event.brand?.logo && event.brand.logo.medium ? (
-                <img src={event.brand.logo.medium} alt={event.brand.name} />
-              ) : (
-                <div className="logo-placeholder">
-                  {event.brand?.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            <div className="event-header-content">
-              <div className="eventProfile-details">
-                <h1 className="event-title">{event.title}</h1>
-                {event.subTitle && (
-                  <h2 className="event-subtitle">{event.subTitle}</h2>
+          <div className="event-header-container">
+            <div className="event-brand-info">
+              <div className="brand-logo">
+                {event.brand?.logo && event.brand.logo.medium ? (
+                  <img src={event.brand.logo.medium} alt={event.brand.name} />
+                ) : (
+                  <div className="logo-placeholder">
+                    {event.brand?.name
+                      ? event.brand.name.charAt(0).toUpperCase()
+                      : "E"}
+                  </div>
                 )}
-                <div className="event-date">
-                  {(() => {
-                    const date = new Date(event.date);
-                    const day = date.getDate();
-                    const month = date
-                      .toLocaleString("en-US", { month: "short" })
-                      .toUpperCase();
-                    const year = date.getFullYear();
-                    return `${day} ${month} ${year}`;
-                  })()}
-                </div>
-                <div
-                  className="brand-link"
-                  onClick={() => navigate(`/@${event.brand?.username}`)}
-                >
+              </div>
+
+              <div
+                className="brand-username-container"
+                onClick={() => navigate(`/@${event.brand?.username}`)}
+              >
+                <span className="brand-username">
                   @
                   {event.brand?.username ||
                     event.brand?.name.toLowerCase().replace(/\s+/g, "")}
-                </div>
+                </span>
               </div>
             </div>
 
-            <div className="header-actions">
-              <motion.button
-                className="action-button"
-                onClick={handleShare}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <RiShareLine />
-              </motion.button>
+            <div className="event-meta">
+              <div className="event-date">
+                <span className="event-date-icon">
+                  <RiCalendarEventLine />
+                </span>
+                {new Date(event.date)
+                  .toLocaleDateString(undefined, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })
+                  .toUpperCase()}
+              </div>
+
+              <div className="header-actions">
+                <motion.button
+                  className="action-button"
+                  onClick={handleShare}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Share event"
+                >
+                  <RiShareLine />
+                </motion.button>
+              </div>
+            </div>
+
+            <div className="event-title-container">
+              <h1 className="event-title">{event.title}</h1>
+              {event.subTitle && (
+                <h2 className="event-subtitle">{event.subTitle}</h2>
+              )}
             </div>
           </div>
         </div>
@@ -929,7 +973,6 @@ const EventProfile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h3>Tickets</h3>
               {event &&
               (event.ticketsAvailable || ticketSettings.length > 0) ? (
                 <Tickets
@@ -994,14 +1037,17 @@ const EventProfile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {/* Use the GuestCode component with merged event and codeSettings */}
+              {/* Use the GuestCode component with the correct codeSettings priority */}
               <GuestCode
                 event={{
                   ...event,
                   codeSettings:
-                    event.codeSettings && event.codeSettings.length > 0
+                    // Prioritize the dedicated codeSettings array from the API
+                    codeSettings && codeSettings.length > 0
+                      ? codeSettings
+                      : event.codeSettings && event.codeSettings.length > 0
                       ? event.codeSettings
-                      : codeSettings,
+                      : [],
                 }}
               />
             </motion.div>
