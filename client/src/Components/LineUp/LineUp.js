@@ -78,13 +78,6 @@ function LineUp({
     if (currentBrandId !== brandId) {
       setBrandId(currentBrandId);
     }
-
-    console.log("LineUp component initialized with:", {
-      eventId,
-      brandId: currentBrandId,
-      hasToken: !!currentToken,
-      selectedBrand: !!selectedBrand,
-    });
   }, [selectedBrand]);
 
   useEffect(() => {
@@ -107,31 +100,9 @@ function LineUp({
   // Initialize selectedLineUps with initialSelectedLineups if provided
   useEffect(() => {
     if (initialSelectedLineups && initialSelectedLineups.length > 0) {
-      console.log(
-        "Initializing with selected lineups:",
-        initialSelectedLineups
-      );
       setSelectedLineUps(initialSelectedLineups);
     }
   }, [initialSelectedLineups]);
-
-  // Log when component mounts
-  useEffect(() => {
-    console.log("LineUp component mounted with:", {
-      initialSelectedLineups,
-      eventId,
-      selectedBrand: selectedBrand?._id,
-    });
-
-    return () => {
-      console.log("LineUp component unmounting");
-    };
-  }, []);
-
-  // Log when selectedLineUps changes
-  useEffect(() => {
-    console.log("Selected lineups updated:", selectedLineUps);
-  }, [selectedLineUps]);
 
   const fetchLineUps = async () => {
     try {
@@ -196,10 +167,8 @@ function LineUp({
   };
 
   const toggleLineUpSelection = (lineUp) => {
-    console.log("Toggling lineup selection:", lineUp);
     setSelectedLineUps((prev) => {
       const isSelected = prev.some((item) => item._id === lineUp._id);
-      console.log("Is already selected:", isSelected);
       if (isSelected) {
         return prev.filter((item) => item._id !== lineUp._id);
       } else {
@@ -217,8 +186,6 @@ function LineUp({
   };
 
   const handleImageCropped = (file) => {
-    console.log("[handleImageCropped] Image cropped, updating state");
-
     // Create a preview URL for the cropped image
     const previewUrl = URL.createObjectURL(file);
 
@@ -245,12 +212,6 @@ function LineUp({
       const currentToken = localStorage.getItem("token");
       const currentBrandId =
         selectedBrand?._id || localStorage.getItem("selectedBrandId");
-
-      console.log("Creating lineup with token and brandId:", {
-        hasToken: !!currentToken,
-        hasBrandId: !!currentBrandId,
-        brandId: currentBrandId,
-      });
 
       if (!currentToken || !currentBrandId) {
         console.error("Missing token or brandId");
@@ -288,8 +249,6 @@ function LineUp({
         }
       );
 
-      console.log("[LineUp] Create response:", response.data);
-
       const newLineUpData = response.data;
       setLineUps((prev) => [...prev, newLineUpData]);
       setSelectedLineUps((prev) => [...prev, newLineUpData]);
@@ -323,11 +282,6 @@ function LineUp({
     if (!lineupToDelete) return;
 
     try {
-      console.log("[handleDeleteLineUp] Starting deletion for lineup:", {
-        id: lineupToDelete._id,
-        name: lineupToDelete.name,
-      });
-
       const currentToken = localStorage.getItem("token");
 
       if (!currentToken) {
@@ -339,10 +293,6 @@ function LineUp({
       setLoading(true);
       const loadingToast = showLoading("Deleting lineup...");
 
-      console.log(
-        `[handleDeleteLineUp] Sending DELETE request to ${process.env.REACT_APP_API_BASE_URL}/lineup/${lineupToDelete._id}`
-      );
-
       const response = await axios({
         method: "DELETE",
         url: `${process.env.REACT_APP_API_BASE_URL}/lineup/${lineupToDelete._id}`,
@@ -352,11 +302,7 @@ function LineUp({
         },
       });
 
-      console.log("[handleDeleteLineUp] Response received:", response.data);
-
       if (response.data.success) {
-        console.log("[handleDeleteLineUp] Delete successful, updating state");
-
         // Remove from lineUps list
         setLineUps((prev) =>
           prev.filter((item) => item._id !== lineupToDelete._id)
@@ -418,17 +364,8 @@ function LineUp({
   const handleOpenAvatarCrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("[handleOpenAvatarCrop] Opening avatar crop mode");
-    console.log(
-      "[handleOpenAvatarCrop] Before state change - isCropMode:",
-      isCropMode
-    );
     setIsCropMode(true);
-    console.log(
-      "[handleOpenAvatarCrop] After state change - isCropMode should be true now"
-    );
     setModalKey(Date.now()); // Force re-render of the modal
-    console.log("[handleOpenAvatarCrop] Modal key updated:", Date.now());
   };
 
   // Create a dummy user object for AvatarUpload component
@@ -440,7 +377,6 @@ function LineUp({
   // Function to handle modal closing
   const handleModalClose = (e) => {
     if (e) e.stopPropagation();
-    console.log("[handleModalClose] Closing avatar crop mode");
     setIsCropMode(false);
   };
 
@@ -479,7 +415,6 @@ function LineUp({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("Crop modal wrapper clicked, closing crop mode");
                   setIsCropMode(false);
                 }}
                 style={{
@@ -499,9 +434,6 @@ function LineUp({
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log(
-                      "Inner crop modal container clicked (stopping propagation)"
-                    );
                   }}
                   style={{
                     position: "relative",
@@ -511,31 +443,16 @@ function LineUp({
                     zIndex: 3000,
                   }}
                 >
-                  {console.log(
-                    "Rendering AvatarUpload component with isCropMode=true"
-                  )}
                   <AvatarUpload
                     user={dummyUser}
                     setUser={(updatedUser) => {
-                      console.log(
-                        "AvatarUpload setUser called, user:",
-                        updatedUser
-                      );
                       // Don't actually update any user, just for UI display
                     }}
                     isCropMode={true}
                     setIsCropMode={(value) => {
-                      console.log(
-                        "AvatarUpload called setIsCropMode with value:",
-                        value
-                      );
                       setIsCropMode(value);
                     }}
                     onImageCropped={(file) => {
-                      console.log(
-                        "Image cropped callback received file:",
-                        file
-                      );
                       handleImageCropped(file);
                     }}
                     isLineUpMode={true}
@@ -647,15 +564,8 @@ function LineUp({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log("Avatar upload container clicked");
-                      console.log(
-                        "Before state change - isCropMode:",
-                        isCropMode
-                      );
                       setIsCropMode(true);
-                      console.log("After state change - setIsCropMode called");
                       setModalKey(Date.now());
-                      console.log("Modal key updated:", Date.now());
                     }}
                     role="button"
                     tabIndex={0}

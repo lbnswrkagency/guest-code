@@ -365,6 +365,8 @@ exports.createEvent = async (req, res) => {
       subTitle,
       description,
       date,
+      startDate,
+      endDate,
       startTime,
       endTime,
       location,
@@ -386,7 +388,9 @@ exports.createEvent = async (req, res) => {
       title,
       subTitle,
       description,
-      date,
+      date, // Keep for backward compatibility
+      startDate: startDate || date, // Use startDate if provided, otherwise fall back to date
+      endDate: endDate || date, // Use endDate if provided, otherwise fall back to date
       startTime,
       endTime,
       location,
@@ -653,6 +657,8 @@ exports.editEvent = async (req, res) => {
       subTitle,
       description,
       date,
+      startDate,
+      endDate,
       startTime,
       endTime,
       location,
@@ -712,6 +718,8 @@ exports.editEvent = async (req, res) => {
     if (subTitle !== undefined) event.subTitle = subTitle;
     if (description !== undefined) event.description = description;
     if (date) event.date = new Date(date);
+    if (startDate) event.startDate = new Date(startDate);
+    if (endDate) event.endDate = new Date(endDate);
     if (startTime) event.startTime = startTime;
     if (endTime) event.endTime = endTime;
     if (location) event.location = location;

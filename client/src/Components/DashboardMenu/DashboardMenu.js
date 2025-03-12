@@ -98,41 +98,11 @@ const DashboardMenu = ({
           };
         }
       });
-
-      console.log("🔑 CODE TYPES SUMMARY", {
-        selectedBrand: {
-          id: selectedBrand._id,
-          name: selectedBrand.name,
-        },
-        codeTypes: Object.entries(codeTypeMapping).reduce(
-          (acc, [key, value]) => {
-            acc[key] = {
-              ...value,
-              setting: value.setting
-                ? {
-                    ...value.setting,
-                    _id: value.setting._id,
-                  }
-                : null,
-            };
-            return acc;
-          },
-          {}
-        ),
-        accessSummary,
-        userRoles: userRoles.map((role) => role.name || role),
-        timestamp: new Date().toISOString(),
-      });
     }
   }, [selectedBrand, codeSettings, codePermissions, accessSummary, userRoles]);
 
   useEffect(() => {
     if (selectedBrand && user) {
-      console.log("🔑 Setting permissions from user roles:", {
-        userRoles,
-        accessSummary,
-      });
-
       // Check user role permissions directly
       let hasAnalyticsPermission = false;
       let hasScannerPermission = false;
@@ -157,12 +127,6 @@ const DashboardMenu = ({
             hasScannerPermission = true;
           }
         }
-      });
-
-      console.log("🔑 Permission check results:", {
-        hasAnalyticsPermission,
-        hasScannerPermission,
-        canCreateCodes: accessSummary.canCreateCodes || false,
       });
 
       // Build permissions object
@@ -215,20 +179,6 @@ const DashboardMenu = ({
 
   // Helper to determine which code type to use when clicking the Codes menu item
   const getDefaultCodeType = () => {
-    console.log("🔍 Finding default code type:", {
-      codeSettings: codeSettings.map((s) => ({
-        name: s.name,
-        type: s.type,
-        isEnabled: s.isEnabled,
-      })),
-      codePermissions: codePermissions.map((p) => ({
-        name: p.name,
-        type: p.type,
-        limit: p.limit,
-        unlimited: p.unlimited,
-      })),
-    });
-
     // Look for any enabled code setting
     if (codeSettings.length > 0) {
       // Find the first available code setting that is enabled
@@ -236,25 +186,21 @@ const DashboardMenu = ({
       if (firstEnabled) {
         // Prefer the name over the type for better matching
         const codeType = firstEnabled.name || firstEnabled.type;
-        console.log(`📋 Using first enabled code setting: ${codeType}`);
         return codeType;
       }
 
       // If no enabled setting found, use the first setting
       const codeType = codeSettings[0].name || codeSettings[0].type;
-      console.log(`📋 Using first code setting (not enabled): ${codeType}`);
       return codeType;
     }
 
     // If no code settings available, check permissions
     if (codePermissions.length > 0) {
       const codeType = codePermissions[0].name || codePermissions[0].type;
-      console.log(`📋 No code settings, using permission type: ${codeType}`);
       return codeType;
     }
 
     // Default fallback
-    console.log("📋 No code settings or permissions, defaulting to guest");
     return "guest";
   };
 
@@ -306,15 +252,6 @@ const DashboardMenu = ({
                   className="menu-item"
                   onClick={() => {
                     const defaultType = getDefaultCodeType();
-                    console.log("🎟️ Setting code type:", {
-                      type: defaultType,
-                      selectedBrand: selectedBrand
-                        ? {
-                            id: selectedBrand._id,
-                            name: selectedBrand.name,
-                          }
-                        : "No brand selected",
-                    });
                     setCodeType(defaultType);
                     setIsOpen(false);
                   }}

@@ -94,13 +94,53 @@ const EventForm = ({
     event?.parentEventId || (event?.isWeekly && weekNumber > 0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Parse event dates and times
+  const parseEventDateTime = (eventData) => {
+    if (!eventData) return { startDate: new Date(), endDate: new Date() };
+
+    // If we have startDate and endDate, use them directly
+    if (eventData.startDate && eventData.endDate) {
+      return {
+        startDate: new Date(eventData.startDate),
+        endDate: new Date(eventData.endDate),
+      };
+    }
+
+    // For backward compatibility: Create start date from event date and start time
+    const startDate = eventData.date ? new Date(eventData.date) : new Date();
+    if (eventData.startTime) {
+      const [startHours, startMinutes] = eventData.startTime
+        .split(":")
+        .map(Number);
+      startDate.setHours(startHours, startMinutes, 0);
+    }
+
+    // For backward compatibility: Create end date from event date and end time
+    const endDate = eventData.date ? new Date(eventData.date) : new Date();
+    if (eventData.endTime) {
+      const [endHours, endMinutes] = eventData.endTime.split(":").map(Number);
+      // If end time is earlier than start time, it means it's the next day
+      endDate.setHours(endHours, endMinutes, 0);
+      if (
+        endHours < startDate.getHours() ||
+        (endHours === startDate.getHours() &&
+          endMinutes < startDate.getMinutes())
+      ) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate, endDate } = parseEventDateTime(event);
+
   const [formData, setFormData] = useState({
     title: event?.title || "",
     subTitle: event?.subTitle || "",
     description: event?.description || "",
-    date: event ? new Date(event.date) : new Date(),
-    startTime: event?.startTime || "20:00",
-    endTime: event?.endTime || "04:00",
+    startDate: startDate,
+    endDate: endDate,
     location: event?.location || "",
     street: event?.street || "",
     postalCode: event?.postalCode || "",
@@ -328,18 +368,46 @@ const EventForm = ({
       // Log the form data being sent
       console.log("[EventForm] Submitting form data:", formData);
 
+      // Format date and times for API
+      const date = formData.startDate.toISOString();
+      const startDate = formData.startDate.toISOString();
+      const endDate = formData.endDate.toISOString();
+
+      // Extract hours and minutes for startTime and endTime
+      const startHours = formData.startDate
+        .getHours()
+        .toString()
+        .padStart(2, "0");
+      const startMinutes = formData.startDate
+        .getMinutes()
+        .toString()
+        .padStart(2, "0");
+      const startTime = `${startHours}:${startMinutes}`;
+
+      const endHours = formData.endDate.getHours().toString().padStart(2, "0");
+      const endMinutes = formData.endDate
+        .getMinutes()
+        .toString()
+        .padStart(2, "0");
+      const endTime = `${endHours}:${endMinutes}`;
+
       // Add all the regular form data
       Object.keys(formData).forEach((key) => {
-        if (key !== "flyer") {
-          if (key === "date") {
-            formDataToSend.append(key, formData[key].toISOString());
-          } else if (typeof formData[key] === "boolean") {
+        if (key !== "flyer" && key !== "startDate" && key !== "endDate") {
+          if (typeof formData[key] === "boolean") {
             formDataToSend.append(key, formData[key].toString());
           } else {
             formDataToSend.append(key, formData[key]);
           }
         }
       });
+
+      // Add the formatted date and times
+      formDataToSend.append("date", date); // For backward compatibility
+      formDataToSend.append("startDate", startDate);
+      formDataToSend.append("endDate", endDate);
+      formDataToSend.append("startTime", startTime);
+      formDataToSend.append("endTime", endTime);
 
       // Add selected lineups to the form data
       if (selectedLineups.length > 0) {
@@ -672,51 +740,235 @@ const EventForm = ({
             <div className="form-section">
               <h3>{isChildEvent ? "Time" : "Date & Time"}</h3>
 
-              {/* Only show date picker for parent events */}
+              {/* For parent events, show date and time pickers */}
               {!isChildEvent && (
-                <div className="form-group required">
-                  <label>Date</label>
-                  <div className="date-picker-container">
-                    <DatePicker
-                      selected={formData.date}
-                      onChange={(date) => setFormData({ ...formData, date })}
-                      dateFormat="MMMM d, yyyy"
-                      className="date-picker"
-                    />
-                    <RiCalendarEventLine className="date-icon" />
+                <>
+                  <div className="date-time-container">
+                    <div className="date-time-column">
+                      <div className="form-group required">
+                        <label>Start Date</label>
+                        <div className="date-picker-container">
+                          <DatePicker
+                            selected={formData.startDate}
+                            onChange={(date) => {
+                              // Keep the time from the current startDate
+                              const newDate = new Date(date);
+                              newDate.setHours(
+                                formData.startDate.getHours(),
+                                formData.startDate.getMinutes(),
+                                0,
+                                0
+                              );
+
+                              // If the new start date is after the end date, update end date too
+                              const newFormData = {
+                                ...formData,
+                                startDate: newDate,
+                              };
+                              if (newDate > formData.endDate) {
+                                // Set end date to same day but keep the end time
+                                const newEndDate = new Date(newDate);
+                                newEndDate.setHours(
+                                  formData.endDate.getHours(),
+                                  formData.endDate.getMinutes(),
+                                  0,
+                                  0
+                                );
+                                newFormData.endDate = newEndDate;
+                              }
+                              setFormData(newFormData);
+                            }}
+                            showTimeSelect={false}
+                            dateFormat="MMMM d, yyyy"
+                            className="date-picker"
+                            popperPlacement="bottom-start"
+                          />
+                          <RiCalendarEventLine className="date-icon" />
+                        </div>
+                      </div>
+
+                      <div className="form-group required">
+                        <label>Start Time</label>
+                        <div className="date-picker-container">
+                          <DatePicker
+                            selected={formData.startDate}
+                            onChange={(date) => {
+                              // Keep the date from the current startDate
+                              const newDate = new Date(formData.startDate);
+                              newDate.setHours(
+                                date.getHours(),
+                                date.getMinutes(),
+                                0,
+                                0
+                              );
+
+                              // If the new start time makes it later than end time on the same day, update end time
+                              const newFormData = {
+                                ...formData,
+                                startDate: newDate,
+                              };
+                              if (
+                                formData.startDate.toDateString() ===
+                                  formData.endDate.toDateString() &&
+                                newDate > formData.endDate
+                              ) {
+                                // Set end time to 1 hour later
+                                const newEndDate = new Date(newDate);
+                                newEndDate.setHours(
+                                  newDate.getHours() + 1,
+                                  newDate.getMinutes(),
+                                  0,
+                                  0
+                                );
+                                newFormData.endDate = newEndDate;
+                              }
+                              setFormData(newFormData);
+                            }}
+                            showTimeSelect
+                            showTimeSelectOnly
+                            timeFormat="HH:mm"
+                            timeIntervals={15}
+                            timeCaption="Time"
+                            dateFormat="h:mm aa"
+                            className="date-picker"
+                            popperPlacement="bottom-start"
+                          />
+                          <RiTimeLine className="date-icon" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="date-time-column">
+                      <div className="form-group required">
+                        <label>End Date</label>
+                        <div className="date-picker-container">
+                          <DatePicker
+                            selected={formData.endDate}
+                            onChange={(date) => {
+                              // Keep the time from the current endDate
+                              const newDate = new Date(date);
+                              newDate.setHours(
+                                formData.endDate.getHours(),
+                                formData.endDate.getMinutes(),
+                                0,
+                                0
+                              );
+                              setFormData({ ...formData, endDate: newDate });
+                            }}
+                            showTimeSelect={false}
+                            dateFormat="MMMM d, yyyy"
+                            className="date-picker"
+                            minDate={formData.startDate}
+                            popperPlacement="bottom-start"
+                          />
+                          <RiCalendarEventLine className="date-icon" />
+                        </div>
+                      </div>
+
+                      <div className="form-group required">
+                        <label>End Time</label>
+                        <div className="date-picker-container">
+                          <DatePicker
+                            selected={formData.endDate}
+                            onChange={(date) => {
+                              // Keep the date from the current endDate
+                              const newDate = new Date(formData.endDate);
+                              newDate.setHours(
+                                date.getHours(),
+                                date.getMinutes(),
+                                0,
+                                0
+                              );
+                              setFormData({ ...formData, endDate: newDate });
+                            }}
+                            showTimeSelect
+                            showTimeSelectOnly
+                            timeFormat="HH:mm"
+                            timeIntervals={15}
+                            timeCaption="Time"
+                            dateFormat="h:mm aa"
+                            className="date-picker"
+                            popperPlacement="bottom-start"
+                          />
+                          <RiTimeLine className="date-icon" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                  {formData.endDate < formData.startDate && (
+                    <div className="error-message">
+                      End date/time must be after start date/time
+                    </div>
+                  )}
+                </>
               )}
 
-              <div className="time-inputs">
-                <div className="form-group required">
-                  <label>Start Time</label>
-                  <div className="input-with-icon">
-                    <RiTimeLine />
-                    <input
-                      type="time"
-                      name="startTime"
-                      value={formData.startTime}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
+              {/* For child events, only show time pickers */}
+              {isChildEvent && (
+                <>
+                  <div className="form-group required">
+                    <label>Start Time</label>
+                    <div className="date-picker-container">
+                      <DatePicker
+                        selected={formData.startDate}
+                        onChange={(date) => {
+                          // If the new start time is after the end time, update end time too
+                          const newFormData = { ...formData, startDate: date };
 
-                <div className="form-group required">
-                  <label>End Time</label>
-                  <div className="input-with-icon">
-                    <RiTimeLine />
-                    <input
-                      type="time"
-                      name="endTime"
-                      value={formData.endTime}
-                      onChange={handleInputChange}
-                      required
-                    />
+                          // Compare only hours and minutes
+                          const startHours = date.getHours();
+                          const startMinutes = date.getMinutes();
+                          const endHours = formData.endDate.getHours();
+                          const endMinutes = formData.endDate.getMinutes();
+
+                          if (
+                            startHours > endHours ||
+                            (startHours === endHours &&
+                              startMinutes >= endMinutes)
+                          ) {
+                            // Set end time to 1 hour later
+                            const newEndDate = new Date(date);
+                            newEndDate.setHours(date.getHours() + 1);
+                            newFormData.endDate = newEndDate;
+                          }
+
+                          setFormData(newFormData);
+                        }}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeFormat="HH:mm"
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
+                        className="date-picker"
+                        popperPlacement="bottom-start"
+                      />
+                      <BiTime className="date-icon" />
+                    </div>
                   </div>
-                </div>
-              </div>
+
+                  <div className="form-group required">
+                    <label>End Time</label>
+                    <div className="date-picker-container">
+                      <DatePicker
+                        selected={formData.endDate}
+                        onChange={(date) => {
+                          setFormData({ ...formData, endDate: date });
+                        }}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeFormat="HH:mm"
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
+                        className="date-picker"
+                        popperPlacement="bottom-start"
+                      />
+                      <BiTime className="date-icon" />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Only show weekly toggle for parent events */}
               {!isChildEvent && (

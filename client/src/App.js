@@ -44,36 +44,6 @@ const AppRoutes = () => {
   // Pre-build the user profile route if we have a user
   const userProfilePath = user ? `/@${user.username.trim()}` : null;
 
-  // Add detailed logging for route debugging
-  console.log("[AppRoutes] Rendering with:", {
-    pathname: location.pathname,
-    isAuthenticated: !!user,
-    userProfilePath,
-    params,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Log all route patterns for debugging
-  const allRoutes = [
-    "/@:brandUsername",
-    "/@:brandUsername/:dateSlug",
-    "/@:brandUsername/@:eventUsername/:dateSlug",
-    "/@:brandUsername/@:eventUsername",
-    "/@:brandUsername/e/:dateSlug",
-    "/@:brandUsername/e/:dateSlug/:eventSlug",
-  ];
-
-  // Check which routes would match the current path
-  allRoutes.forEach((routePath) => {
-    const match = matchPath({ path: routePath, end: true }, location.pathname);
-    if (match) {
-      console.log(
-        `[AppRoutes] Route '${routePath}' matches with params:`,
-        match.params
-      );
-    }
-  });
-
   // Check if the current path matches the brand profile pattern
   const isBrandProfilePath = /^\/@[a-zA-Z0-9_-]+$/.test(location.pathname);
 
@@ -84,15 +54,6 @@ const AppRoutes = () => {
   const isUserOwnProfilePath =
     userProfilePath && location.pathname === userProfilePath;
 
-  console.log(`[AppRoutes] Path analysis:`, {
-    pathname: location.pathname,
-    isBrandProfilePath,
-    isBrandRelatedPath,
-    isUserOwnProfilePath,
-    userProfilePath,
-    timestamp: new Date().toISOString(),
-  });
-
   return (
     <Routes>
       {/* Special case for brand profile path - but only if it's not the user's own profile */}
@@ -102,10 +63,6 @@ const AppRoutes = () => {
           element={
             <RouteDebug name="brand-profile-direct-match">
               {({ params }) => {
-                console.log(
-                  "[Route:direct-match] Matched brand profile path:",
-                  location.pathname
-                );
                 // Extract the brand username from the path
                 const brandUsername = location.pathname.substring(2); // Remove the leading /@
                 return <BrandProfile key={brandUsername} />;
@@ -123,10 +80,6 @@ const AppRoutes = () => {
             element={
               <RouteDebug name="user-own-profile">
                 {({ params }) => {
-                  console.log(
-                    "[Route:user-own-profile] Matched user's own profile path:",
-                    location.pathname
-                  );
                   return <Dashboard />;
                 }}
               </RouteDebug>
@@ -260,10 +213,6 @@ const AppRoutes = () => {
         element={
           <RouteDebug name="brand-profile-public">
             {({ params }) => {
-              console.log(
-                "[Route:/@:brandUsername] Matched with params:",
-                params
-              );
               return <BrandProfile />;
             }}
           </RouteDebug>
@@ -276,10 +225,6 @@ const AppRoutes = () => {
         element={
           <RouteDebug name="event-public-ultra-simplified">
             {({ params }) => {
-              console.log(
-                "[Route:/@:brandUsername/:dateSlug] Matched with params:",
-                params
-              );
               // We need to check if dateSlug is a valid date format to avoid mismatching
               const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
 
@@ -429,26 +374,14 @@ const AppRoutes = () => {
         element={
           <RouteDebug name="home-fallback">
             {({ params }) => {
-              console.log(
-                "[Route:*] Fallback route matched with path:",
-                location.pathname
-              );
-
               // If it's the user's own profile path, we should redirect to the dashboard
               if (isUserOwnProfilePath) {
-                console.log(
-                  "[Route:*] Detected user's own profile path, redirecting to dashboard"
-                );
                 return <Navigate to={userProfilePath} replace />;
               }
 
               // If it's a brand-related path but not matched by any specific route,
               // we should try to render the BrandProfile component
               if (isBrandRelatedPath) {
-                console.log(
-                  "[Route:*] Detected brand-related path, rendering BrandProfile"
-                );
-
                 // Check if this might be an event URL with a date pattern
                 const pathParts = location.pathname.substring(2).split("/");
 
@@ -457,9 +390,6 @@ const AppRoutes = () => {
                   pathParts.length > 1 &&
                   /^\d{6}(-\d+)?$/.test(pathParts[1])
                 ) {
-                  console.log(
-                    "[Route:*] Detected date pattern in URL, rendering EventProfile"
-                  );
                   return <EventProfile />;
                 }
 
@@ -483,14 +413,6 @@ const RouteDebug = ({ name, children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Enhanced logging for route debugging
-  console.log(`[RouteDebug:${name}] Rendering route:`, {
-    name,
-    pathname: location.pathname,
-    params,
-    timestamp: new Date().toISOString(),
-  });
-
   const debugInfo = {
     name,
     params,
@@ -513,7 +435,6 @@ const RouteDebug = ({ name, children }) => {
       location.pathname
     ),
     nestedSegments: location.pathname.split("/").filter(Boolean),
-    timestamp: new Date().toISOString(),
   };
 
   return typeof children === "function" ? children(debugInfo) : children;

@@ -23,15 +23,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
 
   // Log isAlpha status whenever currentUser changes
   useEffect(() => {
-    if (currentUser) {
-      console.log("🔍 DashboardNavigation: User object:", currentUser);
-      console.log("🔍 DashboardNavigation: User isAlpha status:", {
-        username: currentUser.username,
-        isAlpha: currentUser.isAlpha,
-        isDeveloper: currentUser.isDeveloper,
-        userKeys: Object.keys(currentUser),
-      });
-    }
+    // Effect remains but logs removed
   }, [currentUser]);
 
   if (!currentUser) return null;
@@ -39,18 +31,9 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   // FIXED: Only use isAlpha for access control, not isDeveloper
   const hasAlphaAccess = Boolean(currentUser.isAlpha);
 
-  console.log(
-    "🔍 DashboardNavigation: Rendering with hasAlphaAccess =",
-    hasAlphaAccess,
-    "isAlpha =",
-    Boolean(currentUser.isAlpha),
-    "isDeveloper =",
-    Boolean(currentUser.isDeveloper)
-  );
-
   // Force debug - remove this in production
   // This is just for debugging to see what's happening
-  const debugMenuItems = () => {
+  const menuItems = () => {
     const items = [];
 
     // Always add Profile
@@ -66,10 +49,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
 
     // Check Brands condition
     if (hasAlphaAccess) {
-      console.log(
-        "🔍 Adding Brands menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
       items.push({
         title: "Brands",
         icon: <RiBuildingLine />,
@@ -79,19 +58,10 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
           onClose();
         },
       });
-    } else {
-      console.log(
-        "🔍 NOT adding Brands menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
     }
 
     // Check Events condition
     if (hasAlphaAccess) {
-      console.log(
-        "🔍 Adding Events menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
       items.push({
         title: "Events",
         icon: <RiCalendarEventLine />,
@@ -101,19 +71,10 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
           onClose();
         },
       });
-    } else {
-      console.log(
-        "🔍 NOT adding Events menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
     }
 
     // Check Settings condition
     if (hasAlphaAccess) {
-      console.log(
-        "🔍 Adding Settings menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
       items.push({
         title: "Settings",
         icon: <RiSettings4Line />,
@@ -123,37 +84,21 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
           onClose();
         },
       });
-    } else {
-      console.log(
-        "🔍 NOT adding Settings menu item because hasAlphaAccess =",
-        hasAlphaAccess
-      );
     }
 
     // Only show Alpha Access option if user doesn't have alpha access
     if (!hasAlphaAccess) {
-      console.log(
-        "🔍 Adding Alpha Access menu item because user doesn't have alpha access"
-      );
       items.push({
         title: "Alpha Access",
         icon: <RiKeyLine />,
         action: () => {
-          console.log("Opening Alpha Access modal");
           setShowAlphaAccess(true);
         },
       });
-    } else {
-      console.log(
-        "🔍 NOT adding Alpha Access menu item because user already has alpha access"
-      );
     }
 
     return items;
   };
-
-  // Use the debug function instead of the spread operator approach
-  const menuItems = debugMenuItems();
 
   const overlayVariants = {
     hidden: { opacity: 0 },
@@ -185,7 +130,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   };
 
   const handleCloseAlphaAccess = () => {
-    console.log("Closing Alpha Access modal");
     setShowAlphaAccess(false);
   };
 
@@ -248,7 +192,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
             </div>
 
             <div className="dashboard-navigation-content">
-              {menuItems.map((item, index) => (
+              {menuItems().map((item, index) => (
                 <motion.div
                   key={item.title}
                   className={`menu-item ${

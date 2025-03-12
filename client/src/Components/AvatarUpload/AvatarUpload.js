@@ -28,6 +28,7 @@ const AvatarUpload = ({
   const [imageSrc, setImageSrc] = useState(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -39,6 +40,11 @@ const AvatarUpload = ({
       setIsCropMode(false);
     }
   }, [showModal, isCropMode, setIsCropMode]);
+
+  // Reset image error when user changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user]);
 
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
@@ -115,20 +121,12 @@ const AvatarUpload = ({
         return;
       }
 
-      console.log("[AvatarUpload] Starting save process:", {
-        userId: user?._id,
-        hasCroppedPixels: !!croppedAreaPixels,
-        isLineUpMode,
-        timestamp: new Date().toISOString(),
-      });
-
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       const file = new File([croppedImageBlob], `avatar-${Date.now()}.jpg`, {
         type: "image/jpeg",
       });
 
       if (isLineUpMode && onImageCropped) {
-        console.log("[AvatarUpload] In LineUp mode, returning cropped file");
         onImageCropped(file);
         setImageSrc(null);
         setShowModal(false);
@@ -148,17 +146,8 @@ const AvatarUpload = ({
 
       const token = localStorage.getItem("token");
       if (!token) {
-        console.error("[AvatarUpload] No authentication token found");
         throw new Error("No authentication token found");
       }
-
-      console.log("[AvatarUpload] Sending upload request:", {
-        hasToken: !!token,
-        tokenStart: token.substring(0, 20) + "...",
-        userId: user._id,
-        fileSize: file.size,
-        timestamp: new Date().toISOString(),
-      });
 
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/avatar/profile-img-upload`,
@@ -171,27 +160,17 @@ const AvatarUpload = ({
         }
       );
 
-      console.log("[AvatarUpload] Upload response received:", {
-        status: response.status,
-        hasImageUrl: !!response.data.imageUrl,
-        timestamp: new Date().toISOString(),
-      });
-
       setUser((prevUser) => ({
         ...prevUser,
         avatar: response.data.imageUrl,
       }));
 
+      // Reset image error state after successful upload
+      setImageError(false);
       setImageSrc(null);
       setShowModal(false);
       showSuccess("Avatar updated successfully!");
     } catch (error) {
-      console.error("[AvatarUpload] Upload error:", {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        timestamp: new Date().toISOString(),
-      });
       showError(error.response?.data?.error || "Failed to upload avatar");
     } finally {
       setIsUploading(false);
@@ -208,6 +187,24 @@ const AvatarUpload = ({
     if (!avatar) return null;
     if (typeof avatar === "string") return avatar;
     return avatar.medium || avatar.full || avatar.thumbnail;
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const isValidAvatarUrl = () => {
+    const avatarUrl = getAvatarUrl(user?.avatar);
+
+    // Check if the URL contains the old S3 pattern that's known to be broken
+    if (
+      avatarUrl &&
+      avatarUrl.includes("guest-code.s3.eu-north-1.amazonaws.com/avatars/")
+    ) {
+      return false;
+    }
+
+    return !imageError && avatarUrl;
   };
 
   const renderModal = () => {
@@ -322,19 +319,16 @@ const AvatarUpload = ({
             }
           }}
         >
-          {user?.avatar && getAvatarUrl(user.avatar) ? (
+          {isValidAvatarUrl() ? (
             <img
               src={getAvatarUrl(user.avatar)}
               alt="User avatar"
               className="avatar-image"
+              onError={handleImageError}
             />
           ) : (
             <div className="avatar-placeholder">
-              {isLineUpMode ? (
-                <RiUpload2Line className="upload-icon" />
-              ) : (
-                <RiUpload2Line className="upload-icon" />
-              )}
+              <RiUpload2Line className="upload-icon" />
             </div>
           )}
           <div className="avatar-overlay">

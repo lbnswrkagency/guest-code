@@ -51,6 +51,7 @@ const UpcomingEvent = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [totalEvents, setTotalEvents] = useState(0);
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
@@ -235,18 +236,50 @@ const UpcomingEvent = ({
       // Ensure ticketsAvailable property exists
       if (currentEvent.ticketsAvailable === undefined) {
         console.log(
-          "[UpcomingEvent] ticketsAvailable property is undefined, setting default to true"
+          "[UpcomingEvent] ticketsAvailable property is undefined for current event"
         );
-        currentEvent.ticketsAvailable = true; // Default to true if not specified
+
+        // If this is a child event, check if parent event has tickets available
+        if (currentEvent.parentEventId && currentEvent.isWeekly === false) {
+          console.log(
+            "[UpcomingEvent] This is a child event, checking parent event for ticketsAvailable"
+          );
+
+          // Find the parent event in the events array
+          const parentEvent = events.find(
+            (event) =>
+              event._id === currentEvent.parentEventId ||
+              (event.isWeekly && event.weekNumber === 0)
+          );
+
+          if (parentEvent && parentEvent.ticketsAvailable !== undefined) {
+            console.log(
+              `[UpcomingEvent] Found parent event, inheriting ticketsAvailable: ${parentEvent.ticketsAvailable}`
+            );
+            currentEvent.ticketsAvailable = parentEvent.ticketsAvailable;
+          } else {
+            console.log(
+              "[UpcomingEvent] Parent event not found in current events array or doesn't have ticketsAvailable, defaulting to true"
+            );
+            currentEvent.ticketsAvailable = true; // Default to true if parent not found
+          }
+        } else {
+          console.log(
+            "[UpcomingEvent] Not a child event or no parent ID, defaulting ticketsAvailable to true"
+          );
+          currentEvent.ticketsAvailable = true; // Default to true if not specified
+        }
       }
 
       console.log(
-        "[UpcomingEvent] Current event changed, fetching ticket settings:",
+        "[UpcomingEvent] Current event changed, ticket availability status:",
         {
           eventId: currentEvent._id,
           eventTitle: currentEvent.title,
           ticketsAvailable: currentEvent.ticketsAvailable,
-          hasTicketsAvailableProperty: "ticketsAvailable" in currentEvent,
+          isWeekly: currentEvent.isWeekly,
+          weekNumber: currentEvent.weekNumber,
+          parentEventId: currentEvent.parentEventId,
           timestamp: new Date().toISOString(),
         }
       );
@@ -297,14 +330,17 @@ const UpcomingEvent = ({
   const fetchTicketSettings = async (eventId) => {
     setLoadingTickets(true);
     try {
+      const currentEvent = events[currentIndex];
       console.log(
         "[UpcomingEvent] Current event changed, fetching ticket settings:",
         {
           eventId: eventId,
-          eventTitle: events[currentIndex]?.title,
-          ticketsAvailable: events[currentIndex]?.ticketsAvailable,
-          hasTicketsAvailableProperty:
-            "ticketsAvailable" in events[currentIndex],
+          eventTitle: currentEvent?.title,
+          isWeekly: currentEvent?.isWeekly,
+          weekNumber: currentEvent?.weekNumber,
+          parentEventId: currentEvent?.parentEventId,
+          ticketsAvailable: currentEvent?.ticketsAvailable,
+          hasTicketsAvailableProperty: "ticketsAvailable" in currentEvent,
           timestamp: new Date().toISOString(),
         }
       );
@@ -314,15 +350,68 @@ const UpcomingEvent = ({
       console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
       const response = await axiosInstance.get(endpoint);
+      let ticketSettings = [];
 
-      if (response.data && response.data.ticketSettings) {
-        setTicketSettings(response.data.ticketSettings);
+      if (
+        response.data &&
+        response.data.ticketSettings &&
+        response.data.ticketSettings.length > 0
+      ) {
+        console.log("[UpcomingEvent] Found ticket settings for event:", {
+          count: response.data.ticketSettings.length,
+          settings: response.data.ticketSettings,
+        });
+        ticketSettings = response.data.ticketSettings;
       } else {
-        // No ticket settings found
-        setTicketSettings([]);
+        // If this is a child event (has parentEventId) and no ticket settings were found,
+        // try to get ticket settings from the parent event
+        if (currentEvent?.parentEventId) {
+          console.log(
+            "[UpcomingEvent] No ticket settings found for child event, checking parent event:",
+            currentEvent.parentEventId
+          );
+
+          try {
+            const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
+            const parentResponse = await axiosInstance.get(parentEndpoint);
+
+            if (
+              parentResponse.data &&
+              parentResponse.data.ticketSettings &&
+              parentResponse.data.ticketSettings.length > 0
+            ) {
+              console.log(
+                "[UpcomingEvent] Found ticket settings from parent event:",
+                {
+                  count: parentResponse.data.ticketSettings.length,
+                  settings: parentResponse.data.ticketSettings,
+                }
+              );
+              ticketSettings = parentResponse.data.ticketSettings;
+            } else {
+              console.log(
+                "[UpcomingEvent] No ticket settings found in parent event either"
+              );
+              ticketSettings = [];
+            }
+          } catch (parentError) {
+            console.error(
+              "[UpcomingEvent] Error fetching parent event ticket settings:",
+              parentError
+            );
+            ticketSettings = [];
+          }
+        } else {
+          console.log(
+            "[UpcomingEvent] No ticket settings found and not a child event"
+          );
+          ticketSettings = [];
+        }
       }
+
+      setTicketSettings(ticketSettings);
     } catch (error) {
-      // Handle error silently
+      console.error("[UpcomingEvent] Error fetching ticket settings:", error);
       setTicketSettings([]);
     } finally {
       setLoadingTickets(false);
@@ -340,16 +429,20 @@ const UpcomingEvent = ({
       // Try to fetch by brandId first if available
       if (brandId) {
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
+        console.log(`[UpcomingEvent] Fetching events by brandId: ${brandId}`);
 
         try {
           const response = await axiosInstance.get(endpoint);
 
           if (response.data && Array.isArray(response.data)) {
             events = response.data;
+            console.log(
+              `[UpcomingEvent] Found ${events.length} events by brandId`
+            );
           }
 
           // If we have parent events, fetch their children too
-          const parentEvents = events.filter((event) => event.isParentEvent);
+          const parentEvents = events.filter((event) => event.isWeekly);
 
           for (const parentEvent of parentEvents) {
             try {
@@ -362,13 +455,24 @@ const UpcomingEvent = ({
                 childrenResponse.data &&
                 Array.isArray(childrenResponse.data)
               ) {
+                console.log(
+                  `[UpcomingEvent] Found ${childrenResponse.data.length} child events for parent ${parentEvent._id}`
+                );
                 events = [...events, ...childrenResponse.data];
               }
             } catch (childError) {
-              // Handle child events error silently
+              console.warn(
+                `[UpcomingEvent] Error fetching child events:`,
+                childError.message
+              );
             }
           }
         } catch (error) {
+          console.warn(
+            `[UpcomingEvent] Error fetching events by brandId:`,
+            error.message
+          );
+
           // Handle both 401 (Unauthorized) and 403 (Forbidden) errors by falling back to public endpoint
           if (
             error.response &&
@@ -378,16 +482,25 @@ const UpcomingEvent = ({
             if (brandUsername) {
               const cleanUsername = brandUsername.replace(/^@/, "");
               endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+              console.log(
+                `[UpcomingEvent] Falling back to username endpoint: ${endpoint}`
+              );
 
               try {
                 const response = await axiosInstance.get(endpoint);
                 if (response.data && Array.isArray(response.data)) {
                   events = response.data;
+                  console.log(
+                    `[UpcomingEvent] Found ${events.length} events by username fallback`
+                  );
                 } else {
                   events = [];
                 }
               } catch (usernameError) {
-                // Handle username error silently
+                console.warn(
+                  `[UpcomingEvent] Error fetching events by username:`,
+                  usernameError.message
+                );
                 events = [];
               }
             }
@@ -397,50 +510,293 @@ const UpcomingEvent = ({
         // No brandId, try using brandUsername
         const cleanUsername = brandUsername.replace(/^@/, "");
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+        console.log(
+          `[UpcomingEvent] Fetching events by username: ${cleanUsername}`
+        );
 
         try {
           const response = await axiosInstance.get(endpoint);
 
           if (response.data && Array.isArray(response.data)) {
             events = response.data;
+            console.log(
+              `[UpcomingEvent] Found ${events.length} events by username`
+            );
+
+            // If we have parent events, fetch their children too
+            const parentEvents = events.filter((event) => event.isWeekly);
+
+            for (const parentEvent of parentEvents) {
+              try {
+                // Fetch all child events that already exist for this parent
+                const childrenResponse = await axiosInstance.get(
+                  `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+                );
+
+                if (
+                  childrenResponse.data &&
+                  Array.isArray(childrenResponse.data)
+                ) {
+                  console.log(
+                    `[UpcomingEvent] Found ${childrenResponse.data.length} child events for parent ${parentEvent._id}`
+                  );
+                  events = [...events, ...childrenResponse.data];
+                }
+              } catch (childError) {
+                console.warn(
+                  `[UpcomingEvent] Error fetching child events:`,
+                  childError.message
+                );
+              }
+            }
           } else {
             events = [];
           }
         } catch (err) {
-          // Handle error silently
+          console.warn(
+            `[UpcomingEvent] Error fetching events by username:`,
+            err.message
+          );
           events = [];
         }
       }
 
       // Filter out past events and sort by date
       const now = new Date();
+      now.setHours(0, 0, 0, 0); // Set to start of day for more accurate comparison
+
+      console.log("[UpcomingEvent] Filtering events:", {
+        totalEvents: events.length,
+        currentTime: now.toISOString(),
+      });
+
       const upcomingEvents = events
-        .filter((event) => new Date(event.date) >= now)
+        .filter((event) => {
+          try {
+            // Get event date
+            const eventDate = new Date(event.date);
+
+            // For debugging
+            const eventInfo = {
+              id: event._id,
+              title: event.title,
+              date: event.date,
+              endDate: event.endDate,
+              startTime: event.startTime,
+              endTime: event.endTime,
+              isWeekly: event.isWeekly,
+              weekNumber: event.weekNumber,
+            };
+
+            // Check if we have endDate and endTime (new fields)
+            let eventEndDateTime;
+
+            if (event.endDate) {
+              // If we have endDate, use it directly
+              try {
+                eventEndDateTime = new Date(event.endDate);
+                if (isNaN(eventEndDateTime.getTime())) {
+                  console.warn(
+                    "[UpcomingEvent] Invalid endDate detected, falling back to date + endTime",
+                    eventInfo
+                  );
+                  eventEndDateTime = null;
+                }
+              } catch (err) {
+                console.warn(
+                  "[UpcomingEvent] Error parsing endDate:",
+                  err,
+                  eventInfo
+                );
+                eventEndDateTime = null;
+              }
+            }
+
+            // If endDate is not available or invalid, construct from date and endTime
+            if (!eventEndDateTime) {
+              eventEndDateTime = new Date(eventDate); // Clone the date
+
+              // Parse endTime (format: "HH:MM")
+              if (event.endTime) {
+                try {
+                  const [hours, minutes] = event.endTime.split(":").map(Number);
+                  if (!isNaN(hours) && !isNaN(minutes)) {
+                    eventEndDateTime.setHours(hours, minutes, 0, 0);
+
+                    // If end time is earlier than start time, it means it's the next day
+                    if (event.startTime) {
+                      const [startHours, startMinutes] = event.startTime
+                        .split(":")
+                        .map(Number);
+                      if (
+                        !isNaN(startHours) &&
+                        !isNaN(startMinutes) &&
+                        (hours < startHours ||
+                          (hours === startHours && minutes < startMinutes))
+                      ) {
+                        eventEndDateTime.setDate(
+                          eventEndDateTime.getDate() + 1
+                        );
+                      }
+                    }
+                  } else {
+                    console.warn(
+                      "[UpcomingEvent] Invalid endTime format:",
+                      event.endTime,
+                      eventInfo
+                    );
+                  }
+                } catch (err) {
+                  console.warn(
+                    "[UpcomingEvent] Error parsing endTime:",
+                    err,
+                    eventInfo
+                  );
+                }
+              }
+            }
+
+            // For weekly events, we need special handling
+            if (event.isWeekly) {
+              // For parent weekly events (weekNumber === 0), check if the event date is in the future
+              // or if it has upcoming child events
+              if (event.weekNumber === 0 || !event.weekNumber) {
+                // Check if the parent event's date is in the future
+                const parentEventDate = new Date(event.date);
+
+                // For parent events, we need to check if the event date + end time is in the future
+                let parentEndDateTime = new Date(parentEventDate);
+
+                // Parse endTime (format: "HH:MM")
+                if (event.endTime) {
+                  try {
+                    const [hours, minutes] = event.endTime
+                      .split(":")
+                      .map(Number);
+                    if (!isNaN(hours) && !isNaN(minutes)) {
+                      parentEndDateTime.setHours(hours, minutes, 0, 0);
+
+                      // If end time is earlier than start time, it means it's the next day
+                      if (event.startTime) {
+                        const [startHours, startMinutes] = event.startTime
+                          .split(":")
+                          .map(Number);
+                        if (
+                          !isNaN(startHours) &&
+                          !isNaN(startMinutes) &&
+                          (hours < startHours ||
+                            (hours === startHours && minutes < startMinutes))
+                        ) {
+                          parentEndDateTime.setDate(
+                            parentEndDateTime.getDate() + 1
+                          );
+                        }
+                      }
+                    }
+                  } catch (err) {
+                    console.warn(
+                      "[UpcomingEvent] Error parsing parent event endTime:",
+                      err,
+                      eventInfo
+                    );
+                  }
+                }
+
+                // Check if the parent event's end date/time is in the future
+                const isParentUpcoming = parentEndDateTime >= now;
+
+                if (isParentUpcoming) {
+                  console.log(
+                    `[UpcomingEvent] Including upcoming parent weekly event: ${event.title}`,
+                    {
+                      eventDate: parentEventDate.toISOString(),
+                      eventEndDateTime: parentEndDateTime.toISOString(),
+                      now: now.toISOString(),
+                      isUpcoming: isParentUpcoming,
+                    }
+                  );
+                  return true;
+                } else {
+                  console.log(
+                    `[UpcomingEvent] Parent weekly event is in the past: ${event.title}`,
+                    {
+                      eventDate: parentEventDate.toISOString(),
+                      eventEndDateTime: parentEndDateTime.toISOString(),
+                      now: now.toISOString(),
+                    }
+                  );
+
+                  // Even if the parent event is in the past, we should still show it if it has upcoming child events
+                  // This will be handled by the child events filter, so we can return false here
+                  return false;
+                }
+              }
+
+              // For child weekly events, check if their end date/time is in the future
+              return eventEndDateTime >= now;
+            }
+
+            // For regular events, check if their end date/time is in the future
+            const isUpcoming = eventEndDateTime >= now;
+
+            if (isUpcoming) {
+              console.log(
+                `[UpcomingEvent] Including upcoming event: ${event.title}`,
+                {
+                  eventDate: eventDate.toISOString(),
+                  eventEndDateTime: eventEndDateTime.toISOString(),
+                  now: now.toISOString(),
+                  isUpcoming,
+                }
+              );
+            }
+
+            return isUpcoming;
+          } catch (err) {
+            console.error("[UpcomingEvent] Error filtering event:", err, event);
+            return false;
+          }
+        })
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+      console.log("[UpcomingEvent] Filtered upcoming events:", {
+        total: events.length,
+        upcoming: upcomingEvents.length,
+        firstEvent:
+          upcomingEvents.length > 0
+            ? {
+                title: upcomingEvents[0].title,
+                date: upcomingEvents[0].date,
+                endDate: upcomingEvents[0].endDate,
+                startTime: upcomingEvents[0].startTime,
+                endTime: upcomingEvents[0].endTime,
+                isWeekly: upcomingEvents[0].isWeekly,
+                weekNumber: upcomingEvents[0].weekNumber,
+              }
+            : null,
+      });
+
       setEvents(upcomingEvents);
+      setTotalEvents(upcomingEvents.length);
 
       if (upcomingEvents.length > 0) {
-        // Preload the first event's image
+        // Set the first event as the current event
         const firstEvent = upcomingEvents[0];
-        if (
-          firstEvent.media &&
-          firstEvent.media.images &&
-          firstEvent.media.images.length > 0
-        ) {
-          const img = new Image();
-          img.src = firstEvent.media.images[0].url;
+        setCurrentIndex(0);
+
+        // Preload the first event's image if available
+        if (firstEvent.flyer) {
+          preloadEventImage(firstEvent);
         }
-
-        // Fetch ticket settings for the first event
-        fetchTicketSettings(firstEvent._id);
+      } else {
+        setCurrentIndex(-1);
       }
-
-      setLoading(false);
-    } catch (err) {
-      // Handle error silently
+    } catch (error) {
+      console.error("[UpcomingEvent] Error fetching events:", error);
+      setError("Failed to load events");
       setEvents([]);
-      setError("Failed to load upcoming events");
+      setCurrentIndex(-1);
+    } finally {
       setLoading(false);
     }
   };
@@ -706,6 +1062,22 @@ const UpcomingEvent = ({
     );
   };
 
+  // Add the preloadEventImage function
+  const preloadEventImage = (event) => {
+    if (!event) return;
+
+    // Preload the event image if available
+    if (event.flyer) {
+      const formats = ["portrait", "landscape", "square"];
+      for (const format of formats) {
+        if (event.flyer[format]?.medium) {
+          const img = new Image();
+          img.src = event.flyer[format].medium;
+        }
+      }
+    }
+  };
+
   // Check if we have a current event to display
   if (loading) {
     return (
@@ -849,7 +1221,7 @@ const UpcomingEvent = ({
                 <RiMapPinLine />
                 <span>{currentEvent.location || "TBA"}</span>
               </div>
-              {currentEvent.ticketsAvailable && (
+              {(currentEvent.ticketsAvailable || ticketSettings.length > 0) && (
                 <div className="info-item ticket">
                   <RiTicketLine />
                   <span>Tickets Available</span>
@@ -933,35 +1305,73 @@ const UpcomingEvent = ({
             <div className="content-sections">
               {/* Ticket Purchase Section */}
               <div ref={ticketSectionRef} className="ticket-section full-width">
-                {currentEvent && currentEvent.ticketsAvailable && (
-                  <Tickets
-                    eventId={currentEvent._id}
-                    eventTitle={currentEvent.title}
-                    eventDate={currentEvent.date}
-                    seamless={seamless}
-                    fetchTicketSettings={async (eventId) => {
-                      try {
-                        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-                        console.log(
-                          `[UpcomingEvent] Using event profile endpoint: ${endpoint}`
-                        );
+                {currentEvent &&
+                  (currentEvent.ticketsAvailable ||
+                    ticketSettings.length > 0) && (
+                    <Tickets
+                      eventId={currentEvent._id}
+                      eventTitle={currentEvent.title}
+                      eventDate={currentEvent.date}
+                      seamless={seamless}
+                      fetchTicketSettings={async (eventId) => {
+                        try {
+                          const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+                          console.log(
+                            `[UpcomingEvent] Using event profile endpoint: ${endpoint}`
+                          );
 
-                        const response = await axiosInstance.get(endpoint);
+                          const response = await axiosInstance.get(endpoint);
+                          let ticketSettings = [];
 
-                        if (response.data && response.data.ticketSettings) {
-                          return response.data.ticketSettings;
+                          if (
+                            response.data &&
+                            response.data.ticketSettings &&
+                            response.data.ticketSettings.length > 0
+                          ) {
+                            ticketSettings = response.data.ticketSettings;
+                          } else if (currentEvent.parentEventId) {
+                            // If this is a child event and no ticket settings were found, check parent event
+                            console.log(
+                              "[UpcomingEvent] No ticket settings found for child event, checking parent:",
+                              currentEvent.parentEventId
+                            );
+
+                            try {
+                              const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
+                              const parentResponse = await axiosInstance.get(
+                                parentEndpoint
+                              );
+
+                              if (
+                                parentResponse.data &&
+                                parentResponse.data.ticketSettings &&
+                                parentResponse.data.ticketSettings.length > 0
+                              ) {
+                                console.log(
+                                  "[UpcomingEvent] Using ticket settings from parent event"
+                                );
+                                ticketSettings =
+                                  parentResponse.data.ticketSettings;
+                              }
+                            } catch (parentError) {
+                              console.error(
+                                "[UpcomingEvent] Error fetching parent ticket settings:",
+                                parentError
+                              );
+                            }
+                          }
+
+                          return ticketSettings;
+                        } catch (error) {
+                          console.error(
+                            "[UpcomingEvent] Error fetching ticket settings:",
+                            error
+                          );
+                          return [];
                         }
-                        return [];
-                      } catch (error) {
-                        console.error(
-                          "[UpcomingEvent] Error fetching ticket settings:",
-                          error
-                        );
-                        return [];
-                      }
-                    }}
-                  />
-                )}
+                      }}
+                    />
+                  )}
               </div>
 
               {/* Show the guest code section for all users */}

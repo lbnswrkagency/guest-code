@@ -28,30 +28,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Log props for debugging
-  useEffect(() => {
-    console.group("🔍 FEED: Props");
-    console.log(
-      "Selected Brand:",
-      selectedBrand
-        ? {
-            _id: selectedBrand._id,
-            name: selectedBrand.name,
-          }
-        : "undefined"
-    );
-    console.log("Selected Date:", selectedDate);
-    console.log(
-      "Selected Event:",
-      selectedEvent
-        ? {
-            _id: selectedEvent._id,
-            name: selectedEvent.name,
-            date: selectedEvent.date,
-          }
-        : "undefined"
-    );
-    console.groupEnd();
-  }, [selectedBrand, selectedDate, selectedEvent]);
 
   // Effect to fetch event data when brand or date changes
   useEffect(() => {

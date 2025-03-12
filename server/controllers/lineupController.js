@@ -94,11 +94,13 @@ exports.createLineUp = async (req, res) => {
     // Use req.user.userId instead of req.user._id
     const userId = req.user.userId;
 
-    // Check permissions
-    if (
-      brand.owner.toString() !== userId.toString() &&
-      !brand.admins.includes(userId)
-    ) {
+    // Check permissions - Fix for the includes error by ensuring admins array exists
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to add line-up to this brand",
@@ -217,10 +219,23 @@ exports.updateLineUp = async (req, res) => {
       });
     }
 
-    if (
-      brand.owner.toString() !== req.user._id.toString() &&
-      !brand.admins.includes(req.user._id)
-    ) {
+    // Get the user ID from either req.user.userId or req.user._id
+    const userId = req.user.userId || req.user._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Check if user is brand owner or admin
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to update this line-up entry",
@@ -293,7 +308,7 @@ exports.deleteLineUp = async (req, res) => {
     // Check if user is brand owner or admin
     const isOwner = brand.owner.toString() === userId.toString();
     const isAdmin =
-      brand.admins &&
+      Array.isArray(brand.admins) &&
       brand.admins.some((adminId) => adminId.toString() === userId.toString());
 
     if (!isOwner && !isAdmin) {
@@ -351,12 +366,26 @@ exports.addLineUpToEvent = async (req, res) => {
       });
     }
 
+    // Get the user ID from either req.user.userId or req.user._id
+    const userId = req.user.userId || req.user._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     // Verify permissions
     const brand = await Brand.findById(lineUp.brandId);
-    if (
-      brand.owner.toString() !== req.user._id.toString() &&
-      !brand.admins.includes(req.user._id)
-    ) {
+
+    // Check if user is brand owner or admin
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to add this line-up to this event",
@@ -406,12 +435,26 @@ exports.removeLineUpFromEvent = async (req, res) => {
       });
     }
 
+    // Get the user ID from either req.user.userId or req.user._id
+    const userId = req.user.userId || req.user._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     // Verify permissions
     const brand = await Brand.findById(lineUp.brandId);
-    if (
-      brand.owner.toString() !== req.user._id.toString() &&
-      !brand.admins.includes(req.user._id)
-    ) {
+
+    // Check if user is brand owner or admin
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message:

@@ -379,12 +379,14 @@ $star-twinkle-duration: 2s;
       animation: shimmer $shimmer-duration ease-in-out infinite;
       position: relative;
       width: 100%;
-      display: block;
+      display: inline-block;
       overflow: visible;
       white-space: nowrap;
       letter-spacing: -0.02em;
-      padding-right: 0.1em;
-      transform: scale(0.98);
+      padding-right: 0.5em;
+      transform: none;
+      margin-left: -0.1em;
+      margin-right: -0.1em;
 
       &::after {
         content: "";
@@ -500,7 +502,7 @@ $star-twinkle-duration: 2s;
     &__message {
       h1 {
         font-size: clamp(2.5rem, 8vw, 4rem);
-        padding-right: 0.15em; /* Slightly more padding on mobile */
+        padding-right: 0.5em; /* Increased padding on mobile too */
       }
 
       .subtitle {
@@ -542,6 +544,12 @@ $star-twinkle-duration: 2s;
 
     .nebula {
       filter: blur(60px) !important;
+    }
+
+    &__message {
+      h1 {
+        padding-right: 0.6em; /* Extra padding for large screens */
+      }
     }
   }
 }

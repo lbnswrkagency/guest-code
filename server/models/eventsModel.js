@@ -50,6 +50,8 @@ const EventSchema = new Schema(
     subTitle: { type: String },
     description: { type: String },
     date: { type: Date, required: true },
+    startDate: { type: Date },
+    endDate: { type: Date },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     location: { type: String, required: true },
