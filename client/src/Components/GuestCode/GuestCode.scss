@@ -1,0 +1,312 @@
+@import "../../_variables";
+
+// Define CSS variable for dynamic primary color with fallback
+:root {
+  --guest-code-primary-color: #{$primary-color};
+}
+
+.guest-code-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.guest-code-card {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 30, 30, 0.9),
+    rgba(20, 20, 20, 0.95)
+  );
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+
+  // Paper grain texture
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    border-radius: 12px;
+  }
+
+  // All content should be above the texture
+  & > * {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+.guest-code-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  position: relative;
+  display: inline-block;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      var(--guest-code-primary-color),
+      transparent
+    );
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.event-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border-left: 3px solid var(--guest-code-primary-color);
+
+  svg {
+    color: var(--guest-code-primary-color);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  }
+
+  span {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+.condition-text {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.success-message {
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #2ecc71;
+
+  .success-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &::before {
+      content: "✓";
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: #2ecc71;
+      color: #fff;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+  }
+}
+
+.guest-code-form {
+  .form-group {
+    position: relative;
+    margin-bottom: 1.2rem;
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      z-index: 1;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 2;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(var(--guest-code-primary-color), 0.5);
+        background: rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 0 2px rgba(var(--guest-code-primary-color), 0.1),
+          inset 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &.error {
+        border-color: rgba(244, 67, 54, 0.5);
+        background: rgba(244, 67, 54, 0.05);
+      }
+    }
+
+    .error-message {
+      color: #f44336;
+      font-size: 0.8rem;
+      margin-top: 0.3rem;
+      position: absolute;
+    }
+  }
+
+  .guest-code-button {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--guest-code-primary-color);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);
+
+    // Metallic effect
+    background-image: linear-gradient(
+      to bottom,
+      lighten(#d4af37, 5%) 0%,
+      #d4af37 50%,
+      darken(#d4af37, 5%) 100%
+    );
+
+    // Embossed effect
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0.5;
+      border-radius: 8px 8px 0 0;
+    }
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      background-image: linear-gradient(
+        to bottom,
+        lighten(#d4af37, 8%) 0%,
+        lighten(#d4af37, 3%) 50%,
+        #d4af37 100%
+      );
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+      border-top: 2px solid #000;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+// Animation for loading spinner
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .guest-code-card {
+    padding: 1.5rem;
+  }
+
+  .guest-code-title {
+    font-size: 1.3rem;
+  }
+
+  .guest-code-form {
+    .form-group {
+      margin-bottom: 1rem;
+
+      input,
+      select {
+        padding: 0.7rem 1rem 0.7rem 2.5rem;
+        font-size: 0.95rem;
+      }
+    }
+
+    .guest-code-button {
+      padding: 0.8rem;
+      font-size: 1rem;
+    }
+  }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+  .guest-code-card {
+    background: linear-gradient(
+      135deg,
+      rgba(25, 25, 25, 0.97),
+      rgba(15, 15, 15, 0.99)
+    );
+  }
+}

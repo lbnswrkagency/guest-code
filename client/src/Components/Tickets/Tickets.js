@@ -8,11 +8,13 @@ import {
   RiAlarmLine,
   RiPriceTag3Line,
   RiTicket2Line,
+  RiCoupon3Line,
+  RiMapPinLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import axios from "axios";
 
-const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
+const LoadingSpinner = ({ size = "default", color = "#d4af37" }) => {
   const spinnerSize = size === "small" ? "16px" : "24px";
   return (
     <div
@@ -35,6 +37,7 @@ const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
  * @param {string} props.eventDate - Date of the event
  * @param {boolean} props.seamless - Whether to display in seamless mode without borders
  * @param {Function} props.fetchTicketSettings - Function to fetch ticket settings
+ * @param {Object} props.event - The complete event object with all details
  */
 const Tickets = ({
   eventId,
@@ -42,10 +45,13 @@ const Tickets = ({
   eventDate,
   seamless = false,
   fetchTicketSettings,
+  event,
 }) => {
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const toast = useToast();
+  const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
+  const [checkoutColor, setCheckoutColor] = useState("#d4af37"); // Neutral gold color for checkout
 
   // Form state for checkout
   const [firstName, setFirstName] = useState("");
@@ -60,6 +66,42 @@ const Tickets = ({
 
   // Countdown timers for early bird tickets
   const [countdowns, setCountdowns] = useState({});
+
+  // Effect to get primary color from event code settings or ticketSettings
+  useEffect(() => {
+    // First try to get color from event.codeSettings
+    if (event && event.codeSettings && event.codeSettings.length > 0) {
+      const ticketCodeSetting = event.codeSettings.find(
+        (cs) => cs.type === "ticket"
+      );
+
+      if (ticketCodeSetting && ticketCodeSetting.primaryColor) {
+        const color = ticketCodeSetting.primaryColor;
+        setPrimaryColor(color);
+        // Apply the color to CSS variables for dynamic styling
+        document.documentElement.style.setProperty(
+          "--ticket-primary-color",
+          color
+        );
+
+        return;
+      }
+    }
+
+    // If not found in event.codeSettings, try ticketSettings
+    if (ticketSettings && ticketSettings.length > 0) {
+      const firstTicket = ticketSettings[0];
+      if (firstTicket && firstTicket.color) {
+        const color = firstTicket.color;
+        setPrimaryColor(color);
+        // Apply the color to CSS variables for dynamic styling
+        document.documentElement.style.setProperty(
+          "--ticket-primary-color",
+          color
+        );
+      }
+    }
+  }, [event, ticketSettings]);
 
   useEffect(() => {
     if (eventId) {
@@ -88,9 +130,19 @@ const Tickets = ({
               name: s.name,
               price: s.price,
               hasCountdown: s.hasCountdown,
+              color: s.color,
             })) || [],
         });
         setTicketSettings(settings || []);
+
+        // Set primary color from first ticket if available
+        if (settings && settings.length > 0 && settings[0].color) {
+          setPrimaryColor(settings[0].color);
+          document.documentElement.style.setProperty(
+            "--ticket-primary-color",
+            settings[0].color
+          );
+        }
       } else {
         console.warn("[Tickets] No fetchTicketSettings function provided");
         setTicketSettings([]);
@@ -140,7 +192,7 @@ const Tickets = ({
     if (!countdownText) return null;
 
     return (
-      <div className="ticket-countdown">
+      <div className="ticket-countdown" style={{ color: primaryColor }}>
         <RiAlarmLine /> {countdownText}
       </div>
     );
@@ -414,17 +466,21 @@ const Tickets = ({
   if (loadingTickets) {
     return (
       <div className="tickets-loading">
-        <LoadingSpinner />
-        <span>Loading ticket information...</span>
+        <LoadingSpinner color={primaryColor} />
+        <p>Loading tickets...</p>
       </div>
     );
   }
 
   if (!ticketSettings || ticketSettings.length === 0) {
     return (
-      <div className="tickets-empty">
-        <p>No tickets are currently available for this event.</p>
-        <button className="retry-button" onClick={loadTicketSettings}>
+      <div className="no-tickets">
+        <p>No tickets available for this event.</p>
+        <button
+          className="retry-button"
+          onClick={loadTicketSettings}
+          style={{ color: primaryColor }}
+        >
           <RiRefreshLine /> Retry
         </button>
       </div>
@@ -433,181 +489,167 @@ const Tickets = ({
 
   // Render tickets directly without nested containers
   return (
-    <div
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-      }}
-    >
-      {validatedTickets.map((ticket, index) => (
-        <motion.div
-          key={ticket._id}
-          className="ticket-item"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-        >
-          {/* Render countdown badge */}
-          {renderCountdown(ticket)}
-
-          {/* Discount badge */}
-          {ticket.originalPrice && ticket.originalPrice > ticket.price && (
-            <span className="ticket-discount">
-              <RiPriceTag3Line />
-              {Math.round(
-                ((ticket.originalPrice - ticket.price) / ticket.originalPrice) *
-                  100
+    <div className={`tickets-wrapper ${seamless ? "seamless" : ""}`}>
+      <div className="tickets-container">
+        <h3 className="tickets-title">Tickets</h3>
+        <div className="tickets-list">
+          {validatedTickets.map((ticket, index) => (
+            <div
+              key={ticket._id}
+              className={`ticket-item ${
+                (ticketQuantities[ticket._id] || 0) > 0 ? "active" : ""
+              }`}
+              style={{
+                "--ticket-accent-color": ticket.color || primaryColor,
+              }}
+            >
+              {renderCountdown(ticket)}
+              {ticket.originalPrice && ticket.originalPrice > ticket.price && (
+                <div
+                  className="ticket-discount"
+                  style={{ backgroundColor: ticket.color || primaryColor }}
+                >
+                  {Math.round(
+                    ((ticket.originalPrice - ticket.price) /
+                      ticket.originalPrice) *
+                      100
+                  )}
+                  % OFF
+                </div>
               )}
-              % OFF
-            </span>
-          )}
 
-          <div className="ticket-header">
-            <h4>
-              <RiTicket2Line /> {ticket.name}
-            </h4>
-          </div>
+              <div className="ticket-header">
+                <RiTicket2Line
+                  style={{ color: ticket.color || primaryColor }}
+                />
+                <h4>{ticket.name}</h4>
+              </div>
 
-          <div className="ticket-price">
-            <span className="current-price">{ticket.price.toFixed(2)}€</span>
-            {ticket.originalPrice && ticket.originalPrice > ticket.price && (
-              <span className="original-price">
-                {ticket.originalPrice.toFixed(2)}€
-              </span>
-            )}
-          </div>
-
-          {ticket.description && (
-            <p className="ticket-description">{ticket.description}</p>
-          )}
-
-          <div className="ticket-quantity">
-            <button
-              className="quantity-btn"
-              onClick={() => handleQuantityChange(ticket._id, -1)}
-            >
-              -
-            </button>
-            <span className="quantity">
-              {ticketQuantities[ticket._id] || 0}
-            </span>
-            <button
-              className="quantity-btn"
-              onClick={() => handleQuantityChange(ticket._id, 1)}
-            >
-              +
-            </button>
-          </div>
-        </motion.div>
-      ))}
-
-      {/* Checkout Summary - Only show if tickets are selected */}
-      {hasSelectedTickets && (
-        <div className="checkout-area">
-          <div className="selected-tickets">
-            {ticketSettings.map(
-              (ticket) =>
-                ticketQuantities[ticket._id] > 0 && (
-                  <div key={ticket._id} className="selected-ticket-item">
-                    <span>
-                      {ticketQuantities[ticket._id]}x {ticket.name}
+              <div
+                className="ticket-price"
+                style={{ color: ticket.color || primaryColor }}
+              >
+                {ticket.originalPrice &&
+                  ticket.originalPrice > ticket.price && (
+                    <span className="original-price">
+                      €{ticket.originalPrice.toFixed(2)}
                     </span>
-                    <span>
-                      {(ticket.price * ticketQuantities[ticket._id]).toFixed(2)}
-                      €
-                    </span>
-                  </div>
-                )
-            )}
-          </div>
+                  )}
+                €{ticket.price.toFixed(2)}
+              </div>
 
-          <div className="total-amount">
-            <span>Total</span>
-            <span>{calculateTotal()}€</span>
-          </div>
+              {ticket.description && (
+                <p className="ticket-description">{ticket.description}</p>
+              )}
 
-          <div className="checkout-form">
-            <div
-              className={`form-group ${
-                formTouched.firstName && formErrors.firstName ? "error" : ""
-              }`}
-            >
-              <input
-                type="text"
-                placeholder="First Name"
-                value={firstName}
-                onChange={(e) => handleFieldChange("firstName", e.target.value)}
-                className={
-                  formTouched.firstName && formErrors.firstName ? "error" : ""
-                }
-              />
-              {formTouched.firstName && formErrors.firstName && (
-                <div className="error-message">{formErrors.firstName}</div>
-              )}
+              <div className="ticket-quantity">
+                <button
+                  className="quantity-btn"
+                  onClick={() => handleQuantityChange(ticket._id, -1)}
+                  disabled={(ticketQuantities[ticket._id] || 0) === 0}
+                >
+                  -
+                </button>
+                <span>{ticketQuantities[ticket._id] || 0}</span>
+                <button
+                  className="quantity-btn"
+                  onClick={() => handleQuantityChange(ticket._id, 1)}
+                >
+                  +
+                </button>
+              </div>
             </div>
-            <div
-              className={`form-group ${
-                formTouched.lastName && formErrors.lastName ? "error" : ""
-              }`}
-            >
-              <input
-                type="text"
-                placeholder="Last Name"
-                value={lastName}
-                onChange={(e) => handleFieldChange("lastName", e.target.value)}
-                className={
-                  formTouched.lastName && formErrors.lastName ? "error" : ""
-                }
-              />
-              {formTouched.lastName && formErrors.lastName && (
-                <div className="error-message">{formErrors.lastName}</div>
-              )}
-            </div>
-            <div
-              className={`form-group ${
-                formTouched.email && formErrors.email ? "error" : ""
-              }`}
-            >
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => handleFieldChange("email", e.target.value)}
-                className={formTouched.email && formErrors.email ? "error" : ""}
-                onBlur={() => {
-                  if (email && !isValidEmail(email)) {
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      email: "Please enter a valid email address",
-                    }));
+          ))}
+        </div>
+
+        {/* Checkout Summary - Only show if tickets are selected */}
+        {hasSelectedTickets && (
+          <div className="checkout-area">
+            <div className="checkout-form">
+              <div className="form-group">
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) =>
+                    handleFieldChange("firstName", e.target.value)
                   }
-                }}
-              />
-              {formTouched.email && formErrors.email && (
-                <div className="error-message">{formErrors.email}</div>
-              )}
+                  className={
+                    formTouched.firstName && formErrors.firstName ? "error" : ""
+                  }
+                />
+                {formTouched.firstName && formErrors.firstName && (
+                  <div className="error-message">{formErrors.firstName}</div>
+                )}
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) =>
+                    handleFieldChange("lastName", e.target.value)
+                  }
+                  className={
+                    formTouched.lastName && formErrors.lastName ? "error" : ""
+                  }
+                />
+                {formTouched.lastName && formErrors.lastName && (
+                  <div className="error-message">{formErrors.lastName}</div>
+                )}
+              </div>
+              <div className="form-group">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => handleFieldChange("email", e.target.value)}
+                  className={
+                    formTouched.email && formErrors.email ? "error" : ""
+                  }
+                  onBlur={() => {
+                    if (email && !isValidEmail(email)) {
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        email: "Please enter a valid email address",
+                      }));
+                    }
+                  }}
+                />
+                {formTouched.email && formErrors.email && (
+                  <div className="error-message">{formErrors.email}</div>
+                )}
+              </div>
             </div>
-            <motion.button
+
+            <div className="checkout-total">
+              <span>Total:</span>
+              <span className="total-amount" style={{ color: checkoutColor }}>
+                €{calculateTotal()}
+              </span>
+            </div>
+
+            <button
               className="checkout-button"
               onClick={handleCheckout}
-              whileHover={{ scale: isCheckoutLoading ? 1 : 1.02 }}
-              whileTap={{ scale: isCheckoutLoading ? 1 : 0.98 }}
               disabled={isCheckoutLoading}
+              style={{
+                background: checkoutColor,
+                backgroundImage: `linear-gradient(to bottom, ${checkoutColor}DD, ${checkoutColor})`,
+              }}
             >
               {isCheckoutLoading ? (
-                <div className="button-loading">
-                  <div className="loading-spinner"></div>
+                <>
+                  <LoadingSpinner size="small" color="#000" />
                   <span>Processing...</span>
-                </div>
+                </>
               ) : (
                 "Buy Tickets"
               )}
-            </motion.button>
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

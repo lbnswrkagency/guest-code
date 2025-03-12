@@ -170,12 +170,23 @@ const generateGuestCodePDF = async (code, event) => {
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
                 event?.location || event?.venue || ""
               }</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${
-                event?.street || ""
-              }</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-                event?.postalCode ? `${event.postalCode} ` : ""
-              }${event?.city || ""}</p>
+              ${
+                event?.street
+                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${event.street}</p>`
+                  : ""
+              }
+              ${
+                event?.address && !event?.street
+                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${event.address}</p>`
+                  : ""
+              }
+              ${
+                event?.postalCode || event?.city
+                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                      event.postalCode || ""
+                    } ${event.city || ""}</p>`
+                  : ""
+              }
             </div>
             <div>
               <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Date</p>
@@ -342,9 +353,26 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
             <p style="font-size: 16px; margin: 0 0 5px;">Code: <strong>${
               code.code
             }</strong></p>
-            <p style="font-size: 16px; margin: 0;">Event Date: <strong>${
+            <p style="font-size: 16px; margin: 0 0 5px;">Event Date: <strong>${
               formatGuestCodeDate(event?.date).date
             }</strong></p>
+            <p style="font-size: 16px; margin: 0 0 5px;">Location: <strong>${
+              event?.location || event?.venue || ""
+            }</strong></p>
+            ${
+              event?.street || event?.address
+                ? `<p style="font-size: 16px; margin: 0 0 5px;">Address: <strong>${
+                    event?.street || event?.address || ""
+                  }</strong></p>`
+                : ""
+            }
+            ${
+              event?.postalCode || event?.city
+                ? `<p style="font-size: 16px; margin: 0 0 5px;">City: <strong>${
+                    event?.postalCode ? event.postalCode + " " : ""
+                  }${event?.city || ""}</strong></p>`
+                : ""
+            }
           </div>
           
           <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">You can show this email or the attached PDF at the event entrance. The code can be scanned from your phone screen.</p>
@@ -465,7 +493,9 @@ const generateGuestCode = async (req, res) => {
     const event = await Event.findById(eventId)
       .populate("brand")
       .populate("lineups")
-      .select("title date startTime endTime location brand lineups");
+      .select(
+        "title date startTime endTime location street address postalCode city brand lineups venue"
+      );
     if (!event) {
       console.log("[GuestCode] Event not found:", eventId);
       return res.status(404).json({ message: "Event not found" });
@@ -592,7 +622,9 @@ const validateGuestCode = async (req, res) => {
     const event = await Event.findById(code.eventId)
       .populate("brand")
       .populate("lineups")
-      .select("title date startTime endTime location brand lineups");
+      .select(
+        "title date startTime endTime location street address postalCode city brand lineups venue"
+      );
 
     // Return success with code and event details
     res.status(200).json({
@@ -624,7 +656,9 @@ const getGuestCodePDF = async (req, res) => {
     const event = await Event.findById(code.eventId)
       .populate("brand")
       .populate("lineups")
-      .select("title date startTime endTime location brand lineups");
+      .select(
+        "title date startTime endTime location street address postalCode city brand lineups venue"
+      );
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }

@@ -8,6 +8,9 @@ import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Navigation from "../Navigation/Navigation";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
+import Tickets from "../Tickets/Tickets";
+import EventDetails from "../EventDetails/EventDetails";
+import GuestCode from "../GuestCode/GuestCode";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -46,8 +49,6 @@ const EventProfile = () => {
   const [codeSettings, setCodeSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [guestCode, setGuestCode] = useState("");
-  const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [activeSection, setActiveSection] = useState("event");
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -57,11 +58,7 @@ const EventProfile = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestPax, setGuestPax] = useState(1);
   const [countdowns, setCountdowns] = useState({});
-  const [generatingCode, setGeneratingCode] = useState(false);
   const [hasFetchAttempted, setHasFetchAttempted] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -472,62 +469,17 @@ const EventProfile = () => {
       return event.flyer.landscape.full;
     }
 
-    // Fallback to portrait
-    if (event.flyer.portrait && event.flyer.portrait.full) {
-      return event.flyer.portrait.full;
-    }
-
-    // Final fallback to square
+    // Fallback to square
     if (event.flyer.square && event.flyer.square.full) {
       return event.flyer.square.full;
     }
 
-    return null;
-  };
-
-  // Generate guest code
-  const handleGenerateGuestCode = async () => {
-    try {
-      // Validate guest name and email
-      if (
-        !guestName.trim() ||
-        !guestEmail.trim() ||
-        !guestEmail.includes("@")
-      ) {
-        toast.showError("Please enter a valid name and email");
-        return;
-      }
-
-      // Set generating state once at the beginning
-      setGeneratingCode(true);
-
-      // Use info toast to let the user know we're processing
-      toast.showInfo("Processing your request...");
-
-      const response = await axiosInstance.post("/guest-code/generate", {
-        eventId: event._id,
-        guestName: guestName,
-        guestEmail: guestEmail,
-        maxPax: guestPax,
-      });
-
-      // Only update state and show success once at the end
-      if (response.data && response.data.code) {
-        // Clear form fields
-        setGuestName("");
-        setGuestEmail("");
-        setGuestPax(1);
-        // Show success toast
-        toast.showSuccess(`Guest code sent to ${guestEmail}`);
-      }
-    } catch (err) {
-      toast.showError(
-        err.response?.data?.message || "Failed to generate guest code"
-      );
-    } finally {
-      // Always reset the generating state, regardless of success or failure
-      setGeneratingCode(false);
+    // Final fallback to portrait
+    if (event.flyer.portrait && event.flyer.portrait.full) {
+      return event.flyer.portrait.full;
     }
+
+    return null;
   };
 
   // Share event
@@ -817,6 +769,7 @@ const EventProfile = () => {
             ) : (
               <div className="cover-placeholder" />
             )}
+            <div className="cover-gradient"></div>
           </div>
 
           <div className="event-info">
@@ -830,12 +783,31 @@ const EventProfile = () => {
               )}
             </div>
 
-            <div className="eventProfile-details">
-              <h1 className="event-title">{event.title}</h1>
-              <div className="username">
-                @
-                {event.brand?.username ||
-                  event.brand?.name.toLowerCase().replace(/\s+/g, "")}
+            <div className="event-header-content">
+              <div className="eventProfile-details">
+                <h1 className="event-title">{event.title}</h1>
+                {event.subTitle && (
+                  <h2 className="event-subtitle">{event.subTitle}</h2>
+                )}
+                <div className="event-date">
+                  {(() => {
+                    const date = new Date(event.date);
+                    const day = date.getDate();
+                    const month = date
+                      .toLocaleString("en-US", { month: "short" })
+                      .toUpperCase();
+                    const year = date.getFullYear();
+                    return `${day} ${month} ${year}`;
+                  })()}
+                </div>
+                <div
+                  className="brand-link"
+                  onClick={() => navigate(`/@${event.brand?.username}`)}
+                >
+                  @
+                  {event.brand?.username ||
+                    event.brand?.name.toLowerCase().replace(/\s+/g, "")}
+                </div>
               </div>
             </div>
 
@@ -879,20 +851,29 @@ const EventProfile = () => {
 
         {/* Main Content Area */}
         <div className="event-content">
-          {/* Combined Event Section (Info + Lineup) */}
+          {/* Event Section with EventDetails */}
           {activeSection === "event" && (
             <motion.div
               className="event-section event-combined"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {/* Event Info with Integrated Lineup */}
-              <div className="event-info-section">
-                <h3>Event Details</h3>
+              {/* EventDetails Component */}
+              <EventDetails
+                event={event}
+                scrollToTickets={() => {
+                  setActiveSection("tickets");
+                }}
+                scrollToGuestCode={() => {
+                  setActiveSection("codes");
+                }}
+              />
 
-                {/* Minimalistic Lineup Section integrated with event info */}
-                {lineups && lineups.length > 0 && (
-                  <div className="lineup-mini-grid">
+              {/* Lineup Section */}
+              {lineups && lineups.length > 0 && (
+                <div className="lineup-section">
+                  <h3>Lineup</h3>
+                  <div className="lineup-grid">
                     {/* Group lineups by category */}
                     {Object.entries(
                       lineups.reduce((groups, artist) => {
@@ -910,24 +891,24 @@ const EventProfile = () => {
                           {artists.map((artist, index) => (
                             <motion.div
                               key={artist._id || index}
-                              className="lineup-artist-mini"
+                              className="lineup-artist"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.1 + index * 0.05 }}
                             >
-                              <div className="artist-image-mini">
+                              <div className="artist-image">
                                 {artist.avatar && artist.avatar.medium ? (
                                   <img
                                     src={artist.avatar.medium}
                                     alt={artist.name}
                                   />
                                 ) : (
-                                  <div className="artist-placeholder-mini">
+                                  <div className="artist-placeholder">
                                     {artist.name.charAt(0).toUpperCase()}
                                   </div>
                                 )}
                               </div>
-                              <div className="artist-info-mini">
+                              <div className="artist-info">
                                 <h4>{artist.name}</h4>
                               </div>
                             </motion.div>
@@ -936,70 +917,8 @@ const EventProfile = () => {
                       </div>
                     ))}
                   </div>
-                )}
-
-                <div className="event-details">
-                  <motion.div
-                    className="detail-item"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <RiCalendarEventLine />
-                    <div>
-                      <h4>Date</h4>
-                      <p>{formatDate(event.date)}</p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    className="detail-item"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <RiTimeLine />
-                    <div>
-                      <h4>Time</h4>
-                      <p>
-                        {event.startTime} - {event.endTime}
-                      </p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    className="detail-item"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <RiMapPinLine />
-                    <div>
-                      <h4>Location</h4>
-                      <p>{event.location}</p>
-                      {event.street && <p>{event.street}</p>}
-                      {(event.postalCode || event.city) && (
-                        <p>
-                          {event.postalCode && event.postalCode}{" "}
-                          {event.city && event.city}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
                 </div>
-
-                {event.description && (
-                  <motion.div
-                    className="event-description"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <h3>About This Event</h3>
-                    <p>{event.description}</p>
-                  </motion.div>
-                )}
-              </div>
+              )}
             </motion.div>
           )}
 
@@ -1011,179 +930,55 @@ const EventProfile = () => {
               animate={{ opacity: 1, y: 0 }}
             >
               <h3>Tickets</h3>
-              {ticketSettings && ticketSettings.length > 0 ? (
-                <>
-                  <div className="tickets-container">
-                    {ticketSettings.map((ticket, index) => (
-                      <motion.div
-                        key={ticket._id}
-                        className="ticket-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        style={{
-                          borderColor: ticket.color || "#2196F3",
-                        }}
-                      >
-                        <div className="ticket-header">
-                          <h4>{ticket.name}</h4>
-                          {ticket.originalPrice &&
-                            ticket.originalPrice > ticket.price && (
-                              <span className="ticket-discount">
-                                {Math.round(
-                                  ((ticket.originalPrice - ticket.price) /
-                                    ticket.originalPrice) *
-                                    100
-                                )}
-                                % OFF
-                              </span>
-                            )}
-                        </div>
+              {event &&
+              (event.ticketsAvailable || ticketSettings.length > 0) ? (
+                <Tickets
+                  eventId={event._id}
+                  eventTitle={event.title}
+                  eventDate={event.date}
+                  fetchTicketSettings={async (eventId) => {
+                    try {
+                      // Try the event profile endpoint which has optional authentication
+                      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+                      const response = await axiosInstance.get(endpoint);
+                      let ticketSettings = [];
 
-                        {/* Add countdown display for Early Bird tickets */}
-                        {countdowns[ticket._id] && (
-                          <div className="ticket-countdown">
-                            <span className="countdown-text">
-                              {countdowns[ticket._id].days > 0
-                                ? `${countdowns[ticket._id].days}d `
-                                : ""}
-                              {countdowns[ticket._id].hours}h remaining
-                            </span>
-                          </div>
-                        )}
+                      if (
+                        response.data &&
+                        response.data.ticketSettings &&
+                        response.data.ticketSettings.length > 0
+                      ) {
+                        ticketSettings = response.data.ticketSettings;
+                      } else if (event.parentEventId) {
+                        // If this is a child event and no ticket settings were found, check parent event
+                        try {
+                          const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event.parentEventId}`;
+                          const parentResponse = await axiosInstance.get(
+                            parentEndpoint
+                          );
 
-                        <div className="ticket-price">
-                          <span className="current-price">
-                            {ticket.price.toFixed(2)}€
-                          </span>
-                          {ticket.originalPrice &&
-                            ticket.originalPrice > ticket.price && (
-                              <span className="original-price">
-                                {ticket.originalPrice.toFixed(2)}€
-                              </span>
-                            )}
-                        </div>
+                          if (
+                            parentResponse.data &&
+                            parentResponse.data.ticketSettings &&
+                            parentResponse.data.ticketSettings.length > 0
+                          ) {
+                            ticketSettings = parentResponse.data.ticketSettings;
+                          }
+                        } catch (parentError) {
+                          console.error(
+                            "Error fetching parent ticket settings:",
+                            parentError
+                          );
+                        }
+                      }
 
-                        {ticket.description && (
-                          <p className="ticket-description">
-                            {ticket.description}
-                          </p>
-                        )}
-
-                        {ticket.isLimited && (
-                          <div className="ticket-availability">
-                            <div className="availability-bar">
-                              <div
-                                className="availability-fill"
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    Math.round(
-                                      (ticket.soldCount / ticket.maxTickets) *
-                                        100
-                                    )
-                                  )}%`,
-                                }}
-                              ></div>
-                            </div>
-                            <span className="availability-text">
-                              {Math.max(
-                                0,
-                                ticket.maxTickets - ticket.soldCount
-                              )}{" "}
-                              tickets left
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="ticket-quantity">
-                          <button
-                            className="quantity-btn"
-                            onClick={() => handleQuantityChange(ticket._id, -1)}
-                          >
-                            -
-                          </button>
-                          <span className="quantity">
-                            {ticketQuantities[ticket._id] || 0}
-                          </span>
-                          <button
-                            className="quantity-btn"
-                            onClick={() => handleQuantityChange(ticket._id, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="checkout-summary">
-                    <div className="selected-tickets">
-                      {ticketSettings.map(
-                        (ticket) =>
-                          ticketQuantities[ticket._id] > 0 && (
-                            <div
-                              key={ticket._id}
-                              className="selected-ticket-item"
-                            >
-                              <span>
-                                {ticketQuantities[ticket._id]}x {ticket.name}
-                              </span>
-                              <span>
-                                {(
-                                  ticket.price * ticketQuantities[ticket._id]
-                                ).toFixed(2)}
-                                €
-                              </span>
-                            </div>
-                          )
-                      )}
-                    </div>
-
-                    <div className="total-amount">
-                      <span>Total</span>
-                      <span>{calculateTotal()}€</span>
-                    </div>
-
-                    {hasSelectedTickets && (
-                      <div className="checkout-form">
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            placeholder="First Name"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            placeholder="Last Name"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                          />
-                        </div>
-                        <motion.button
-                          className="checkout-button"
-                          onClick={handleCheckout}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          disabled={!isFormValid()}
-                        >
-                          Buy Tickets
-                        </motion.button>
-                      </div>
-                    )}
-                  </div>
-                </>
+                      return ticketSettings;
+                    } catch (error) {
+                      console.error("Error fetching ticket settings:", error);
+                      return [];
+                    }
+                  }}
+                />
               ) : (
                 <div className="no-tickets">
                   <p>No tickets available for this event.</p>
@@ -1195,124 +990,23 @@ const EventProfile = () => {
           {/* Codes Section */}
           {activeSection === "codes" && (
             <motion.div
-              className="event-section event-codes"
+              className="event-codes-wrapper"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {/* Guest Code Request Section */}
-              <motion.div
-                className="codes-guest"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <h4>Guest Code</h4>
-                <p className="guest-code-description">
-                  {codeSettings.find((cs) => cs.type === "guest")?.condition ||
-                    "Request a code for this event"}
-                </p>
-
-                <div className="guest-code-form">
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiMailLine />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <select
-                      value={guestPax}
-                      onChange={(e) => setGuestPax(Number(e.target.value))}
-                      className="pax-selector"
-                    >
-                      {Array.from(
-                        {
-                          length:
-                            codeSettings.find((cs) => cs.type === "guest")
-                              ?.maxPax || 1,
-                        },
-                        (_, i) => i + 1
-                      ).map((num) => (
-                        <option key={num} value={num}>
-                          {num} {num === 1 ? "Person" : "People"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <motion.button
-                    className="guest-code-button"
-                    onClick={handleGenerateGuestCode}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={
-                      generatingCode || !guestName || !guestEmail || !guestPax
-                    }
-                  >
-                    {generatingCode ? (
-                      <>
-                        <span className="loading-spinner-small"></span>
-                        Generating...
-                      </>
-                    ) : (
-                      <>Get Guest Code</>
-                    )}
-                  </motion.button>
-                </div>
-              </motion.div>
+              {/* Use the GuestCode component with merged event and codeSettings */}
+              <GuestCode
+                event={{
+                  ...event,
+                  codeSettings:
+                    event.codeSettings && event.codeSettings.length > 0
+                      ? event.codeSettings
+                      : codeSettings,
+                }}
+              />
             </motion.div>
           )}
         </div>
-
-        {/* Guest Code Dialog */}
-        {showCodeDialog && (
-          <ConfirmDialog
-            isOpen={showCodeDialog}
-            title="Your Guest Code"
-            content={
-              <div className="guest-code-display">
-                <p>
-                  Your guest code has been generated. Show this code at the
-                  entrance:
-                </p>
-                <div className="code">{guestCode}</div>
-                <p className="code-note">
-                  This code is valid for {guestPax}{" "}
-                  {guestPax === 1 ? "person" : "people"}.
-                </p>
-              </div>
-            }
-            confirmText="Copy Code"
-            showCancel={false}
-            onConfirm={() => {
-              navigator.clipboard.writeText(guestCode);
-              toast.showSuccess("Code copied to clipboard");
-              setShowCodeDialog(false);
-            }}
-            type="default"
-          />
-        )}
       </div>
 
       {/* Only render DashboardNavigation for authenticated users */}

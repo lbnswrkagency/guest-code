@@ -8,6 +8,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import Stripe from "../Stripe/Stripe";
 import Tickets from "../Tickets/Tickets";
 import EventDetails from "../EventDetails/EventDetails";
+import GuestCode from "../GuestCode/GuestCode";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -57,15 +58,8 @@ const UpcomingEvent = ({
   const toast = useToast();
   const { user } = useAuth();
 
-  // Guest code form state
+  // Only keep the showGuestCodeForm state for toggling visibility
   const [showGuestCodeForm, setShowGuestCodeForm] = useState(false);
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestPax, setGuestPax] = useState(1);
-  const [maxPax, setMaxPax] = useState(5);
-  const [generatingCode, setGeneratingCode] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [formErrors, setFormErrors] = useState({});
 
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
@@ -76,12 +70,6 @@ const UpcomingEvent = ({
   const guestCodeSectionRef = useRef(null);
   const ticketSectionRef = useRef(null);
 
-  // Validate email format
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   useEffect(() => {
     // Initialize component
     setLoading(true);
@@ -91,11 +79,6 @@ const UpcomingEvent = ({
     setTicketSettings([]);
     setLoadingTickets(false);
     setShowGuestCodeForm(false);
-    setSuccessMessage(null);
-    setGuestName("");
-    setGuestEmail("");
-    setGuestPax(1);
-    setGeneratingCode(false);
 
     fetchUpcomingEvents();
   }, [brandId, brandUsername]);
@@ -116,16 +99,6 @@ const UpcomingEvent = ({
           const hasCompleteData =
             guestCodeSetting.maxPax !== undefined &&
             guestCodeSetting.condition !== undefined;
-
-          // Set maxPax if available
-          if (guestCodeSetting.maxPax) {
-            setMaxPax(guestCodeSetting.maxPax);
-          } else {
-            console.warn(
-              "[UpcomingEvent] maxPax is missing or invalid:",
-              guestCodeSetting.maxPax
-            );
-          }
 
           // Check if condition is empty or missing
           if (!guestCodeSetting.condition && guestCodeSetting.condition !== 0) {
@@ -167,7 +140,10 @@ const UpcomingEvent = ({
                     );
 
                     if (guestCodeSetting && guestCodeSetting.maxPax) {
-                      setMaxPax(guestCodeSetting.maxPax);
+                      console.log(
+                        "[UpcomingEvent] Found maxPax in updated settings:",
+                        guestCodeSetting.maxPax
+                      );
                     }
 
                     return updatedEvents;
@@ -201,7 +177,6 @@ const UpcomingEvent = ({
 
       // Default max pax if no settings are found
       console.log("[UpcomingEvent] Using default maxPax: 4");
-      setMaxPax(4);
     }
   }, [currentIndex, events]);
 
@@ -858,89 +833,7 @@ const UpcomingEvent = ({
     }
   };
 
-  const handleGenerateGuestCode = async () => {
-    try {
-      // Validate guest name and email
-      if (
-        !guestName.trim() ||
-        !guestEmail.trim() ||
-        !guestEmail.includes("@")
-      ) {
-        toast.showError("Please enter a valid name and email");
-        return;
-      }
-
-      // Set generating state
-      setGeneratingCode(true);
-
-      // Use info toast to let the user know we're processing
-      toast.showInfo("Processing your request...");
-
-      // Make sure we're using the current event ID
-      const eventId = events[currentIndex]._id;
-      console.log("[UpcomingEvent] Generating guest code for event:", eventId);
-      console.log("[UpcomingEvent] Guest details:", {
-        name: guestName,
-        email: guestEmail,
-        pax: guestPax,
-        isAuthenticated: !!user,
-      });
-
-      const response = await axiosInstance.post("/guest-code/generate", {
-        eventId: eventId,
-        guestName: guestName,
-        guestEmail: guestEmail,
-        maxPax: guestPax,
-      });
-
-      console.log(
-        "[UpcomingEvent] Guest code generated and sent:",
-        response.data
-      );
-
-      // Check if the response contains a success property or code property
-      if (response.data && (response.data.success || response.data.code)) {
-        // Clear form fields
-        setGuestName("");
-        setGuestEmail("");
-        setGuestPax(1);
-
-        // Show success message
-        setSuccessMessage(
-          `Guest code sent to ${guestEmail}. Please check your email.`
-        );
-        setTimeout(() => {
-          setSuccessMessage("");
-        }, 5000); // Clear the message after 5 seconds
-
-        // Show success toast
-        toast.showSuccess("Guest code generated and sent successfully");
-      } else {
-        // If response doesn't have expected success properties, show an error
-        toast.showError(
-          response.data?.message || "Failed to generate guest code"
-        );
-      }
-    } catch (err) {
-      console.error("[UpcomingEvent] Error generating guest code:", err);
-
-      // Handle specific error cases
-      if (err.response?.status === 401) {
-        toast.showError("Please log in to generate guest codes");
-      } else if (err.response?.status === 403) {
-        toast.showError(
-          "You don't have permission to generate guest codes for this event"
-        );
-      } else {
-        toast.showError(
-          err.response?.data?.message || "Failed to generate guest code"
-        );
-      }
-    } finally {
-      setGeneratingCode(false);
-    }
-  };
-
+  // Simplified toggle function for guest code form visibility
   const toggleGuestCodeForm = () => {
     setShowGuestCodeForm((prev) => !prev);
   };
@@ -1319,141 +1212,23 @@ const UpcomingEvent = ({
                   )}
               </div>
 
-              {/* Show the guest code section for all users */}
+              {/* GuestCode component section */}
               <div ref={guestCodeSectionRef} className="guest-code-section">
-                <h4>Request Guest Code</h4>
-
-                {/* Condition text from code settings if available */}
-                {currentEvent.codeSettings &&
-                currentEvent.codeSettings.find((cs) => cs.type === "guest")
-                  ?.condition ? (
-                  <p className="condition-text">
-                    {(() => {
-                      const guestCodeSetting = currentEvent.codeSettings.find(
-                        (cs) => cs.type === "guest"
-                      );
-                      console.log(
-                        "[UpcomingEvent] Displaying condition in guest code section:",
-                        guestCodeSetting.condition
-                      );
-                      return guestCodeSetting.condition;
-                    })()}
-                  </p>
-                ) : (
-                  <p className="condition-text">
-                    Fill in your details below to request a guest code for this
-                    event.
-                  </p>
-                )}
-
-                {/* Success message */}
-                {successMessage && (
-                  <div className="success-message">
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="success-content"
-                    >
-                      {successMessage}
-                    </motion.div>
-                  </div>
-                )}
-
-                {/* Always show the form, removing the conditional rendering */}
-                <div
-                  className="guest-code-form"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiMailLine />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className="input-icon">
-                      <RiUserLine />
-                    </div>
-                    <select
-                      value={guestPax}
-                      onChange={(e) => setGuestPax(Number(e.target.value))}
-                      className="pax-selector"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {Array.from({ length: maxPax }, (_, i) => i + 1).map(
-                        (num) => (
-                          <option key={num} value={num}>
-                            {num} {num === 1 ? "Person" : "People"}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="form-buttons">
-                    <motion.button
-                      className="submit-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleGenerateGuestCode();
-                      }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={
-                        generatingCode ||
-                        !guestName ||
-                        !guestEmail ||
-                        !guestEmail.includes("@")
-                      }
-                    >
-                      {generatingCode ? (
-                        <>
-                          <span className="loading-spinner-small"></span>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <RiCodeSSlashLine /> Get Guest Code
-                        </>
-                      )}
-                    </motion.button>
-                  </div>
-                </div>
+                {currentEvent && <GuestCode event={currentEvent} />}
               </div>
             </div>
-
-            {/* Add See Full Event button after the guest code section */}
-            <button
-              className="see-full-event-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewEvent(currentEvent);
-              }}
-            >
-              See Full Event <RiArrowRightLine />
-            </button>
           </div>
+
+          {/* Add See Full Event button */}
+          <button
+            className="see-full-event-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewEvent(currentEvent);
+            }}
+          >
+            See Full Event <RiArrowRightLine />
+          </button>
         </motion.div>
       </AnimatePresence>
     </div>
