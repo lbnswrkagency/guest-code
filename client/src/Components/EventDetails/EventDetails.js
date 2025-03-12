@@ -1,195 +1,220 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React from "react";
+import { motion } from "framer-motion";
 import "./EventDetails.scss";
-import { getEventById, deleteEvent } from "../../utils/apiClient";
-import BackButton from "../BackButton/BackButton";
-import Modal from "../Modal/Modal";
-import EditEvent from "../EditEvent/EditEvent";
-import GuestCodeSettings from "../GuestCodeSettings/GuestCodeSettings";
-import CarouselSettings from "../CarouselSettings/CarouselSettings";
+import {
+  RiCalendarEventLine,
+  RiTimeLine,
+  RiMapPinLine,
+  RiTicketLine,
+  RiVipCrownLine,
+  RiMusic2Line,
+  RiCalendarCheckLine,
+  RiMapPin2Line,
+  RiInformationLine,
+  RiArrowRightSLine,
+} from "react-icons/ri";
 
-const EventDetails = () => {
-  const { eventId } = useParams();
-  const navigate = useNavigate();
-  const [event, setEvent] = useState(null);
-  const [showEditEvent, setShowEditEvent] = useState(false);
-  const [showGuestCodeSettings, setShowGuestCodeSettings] = useState(false);
-  const [showCarouselSettings, setShowCarouselSettings] = useState(false);
-  const [showTicketCodeSettings, setShowTicketCodeSettings] = useState(false);
+/**
+ * EventDetails component for displaying event information in a clean, organized layout
+ * @param {Object} props
+ * @param {Object} props.event - The event object containing all event details
+ * @param {Function} props.scrollToTickets - Function to scroll to tickets section
+ * @param {Function} props.scrollToGuestCode - Function to scroll to guest code section
+ */
+const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
+  if (!event) return null;
 
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        const fetchedEvent = await getEventById(eventId);
-        setEvent(fetchedEvent);
-      } catch (error) {
-        console.error("Error fetching event:", error);
-      }
-    };
-
-    fetchEvent();
-  }, [eventId]);
-
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this event?"
-    );
-    if (confirmDelete) {
-      try {
-        await deleteEvent(eventId);
-        navigate("/events");
-      } catch (error) {
-        console.error("Error deleting event:", error);
-      }
-    }
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "TBA";
+    const date = new Date(dateString);
+    const options = { weekday: "short", month: "short", day: "numeric" };
+    return date.toLocaleDateString("en-US", options);
   };
 
+  // Format time for display
+  const formatTime = (timeString) => {
+    if (!timeString) return "TBA";
+    return timeString;
+  };
+
+  // Get guest code condition if available
+  const guestCodeSetting = event.codeSettings?.find(
+    (cs) => cs.type === "guest"
+  );
+  const guestCodeCondition = guestCodeSetting?.condition;
+
   return (
-    <div className="event-details">
-      <BackButton />
-      <div className="event-details__flyer">
-        <img
-          src={
-            event &&
-            (event.flyer.landscape ||
-              event.flyer.squareFormat ||
-              event.flyer.instagramStory)
-              ? event.flyer.landscape ||
-                event.flyer.squareFormat ||
-                event.flyer.instagramStory
-              : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
-          }
-          alt="Event Flyer"
-        />
-      </div>
-      <div className="event-details__info">
-        {event ? (
-          <>
-            <h2 className="event-details__info__title">{event.title}</h2>
-            <h3 className="event-details__info__subtitle">{event.subTitle}</h3>
-            <p className="event-details__info__text">{event.text}</p>
-            <p className="event-details__info__date">
-              {new Date(event.date).toLocaleDateString("en-US", {
-                weekday: "long",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}
-            </p>
-            <p className="event-details__info__time">{event.time}</p>
-            <p className="event-details__info__location">{event.location}</p>
-            {event.video && (
-              <div className="event-details__info__video">
-                <iframe
-                  title="event-video"
-                  src={
-                    event.video.landscape ||
-                    event.video.squareFormat ||
-                    event.video.instagramStory
-                      ? event.video.landscape ||
-                        event.video.squareFormat ||
-                        event.video.instagramStory
-                      : `https://guestcode.s3.eu-north-1.amazonaws.com/flyers/16x9.svg`
-                  }
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                  className="event-details__info__video-iframe"
-                ></iframe>
+    <div className="event-details-container">
+      <div className="event-details-card">
+        <div className="event-details-content">
+          {/* Date and Time Section */}
+          <div className="details-section">
+            <div className="section-header">
+              <RiCalendarEventLine />
+              <h4>Date & Time</h4>
+            </div>
+
+            <div className="section-content time-grid">
+              <div className="detail-item">
+                <div className="detail-label">
+                  <RiCalendarEventLine />
+                  <span>Start Date</span>
+                </div>
+                <div className="detail-value">{formatDate(event.date)}</div>
               </div>
-            )}
 
-            <button
-              className="edit-event-button event-details__info__button"
-              onClick={() => setShowEditEvent(true)}
-            >
-              Edit Event
-            </button>
-            <button
-              className="view-event-page-button event-details__info__button"
-              onClick={() => navigate(`/events/page/${event.link}`)}
-            >
-              View Event Page
-            </button>
-            {event.guestCode && (
-              <button
-                className="guest-code-settings-button event-details__info__button"
-                onClick={() => setShowGuestCodeSettings(true)}
-              >
-                Guest Code Settings
-              </button>
-            )}
+              <div className="detail-item">
+                <div className="detail-label">
+                  <RiTimeLine />
+                  <span>Start Time</span>
+                </div>
+                <div className="detail-value">
+                  {formatTime(event.startTime)}
+                </div>
+              </div>
 
-            {event.carousel && (
-              <button
-                className="guest-code-settings-button event-details__info__button"
-                onClick={() => setShowCarouselSettings(true)}
-              >
-                Carousel Settings
-              </button>
-            )}
+              {event.endDate && (
+                <div className="detail-item">
+                  <div className="detail-label">
+                    <RiCalendarCheckLine />
+                    <span>End Date</span>
+                  </div>
+                  <div className="detail-value">
+                    {formatDate(event.endDate)}
+                  </div>
+                </div>
+              )}
 
-            {event.ticketCode && (
-              <button
-                className="guest-code-settings-button event-details__info__button"
-                onClick={() => setShowTicketCodeSettings(true)}
-              >
-                Ticket Code Settings
-              </button>
-            )}
+              {event.endTime && (
+                <div className="detail-item">
+                  <div className="detail-label">
+                    <RiTimeLine />
+                    <span>End Time</span>
+                  </div>
+                  <div className="detail-value">
+                    {formatTime(event.endTime)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-            <button
-              className="delete-event-button event-details__info__button"
-              onClick={handleDelete}
-            >
-              Delete Event
-            </button>
+          {/* Location Section */}
+          <div className="details-section">
+            <div className="section-header">
+              <RiMapPinLine />
+              <h4>Location</h4>
+            </div>
 
-            <Modal
-              isOpen={showEditEvent}
-              onClose={() => setShowEditEvent(false)}
-              title="Edit Event"
-            >
-              <EditEvent
-                event={event}
-                onUpdate={(updatedEvent) => {
-                  setEvent(updatedEvent);
-                  setShowEditEvent(false);
-                }}
-                eventId={eventId}
-              />
-            </Modal>
+            <div className="section-content">
+              <div className="detail-item">
+                <div className="detail-label">
+                  <RiMapPinLine />
+                  <span>Venue</span>
+                </div>
+                <div className="detail-value">{event.location || "TBA"}</div>
+              </div>
 
-            <Modal
-              isOpen={showGuestCodeSettings}
-              onClose={() => setShowGuestCodeSettings(false)}
-              title="Guest Code Settings"
-            >
-              <GuestCodeSettings
-                onConditionSave={(condition) => {
-                  setEvent({ ...event, guestCodeCondition: condition });
-                }}
-                eventId={eventId}
-                setShowGuestCodeSettings={setShowGuestCodeSettings}
-              />
-            </Modal>
+              {(event.street || event.address) && (
+                <div className="detail-item">
+                  <div className="detail-label">
+                    <RiMapPin2Line />
+                    <span>Address</span>
+                  </div>
+                  <div className="detail-value">
+                    {event.street || event.address}
+                    {event.postalCode && `, ${event.postalCode}`}
+                    {!event.postalCode && event.zipCode && `, ${event.zipCode}`}
+                    {event.city && ` ${event.city}`}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-            <Modal
-              isOpen={showGuestCodeSettings}
-              onClose={() => setShowGuestCodeSettings(false)}
-              title="Guest Code Settings"
-            >
-              <CarouselSettings
-                onConditionSave={(condition) => {
-                  setEvent({ ...event, guestCodeCondition: condition });
-                }}
-                eventId={eventId}
-                setShowCarouselSettings={setShowCarouselSettings}
-              />
-            </Modal>
-          </>
-        ) : (
-          <p>Loading...</p>
-        )}
+          {/* Music Section */}
+          {event.music && (
+            <div className="details-section">
+              <div className="section-header">
+                <RiMusic2Line />
+                <h4>Music</h4>
+              </div>
+
+              <div className="section-content">
+                <div className="detail-item">
+                  <div className="detail-value music-value">
+                    <RiMusic2Line />
+                    <span>{event.music}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tickets & Guest Code Section */}
+          <div className="details-section availability-section">
+            <div className="availability-items">
+              {(event.ticketsAvailable || event.ticketSettings?.length > 0) && (
+                <motion.div
+                  className="availability-item tickets-available"
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  onClick={scrollToTickets}
+                >
+                  <div className="availability-icon">
+                    <RiTicketLine />
+                  </div>
+                  <div className="availability-text">
+                    <h5>Tickets Available</h5>
+                    <p>Purchase tickets for this event</p>
+                  </div>
+                  <div className="availability-action">
+                    <RiArrowRightSLine />
+                  </div>
+                </motion.div>
+              )}
+
+              {guestCodeSetting && (
+                <motion.div
+                  className="availability-item guest-code-available"
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  onClick={scrollToGuestCode}
+                >
+                  <div className="availability-icon">
+                    <RiVipCrownLine />
+                  </div>
+                  <div className="availability-text">
+                    <h5>Guest Code Available</h5>
+                    {guestCodeCondition && <p>{guestCodeCondition}</p>}
+                  </div>
+                  <div className="availability-action">
+                    <RiArrowRightSLine />
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Info Section */}
+          {event.description && (
+            <div className="details-section">
+              <div className="section-header">
+                <RiInformationLine />
+                <h4>Additional Information</h4>
+              </div>
+
+              <div className="section-content">
+                <div className="detail-item description-item">
+                  <div className="detail-value description-value">
+                    {event.description}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,167 +1,265 @@
 @import "../../_variables";
-@import "../../_animations";
 
-.event-details {
+.event-details-container {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.event-details-card {
+  background: linear-gradient(
+    135deg,
+    rgba(28, 28, 28, 0.97),
+    rgba(18, 18, 18, 0.99)
+  );
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
+
+  // Paper texture overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E"),
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 200px 200px, 15px 15px, 15px 15px;
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.7;
+    mix-blend-mode: overlay;
+  }
+
+  // All content should be above the texture overlay
+  & > * {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+.event-details-content {
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 2rem;
-  color: $text-color;
-  background-color: $background-color;
+  gap: 1.5rem;
+}
 
-  &__flyer {
-    width: 100%;
-    max-width: 400px;
-    margin-bottom: 2rem;
+.details-section {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
 
-    img {
-      width: 100%;
-      height: auto;
-      object-fit: cover;
-      border-radius: 4px;
-      animation: fadeIn 1s ease-in-out forwards;
-    }
-  }
-
-  &__info {
+  .section-header {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
-    width: 100%;
-    max-width: 600px;
-    background-color: $light-color;
-    padding: 2rem;
-    border-radius: 4px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
-    &__title {
-      font-size: 1.5rem;
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-      animation: slideIn 1s ease-in-out forwards;
-      color: $primary-color;
-    }
-
-    &__subtitle {
+    svg {
+      color: #ffc807;
       font-size: 1.2rem;
-      margin-bottom: 1rem;
-      animation: fadeInLeft 1s ease-in-out forwards;
-      color: $secondary-color;
     }
 
-    &__text {
-      max-height: 20rem;
-      overflow: auto;
+    h4 {
+      margin: 0;
       font-size: 1rem;
-      line-height: 1.5;
-      margin-bottom: 2rem;
-      animation: fadeInLeft 1s ease-in-out forwards;
-      color: $gray-color;
-    }
-
-    &__date-time-location {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 2rem;
-      animation: fadeInLeft 1s ease-in-out forwards;
-
-      span {
-        font-weight: bold;
-      }
-    }
-
-    &__button {
-      @include button;
-
-      width: 100%;
-      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: white;
     }
   }
 
-  form {
+  .section-content {
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 400px;
-    animation: fadeIn 0.5s ease-in-out forwards;
+    gap: 0.8rem;
 
-    input,
-    textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-      border: 1px solid $border-color;
-      border-radius: 4px;
-    }
-
-    .checkbox-container {
+    &.time-grid {
       display: grid;
-      width: 100%;
-      grid-template-columns: repeat(2, minmax(min-content, max-content));
-      grid-gap: 1rem;
-      color: $text-color;
-      margin-top: 0.5rem;
-      align-items: center;
-      align-content: center;
-
-      label {
-        font-size: 1.25rem;
-        align-self: center;
-      }
-
-      input {
-        align-self: center;
-        margin-bottom: 0;
-      }
-
-      .checkbox-container:last-of-type input[type="checkbox"] {
-        background-color: red;
-      }
-    }
-
-    button {
-      @include button;
-
-      width: 100%;
-      margin-bottom: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
     }
   }
 }
 
-.event-details__info {
-  // Add these styles
-  &__date,
-  &__time,
-  &__location {
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    color: $gray-color;
-  }
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 
-  // Add this style
-  &__video {
-    position: relative;
-    padding-bottom: 56.25%; // 16:9 aspect ratio
-    height: 0;
-    overflow: hidden;
-    max-width: 100%;
-    margin-bottom: 2rem;
+  .detail-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
 
-    iframe {
-      border: none;
-      width: 100%;
-      height: auto;
-      max-width: 500px;
-
-      margin-bottom: 1rem;
+    svg {
+      font-size: 0.9rem;
+      color: rgba(255, 200, 7, 0.8);
     }
   }
 
-  &__button {
-    margin-top: 0.5rem;
+  .detail-value {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    padding-left: 1.3rem;
+
+    &.music-value {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-left: 0;
+
+      svg {
+        color: #ffc807;
+        font-size: 1.1rem;
+      }
+    }
+
+    &.description-value {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.9);
+      padding-left: 0;
+    }
+  }
+}
+
+.availability-section {
+  .availability-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .availability-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+
+      .availability-action {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .availability-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 200, 7, 0.15);
+      color: #ffc807;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .availability-text {
+      flex: 1;
+
+      h5 {
+        margin: 0 0 0.2rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: white;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.4;
+      }
+    }
+
+    .availability-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+      transform: translateX(-5px);
+
+      svg {
+        transition: transform 0.2s ease;
+      }
+    }
+
+    &:hover .availability-action svg {
+      transform: translateX(2px);
+    }
+
+    &.tickets-available {
+      border-left: 3px solid #ffc807;
+
+      &:hover .availability-action {
+        background: rgba(255, 200, 7, 0.2);
+        color: #ffc807;
+      }
+    }
+
+    &.guest-code-available {
+      border-left: 3px solid #2196f3;
+
+      .availability-icon {
+        background: rgba(33, 150, 243, 0.15);
+        color: #2196f3;
+      }
+
+      &:hover .availability-action {
+        background: rgba(33, 150, 243, 0.2);
+        color: #2196f3;
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .section-content.time-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-section .availability-items {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+  .event-details-card {
+    background: linear-gradient(
+      135deg,
+      rgba(25, 25, 25, 0.97),
+      rgba(15, 15, 15, 0.99)
+    );
   }
 }

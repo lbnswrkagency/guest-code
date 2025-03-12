@@ -24,7 +24,6 @@ import Login from "./Components/AuthForm/Login/Login";
 import Register from "./Components/AuthForm/Register/Register";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
 import RegistrationSuccess from "./Components/RegistrationSuccess/RegistrationSuccess";
-import EventDetails from "./Components/EventDetails/EventDetails";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
 import Locations from "./Components/Locations/Locations";

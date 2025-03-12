@@ -7,6 +7,7 @@ import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Stripe from "../Stripe/Stripe";
 import Tickets from "../Tickets/Tickets";
+import EventDetails from "../EventDetails/EventDetails";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -1198,87 +1199,23 @@ const UpcomingEvent = ({
           </div>
 
           <div className="event-details">
-            <h3
-              className="event-title"
-              onClick={() => handleViewEvent(currentEvent)}
-            >
-              {currentEvent.title}
-            </h3>
-            {currentEvent.subTitle && (
-              <p className="event-subtitle">{currentEvent.subTitle}</p>
-            )}
-
-            <div className="event-info">
-              <div className="info-item">
-                <RiCalendarEventLine />
-                <span>{formatDate(currentEvent.date)}</span>
-              </div>
-              <div className="info-item">
-                <RiTimeLine />
-                <span>{currentEvent.startTime || "TBA"}</span>
-              </div>
-              <div className="info-item">
-                <RiMapPinLine />
-                <span>{currentEvent.location || "TBA"}</span>
-              </div>
-              {(currentEvent.ticketsAvailable || ticketSettings.length > 0) && (
-                <div className="info-item ticket">
-                  <RiTicketLine />
-                  <span>Tickets Available</span>
-                </div>
-              )}
-              {currentEvent.codeSettings &&
-                currentEvent.codeSettings.find((cs) => cs.type === "guest") && (
-                  <div className="info-item guest-code">
-                    <RiVipCrownLine />
-                    <span>
-                      Guest Code Available
-                      {(() => {
-                        const guestCodeSetting = currentEvent.codeSettings.find(
-                          (cs) => cs.type === "guest"
-                        );
-                        if (guestCodeSetting && guestCodeSetting.condition) {
-                          return (
-                            <span className="condition-text">
-                              {" "}
-                              - {guestCodeSetting.condition}
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </span>
-                  </div>
-                )}
-              {currentEvent.music && (
-                <div className="info-item music">
-                  <RiMusic2Line />
-                  <span>{currentEvent.music}</span>
-                </div>
+            <div className="event-header">
+              <h3
+                className="event-title"
+                onClick={() => handleViewEvent(currentEvent)}
+              >
+                {currentEvent.title}
+              </h3>
+              {currentEvent.subTitle && (
+                <p className="event-subtitle">{currentEvent.subTitle}</p>
               )}
             </div>
 
-            {/* Action Buttons - Minimalistic style */}
-            <div className="action-buttons">
-              <button
-                className="action-button guest-code-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowGuestCodeForm(true);
-                  if (guestCodeSectionRef.current) {
-                    guestCodeSectionRef.current.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
-                }}
-              >
-                GENERATE GUEST CODE
-              </button>
-
-              <button
-                className="action-button buy-ticket-button"
-                onClick={(e) => {
+            {/* EventDetails Component with integrated action buttons */}
+            <div className="event-details-section">
+              <EventDetails
+                event={currentEvent}
+                scrollToTickets={(e) => {
                   e.stopPropagation();
                   // Fetch ticket settings if not already loaded
                   if (ticketSettings.length === 0 && !loadingTickets) {
@@ -1291,9 +1228,17 @@ const UpcomingEvent = ({
                     });
                   }
                 }}
-              >
-                BUY TICKET
-              </button>
+                scrollToGuestCode={(e) => {
+                  e.stopPropagation();
+                  setShowGuestCodeForm(true);
+                  if (guestCodeSectionRef.current) {
+                    guestCodeSectionRef.current.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                }}
+              />
             </div>
 
             {/* Lineup section */}
