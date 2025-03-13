@@ -34,10 +34,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     const fetchEventData = async () => {
       // If we already have a selected event, use it directly
       if (selectedEvent) {
-        console.log(
-          "🔍 FEED: Using provided selectedEvent:",
-          selectedEvent._id
-        );
         setEventData(selectedEvent);
         setIsLoading(false);
         return;

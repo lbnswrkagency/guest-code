@@ -134,7 +134,7 @@ const GuestCode = ({ event }) => {
           response.data.message ||
             "You already received a Guest Code for this event."
         );
-        toast.showInfo("Guest code already exists");
+        toast.showInfo("You already have a Guest Code for this event.");
       }
       // Check for success
       else if (response.data && (response.data.success || response.data.code)) {
@@ -168,7 +168,7 @@ const GuestCode = ({ event }) => {
           error.response.data.message ||
             "You already received a Guest Code for this event."
         );
-        toast.showInfo("Guest code already exists");
+        toast.showInfo("You already have a Guest Code for this event.");
       } else {
         toast.showError(
           error.response?.data?.message || "Failed to generate guest code"

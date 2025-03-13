@@ -148,7 +148,7 @@ const generateGuestCodePDF = async (code, event) => {
           <h1 style="margin: 0; font-weight: 700; font-size: 1.85rem; color: #000000;">Guest Code</h1>
           ${
             brand?.logo?.medium
-              ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; padding: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><img src="${brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
+              ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; overflow: hidden;"><img src="${brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
               : `<div style="width: 3.5rem; height: 3.5rem; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: bold; font-size: 1.5rem;">${
                 brand?.name?.charAt(0) || "G"

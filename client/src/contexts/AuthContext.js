@@ -17,6 +17,7 @@ export const useAuth = () => {
 const AuthProviderWithRouter = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const fetchUserData = async () => {
     try {
+      setLoading(true);
       const response = await axiosInstance.get("/auth/user");
       if (response.data) {
         // Clean the username when fetching user data
@@ -43,12 +45,15 @@ const AuthProviderWithRouter = ({ children }) => {
       return response.data;
     } catch (error) {
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   // Add initial auth check
   useEffect(() => {
     const initializeAuth = async () => {
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (token) {
         try {
@@ -61,6 +66,7 @@ const AuthProviderWithRouter = ({ children }) => {
         }
       }
       setLoading(false);
+      setAuthInitialized(true);
     };
 
     initializeAuth();
@@ -82,16 +88,19 @@ const AuthProviderWithRouter = ({ children }) => {
         if (error.response?.status === 401) {
           originalRequest._retry = true;
           setIsRefreshing(true);
+          setLoading(true);
 
           try {
             // Attempt to refresh tokens
             await axiosInstance.post("/auth/refresh-token");
             setIsRefreshing(false);
+            setLoading(false);
             // Retry the original request
             return axiosInstance(originalRequest);
           } catch (refreshError) {
             setIsRefreshing(false);
             setUser(null);
+            setLoading(false);
             navigate("/login", { state: { from: location } });
             return Promise.reject(refreshError);
           }
@@ -134,16 +143,17 @@ const AuthProviderWithRouter = ({ children }) => {
         } finally {
           setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
     };
 
-    checkAuthState();
-  }, [location.pathname]);
+    if (authInitialized) {
+      checkAuthState();
+    }
+  }, [location.pathname, authInitialized]);
 
   const login = async (credentials) => {
     try {
+      setLoading(true);
       console.log("[AuthContext] Attempting login with:", {
         credential: credentials.email,
         isEmail: credentials.email.includes("@"),
@@ -176,6 +186,7 @@ const AuthProviderWithRouter = ({ children }) => {
       ] = `Bearer ${response.data.token}`;
 
       setUser(response.data.user);
+      setLoading(false);
 
       navigate(`/@${response.data.user.username}`);
     } catch (error) {
@@ -191,23 +202,27 @@ const AuthProviderWithRouter = ({ children }) => {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
+      setLoading(false);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
+      setLoading(true);
       await axiosInstance.post("/auth/logout");
 
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
 
       setUser(null);
+      setLoading(false);
       navigate("/login");
     } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
+      setLoading(false);
       navigate("/login");
     }
   };
@@ -216,6 +231,7 @@ const AuthProviderWithRouter = ({ children }) => {
     user,
     setUser,
     loading,
+    authInitialized,
     login,
     logout,
     fetchUserData,

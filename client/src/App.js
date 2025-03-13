@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ChatProvider } from "./contexts/ChatContext";
+import RouteGuard from "./Components/RouteGuard/RouteGuard";
 
 import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
@@ -37,7 +38,7 @@ import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction"
 // Main routing component
 const AppRoutes = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const params = useParams();
 
   // Pre-build the user profile route if we have a user
@@ -460,7 +461,9 @@ function App() {
               <ToastProvider>
                 <DeviceRestriction>
                   <div className="app">
-                    <AppRoutes />
+                    <RouteGuard>
+                      <AppRoutes />
+                    </RouteGuard>
                   </div>
                 </DeviceRestriction>
               </ToastProvider>

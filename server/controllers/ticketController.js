@@ -159,7 +159,7 @@ const generateTicketPDF = async (ticket) => {
           <h1 style="margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>
           ${
             brand?.logo?.medium
-              ? `<img src="${brand.logo.medium}" style="width: 3.5rem; object-fit: contain;">`
+              ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; overflow: hidden;"><img src="${brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
               : `<div style="width: 3.5rem; height: 3.5rem; background-color: ${primaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
               <span style="color: ${accentColor}; font-weight: bold; font-size: 1.5rem;">${
                   brand?.name?.charAt(0) || "G"
