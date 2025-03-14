@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   useNavigate,
@@ -14,6 +13,7 @@ import { Toaster } from "react-hot-toast";
 import { ToastProvider } from "./Components/Toast/ToastContext";
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { BrandProvider } from "./contexts/BrandContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ChatProvider } from "./contexts/ChatContext";
@@ -449,11 +449,11 @@ const UserProfileRoute = () => {
   return <Outlet />;
 };
 
-// Main App component
+// Main App component - we don't need BrowserRouter anymore since it's provided by index.js
 function App() {
   return (
-    <Router>
-      <AuthProvider>
+    <AuthProvider>
+      <BrandProvider>
         <SocketProvider>
           <ChatProvider>
             <NotificationProvider>
@@ -470,8 +470,8 @@ function App() {
             </NotificationProvider>
           </ChatProvider>
         </SocketProvider>
-      </AuthProvider>
-    </Router>
+      </BrandProvider>
+    </AuthProvider>
   );
 }
 

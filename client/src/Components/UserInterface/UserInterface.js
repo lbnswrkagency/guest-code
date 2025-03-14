@@ -43,8 +43,8 @@ const UserInterface = ({ brand, onClose }) => {
       const response = await axiosInstance.get(
         `/roles/brands/${brand._id}/roles`
       );
-      // Filter out the OWNER role as it shouldn't be assignable
-      setRoles(response.data.filter((role) => role.name !== "OWNER"));
+      // Filter out the Founder role as it shouldn't be assignable
+      setRoles(response.data.filter((role) => !role.isFounder));
     } catch (error) {
       console.error("Error fetching roles:", error);
     }
@@ -53,7 +53,11 @@ const UserInterface = ({ brand, onClose }) => {
   const fetchTeamMembers = async () => {
     try {
       const response = await axiosInstance.get(`/brands/${brand._id}/members`);
-      setMembers(response.data);
+      // Filter out founder members - don't include them in the list at all
+      const nonFounderMembers = response.data.filter(
+        (member) => !member.isFounderRole
+      );
+      setMembers(nonFounderMembers);
     } catch (error) {
       console.error("Error fetching team members:", error);
     } finally {
@@ -61,19 +65,21 @@ const UserInterface = ({ brand, onClose }) => {
     }
   };
 
-  const handleRoleChange = (memberId, newRole) => {
-    // Don't allow changing to OWNER role
-    if (newRole === "OWNER") return;
+  const handleRoleChange = (memberId, newRoleId) => {
+    // Find the role object by ID
+    const newRole = roles.find((role) => role._id === newRoleId);
 
     setConfirmDialog({
       isOpen: true,
       title: "Change Role",
-      message: `Are you sure you want to change this user's role to ${newRole}?`,
+      message: `Are you sure you want to change this user's role to ${
+        newRole ? newRole.name : "the selected role"
+      }?`,
       confirmAction: async () => {
         try {
           await axiosInstance.put(
             `/brands/${brand._id}/members/${memberId}/role`,
-            { role: newRole }
+            { roleId: newRoleId } // Send roleId instead of role string
           );
           await fetchTeamMembers();
         } catch (error) {
@@ -179,29 +185,37 @@ const UserInterface = ({ brand, onClose }) => {
                 <div className="member-details">
                   <span className="member-name">{member.name}</span>
                   <span className="member-username">@{member.username}</span>
-                  <span className="member-role">{member.role}</span>
+                  <span className="member-role">{member.roleName}</span>
                 </div>
               </div>
 
               <div className="member-actions">
-                <select
-                  className="role-select"
-                  value={member.role}
-                  onChange={(e) => handleRoleChange(member._id, e.target.value)}
-                  disabled={member.role === "OWNER"}
-                >
-                  {roles.map((role) => (
-                    <option key={role._id} value={role.name}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
+                {member.isFounderRole ? (
+                  <div className="role-badge founder">
+                    <RiShieldUserLine />
+                    <span>Founder</span>
+                  </div>
+                ) : (
+                  <select
+                    className="role-select"
+                    value={member.role}
+                    onChange={(e) =>
+                      handleRoleChange(member._id, e.target.value)
+                    }
+                  >
+                    {roles.map((role) => (
+                      <option key={role._id} value={role._id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
 
                 <button
                   className="action-btn remove"
                   onClick={() => handleRemoveMember(member._id)}
                   title="Remove member"
-                  disabled={member.role === "OWNER"}
+                  disabled={member.isFounderRole}
                 >
                   <RiDeleteBin6Line />
                 </button>
@@ -210,7 +224,7 @@ const UserInterface = ({ brand, onClose }) => {
                   className="action-btn ban"
                   onClick={() => handleBanMember(member._id)}
                   title="Ban member"
-                  disabled={member.role === "OWNER"}
+                  disabled={member.isFounderRole}
                 >
                   <RiUserUnfollowLine />
                 </button>

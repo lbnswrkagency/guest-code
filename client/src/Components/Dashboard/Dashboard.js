@@ -20,6 +20,10 @@ import moment from "moment";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/userSlice";
+import { selectAllBrands, selectSelectedBrand } from "../../redux/brandSlice";
+import { useBrands } from "../../contexts/BrandContext";
 
 import { useCurrentEvent } from "../CurrentEvent/CurrentEvent";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
@@ -43,11 +47,89 @@ import DashboardFeed from "../DashboardFeed/DashboardFeed";
 import { useAuth } from "../../contexts/AuthContext";
 import CodeManagement from "../CodeManagement/CodeManagement";
 
+// Replace the visual ReduxDebug component with a Dashboard hook that logs store data
 const Dashboard = () => {
   const { user, setUser, loading } = useAuth();
   const { username } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+
+  // Get Redux store data
+  const reduxUser = useSelector(selectUser);
+
+  // Get brand data from Redux
+  const brands = useSelector(selectAllBrands);
+  const selectedBrand = useSelector(selectSelectedBrand);
+
+  // Get brand context
+  const { fetchUserBrands } = useBrands();
+
+  // Log Redux store data when component mounts or reduxUser/brands change
+  useEffect(() => {
+    if (reduxUser) {
+      console.log("🔵 REDUX STORE DATA:", {
+        timestamp: new Date().toISOString(),
+        reduxUser: {
+          // Basic user info
+          id: reduxUser._id,
+          username: reduxUser.username,
+          email: reduxUser.email,
+          firstName: reduxUser.firstName,
+          lastName: reduxUser.lastName,
+          birthday: reduxUser.birthday,
+
+          // Avatar data (full object with all URLs)
+          avatar: reduxUser.avatar,
+
+          // User roles and permissions
+          isAdmin: reduxUser.isAdmin,
+          isDeveloper: reduxUser.isDeveloper,
+          isVerified: reduxUser.isVerified,
+          isAlpha: reduxUser.isAlpha,
+          isScanner: reduxUser.isScanner,
+          isPromoter: reduxUser.isPromoter,
+          isStaff: reduxUser.isStaff,
+          isBackstage: reduxUser.isBackstage,
+          isSpitixBattle: reduxUser.isSpitixBattle,
+          isTable: reduxUser.isTable,
+
+          // Other important fields
+          events: reduxUser.events?.length || 0,
+          createdAt: reduxUser.createdAt,
+          updatedAt: reduxUser.updatedAt,
+          lastLogin: reduxUser.lastLogin,
+          lastSyncedAt: reduxUser.lastSyncedAt,
+        },
+        status: "Current Redux store state in Dashboard",
+      });
+    }
+  }, [reduxUser]);
+
+  // Add a new effect to log brand data
+  useEffect(() => {
+    if (brands && brands.length > 0) {
+      console.log("🔵 REDUX BRAND DATA:", {
+        timestamp: new Date().toISOString(),
+        brandsCount: brands.length,
+        brands: brands.map((brand) => ({
+          id: brand._id,
+          name: brand.name,
+          username: brand.username,
+          role: brand.userRole || "Unknown", // Assuming user role is stored here
+          logo: brand.logo?.thumbnail ? "✓" : "✗",
+          isOwner: brand.owner === reduxUser?._id,
+        })),
+        selectedBrand: selectedBrand
+          ? {
+              id: selectedBrand._id,
+              name: selectedBrand.name,
+              username: selectedBrand.username,
+            }
+          : null,
+        status: "Current brand data in Redux store",
+      });
+    }
+  }, [brands, selectedBrand, reduxUser?._id]);
 
   // Remove @ from username parameter
   const cleanUsername = username?.replace("@", "");
@@ -81,6 +163,14 @@ const Dashboard = () => {
       }
     }
   }, [loading, user, navigate, cleanUsername]);
+
+  // Add an effect to trigger brand data fetch when component mounts
+  useEffect(() => {
+    // If we have a user but no brands, fetch brands
+    if (user && (!brands || brands.length === 0)) {
+      fetchUserBrands();
+    }
+  }, [user, brands, fetchUserBrands]);
 
   if (loading) {
     return <Loader />;
@@ -118,14 +208,13 @@ const PublicProfileView = ({ username }) => {
         setProfileData(response.data);
       } catch (error) {
         toast.showError("Failed to load profile");
-        console.error("Error fetching profile:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [username]);
+  }, [username, toast]);
 
   if (loading) {
     return <Loader />;
@@ -191,32 +280,7 @@ const DashboardContent = ({ user, setUser }) => {
 
   // Add a useEffect to log selectedEvent changes
   useEffect(() => {
-    console.group("🔍 DASHBOARD: Selected Event Changed");
-    console.log(
-      "Selected Event:",
-      selectedEvent
-        ? {
-            _id: selectedEvent._id,
-            name: selectedEvent.name,
-            date: selectedEvent.date,
-            user: selectedEvent.user,
-            brand: selectedEvent.brand,
-            // Log the entire object for debugging
-            fullObject: selectedEvent,
-          }
-        : "undefined"
-    );
-    console.log(
-      "Selected Brand:",
-      selectedBrand
-        ? {
-            _id: selectedBrand._id,
-            name: selectedBrand.name,
-          }
-        : "undefined"
-    );
-    console.log("Selected Date:", selectedDate);
-    console.groupEnd();
+    // Removed console logs
   }, [selectedEvent, selectedBrand, selectedDate]);
 
   // Add a state variable to store the access summary
@@ -281,7 +345,7 @@ const DashboardContent = ({ user, setUser }) => {
     if (codeType) {
       resetEventDateToToday();
     }
-  }, [codeType]);
+  }, [codeType, resetEventDateToToday]);
 
   const fetchCounts = async () => {
     try {
@@ -305,13 +369,13 @@ const DashboardContent = ({ user, setUser }) => {
 
       setCounts(response.data);
     } catch (error) {
-      console.error("Error fetching counts:", error);
+      // Error handling without console.log
     }
   };
 
   const fetchUserSpecificCounts = async () => {
     if (!user || !user._id) {
-      console.error("User is undefined or User ID is undefined");
+      // Error handling without console.log
       return;
     }
 
@@ -332,7 +396,7 @@ const DashboardContent = ({ user, setUser }) => {
         totalChecked: response.data.totalChecked,
       });
     } catch (error) {
-      console.error("Error fetching user-specific counts", error);
+      // Error handling without console.log
     }
   };
 
@@ -351,8 +415,6 @@ const DashboardContent = ({ user, setUser }) => {
       try {
         if (!user || !selectedBrand?._id) return;
 
-        console.log("[Dashboard] Fetching roles for brand:", selectedBrand._id);
-
         const response = await axiosInstance.get(
           `/roles/brands/${selectedBrand._id}/user-roles`,
           {
@@ -363,32 +425,17 @@ const DashboardContent = ({ user, setUser }) => {
         );
 
         if (Array.isArray(response.data)) {
-          console.log("[Dashboard] Fetched roles:", response.data);
-          // Log each role with its permissions
-          response.data.forEach((role) => {
-            console.log(
-              `[Dashboard] Role ${role.name} permissions:`,
-              role.permissions
-            );
-          });
           setUserRoles(response.data);
         } else {
-          console.error("[Dashboard] Invalid roles data:", response.data);
           setUserRoles([]);
         }
       } catch (error) {
-        console.error("[Dashboard] Error fetching roles:", error);
         setUserRoles([]);
       }
     };
 
     const fetchCodeSettings = async () => {
       try {
-        console.log(
-          "%c⚙️ Starting code settings fetch",
-          "color: #3F51B5; font-weight: bold;"
-        );
-
         // First check if we have a selected event
         if (selectedBrand?._id) {
           // Try to fetch all code settings for the user's brand
@@ -410,12 +457,6 @@ const DashboardContent = ({ user, setUser }) => {
             apiUrl = `${baseUrl}/api/code-settings/brands/${selectedBrand._id}`;
           }
 
-          console.log(
-            "%c🔍 Fetching code settings from:",
-            "color: #FF5722; font-weight: bold;",
-            apiUrl
-          );
-
           const response = await axios.get(apiUrl, {
             withCredentials: true,
             headers: {
@@ -423,36 +464,8 @@ const DashboardContent = ({ user, setUser }) => {
             },
           });
 
-          console.log(
-            "%c✅ Code settings API response:",
-            "color: #4CAF50; font-weight: bold;",
-            response.data
-          );
-
           // Handle different response formats
           if (response.data && Array.isArray(response.data.codeSettings)) {
-            console.log(
-              "%c✅ Found codeSettings array in response.data:",
-              "color: #4CAF50; font-weight: bold;",
-              response.data.codeSettings.length
-            );
-
-            // Log detailed settings data
-            response.data.codeSettings.forEach((setting) => {
-              console.log(
-                `🧩 Code setting from API: ${setting.name || setting.type}:`,
-                {
-                  maxPax: setting.maxPax,
-                  condition: setting.condition,
-                  type: setting.type,
-                  limit: setting.limit,
-                  unlimited: setting.unlimited || setting.limit === 0,
-                  isEditable: setting.isEditable,
-                  isEnabled: setting.isEnabled,
-                }
-              );
-            });
-
             // Filter out standard code types that aren't editable unless they're enabled custom types
             const filteredSettings = response.data.codeSettings.filter(
               (setting) => {
@@ -466,37 +479,9 @@ const DashboardContent = ({ user, setUser }) => {
               }
             );
 
-            console.log(
-              "%c🧹 Filtered code settings (removed non-editable standard types):",
-              "color: #FF9800; font-weight: bold;",
-              filteredSettings.length
-            );
-
             setCodeSettings(filteredSettings);
           } else if (response.data && Array.isArray(response.data)) {
             // Handle case where the response might be an array directly
-            console.log(
-              "%c✅ Found direct array response:",
-              "color: #4CAF50; font-weight: bold;",
-              response.data.length
-            );
-
-            // Log detailed settings data
-            response.data.forEach((setting) => {
-              console.log(
-                `🧩 Code setting from API: ${setting.name || setting.type}:`,
-                {
-                  maxPax: setting.maxPax,
-                  condition: setting.condition,
-                  type: setting.type,
-                  limit: setting.limit,
-                  unlimited: setting.unlimited || setting.limit === 0,
-                  isEditable: setting.isEditable,
-                  isEnabled: setting.isEnabled,
-                }
-              );
-            });
-
             // Filter out standard code types that aren't editable unless they're enabled custom types
             const filteredSettings = response.data.filter((setting) => {
               // Keep all custom types that are enabled
@@ -508,36 +493,10 @@ const DashboardContent = ({ user, setUser }) => {
               return setting.isEditable && setting.isEnabled;
             });
 
-            console.log(
-              "%c🧹 Filtered code settings (removed non-editable standard types):",
-              "color: #FF9800; font-weight: bold;",
-              filteredSettings.length
-            );
-
             setCodeSettings(filteredSettings);
           } else {
-            console.warn(
-              "%c⚠️ No code settings found in response - creating defaults from permissions",
-              "color: #FFC107; font-weight: bold;"
-            );
-
-            // Debug permissions details
-            console.log(
-              "%c🔍 Available code permissions for codes:",
-              "color: #2196F3; font-weight: bold;",
-              { codePermissionsDetails }
-            );
-
-            // Log all permissions from all roles
-            console.log("All user roles:", userRoles);
-
             // Only attempt to create settings if we have real permission details
             if (codePermissionsDetails && codePermissionsDetails.length > 0) {
-              console.log(
-                "%c🔧 Creating settings based only on real permission data",
-                "color: #009688; font-weight: bold;"
-              );
-
               // Create default code settings from permissions
               const defaultSettings = codePermissionsDetails.map((perm) => ({
                 type: perm.type,
@@ -561,38 +520,17 @@ const DashboardContent = ({ user, setUser }) => {
                 generatedFromRole: perm.role || "Unknown role",
               }));
 
-              console.log(
-                "%c✅ Created settings from real permission data:",
-                "color: #4CAF50; font-weight: bold;",
-                defaultSettings
-              );
-
               // Important: Set the code settings with our generated defaults
               setCodeSettings(defaultSettings);
             } else {
-              console.warn(
-                "%c⚠️ No permissions found for codes",
-                "color: #FF9800; font-weight: bold;"
-              );
-
               // Set empty code settings if no permissions are found
               setCodeSettings([]);
             }
           }
         }
       } catch (error) {
-        console.error(
-          "%c❌ Error fetching code settings:",
-          "color: #F44336; font-weight: bold;",
-          error
-        );
-
         // Only use real permission data on error
         if (codePermissionsDetails && codePermissionsDetails.length > 0) {
-          console.log(
-            "%c🔧 Creating settings from real permissions after fetch error",
-            "color: #009688; font-weight: bold;"
-          );
           const permissionSettings = codePermissionsDetails.map((perm) => ({
             type: "custom", // Default to custom as the most flexible type
             codeType: perm.type,
@@ -611,17 +549,8 @@ const DashboardContent = ({ user, setUser }) => {
             generatedFromRole: perm.role || "Unknown",
           }));
 
-          console.log(
-            "%c✅ Created settings from permissions:",
-            "color: #4CAF50; font-weight: bold;",
-            permissionSettings
-          );
           setCodeSettings(permissionSettings);
         } else {
-          console.warn(
-            "%c⚠️ No permissions available to create settings",
-            "color: #F44336; font-weight: bold;"
-          );
           setCodeSettings([]);
         }
       }
@@ -629,55 +558,7 @@ const DashboardContent = ({ user, setUser }) => {
 
     fetchUserRoles();
     fetchCodeSettings();
-
-    // Comprehensive logging of user data for debugging
-    if (user) {
-      console.group(
-        "%c🧑‍💻 USER DATA SUMMARY",
-        "font-size: 14px; font-weight: bold; color: #4CAF50;"
-      );
-
-      console.log("%c👤 User Details:", "font-weight: bold; color: #2196F3;", {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatar: user.avatar
-          ? typeof user.avatar === "string"
-            ? `${user.avatar.substring(0, 20)}...`
-            : "Not a string"
-          : "None",
-        isVerified: user.isVerified,
-      });
-
-      console.log(
-        "%c🏢 Selected Brand:",
-        "font-weight: bold; color: #9C27B0;",
-        selectedBrand || "None selected"
-      );
-
-      console.log(
-        "%c👑 User Roles:",
-        "font-weight: bold; color: #FF9800;",
-        userRoles
-      );
-
-      console.log(
-        "%c⚙️ Code Settings:",
-        "font-weight: bold; color: #E91E63;",
-        codeSettings
-      );
-
-      console.log("%c📊 User Counts:", "font-weight: bold; color: #009688;", {
-        friends: getThisWeeksFriendsCount(),
-        backstage: getThisWeeksBackstageCount(),
-        guestCodes: counts.guestCounts,
-      });
-
-      console.groupEnd();
-    }
-  }, [user, selectedBrand]);
+  }, [user, selectedBrand, codePermissionsDetails]);
 
   // Create a brand-specific dashboard summary when selectedBrand changes
   useEffect(() => {
@@ -689,19 +570,9 @@ const DashboardContent = ({ user, setUser }) => {
       let highestRole = null;
       let highestRoleIsCustom = false;
 
-      // Debug: log all roles
-      console.log(
-        "All user roles for this brand:",
-        brandRoles.map((r) => r.name)
-      );
-
-      // Log full role data for debugging
-      console.log("Full role data:", brandRoles);
-
       // First look for custom roles (isDefault !== true)
       for (const role of brandRoles) {
         if (role.isDefault !== true) {
-          console.log(`Found custom role: ${role.name}`);
           highestRole = role.name;
           highestRoleIsCustom = true;
           break;
@@ -712,7 +583,6 @@ const DashboardContent = ({ user, setUser }) => {
       if (!highestRole) {
         for (const role of brandRoles) {
           if (role.name === "OWNER") {
-            console.log("Found OWNER role");
             highestRole = role.name;
             break;
           }
@@ -723,7 +593,6 @@ const DashboardContent = ({ user, setUser }) => {
       if (!highestRole) {
         for (const role of brandRoles) {
           if (role.name === "MEMBER") {
-            console.log("Found MEMBER role");
             highestRole = role.name;
             break;
           }
@@ -735,20 +604,7 @@ const DashboardContent = ({ user, setUser }) => {
       const newCodePermissionsDetails = [];
       const processedPermissions = new Set(); // Track processed permission types to avoid duplicates
 
-      // Debug roles structure
-      console.log("Processing role permissions for brand:", selectedBrand.name);
-
       brandRoles.forEach((role) => {
-        console.log(`Processing role: ${role.name}`, {
-          permissions: role.permissions,
-          codePerms: role.permissions?.codes,
-          customCodeTypes: Object.keys(role.permissions || {}).filter(
-            (key) =>
-              typeof role.permissions[key] === "object" &&
-              !["codes", "events", "team", "analytics", "scanner"].includes(key)
-          ),
-        });
-
         // METHOD 1: Process standard codes object with nested code types
         if (
           role.permissions?.codes &&
@@ -779,11 +635,6 @@ const DashboardContent = ({ user, setUser }) => {
               // Skip if already processed
               if (processedPermissions.has(permKey)) return;
 
-              console.log(
-                `Found code type in codes object: ${codeType}`,
-                permissions
-              );
-
               // Check for generate permission
               if (permissions.generate) {
                 allCodePermissions[codeType] = true;
@@ -800,9 +651,6 @@ const DashboardContent = ({ user, setUser }) => {
 
                 // Mark as processed
                 processedPermissions.add(permKey);
-                console.log(
-                  `Added permission for ${codeType} from role ${role.name}`
-                );
               }
             }
           );
@@ -825,11 +673,6 @@ const DashboardContent = ({ user, setUser }) => {
 
           // Check if this object has a generate property - if so, it might be a code type
           if (value.generate) {
-            console.log(
-              `Found potential code type at root level: ${key}`,
-              value
-            );
-
             const permKey = `${key}:${value.limit || 0}:${
               value.unlimited || false
             }:${role.name}`;
@@ -849,7 +692,6 @@ const DashboardContent = ({ user, setUser }) => {
 
               // Mark as processed
               processedPermissions.add(permKey);
-              console.log(`Added ${key} permission from role ${role.name}`);
             }
           }
         });
@@ -876,7 +718,6 @@ const DashboardContent = ({ user, setUser }) => {
             });
 
             processedPermissions.add(permKey);
-            console.log(`Added generic Code permission from role ${role.name}`);
           }
         }
       });
@@ -889,13 +730,6 @@ const DashboardContent = ({ user, setUser }) => {
 
       // Determine member count from various sources
       let memberCount = "Unknown";
-      console.log("Member count data sources:", {
-        "selectedBrand.members": selectedBrand.members,
-        "selectedBrand.memberIds": selectedBrand.memberIds,
-        "selectedBrand.memberCount": selectedBrand.memberCount,
-        "selectedBrand.users": selectedBrand.users,
-        "full brand object": selectedBrand,
-      });
 
       if (selectedBrand.members?.length) {
         memberCount = selectedBrand.members.length;
@@ -906,68 +740,6 @@ const DashboardContent = ({ user, setUser }) => {
       } else if (selectedBrand.users?.length) {
         memberCount = selectedBrand.users.length;
       }
-
-      // Summarize brand details
-      const brandDetails = {
-        id: selectedBrand._id,
-        name: selectedBrand.name,
-        username: selectedBrand.username,
-        isVerified: selectedBrand.isVerified || false,
-        memberCount: memberCount,
-      };
-
-      // Summarize user roles
-      const roleInfo = {
-        primaryRole: highestRole || "None",
-        allRoles: brandRoles.map((r) => r.name),
-        totalRoles: brandRoles.length,
-        highestRoleIsCustom,
-      };
-
-      // Summarize code permissions
-      const codePermissionSummary =
-        newCodePermissionsDetails.length > 0
-          ? newCodePermissionsDetails.map(
-              (p) =>
-                `${p.type} (limit: ${
-                  p.unlimited ? "unlimited" : p.limit
-                }, role: ${p.role})`
-            )
-          : "No code permissions";
-
-      // Create a summary of code settings for logging
-      const codeSettingsSummary =
-        codeSettings && codeSettings.length > 0
-          ? {
-              totalSettings: codeSettings.length,
-              types: codeSettings.map(
-                (s) =>
-                  `${s.name || s.type} ${
-                    s.generatedClientSide ? "(client-generated)" : "(from API)"
-                  }`
-              ),
-              bySource: {
-                fromAPI: codeSettings.filter((s) => !s.generatedClientSide)
-                  .length,
-                clientGenerated: codeSettings.filter(
-                  (s) => s.generatedClientSide
-                ).length,
-              },
-              details: codeSettings.map((setting) => ({
-                type: setting.type || setting.codeType,
-                name: setting.name,
-                isEnabled: setting.isEnabled,
-                limit: setting.limit,
-                unlimited: setting.unlimited,
-                // Don't set defaults based on name, just pass through the values as they are
-                maxPax: setting.maxPax || 1,
-                condition: setting.condition || "",
-                source: setting.generatedClientSide
-                  ? `Generated from ${setting.generatedFromRole} role`
-                  : "API",
-              })),
-            }
-          : "No code settings available";
 
       // Calculate Access Summary based on user roles and their permissions
       const newAccessSummary = {
@@ -1036,13 +808,6 @@ const DashboardContent = ({ user, setUser }) => {
 
   // Add a handler function to update the selected event data
   const handleEventDataUpdate = (updatedEvent) => {
-    console.log("🔄 Dashboard: Updating event data with:", {
-      id: updatedEvent._id,
-      name: updatedEvent.name,
-      logo: updatedEvent.logo ? "Available" : "Not available",
-      primaryColor: updatedEvent.primaryColor,
-    });
-
     // Update the selected event with the new data
     setSelectedEvent(updatedEvent);
   };

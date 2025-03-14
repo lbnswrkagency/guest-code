@@ -17,6 +17,7 @@ const RoleSchema = new Schema(
     name: { type: String, required: true },
     description: { type: String },
     isDefault: { type: Boolean, default: false },
+    isFounder: { type: Boolean, default: false },
     permissions: {
       events: {
         create: { type: Boolean, default: false },

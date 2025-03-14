@@ -10,7 +10,7 @@ const BrandSchema = new Schema(
     team: [
       {
         user: { type: Schema.Types.ObjectId, ref: "User" },
-        role: { type: String, required: true, default: "MEMBER" },
+        role: { type: Schema.Types.ObjectId, ref: "Role" },
         joinedAt: { type: Date, default: Date.now },
       },
     ],

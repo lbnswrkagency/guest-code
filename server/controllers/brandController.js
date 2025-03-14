@@ -8,6 +8,7 @@ const JoinRequest = require("../models/joinRequestModel");
 const Notification = require("../models/notificationModel");
 const User = require("../models/User");
 const roleController = require("../controllers/roleController");
+const Role = require("../models/roleModel");
 
 // Create new brand
 exports.createBrand = async (req, res) => {
@@ -43,21 +44,16 @@ exports.createBrand = async (req, res) => {
       });
     }
 
+    // Create initial brand without team members
     const brandData = {
       name: req.body.name,
       username: req.body.username.toLowerCase(),
       description: req.body.description,
       owner: req.user._id,
-      team: [
-        {
-          user: req.user._id,
-          role: "OWNER",
-          joinedAt: new Date(),
-        },
-      ],
+      team: [], // Start with empty team, will add after roles are created
       settings: {
         autoJoinEnabled: false,
-        defaultRole: "MEMBER",
+        defaultRole: "Member", // Updated from MEMBER to Member
         ...req.body.settings,
       },
     };
@@ -66,7 +62,23 @@ exports.createBrand = async (req, res) => {
     await brand.save();
 
     // Create default roles
-    await roleController.createDefaultRoles(brand._id, req.user._id);
+    const [founderRole, memberRole] = await roleController.createDefaultRoles(
+      brand._id,
+      req.user._id
+    );
+    console.log("[BrandController:createBrand] Created default roles:", {
+      founderRole: { id: founderRole._id, name: founderRole.name },
+      memberRole: { id: memberRole._id, name: memberRole.name },
+    });
+
+    // Now add the owner as a team member with the Founder role ID
+    brand.team.push({
+      user: req.user._id,
+      role: founderRole._id, // Use the role ID, not the name
+      joinedAt: new Date(),
+    });
+
+    await brand.save();
 
     return res.status(201).json(brand);
   } catch (error) {
@@ -489,13 +501,27 @@ exports.deleteBrand = async (req, res) => {
         .json({ message: "You don't have permission to delete this brand" });
     }
 
+    // First delete all roles associated with this brand
+    console.log(
+      "[Delete Brand] Deleting associated roles for brand:",
+      req.params.brandId
+    );
+    const deletedRoles = await Role.deleteMany({ brandId: req.params.brandId });
+    console.log("[Delete Brand] Deleted roles:", {
+      count: deletedRoles.deletedCount,
+      brandId: req.params.brandId,
+    });
+
     // Delete the brand
     const deletedBrand = await Brand.findOneAndDelete({
       _id: req.params.brandId,
     });
     console.log("[Delete Brand] Brand deleted:", deletedBrand?._id);
 
-    res.status(200).json({ message: "Brand deleted successfully" });
+    res.status(200).json({
+      message: "Brand deleted successfully",
+      deletedRolesCount: deletedRoles.deletedCount,
+    });
   } catch (error) {
     console.error("[Delete Brand] Error:", error);
     res
@@ -508,6 +534,8 @@ exports.deleteBrand = async (req, res) => {
 exports.getTeamMembers = async (req, res) => {
   try {
     const { brandId } = req.params;
+
+    // Fetch the brand and populate team.user
     const brand = await Brand.findById(brandId).populate({
       path: "team.user",
       select: "_id username firstName lastName avatar",
@@ -517,17 +545,43 @@ exports.getTeamMembers = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Filter out OWNER role and transform data
-    const members = brand.team
-      .filter((member) => member.role !== "OWNER")
-      .map((member) => ({
-        _id: member.user._id,
-        name: `${member.user.firstName} ${member.user.lastName}`,
-        username: member.user.username,
-        role: member.role,
-        avatar: member.user.avatar?.medium || member.user.avatar,
-        joinedAt: member.joinedAt,
-      }));
+    // Fetch all roles for this brand first
+    const roles = await Role.find({ brandId });
+    const rolesMap = {};
+    roles.forEach((role) => {
+      rolesMap[role._id.toString()] = {
+        name: role.name,
+        isFounder: role.isFounder || false,
+      };
+    });
+
+    // Transform team members data
+    const members = await Promise.all(
+      brand.team.map(async (member) => {
+        let roleName = "Unknown";
+        let isFounderRole = false;
+
+        // Get role information if member.role is valid
+        if (member.role) {
+          const roleId = member.role.toString();
+          if (rolesMap[roleId]) {
+            roleName = rolesMap[roleId].name;
+            isFounderRole = rolesMap[roleId].isFounder;
+          }
+        }
+
+        return {
+          _id: member.user._id,
+          name: `${member.user.firstName} ${member.user.lastName}`,
+          username: member.user.username,
+          role: member.role, // Keep the role ID
+          roleName: roleName, // Add role name
+          isFounderRole: isFounderRole, // Add isFounder flag
+          avatar: member.user.avatar?.medium || member.user.avatar,
+          joinedAt: member.joinedAt,
+        };
+      })
+    );
 
     res.json(members);
   } catch (error) {
@@ -540,7 +594,11 @@ exports.getTeamMembers = async (req, res) => {
 exports.updateMemberRole = async (req, res) => {
   try {
     const { brandId, memberId } = req.params;
-    const { role } = req.body; // Only need the role name, no permissions needed
+    const { roleId } = req.body; // Now expecting roleId instead of role name
+
+    if (!roleId) {
+      return res.status(400).json({ message: "Role ID is required" });
+    }
 
     const brand = await Brand.findById(brandId);
     if (!brand) {
@@ -548,10 +606,20 @@ exports.updateMemberRole = async (req, res) => {
     }
 
     // Check if user has permission to update roles
-    if (!brand.owner.equals(req.user.userId)) {
+    if (!brand.owner.equals(req.user._id)) {
       return res
         .status(403)
         .json({ message: "Not authorized to update roles" });
+    }
+
+    // Get the role to validate it exists and is not a Founder role
+    const role = await Role.findById(roleId);
+    if (!role) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+
+    if (role.name === "FOUNDER") {
+      return res.status(403).json({ message: "Cannot assign Founder role" });
     }
 
     const memberIndex = brand.team.findIndex(
@@ -561,8 +629,8 @@ exports.updateMemberRole = async (req, res) => {
       return res.status(404).json({ message: "Member not found" });
     }
 
-    // Update role only - permissions will be retrieved from roleModel.js
-    brand.team[memberIndex].role = role;
+    // Update role with the role ID
+    brand.team[memberIndex].role = roleId;
 
     await brand.save();
 
@@ -825,9 +893,24 @@ exports.requestJoin = async (req, res) => {
 
     if (brand.settings?.autoJoinEnabled) {
       // Auto-join enabled - add user directly to team
+      // Find the default role ID
+      const defaultRoleName = brand.settings?.defaultRole || "Member";
+      const defaultRole = await Role.findOne({
+        brandId,
+        name: defaultRoleName,
+      });
+
+      if (!defaultRole) {
+        return res.status(500).json({
+          message: "Default role not found",
+          error: "Could not find the default role for this brand",
+        });
+      }
+
+      // Add user with role ID
       brand.team.push({
         user: userId,
-        role: brand.settings?.defaultRole || "MEMBER",
+        role: defaultRole._id, // Use role ID instead of name
         joinedAt: new Date(),
       });
       await brand.save();
@@ -933,17 +1016,31 @@ exports.processJoinRequest = async (req, res) => {
     }
 
     // Check if user has permission to process requests
-    if (!brand.owner.equals(req.user.userId)) {
+    if (!brand.owner.equals(req.user._id)) {
       return res
         .status(403)
         .json({ message: "Not authorized to process requests" });
     }
 
     if (action === "accept") {
-      // Add user to team with default role
+      // Find the default role ID
+      const defaultRoleName = brand.settings?.defaultRole || "Member";
+      const defaultRole = await Role.findOne({
+        brandId: brand._id,
+        name: defaultRoleName,
+      });
+
+      if (!defaultRole) {
+        return res.status(500).json({
+          message: "Default role not found",
+          error: "Could not find the default role for this brand",
+        });
+      }
+
+      // Add user to team with role ID
       brand.team.push({
         user: joinRequest.user._id,
-        role: brand.settings?.defaultRole || "MEMBER",
+        role: defaultRole._id, // Use role ID instead of name
         joinedAt: new Date(),
       });
       await brand.save();
@@ -1125,20 +1222,17 @@ exports.updateBrandSettings = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check if user is authorized (must be OWNER)
-    const teamMember = brand.team.find(
-      (member) => member.user.toString() === req.user._id.toString()
-    );
-
-    if (!teamMember || teamMember.role !== "OWNER") {
+    // Check if user is authorized (must be FOUNDER)
+    const isOwner = brand.owner.toString() === req.user._id.toString();
+    if (!isOwner) {
       return res
         .status(403)
-        .json({ message: "Only OWNER can update settings" });
+        .json({ message: "Only brand owner can update settings" });
     }
 
     // Update settings
     brand.settings.autoJoinEnabled = autoJoinEnabled;
-    if (defaultRole && defaultRole !== "OWNER") {
+    if (defaultRole && defaultRole !== "FOUNDER") {
       brand.settings.defaultRole = defaultRole;
     }
 

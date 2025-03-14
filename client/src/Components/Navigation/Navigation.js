@@ -49,22 +49,13 @@ const Navigation = ({
 
   const handleLogout = async () => {
     try {
-      console.log("[Navigation] Initiating logout process", {
-        hasUser: !!user,
-        userId: user?._id,
-        timestamp: new Date().toISOString(),
-      });
-
       // Clean up socket connection before logout
       if (socket) {
-        console.log("[Navigation] Disconnecting socket before logout");
         socket.disconnect();
       }
 
       // Call AuthContext logout
       await logout();
-
-      console.log("[Navigation] Logout completed successfully");
     } catch (error) {
       console.error("[Navigation] Logout failed:", {
         error: error.message,
@@ -98,7 +89,6 @@ const Navigation = ({
 
   const createTestNotification = async () => {
     try {
-      console.log("[Navigation] Creating test notification");
       const response = await axiosInstance.post("/notifications/create", {
         userId: user._id,
         type: "info",
@@ -109,8 +99,6 @@ const Navigation = ({
           testData: "This is some test metadata",
         },
       });
-
-      console.log("[Navigation] Test notification created:", response.data);
     } catch (error) {
       console.error(
         "[Navigation] Error creating test notification:",
@@ -184,14 +172,6 @@ const Navigation = ({
               <motion.div
                 className="nav-icon-wrapper"
                 onClick={() => {
-                  console.log(
-                    "[Navigation] Menu icon clicked, calling onMenuClick",
-                    {
-                      hasOnMenuClick: typeof onMenuClick === "function",
-                      component: location.pathname,
-                      timestamp: new Date().toISOString(),
-                    }
-                  );
                   if (typeof onMenuClick === "function") {
                     onMenuClick();
                   } else {

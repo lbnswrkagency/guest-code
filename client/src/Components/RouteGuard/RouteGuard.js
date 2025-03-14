@@ -22,16 +22,13 @@ const RouteGuard = ({ children }) => {
   }, [authLoading, authInitialized, user]);
 
   // Log the current state for debugging
-  useEffect(() => {
-    console.log("[RouteGuard] Auth state:", {
-      authInitialized,
-      authLoading,
-      routingReady,
-      user: user ? `@${user.username}` : "null",
-      path: location.pathname,
-      timestamp: new Date().toISOString(),
-    });
-  }, [authInitialized, authLoading, routingReady, user, location.pathname]);
+  useEffect(() => {}, [
+    authInitialized,
+    authLoading,
+    routingReady,
+    user,
+    location.pathname,
+  ]);
 
   // Show loading screen while authentication is being determined
   if (!routingReady) {

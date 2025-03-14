@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosConfig";
 import { cleanUsername } from "../utils/stringUtils";
+import { useDispatch } from "react-redux";
+import { setUser as setReduxUser, clearUser } from "../redux/userSlice";
 
 const AuthContext = createContext();
 
@@ -21,6 +23,7 @@ const AuthProviderWithRouter = ({ children }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const pathsRequiringAuth = [
     "/dashboard",
@@ -39,10 +42,16 @@ const AuthProviderWithRouter = ({ children }) => {
       const response = await axiosInstance.get("/auth/user");
       if (response.data) {
         // Clean the username when fetching user data
-        response.data.username = cleanUsername(response.data.username);
+        const userData = {
+          ...response.data,
+          username: cleanUsername(response.data.username),
+        };
+
+        // Set the updated user data
+        setUser(userData);
+        return userData;
       }
-      setUser(response.data);
-      return response.data;
+      return null;
     } catch (error) {
       throw error;
     } finally {
@@ -151,31 +160,75 @@ const AuthProviderWithRouter = ({ children }) => {
     }
   }, [location.pathname, authInitialized]);
 
+  // Sync user state with Redux when user changes
+  useEffect(() => {
+    // Only dispatch if user exists to prevent unnecessary actions
+    if (user) {
+      // Ensure all user properties from the User model are passed to Redux
+      dispatch(
+        setReduxUser({
+          ...user, // Keep all original properties
+
+          // Make sure these critical fields are included explicitly
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          username: user.username,
+          birthday: user.birthday,
+
+          // Permission flags
+          isVerified: user.isVerified || false,
+          isAdmin: user.isAdmin || false,
+          isScanner: user.isScanner || false,
+          isPromoter: user.isPromoter || false,
+          isStaff: user.isStaff || false,
+          isDeveloper: user.isDeveloper || false,
+          isBackstage: user.isBackstage || false,
+          isSpitixBattle: user.isSpitixBattle || false,
+          isTable: user.isTable || false,
+          isAlpha: user.isAlpha || false,
+
+          // Avatar (all paths)
+          avatar: user.avatar || null,
+
+          // Events and timestamps
+          events: user.events || [],
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          lastLogin: user.lastLogin,
+
+          // Metadata for Redux tracking
+          lastSyncedAt: new Date().toISOString(),
+        })
+      );
+    } else if (authInitialized) {
+      // Only clear if we're past initialization
+      dispatch(clearUser());
+    }
+  }, [user, dispatch, authInitialized]);
+
+  // Define our custom user setter that updates local state
+  const setUserWithRedux = (userData) => {
+    setUser(userData);
+    // Redux sync is handled by the useEffect above
+  };
+
   const login = async (credentials) => {
     try {
       setLoading(true);
-      console.log("[AuthContext] Attempting login with:", {
-        credential: credentials.email,
-        isEmail: credentials.email.includes("@"),
-        timestamp: new Date().toISOString(),
-      });
 
       const response = await axiosInstance.post("/auth/login", credentials);
 
+      // Prepare the user data object
+      let userData = null;
+
       // Clean the username when logging in
       if (response.data.user) {
-        response.data.user.username = cleanUsername(
-          response.data.user.username
-        );
-
-        console.log("[AuthContext] Login successful:", {
-          userId: response.data.user._id,
-          username: response.data.user.username,
-          email: response.data.user.email,
-          hasToken: !!response.data.token,
-          hasRefreshToken: !!response.data.refreshToken,
-          timestamp: new Date().toISOString(),
-        });
+        userData = {
+          ...response.data.user,
+          username: cleanUsername(response.data.user.username),
+        };
       }
 
       localStorage.setItem("token", response.data.token);
@@ -185,20 +238,14 @@ const AuthProviderWithRouter = ({ children }) => {
         "Authorization"
       ] = `Bearer ${response.data.token}`;
 
-      setUser(response.data.user);
+      setUser(userData);
       setLoading(false);
 
-      navigate(`/@${response.data.user.username}`);
-    } catch (error) {
-      console.error("[AuthContext] Login failed:", {
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        credential: credentials.email,
-        isEmail: credentials.email.includes("@"),
-        timestamp: new Date().toISOString(),
-      });
+      navigate(`/@${userData.username}`);
 
+      // Return the full user data object
+      return userData;
+    } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       setUser(null);
@@ -229,7 +276,7 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const value = {
     user,
-    setUser,
+    setUser: setUserWithRedux, // Use our enhanced setter
     loading,
     authInitialized,
     login,
