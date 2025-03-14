@@ -53,34 +53,96 @@ const DashboardHeader = ({
 
   // SIMPLIFICATION: Directly extract events from Redux instead of transforming to local state
   const brandEvents = useMemo(() => {
+    console.log(
+      "[DashboardHeader] Computing brandEvents from selectedBrand:",
+      selectedBrand
+        ? {
+            id: selectedBrand._id,
+            name: selectedBrand.name,
+            hasEvents: !!selectedBrand.events,
+            eventsType: selectedBrand.events
+              ? Array.isArray(selectedBrand.events)
+                ? "array"
+                : "object"
+              : "none",
+          }
+        : "null"
+    );
+
     if (!selectedBrand) {
+      console.log(
+        "[DashboardHeader] No selectedBrand, returning empty brandEvents"
+      );
       return [];
     }
 
-    // If no events property, return empty array
+    // Add detailed logging for the events property
     if (!selectedBrand.events) {
+      console.log("[DashboardHeader] selectedBrand has no events property");
       return [];
     }
 
     // Extract events based on the structure
     let result = [];
     if (Array.isArray(selectedBrand.events)) {
+      console.log(
+        "[DashboardHeader] selectedBrand.events is an array with",
+        selectedBrand.events.length,
+        "items"
+      );
       result = selectedBrand.events;
     } else if (
       selectedBrand.events &&
       Array.isArray(selectedBrand.events.items)
     ) {
+      console.log(
+        "[DashboardHeader] selectedBrand.events.items is an array with",
+        selectedBrand.events.items.length,
+        "items"
+      );
       result = selectedBrand.events.items;
+    } else {
+      console.log(
+        "[DashboardHeader] Could not extract events from",
+        typeof selectedBrand.events === "object"
+          ? Object.keys(selectedBrand.events)
+          : typeof selectedBrand.events
+      );
     }
 
+    console.log(
+      "[DashboardHeader] brandEvents result has",
+      result.length,
+      "events"
+    );
     return result;
   }, [selectedBrand]);
 
   // SIMPLIFICATION: Directly compute unique dates using useMemo
   const uniqueDates = useMemo(() => {
+    console.log(
+      "[DashboardHeader] uniqueDates useMemo running with brandEvents:",
+      {
+        brandEventsLength: brandEvents?.length || 0,
+        brandEventsArray:
+          brandEvents?.slice(0, 2)?.map((event) => ({
+            id: event._id || event.id,
+            title: event.title,
+            date: event.date,
+          })) || [],
+      }
+    );
+
     if (!brandEvents || brandEvents.length === 0) {
+      console.log("[DashboardHeader] No events found to extract dates");
       return [];
     }
+
+    console.log(
+      "[DashboardHeader] Computing unique dates from",
+      brandEvents.length,
+      "events"
+    );
 
     // Build unique dates from events
     const uniqueDatesMap = {};
@@ -98,6 +160,7 @@ const DashboardHeader = ({
         const eventDate = new Date(event.date);
         // Check if the date is valid
         if (isNaN(eventDate.getTime())) {
+          console.log("[DashboardHeader] Invalid date found:", event.date);
           eventsWithDateErrors++;
           return;
         }
@@ -118,6 +181,7 @@ const DashboardHeader = ({
           uniqueDatesMap[dateKey].events += 1;
         }
       } catch (error) {
+        console.error("[DashboardHeader] Error processing event date:", error);
         eventsWithDateErrors++;
       }
     });
@@ -127,6 +191,19 @@ const DashboardHeader = ({
       (a, b) => new Date(a.date) - new Date(b.date)
     );
 
+    console.log("[DashboardHeader] Unique dates processing summary:", {
+      totalEvents: brandEvents.length,
+      eventsWithNoDate,
+      eventsProcessed,
+      eventsWithDateErrors,
+      uniqueDatesCount: dates.length,
+      uniqueDates: dates.map((d) => ({
+        date: d.date,
+        events: d.events,
+        firstEventTitle: d.firstEvent?.title,
+      })),
+    });
+
     return dates;
   }, [brandEvents]);
 
@@ -134,15 +211,117 @@ const DashboardHeader = ({
   useEffect(() => {
     if (!componentMounted.current) {
       componentMounted.current = true;
-      // Initial mount tracking complete
+
+      // Check the store directly on mount
+      const directStoreSelectedBrand = checkStoreDirectly();
+
+      console.log("[DashboardHeader] INITIAL MOUNT - Redux State:", {
+        selectedBrand: selectedBrand
+          ? {
+              id: selectedBrand._id,
+              name: selectedBrand.name,
+              eventsCount: selectedBrand.events
+                ? Array.isArray(selectedBrand.events)
+                  ? selectedBrand.events.length
+                  : selectedBrand.events.items
+                  ? selectedBrand.events.items.length
+                  : 0
+                : 0,
+            }
+          : "null",
+        selectedEvent: selectedEvent
+          ? {
+              id: selectedEvent._id || selectedEvent.id,
+              title: selectedEvent.title,
+              date: selectedEvent.date,
+            }
+          : "null",
+        selectedDate: selectedDate
+          ? new Date(selectedDate).toISOString()
+          : "null",
+        brandsCount: brands?.length || 0,
+        useSelectorVsStore: directStoreSelectedBrand
+          ? selectedBrand
+            ? selectedBrand._id === directStoreSelectedBrand._id
+              ? "SAME BRAND"
+              : "DIFFERENT BRAND"
+            : "useSelector NULL, Store HAS BRAND"
+          : selectedBrand
+          ? "useSelector HAS BRAND, Store NULL"
+          : "BOTH NULL",
+      });
     }
   }, []);
 
-  // Debug log whenever selectedBrand changes - simplified
+  // Debug log whenever selectedBrand changes - ADD MORE DETAILED LOGGING
   useEffect(() => {
-    // This effect runs when selectedBrand changes
-    // No logs needed anymore as the system is working
+    if (selectedBrand) {
+      // Examine the complete structure of the selectedBrand object
+      console.log("[DashboardHeader] DEEP INSPECTION - Selected Brand:", {
+        id: selectedBrand._id,
+        name: selectedBrand.name,
+        eventsProperty: Object.prototype.toString.call(selectedBrand.events),
+        eventsKeys: selectedBrand.events
+          ? Object.keys(selectedBrand.events)
+          : [],
+        hasArrayEvents: Array.isArray(selectedBrand.events),
+        hasItemsProperty:
+          selectedBrand.events && "items" in selectedBrand.events,
+        eventsCount: Array.isArray(selectedBrand.events)
+          ? selectedBrand.events.length
+          : selectedBrand.events && selectedBrand.events.items
+          ? selectedBrand.events.items.length
+          : 0,
+        // If it's an array, log the first item
+        firstEvent:
+          Array.isArray(selectedBrand.events) && selectedBrand.events.length > 0
+            ? {
+                id: selectedBrand.events[0]._id || selectedBrand.events[0].id,
+                title: selectedBrand.events[0].title,
+                date: selectedBrand.events[0].date,
+              }
+            : null,
+        // If it has items, log the first item
+        firstItemEvent:
+          selectedBrand.events &&
+          selectedBrand.events.items &&
+          selectedBrand.events.items.length > 0
+            ? {
+                id:
+                  selectedBrand.events.items[0]._id ||
+                  selectedBrand.events.items[0].id,
+                title: selectedBrand.events.items[0].title,
+                date: selectedBrand.events.items[0].date,
+              }
+            : null,
+      });
+
+      // Log the actual events data structure
+      const eventsArray = Array.isArray(selectedBrand.events)
+        ? selectedBrand.events
+        : selectedBrand.events?.items || [];
+
+      console.log("[DashboardHeader] BRAND CHANGED - Events Data:", {
+        brandId: selectedBrand._id,
+        brandName: selectedBrand.name,
+        eventsCount: eventsArray.length,
+        eventsData: eventsArray.slice(0, 3).map((e) => ({
+          id: e._id || e.id,
+          title: e.title,
+          date: e.date,
+        })),
+      });
+
+      console.log(
+        "[DashboardHeader] Date dropdown will have",
+        uniqueDates.length,
+        "options"
+      );
+    }
   }, [selectedBrand, uniqueDates.length]);
+
+  // Removed the complex useEffect that was trying to extract dates and auto-select events
+  // SIMPLIFICATION: We'll rely on the useMemo hook above instead
 
   // Stats derived from Redux data
   const [stats, setStats] = useState({
@@ -210,6 +389,23 @@ const DashboardHeader = ({
   const handleBrandSelect = (brand) => {
     // Only update if a different brand is selected
     if (!selectedBrand || brand._id !== selectedBrand._id) {
+      console.log(
+        "[DashboardHeader] Selected brand with detailed inspection:",
+        {
+          id: brand._id,
+          name: brand.name,
+          eventsProperty: Object.prototype.toString.call(brand.events),
+          eventsKeys: brand.events ? Object.keys(brand.events) : [],
+          hasArrayEvents: Array.isArray(brand.events),
+          hasItemsProperty: brand.events && "items" in brand.events,
+          eventsCount: Array.isArray(brand.events)
+            ? brand.events.length
+            : brand.events && brand.events.items
+            ? brand.events.items.length
+            : 0,
+        }
+      );
+
       dispatch(setSelectedBrand(brand));
 
       // Reset the event and date when changing brands
@@ -226,6 +422,8 @@ const DashboardHeader = ({
       console.warn("[DashboardHeader] Attempted to select null date");
       return;
     }
+
+    console.log("[DashboardHeader] Date selected:", date);
 
     // Set the selected date
     dispatch(setSelectedDate(new Date(date)));
@@ -248,7 +446,14 @@ const DashboardHeader = ({
 
       // If we found a matching event, set it as the selected event
       if (matchingEvent) {
+        console.log("[DashboardHeader] Found matching event:", {
+          id: matchingEvent._id || matchingEvent.id,
+          title: matchingEvent.title,
+          date: matchingEvent.date,
+        });
         dispatch(setSelectedEvent(matchingEvent));
+      } else {
+        console.log("[DashboardHeader] No event found for date:", date);
       }
     }
 
@@ -258,6 +463,12 @@ const DashboardHeader = ({
   const handleEventSelect = (event) => {
     // Handle event selection - navigate to event page or update state
     if (event && event.date) {
+      console.log("[DashboardHeader] Event selected:", {
+        id: event._id || event.id,
+        title: event.title,
+        date: event.date,
+      });
+
       dispatch(setSelectedDate(new Date(event.date)));
       dispatch(setSelectedEvent(event)); // Set the selected event
       setShowEventsPopup(false);
@@ -316,12 +527,47 @@ const DashboardHeader = ({
   const checkStoreDirectly = () => {
     const storeState = store.getState();
     const storeSelectedBrand = storeState.ui?.selectedBrand;
+    const storeSelectedEvent = storeState.ui?.selectedEvent;
+
+    console.log("[DashboardHeader] DIRECT STORE CHECK:", {
+      hasUiSlice: !!storeState.ui,
+      storeSelectedBrand: storeSelectedBrand
+        ? {
+            id: storeSelectedBrand._id,
+            name: storeSelectedBrand.name,
+            eventsType: storeSelectedBrand.events
+              ? Array.isArray(storeSelectedBrand.events)
+                ? "array"
+                : "object"
+              : "none",
+            eventsCount: Array.isArray(storeSelectedBrand.events)
+              ? storeSelectedBrand.events.length
+              : storeSelectedBrand.events?.items?.length || 0,
+          }
+        : null,
+      storeSelectedEvent: storeSelectedEvent
+        ? {
+            id: storeSelectedEvent._id || storeSelectedEvent.id,
+            title: storeSelectedEvent.title,
+            date: storeSelectedEvent.date,
+          }
+        : null,
+    });
+
     return storeSelectedBrand;
   };
 
   // Update the date dropdown toggle function
   const toggleDateDropdown = () => {
+    // Check store directly before toggling
+    checkStoreDirectly();
+
     setDateDropdown(!dateDropdown);
+    console.log("[DashboardHeader] Date dropdown toggled:", {
+      uniqueDatesCount: uniqueDates.length,
+      selectedDate: selectedDate ? new Date(selectedDate).toISOString() : null,
+      brandEventsCount: brandEvents.length,
+    });
   };
 
   return (

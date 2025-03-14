@@ -101,8 +101,11 @@ const Dashboard = () => {
   const createCleanBrandCopy = (brand) => {
     // First check if this brand has events
     if (!brand || !brand.events) {
-      // Silent return as is if no events
-      return brand;
+      console.log(
+        "[Dashboard] WARNING: Attempted to clean a brand with no events:",
+        brand?.name
+      );
+      return brand; // Return as is if no events
     }
 
     // Create a clean copy with events properly handled
@@ -112,14 +115,30 @@ const Dashboard = () => {
     if (Array.isArray(brand.events)) {
       // If events is an array, create a new array with the same events
       cleanBrand.events = [...brand.events];
+      console.log(
+        "[Dashboard] Created clean brand copy with",
+        cleanBrand.events.length,
+        "events (array format)"
+      );
     } else if (brand.events && brand.events.items) {
       // If events is an object with items, create a new object with the same structure
       cleanBrand.events = {
         ...brand.events,
         items: [...brand.events.items],
       };
+      console.log(
+        "[Dashboard] Created clean brand copy with",
+        cleanBrand.events.items.length,
+        "events (object format)"
+      );
+    } else {
+      // If events is in an unknown format, log it
+      console.log("[Dashboard] Unknown events format in brand:", {
+        eventsType: typeof brand.events,
+        eventsKeys: Object.keys(brand.events),
+      });
     }
-    // Return the clean copy
+
     return cleanBrand;
   };
 
@@ -127,13 +146,35 @@ const Dashboard = () => {
   const getDirectBrandFromStore = (brandId) => {
     const storeState = store.getState();
     const allBrands = storeState.brand?.allBrands || [];
-    return allBrands.find((b) => b._id === brandId);
+
+    const storeBrand = allBrands.find((b) => b._id === brandId);
+
+    if (storeBrand) {
+      console.log("[Dashboard] Found brand directly in store:", {
+        brandId: storeBrand._id,
+        name: storeBrand.name,
+        eventsCount: Array.isArray(storeBrand.events)
+          ? storeBrand.events.length
+          : storeBrand.events?.items?.length || 0,
+      });
+    } else {
+      console.log(
+        "[Dashboard] Failed to find brand directly in store with ID:",
+        brandId
+      );
+    }
+
+    return storeBrand;
   };
 
   // Refactored effect to ensure proper sequence of setting selected brand, event and date
   useEffect(() => {
     // This effect runs when brands are loaded but no brand is selected
     if (brands && brands.length > 0 && !selectedBrand) {
+      console.log(
+        "[Dashboard] Setting initial brand from Redux (no brand selected)"
+      );
+
       // Get the first brand
       const firstBrand = brands[0];
 
@@ -150,6 +191,12 @@ const Dashboard = () => {
       ) {
         brandEvents = firstBrand.events.items;
       }
+
+      console.log("[Dashboard] First brand has events:", {
+        brandId: firstBrand._id,
+        brandName: firstBrand.name,
+        eventsCount: brandEvents.length,
+      });
 
       // Find the best event to select (next upcoming or most recent past)
       let eventToSelect = null;
@@ -189,13 +236,19 @@ const Dashboard = () => {
 
       // Now set everything in order, but in a single render cycle
       // First set the brand
+      console.log("[Dashboard] Setting selected brand:", firstBrand.name);
       setSelectedBrandWithLogging(firstBrand);
 
       // Then immediately set the event and date if available
       if (eventToSelect) {
+        console.log("[Dashboard] Setting selected event:", eventToSelect.title);
         dispatch(setSelectedEvent(eventToSelect));
 
         if (dateToSelect) {
+          console.log(
+            "[Dashboard] Setting selected date:",
+            dateToSelect.toISOString()
+          );
           dispatch(setSelectedDate(dateToSelect));
         }
       }
@@ -204,13 +257,87 @@ const Dashboard = () => {
 
   // One-time setup effect that runs once when component mounts to ensure we have event data
   useEffect(() => {
-    // This effect intentionally left empty - initial setup is handled elsewhere
+    // DEBUG - log the Redux store directly with full event details
+    const reduxState = store.getState();
+    console.log("[Dashboard] INITIAL RENDER - Redux Store FULL DETAILS:", {
+      brands: reduxState.brand?.allBrands?.map((brand) => ({
+        id: brand._id,
+        name: brand.name,
+        eventsType: brand.events
+          ? Array.isArray(brand.events)
+            ? "array"
+            : "object"
+          : "none",
+        eventsCount: Array.isArray(brand.events)
+          ? brand.events.length
+          : brand.events?.items?.length || 0,
+        hasEvents: !!brand.events,
+        eventsKeys: brand.events ? Object.keys(brand.events) : [],
+      })),
+      selectedBrandId: reduxState.ui?.selectedBrand?._id || null,
+      selectedEventId:
+        reduxState.ui?.selectedEvent?._id ||
+        reduxState.ui?.selectedEvent?.id ||
+        null,
+    });
   }, []);
+
+  // Add a direct access to Redux store for debugging
+  useEffect(() => {
+    // This effect runs to check if there are any disconnects between our local variables and the store
+    if (selectedBrand) {
+      const currentStoreState = store.getState();
+      const storeSelectedBrand = currentStoreState.ui?.selectedBrand;
+
+      console.log("[Dashboard] STORE VS HOOKS COMPARISON:", {
+        // Check if our local hook is the same as the store
+        localSelectedBrandId: selectedBrand._id,
+        storeSelectedBrandId: storeSelectedBrand?._id,
+        sameReference: selectedBrand === storeSelectedBrand,
+
+        // Check events specifically
+        localEventsType: selectedBrand.events
+          ? Array.isArray(selectedBrand.events)
+            ? "array"
+            : "object"
+          : "none",
+        storeEventsType: storeSelectedBrand?.events
+          ? Array.isArray(storeSelectedBrand.events)
+            ? "array"
+            : "object"
+          : "none",
+
+        localEventsCount: Array.isArray(selectedBrand.events)
+          ? selectedBrand.events.length
+          : selectedBrand.events?.items?.length || 0,
+
+        storeEventsCount: Array.isArray(storeSelectedBrand?.events)
+          ? storeSelectedBrand.events.length
+          : storeSelectedBrand?.events?.items?.length || 0,
+      });
+    }
+  }, [selectedBrand, selectedEvent]);
 
   // Update the setSelectedBrandWithLogging function to use the clean copy
   const setSelectedBrandWithLogging = (brand) => {
     // Create a clean copy to avoid reference issues
     const cleanBrand = createCleanBrandCopy(brand);
+
+    console.log("[Dashboard] DISPATCHING setSelectedBrand:", {
+      brandId: cleanBrand._id,
+      brandName: cleanBrand.name,
+      hasEvents: !!cleanBrand.events,
+      eventsType: cleanBrand.events
+        ? Array.isArray(cleanBrand.events)
+          ? "array"
+          : "object"
+        : "none",
+      eventsKeys: cleanBrand.events ? Object.keys(cleanBrand.events) : [],
+      eventsCount: Array.isArray(cleanBrand.events)
+        ? cleanBrand.events.length
+        : cleanBrand.events?.items?.length || 0,
+    });
+
     dispatch(setSelectedBrand(cleanBrand));
   };
 
@@ -227,6 +354,16 @@ const Dashboard = () => {
           Array.isArray(selectedBrand.events.items) &&
           selectedBrand.events.items.length > 0);
 
+      console.log("[Dashboard] Selected brand events validation:", {
+        brandId: selectedBrand._id,
+        brandName: selectedBrand.name,
+        hasValidEvents,
+        eventsFormat: Array.isArray(selectedBrand.events) ? "array" : "object",
+        eventsCount: Array.isArray(selectedBrand.events)
+          ? selectedBrand.events.length
+          : selectedBrand.events?.items?.length || 0,
+      });
+
       // If there are no valid events, try to get a fresh copy directly from the store
       if (!hasValidEvents) {
         const freshBrand = getDirectBrandFromStore(selectedBrand._id);
@@ -238,10 +375,17 @@ const Dashboard = () => {
             (freshBrand.events?.items && freshBrand.events.items.length > 0);
 
           if (freshHasEvents) {
+            console.log(
+              "[Dashboard] Fresh brand from store HAS events. Updating selected brand..."
+            );
             // Create a clean copy and update Redux
             const cleanFreshBrand = createCleanBrandCopy(freshBrand);
             setSelectedBrandWithLogging(cleanFreshBrand);
             return; // Exit early since we're updating the brand
+          } else {
+            console.log(
+              "[Dashboard] Fresh brand from store still has no events"
+            );
           }
         }
       }
@@ -279,6 +423,10 @@ const Dashboard = () => {
 
           // CRITICAL: Set these immediately one after another
           if (eventToSelect) {
+            console.log(
+              "[Dashboard] Auto-selecting event:",
+              eventToSelect.title
+            );
             dispatch(setSelectedEvent(eventToSelect));
             if (eventToSelect.date) {
               dispatch(setSelectedDate(new Date(eventToSelect.date)));
