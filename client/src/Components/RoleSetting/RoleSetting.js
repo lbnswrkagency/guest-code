@@ -198,7 +198,7 @@ const RoleSetting = ({ brand, onClose }) => {
   };
 
   const handleDeleteClick = (role) => {
-    if (role.name === "OWNER") return;
+    if (role.isFounder) return;
     setRoleToDelete(role);
     setShowDeleteConfirm(true);
   };
@@ -275,7 +275,7 @@ const RoleSetting = ({ brand, onClose }) => {
   };
 
   const handleStartEdit = (role) => {
-    if (role.name === "OWNER") return;
+    if (role.isFounder) return;
     setEditingRole(role);
 
     // Initialize role with basic permissions structure
@@ -495,11 +495,11 @@ const RoleSetting = ({ brand, onClose }) => {
         {roles.map((role) => (
           <div
             key={role._id}
-            className={`role-item ${role.name === "OWNER" ? "owner" : ""}`}
+            className={`role-item ${role.isFounder ? "owner" : ""}`}
           >
             <div className="role-name">{role.name}</div>
             <div className="role-actions">
-              {role.name === "OWNER" ? (
+              {role.isFounder ? (
                 <motion.span
                   className="action-btn lock"
                   whileHover={{ scale: 1 }}

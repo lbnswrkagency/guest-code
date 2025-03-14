@@ -124,7 +124,6 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
 
   const handleRoleChange = async (e) => {
     const newRole = e.target.value;
-    if (newRole === "OWNER") return;
 
     try {
       const response = await axiosInstance.put(
@@ -230,7 +229,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
               >
                 {roles.length > 0 ? (
                   roles
-                    .filter((role) => role.name !== "OWNER")
+                    .filter((role) => !role.isFounder)
                     .map((role) => (
                       <option key={role._id} value={role.name}>
                         {role.name}

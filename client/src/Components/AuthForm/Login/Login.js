@@ -1,34 +1,13 @@
-import React, { useState, useContext, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import "./Login.scss";
 import AuthContext from "../../../contexts/AuthContext";
 import Navigation from "../../Navigation/Navigation";
 import { useToast } from "../../Toast/ToastContext";
-
-// Debug logging utility
-const debugLog = (area, message, data = null) => {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[Auth:${area}] ${message}`;
-
-  // Enhanced logging with more details
-  if (data) {
-    console.log(logMessage, { ...data, timestamp });
-
-    // Log to server if in development
-    if (process.env.NODE_ENV === "development") {
-      try {
-        fetch("/api/debug-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ area, message, data, timestamp }),
-        }).catch(() => {});
-      } catch (e) {}
-    }
-  } else {
-    console.log(logMessage, { timestamp });
-  }
-};
+import { useDispatch } from "react-redux";
+import { setUser, setLoading, setError } from "../../../redux/userSlice";
+import Maintenance from "../../Maintenance/Maintenance";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -39,6 +18,7 @@ function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const toast = useToast();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -48,84 +28,33 @@ function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    debugLog("Login", "Starting login process", {
-      email: formData.email,
-      hasPassword: !!formData.password,
-      passwordLength: formData.password?.length,
-      browserInfo: {
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        platform: navigator.platform,
-        cookiesEnabled: navigator.cookieEnabled,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    // Set Redux loading state
+    dispatch(setLoading());
 
     try {
-      debugLog("Login", "Calling AuthContext login function");
+      // Perform the login
+      const userData = await login(formData);
 
-      // Track request timing
-      const startTime = performance.now();
-      await login(formData);
-      const endTime = performance.now();
+      // Ensure we're getting the full user object with all properties
+      const fullUserData = userData?.user || userData;
 
-      debugLog("Login", "Login successful", {
-        email: formData.email,
-        responseTime: `${Math.round(endTime - startTime)}ms`,
-        hasToken: !!localStorage.getItem("token"),
-        tokenLength: localStorage.getItem("token")?.length,
-        availableKeys: Object.keys(localStorage),
-        cookies: document.cookie
-          .split(";")
-          .map((c) => c.trim())
-          .filter((c) => c),
-      });
+      // Set complete user data in Redux
+      dispatch(setUser(fullUserData));
 
       toast.showSuccess("Welcome back!");
     } catch (error) {
-      debugLog("Error", "Login failed", {
-        email: formData.email,
-        errorType: error.name,
-        errorMessage: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          withCredentials: error.config?.withCredentials,
-          timeout: error.config?.timeout,
-        },
-        stack: error.stack,
-      });
-
-      // Additional logging for network errors
-      if (error.message === "Network Error") {
-        debugLog("Network", "Network error details", {
-          online: navigator.onLine,
-          readyState: document.readyState,
-          connectionType: navigator.connection
-            ? navigator.connection.effectiveType
-            : "unknown",
-        });
-      }
+      // Set error in Redux
+      dispatch(setError(error.message || "Login failed"));
 
       const errorMessage =
         error.response?.data?.message || "Login failed. Please try again.";
       toast.showError(errorMessage);
     } finally {
-      debugLog("Login", "Login attempt completed", {
-        email: formData.email,
-        success: !!localStorage.getItem("token"),
-        timestamp: new Date().toISOString(),
-      });
       setIsLoading(false);
     }
   };
 
-  return (
+  const loginContent = (
     <div className="login">
       <Navigation />
 
@@ -192,6 +121,9 @@ function Login() {
       </motion.div>
     </div>
   );
+
+  // Wrap the entire login content with the Maintenance component
+  return <Maintenance>{loginContent}</Maintenance>;
 }
 
 export default Login;

@@ -312,3 +312,24 @@
     }
   }
 }
+
+// Add styling for the role badge
+.role-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+
+  &.founder {
+    background-color: rgba(255, 200, 7, 0.15);
+    color: #ffc807;
+    border: 1px solid rgba(255, 200, 7, 0.25);
+
+    svg {
+      font-size: 1rem;
+    }
+  }
+}

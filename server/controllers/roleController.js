@@ -1,6 +1,7 @@
 const Role = require("../models/roleModel");
 const Brand = require("../models/brandModel");
 const CodeSetting = require("../models/codeSettingsModel");
+const mongoose = require("mongoose");
 
 // Create default roles for a brand
 exports.createDefaultRoles = async (brandId, userId) => {
@@ -51,12 +52,13 @@ exports.createDefaultRoles = async (brandId, userId) => {
       },
     };
 
-    // Create OWNER role
-    const ownerRole = new Role({
-      name: "OWNER",
+    // Create Founder role (renamed from OWNER/FOUNDER)
+    const founderRole = new Role({
+      name: "Founder",
       brandId,
       createdBy: userId,
       isDefault: true,
+      isFounder: true,
       permissions: {
         events: {
           create: true,
@@ -78,12 +80,13 @@ exports.createDefaultRoles = async (brandId, userId) => {
       },
     });
 
-    // Create MEMBER role
+    // Create Member role
     const memberRole = new Role({
-      name: "MEMBER",
+      name: "Member",
       brandId,
       createdBy: userId,
       isDefault: true,
+      isFounder: false,
       permissions: {
         events: {
           create: false,
@@ -105,8 +108,8 @@ exports.createDefaultRoles = async (brandId, userId) => {
       },
     });
 
-    await Promise.all([ownerRole.save(), memberRole.save()]);
-    return [ownerRole, memberRole];
+    await Promise.all([founderRole.save(), memberRole.save()]);
+    return [founderRole, memberRole];
   } catch (error) {
     console.error("[RoleController:createDefaultRoles] Error:", error);
     throw error;
@@ -182,15 +185,15 @@ exports.getUserRolesForBrand = async (req, res) => {
     // Check if user is the owner
     const isOwner = brand.owner.toString() === userId.toString();
     if (isOwner) {
-      // Add OWNER role
-      const ownerRole = await Role.findOne({
+      // Add Founder role
+      const founderRole = await Role.findOne({
         brandId,
-        name: "OWNER",
+        isFounder: true,
         isDefault: true,
       });
 
-      if (ownerRole) {
-        userRoles.push(ownerRole);
+      if (founderRole) {
+        userRoles.push(founderRole);
       }
     }
 
@@ -202,32 +205,42 @@ exports.getUserRolesForBrand = async (req, res) => {
       );
 
     if (isMember) {
-      // Find team member's role
+      // Find team member's role - now using role ObjectId
       const teamMember = brand.team.find(
         (member) => member.user && member.user.toString() === userId.toString()
       );
 
       if (teamMember && teamMember.role) {
-        // Find the role object for this role name
+        // If role is stored as an ObjectId, we need to fetch it
+        if (mongoose.Types.ObjectId.isValid(teamMember.role)) {
+          const memberRole = await Role.findById(teamMember.role);
+          if (memberRole) {
+            userRoles.push(memberRole);
+          }
+        } else {
+          // Backward compatibility for existing data where role might be a string
+          const memberRole = await Role.findOne({
+            brandId,
+            name: teamMember.role,
+          });
+
+          if (memberRole) {
+            userRoles.push(memberRole);
+          }
+        }
+      }
+
+      // Always add Member role if not already added
+      if (!userRoles.some((role) => role.name === "Member")) {
         const memberRole = await Role.findOne({
           brandId,
-          name: teamMember.role,
+          name: "Member",
+          isDefault: true,
         });
 
         if (memberRole) {
           userRoles.push(memberRole);
         }
-      }
-
-      // Always add MEMBER role
-      const memberRole = await Role.findOne({
-        brandId,
-        name: "MEMBER",
-        isDefault: true,
-      });
-
-      if (memberRole) {
-        userRoles.push(memberRole);
       }
     }
 
@@ -261,11 +274,11 @@ exports.createRole = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Prevent creating another OWNER role
-    if (name.toUpperCase() === "OWNER") {
+    // Check if trying to create a Founder role by checking the name
+    if (name.toUpperCase() === "FOUNDER") {
       return res
         .status(403)
-        .json({ message: "Cannot create another OWNER role" });
+        .json({ message: "Cannot create another Founder role" });
     }
 
     // Process code permissions
@@ -278,6 +291,7 @@ exports.createRole = async (req, res) => {
       permissions,
       brandId,
       createdBy: req.user._id,
+      isFounder: false, // Explicitly set to false for new roles
     });
 
     const savedRole = await role.save();
@@ -315,14 +329,14 @@ exports.updateRole = async (req, res) => {
       `[RoleController:updateRole] Found role: ${role.name}, brandId: ${role.brandId}`
     );
 
-    // Prevent updating OWNER role
-    if (role.name === "OWNER") {
-      return res.status(403).json({ message: "Cannot modify OWNER role" });
+    // Prevent updating Founder role
+    if (role.isFounder) {
+      return res.status(403).json({ message: "Cannot modify Founder role" });
     }
 
-    // Prevent changing role name to OWNER
-    if (name && name.toUpperCase() === "OWNER") {
-      return res.status(403).json({ message: "Cannot rename role to OWNER" });
+    // Prevent changing role name to Founder
+    if (name && name.toUpperCase() === "FOUNDER") {
+      return res.status(403).json({ message: "Cannot rename role to Founder" });
     }
 
     // Store the old role name for later use if we're changing the name
@@ -346,6 +360,7 @@ exports.updateRole = async (req, res) => {
         name: newRoleName, // Store all role names in uppercase
         permissions,
         updatedBy: req.user._id,
+        // Don't allow changing isFounder flag
       },
       { new: true }
     );
@@ -452,9 +467,9 @@ exports.deleteRole = async (req, res) => {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    // Prevent deleting OWNER role
-    if (role.name === "OWNER") {
-      return res.status(403).json({ message: "Cannot delete OWNER role" });
+    // Prevent deleting Founder role
+    if (role.isFounder) {
+      return res.status(403).json({ message: "Cannot delete Founder role" });
     }
 
     // Check if role is assigned to any team members
@@ -464,7 +479,7 @@ exports.deleteRole = async (req, res) => {
     }
 
     const isRoleAssigned = brand.team.some(
-      (member) => member.role === role.name
+      (member) => member.role.toString() === role._id.toString()
     );
     if (isRoleAssigned) {
       return res.status(400).json({
