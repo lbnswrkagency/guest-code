@@ -15,7 +15,6 @@ import {
   RiVipCrownLine,
   RiLinkM,
 } from "react-icons/ri";
-import axiosInstance from "../../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -27,39 +26,43 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const [eventData, setEventData] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Log props for debugging
-
-  // Effect to fetch event data when brand or date changes
+  // Effect to use event data from Redux props
   useEffect(() => {
-    const fetchEventData = async () => {
-      // If we already have a selected event, use it directly
-      if (selectedEvent) {
-        setEventData(selectedEvent);
-        setIsLoading(false);
-        return;
-      }
+    // If we have a selected event, use it directly
+    if (selectedEvent) {
+      setEventData(selectedEvent);
+      preloadEventImage(selectedEvent);
+      setIsLoading(false);
+      return;
+    }
 
-      if (!selectedBrand || !selectedDate) {
-        setIsLoading(false);
-        return;
-      }
+    // If no event is selected but we have a brand and date, try to find a matching event
+    if (selectedBrand && selectedDate) {
+      setIsLoading(true);
+      setError(null);
 
       try {
-        setIsLoading(true);
-        setError(null);
-
-        // Format date for API
+        // Format date for comparison
         const formattedDate = new Date(selectedDate)
           .toISOString()
           .split("T")[0];
 
-        // This endpoint should return events for a specific brand on a specific date
-        const response = await axiosInstance.get(
-          `/events/brand/${selectedBrand._id}`
-        );
+        // Get events from the brand
+        let brandEvents = [];
 
-        // Filter events for the selected date
-        const eventsForDate = response.data.filter((event) => {
+        // Handle both possible event structures
+        if (Array.isArray(selectedBrand.events)) {
+          brandEvents = selectedBrand.events;
+        } else if (
+          selectedBrand.events &&
+          Array.isArray(selectedBrand.events.items)
+        ) {
+          brandEvents = selectedBrand.events.items;
+        }
+
+        // Find events for the selected date
+        const eventsForDate = brandEvents.filter((event) => {
+          if (!event.date) return false;
           // Compare dates by converting to YYYY-MM-DD strings
           const eventDate = new Date(event.date).toISOString().split("T")[0];
           return eventDate === formattedDate;
@@ -69,25 +72,26 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
           // Use the first event for this date
           const event = eventsForDate[0];
           setEventData(event);
-
-          // Preload event image
           preloadEventImage(event);
         } else {
           setEventData(null);
         }
       } catch (err) {
-        setError("Failed to load event data. Please try again.");
+        console.error("Error processing event data:", err);
+        setError("Failed to process event data. Please try again.");
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchEventData();
+    } else {
+      // No brand, date, or event selected
+      setIsLoading(false);
+      setEventData(null);
+    }
   }, [selectedBrand, selectedDate, selectedEvent]);
 
   // Helper function to preload event image
   const preloadEventImage = (event) => {
-    if (!event || !event.flyer) {
+    if (!event) {
       setImageLoaded(false);
       return;
     }
@@ -109,7 +113,14 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
   // Get appropriate flyer image or fallback
   const getEventImage = (event) => {
-    if (!event || !event.flyer) return null;
+    if (!event) return null;
+
+    // Handle case where flyer is a direct string URL
+    if (event.flyer && typeof event.flyer === "string") {
+      return event.flyer;
+    }
+
+    if (!event.flyer) return null;
 
     // Check for portrait image first (best for mobile)
     if (event.flyer.portrait && event.flyer.portrait.full) {
@@ -124,6 +135,11 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     // Final fallback to square
     if (event.flyer.square && event.flyer.square.full) {
       return event.flyer.square.full;
+    }
+
+    // Last resort: check for thumbnail
+    if (event.flyer.thumbnail) {
+      return event.flyer.thumbnail;
     }
 
     return null;
@@ -147,14 +163,16 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     setImageLoaded(false);
     setEventData(null);
     setError(null);
-    // This will trigger the useEffect to fetch data again
+    // This will trigger the useEffect to process data again
   };
 
   // Navigate to event profile
   const handleViewEvent = () => {
-    if (eventData && eventData._id) {
+    if (eventData && (eventData._id || eventData.id)) {
       // Create pretty URL for event
-      if (eventData.brand && eventData.date && eventData.title) {
+      const eventId = eventData._id || eventData.id;
+
+      if (selectedBrand && eventData.date && eventData.title) {
         // Format date for URL (MMDDYY)
         const eventDate = new Date(eventData.date);
         const month = String(eventDate.getMonth() + 1).padStart(2, "0");
@@ -162,9 +180,8 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
         const year = String(eventDate.getFullYear()).slice(2);
         const dateSlug = `${month}${day}${year}`;
 
-        // No longer using title slugs in URL
         // Get brand username
-        const brandUsername = eventData.brand.username || "";
+        const brandUsername = selectedBrand.username || "";
 
         // Construct URL based on user authentication status with ultra-simplified format
         const eventPath = user
@@ -174,7 +191,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
         navigate(eventPath);
       } else {
         // Fallback to old format if we don't have all the needed data
-        navigate(`/events/${eventData._id}`);
+        navigate(`/events/${eventId}`);
       }
     }
   };

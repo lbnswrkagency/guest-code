@@ -1,34 +1,37 @@
 // DashboardHeader.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   RiCalendarEventLine,
   RiArrowDownSLine,
   RiMoreLine,
 } from "react-icons/ri";
-import { FaChevronDown, FaCalendarDay } from "react-icons/fa";
-import { format, addDays, subDays } from "date-fns";
+import { format } from "date-fns";
 import "./DashboardHeader.scss";
 import { useSocket } from "../../contexts/SocketContext";
-import { useAuth } from "../../contexts/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { selectAllBrands } from "../../redux/brandSlice";
+import { selectUser } from "../../redux/userSlice";
+import {
+  selectSelectedBrand,
+  selectSelectedEvent,
+  selectSelectedDate,
+  setSelectedBrand,
+  setSelectedEvent,
+  setSelectedDate,
+} from "../../redux/uiSlice";
 import AvatarUpload from "../AvatarUpload/AvatarUpload";
 import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
 import CurrentEvents from "../CurrentEvents/CurrentEvents";
-import axiosInstance from "../../utils/axiosConfig";
 
 const DashboardHeader = ({
   user,
   setUser,
-  selectedBrand,
-  setSelectedBrand,
-  selectedDate,
-  setSelectedDate,
-  selectedEvent,
-  setSelectedEvent,
   userRoles = [], // User roles prop with default empty array
+  isOnline,
 }) => {
+  const dispatch = useDispatch();
   const { isConnected } = useSocket();
-  const { user: authUser } = useAuth();
   const [isCropMode, setIsCropMode] = useState(false);
   const [userRole, setUserRole] = useState("");
 
@@ -36,177 +39,59 @@ const DashboardHeader = ({
   const [brandDropdown, setBrandDropdown] = useState(false);
   const [dateDropdown, setDateDropdown] = useState(false);
   const [showEventsPopup, setShowEventsPopup] = useState(false);
-  const [userBrands, setUserBrands] = useState([]);
-  const [brandEvents, setBrandEvents] = useState([]);
+
+  // Get data from Redux store
+  const reduxUser = useSelector(selectUser);
+  const brands = useSelector(selectAllBrands);
+
+  // Get UI selections from Redux
+  const selectedBrand = useSelector(selectSelectedBrand);
+  const selectedEvent = useSelector(selectSelectedEvent);
+  const selectedDate = useSelector(selectSelectedDate);
+
+  // Stats derived from Redux data
   const [stats, setStats] = useState({
     members: 0,
     brands: 0,
     events: 0,
   });
 
-  // Fetch user brands
+  // Update stats when Redux data changes
   useEffect(() => {
-    const fetchBrands = async () => {
-      try {
-        const response = await axiosInstance.get("/brands");
-        if (response.data && response.data.length > 0) {
-          setUserBrands(response.data);
-          // Update brands count in stats
-          setStats((prevStats) => ({
-            ...prevStats,
-            brands: response.data.length,
-          }));
-          // Set the first brand as selected if none is selected
-          if (!selectedBrand) {
-            setSelectedBrand(response.data[0]);
-          }
+    // Count the total number of brands
+    const brandsCount = brands?.length || 0;
+
+    // Count the total number of events across all brands
+    let eventsCount = 0;
+    if (brands && brands.length > 0) {
+      brands.forEach((brand) => {
+        // Check both possible structures for events
+        if (Array.isArray(brand.events)) {
+          eventsCount += brand.events.length;
+        } else if (brand.events && Array.isArray(brand.events.items)) {
+          eventsCount += brand.events.items.length;
         }
-      } catch (error) {
-        // Error handling without console log
-      }
-    };
+      });
+    }
 
-    fetchBrands();
-  }, []);
-
-  // Fetch events count
-  useEffect(() => {
-    const fetchEventsCount = async () => {
-      try {
-        // Fetch all events for the user
-        const response = await axiosInstance.get("/events");
-        if (response.data) {
-          // Update events count in stats
-          setStats((prevStats) => ({
-            ...prevStats,
-            events: response.data.length,
-          }));
-        }
-      } catch (error) {
-        // Error handling without console log
-      }
-    };
-
-    fetchEventsCount();
-  }, []);
-
-  // Fetch team members count
-  useEffect(() => {
-    const fetchTeamMembersCount = async () => {
-      if (!selectedBrand) return;
-
-      try {
-        // Fetch team members for the selected brand
-        const response = await axiosInstance.get(
-          `/brands/${selectedBrand._id}/team`
-        );
-        if (response.data) {
-          // Update members count in stats
-          setStats((prevStats) => ({
-            ...prevStats,
-            members: response.data.length || 0,
-          }));
-        }
-      } catch (error) {
-        // Error handling without console log
-      }
-    };
-
-    fetchTeamMembersCount();
-  }, [selectedBrand]);
+    // Set the stats
+    setStats({
+      // Get team size from various possible properties
+      members: selectedBrand?.teamSize || selectedBrand?.memberCount || 0,
+      brands: brandsCount,
+      events: eventsCount,
+    });
+  }, [brands, selectedBrand]);
 
   // Determine user's role in the selected brand
   useEffect(() => {
     if (selectedBrand && user?._id) {
-      // Filter roles for this brand
-      const brandRoles = userRoles.filter(
-        (role) =>
-          role.brandId === selectedBrand._id ||
-          (typeof role.brandId === "object" &&
-            role.brandId._id === selectedBrand._id)
-      );
-
-      // Check if user is the brand owner
-      if (
-        selectedBrand.owner === user._id ||
-        (typeof selectedBrand.owner === "object" &&
-          selectedBrand.owner._id === user._id)
-      ) {
-        setUserRole("Owner");
-        return;
-      }
-
-      // Check if user is a team member
-      if (selectedBrand.team && Array.isArray(selectedBrand.team)) {
-        const teamMember = selectedBrand.team.find(
-          (member) =>
-            member.user === user._id ||
-            (typeof member.user === "object" && member.user._id === user._id)
-        );
-
-        if (teamMember) {
-          // Format role name: first letter uppercase, rest lowercase
-          let formattedRole = "Member";
-
-          if (teamMember.role) {
-            // Handle case where role might be all uppercase or mixed case
-            formattedRole =
-              teamMember.role.charAt(0).toUpperCase() +
-              teamMember.role.slice(1).toLowerCase();
-          }
-
-          setUserRole(formattedRole);
-          return;
-        }
-      }
-
-      // Default role if no specific role found
-      setUserRole("Member");
+      const roleName = selectedBrand.roleName || "Member";
+      setUserRole(roleName);
     } else {
       setUserRole(""); // Reset if no brand selected
     }
-  }, [selectedBrand, user, userRoles]);
-
-  // Fetch events for selected brand
-  useEffect(() => {
-    const fetchBrandEvents = async () => {
-      if (!selectedBrand) return;
-
-      try {
-        // Use the same endpoint as in Events.js
-        const response = await axiosInstance.get(
-          `/events/brand/${selectedBrand._id}`
-        );
-
-        if (response.data) {
-          // Sort events by date
-          const sortedEvents = response.data.sort(
-            (a, b) => new Date(a.date) - new Date(b.date)
-          );
-
-          setBrandEvents(sortedEvents);
-
-          // Set the first event date as selected if available and no date is selected
-          if (sortedEvents.length > 0) {
-            if (!selectedDate) {
-              setSelectedDate(new Date(sortedEvents[0].date));
-            }
-
-            // If no event is selected, set the first event as the selected event
-            if (!selectedEvent) {
-              setSelectedEvent(sortedEvents[0]);
-            }
-          }
-        }
-      } catch (error) {
-        setBrandEvents([]);
-      }
-    };
-
-    if (selectedBrand?._id) {
-      fetchBrandEvents();
-    }
-  }, [selectedBrand]);
+  }, [selectedBrand, user]);
 
   const formatStatLabel = (value, singular, plural) => {
     return value === 1 ? singular : plural;
@@ -230,30 +115,41 @@ const DashboardHeader = ({
   const handleBrandSelect = (brand) => {
     // Only update if a different brand is selected
     if (!selectedBrand || brand._id !== selectedBrand._id) {
-      setSelectedBrand(brand);
-      // Reset selected event when changing brands
-      setSelectedEvent(null);
-      // Reset selected date when changing brands
-      setSelectedDate(null);
+      dispatch(setSelectedBrand(brand));
     }
 
     setBrandDropdown(false);
   };
 
   const handleDateSelect = (date) => {
-    // Find the event that corresponds to this date
-    const selectedDate = new Date(date);
-    const matchingEvent = brandEvents.find((event) => {
-      const eventDate = new Date(event.date);
-      return eventDate.toDateString() === selectedDate.toDateString();
-    });
-
     // Set the selected date
-    setSelectedDate(new Date(date));
+    dispatch(setSelectedDate(new Date(date)));
 
-    // If we found a matching event, set it as the selected event
-    if (matchingEvent) {
-      setSelectedEvent(matchingEvent);
+    // Find the event that corresponds to this date
+    if (selectedBrand) {
+      const selectedDate = new Date(date);
+      let brandEvents = [];
+
+      // Handle both possible event structures
+      if (Array.isArray(selectedBrand.events)) {
+        brandEvents = selectedBrand.events;
+      } else if (
+        selectedBrand.events &&
+        Array.isArray(selectedBrand.events.items)
+      ) {
+        brandEvents = selectedBrand.events.items;
+      }
+
+      const matchingEvent = brandEvents.find((event) => {
+        if (!event.date) return false;
+        const eventDate = new Date(event.date);
+        return eventDate.toDateString() === selectedDate.toDateString();
+      });
+
+      // If we found a matching event, set it as the selected event
+      if (matchingEvent) {
+        dispatch(setSelectedEvent(matchingEvent));
+      }
     }
 
     setDateDropdown(false);
@@ -261,8 +157,8 @@ const DashboardHeader = ({
 
   const handleEventSelect = (event) => {
     // Handle event selection - navigate to event page or update state
-    setSelectedDate(new Date(event.date));
-    setSelectedEvent(event); // Set the selected event
+    dispatch(setSelectedDate(new Date(event.date)));
+    dispatch(setSelectedEvent(event)); // Set the selected event
     setShowEventsPopup(false);
   };
 
@@ -279,6 +175,24 @@ const DashboardHeader = ({
 
   // Group events by date to avoid duplicates
   const getUniqueDates = () => {
+    if (!selectedBrand) {
+      return [];
+    }
+
+    let brandEvents = [];
+
+    // Handle both possible event structures
+    if (Array.isArray(selectedBrand.events)) {
+      brandEvents = selectedBrand.events;
+    } else if (
+      selectedBrand.events &&
+      Array.isArray(selectedBrand.events.items)
+    ) {
+      brandEvents = selectedBrand.events.items;
+    } else {
+      return [];
+    }
+
     const uniqueDates = {};
 
     brandEvents.forEach((event) => {
@@ -338,13 +252,6 @@ const DashboardHeader = ({
                 <span className="username">@{user.username}</span>
               </div>
               <div className="user-stats">
-                {/* 
-                <div className="stat-item">
-                  <span className="stat-value">{stats.members}</span>{" "}
-                  {formatStatLabel(stats.members, "Member", "Members")}
-                </div>
-                <div className="stat-divider">·</div>
-                */}
                 <div className="stat-item">
                   <span className="stat-value">{stats.brands}</span>{" "}
                   {formatStatLabel(stats.brands, "Brand", "Brands")}
@@ -396,28 +303,31 @@ const DashboardHeader = ({
 
           {brandDropdown && (
             <div className="brand-options">
-              {userBrands.map((brand) => (
-                <div
-                  key={brand._id}
-                  className={`brand-option ${
-                    selectedBrand && selectedBrand._id === brand._id
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() => handleBrandSelect(brand)}
-                >
-                  {brand.logo ? (
-                    <img
-                      src={brand.logo.thumbnail}
-                      alt={brand.name}
-                      className="brand-logo"
-                    />
-                  ) : (
-                    <div className="brand-initial">{brand.name.charAt(0)}</div>
-                  )}
-                  <span>{brand.name}</span>
-                </div>
-              ))}
+              {brands &&
+                brands.map((brand) => (
+                  <div
+                    key={brand._id}
+                    className={`brand-option ${
+                      selectedBrand && selectedBrand._id === brand._id
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleBrandSelect(brand)}
+                  >
+                    {brand.logo ? (
+                      <img
+                        src={brand.logo.thumbnail}
+                        alt={brand.name}
+                        className="brand-logo"
+                      />
+                    ) : (
+                      <div className="brand-initial">
+                        {brand.name.charAt(0)}
+                      </div>
+                    )}
+                    <span>{brand.name}</span>
+                  </div>
+                ))}
             </div>
           )}
         </div>

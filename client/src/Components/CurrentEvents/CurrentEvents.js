@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaCalendarAlt, FaMapMarkerAlt, FaClock } from "react-icons/fa";
-import axiosInstance from "../../utils/axiosConfig";
 import "./CurrentEvents.scss";
 
 const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
@@ -10,22 +9,33 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
 
   useEffect(() => {
     if (isOpen && selectedBrand) {
-      fetchEvents();
+      loadEvents();
     }
   }, [isOpen, selectedBrand]);
 
-  const fetchEvents = async () => {
+  const loadEvents = () => {
     if (!selectedBrand) return;
 
+    // Brief loading state for UI feedback
     setLoading(true);
-    try {
-      const response = await axiosInstance.get(
-        `/events/brand/${selectedBrand._id}`
-      );
 
-      if (response.data) {
+    try {
+      // Get events from the selectedBrand directly
+      let brandEvents = [];
+
+      // Handle both possible event structures
+      if (Array.isArray(selectedBrand.events)) {
+        brandEvents = selectedBrand.events;
+      } else if (
+        selectedBrand.events &&
+        Array.isArray(selectedBrand.events.items)
+      ) {
+        brandEvents = selectedBrand.events.items;
+      }
+
+      if (brandEvents.length > 0) {
         // Sort events by date (closest to today first)
-        const sortedEvents = response.data.sort((a, b) => {
+        const sortedEvents = [...brandEvents].sort((a, b) => {
           return new Date(a.date) - new Date(b.date);
         });
 
@@ -34,10 +44,13 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
         setEvents([]);
       }
     } catch (error) {
-      console.error("Error fetching events:", error);
+      console.error("Error processing events:", error);
       setEvents([]);
     } finally {
-      setLoading(false);
+      // End loading state
+      setTimeout(() => {
+        setLoading(false);
+      }, 300); // Short timeout for UI smoothness
     }
   };
 
@@ -72,6 +85,9 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
       event.flyer.landscape.thumbnail
     ) {
       return event.flyer.landscape.thumbnail;
+    } else if (event.flyer && typeof event.flyer === "string") {
+      // Handle case where flyer might be a direct URL string
+      return event.flyer;
     }
     return null;
   };
@@ -91,27 +107,6 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
       now.getMonth() === eventDate.getMonth() &&
       now.getFullYear() === eventDate.getFullYear()
     );
-  };
-
-  // Group events by date for better organization
-  const groupEventsByDate = () => {
-    const groupedEvents = {};
-
-    events.forEach((event) => {
-      const dateStr = new Date(event.date).toDateString();
-      if (!groupedEvents[dateStr]) {
-        groupedEvents[dateStr] = [];
-      }
-      groupedEvents[dateStr].push(event);
-    });
-
-    // Convert to array sorted by date
-    return Object.entries(groupedEvents)
-      .map(([dateStr, events]) => ({
-        date: dateStr,
-        events,
-      }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
   };
 
   return (
@@ -147,7 +142,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
                 <div className="events-list">
                   {events.map((event) => (
                     <div
-                      key={event._id}
+                      key={event._id || event.id}
                       className={`event-item ${
                         isEventLive(event) ? "live" : ""
                       }`}

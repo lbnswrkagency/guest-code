@@ -56,15 +56,7 @@ const getCodeSettingsByBrand = async (req, res) => {
     });
 
     console.log(
-      `[CodeSettings] Found ${codeSettings.length} code settings for brand ${brandId} with fields:`,
-      codeSettings.map((cs) => ({
-        _id: cs._id,
-        name: cs.name,
-        type: cs.type,
-        maxPax: cs.maxPax,
-        condition: cs.condition,
-        eventId: cs.eventId,
-      }))
+      `[CodeSettings] Found ${codeSettings.length} code settings for brand ${brandId}`
     );
 
     // Add the unlimited field to each code setting before sending

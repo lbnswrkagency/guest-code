@@ -102,19 +102,114 @@ exports.getAllBrands = async (req, res) => {
       $or: [{ owner: req.user._id }, { "team.user": req.user._id }],
     });
 
-    // Calculate and add memberCount for each brand
-    const brandsWithMemberCount = brands.map((brand) => {
+    // Get all founder roles for brands where user is the owner
+    const ownerBrandIds = brands
+      .filter((brand) => brand.owner.toString() === req.user._id.toString())
+      .map((brand) => brand._id);
+
+    // Find founder roles for these brands if there are any owner brands
+    let founderRoles = {};
+    if (ownerBrandIds.length > 0) {
+      const roles = await Role.find({
+        brandId: { $in: ownerBrandIds },
+        isFounder: true,
+      });
+
+      // Create a map of brandId -> founderRole (full object)
+      founderRoles = roles.reduce((acc, role) => {
+        acc[role.brandId.toString()] = role;
+        return acc;
+      }, {});
+    }
+
+    // Fetch all roles for team members
+    const teamBrandIds = brands
+      .filter((brand) =>
+        brand.team.some(
+          (member) => member.user.toString() === req.user._id.toString()
+        )
+      )
+      .map((brand) => brand._id);
+
+    // Create a map of brandId_userId -> roleObject
+    const memberRolesMap = {};
+    if (teamBrandIds.length > 0) {
+      // First get all role IDs from brands' team members
+      const roleIds = [];
+      brands.forEach((brand) => {
+        const teamMember = brand.team.find(
+          (member) => member.user.toString() === req.user._id.toString()
+        );
+        if (teamMember && teamMember.role) {
+          roleIds.push(teamMember.role);
+        }
+      });
+
+      // Fetch all roles at once
+      if (roleIds.length > 0) {
+        const memberRoles = await Role.find({ _id: { $in: roleIds } });
+        memberRoles.forEach((role) => {
+          memberRolesMap[role._id.toString()] = role;
+        });
+      }
+    }
+
+    // Calculate and add memberCount and role information for each brand
+    const brandsWithExtendedInfo = brands.map((brand) => {
       const brandObj = brand.toObject();
 
       // Calculate member count (team members + owner)
       const teamMemberCount = brand.team ? brand.team.length : 0;
       brandObj.memberCount = teamMemberCount + 1; // +1 for the owner
 
+      // Determine if this user is the owner
+      const isOwner = brand.owner.toString() === req.user._id.toString();
+
+      // Find the user's role in this brand's team
+      if (!isOwner && brand.team && brand.team.length > 0) {
+        const teamMember = brand.team.find(
+          (member) => member.user.toString() === req.user._id.toString()
+        );
+
+        if (teamMember && teamMember.role) {
+          // Get role ID
+          const roleId = teamMember.role.toString();
+
+          // Add the role ID to the brand object
+          brandObj.roleId = roleId;
+
+          // Add the full role object if available
+          if (memberRolesMap[roleId]) {
+            brandObj.role = memberRolesMap[roleId];
+          }
+        }
+      } else if (isOwner) {
+        // For owners, use the Founder role ID if we found it
+        const founderRole = founderRoles[brand._id.toString()];
+        if (founderRole) {
+          brandObj.roleId = founderRole._id;
+          brandObj.role = founderRole; // Include full role object
+        }
+        brandObj.isOwner = true;
+      }
+
       return brandObj;
     });
 
-    res.status(200).json(brandsWithMemberCount);
+    console.log(
+      "[BrandController:getAllBrands] Returning brands with role info:",
+      brandsWithExtendedInfo.map((b) => ({
+        id: b._id,
+        name: b.name,
+        roleId: b.roleId || "None",
+        roleName: b.role?.name || "Unknown",
+        isOwner: b.isOwner || false,
+      }))
+    );
+
+    res.status(200).json(brandsWithExtendedInfo);
   } catch (error) {
+    console.error("[BrandController:getAllBrands] Error:", error);
     res.status(500).json({
       message: "Error fetching brands",
       error: error.message,

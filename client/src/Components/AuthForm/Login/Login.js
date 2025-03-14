@@ -7,7 +7,10 @@ import Navigation from "../../Navigation/Navigation";
 import { useToast } from "../../Toast/ToastContext";
 import { useDispatch } from "react-redux";
 import { setUser, setLoading, setError } from "../../../redux/userSlice";
+import { addEventsToBrand } from "../../../redux/brandSlice";
 import Maintenance from "../../Maintenance/Maintenance";
+import axiosInstance from "../../../utils/axiosConfig";
+import { addRolesForBrand } from "../../../redux/permissionsSlice";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -22,6 +25,122 @@ function Login() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Helper function to fetch roles for a brand
+  const fetchRolesForBrand = async (brandId) => {
+    try {
+      const response = await axiosInstance.get(
+        `/roles/brands/${brandId}/roles`
+      );
+      if (response.data && Array.isArray(response.data)) {
+        // Store roles for this brand in Redux
+        dispatch(
+          addRolesForBrand({
+            brandId,
+            roles: response.data,
+          })
+        );
+
+        return response.data;
+      }
+    } catch (error) {
+      console.error(`Error fetching roles for brand ${brandId}:`, error);
+    }
+    return [];
+  };
+
+  // Helper function to fetch events for a brand
+  const fetchEventsForBrand = async (brandId) => {
+    try {
+      console.log(`[Login] Fetching events for brand ${brandId}...`);
+
+      // Step 1: Fetch parent events first
+      const url = `/events/brand/${brandId}`;
+      console.log(`[Login] Requesting parent events URL: ${url}`);
+
+      const response = await axiosInstance.get(url);
+
+      console.log(`[Login] Parent events API response for ${brandId}:`, {
+        status: response.status,
+        dataCount: Array.isArray(response.data)
+          ? response.data.length
+          : "Not an array",
+      });
+
+      if (response.data && Array.isArray(response.data)) {
+        // Step 2: For each parent event that is weekly, fetch its child events
+        const parentEvents = [...response.data];
+        const allEvents = [...parentEvents];
+
+        // Find weekly events that might have children
+        const weeklyEvents = parentEvents.filter((event) => event.isWeekly);
+
+        if (weeklyEvents.length > 0) {
+          console.log(
+            `[Login] Found ${weeklyEvents.length} weekly events, fetching children`
+          );
+
+          // Fetch children for each weekly parent event
+          for (const weeklyEvent of weeklyEvents) {
+            try {
+              const childUrl = `/events/children/${weeklyEvent._id}`;
+              console.log(
+                `[Login] Requesting child events for ${weeklyEvent.title}: ${childUrl}`
+              );
+
+              const childResponse = await axiosInstance.get(childUrl);
+
+              if (childResponse.data && Array.isArray(childResponse.data)) {
+                console.log(
+                  `[Login] Found ${childResponse.data.length} child events for ${weeklyEvent.title}`
+                );
+
+                // Add children to our events array
+                allEvents.push(...childResponse.data);
+              }
+            } catch (childError) {
+              console.error(
+                `[Login] Error fetching child events for event ${weeklyEvent._id}:`,
+                childError.message
+              );
+            }
+          }
+        }
+
+        // Now dispatch all events (parents and children) to Redux
+        dispatch(
+          addEventsToBrand({
+            brandId,
+            events: allEvents,
+          })
+        );
+
+        console.log(
+          `[Login] Fetched and stored ${allEvents.length} events (${
+            parentEvents.length
+          } parents + ${
+            allEvents.length - parentEvents.length
+          } children) for brand ${brandId}`
+        );
+
+        return allEvents;
+      } else {
+        console.log(
+          `[Login] Unexpected response format for brand ${brandId}:`,
+          typeof response.data
+        );
+        return [];
+      }
+    } catch (error) {
+      console.error(
+        `[Login] Error fetching events for brand ${brandId}:`,
+        error.message,
+        error.response?.status,
+        error.response?.data
+      );
+    }
+    return [];
   };
 
   const handleSubmit = async (e) => {
@@ -40,6 +159,24 @@ function Login() {
 
       // Set complete user data in Redux
       dispatch(setUser(fullUserData));
+
+      // Now fetch user's roles if user has any brands
+      if (fullUserData.brands && fullUserData.brands.length > 0) {
+        console.log("[Login] Found brands, fetching roles for each brand");
+
+        // Fetch roles for each brand
+        for (const brand of fullUserData.brands) {
+          if (brand._id) {
+            await fetchRolesForBrand(brand._id);
+            console.log(
+              `[Login] Fetched and stored roles for brand ${brand.name}`
+            );
+
+            // Also fetch events for each brand
+            await fetchEventsForBrand(brand._id);
+          }
+        }
+      }
 
       toast.showSuccess("Welcome back!");
     } catch (error) {
