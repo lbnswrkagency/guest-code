@@ -8,10 +8,6 @@ const getParentEventId = async (eventId) => {
 
   // If this is a child event (has a parentEventId), return the parent's ID
   if (event && event.parentEventId) {
-    console.log(
-      "[CodeSettings] Child event detected, using parent event ID:",
-      event.parentEventId
-    );
     return event.parentEventId;
   }
 
@@ -55,18 +51,6 @@ const getCodeSettingsByBrand = async (req, res) => {
       eventId: { $in: uniqueEventIds },
     });
 
-    console.log(
-      `[CodeSettings] Found ${codeSettings.length} code settings for brand ${brandId} with fields:`,
-      codeSettings.map((cs) => ({
-        _id: cs._id,
-        name: cs.name,
-        type: cs.type,
-        maxPax: cs.maxPax,
-        condition: cs.condition,
-        eventId: cs.eventId,
-      }))
-    );
-
     // Add the unlimited field to each code setting before sending
     const codeSettingsWithUnlimited = codeSettings.map((setting) => {
       // Convert to plain object to add the unlimited property
@@ -83,7 +67,6 @@ const getCodeSettingsByBrand = async (req, res) => {
 
     return res.json({ codeSettings: codeSettingsWithUnlimited });
   } catch (error) {
-    console.error("[CodeSettings] Error fetching brand code settings:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -120,21 +103,9 @@ const getCodeSettings = async (req, res) => {
         });
 
         isBrandTeamMember = !!brand;
-        console.log("[CodeSettings] Brand team check:", {
-          userId: userId.toString(),
-          isBrandTeamMember,
-          brandFound: !!brand,
-        });
 
         // If user is not owner, not admin, and not brand team member, deny access
         if (!isBrandTeamMember) {
-          console.log("[CodeSettings] Authorization failed:", {
-            eventUser: event.user.toString(),
-            requestUser: userId.toString(),
-            isDirectOwner,
-            isBrandTeamMember,
-            isAdmin: !!req.user.isAdmin,
-          });
           return res
             .status(403)
             .json({ message: "Not authorized to view this event" });
@@ -160,18 +131,7 @@ const getCodeSettings = async (req, res) => {
       if (!seenTypes.has(setting.type)) {
         seenTypes.add(setting.type);
         uniqueCodeSettings.push(setting);
-      } else {
-        console.log(
-          `[CodeSettings] Warning: Found duplicate setting type ${setting.type}, ID: ${setting._id}`
-        );
       }
-    });
-
-    console.log("[CodeSettings] Retrieved settings:", {
-      requestedEventId: eventId,
-      parentEventId: parentEventId !== eventId ? parentEventId : undefined,
-      totalSettingsCount: allCodeSettings.length,
-      uniqueSettingsCount: uniqueCodeSettings.length,
     });
 
     // Include the brand's primary color in the response
@@ -194,7 +154,6 @@ const getCodeSettings = async (req, res) => {
       primaryColor: primaryColor, // Include brand's primary color
     });
   } catch (error) {
-    console.error("Error fetching code settings:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -202,33 +161,6 @@ const getCodeSettings = async (req, res) => {
 // Configure code settings (create or update)
 const configureCodeSettings = async (req, res) => {
   try {
-    console.log("[CodeSettings] === DEBUG AUTH START ===");
-    console.log("[CodeSettings] Request headers:", {
-      authorization: req.headers.authorization,
-      cookie: req.headers.cookie,
-    });
-    console.log("[CodeSettings] Request cookies:", req.cookies);
-    console.log("[CodeSettings] Request user:", req.user);
-    console.log("[CodeSettings] Request user ID:", req.user?._id);
-    console.log("[CodeSettings] Request params:", req.params);
-    console.log("[CodeSettings] Request body:", req.body);
-    console.log("[CodeSettings] === DEBUG AUTH END ===");
-
-    console.log("[CodeSettings] Configure request received:", {
-      url: req.originalUrl,
-      method: req.method,
-      params: req.params,
-      body: req.body,
-      hasUser: !!req.user,
-      userId: req.user?._id,
-      headers: {
-        authorization: req.headers.authorization,
-        cookie: req.headers.cookie,
-      },
-      cookies: req.cookies,
-      timestamp: new Date().toISOString(),
-    });
-
     const { eventId } = req.params;
     const {
       codeSettingId,
@@ -248,37 +180,15 @@ const configureCodeSettings = async (req, res) => {
     // Find the event
     const event = await Event.findById(eventId);
     if (!event) {
-      console.log("[CodeSettings] Event not found:", eventId);
       return res.status(404).json({ message: "Event not found" });
     }
 
     // Get the parent event ID if this is a child event
     const parentEventId = await getParentEventId(eventId);
 
-    console.log("[CodeSettings] Event found:", {
-      eventId: event._id,
-      eventUser: event.user,
-      requestUser: req.user?._id,
-      brandId: event.brand,
-      parentEventId:
-        parentEventId !== eventId.toString() ? parentEventId : undefined,
-    });
-
     // Check if user has permission to modify this event
     if (!req.user) {
-      console.log(
-        "[CodeSettings] Authentication required - no user in request"
-      );
       return res.status(401).json({ message: "Authentication required" });
-    }
-
-    // Log warning if userId is missing but don't fail the request
-    if (!req.user.userId) {
-      console.log(
-        "[CodeSettings] WARNING: req.user exists but userId is missing:",
-        req.user
-      );
-      // Let's try to continue with the request and see what happens
     }
 
     // Use userId from token or fall back to _id if necessary
@@ -296,28 +206,14 @@ const configureCodeSettings = async (req, res) => {
       });
 
       isBrandTeamMember = !!brand;
-      console.log("[CodeSettings] Brand team check:", {
-        userId: userId.toString(),
-        isBrandTeamMember,
-        brandFound: !!brand,
-      });
     }
 
     // Allow if user is event owner, brand team member, or admin
     if (!isDirectOwner && !isBrandTeamMember && !req.user.isAdmin) {
-      console.log("[CodeSettings] Authorization failed:", {
-        eventUser: event.user.toString(),
-        requestUser: userId.toString(),
-        isDirectOwner,
-        isBrandTeamMember,
-        isAdmin: !!req.user.isAdmin,
-      });
       return res
         .status(403)
         .json({ message: "Not authorized to modify this event" });
     }
-
-    console.log("[CodeSettings] Authorization successful");
 
     let codeSetting;
 
@@ -330,40 +226,20 @@ const configureCodeSettings = async (req, res) => {
 
         if (isValidObjectId) {
           // If it's a valid ObjectId, look up by ID
-          console.log(
-            "[CodeSettings] Looking up setting by valid ObjectId:",
-            codeSettingId
-          );
           codeSetting = await CodeSettings.findById(codeSettingId);
         } else if (type) {
           // If it's not a valid ObjectId but we have type, look up by event and type
-          console.log(
-            "[CodeSettings] Temporary ID detected, looking up by type instead:",
-            {
-              tempId: codeSettingId,
-              type: type,
-              eventId: parentEventId,
-            }
-          );
           codeSetting = await CodeSettings.findOne({
             eventId: parentEventId,
             type,
           });
         } else {
-          console.log(
-            "[CodeSettings] Invalid codeSettingId and no type provided:",
-            codeSettingId
-          );
           return res.status(400).json({
             message:
               "Invalid code setting ID format and no type provided for fallback",
           });
         }
       } catch (lookupError) {
-        console.log(
-          "[CodeSettings] Error looking up code setting:",
-          lookupError
-        );
         // If there's an error finding by ID, try by type as a fallback
         if (type) {
           codeSetting = await CodeSettings.findOne({
@@ -374,18 +250,8 @@ const configureCodeSettings = async (req, res) => {
       }
 
       if (!codeSetting) {
-        console.log("[CodeSettings] Code setting not found:", {
-          codeSettingId,
-          type,
-          eventId: parentEventId,
-        });
-
         // If we have a type, create a new setting instead of failing
         if (type) {
-          console.log(
-            "[CodeSettings] Creating new code setting for type:",
-            type
-          );
           // If setting doesn't exist, create new
           codeSetting = new CodeSettings({
             eventId: parentEventId,
@@ -408,13 +274,6 @@ const configureCodeSettings = async (req, res) => {
           return res.status(404).json({ message: "Code setting not found" });
         }
       } else {
-        console.log("[CodeSettings] Updating existing code setting:", {
-          id: codeSetting._id,
-          type: codeSetting.type,
-          currentEnabled: codeSetting.isEnabled,
-          newEnabled: isEnabled,
-        });
-
         // Update the code setting
         if (name !== undefined && codeSetting.isEditable) {
           codeSetting.name = name;
@@ -448,7 +307,6 @@ const configureCodeSettings = async (req, res) => {
       codeSetting = await CodeSettings.findOne(query);
 
       if (!codeSetting) {
-        console.log("[CodeSettings] Creating new code setting for type:", type);
         // If setting doesn't exist, create new
         codeSetting = new CodeSettings({
           eventId: parentEventId,
@@ -467,13 +325,6 @@ const configureCodeSettings = async (req, res) => {
           icon: icon || "RiCodeLine",
         });
       } else {
-        console.log("[CodeSettings] Updating existing code setting by type:", {
-          type,
-          id: codeSetting._id,
-          currentEnabled: codeSetting.isEnabled,
-          newEnabled: isEnabled,
-        });
-
         // Update existing setting
         if (name !== undefined && codeSetting.isEditable) {
           codeSetting.name = name;
@@ -490,7 +341,6 @@ const configureCodeSettings = async (req, res) => {
 
       await codeSetting.save();
     } else {
-      console.log("[CodeSettings] Missing required parameters");
       return res
         .status(400)
         .json({ message: "Either codeSettingId or type must be provided" });
@@ -530,16 +380,7 @@ const configureCodeSettings = async (req, res) => {
       if (!seenTypes.has(setting.type)) {
         seenTypes.add(setting.type);
         uniqueCodeSettings.push(setting);
-      } else {
-        console.log(
-          `[CodeSettings] Warning: Found duplicate setting type ${setting.type}, ID: ${setting._id}`
-        );
       }
-    });
-
-    console.log("[CodeSettings] Configuration successful:", {
-      totalSettingsCount: allCodeSettings.length,
-      uniqueSettingsCount: uniqueCodeSettings.length,
     });
 
     return res.status(200).json({
@@ -547,7 +388,6 @@ const configureCodeSettings = async (req, res) => {
       codeSettings: uniqueCodeSettings,
     });
   } catch (error) {
-    console.error("[CodeSettings] Error configuring code settings:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -568,9 +408,6 @@ const deleteCodeSetting = async (req, res) => {
 
     // Check if user has permission to modify this event
     if (!req.user) {
-      console.log(
-        "[CodeSettings] Authentication required - no user in request"
-      );
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -589,21 +426,9 @@ const deleteCodeSetting = async (req, res) => {
       });
 
       isBrandTeamMember = !!brand;
-      console.log("[CodeSettings] Brand team check:", {
-        userId: userId.toString(),
-        isBrandTeamMember,
-        brandFound: !!brand,
-      });
 
       // If user is not owner, not admin, and not brand team member, deny access
       if (!isBrandTeamMember) {
-        console.log("[CodeSettings] Authorization failed:", {
-          eventUser: event.user.toString(),
-          requestUser: userId.toString(),
-          isDirectOwner,
-          isBrandTeamMember,
-          isAdmin: !!req.user.isAdmin,
-        });
         return res
           .status(403)
           .json({ message: "Not authorized to modify this event" });
@@ -635,7 +460,6 @@ const deleteCodeSetting = async (req, res) => {
       codeSettings,
     });
   } catch (error) {
-    console.error("Error deleting code setting:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -676,10 +500,6 @@ const initializeDefaultSettings = async (eventId) => {
 
     // If no new settings need to be created, return early
     if (settingsToCreate.length === 0) {
-      console.log(
-        "[CodeSettings] All default settings already exist for event:",
-        eventId
-      );
       return true;
     }
 
@@ -694,17 +514,8 @@ const initializeDefaultSettings = async (eventId) => {
       })
     );
 
-    console.log(
-      "[CodeSettings] Initialized missing default settings for event:",
-      {
-        eventId,
-        createdTypes: settingsToCreate.map((s) => s.type),
-      }
-    );
-
     return true;
   } catch (error) {
-    console.error("Error initializing default code settings:", error);
     return false;
   }
 };

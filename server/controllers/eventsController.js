@@ -51,28 +51,9 @@ const generateSlug = (text) => {
 // Helper function to generate weekly occurrences
 const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
   try {
-    console.log(
-      `[Weekly Events] Generating occurrence for week ${weekNumber} for event: ${parentEvent._id}`
-    );
-
-    console.log(`[WEEKLY DEBUG] Parent event details before creating child:`, {
-      parentId: parentEvent._id,
-      parentTitle: parentEvent.title,
-      parentDate: parentEvent.date,
-      parentIsWeekly: parentEvent.isWeekly,
-      parentWeekNumber: parentEvent.weekNumber || 0,
-      requestedWeekNumber: weekNumber,
-    });
-
     // Calculate the date for this occurrence
     const occurrenceDate = new Date(parentEvent.date);
     occurrenceDate.setDate(occurrenceDate.getDate() + weekNumber * 7);
-
-    console.log(`[WEEKLY DEBUG] Calculated occurrence date:`, {
-      parentDate: parentEvent.date,
-      calculatedDate: occurrenceDate,
-      weekOffset: weekNumber * 7,
-    });
 
     // Create a unique link for this occurrence
     const link = `${parentEvent.link}-w${weekNumber}`;
@@ -119,36 +100,17 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
     });
 
     await weeklyEvent.save();
-    console.log(
-      `[Weekly Events] Created week ${weekNumber} occurrence: ${weeklyEvent._id}`
-    );
-
-    console.log(`[WEEKLY DEBUG] Created child event details:`, {
-      childId: weeklyEvent._id,
-      childTitle: weeklyEvent.title,
-      childDate: weeklyEvent.date,
-      childIsWeekly: weeklyEvent.isWeekly,
-      childWeekNumber: weeklyEvent.weekNumber,
-      parentId: weeklyEvent.parentEventId,
-    });
 
     // Initialize default code settings for the weekly event
     try {
       const { initializeDefaultSettings } = require("./codeSettingsController");
       await initializeDefaultSettings(weeklyEvent._id);
-      console.log(
-        `[Weekly Events] Initialized default code settings for week ${weekNumber}`
-      );
 
       // Copy code settings from parent event to child event
       const parentCodeSettings = await CodeSettings.find({
         eventId: parentEvent._id,
       });
       if (parentCodeSettings && parentCodeSettings.length > 0) {
-        console.log(
-          `[Weekly Events] Copying ${parentCodeSettings.length} code settings from parent event`
-        );
-
         // For each parent code setting, create a corresponding child code setting
         await Promise.all(
           parentCodeSettings.map(async (parentSetting) => {
@@ -189,25 +151,13 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
             }
           })
         );
-
-        console.log(
-          `[Weekly Events] Successfully copied code settings to child event`
-        );
       }
     } catch (settingsError) {
-      console.error(
-        `[Weekly Events] Error handling code settings for week ${weekNumber}:`,
-        settingsError
-      );
       // Continue even if code settings initialization fails
     }
 
     return weeklyEvent;
   } catch (error) {
-    console.error(
-      `[Weekly Events] Error generating weekly occurrence for week ${weekNumber}:`,
-      error
-    );
     throw error;
   }
 };
@@ -215,22 +165,6 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
 // Find or create a weekly occurrence
 const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
   try {
-    console.log(
-      `[Weekly Events] Looking for child event with parentEventId: ${parentEvent._id}, weekNumber: ${weekNumber}`
-    );
-
-    console.log(
-      `[WEEKLY DEBUG] Parent event in findOrCreateWeeklyOccurrence:`,
-      {
-        parentId: parentEvent._id,
-        parentTitle: parentEvent.title,
-        parentDate: parentEvent.date,
-        parentIsWeekly: parentEvent.isWeekly,
-        parentWeekNumber: parentEvent.weekNumber || 0,
-        requestedWeekNumber: weekNumber,
-      }
-    );
-
     // First try to find an existing occurrence for this week
     const existingOccurrence = await Event.findOne({
       parentEventId: parentEvent._id,
@@ -238,48 +172,21 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
     });
 
     if (existingOccurrence) {
-      console.log(
-        `[Weekly Events] Found existing occurrence for week ${weekNumber}: ${existingOccurrence._id}`
-      );
-
-      console.log(`[WEEKLY DEBUG] Found existing child event:`, {
-        childId: existingOccurrence._id,
-        childTitle: existingOccurrence.title,
-        childDate: existingOccurrence.date,
-        childWeekNumber: existingOccurrence.weekNumber,
-        parentId: existingOccurrence.parentEventId,
-      });
-
       return existingOccurrence;
     }
 
     // If not found, create a new one
-    console.log(
-      `[Weekly Events] No existing occurrence found for week ${weekNumber}, creating new one`
-    );
     return await generateWeeklyOccurrences(parentEvent, weekNumber);
   } catch (error) {
-    console.error(
-      `[Weekly Events] Error in findOrCreateWeeklyOccurrence:`,
-      error
-    );
     throw error;
   }
 };
 
 exports.createEvent = async (req, res) => {
   try {
-    console.log("[Event Creation] Received request:", {
-      body: req.body,
-      brandId: req.params.brandId,
-      userId: req.user.userId,
-      files: req.files ? Object.keys(req.files) : "No files",
-    });
-
     // Validate brand exists and user has permission
     const brand = await Brand.findById(req.params.brandId);
     if (!brand) {
-      console.log("[Event Creation] Brand not found:", req.params.brandId);
       return res.status(404).json({ message: "Brand not found" });
     }
 
@@ -294,10 +201,6 @@ exports.createEvent = async (req, res) => {
     });
 
     if (existingEvent) {
-      console.log("[Event Creation] Found existing event:", {
-        eventId: existingEvent._id,
-        title: existingEvent.title,
-      });
       return res.status(200).json(existingEvent);
     }
 
@@ -341,21 +244,13 @@ exports.createEvent = async (req, res) => {
       }
     }
 
-    console.log("[Event Creation] Generated slug:", finalSlug);
-
-    console.log("[Event Creation] Found brand:", {
-      brandId: brand._id,
-      brandName: brand.name,
-    });
-
     // Parse lineups if they exist
     let lineups = [];
     if (req.body.lineups) {
       try {
         lineups = JSON.parse(req.body.lineups);
-        console.log("[Event Creation] Parsed lineups:", lineups);
       } catch (e) {
-        console.error("[Event Creation] Error parsing lineups:", e);
+        // Error parsing lineups
       }
     }
 
@@ -413,35 +308,16 @@ exports.createEvent = async (req, res) => {
     const event = new Event(eventData);
     await event.save();
 
-    console.log("[Event Creation] Event created successfully:", {
-      eventId: event._id,
-      title: event.title,
-    });
-
     // Initialize default code settings for the event
     try {
       const { initializeDefaultSettings } = require("./codeSettingsController");
       await initializeDefaultSettings(event._id);
-      console.log("[Event Creation] Default code settings initialized");
     } catch (settingsError) {
-      console.error(
-        "[Event Creation] Error initializing code settings:",
-        settingsError
-      );
       // Continue with event creation even if code settings initialization fails
     }
 
     // Handle file uploads if they exist
     if (req.files) {
-      console.log("[Event Creation] Processing flyer uploads:", {
-        fileFields: Object.keys(req.files),
-        fileDetails: Object.entries(req.files).map(([field, files]) => ({
-          field,
-          size: files[0].size,
-          mimetype: files[0].mimetype,
-        })),
-      });
-
       const timestamp = Date.now();
 
       for (const [fieldName, files] of Object.entries(req.files)) {
@@ -477,14 +353,6 @@ exports.createEvent = async (req, res) => {
               file.mimetype
             );
             urls[quality] = url;
-
-            console.log(
-              `[Event Creation] Uploaded ${format}/${quality} flyer:`,
-              {
-                size: processedBuffer.length,
-                url,
-              }
-            );
           }
 
           event.flyer[format] = {
@@ -494,24 +362,15 @@ exports.createEvent = async (req, res) => {
             timestamp,
           };
         } catch (error) {
-          console.error(
-            `[Event Creation] Error processing ${format} flyer:`,
-            error
-          );
+          // Error processing flyer
         }
       }
 
       await event.save();
-      console.log("[Event Creation] Saved event with flyer URLs");
     }
 
     res.status(201).json(event);
   } catch (error) {
-    console.error("[Event Creation Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
-
     // Check if it's truly a duplicate key error
     if (error.code === 11000) {
       const existingEvent = await Event.findById(error.keyValue._id);
@@ -530,11 +389,9 @@ exports.createEvent = async (req, res) => {
 exports.getBrandEvents = async (req, res) => {
   try {
     const { brandId } = req.params;
-    console.log(`[Events] Fetching events for brand: ${brandId}`);
 
     // Check if user is authenticated
     if (!req.user || !req.user.userId) {
-      console.log("[Events] User is not authenticated:", { user: req.user });
       return res.status(401).json({
         message: "User not authenticated",
         debug: { user: req.user },
@@ -542,27 +399,14 @@ exports.getBrandEvents = async (req, res) => {
     }
 
     const userId = req.user.userId; // Get the correct user ID
-    console.log(`[Events] Current user ID: ${userId}`);
-    console.log(`[Events] Full user object:`, req.user);
 
     // First find the brand without team check to debug
     const brandExists = await Brand.findById(brandId);
     if (!brandExists) {
-      console.log(`[Events] Brand does not exist with ID: ${brandId}`);
       return res.status(404).json({
         message: "Brand not found",
       });
     }
-
-    console.log(`[Events] Brand found:`, {
-      name: brandExists.name,
-      owner: brandExists.owner,
-      teamCount: brandExists.team.length,
-      teamMembers: brandExists.team.map((t) => ({
-        user: t.user,
-        role: t.role,
-      })),
-    });
 
     // Now check if user has permission
     const brand = await Brand.findOne({
@@ -571,15 +415,10 @@ exports.getBrandEvents = async (req, res) => {
     });
 
     if (!brand) {
-      console.log(
-        `[Events] User ${userId} is not owner or team member for brand: ${brandId}`
-      );
       return res.status(403).json({
         message: "You don't have permission to view this brand's events",
       });
     }
-
-    console.log(`[Events] Found brand: ${brand.name}`);
 
     // Get only parent events (events with no parentEventId)
     // We don't want to include child events in the main list
@@ -591,24 +430,8 @@ exports.getBrandEvents = async (req, res) => {
       .populate("user", "username firstName lastName avatar")
       .populate("lineups");
 
-    console.log(
-      `[Events] Found ${events.length} parent events for brand: ${brand.name}`
-    );
-
-    // Log the first event's lineups for debugging
-    if (events.length > 0) {
-      console.log(`[Events] First event lineups:`, {
-        eventId: events[0]._id,
-        title: events[0].title,
-        hasLineups: !!events[0].lineups,
-        lineupCount: events[0].lineups?.length,
-        lineups: events[0].lineups?.map((l) => ({ id: l._id, name: l.name })),
-      });
-    }
-
     res.status(200).json(events);
   } catch (error) {
-    console.error("[Events] Error in getBrandEvents:", error);
     res.status(500).json({
       message: "Error fetching brand events",
       error: error.message,
@@ -637,17 +460,6 @@ exports.getAllEvents = async (req, res) => {
 
 exports.editEvent = async (req, res) => {
   try {
-    console.log("[Event Edit] === DEBUG AUTH START ===");
-    console.log("[Event Edit] Request headers:", {
-      authorization: req.headers.authorization,
-      cookie: req.headers.cookie,
-    });
-    console.log("[Event Edit] Request cookies:", req.cookies);
-    console.log("[Event Edit] Request user:", req.user);
-    console.log("[Event Edit] Request user ID:", req.user?.userId);
-    console.log("[Event Edit] Request params:", req.params);
-    console.log("[Event Edit] === DEBUG AUTH END ===");
-
     const { eventId } = req.params;
     const weekNumber = parseInt(req.query.weekNumber) || 0;
 
@@ -674,13 +486,6 @@ exports.editEvent = async (req, res) => {
       tableCode,
     } = req.body;
 
-    console.log("[Event Update] Received request:", {
-      eventId,
-      body: req.body,
-      userId: req.user.userId,
-      weekNumber,
-    });
-
     // Handle lineups if they exist
     if (lineups) {
       // If lineups is a string (from FormData), parse it
@@ -688,11 +493,9 @@ exports.editEvent = async (req, res) => {
         try {
           req.body.lineups = JSON.parse(lineups);
         } catch (e) {
-          console.error("[Event Update] Error parsing lineups:", e);
           delete req.body.lineups;
         }
       }
-      console.log("[Event Update] Lineups:", req.body.lineups);
     }
 
     // Find event and check permissions
@@ -731,8 +534,6 @@ exports.editEvent = async (req, res) => {
 
     // Check if this is a child event being edited directly
     if (event.parentEventId) {
-      console.log(`[Event Update] Editing child event directly: ${event._id}`);
-
       // Update the child event with the new data
       // Make sure we don't change certain fields that should remain consistent
       const updatedChildData = {
@@ -763,9 +564,6 @@ exports.editEvent = async (req, res) => {
         event.backstageCodeSettings = {};
 
         await event.save();
-        console.log(
-          `[Event Update] Updated child event directly: ${event._id}`
-        );
 
         // Check if we need to update code settings for this child event
         if (
@@ -776,10 +574,6 @@ exports.editEvent = async (req, res) => {
           req.body.tableCode !== undefined ||
           req.body.backstageCode !== undefined
         ) {
-          console.log(
-            `[Event Update] Updating code settings for child event: ${event._id}`
-          );
-
           // Import the CodeSettings controller
           const { configureCodeSettings } = require("./codeSettingsController");
 
@@ -833,7 +627,6 @@ exports.editEvent = async (req, res) => {
 
         return res.status(200).json(event);
       } catch (error) {
-        console.error("[Event Update] Error saving child event:", error);
         return res.status(500).json({
           message: "Error updating child event",
           error: error.message,
@@ -844,37 +637,12 @@ exports.editEvent = async (req, res) => {
     // Check if this is a weekly event and we're editing a future occurrence
     if (event.isWeekly && weekNumber > 0) {
       // This is a request to edit a future occurrence of a weekly event
-      console.log(
-        `[Event Update] Editing weekly occurrence for week ${weekNumber}`
-      );
-
-      console.log(
-        `[WEEKLY DEBUG] Before finding/creating child - Parent event:`,
-        {
-          parentId: event._id,
-          parentTitle: event.title,
-          parentDate: event.date,
-          parentIsWeekly: event.isWeekly,
-          targetWeekNumber: weekNumber,
-          requestBody: Object.keys(req.body),
-        }
-      );
-
       try {
         // Find or create the child event for this week
         const childEvent = await findOrCreateWeeklyOccurrence(
           event,
           weekNumber
         );
-
-        console.log(`[WEEKLY DEBUG] After finding/creating child:`, {
-          childId: childEvent._id,
-          childTitle: childEvent.title,
-          childDate: childEvent.date,
-          childWeekNumber: childEvent.weekNumber,
-          childIsWeekly: childEvent.isWeekly,
-          parentId: childEvent.parentEventId,
-        });
 
         // Update the child event with the new data
         // Make sure we don't change certain fields that should remain consistent
@@ -885,12 +653,6 @@ exports.editEvent = async (req, res) => {
           weekNumber: weekNumber, // Keep the week number
         };
 
-        console.log(`[WEEKLY DEBUG] Child data before update:`, {
-          childId: childEvent._id,
-          childTitle: childEvent.title,
-          childDate: childEvent.date,
-        });
-
         // Apply updates to the child event
         Object.keys(updatedChildData).forEach((key) => {
           if (
@@ -900,12 +662,6 @@ exports.editEvent = async (req, res) => {
           ) {
             childEvent[key] = updatedChildData[key];
           }
-        });
-
-        console.log(`[WEEKLY DEBUG] Child data after update:`, {
-          childId: childEvent._id,
-          childTitle: childEvent.title,
-          childDate: childEvent.date,
         });
 
         // Remove validation for embedded code settings to prevent errors
@@ -928,10 +684,6 @@ exports.editEvent = async (req, res) => {
             req.body.tableCode !== undefined ||
             req.body.backstageCode !== undefined
           ) {
-            console.log(
-              `[Event Update] Updating code settings for weekly child event: ${childEvent._id}`
-            );
-
             // Initialize default settings if they don't exist
             const {
               initializeDefaultSettings,
@@ -980,19 +732,14 @@ exports.editEvent = async (req, res) => {
             }
           }
 
-          console.log(
-            `[Event Update] Updated child event for week ${weekNumber}`
-          );
           return res.status(200).json(childEvent);
         } catch (error) {
-          console.error("[Event Update] Error saving child event:", error);
           return res.status(500).json({
             message: "Error updating child event",
             error: error.message,
           });
         }
       } catch (error) {
-        console.error("[Event Update] Error updating child event:", error);
         return res.status(500).json({
           message: "Error updating child event",
           error: error.message,
@@ -1007,16 +754,6 @@ exports.editEvent = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log(`[WEEKLY DEBUG] Direct parent event update:`, {
-      eventId,
-      isWeekly: event.isWeekly,
-      weekNumber,
-      updatedTitle: updatedEvent.title,
-      updatedDate: updatedEvent.date,
-      originalDate: event.date,
-      fieldsUpdated: Object.keys(req.body),
-    });
-
     // Check if we need to update code settings for this event
     if (
       req.body.codeSettings ||
@@ -1026,10 +763,6 @@ exports.editEvent = async (req, res) => {
       req.body.tableCode !== undefined ||
       req.body.backstageCode !== undefined
     ) {
-      console.log(
-        `[Event Update] Updating code settings for event: ${eventId}`
-      );
-
       // Initialize default settings if they don't exist
       const { initializeDefaultSettings } = require("./codeSettingsController");
       await initializeDefaultSettings(eventId);
@@ -1076,17 +809,8 @@ exports.editEvent = async (req, res) => {
       }
     }
 
-    console.log("[Event Update] Event updated successfully:", {
-      eventId,
-      updatedFields: Object.keys(req.body),
-    });
-
     res.status(200).json(updatedEvent);
   } catch (error) {
-    console.error("[Event Update Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
     res.status(500).json({
       message: "Error updating event",
       error: error.message,
@@ -1103,12 +827,6 @@ exports.updateLandscapeFlyer = async (req, res) => {
 
     const { eventId } = req.params;
     const file = req.file;
-
-    console.log("[Landscape Flyer Update] Processing upload:", {
-      eventId,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-    });
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1153,11 +871,6 @@ exports.updateLandscapeFlyer = async (req, res) => {
       const qualityKey = `${key}/${quality}`;
       const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
       urls[quality] = url;
-
-      console.log(`[Landscape Flyer Update] Uploaded ${quality}:`, {
-        size: processedBuffer.length,
-        url,
-      });
     }
 
     // Update event with the flyer URLs
@@ -1170,14 +883,8 @@ exports.updateLandscapeFlyer = async (req, res) => {
     };
 
     await event.save();
-    console.log("[Landscape Flyer Update] Event updated successfully");
-
     res.status(200).json(event);
   } catch (error) {
-    console.error("[Landscape Flyer Update Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
     res
       .status(500)
       .json({ message: "Error updating flyer", error: error.message });
@@ -1192,12 +899,6 @@ exports.updatePortraitFlyer = async (req, res) => {
 
     const { eventId } = req.params;
     const file = req.file;
-
-    console.log("[Portrait Flyer Update] Processing upload:", {
-      eventId,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-    });
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1242,11 +943,6 @@ exports.updatePortraitFlyer = async (req, res) => {
       const qualityKey = `${key}/${quality}`;
       const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
       urls[quality] = url;
-
-      console.log(`[Portrait Flyer Update] Uploaded ${quality}:`, {
-        size: processedBuffer.length,
-        url,
-      });
     }
 
     // Update event with the flyer URLs
@@ -1259,14 +955,8 @@ exports.updatePortraitFlyer = async (req, res) => {
     };
 
     await event.save();
-    console.log("[Portrait Flyer Update] Event updated successfully");
-
     res.status(200).json(event);
   } catch (error) {
-    console.error("[Portrait Flyer Update Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
     res
       .status(500)
       .json({ message: "Error updating flyer", error: error.message });
@@ -1281,12 +971,6 @@ exports.updateSquareFlyer = async (req, res) => {
 
     const { eventId } = req.params;
     const file = req.file;
-
-    console.log("[Square Flyer Update] Processing upload:", {
-      eventId,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-    });
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1331,11 +1015,6 @@ exports.updateSquareFlyer = async (req, res) => {
       const qualityKey = `${key}/${quality}`;
       const url = await uploadToS3(processedBuffer, qualityKey, file.mimetype);
       urls[quality] = url;
-
-      console.log(`[Square Flyer Update] Uploaded ${quality}:`, {
-        size: processedBuffer.length,
-        url,
-      });
     }
 
     // Update event with the flyer URLs
@@ -1348,14 +1027,8 @@ exports.updateSquareFlyer = async (req, res) => {
     };
 
     await event.save();
-    console.log("[Square Flyer Update] Event updated successfully");
-
     res.status(200).json(event);
   } catch (error) {
-    console.error("[Square Flyer Update Error]", {
-      error: error.message,
-      stack: error.stack,
-    });
     res
       .status(500)
       .json({ message: "Error updating flyer", error: error.message });
@@ -1366,9 +1039,6 @@ exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { deleteRelated } = req.query;
-    console.log(
-      `[Event Delete] Deleting event: ${eventId}, deleteRelated: ${deleteRelated}`
-    );
 
     // Find event and check permissions
     const event = await Event.findById(eventId);
@@ -1390,61 +1060,39 @@ exports.deleteEvent = async (req, res) => {
 
     // If this is a weekly event, delete all child events
     if (event.isWeekly) {
-      console.log(
-        `[Event Delete] Deleting child events for weekly event: ${eventId}`
-      );
       const deletedChildren = await Event.deleteMany({
         parentEventId: eventId,
       });
-      console.log(
-        `[Event Delete] Deleted ${deletedChildren.deletedCount} child events`
-      );
     }
 
     // If deleteRelated is true, delete related data
     if (deleteRelated === "true") {
       try {
         // Delete code settings related to this event
-        const CodeSettings = require("../models/codeSettingsModel");
         const deletedCodeSettings = await CodeSettings.deleteMany({
           event: eventId,
         });
-        console.log(
-          `[Event Delete] Deleted ${deletedCodeSettings.deletedCount} code settings`
-        );
 
         // Delete codes related to this event
         const Code = require("../models/codeModel");
         const deletedCodes = await Code.deleteMany({ event: eventId });
-        console.log(
-          `[Event Delete] Deleted ${deletedCodes.deletedCount} codes`
-        );
 
         // Delete media files from storage (if using cloud storage)
         if (event.flyer) {
           // This would depend on your storage implementation
-          console.log(
-            `[Event Delete] Deleted media files for event: ${eventId}`
-          );
         }
       } catch (relatedError) {
-        console.error(
-          "[Event Delete] Error deleting related data:",
-          relatedError
-        );
         // Continue with event deletion even if related data deletion fails
       }
     }
 
     // Delete the event
     await Event.findByIdAndDelete(eventId);
-    console.log(`[Event Delete] Successfully deleted event: ${eventId}`);
 
     res
       .status(200)
       .json({ success: true, message: "Event deleted successfully" });
   } catch (error) {
-    console.error("[Event Delete] Error:", error);
     res.status(500).json({ success: false, message: "Error deleting event" });
   }
 };
@@ -1461,7 +1109,6 @@ exports.getEventByLink = async (req, res) => {
     }
     res.status(200).json({ success: true, event: eventData });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
@@ -1487,7 +1134,6 @@ exports.getEvent = async (req, res) => {
 
     res.status(200).json({ success: true, event: responseData });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
@@ -1504,7 +1150,6 @@ exports.getEventPage = async (req, res) => {
     }
     res.status(200).json({ success: true, event: eventData });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
@@ -1517,14 +1162,6 @@ exports.getEventProfile = async (req, res) => {
     // Check if we're using the new slug-based route or the traditional ID-based route
     if (req.params.brandUsername && req.params.dateSlug) {
       const hasEventSlug = !!req.params.eventSlug;
-
-      console.log(
-        `[EventProfile] Fetching event by parameters: ${
-          req.params.brandUsername
-        }/e/${req.params.dateSlug}${
-          hasEventSlug ? `/${req.params.eventSlug}` : ""
-        }`
-      );
 
       // First, find the brand by username
       const brand = await Brand.findOne({ username: req.params.brandUsername });
@@ -1551,20 +1188,6 @@ exports.getEventProfile = async (req, res) => {
       const startDate = new Date(year, month, day, 0, 0, 0);
       const endDate = new Date(year, month, day, 23, 59, 59);
 
-      console.log(
-        `[EventProfile] Looking for events between ${startDate.toISOString()} and ${endDate.toISOString()}`
-      );
-
-      if (hasEventSlug) {
-        console.log(
-          `[EventProfile] Looking for event number ${eventNumber} on this date`
-        );
-      } else if (eventNumber > 1) {
-        console.log(
-          `[EventProfile] Looking for event number ${eventNumber} on this date`
-        );
-      }
-
       // Find all events for this brand on this date
       const eventsOnDate = await Event.find({
         brand: brand._id,
@@ -1578,10 +1201,6 @@ exports.getEventProfile = async (req, res) => {
           path: "user",
           select: "username firstName lastName avatar",
         });
-
-      console.log(
-        `[EventProfile] Found ${eventsOnDate.length} events on this date`
-      );
 
       if (eventsOnDate.length === 0) {
         return res.status(404).json({
@@ -1663,11 +1282,6 @@ exports.getEventProfile = async (req, res) => {
           }
         }
       } else {
-        // For simplified URL format (without event slug)
-        console.log(
-          `[EventProfile] Using simplified URL format - selecting event by number ${eventNumber}`
-        );
-
         // Sort events to ensure consistent order
         eventsOnDate.sort((a, b) => {
           // Sort by start time if available
@@ -1684,29 +1298,16 @@ exports.getEventProfile = async (req, res) => {
           const index = eventNumber - 1;
           if (index < eventsOnDate.length) {
             event = eventsOnDate[index];
-            console.log(
-              `[EventProfile] Selected event #${eventNumber} (index ${index}) from ${eventsOnDate.length} events`
-            );
           } else {
-            console.log(
-              `[EventProfile] Event #${eventNumber} not found (only ${eventsOnDate.length} events available)`
-            );
             // If the specified index doesn't exist, use the first event
             event = eventsOnDate[0];
           }
         } else {
           // Default to the first event if no specific number is provided
           event = eventsOnDate[0];
-          console.log(
-            `[EventProfile] Selected first event from ${eventsOnDate.length} events`
-          );
         }
       }
     } else {
-      console.log(
-        `[EventProfile] Fetching event profile data for event ID: ${req.params.eventId}`
-      );
-
       // Find the event by ID (original approach)
       event = await Event.findById(req.params.eventId)
         .populate({
@@ -1720,67 +1321,30 @@ exports.getEventProfile = async (req, res) => {
     }
 
     if (!event) {
-      console.log(`[EventProfile] Event not found with provided parameters`);
       return res.status(404).json({
         success: false,
         message: "Event not found.",
       });
     }
 
-    console.log(`[EventProfile] Found event:`, {
-      id: event._id,
-      title: event.title,
-      brand: event.brand ? event.brand.name : "No brand",
-    });
-
     // Get lineup data using the lineup IDs stored in the event
-    console.log(
-      `[EventProfile] Fetching lineups using lineup IDs stored in event`
-    );
     try {
       // Ensure we use the event's _id consistently
       const eventId = event._id.toString();
 
       // Check if the event has lineup IDs
       if (event.lineups && event.lineups.length > 0) {
-        console.log(
-          `[EventProfile] Event has ${event.lineups.length} lineup IDs:`,
-          event.lineups
-        );
-
         // Fetch lineups using their IDs from the event
         const lineups = await LineUp.find({
           _id: { $in: event.lineups },
           isActive: true,
         }).sort({ sortOrder: 1 });
-
-        console.log(`[EventProfile] Found ${lineups.length} lineups for event`);
       } else {
-        console.log(`[EventProfile] Event has no lineup IDs stored`);
-
         // Try the old method as a fallback
         const fallbackLineups = await LineUp.find({
           events: eventId,
           isActive: true,
         }).sort({ sortOrder: 1 });
-
-        console.log(
-          `[EventProfile] Fallback method found ${fallbackLineups.length} lineups`
-        );
-
-        if (fallbackLineups.length === 0) {
-          // Log all lineups to see if we can match manually
-          const allLineups = await LineUp.find({}).limit(5);
-          console.log(
-            `[EventProfile] Sample of all lineups in DB:`,
-            allLineups.map((l) => ({
-              id: l._id,
-              name: l.name,
-              events: l.events ? l.events.map((e) => e.toString()) : [],
-              brandId: l.brandId ? l.brandId.toString() : "none",
-            }))
-          );
-        }
       }
 
       // Fetch lineups using their IDs from the event
@@ -1796,52 +1360,13 @@ exports.getEventProfile = async (req, res) => {
             }).sort({ sortOrder: 1 });
 
       // Get ticket settings
-      console.log(
-        `[EventProfile] Fetching ticket settings for event ID: ${eventId}`
-      );
       const ticketSettings = await TicketSettings.find({
         eventId: eventId,
       }).sort({ price: 1 });
 
-      console.log(
-        `[EventProfile] Found ${ticketSettings.length} ticket settings for event`
-      );
-      console.log(`[EventProfile] Ticket settings search criteria:`, {
-        eventId: eventId,
-      });
-
-      if (ticketSettings.length === 0) {
-        // Log a sample of ticket settings to see if we can match manually
-        const allTickets = await TicketSettings.find({}).limit(5);
-        console.log(
-          `[EventProfile] Sample of all ticket settings in DB:`,
-          allTickets.map((t) => ({
-            id: t._id,
-            name: t.name,
-            eventId: t.eventId ? t.eventId.toString() : "none",
-          }))
-        );
-      }
-
       // Get code settings
-      console.log(
-        `[EventProfile] Fetching code settings for event ID: ${eventId}`
-      );
       const codeSettings = await CodeSettings.find({
         eventId: eventId,
-      });
-
-      console.log(
-        `[EventProfile] Found ${codeSettings.length} code settings for event`
-      );
-
-      console.log(`[EventProfile] Successfully fetched event profile data:`, {
-        eventId: event._id,
-        title: event.title,
-        lineupCount: lineups.length,
-        ticketSettingsCount: ticketSettings.length,
-        codeSettingsCount: codeSettings.length,
-        hasFlyer: !!event.flyer,
       });
 
       // After finding the event and related data, prepare the response
@@ -1854,7 +1379,6 @@ exports.getEventProfile = async (req, res) => {
         : event.brand;
 
       if (req.user) {
-        console.log(`[EventProfile] User is authenticated: ${req.user._id}`);
         // Include user-specific data if authenticated
         userRelatedData = {
           isFollowing: event.followers?.includes(req.user._id),
@@ -1864,8 +1388,6 @@ exports.getEventProfile = async (req, res) => {
           ),
           joinRequestStatus: null, // You may need to fetch this from JoinRequest model if needed
         };
-      } else {
-        console.log(`[EventProfile] Anonymous user access`);
       }
 
       // Return the response with user data if available
@@ -1878,7 +1400,6 @@ exports.getEventProfile = async (req, res) => {
         ...userRelatedData,
       });
     } catch (innerError) {
-      console.error("[EventProfile] Error fetching related data:", innerError);
       // Still return the event data even if related data fetching fails
       res.status(200).json({
         success: true,
@@ -1890,7 +1411,6 @@ exports.getEventProfile = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("[EventProfile] Error fetching event profile data:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -1968,16 +1488,12 @@ exports.generateGuestCode = async (req, res) => {
 
     res.status(201).json({ message: "Check your Mails (+Spam). Thank you 🤝" });
   } catch (error) {
-    console.error("Error generating guest code:", error);
     res.status(500).json({ error: "Error generating guest code." });
   }
 };
 
 exports.generateInvitationCode = async (guestCode) => {
-  console.log("Processing Invitation Code Generation for:", guestCode.email);
-
   if (!guestCode) {
-    console.error("No guestCode provided to generateInvitationCode function");
     return;
   }
 
@@ -2000,7 +1516,6 @@ exports.generateInvitationCode = async (guestCode) => {
 
     // Save the InvitationCode to the database
     await invitationCode.save();
-    console.log("Invitation code saved successfully");
 
     // Assuming you don't need a QR code URL for PDF creation, proceed directly to PDF generation
     const pdfBuffer = await createTicketPDF(
@@ -2014,11 +1529,9 @@ exports.generateInvitationCode = async (guestCode) => {
     // Mark the guest code as invite created
     guestCode.inviteCreated = true;
     await guestCode.save();
-    console.log("Guest code updated with invite created.");
 
     return pdfBuffer; // Optionally return buffer if you need to use it immediately after
   } catch (error) {
-    console.error("Error during invitation code generation:", error);
     throw error; // Rethrow to handle upstream
   }
 };
@@ -2050,7 +1563,6 @@ exports.updateGuestCodeCondition = async (req, res) => {
 
     res.status(200).json({ success: true, event });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
@@ -2141,7 +1653,6 @@ exports.compressAndOptimizeFiles = async (req, res) => {
 
     res.status(200).json(optimizedEventData);
   } catch (error) {
-    console.warn(error);
     res
       .status(400)
       .json({ message: "Error compressing and optimizing files", error });
@@ -2200,7 +1711,6 @@ exports.listDroppedFiles = async (req, res) => {
     const fileList = await listFilesFromS3("dropped");
     res.json({ success: true, files: fileList });
   } catch (error) {
-    console.error("Error listing files:", error);
     res
       .status(500)
       .json({ error: "Failed to list files", details: error.message });
@@ -2212,7 +1722,6 @@ exports.deleteDroppedFile = async (req, res) => {
     await deleteFileFromS3("dropped", fileName);
     res.json({ success: true, message: "File deleted successfully" });
   } catch (error) {
-    console.error("Error deleting file:", error);
     res.status(500).json({ error: "Failed to delete file" });
   }
 };
@@ -2223,7 +1732,6 @@ exports.getSignedUrlForDownload = async (req, res) => {
     const url = await generateSignedUrl("dropped", fileName);
     res.json({ success: true, url });
   } catch (error) {
-    console.error("Error generating signed URL:", error);
     res.status(500).json({ error: "Failed to generate download URL" });
   }
 };
@@ -2234,11 +1742,6 @@ exports.toggleEventLive = async (req, res) => {
     const { eventId } = req.params;
     const weekNumber = parseInt(req.query.weekNumber || "0");
 
-    console.log("[Toggle Live] Processing request:", {
-      eventId,
-      weekNumber,
-    });
-
     // Find the event
     const event = await Event.findById(eventId);
     if (!event) {
@@ -2247,10 +1750,6 @@ exports.toggleEventLive = async (req, res) => {
 
     // If this is a weekly event and we're toggling a future occurrence
     if (event.isWeekly && weekNumber > 0) {
-      console.log(
-        `[Toggle Live] Processing weekly event for week ${weekNumber}`
-      );
-
       // First, check if this child event already exists
       let childEvent = await Event.findOne({
         parentEventId: eventId,
@@ -2259,26 +1758,12 @@ exports.toggleEventLive = async (req, res) => {
 
       // If it doesn't exist, we need to create it first
       if (!childEvent) {
-        console.log(
-          `[Toggle Live] Child event for week ${weekNumber} doesn't exist yet, creating it`
-        );
-
-        // Create the child event using our weekly occurrence generator
         childEvent = await generateWeeklyOccurrences(event, weekNumber);
-        console.log(`[Toggle Live] Created new child event: ${childEvent._id}`);
-      } else {
-        console.log(
-          `[Toggle Live] Found existing child event: ${childEvent._id}`
-        );
       }
 
       // Toggle the isLive status
       childEvent.isLive = !childEvent.isLive;
       await childEvent.save();
-
-      console.log(
-        `[Toggle Live] Updated live status for week ${weekNumber} to ${childEvent.isLive}`
-      );
 
       return res.status(200).json({
         message: `Event is now ${childEvent.isLive ? "live" : "not live"}`,
@@ -2291,16 +1776,11 @@ exports.toggleEventLive = async (req, res) => {
     event.isLive = !event.isLive;
     await event.save();
 
-    console.log(
-      `[Toggle Live] Updated parent event live status to ${event.isLive}`
-    );
-
     res.status(200).json({
       message: `Event is now ${event.isLive ? "live" : "not live"}`,
       isLive: event.isLive,
     });
   } catch (error) {
-    console.error("[Toggle Live] Error:", error);
     res.status(500).json({
       message: "Error toggling live status",
       error: error.message,
