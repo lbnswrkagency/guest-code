@@ -47,6 +47,32 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const toast = useToast();
 
+  // Move ALL state declarations to the top of the component to avoid reference errors
+  const [showSettings, setShowSettings] = useState(false);
+  const [showDropFiles, setShowDropFiles] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [showStatistic, setShowStatistic] = useState(false);
+  const [showTableSystem, setShowTableSystem] = useState(false);
+  const [codeType, setCodeType] = useState("");
+  const [isCropMode, setIsCropMode] = useState(false);
+  const [userRoles, setUserRoles] = useState([]);
+  const [codeSettings, setCodeSettings] = useState([]);
+  const [codePermissionsDetails, setCodePermissionsDetails] = useState([]);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [accessSummary, setAccessSummary] = useState({
+    canCreateCodes: false,
+    canReadCodes: false,
+    canEditCodes: false,
+    canDeleteCodes: false,
+    isFounder: false,
+    isMember: false,
+    hasEventsPermission: false,
+    hasTeamPermission: false,
+    hasAnalyticsPermission: false,
+    hasScannerPermission: false,
+    permissions: {},
+  });
+
   // Get Redux store data
   const reduxUser = useSelector(selectUser);
   const brands = useSelector(selectAllBrands);
@@ -59,12 +85,222 @@ const Dashboard = () => {
   // Get brand context
   const { fetchUserBrands } = useBrands();
 
-  // Redux store logging
+  // Current event context
+  const {
+    currentEventDate,
+    dataInterval,
+    handlePrevWeek,
+    handleNextWeek,
+    resetEventDateToToday,
+  } = useCurrentEvent();
+
+  const startingEventString = "15052024";
+  const startingEventDate = moment(startingEventString, "DDMMYYYY");
+
+  // Create a helper function to create a clean copy of brand data
+  const createCleanBrandCopy = (brand) => {
+    // First check if this brand has events
+    if (!brand || !brand.events) {
+      // Silent return as is if no events
+      return brand;
+    }
+
+    // Create a clean copy with events properly handled
+    const cleanBrand = { ...brand };
+
+    // Handle both possible event structures
+    if (Array.isArray(brand.events)) {
+      // If events is an array, create a new array with the same events
+      cleanBrand.events = [...brand.events];
+    } else if (brand.events && brand.events.items) {
+      // If events is an object with items, create a new object with the same structure
+      cleanBrand.events = {
+        ...brand.events,
+        items: [...brand.events.items],
+      };
+    }
+    // Return the clean copy
+    return cleanBrand;
+  };
+
+  // Add a direct access function to get brand from Redux store
+  const getDirectBrandFromStore = (brandId) => {
+    const storeState = store.getState();
+    const allBrands = storeState.brand?.allBrands || [];
+    return allBrands.find((b) => b._id === brandId);
+  };
+
+  // Refactored effect to ensure proper sequence of setting selected brand, event and date
+  useEffect(() => {
+    // This effect runs when brands are loaded but no brand is selected
+    if (brands && brands.length > 0 && !selectedBrand) {
+      // Get the first brand
+      const firstBrand = brands[0];
+
+      // Get events immediately to find the best event to select
+      let brandEvents = [];
+
+      // Handle both possible event structures
+      if (Array.isArray(firstBrand.events)) {
+        brandEvents = firstBrand.events;
+      } else if (
+        firstBrand.events &&
+        firstBrand.events.items &&
+        firstBrand.events.items.length > 0
+      ) {
+        brandEvents = firstBrand.events.items;
+      }
+
+      // Find the best event to select (next upcoming or most recent past)
+      let eventToSelect = null;
+      let dateToSelect = null;
+
+      if (brandEvents.length > 0) {
+        const now = new Date();
+
+        // First try to find the next future event
+        eventToSelect = brandEvents.find((event) => {
+          if (!event.date) return false;
+          const eventDate = new Date(event.date);
+          return eventDate > now;
+        });
+
+        // If no future events, get the most recent past event
+        if (!eventToSelect) {
+          const pastEvents = brandEvents
+            .filter((event) => event.date)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          if (pastEvents.length > 0) {
+            eventToSelect = pastEvents[0]; // Most recent past event
+          }
+        }
+
+        // If still no event, just use the first one
+        if (!eventToSelect) {
+          eventToSelect = brandEvents[0];
+        }
+
+        // Set date if we have an event
+        if (eventToSelect && eventToSelect.date) {
+          dateToSelect = new Date(eventToSelect.date);
+        }
+      }
+
+      // Now set everything in order, but in a single render cycle
+      // First set the brand
+      setSelectedBrandWithLogging(firstBrand);
+
+      // Then immediately set the event and date if available
+      if (eventToSelect) {
+        dispatch(setSelectedEvent(eventToSelect));
+
+        if (dateToSelect) {
+          dispatch(setSelectedDate(dateToSelect));
+        }
+      }
+    }
+  }, [brands, selectedBrand, dispatch]);
+
+  // One-time setup effect that runs once when component mounts to ensure we have event data
+  useEffect(() => {
+    // This effect intentionally left empty - initial setup is handled elsewhere
+  }, []);
+
+  // Update the setSelectedBrandWithLogging function to use the clean copy
+  const setSelectedBrandWithLogging = (brand) => {
+    // Create a clean copy to avoid reference issues
+    const cleanBrand = createCleanBrandCopy(brand);
+    dispatch(setSelectedBrand(cleanBrand));
+  };
+
+  // Add a more robust effect to ensure selected brand, event and date are always consistent
+  useEffect(() => {
+    // If we have a selected brand but it doesn't have events data
+    // or the events data isn't structured properly, log a warning
+    if (selectedBrand) {
+      // Check if the brand has events data
+      const hasValidEvents =
+        (Array.isArray(selectedBrand.events) &&
+          selectedBrand.events.length > 0) ||
+        (selectedBrand.events?.items &&
+          Array.isArray(selectedBrand.events.items) &&
+          selectedBrand.events.items.length > 0);
+
+      // If there are no valid events, try to get a fresh copy directly from the store
+      if (!hasValidEvents) {
+        const freshBrand = getDirectBrandFromStore(selectedBrand._id);
+
+        if (freshBrand) {
+          const freshHasEvents =
+            (Array.isArray(freshBrand.events) &&
+              freshBrand.events.length > 0) ||
+            (freshBrand.events?.items && freshBrand.events.items.length > 0);
+
+          if (freshHasEvents) {
+            // Create a clean copy and update Redux
+            const cleanFreshBrand = createCleanBrandCopy(freshBrand);
+            setSelectedBrandWithLogging(cleanFreshBrand);
+            return; // Exit early since we're updating the brand
+          }
+        }
+      }
+
+      // Continue with normal event selection if we have valid events
+      if (hasValidEvents && !selectedEvent) {
+        const brandEvents = Array.isArray(selectedBrand.events)
+          ? selectedBrand.events
+          : selectedBrand.events.items;
+
+        if (brandEvents.length > 0) {
+          const now = new Date();
+
+          // First try to find the next future event
+          let eventToSelect = brandEvents.find((event) => {
+            if (!event.date) return false;
+            return new Date(event.date) > now;
+          });
+
+          // If no future events, get the most recent past event
+          if (!eventToSelect) {
+            const pastEvents = brandEvents
+              .filter((event) => event.date)
+              .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (pastEvents.length > 0) {
+              eventToSelect = pastEvents[0]; // Most recent past event
+            }
+          }
+
+          // If still no event, just use the first one
+          if (!eventToSelect) {
+            eventToSelect = brandEvents[0];
+          }
+
+          // CRITICAL: Set these immediately one after another
+          if (eventToSelect) {
+            dispatch(setSelectedEvent(eventToSelect));
+            if (eventToSelect.date) {
+              dispatch(setSelectedDate(new Date(eventToSelect.date)));
+            }
+          }
+        }
+      }
+    }
+  }, [selectedBrand, selectedEvent, dispatch]);
+
+  // Redux store logging - focus on this for now
   useEffect(() => {
     // Only log when we have both user and brands data
     if (reduxUser) {
+      // Reduce log frequency by only logging when important values change
+      const loggingKey = `${brands?.length || 0}-${
+        selectedBrand?._id || "none"
+      }-${selectedEvent?._id || "none"}-${selectedDate?.toString() || "none"}`;
+
       console.log("🔵 REDUX STORE DATA:", {
         timestamp: new Date().toISOString(),
+        loggingKey,
         user: {
           // Basic user info
           id: reduxUser._id,
@@ -113,8 +349,9 @@ const Dashboard = () => {
                             isEditable: setting.isEditable || false,
                             maxPax: setting.maxPax || 1,
                             condition: setting.condition || "",
-                            color: setting.color || "#CCCCCC",
+                            color: setting.color || "#2196F3", // Changed from #CCCCCC
                             limit: setting.limit || 0,
+                            unlimited: setting.unlimited || false,
                           })
                         );
                       }
@@ -157,8 +394,9 @@ const Dashboard = () => {
                       isEditable: cs.isEditable || false,
                       maxPax: cs.maxPax || 1,
                       condition: cs.condition || "",
-                      color: cs.color || "#CCCCCC",
+                      color: cs.color || "#2196F3", // Changed from #CCCCCC
                       limit: cs.limit || 0,
+                      unlimited: cs.unlimited || false,
                     }))
                   : [],
               }
@@ -171,206 +409,94 @@ const Dashboard = () => {
     }
   }, [reduxUser, brands, selectedBrand, selectedEvent, selectedDate]);
 
-  // Set default selected brand and event when Redux data is available
+  // Fetch code settings from selected event in Redux store
   useEffect(() => {
-    if (brands && brands.length > 0 && !selectedBrand) {
-      // Select the first brand by default
-      const firstBrand = brands[0];
-      dispatch(setSelectedBrand(firstBrand));
+    if (selectedEvent) {
+      // Get code settings directly from the selected event in Redux
+      const eventCodeSettings = selectedEvent.codeSettings || [];
+      setCodeSettings(eventCodeSettings);
 
-      // If this brand has events, select the first event
-      if (
-        firstBrand.events &&
-        Array.isArray(firstBrand.events) &&
-        firstBrand.events.length > 0
-      ) {
-        const firstEvent = firstBrand.events[0];
-        dispatch(setSelectedEvent(firstEvent));
-      } else if (
-        firstBrand.events &&
-        firstBrand.events.items &&
-        firstBrand.events.items.length > 0
-      ) {
-        // Alternative structure if events are in a nested 'items' property
-        const firstEvent = firstBrand.events.items[0];
-        dispatch(setSelectedEvent(firstEvent));
+      // Transform permissions from the brand role into codePermissionsDetails format
+      if (selectedBrand && selectedBrand.role?.permissions?.codes) {
+        const codePerms = selectedBrand.role.permissions.codes;
+        const permissionsArray = Object.entries(codePerms)
+          .filter(
+            ([name, perm]) =>
+              perm && typeof perm === "object" && perm.generate === true
+          )
+          .map(([name, perm]) => ({
+            name,
+            type: name.toLowerCase().includes("friends")
+              ? "friends"
+              : name.toLowerCase().includes("backstage")
+              ? "backstage"
+              : name.toLowerCase().includes("table")
+              ? "table"
+              : "custom",
+            generate: perm.generate,
+            limit: perm.limit || 0,
+            unlimited: perm.unlimited || perm.limit === 0,
+          }));
+
+        setCodePermissionsDetails(permissionsArray);
+      } else {
+        setCodePermissionsDetails([]);
       }
+    } else {
+      // Reset when no event is selected
+      setCodeSettings([]);
+      setCodePermissionsDetails([]);
     }
-  }, [brands, selectedBrand, dispatch]);
+  }, [selectedEvent, selectedBrand]);
 
-  // Fetch code settings for events based on permissions
+  const handleCropModeToggle = (isInCropMode) => {
+    setIsCropMode(isInCropMode);
+  };
+
+  // Temporarily comment out this effect as it was causing the reference error
+  /*
   useEffect(() => {
-    // Only proceed if we have a selected brand with appropriate permissions
-    if (selectedBrand && selectedBrand.role?.permissions?.codes) {
-      // Check if user has any code generation permissions
-      const codesPermissions = selectedBrand.role.permissions.codes;
-      const codePermissionEntries = Object.entries(codesPermissions).filter(
-        ([key, value]) => typeof value === "object" && value.generate === true
-      );
-
-      const hasAnyCodePermission = codePermissionEntries.length > 0;
-
-      if (hasAnyCodePermission) {
-        // Get all events for the selected brand
-        let brandEvents = [];
-        if (Array.isArray(selectedBrand.events)) {
-          brandEvents = selectedBrand.events;
-        } else if (
-          selectedBrand.events &&
-          Array.isArray(selectedBrand.events.items)
-        ) {
-          brandEvents = selectedBrand.events.items;
-        }
-
-        // For each event, fetch code settings if not already fetched
-        brandEvents.forEach(async (event) => {
-          // Skip if event already has code settings
-          if (event.codeSettings && event.codeSettings.length > 0) {
-            return;
-          }
-
-          const eventId = event._id || event.id;
-          if (!eventId) {
-            return;
-          }
-
-          try {
-            // Fetch code settings for this event using correct endpoint
-            console.log(
-              `Fetching code settings for event ${eventId} (${event.title})`
-            );
-
-            // Try the API route without /api prefix first
-            const response = await axiosInstance.get(
-              `/code-settings/events/${eventId}`
-            );
-
-            if (response.data && Array.isArray(response.data)) {
-              // Add debugging to check what's coming from the API
-              console.log(
-                "📦 Raw code settings response:",
-                JSON.stringify(response.data[0], null, 2)
-              );
-
-              // Filter for custom codes or codes that user has permission for
-              const customCodeSettings = response.data.filter(
-                (setting) =>
-                  setting.type === "custom" ||
-                  setting.type === "friends" ||
-                  setting.type === "table" ||
-                  setting.type === "backstage"
-              );
-
-              // If we found any relevant code settings, update the event in Redux
-              if (customCodeSettings.length > 0) {
-                console.log(
-                  "🔍 Filtered code settings:",
-                  JSON.stringify(customCodeSettings[0], null, 2)
-                );
-
-                // Update event with code settings
-                dispatch(
-                  updateEventInBrand({
-                    brandId: selectedBrand._id,
-                    eventId: eventId,
-                    eventData: {
-                      ...event,
-                      codeSettings: customCodeSettings,
-                    },
-                  })
-                );
-
-                // Update selected event if it matches
-                if (
-                  selectedEvent &&
-                  (selectedEvent._id === eventId ||
-                    selectedEvent.id === eventId)
-                ) {
-                  dispatch(
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      codeSettings: customCodeSettings,
-                    })
-                  );
-                }
-              }
-            }
-          } catch (error) {
-            // Try alternative endpoint with /api prefix if first attempt fails
-            try {
-              console.log(
-                `Trying alternative endpoint /api/code-settings/events/${eventId}`
-              );
-              const alternativeResponse = await axiosInstance.get(
-                `/api/code-settings/events/${eventId}`
-              );
-
-              if (
-                alternativeResponse.data &&
-                Array.isArray(alternativeResponse.data)
-              ) {
-                // Debug log
-                console.log(
-                  "📦 Raw code settings (alternative):",
-                  JSON.stringify(alternativeResponse.data[0], null, 2)
-                );
-
-                const customCodeSettings = alternativeResponse.data.filter(
-                  (setting) =>
-                    setting.type === "custom" ||
-                    setting.type === "friends" ||
-                    setting.type === "table" ||
-                    setting.type === "backstage"
-                );
-
-                if (customCodeSettings.length > 0) {
-                  console.log(
-                    "🔍 Filtered code settings (alternative):",
-                    JSON.stringify(customCodeSettings[0], null, 2)
-                  );
-
-                  dispatch(
-                    updateEventInBrand({
-                      brandId: selectedBrand._id,
-                      eventId: eventId,
-                      eventData: {
-                        ...event,
-                        codeSettings: customCodeSettings,
-                      },
-                    })
-                  );
-
-                  if (
-                    selectedEvent &&
-                    (selectedEvent._id === eventId ||
-                      selectedEvent.id === eventId)
-                  ) {
-                    dispatch(
-                      setSelectedEvent({
-                        ...selectedEvent,
-                        codeSettings: customCodeSettings,
-                      })
-                    );
-                  }
-                }
-              }
-            } catch (alternativeError) {
-              console.error(
-                `Failed to fetch code settings from both endpoints:`,
-                error.message,
-                alternativeError.message
-              );
-              toast?.error(
-                `Could not load code settings for this event: ${error.message}`
-              );
-            }
-          }
-        });
-      }
+    if (codeType) {
+      resetEventDateToToday();
     }
-  }, [selectedBrand, selectedEvent, dispatch, toast]);
+  }, [codeType, resetEventDateToToday]);
+  */
 
-  // Remove @ from username parameter
+  // Simplified role management - just store roles locally
+  useEffect(() => {
+    if (selectedBrand && selectedBrand.role) {
+      setUserRoles([selectedBrand.role]);
+    } else {
+      setUserRoles([]);
+    }
+  }, [selectedBrand]);
+
+  // Simplified permissions effect - only calculate from Redux store data
+  useEffect(() => {
+    if (selectedBrand && selectedBrand.role) {
+      // Get permissions directly from the selected brand's role in Redux
+      const role = selectedBrand.role;
+
+      // Calculate simple access permissions from role
+      const newAccessSummary = {
+        canCreateCodes: !!role?.permissions?.codes?.generate,
+        canReadCodes: true,
+        canEditCodes: true,
+        canDeleteCodes: true,
+        isFounder: !!role?.isFounder,
+        isMember: true,
+        hasEventsPermission: !!role?.permissions?.events,
+        hasTeamPermission: !!role?.permissions?.team,
+        hasAnalyticsPermission: !!role?.permissions?.analytics,
+        hasScannerPermission: !!role?.permissions?.scanner,
+        permissions: {},
+      };
+
+      setAccessSummary(newAccessSummary);
+    }
+  }, [selectedBrand]);
+
+  // Clean username to remove '@' if present
   const cleanUsername = username?.replace("@", "");
 
   useEffect(() => {
@@ -411,105 +537,17 @@ const Dashboard = () => {
     }
   }, [user, brands, fetchUserBrands]);
 
-  // Add an effect to fetch events for each brand if needed
-  useEffect(() => {
-    const fetchEventsForBrands = async () => {
-      // Only proceed if we have brands
-      if (brands && brands.length > 0) {
-        // Find brands with either no events property or empty events array
-        const brandsToFetch = brands.filter(
-          (brand) =>
-            !brand.events ||
-            (Array.isArray(brand.events) && brand.events.length === 0) ||
-            (brand.events &&
-              Array.isArray(brand.events.items) &&
-              brand.events.items.length === 0)
-        );
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    navigate("/");
+  };
 
-        if (brandsToFetch.length > 0) {
-          for (const brand of brandsToFetch) {
-            try {
-              // Step 1: Fetch parent events first
-              const url = `/events/brand/${brand._id}`;
-              const response = await axiosInstance.get(url);
-
-              if (response.data && Array.isArray(response.data)) {
-                // Step 2: For each parent event that is weekly, fetch its child events
-                const parentEvents = [...response.data];
-                const allEvents = [...parentEvents];
-
-                // Find weekly events that might have children
-                const weeklyEvents = parentEvents.filter(
-                  (event) => event.isWeekly
-                );
-
-                if (weeklyEvents.length > 0) {
-                  // Fetch children for each weekly parent event
-                  for (const weeklyEvent of weeklyEvents) {
-                    try {
-                      const childUrl = `/events/children/${weeklyEvent._id}`;
-                      const childResponse = await axiosInstance.get(childUrl);
-
-                      if (
-                        childResponse.data &&
-                        Array.isArray(childResponse.data)
-                      ) {
-                        // Add children to our events array
-                        allEvents.push(...childResponse.data);
-                      }
-                    } catch (childError) {
-                      console.error(
-                        `Error fetching child events for event ${weeklyEvent._id}:`,
-                        childError.message
-                      );
-                    }
-                  }
-                }
-
-                // Now dispatch all events (parents and children) to Redux
-                dispatch(
-                  addEventsToBrand({
-                    brandId: brand._id,
-                    events: allEvents,
-                  })
-                );
-
-                // If this is the currently selected brand or no brand is selected yet,
-                // update the selected brand and default event
-                if (
-                  !selectedBrand ||
-                  (selectedBrand && selectedBrand._id === brand._id)
-                ) {
-                  // Get the updated brand with events from the Redux store
-                  const updatedBrands = store.getState().brand.allBrands;
-                  const updatedBrand = updatedBrands.find(
-                    (b) => b._id === brand._id
-                  );
-
-                  if (updatedBrand) {
-                    dispatch(setSelectedBrand(updatedBrand));
-
-                    // If this brand has events, select the first one
-                    if (allEvents.length > 0) {
-                      const firstEvent = allEvents[0];
-                      dispatch(setSelectedEvent(firstEvent));
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              console.error(
-                `Error fetching events for brand ${brand.name}:`,
-                error.message
-              );
-            }
-          }
-        }
-      }
-    };
-
-    fetchEventsForBrands();
-  }, [brands, dispatch, selectedBrand]);
+  // Add a handler function to update the selected event data
+  const handleEventDataUpdate = (updatedEvent) => {
+    // Update the selected event with the new data
+    dispatch(setSelectedEvent(updatedEvent));
+  };
 
   if (loading) {
     return <Loader />;
@@ -519,15 +557,60 @@ const Dashboard = () => {
     return null;
   }
 
+  // Temporarily modify the render conditions to avoid using codeType directly
   return (
     <SocketProvider user={user}>
-      <DashboardContent user={user} setUser={setUser} />
+      <DashboardContent
+        user={user}
+        setUser={setUser}
+        codeType={codeType}
+        setCodeType={setCodeType}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        showDropFiles={showDropFiles}
+        setShowDropFiles={setShowDropFiles}
+        showScanner={showScanner}
+        setShowScanner={setShowScanner}
+        showStatistic={showStatistic}
+        setShowStatistic={setShowStatistic}
+        showTableSystem={showTableSystem}
+        setShowTableSystem={setShowTableSystem}
+        handleCropModeToggle={handleCropModeToggle}
+        userRoles={userRoles}
+        codeSettings={codeSettings}
+        codePermissionsDetails={codePermissionsDetails}
+        accessSummary={accessSummary}
+        isNavigationOpen={isNavigationOpen}
+        setIsNavigationOpen={setIsNavigationOpen}
+      />
     </SocketProvider>
   );
 };
 
 // Dashboard content component
-const DashboardContent = ({ user, setUser }) => {
+const DashboardContent = ({
+  user,
+  setUser,
+  codeType,
+  setCodeType,
+  showSettings,
+  setShowSettings,
+  showDropFiles,
+  setShowDropFiles,
+  showScanner,
+  setShowScanner,
+  showStatistic,
+  setShowStatistic,
+  showTableSystem,
+  setShowTableSystem,
+  handleCropModeToggle,
+  userRoles,
+  codeSettings,
+  codePermissionsDetails,
+  accessSummary,
+  isNavigationOpen,
+  setIsNavigationOpen,
+}) => {
   const { isConnected } = useSocket();
   const toast = useToast();
   const dispatch = useDispatch();
@@ -537,60 +620,6 @@ const DashboardContent = ({ user, setUser }) => {
   const selectedBrand = useSelector(selectSelectedBrand);
   const selectedEvent = useSelector(selectSelectedEvent);
   const selectedDate = useSelector(selectSelectedDate);
-
-  // Component state
-  const [showSettings, setShowSettings] = useState(false);
-  const [showDropFiles, setShowDropFiles] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [showStatistic, setShowStatistic] = useState(false);
-  const [codeType, setCodeType] = useState("");
-  const [isCropMode, setIsCropMode] = useState(false);
-  const [showTableSystem, setShowTableSystem] = useState(false);
-  const [userRoles, setUserRoles] = useState([]);
-  const [codeSettings, setCodeSettings] = useState([]);
-  const [codePermissionsDetails, setCodePermissionsDetails] = useState([]);
-  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-
-  // Fetch code settings for selected event and update local state
-  useEffect(() => {
-    if (selectedEvent) {
-      // Check if the event has code settings
-      const eventCodeSettings = selectedEvent.codeSettings || [];
-      if (eventCodeSettings.length > 0) {
-        console.log("Event code settings for UI:", eventCodeSettings[0]);
-      }
-      setCodeSettings(eventCodeSettings);
-
-      // Transform permissions from the brand role into codePermissionsDetails format
-      if (selectedBrand && selectedBrand.role?.permissions?.codes) {
-        const codePerms = selectedBrand.role.permissions.codes;
-        const permissionsArray = Object.entries(codePerms)
-          .filter(
-            ([name, perm]) =>
-              perm && typeof perm === "object" && perm.generate === true
-          )
-          .map(([name, perm]) => ({
-            name,
-            type: name.toLowerCase().includes("friends")
-              ? "friends"
-              : name.toLowerCase().includes("backstage")
-              ? "backstage"
-              : name.toLowerCase().includes("table")
-              ? "table"
-              : "custom",
-            generate: perm.generate,
-            limit: perm.limit || 0,
-            unlimited: perm.unlimited || perm.limit === 0,
-          }));
-
-        setCodePermissionsDetails(permissionsArray);
-      }
-    } else {
-      // Reset when no event is selected
-      setCodeSettings([]);
-      setCodePermissionsDetails([]);
-    }
-  }, [selectedEvent, selectedBrand]);
 
   // Current event context
   const {
@@ -604,65 +633,6 @@ const DashboardContent = ({ user, setUser }) => {
   const startingEventString = "15052024";
   const startingEventDate = moment(startingEventString, "DDMMYYYY");
 
-  // Access summary state - can be derived from selectedBrand
-  const [accessSummary, setAccessSummary] = useState({
-    canCreateCodes: false,
-    canReadCodes: false,
-    canEditCodes: false,
-    canDeleteCodes: false,
-    isFounder: false,
-    isMember: false,
-    hasEventsPermission: false,
-    hasTeamPermission: false,
-    hasAnalyticsPermission: false,
-    hasScannerPermission: false,
-    permissions: {},
-  });
-
-  const handleCropModeToggle = (isInCropMode) => {
-    setIsCropMode(isInCropMode);
-  };
-
-  useEffect(() => {
-    if (codeType) {
-      resetEventDateToToday();
-    }
-  }, [codeType, resetEventDateToToday]);
-
-  // Simplified role management - just store roles locally
-  useEffect(() => {
-    if (selectedBrand && selectedBrand.role) {
-      setUserRoles([selectedBrand.role]);
-    } else {
-      setUserRoles([]);
-    }
-  }, [selectedBrand]);
-
-  // Simplified permissions effect - only calculate from Redux store data
-  useEffect(() => {
-    if (selectedBrand && selectedBrand.role) {
-      // Get permissions directly from the selected brand's role in Redux
-      const role = selectedBrand.role;
-
-      // Calculate simple access permissions from role
-      const newAccessSummary = {
-        canCreateCodes: !!role?.permissions?.codes?.generate,
-        canReadCodes: true,
-        canEditCodes: true,
-        canDeleteCodes: true,
-        isFounder: !!role?.isFounder,
-        isMember: true,
-        hasEventsPermission: !!role?.permissions?.events,
-        hasTeamPermission: !!role?.permissions?.team,
-        hasAnalyticsPermission: !!role?.permissions?.analytics,
-        hasScannerPermission: !!role?.permissions?.scanner,
-        permissions: {},
-      };
-
-      setAccessSummary(newAccessSummary);
-    }
-  }, [selectedBrand]);
-
   const handleLogout = () => {
     logout();
     setUser(null);
@@ -675,6 +645,7 @@ const DashboardContent = ({ user, setUser }) => {
     dispatch(setSelectedEvent(updatedEvent));
   };
 
+  // Simplified conditional rendering based on props
   if (codeType === "Table") {
     return (
       <TableSystem
