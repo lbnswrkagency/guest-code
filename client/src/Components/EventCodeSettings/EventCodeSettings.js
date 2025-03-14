@@ -48,14 +48,6 @@ const EventCodeSettings = ({
   setCodeSettings,
   onClose,
 }) => {
-  console.log("[EventCodeSettings] Received props:", {
-    event,
-    codeSettings,
-    codeSettingsType: typeof codeSettings,
-    isArray: Array.isArray(codeSettings),
-    length: codeSettings?.length,
-    rawData: JSON.stringify(codeSettings),
-  });
   const toast = useToast();
   const [showAddCodeDialog, setShowAddCodeDialog] = useState(false);
   const [newCodeName, setNewCodeName] = useState("");
@@ -181,7 +173,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to save changes");
-      console.error("Error saving changes:", error);
     }
   };
 
@@ -226,7 +217,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to toggle code status");
-      console.error("Error toggling code status:", error);
     }
   };
 
@@ -250,7 +240,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to update code name");
-      console.error("Error updating code name:", error);
     }
   };
 
@@ -279,7 +268,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to add custom code");
-      console.error("Error adding custom code:", error);
     }
   };
 
@@ -306,7 +294,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to delete code");
-      console.error("Error deleting code:", error);
     }
   };
 
@@ -369,7 +356,6 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to update color");
-      console.error("Error updating color:", error);
     }
   };
 
@@ -380,19 +366,10 @@ const EventCodeSettings = ({
     }
     setSelectedCodeForIcon(codeSetting);
     setShowIconPicker(true);
-    console.log("[EventCodeSettings] Toggle icon picker:", {
-      codeSetting,
-      showIconPicker: !showIconPicker,
-    });
   };
 
   const handleIconSelect = async (iconName) => {
     if (!selectedCodeForIcon) return;
-
-    console.log("[EventCodeSettings] Selected icon:", {
-      iconName,
-      codeSetting: selectedCodeForIcon,
-    });
 
     // Update local state
     handleLocalChange(selectedCodeForIcon, "icon", iconName);
@@ -434,15 +411,10 @@ const EventCodeSettings = ({
       }
     } catch (error) {
       toast.showError("Failed to update icon");
-      console.error("Error updating icon:", error);
     }
   };
 
   const renderCodeSettingItem = (codeSetting) => {
-    console.log(
-      "[EventCodeSettings] Rendering code setting item:",
-      codeSetting
-    );
     const isExpanded = expandedSettings[codeSetting._id];
     const hasUnsavedChanges = !!unsavedChanges[codeSetting._id];
     const codeColor =
@@ -729,15 +701,7 @@ const EventCodeSettings = ({
   };
 
   const renderCodeSettings = () => {
-    console.log(
-      "[EventCodeSettings] Rendering code settings. Total settings:",
-      codeSettings?.length,
-      "Full data:",
-      codeSettings
-    );
-
     if (!Array.isArray(codeSettings) || codeSettings.length === 0) {
-      console.log("[EventCodeSettings] No code settings found");
       return (
         <div className="settings-items">
           <div className="no-codes-message">
@@ -752,13 +716,6 @@ const EventCodeSettings = ({
     const otherCodes = codeSettings.filter(
       (s) => s.type !== "guest" && s.type !== "ticket"
     );
-
-    console.log("[EventCodeSettings] Found codes:", {
-      guestCode,
-      ticketCode,
-      otherCodesCount: otherCodes.length,
-      allCodes: codeSettings,
-    });
 
     return (
       <div className="settings-items">
