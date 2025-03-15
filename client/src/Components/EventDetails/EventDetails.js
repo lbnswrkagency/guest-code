@@ -166,8 +166,7 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
                     <RiTicketLine />
                   </div>
                   <div className="availability-text">
-                    <h5>Tickets Available</h5>
-                    <p>Purchase tickets for this event</p>
+                    <h5>Tickets</h5>
                   </div>
                   <div className="availability-action">
                     <RiArrowRightSLine />
@@ -186,7 +185,7 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
                     <RiVipCrownLine />
                   </div>
                   <div className="availability-text">
-                    <h5>Guest Code Available</h5>
+                    <h5>Guest Code</h5>
                     {guestCodeCondition && <p>{guestCodeCondition}</p>}
                   </div>
                   <div className="availability-action">

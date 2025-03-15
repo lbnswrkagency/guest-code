@@ -228,6 +228,8 @@ const AuthProviderWithRouter = ({ children }) => {
         userData = {
           ...response.data.user,
           username: cleanUsername(response.data.user.username),
+          // Ensure brands are included if they exist
+          brands: response.data.user.brands || [],
         };
       }
 

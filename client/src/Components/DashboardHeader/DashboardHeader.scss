@@ -534,6 +534,20 @@
       align-items: center;
       height: 72px;
 
+      .user-avatar {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 5;
+
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+        }
+      }
+
       .profile-online-indicator {
         position: absolute;
         bottom: 2px;
@@ -631,6 +645,7 @@
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
+      max-width: 220px; /* Limit width for long brand names */
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -638,19 +653,22 @@
       }
 
       .event-logo {
-        width: 22px;
-        height: 22px;
-        border-radius: 4px;
-        overflow: hidden;
-        background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 0.8rem;
+        color: #fff;
+        flex-shrink: 0;
+        overflow: hidden;
 
-        img {
-          width: 16px;
-          height: 16px;
-          object-fit: contain;
+        .brand-logo-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .brand-initial {
@@ -659,18 +677,20 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255, 200, 7, 0.2);
-          color: #ffc807;
+          background: linear-gradient(45deg, #ffc807, #ff9800);
+          color: #000;
           font-weight: 600;
-          font-size: 0.9rem;
         }
       }
 
       .event-name {
-        font-size: 0.9rem;
-        font-weight: 500;
+        font-size: 0.85rem;
         color: rgba(255, 255, 255, 0.9);
-        margin: 0;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px; /* Limit text width */
       }
 
       .dropdown-icon {
@@ -678,6 +698,7 @@
         font-size: 1rem;
         display: flex;
         align-items: center;
+        flex-shrink: 0;
       }
     }
 
@@ -756,6 +777,20 @@
         border-color: rgba(255, 255, 255, 0.12);
       }
 
+      &.has-date {
+        background: rgba(255, 200, 7, 0.08);
+        border-color: rgba(255, 200, 7, 0.15);
+
+        .calendar-icon {
+          color: rgba(255, 200, 7, 0.8);
+        }
+
+        span {
+          color: rgba(255, 255, 255, 1);
+          font-weight: 500;
+        }
+      }
+
       .calendar-icon {
         font-size: 0.95rem;
         color: rgba(255, 255, 255, 0.5);
@@ -804,6 +839,24 @@
 
         &.active {
           border-left: 3px solid #ffc807;
+        }
+
+        &.selected {
+          background-color: rgba(255, 255, 255, 0.15);
+          font-weight: 600;
+          color: #fff;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: #ffc807;
+            border-radius: 0 2px 2px 0;
+          }
         }
 
         .date-info {
@@ -1088,5 +1141,44 @@
   &:hover {
     color: #ffc807;
     transform: scale(1.1);
+  }
+}
+
+// Fix the CSS for brand logos in the dropdown
+
+.event-logo {
+  .brand-logo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+}
+
+.brand-option-logo {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+
+  .brand-logo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .brand-initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 200, 7, 0.2);
+    color: #ffc807;
+    font-weight: 600;
+    font-size: 0.85rem;
   }
 }

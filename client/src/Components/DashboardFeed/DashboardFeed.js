@@ -17,6 +17,7 @@ import {
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import UpcomingEvent from "../UpcomingEvent/UpcomingEvent";
 
 const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const navigate = useNavigate();
@@ -30,8 +31,75 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   useEffect(() => {
     // If we have a selected event, use it directly
     if (selectedEvent) {
-      setEventData(selectedEvent);
-      preloadEventImage(selectedEvent);
+      // Check if the event has lineups data
+      if (selectedBrand && selectedBrand.lineups) {
+        let eventLineups = [];
+
+        // Handle case where event.lineups is an array of IDs (strings) instead of objects
+        if (selectedEvent.lineups && Array.isArray(selectedEvent.lineups)) {
+          if (
+            selectedEvent.lineups.length > 0 &&
+            typeof selectedEvent.lineups[0] === "string"
+          ) {
+            // If lineups are string IDs, find the full lineup objects from selectedBrand.lineups
+            eventLineups = selectedEvent.lineups
+              .map((lineupId) => {
+                // Find the full lineup object from selectedBrand.lineups
+                const fullLineup = selectedBrand.lineups.find(
+                  (l) => l._id === lineupId || l.id === lineupId
+                );
+
+                return fullLineup || null;
+              })
+              .filter((lineup) => lineup !== null);
+          } else if (
+            selectedEvent.lineups.length > 0 &&
+            typeof selectedEvent.lineups[0] === "object"
+          ) {
+            // If lineups are already objects, use them directly
+            eventLineups = selectedEvent.lineups;
+          }
+        }
+
+        // If no lineups were found or they're not valid objects, try to find lineups associated with this event
+        if (eventLineups.length === 0) {
+          eventLineups = selectedBrand.lineups.filter((lineup) => {
+            // Check if lineup.events exists and contains the event ID
+            if (lineup.events && Array.isArray(lineup.events)) {
+              return lineup.events.some((eventId) => {
+                // Convert both to strings for comparison
+                const lineupEventId = eventId.toString();
+                const currentEventId = selectedEvent._id.toString();
+                return lineupEventId === currentEventId;
+              });
+            }
+            return false;
+          });
+        }
+
+        // Ensure all lineup objects have required properties
+        const validLineups = eventLineups.map((lineup) => ({
+          _id: lineup._id || lineup.id,
+          name: lineup.name || "Unknown Artist",
+          category: lineup.category || "Other",
+          avatar: lineup.avatar || null,
+          events: lineup.events || [],
+          isActive: lineup.isActive !== undefined ? lineup.isActive : true,
+        }));
+
+        // Create a new event object with lineups data
+        const eventWithLineups = {
+          ...selectedEvent,
+          lineups: validLineups.length > 0 ? validLineups : null,
+        };
+
+        setEventData(eventWithLineups);
+        preloadEventImage(eventWithLineups);
+      } else {
+        setEventData(selectedEvent);
+        preloadEventImage(selectedEvent);
+      }
+
       setIsLoading(false);
       return;
     }
@@ -71,8 +139,75 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
         if (eventsForDate.length > 0) {
           // Use the first event for this date
           const event = eventsForDate[0];
-          setEventData(event);
-          preloadEventImage(event);
+
+          // Check if the event has lineups data
+          if (selectedBrand && selectedBrand.lineups) {
+            let eventLineups = [];
+
+            // Handle case where event.lineups is an array of IDs (strings) instead of objects
+            if (event.lineups && Array.isArray(event.lineups)) {
+              if (
+                event.lineups.length > 0 &&
+                typeof event.lineups[0] === "string"
+              ) {
+                // If lineups are string IDs, find the full lineup objects from selectedBrand.lineups
+                eventLineups = event.lineups
+                  .map((lineupId) => {
+                    // Find the full lineup object from selectedBrand.lineups
+                    const fullLineup = selectedBrand.lineups.find(
+                      (l) => l._id === lineupId || l.id === lineupId
+                    );
+
+                    return fullLineup || null;
+                  })
+                  .filter((lineup) => lineup !== null);
+              } else if (
+                event.lineups.length > 0 &&
+                typeof event.lineups[0] === "object"
+              ) {
+                // If lineups are already objects, use them directly
+                eventLineups = event.lineups;
+              }
+            }
+
+            // If no lineups were found or they're not valid objects, try to find lineups associated with this event
+            if (eventLineups.length === 0) {
+              eventLineups = selectedBrand.lineups.filter((lineup) => {
+                // Check if lineup.events exists and contains the event ID
+                if (lineup.events && Array.isArray(lineup.events)) {
+                  return lineup.events.some((eventId) => {
+                    // Convert both to strings for comparison
+                    const lineupEventId = eventId.toString();
+                    const currentEventId = event._id.toString();
+                    return lineupEventId === currentEventId;
+                  });
+                }
+                return false;
+              });
+            }
+
+            // Ensure all lineup objects have required properties
+            const validLineups = eventLineups.map((lineup) => ({
+              _id: lineup._id || lineup.id,
+              name: lineup.name || "Unknown Artist",
+              category: lineup.category || "Other",
+              avatar: lineup.avatar || null,
+              events: lineup.events || [],
+              isActive: lineup.isActive !== undefined ? lineup.isActive : true,
+            }));
+
+            // Create a new event object with lineups data
+            const eventWithLineups = {
+              ...event,
+              lineups: validLineups.length > 0 ? validLineups : null,
+            };
+
+            setEventData(eventWithLineups);
+            preloadEventImage(eventWithLineups);
+          } else {
+            setEventData(event);
+            preloadEventImage(event);
+          }
         } else {
           setEventData(null);
         }
@@ -233,94 +368,19 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     );
   }
 
+  // Use UpcomingEvent component to display the selected event
   return (
     <div className="dashboard-feed">
-      {/* Event Hero Section */}
-      <div className="event-hero">
-        <div
-          className="event-hero-image"
-          style={
-            getEventImage(eventData)
-              ? { backgroundImage: `url(${getEventImage(eventData)})` }
-              : { background: "linear-gradient(145deg, #1a1a1a, #2a2a2a)" }
-          }
-        >
-          <div className="event-hero-overlay">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              {eventData.title}
-            </motion.h1>
-            {eventData.subTitle && (
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {eventData.subTitle}
-              </motion.h2>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Event Details */}
-      <div className="event-details-container">
-        <div className="event-details">
-          <div className="detail-item">
-            <RiCalendarEventLine />
-            <div>
-              <h4>Date</h4>
-              <p>{formatDate(eventData.date)}</p>
-            </div>
-          </div>
-
-          <div className="detail-item">
-            <RiTimeLine />
-            <div>
-              <h4>Time</h4>
-              <p>
-                {formatTime(eventData.startTime)} -{" "}
-                {formatTime(eventData.endTime)}
-              </p>
-            </div>
-          </div>
-
-          <div className="detail-item">
-            <RiMapPinLine />
-            <div>
-              <h4>Location</h4>
-              <p>{eventData.location || "To be announced"}</p>
-            </div>
-          </div>
-
-          {eventData.lineup && eventData.lineup.length > 0 && (
-            <div className="detail-item">
-              <RiMusic2Line />
-              <div>
-                <h4>Lineup</h4>
-                <p>{eventData.lineup.join(", ")}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* View Full Event Button */}
-        <div className="event-actions">
-          <button onClick={handleViewEvent} className="view-event-button">
-            <RiLinkM /> View Full Event
-          </button>
-        </div>
-
-        {/* Event Description */}
-        {eventData.description && (
-          <div className="event-description">
-            <h3>Description</h3>
-            <p>{eventData.description}</p>
-          </div>
-        )}
+      <div className="dashboard-feed-content">
+        <UpcomingEvent
+          key={`${selectedBrand?._id}-${eventData?._id}`}
+          brandId={selectedBrand?._id}
+          brandUsername={selectedBrand?.username}
+          seamless={true}
+          events={[eventData]} // Pass as an array with a single event
+          initialEventIndex={0}
+          hideNavigation={true} // Hide the navigation controls
+        />
       </div>
     </div>
   );

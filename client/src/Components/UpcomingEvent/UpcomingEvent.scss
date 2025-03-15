@@ -222,10 +222,11 @@
       .event-image {
         width: 100%;
         height: auto;
-        max-height: 500px; /* Set a reasonable max-height to prevent extremely tall images */
-        object-fit: contain;
-        object-position: center;
-        transition: transform 0.8s ease;
+        display: block;
+        transition: transform 0.3s ease;
+
+        // Default object-fit behavior
+        object-fit: cover; // Default to cover for most images
       }
 
       &:hover .event-image {
@@ -258,18 +259,129 @@
     &.has-landscape-flyer .event-image-container {
       .event-image {
         max-height: 240px; /* Landscape images shouldn't be too tall */
+        width: 100%;
+        object-fit: cover;
+      }
+    }
+
+    &.has-square-flyer .event-image-container {
+      .event-image {
+        max-height: 350px; /* Square images can be a bit taller */
+        width: 100%;
+        object-fit: cover;
       }
     }
 
     &.has-portrait-flyer .event-image-container {
+      background-color: #000; /* Match background color to avoid visible borders */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+
       .event-image {
-        max-height: 350px; /* Portrait images can be a bit taller */
+        max-height: 450px; /* Portrait/9:16 images can be quite tall */
+        height: auto;
+        max-width: 100%;
+        width: auto; /* Allow the image to maintain its aspect ratio */
+        object-fit: contain; /* Use contain to avoid cropping */
       }
     }
 
-    &.has-vertical-flyer .event-image-container {
-      .event-image {
-        max-height: 450px; /* 9:16 or vertical images can be quite tall */
+    // Mobile styles for aspect ratios
+    @media (max-width: 767px) {
+      &.has-landscape-flyer .event-image-container .event-image {
+        max-height: 200px;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      &.has-square-flyer .event-image-container .event-image {
+        max-height: 300px;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      &.has-portrait-flyer .event-image-container {
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .event-image {
+          max-height: 400px;
+          height: auto;
+          max-width: 100%;
+          width: auto;
+          object-fit: contain;
+        }
+      }
+    }
+
+    // Tablet styles for aspect ratios
+    @media (min-width: 768px) and (max-width: 1023px) {
+      &.has-landscape-flyer .event-image-container .event-image {
+        max-height: 240px;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      &.has-square-flyer .event-image-container .event-image {
+        max-height: 350px;
+        width: 100%;
+        object-fit: cover;
+      }
+
+      &.has-portrait-flyer .event-image-container {
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .event-image {
+          max-height: 450px;
+          height: auto;
+          max-width: 100%;
+          width: auto;
+          object-fit: contain;
+        }
+      }
+    }
+
+    // Desktop styles for aspect ratios
+    @media (min-width: 1024px) {
+      &.has-landscape-flyer .event-image-container {
+        max-height: 280px;
+
+        .event-image {
+          width: 100%;
+          object-fit: cover;
+        }
+      }
+
+      &.has-square-flyer .event-image-container {
+        max-height: 380px;
+
+        .event-image {
+          width: 100%;
+          object-fit: cover;
+        }
+      }
+
+      &.has-portrait-flyer .event-image-container {
+        max-height: 480px;
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .event-image {
+          max-height: 480px;
+          height: auto;
+          max-width: 100%;
+          width: auto;
+          object-fit: contain;
+        }
       }
     }
 

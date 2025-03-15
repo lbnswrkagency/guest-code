@@ -113,7 +113,6 @@
 
   // Event Details
   .event-details-container {
-    padding: 24px;
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
@@ -254,8 +253,6 @@
     }
 
     .event-details-container {
-      padding: 16px;
-
       .event-details {
         grid-template-columns: 1fr;
       }
@@ -265,6 +262,30 @@
   @media (max-width: 480px) {
     .event-hero {
       height: 180px;
+    }
+  }
+
+  &-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+
+    // Ensure UpcomingEvent component fits well
+    .upcoming-event-container {
+      margin: 0 auto;
+
+      // Remove extra margins when in dashboard
+      &.seamless {
+        margin: 0;
+        padding: 0;
+
+        .event-card {
+          margin: 0;
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+      }
     }
   }
 }

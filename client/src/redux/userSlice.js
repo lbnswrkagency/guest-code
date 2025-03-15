@@ -1,41 +1,59 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  userData: null,
-  status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+  user: null,
+  loading: false,
   error: null,
 };
 
-export const userSlice = createSlice({
+const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
     setUser: (state, action) => {
-      state.userData = action.payload;
-      state.status = "succeeded";
+      state.user = action.payload;
+      state.loading = false;
       state.error = null;
     },
     setLoading: (state) => {
-      state.status = "loading";
+      state.loading = true;
+      state.error = null;
     },
     setError: (state, action) => {
-      state.status = "failed";
+      state.loading = false;
       state.error = action.payload;
     },
     clearUser: (state) => {
-      state.userData = null;
-      state.status = "idle";
+      state.user = null;
+      state.loading = false;
+      state.error = null;
+    },
+    loginSuccess: (state, action) => {
+      state.user = action.payload.user;
+      state.loading = false;
+      state.error = null;
+    },
+    logout: (state) => {
+      state.user = null;
+      state.loading = false;
       state.error = null;
     },
   },
 });
 
 // Export actions
-export const { setUser, setLoading, setError, clearUser } = userSlice.actions;
+export const {
+  setUser,
+  setLoading,
+  setError,
+  clearUser,
+  loginSuccess,
+  logout,
+} = userSlice.actions;
 
 // Export selectors
-export const selectUser = (state) => state.user.userData;
-export const selectUserStatus = (state) => state.user.status;
-export const selectUserError = (state) => state.user.error;
+export const selectUser = (state) => state.user?.user;
+export const selectUserLoading = (state) => state.user?.loading;
+export const selectUserError = (state) => state.user?.error;
 
 export default userSlice.reducer;

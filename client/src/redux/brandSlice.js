@@ -1,168 +1,132 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { REHYDRATE } from "redux-persist";
 
 const initialState = {
   allBrands: [],
-  selectedBrand: null,
-  status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+  selectedBrandId: null,
+  loading: false,
   error: null,
 };
 
-export const brandSlice = createSlice({
+// Helper function to ensure events are properly structured
+const ensureEventsStructure = (brand) => {
+  if (!brand) return brand;
+
+  // Make a deep copy to avoid reference issues
+  const brandCopy = { ...brand };
+
+  // Ensure events is an array
+  if (!brandCopy.events) {
+    brandCopy.events = [];
+  } else if (!Array.isArray(brandCopy.events)) {
+    brandCopy.events = brandCopy.events.items || [];
+  }
+
+  // Ensure each event has a codeSettings array
+  if (Array.isArray(brandCopy.events)) {
+    brandCopy.events = brandCopy.events.map((event) => ({
+      ...event,
+      codeSettings: Array.isArray(event.codeSettings) ? event.codeSettings : [],
+    }));
+  }
+
+  return brandCopy;
+};
+
+const brandSlice = createSlice({
   name: "brand",
   initialState,
   reducers: {
     setBrands: (state, action) => {
-      state.allBrands = action.payload;
-      state.status = "succeeded";
+      // Store only brand data without nested events or roles
+      state.allBrands = action.payload.map((brand) => ({
+        _id: brand._id,
+        name: brand.name,
+        username: brand.username,
+        description: brand.description,
+        owner: brand.owner,
+        team: brand.team,
+        logo: brand.logo,
+        coverImage: brand.coverImage,
+        colors: brand.colors,
+        social: brand.social,
+        contact: brand.contact,
+        media: brand.media,
+        settings: brand.settings,
+        metrics: brand.metrics,
+        createdAt: brand.createdAt,
+        updatedAt: brand.updatedAt,
+      }));
+      state.loading = false;
       state.error = null;
     },
     setSelectedBrand: (state, action) => {
-      state.selectedBrand = action.payload;
-    },
-    setLoading: (state) => {
-      state.status = "loading";
-    },
-    setError: (state, action) => {
-      state.status = "failed";
-      state.error = action.payload;
+      state.selectedBrandId = action.payload;
     },
     clearBrands: (state) => {
       state.allBrands = [];
-      state.selectedBrand = null;
-      state.status = "idle";
+      state.selectedBrandId = null;
+      state.loading = false;
       state.error = null;
     },
     updateBrand: (state, action) => {
-      // Update a single brand in the allBrands array
-      const index = state.allBrands.findIndex(
-        (brand) => brand._id === action.payload._id
-      );
-      if (index !== -1) {
-        state.allBrands[index] = action.payload;
-      }
-
-      // Also update selectedBrand if it matches
-      if (
-        state.selectedBrand &&
-        state.selectedBrand._id === action.payload._id
-      ) {
-        state.selectedBrand = action.payload;
+      const { brandId, brandData } = action.payload;
+      const brandIndex = state.allBrands.findIndex((b) => b._id === brandId);
+      if (brandIndex !== -1) {
+        state.allBrands[brandIndex] = {
+          ...state.allBrands[brandIndex],
+          ...brandData,
+        };
       }
     },
-    addEventsToBrand: (state, action) => {
-      const { brandId, events } = action.payload;
+    setLoading: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setError: (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    // Handle rehydration from persistence
+    builder.addCase(REHYDRATE, (state, action) => {
+      // Only process if we have brand data in the payload
+      if (action.payload && action.payload.brand) {
+        // Ensure events and code settings are properly restored
+        if (action.payload.brand.allBrands) {
+          state.allBrands = action.payload.brand.allBrands.map(
+            ensureEventsStructure
+          );
+        }
 
-      // Find the brand in allBrands array
-      const brandIndex = state.allBrands.findIndex(
-        (brand) => brand._id === brandId
-      );
-
-      if (brandIndex !== -1) {
-        // Add events to the brand
-        state.allBrands[brandIndex].events = events;
-
-        // Also update selectedBrand if it matches
-        if (state.selectedBrand && state.selectedBrand._id === brandId) {
-          state.selectedBrand.events = events;
+        // Restore selected brand if it exists
+        if (action.payload.brand.selectedBrandId) {
+          state.selectedBrandId = action.payload.brand.selectedBrandId;
         }
       }
-    },
-    updateEventInBrand: (state, action) => {
-      const { brandId, eventId, eventData } = action.payload;
-
-      // Find the brand in allBrands array
-      const brandIndex = state.allBrands.findIndex(
-        (brand) => brand._id === brandId
-      );
-
-      if (brandIndex !== -1) {
-        const brand = state.allBrands[brandIndex];
-
-        // Check if events is an array or has an items property
-        if (Array.isArray(brand.events)) {
-          // Find the event in the events array
-          const eventIndex = brand.events.findIndex(
-            (event) => event._id === eventId || event.id === eventId
-          );
-
-          if (eventIndex !== -1) {
-            // Update the event
-            state.allBrands[brandIndex].events[eventIndex] = {
-              ...state.allBrands[brandIndex].events[eventIndex],
-              ...eventData,
-            };
-
-            // Also update selectedBrand if it matches
-            if (state.selectedBrand && state.selectedBrand._id === brandId) {
-              if (Array.isArray(state.selectedBrand.events)) {
-                const selectedEventIndex = state.selectedBrand.events.findIndex(
-                  (event) => event._id === eventId || event.id === eventId
-                );
-
-                if (selectedEventIndex !== -1) {
-                  state.selectedBrand.events[selectedEventIndex] = {
-                    ...state.selectedBrand.events[selectedEventIndex],
-                    ...eventData,
-                  };
-                }
-              }
-            }
-          }
-        } else if (brand.events && Array.isArray(brand.events.items)) {
-          // Find the event in the events.items array
-          const eventIndex = brand.events.items.findIndex(
-            (event) => event._id === eventId || event.id === eventId
-          );
-
-          if (eventIndex !== -1) {
-            // Update the event
-            state.allBrands[brandIndex].events.items[eventIndex] = {
-              ...state.allBrands[brandIndex].events.items[eventIndex],
-              ...eventData,
-            };
-
-            // Also update selectedBrand if it matches
-            if (state.selectedBrand && state.selectedBrand._id === brandId) {
-              if (
-                state.selectedBrand.events &&
-                Array.isArray(state.selectedBrand.events.items)
-              ) {
-                const selectedEventIndex =
-                  state.selectedBrand.events.items.findIndex(
-                    (event) => event._id === eventId || event.id === eventId
-                  );
-
-                if (selectedEventIndex !== -1) {
-                  state.selectedBrand.events.items[selectedEventIndex] = {
-                    ...state.selectedBrand.events.items[selectedEventIndex],
-                    ...eventData,
-                  };
-                }
-              }
-            }
-          }
-        }
-      }
-    },
+    });
   },
 });
 
-// Export actions
 export const {
   setBrands,
   setSelectedBrand,
-  setLoading,
-  setError,
   clearBrands,
   updateBrand,
-  addEventsToBrand,
-  updateEventInBrand,
+  setLoading,
+  setError,
 } = brandSlice.actions;
 
-// Export selectors
-export const selectAllBrands = (state) => state.brand.allBrands;
-export const selectSelectedBrand = (state) => state.brand.selectedBrand;
-export const selectBrandStatus = (state) => state.brand.status;
-export const selectBrandError = (state) => state.brand.error;
+// Selectors
+export const selectAllBrands = (state) => state.brand?.allBrands || [];
+export const selectSelectedBrandId = (state) => state.brand?.selectedBrandId;
+export const selectSelectedBrand = (state) => {
+  const selectedId = state.brand?.selectedBrandId;
+  if (!selectedId) return null;
+  return state.brand?.allBrands.find((b) => b._id === selectedId);
+};
+export const selectBrandById = (state, brandId) =>
+  state.brand?.allBrands.find((b) => b._id === brandId);
 
 export default brandSlice.reducer;

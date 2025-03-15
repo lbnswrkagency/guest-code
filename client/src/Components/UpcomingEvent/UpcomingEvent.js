@@ -48,12 +48,19 @@ const UpcomingEvent = ({
   brandUsername,
   limit = 5,
   seamless = false,
+  events: providedEvents,
+  initialEventIndex = 0,
+  hideNavigation = false,
 }) => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState(
+    providedEvents ? [...providedEvents] : []
+  );
+  const [loading, setLoading] = useState(!providedEvents);
   const [error, setError] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [totalEvents, setTotalEvents] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialEventIndex);
+  const [totalEvents, setTotalEvents] = useState(
+    providedEvents ? providedEvents.length : 0
+  );
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
@@ -71,17 +78,69 @@ const UpcomingEvent = ({
   const ticketSectionRef = useRef(null);
 
   useEffect(() => {
-    // Initialize component
+    // If events are provided directly, use them
+    if (providedEvents && providedEvents.length > 0) {
+      // Create a deep copy of providedEvents and ensure lineups are valid
+      const processedEvents = providedEvents.map((event) => {
+        // Create a copy of the event
+        const eventCopy = { ...event };
+
+        // If the event has lineups, validate them
+        if (eventCopy.lineups && Array.isArray(eventCopy.lineups)) {
+          // Check if lineups is an array of strings (IDs)
+          if (
+            eventCopy.lineups.length > 0 &&
+            typeof eventCopy.lineups[0] === "string"
+          ) {
+            // We can't process string IDs here, so set lineups to null
+            // The DashboardFeed component should handle this case
+            eventCopy.lineups = null;
+          } else {
+            // Filter out invalid lineups and ensure required properties
+            eventCopy.lineups = eventCopy.lineups
+              .filter((lineup) => lineup && (lineup._id || lineup.id))
+              .map((lineup) => ({
+                _id: lineup._id || lineup.id,
+                name: lineup.name || "Unknown Artist",
+                category: lineup.category || "Other",
+                avatar: lineup.avatar || null,
+                events: lineup.events || [],
+                isActive:
+                  lineup.isActive !== undefined ? lineup.isActive : true,
+              }));
+
+            // If no valid lineups remain, set to null
+            if (eventCopy.lineups.length === 0) {
+              eventCopy.lineups = null;
+            }
+          }
+        }
+
+        return eventCopy;
+      });
+
+      setEvents(processedEvents);
+      setTotalEvents(processedEvents.length);
+      setLoading(false);
+
+      // Preload the first event's image if available
+      if (processedEvents[currentIndex]?.flyer) {
+        preloadEventImage(processedEvents[currentIndex]);
+      }
+      return;
+    }
+
+    // Otherwise, initialize component and fetch events
     setLoading(true);
     setError(null);
     setEvents([]);
-    setCurrentIndex(0);
+    setCurrentIndex(initialEventIndex);
     setTicketSettings([]);
     setLoadingTickets(false);
     setShowGuestCodeForm(false);
 
     fetchUpcomingEvents();
-  }, [brandId, brandUsername]);
+  }, [brandId, brandUsername, providedEvents]);
 
   // Fetch the code settings when the current event changes
   useEffect(() => {
@@ -102,17 +161,8 @@ const UpcomingEvent = ({
 
           // Check if condition is empty or missing
           if (!guestCodeSetting.condition && guestCodeSetting.condition !== 0) {
-            console.warn(
-              "[UpcomingEvent] Guest code condition is empty or missing, should be populated from DB"
-            );
-
             // If we have an event ID, fetch the complete code settings
             if (currentEvent._id) {
-              console.log(
-                "[UpcomingEvent] Attempting to fetch complete code settings for event:",
-                currentEvent._id
-              );
-
               // Create an async function to fetch and update settings
               const fetchAndUpdateSettings = async () => {
                 // Fetch the complete code settings and update the state
@@ -121,75 +171,36 @@ const UpcomingEvent = ({
                 );
 
                 if (completeSettings) {
-                  console.log(
-                    "[UpcomingEvent] Received complete code settings:",
-                    completeSettings
-                  );
-
                   // Update the events array with the complete code settings
                   setEvents((prevEvents) => {
                     const updatedEvents = [...prevEvents];
-                    const currentEvent = updatedEvents[currentIndex];
-
-                    // Update the code settings in the current event
-                    currentEvent.codeSettings = completeSettings;
-
-                    // Find the guest code setting
-                    const guestCodeSetting = completeSettings.find(
-                      (cs) => cs.type === "guest"
-                    );
-
-                    if (guestCodeSetting && guestCodeSetting.maxPax) {
-                      console.log(
-                        "[UpcomingEvent] Found maxPax in updated settings:",
-                        guestCodeSetting.maxPax
-                      );
-                    }
+                    const updatedEvent = {
+                      ...updatedEvents[currentIndex],
+                      codeSettings: completeSettings,
+                    };
+                    updatedEvents[currentIndex] = updatedEvent;
 
                     return updatedEvents;
                   });
-                } else {
-                  console.log(
-                    "[UpcomingEvent] Failed to fetch complete code settings or no settings found"
-                  );
                 }
               };
 
               // Execute the async function
               fetchAndUpdateSettings();
             }
-          } else {
-            console.log(
-              "[UpcomingEvent] Guest code condition is present:",
-              guestCodeSetting.condition
-            );
           }
 
           return;
-        } else {
-          console.log(
-            "[UpcomingEvent] No guest code setting found in event code settings"
-          );
         }
-      } else {
-        console.log("[UpcomingEvent] No code settings found for event");
       }
-
-      // Default max pax if no settings are found
-      console.log("[UpcomingEvent] Using default maxPax: 4");
     }
   }, [currentIndex, events]);
 
   // Function to fetch complete code settings for an event
   const fetchCompleteCodeSettings = async (eventId) => {
     try {
-      console.log(
-        `[UpcomingEvent] Fetching complete code settings for event: ${eventId}`
-      );
-
       // Use the event profile endpoint which has optional authentication
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-      console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
       const response = await axiosInstance.get(endpoint);
 
@@ -211,16 +222,19 @@ const UpcomingEvent = ({
 
       // Ensure ticketsAvailable property exists
       if (currentEvent.ticketsAvailable === undefined) {
-        console.log(
-          "[UpcomingEvent] ticketsAvailable property is undefined for current event"
-        );
+        // Create a copy of the events array to avoid modifying the original
+        const updatedEvents = [...events];
+        const updatedEvent = {
+          ...updatedEvents[currentIndex],
+          ticketsAvailable: true,
+        };
+        updatedEvents[currentIndex] = updatedEvent;
+
+        // Update the state with the new array
+        setEvents(updatedEvents);
 
         // If this is a child event, check if parent event has tickets available
         if (currentEvent.parentEventId && currentEvent.isWeekly === false) {
-          console.log(
-            "[UpcomingEvent] This is a child event, checking parent event for ticketsAvailable"
-          );
-
           // Find the parent event in the events array
           const parentEvent = events.find(
             (event) =>
@@ -229,44 +243,25 @@ const UpcomingEvent = ({
           );
 
           if (parentEvent && parentEvent.ticketsAvailable !== undefined) {
-            console.log(
-              `[UpcomingEvent] Found parent event, inheriting ticketsAvailable: ${parentEvent.ticketsAvailable}`
-            );
-            currentEvent.ticketsAvailable = parentEvent.ticketsAvailable;
-          } else {
-            console.log(
-              "[UpcomingEvent] Parent event not found in current events array or doesn't have ticketsAvailable, defaulting to true"
-            );
-            currentEvent.ticketsAvailable = true; // Default to true if parent not found
+            // Update the copy again with the parent's value
+            const updatedEventsWithParent = [...updatedEvents];
+            updatedEventsWithParent[currentIndex] = {
+              ...updatedEventsWithParent[currentIndex],
+              ticketsAvailable: parentEvent.ticketsAvailable,
+            };
+            setEvents(updatedEventsWithParent);
           }
-        } else {
-          console.log(
-            "[UpcomingEvent] Not a child event or no parent ID, defaulting ticketsAvailable to true"
-          );
-          currentEvent.ticketsAvailable = true; // Default to true if not specified
         }
-      }
 
-      console.log(
-        "[UpcomingEvent] Current event changed, ticket availability status:",
-        {
-          eventId: currentEvent._id,
-          eventTitle: currentEvent.title,
-          ticketsAvailable: currentEvent.ticketsAvailable,
-          isWeekly: currentEvent.isWeekly,
-          weekNumber: currentEvent.weekNumber,
-          parentEventId: currentEvent.parentEventId,
-          timestamp: new Date().toISOString(),
-        }
-      );
+        // Skip the rest of this effect run since we've updated the state
+        // The effect will run again with the updated events array
+        return;
+      }
 
       // Only fetch ticket settings if the event has tickets available
       if (currentEvent.ticketsAvailable) {
         fetchTicketSettings(currentEvent._id);
       } else {
-        console.log(
-          "[UpcomingEvent] Skipping ticket settings fetch - event does not have tickets available"
-        );
         setTicketSettings([]);
       }
     }
@@ -307,23 +302,9 @@ const UpcomingEvent = ({
     setLoadingTickets(true);
     try {
       const currentEvent = events[currentIndex];
-      console.log(
-        "[UpcomingEvent] Current event changed, fetching ticket settings:",
-        {
-          eventId: eventId,
-          eventTitle: currentEvent?.title,
-          isWeekly: currentEvent?.isWeekly,
-          weekNumber: currentEvent?.weekNumber,
-          parentEventId: currentEvent?.parentEventId,
-          ticketsAvailable: currentEvent?.ticketsAvailable,
-          hasTicketsAvailableProperty: "ticketsAvailable" in currentEvent,
-          timestamp: new Date().toISOString(),
-        }
-      );
 
       // Try the event profile endpoint which has optional authentication
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-      console.log(`[UpcomingEvent] Using event profile endpoint: ${endpoint}`);
 
       const response = await axiosInstance.get(endpoint);
       let ticketSettings = [];
@@ -333,20 +314,11 @@ const UpcomingEvent = ({
         response.data.ticketSettings &&
         response.data.ticketSettings.length > 0
       ) {
-        console.log("[UpcomingEvent] Found ticket settings for event:", {
-          count: response.data.ticketSettings.length,
-          settings: response.data.ticketSettings,
-        });
         ticketSettings = response.data.ticketSettings;
       } else {
         // If this is a child event (has parentEventId) and no ticket settings were found,
         // try to get ticket settings from the parent event
         if (currentEvent?.parentEventId) {
-          console.log(
-            "[UpcomingEvent] No ticket settings found for child event, checking parent event:",
-            currentEvent.parentEventId
-          );
-
           try {
             const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
             const parentResponse = await axiosInstance.get(parentEndpoint);
@@ -356,18 +328,8 @@ const UpcomingEvent = ({
               parentResponse.data.ticketSettings &&
               parentResponse.data.ticketSettings.length > 0
             ) {
-              console.log(
-                "[UpcomingEvent] Found ticket settings from parent event:",
-                {
-                  count: parentResponse.data.ticketSettings.length,
-                  settings: parentResponse.data.ticketSettings,
-                }
-              );
               ticketSettings = parentResponse.data.ticketSettings;
             } else {
-              console.log(
-                "[UpcomingEvent] No ticket settings found in parent event either"
-              );
               ticketSettings = [];
             }
           } catch (parentError) {
@@ -378,9 +340,6 @@ const UpcomingEvent = ({
             ticketSettings = [];
           }
         } else {
-          console.log(
-            "[UpcomingEvent] No ticket settings found and not a child event"
-          );
           ticketSettings = [];
         }
       }
@@ -405,16 +364,12 @@ const UpcomingEvent = ({
       // Try to fetch by brandId first if available
       if (brandId) {
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
-        console.log(`[UpcomingEvent] Fetching events by brandId: ${brandId}`);
 
         try {
           const response = await axiosInstance.get(endpoint);
 
           if (response.data && Array.isArray(response.data)) {
             events = response.data;
-            console.log(
-              `[UpcomingEvent] Found ${events.length} events by brandId`
-            );
           }
 
           // If we have parent events, fetch their children too
@@ -431,9 +386,6 @@ const UpcomingEvent = ({
                 childrenResponse.data &&
                 Array.isArray(childrenResponse.data)
               ) {
-                console.log(
-                  `[UpcomingEvent] Found ${childrenResponse.data.length} child events for parent ${parentEvent._id}`
-                );
                 events = [...events, ...childrenResponse.data];
               }
             } catch (childError) {
@@ -458,17 +410,11 @@ const UpcomingEvent = ({
             if (brandUsername) {
               const cleanUsername = brandUsername.replace(/^@/, "");
               endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
-              console.log(
-                `[UpcomingEvent] Falling back to username endpoint: ${endpoint}`
-              );
 
               try {
                 const response = await axiosInstance.get(endpoint);
                 if (response.data && Array.isArray(response.data)) {
                   events = response.data;
-                  console.log(
-                    `[UpcomingEvent] Found ${events.length} events by username fallback`
-                  );
                 } else {
                   events = [];
                 }
@@ -486,18 +432,12 @@ const UpcomingEvent = ({
         // No brandId, try using brandUsername
         const cleanUsername = brandUsername.replace(/^@/, "");
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
-        console.log(
-          `[UpcomingEvent] Fetching events by username: ${cleanUsername}`
-        );
 
         try {
           const response = await axiosInstance.get(endpoint);
 
           if (response.data && Array.isArray(response.data)) {
             events = response.data;
-            console.log(
-              `[UpcomingEvent] Found ${events.length} events by username`
-            );
 
             // If we have parent events, fetch their children too
             const parentEvents = events.filter((event) => event.isWeekly);
@@ -513,9 +453,6 @@ const UpcomingEvent = ({
                   childrenResponse.data &&
                   Array.isArray(childrenResponse.data)
                 ) {
-                  console.log(
-                    `[UpcomingEvent] Found ${childrenResponse.data.length} child events for parent ${parentEvent._id}`
-                  );
                   events = [...events, ...childrenResponse.data];
                 }
               } catch (childError) {
@@ -540,11 +477,6 @@ const UpcomingEvent = ({
       // Filter out past events and sort by date
       const now = new Date();
       now.setHours(0, 0, 0, 0); // Set to start of day for more accurate comparison
-
-      console.log("[UpcomingEvent] Filtering events:", {
-        totalEvents: events.length,
-        currentTime: now.toISOString(),
-      });
 
       const upcomingEvents = events
         .filter((event) => {
@@ -682,26 +614,8 @@ const UpcomingEvent = ({
                 const isParentUpcoming = parentEndDateTime >= now;
 
                 if (isParentUpcoming) {
-                  console.log(
-                    `[UpcomingEvent] Including upcoming parent weekly event: ${event.title}`,
-                    {
-                      eventDate: parentEventDate.toISOString(),
-                      eventEndDateTime: parentEndDateTime.toISOString(),
-                      now: now.toISOString(),
-                      isUpcoming: isParentUpcoming,
-                    }
-                  );
                   return true;
                 } else {
-                  console.log(
-                    `[UpcomingEvent] Parent weekly event is in the past: ${event.title}`,
-                    {
-                      eventDate: parentEventDate.toISOString(),
-                      eventEndDateTime: parentEndDateTime.toISOString(),
-                      now: now.toISOString(),
-                    }
-                  );
-
                   // Even if the parent event is in the past, we should still show it if it has upcoming child events
                   // This will be handled by the child events filter, so we can return false here
                   return false;
@@ -715,18 +629,6 @@ const UpcomingEvent = ({
             // For regular events, check if their end date/time is in the future
             const isUpcoming = eventEndDateTime >= now;
 
-            if (isUpcoming) {
-              console.log(
-                `[UpcomingEvent] Including upcoming event: ${event.title}`,
-                {
-                  eventDate: eventDate.toISOString(),
-                  eventEndDateTime: eventEndDateTime.toISOString(),
-                  now: now.toISOString(),
-                  isUpcoming,
-                }
-              );
-            }
-
             return isUpcoming;
           } catch (err) {
             console.error("[UpcomingEvent] Error filtering event:", err, event);
@@ -734,23 +636,6 @@ const UpcomingEvent = ({
           }
         })
         .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      console.log("[UpcomingEvent] Filtered upcoming events:", {
-        total: events.length,
-        upcoming: upcomingEvents.length,
-        firstEvent:
-          upcomingEvents.length > 0
-            ? {
-                title: upcomingEvents[0].title,
-                date: upcomingEvents[0].date,
-                endDate: upcomingEvents[0].endDate,
-                startTime: upcomingEvents[0].startTime,
-                endTime: upcomingEvents[0].endTime,
-                isWeekly: upcomingEvents[0].isWeekly,
-                weekNumber: upcomingEvents[0].weekNumber,
-              }
-            : null,
-      });
 
       setEvents(upcomingEvents);
       setTotalEvents(upcomingEvents.length);
@@ -824,15 +709,9 @@ const UpcomingEvent = ({
 
     // If user is logged in, navigate to the user-specific route
     if (user) {
-      console.log(
-        `[UpcomingEvent] Navigating to user event: /@${user.username}/@${brandUser}/${dateSlug}${sectionParam}`
-      );
       navigate(`/@${user.username}/@${brandUser}/${dateSlug}${sectionParam}`);
     } else {
       // If no user, use the public route
-      console.log(
-        `[UpcomingEvent] Navigating to public event: /@${brandUser}/${dateSlug}${sectionParam}`
-      );
       navigate(`/@${brandUser}/${dateSlug}${sectionParam}`);
     }
   };
@@ -850,7 +729,7 @@ const UpcomingEvent = ({
     // Try formats in order of preference: landscape, portrait, square
     // For each format, prefer full > medium > thumbnail for quality
 
-    // First check landscape
+    // First check landscape (highest priority)
     if (event.flyer.landscape) {
       return (
         event.flyer.landscape.full ||
@@ -859,21 +738,21 @@ const UpcomingEvent = ({
       );
     }
 
-    // Next check portrait
-    if (event.flyer.portrait) {
-      return (
-        event.flyer.portrait.full ||
-        event.flyer.portrait.medium ||
-        event.flyer.portrait.thumbnail
-      );
-    }
-
-    // Finally check square
+    // Next check square (second priority)
     if (event.flyer.square) {
       return (
         event.flyer.square.full ||
         event.flyer.square.medium ||
         event.flyer.square.thumbnail
+      );
+    }
+
+    // Finally check portrait (lowest priority)
+    if (event.flyer.portrait) {
+      return (
+        event.flyer.portrait.full ||
+        event.flyer.portrait.medium ||
+        event.flyer.portrait.thumbnail
       );
     }
 
@@ -893,8 +772,22 @@ const UpcomingEvent = ({
       return null;
     }
 
+    // If lineups is an array of strings (IDs), we can't render it
+    if (lineups.length > 0 && typeof lineups[0] === "string") {
+      return null;
+    }
+
+    // Check if lineup data is valid (has required properties)
+    const validLineups = lineups.filter(
+      (artist) => artist && artist.name && artist._id
+    );
+
+    if (validLineups.length === 0) {
+      return null;
+    }
+
     // Group lineups by category
-    const groupedLineups = lineups.reduce((groups, artist) => {
+    const groupedLineups = validLineups.reduce((groups, artist) => {
       const category = artist.category || "Other";
       if (!groups[category]) {
         groups[category] = [];
@@ -970,12 +863,16 @@ const UpcomingEvent = ({
 
     // Preload the event image if available
     if (event.flyer) {
-      const formats = ["portrait", "landscape", "square"];
-      for (const format of formats) {
-        if (event.flyer[format]?.medium) {
-          const img = new Image();
-          img.src = event.flyer[format].medium;
-        }
+      // Try to preload in priority order: landscape, square, portrait
+      if (event.flyer.landscape?.medium) {
+        const img = new Image();
+        img.src = event.flyer.landscape.medium;
+      } else if (event.flyer.square?.medium) {
+        const img = new Image();
+        img.src = event.flyer.square.medium;
+      } else if (event.flyer.portrait?.medium) {
+        const img = new Image();
+        img.src = event.flyer.portrait.medium;
       }
     }
   };
@@ -989,14 +886,14 @@ const UpcomingEvent = ({
       return "has-landscape-flyer";
     }
 
-    // Next check for portrait format
-    if (events[currentIndex].flyer.portrait) {
-      return "has-portrait-flyer";
+    // Next check for square format (second priority)
+    if (events[currentIndex].flyer.square) {
+      return "has-square-flyer";
     }
 
-    // Finally check for square or any other format (including the 9:16 tall format)
-    if (events[currentIndex].flyer.square) {
-      return "has-vertical-flyer";
+    // Finally check portrait format (lowest priority)
+    if (events[currentIndex].flyer.portrait) {
+      return "has-portrait-flyer";
     }
 
     return "";
@@ -1012,7 +909,6 @@ const UpcomingEvent = ({
 
   // Handler for image error
   const handleImageError = () => {
-    console.error("Failed to load event image");
     setImageLoaded(true); // Still mark as loaded so UI doesn't wait indefinitely
   };
 
@@ -1128,39 +1024,43 @@ const UpcomingEvent = ({
 
   return (
     <div className={`upcoming-event-container ${seamless ? "seamless" : ""}`}>
-      <div className="event-navigation">
-        <button
-          className={`nav-button prev ${currentIndex === 0 ? "disabled" : ""}`}
-          onClick={handlePrevEvent}
-          disabled={currentIndex === 0}
-        >
-          <RiArrowLeftSLine />
-        </button>
-        <div className="navigation-indicator">
-          {events.map((_, index) => (
-            <div
-              key={index}
-              className={`indicator-dot ${
-                index === currentIndex ? "active" : ""
-              }`}
-              onClick={() => setCurrentIndex(index)}
-            />
-          ))}
+      {!hideNavigation && (
+        <div className="event-navigation">
+          <button
+            className={`nav-button prev ${
+              currentIndex === 0 ? "disabled" : ""
+            }`}
+            onClick={handlePrevEvent}
+            disabled={currentIndex === 0}
+          >
+            <RiArrowLeftSLine />
+          </button>
+          <div className="navigation-indicator">
+            {events.map((_, index) => (
+              <div
+                key={index}
+                className={`indicator-dot ${
+                  index === currentIndex ? "active" : ""
+                }`}
+                onClick={() => setCurrentIndex(index)}
+              />
+            ))}
+          </div>
+          <button
+            className={`nav-button next ${
+              currentIndex === events.length - 1 ? "disabled" : ""
+            }`}
+            onClick={handleNextEvent}
+            disabled={currentIndex === events.length - 1}
+          >
+            <RiArrowRightSLine />
+          </button>
         </div>
-        <button
-          className={`nav-button next ${
-            currentIndex === events.length - 1 ? "disabled" : ""
-          }`}
-          onClick={handleNextEvent}
-          disabled={currentIndex === events.length - 1}
-        >
-          <RiArrowRightSLine />
-        </button>
-      </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentEvent._id}
+          key={currentEvent?._id || `event-${currentIndex}`}
           className={`event-card ${determineAspectRatioClass()}`}
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -1218,9 +1118,9 @@ const UpcomingEvent = ({
             </div>
 
             {/* Lineup section */}
-            {currentEvent.lineups &&
-              currentEvent.lineups.length > 0 &&
-              renderLineups(currentEvent.lineups)}
+            {currentEvent.lineups && currentEvent.lineups.length > 0 && (
+              <>{renderLineups(currentEvent.lineups)}</>
+            )}
 
             {/* Content sections wrapper for responsive layout */}
             <div className="content-sections">
@@ -1237,9 +1137,6 @@ const UpcomingEvent = ({
                       fetchTicketSettings={async (eventId) => {
                         try {
                           const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-                          console.log(
-                            `[UpcomingEvent] Using event profile endpoint: ${endpoint}`
-                          );
 
                           const response = await axiosInstance.get(endpoint);
                           let ticketSettings = [];
@@ -1252,11 +1149,6 @@ const UpcomingEvent = ({
                             ticketSettings = response.data.ticketSettings;
                           } else if (currentEvent.parentEventId) {
                             // If this is a child event and no ticket settings were found, check parent event
-                            console.log(
-                              "[UpcomingEvent] No ticket settings found for child event, checking parent:",
-                              currentEvent.parentEventId
-                            );
-
                             try {
                               const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
                               const parentResponse = await axiosInstance.get(
@@ -1268,9 +1160,6 @@ const UpcomingEvent = ({
                                 parentResponse.data.ticketSettings &&
                                 parentResponse.data.ticketSettings.length > 0
                               ) {
-                                console.log(
-                                  "[UpcomingEvent] Using ticket settings from parent event"
-                                );
                                 ticketSettings =
                                   parentResponse.data.ticketSettings;
                               }

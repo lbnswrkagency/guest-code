@@ -113,26 +113,10 @@ const Tickets = ({
     if (!eventId) return;
 
     setLoadingTickets(true);
-    console.log("[Tickets] Loading ticket settings for event:", {
-      eventId,
-      eventTitle,
-      timestamp: new Date().toISOString(),
-    });
 
     try {
       if (fetchTicketSettings) {
         const settings = await fetchTicketSettings(eventId);
-        console.log("[Tickets] Received ticket settings:", {
-          count: settings?.length || 0,
-          settings:
-            settings?.map((s) => ({
-              id: s._id,
-              name: s.name,
-              price: s.price,
-              hasCountdown: s.hasCountdown,
-              color: s.color,
-            })) || [],
-        });
         setTicketSettings(settings || []);
 
         // Set primary color from first ticket if available
@@ -144,11 +128,9 @@ const Tickets = ({
           );
         }
       } else {
-        console.warn("[Tickets] No fetchTicketSettings function provided");
         setTicketSettings([]);
       }
     } catch (error) {
-      console.error("[Tickets] Error loading ticket settings:", error);
       setTicketSettings([]);
     } finally {
       setLoadingTickets(false);
