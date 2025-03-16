@@ -26,11 +26,58 @@ const validateTicket = async (req, res) => {
     // Check if ticketId is a URL and extract the securityToken if it is
     let securityTokenToCheck = ticketId;
     if (ticketId.includes("/validate/")) {
-      const urlParts = ticketId.split("/");
-      if (urlParts.length >= 2) {
-        securityTokenToCheck = urlParts[urlParts.length - 1];
-        console.log("Extracted security token from URL:", securityTokenToCheck);
+      try {
+        // First check if it's a full URL
+        let urlToProcess = ticketId;
+
+        // For URLs, extract just the path part
+        if (ticketId.includes("http")) {
+          try {
+            const url = new URL(ticketId);
+            urlToProcess = url.pathname;
+            console.log("Extracted path from URL:", urlToProcess);
+          } catch (urlError) {
+            console.log(
+              "Error parsing full URL, treating as path:",
+              urlError.message
+            );
+          }
+        }
+
+        // Extract the security token (last part after /)
+        const urlParts = urlToProcess.split("/").filter((part) => part.trim());
+        if (urlParts.length > 0) {
+          const securityToken = urlParts[urlParts.length - 1];
+          console.log("Extracted security token from URL:", securityToken);
+
+          // Validate that it looks like a security token (alphanumeric, reasonable length)
+          if (securityToken && securityToken.length >= 8) {
+            securityTokenToCheck = securityToken;
+          }
+        }
+      } catch (error) {
+        console.log(
+          "Error extracting security token, using fallback method:",
+          error.message
+        );
+        // Fallback to simple split
+        const urlParts = ticketId.split("/");
+        if (urlParts.length >= 2) {
+          securityTokenToCheck = urlParts[urlParts.length - 1];
+          console.log(
+            "Fallback: Extracted security token from URL:",
+            securityTokenToCheck
+          );
+        }
       }
+    }
+
+    // Direct token format check (if not URL but matches token pattern)
+    if (
+      securityTokenToCheck === ticketId &&
+      /^[a-zA-Z0-9]{32}$/.test(ticketId)
+    ) {
+      console.log("Input appears to be a direct security token");
     }
 
     let ticket;
@@ -39,6 +86,7 @@ const validateTicket = async (req, res) => {
     let hostName = null;
     let eventId = null;
     let codeSetting = null; // Store codeSetting for later use
+    let wrongEventError = false; // Flag to track if the event ID doesn't match
 
     // First check if this is a security token in the Code model
     let codeBySecurityToken = await Code.findOne({
@@ -83,14 +131,10 @@ const validateTicket = async (req, res) => {
         console.log("Found event:", event ? event.title : "No event found");
       }
 
-      // Check if the code belongs to the specified event
+      // Check if the code belongs to the specified event (set flag, don't return yet)
       if (requestEventId && eventId && requestEventId !== eventId.toString()) {
-        return res.status(400).json({
-          message:
-            "This code belongs to a different event than the one selected.",
-          codeEventId: eventId.toString(),
-          requestedEventId: requestEventId,
-        });
+        console.log("Event mismatch detected in first check");
+        wrongEventError = true;
       }
 
       // Get host name if available
@@ -349,22 +393,27 @@ const validateTicket = async (req, res) => {
       }
     }
 
-    // After all code is found (whether in the if or else blocks), add this check
-    // This is a final verification to ensure the event matches
+    // Once we have the ticket (no matter which model), check for event mismatch
     if (
       ticket &&
       requestEventId &&
-      eventId &&
-      requestEventId !== eventId.toString()
+      ticket.eventId &&
+      requestEventId !== ticket.eventId.toString()
     ) {
+      console.log("Event mismatch detected in second check");
+      wrongEventError = true;
+    }
+
+    // Return an error if the event check failed
+    if (wrongEventError) {
       return res.status(400).json({
-        message:
-          "This code belongs to a different event than the one selected.",
-        codeEventId: eventId.toString(),
+        message: "That code is from a different event.",
+        codeEventId: (eventId || ticket?.eventId)?.toString(),
         requestedEventId: requestEventId,
       });
     }
 
+    // If no ticket was found, return an error
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
@@ -385,6 +434,43 @@ const validateTicket = async (req, res) => {
     if (!event && ticket.eventId) {
       const Event = require("../models/eventsModel");
       event = await Event.findById(ticket.eventId);
+    }
+
+    // If we haven't found a codeSetting yet and it's a legacy model, try to find it
+    if (!codeSetting && ticket) {
+      // Try to find associated code setting based on the event and type
+      try {
+        const CodeSettings = require("../models/codeSettingsModel");
+
+        // Determine the type for legacy models
+        let legacyType = "";
+        if (typeOfTicket === "Guest-Code") legacyType = "guest";
+        else if (typeOfTicket === "Friends-Code") legacyType = "friends";
+        else if (typeOfTicket === "Backstage-Code") legacyType = "backstage";
+        else if (typeOfTicket === "Table-Code") legacyType = "table";
+        else if (typeOfTicket === "Ticket-Code") legacyType = "ticket";
+        else if (typeOfTicket.includes("Custom")) legacyType = "custom";
+        else if (ticket.type) legacyType = ticket.type.toLowerCase();
+
+        if (legacyType && ticket.eventId) {
+          codeSetting = await CodeSettings.findOne({
+            eventId: ticket.eventId,
+            type: legacyType,
+          });
+
+          console.log(
+            "Found code setting for legacy model:",
+            codeSetting?.name || "Not found",
+            "with color:",
+            codeSetting?.color || "No color"
+          );
+        }
+      } catch (error) {
+        console.log(
+          "Error looking for code settings for legacy model:",
+          error.message
+        );
+      }
     }
 
     // Check if the code belongs to the specified event
@@ -420,6 +506,16 @@ const validateTicket = async (req, res) => {
       conditionToUse = codeSetting.condition;
     }
 
+    // Get color information from code settings if available
+    const codeColor = codeSetting?.color || "#ffc107"; // Default to yellow if no color found
+
+    console.log(
+      "Using color for response:",
+      codeColor,
+      "for type:",
+      typeOfTicket
+    );
+
     // Add event details and type to the response
     res.json({
       ...ticketData,
@@ -427,6 +523,8 @@ const validateTicket = async (req, res) => {
       eventDetails,
       // Use determined condition value
       condition: conditionToUse,
+      // Add color information from code settings
+      codeColor: codeColor,
       // Make sure we have event name in a consistent place
       eventName: event ? event.title : "Unknown Event",
       // Include host name
@@ -439,6 +537,8 @@ const validateTicket = async (req, res) => {
           hostName ||
           (ticketData.metadata && ticketData.metadata.hostName) ||
           "",
+        // Also include color in metadata
+        codeColor: codeColor,
       },
     });
   } catch (error) {

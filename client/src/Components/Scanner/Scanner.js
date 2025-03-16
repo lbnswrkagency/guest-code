@@ -18,6 +18,9 @@ import {
   RiCalendarEventLine,
 } from "react-icons/ri";
 
+// Add this debug flag to help with troubleshooting
+const DEBUG_SCANNING = false; // Set to true to enable extended logging
+
 function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
@@ -30,6 +33,9 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const streamRef = useRef(null);
+  const lastScannedCode = useRef(null); // Store the last scanned code to prevent duplicates
+  const lastScanTime = useRef(0); // Store the last scan time for debouncing
+  const lastProcessedFrame = useRef(0); // To control frame processing rate
   const toast = useToast();
 
   // Function to initialize camera
@@ -66,10 +72,26 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         !isProcessing &&
         !errorMessage // Don't scan if there's an error
       ) {
+        // Process frames at a reasonable rate to avoid overloading
+        const now = Date.now();
+        const shouldProcessFrame = now - lastProcessedFrame.current > 100; // Process ~10 frames per second
+
+        if (!shouldProcessFrame) {
+          animationFrameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        lastProcessedFrame.current = now;
+
         const canvasElement = canvasRef.current;
         const context = canvasElement.getContext("2d");
-        canvasElement.width = videoRef.current.videoWidth;
-        canvasElement.height = videoRef.current.videoHeight;
+        const videoWidth = videoRef.current.videoWidth;
+        const videoHeight = videoRef.current.videoHeight;
+
+        canvasElement.width = videoWidth;
+        canvasElement.height = videoHeight;
+
+        // Draw video frame to canvas
         context.drawImage(
           videoRef.current,
           0,
@@ -78,6 +100,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           canvasElement.height
         );
 
+        // Get image data
         const imageData = context.getImageData(
           0,
           0,
@@ -85,10 +108,49 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           canvasElement.height
         );
 
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        // Try standard QR code detection
+        let code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        // If primary detection failed, try alternative approaches
+        if (!code) {
+          // Try with inverted colors (some older QR codes might need this)
+          if (DEBUG_SCANNING)
+            console.log("Primary scan failed, trying alternatives...");
+
+          // Invert the image data to try detecting inverted QR codes
+          const invertedData = new Uint8ClampedArray(imageData.data);
+          for (let i = 0; i < invertedData.length; i += 4) {
+            invertedData[i] = 255 - invertedData[i]; // R
+            invertedData[i + 1] = 255 - invertedData[i + 1]; // G
+            invertedData[i + 2] = 255 - invertedData[i + 2]; // B
+          }
+
+          const invertedImageData = new ImageData(
+            invertedData,
+            imageData.width,
+            imageData.height
+          );
+
+          // Try to detect QR code in the inverted image
+          code = jsQR(
+            invertedImageData.data,
+            imageData.width,
+            imageData.height
+          );
+        }
 
         if (code && !isProcessing && !errorMessage) {
-          handleQRCode(code.data);
+          if (DEBUG_SCANNING) console.log("QR code detected:", code.data);
+
+          // Prevent processing the same code multiple times in succession
+          if (
+            code.data !== lastScannedCode.current ||
+            Date.now() - lastScanTime.current > 5000 // Allow rescanning after 5 seconds
+          ) {
+            handleQRCode(code.data);
+          }
+        } else if (DEBUG_SCANNING && !code) {
+          console.log("No QR code detected in this frame");
         }
       }
       animationFrameRef.current = requestAnimationFrame(tick);
@@ -103,6 +165,10 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       return; // Don't process if already processing or if there's an error
     }
 
+    // Update the last scanned code and time
+    lastScannedCode.current = data;
+    lastScanTime.current = Date.now();
+
     setIsProcessing(true);
     if (!data || data.trim() === "") {
       toast.showError("Invalid QR code content");
@@ -111,51 +177,83 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
     }
 
     try {
-      console.log("QR code data:", data);
       let codeType = "Raw Code";
+      let codeToValidate = data; // Initialize at the function scope level
 
-      // Check if the data is JSON
-      let codeData;
-      let codeToValidate = data;
+      // Short code format check (for codes like VCUDRT8T)
+      if (/^[A-Z0-9]{8}$/.test(data)) {
+        codeType = "Short Code";
+        // No need to modify data, codeToValidate already set to data
+      } else {
+        // Check if the data is JSON
+        let codeData;
 
-      try {
-        codeData = JSON.parse(data);
-        console.log("Parsed QR code JSON data:", codeData);
-        codeType = "JSON Code";
+        try {
+          codeData = JSON.parse(data);
+          codeType = "JSON Code";
 
-        // Check if we have a code property in the parsed object
-        if (codeData && codeData.code) {
-          codeToValidate = codeData.code;
-          codeType = "JSON Code (code property)";
-        } else if (codeData && codeData.securityToken) {
-          codeToValidate = codeData.securityToken;
-          codeType = "JSON Code (securityToken property)";
-        }
-      } catch (parseError) {
-        // If not JSON, try to extract from URL format
-        console.log("QR code is not JSON, checking if it's a URL format");
-
-        // Check if it's a URL format like /validate/{codeId}/{securityToken}
-        if (data.includes("/validate/")) {
-          const urlParts = data.split("/");
-          // Get the last part which should be the securityToken
-          if (urlParts.length >= 2) {
-            const securityToken = urlParts[urlParts.length - 1];
-            console.log("Extracted security token from URL:", securityToken);
-            codeToValidate = securityToken;
-            codeType = "URL Code";
+          // Check if we have a code property in the parsed object
+          if (codeData && codeData.code) {
+            codeToValidate = codeData.code;
+            codeType = "JSON Code (code property)";
+          } else if (codeData && codeData.securityToken) {
+            codeToValidate = codeData.securityToken;
+            codeType = "JSON Code (securityToken property)";
           }
-        } else {
-          // Treat as a raw code
-          console.log("QR code is not URL format, treating as raw code");
+        } catch (parseError) {
+          // If not JSON, try to extract from URL format
+
+          // Enhanced URL parsing
+          if (data.includes("/validate/") || data.includes("guest-code.com")) {
+            // Enhanced URL parsing to handle various formats
+            try {
+              // First check if it's a full URL
+              let urlToProcess = data;
+
+              // For URLs, extract just the path part
+              if (data.includes("http")) {
+                const url = new URL(data);
+                urlToProcess = url.pathname;
+              }
+
+              // Extract the security token (last part after /)
+              const urlParts = urlToProcess
+                .split("/")
+                .filter((part) => part.trim());
+              if (urlParts.length > 0) {
+                const securityToken = urlParts[urlParts.length - 1];
+
+                // Validate that it looks like a security token (alphanumeric, reasonable length)
+                if (securityToken && securityToken.length >= 8) {
+                  codeToValidate = securityToken;
+                  codeType = "URL Code";
+                }
+              }
+            } catch (urlError) {
+              // Fall back to the original method
+              const urlParts = data.split("/");
+              if (urlParts.length >= 2) {
+                const securityToken = urlParts[urlParts.length - 1];
+                codeToValidate = securityToken;
+                codeType = "URL Code";
+              }
+            }
+          } else if (data.match(/^[a-zA-Z0-9]{32}$/)) {
+            // Direct security token format (32 characters alphanumeric)
+            codeToValidate = data;
+            codeType = "Direct Token";
+          }
         }
       }
 
-      console.log(`Validating ${codeType}: ${codeToValidate}`);
+      // Cancel the animation frame while validating to prevent multiple scans
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       // Validate the code
       await validateTicket(codeToValidate);
     } catch (error) {
-      console.error("QR processing error:", error);
       setErrorMessage("Failed to process QR code. Please try again.");
       cleanupCamera(); // Stop the camera when there's an error
       setShowCamera(false);
@@ -190,7 +288,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const validateTicket = async (codeValue) => {
     try {
       setIsProcessing(true);
-      console.log("Validating code:", codeValue);
 
       // Add the eventId to the validation request if available
       const payload = {
@@ -207,100 +304,108 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         payload.brandId = selectedBrand._id;
       }
 
-      console.log("Validation payload:", payload);
+      try {
+        // Single API call to validate the code - will handle security tokens, IDs, and code values
+        const response = await axiosInstance.post("/qr/validate", payload);
 
-      // Single API call to validate the code - will handle security tokens, IDs, and code values
-      const response = await axiosInstance.post("/qr/validate", payload);
+        // If the ticket doesn't belong to the selected event, show an error
+        if (
+          selectedEvent &&
+          response.data.eventId &&
+          selectedEvent._id !== response.data.eventId &&
+          response.data.eventDetails?.title !== selectedEvent.title
+        ) {
+          // Handle wrong event error with a simpler UI message
+          setErrorMessage("That code is from a different event.");
+          setShowCamera(false);
+          cleanupCamera();
+          setIsProcessing(false);
+          return; // Exit early to prevent multiple error messages
+        }
 
-      console.log("Verification response:", response.data);
+        // Map the response data to our scanResult structure
+        const ticketData = response.data;
 
-      // If the ticket doesn't belong to the selected event, show an error
-      if (
-        selectedEvent &&
-        response.data.eventId &&
-        selectedEvent._id !== response.data.eventId &&
-        response.data.eventDetails?.title !== selectedEvent.title
-      ) {
-        throw {
-          response: {
-            status: 400,
-            data: {
-              message:
-                "This code belongs to a different event than the one currently selected.",
-            },
+        // Determine the appropriate name to display based on ticket type
+        let displayName = "Guest";
+
+        if (
+          ticketData.typeOfTicket === "Ticket-Code" &&
+          ticketData.ticketName
+        ) {
+          // For tickets, use the ticket name
+          displayName = ticketData.ticketName;
+        } else if (ticketData.guestName) {
+          // For guest codes, use the guest name
+          displayName = ticketData.guestName;
+        } else if (ticketData.name && ticketData.name !== "Guest Code") {
+          // For other codes with a meaningful name
+          displayName = ticketData.name;
+        }
+
+        const formattedResult = {
+          _id: ticketData._id,
+          code: ticketData.code || ticketData.securityToken || codeValue,
+          typeOfTicket: ticketData.typeOfTicket || "Unknown Code",
+          type: ticketData.type,
+          name: displayName,
+          pax: ticketData.pax || ticketData.maxPax || 1,
+          paxChecked: ticketData.paxChecked || 0,
+          condition: ticketData.condition || "",
+          tableNumber: ticketData.tableNumber || "",
+          status: ticketData.status,
+          ticketType: ticketData.ticketType || "",
+          codeColor: ticketData.codeColor,
+          eventDetails: ticketData.eventDetails || {
+            title:
+              ticketData.eventName || selectedEvent?.title || "Unknown Event",
+          },
+          metadata: {
+            ...(ticketData.metadata || {}),
+            hostName:
+              ticketData.hostName ||
+              (ticketData.metadata && ticketData.metadata.hostName) ||
+              "",
           },
         };
+
+        setScanResult(formattedResult);
+        setScanning(false);
+        setShowCamera(false);
+        setErrorMessage(null);
+        cleanupCamera();
+
+        // Single toast for successful validation - simplified
+        toast.showSuccess("Verified");
+      } catch (error) {
+        // More user-friendly error messages based on error type
+        let errorMessage = "";
+
+        if (error.response?.status === 404) {
+          errorMessage = `Invalid code or code not found: "${codeValue}"`;
+        } else if (error.response?.status === 401) {
+          errorMessage = "Authentication required. Please log in again.";
+        } else if (error.response?.status === 400) {
+          // Check if this is a "different event" error
+          if (error.response?.data?.message?.includes("different event")) {
+            errorMessage = "That code is from a different event.";
+          } else {
+            errorMessage =
+              error.response?.data?.message || "Invalid QR code format";
+          }
+        } else {
+          errorMessage =
+            error.response?.data?.message || "Error validating code";
+        }
+
+        toast.showError(errorMessage);
+        setErrorMessage(errorMessage);
+        cleanupCamera();
+        setShowCamera(false);
       }
-
-      // Map the response data to our scanResult structure
-      const ticketData = response.data;
-
-      // Determine the appropriate name to display based on ticket type
-      let displayName = "Guest";
-
-      if (ticketData.typeOfTicket === "Ticket-Code" && ticketData.ticketName) {
-        // For tickets, use the ticket name
-        displayName = ticketData.ticketName;
-      } else if (ticketData.guestName) {
-        // For guest codes, use the guest name
-        displayName = ticketData.guestName;
-      } else if (ticketData.name && ticketData.name !== "Guest Code") {
-        // For other codes with a meaningful name
-        displayName = ticketData.name;
-      }
-
-      const formattedResult = {
-        _id: ticketData._id,
-        code: ticketData.code || ticketData.securityToken || codeValue,
-        typeOfTicket: ticketData.typeOfTicket || "Unknown Code",
-        name: displayName,
-        pax: ticketData.pax || ticketData.maxPax || 1,
-        paxChecked: ticketData.paxChecked || 0,
-        condition: ticketData.condition || "",
-        tableNumber: ticketData.tableNumber || "",
-        status: ticketData.status,
-        ticketType: ticketData.ticketType || "",
-        eventDetails: ticketData.eventDetails || {
-          title:
-            ticketData.eventName || selectedEvent?.title || "Unknown Event",
-        },
-        metadata: {
-          ...(ticketData.metadata || {}),
-          hostName:
-            ticketData.hostName ||
-            (ticketData.metadata && ticketData.metadata.hostName) ||
-            "",
-        },
-      };
-
-      console.log("Formatted result:", formattedResult);
-      setScanResult(formattedResult);
-      setScanning(false);
-      setShowCamera(false);
-      setErrorMessage(null);
-      cleanupCamera();
-
-      toast.showSuccess("Code verified successfully");
     } catch (error) {
-      console.error("Validation error:", error);
-
-      // More user-friendly error messages based on error type
-      let errorMessage = "";
-
-      if (error.response?.status === 404) {
-        errorMessage = `Invalid code or code not found: "${codeValue}"`;
-        console.error("Code not found:", codeValue);
-      } else if (error.response?.status === 401) {
-        errorMessage = "Authentication required. Please log in again.";
-      } else if (error.response?.status === 400) {
-        errorMessage =
-          error.response?.data?.message || "Invalid QR code format";
-      } else {
-        errorMessage = error.response?.data?.message || "Error validating code";
-      }
-
-      toast.showError(errorMessage);
-      setErrorMessage(errorMessage);
+      // This handles any unexpected errors in the outer try block
+      setErrorMessage("An unexpected error occurred. Please try again.");
       cleanupCamera();
       setShowCamera(false);
     } finally {
@@ -310,10 +415,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
 
   const updatePax = async (increment) => {
     try {
-      console.log(
-        `Updating pax, increment: ${increment}, codeId: ${scanResult._id}`
-      );
-
       // First check if the code is from the new model (Code) or legacy models
       let endpoint = "";
       let payload = {};
@@ -338,12 +439,8 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           : `/qr/decrease/${scanResult._id}`;
       }
 
-      console.log(`Using endpoint: ${endpoint}`, payload);
-
       // Make the request with proper payload
       const response = await axiosInstance.put(endpoint, payload);
-
-      console.log("Update pax response:", response.data);
 
       // Update local state with new paxChecked value (from response or calculated)
       const updatedPaxChecked =
@@ -358,10 +455,11 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         paxChecked: updatedPaxChecked,
       });
 
-      toast.showSuccess(`Checked ${increment ? "in" : "out"} successfully`);
+      // Keep one clear toast message for update
+      toast.showSuccess(
+        `${increment ? "Checked in" : "Checked out"}: ${scanResult.name}`
+      );
     } catch (error) {
-      console.error("Pax update error:", error);
-
       const errorMessage =
         error.response?.data?.message ||
         `Error ${increment ? "increasing" : "decreasing"} pax`;
@@ -393,6 +491,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const getCodeColorClass = () => {
     if (!scanResult) return "";
 
+    // Basic type-based class selection
     const type = scanResult.typeOfTicket?.toLowerCase() || "";
 
     if (type.includes("guest")) return "guest-code";
@@ -413,6 +512,75 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
     if (codeType === "custom") return "custom-code";
 
     return "custom-code"; // Default for custom types
+  };
+
+  // Function to get custom color style if available
+  const getCustomColorStyle = () => {
+    if (!scanResult) return {};
+
+    // First, check if we have a custom color directly in the response
+    const color = scanResult.codeColor;
+
+    // If no direct color, check if it's in the metadata
+    const metadataColor = scanResult.metadata && scanResult.metadata.codeColor;
+
+    // Determine the type for color logic - normalize to lowercase for comparison
+    const type = (scanResult.typeOfTicket || "").toLowerCase();
+    const codeType = (scanResult.type || "").toLowerCase();
+
+    // Determine the appropriate color based on code type
+    let colorToUse;
+
+    // For Guest-Code or guest type, explicitly check and set color
+    if (type.includes("guest") || codeType === "guest") {
+      // Guest codes should get the color from the backend or default to a specific guest color
+      colorToUse = color || metadataColor || "#28a745"; // Green default for guest
+    }
+    // For Backstage codes
+    else if (type.includes("backstage") || codeType === "backstage") {
+      colorToUse = color || metadataColor || "#6f42c1"; // Purple for backstage
+    }
+    // For other code types
+    else {
+      colorToUse =
+        color || metadataColor || getDefaultColorForType(type, codeType);
+    }
+
+    // Apply the gradient style with the determined color
+    return {
+      background: `linear-gradient(135deg, ${colorToUse}, ${adjustColorBrightness(
+        colorToUse,
+        20
+      )})`,
+    };
+  };
+
+  // Helper function to get default color by type
+  const getDefaultColorForType = (type, codeType) => {
+    if (type.includes("friends") || codeType === "friends") return "#007bff"; // Blue for friends
+    if (type.includes("table") || codeType === "table") return "#6610f2"; // Purple for table
+    if (type.includes("ticket") || codeType === "ticket") return "#fd7e14"; // Orange for ticket
+    if (type.includes("custom") || codeType === "custom") return "#2196F3"; // Blue for custom
+
+    return "#2196F3"; // Default blue if no specific type matches
+  };
+
+  // Helper function to adjust color brightness
+  const adjustColorBrightness = (hex, percent) => {
+    // Convert hex to RGB
+    let r = parseInt(hex.substring(1, 3), 16);
+    let g = parseInt(hex.substring(3, 5), 16);
+    let b = parseInt(hex.substring(5, 7), 16);
+
+    // Adjust brightness
+    r = Math.min(255, Math.floor(r * (1 + percent / 100)));
+    g = Math.min(255, Math.floor(g * (1 + percent / 100)));
+    b = Math.min(255, Math.floor(b * (1 + percent / 100)));
+
+    // Convert back to hex
+    return `#${r.toString(16).padStart(2, "0")}${g
+      .toString(16)
+      .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
   };
 
   const handleStartScan = () => {
@@ -551,7 +719,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className={`result-header ${getCodeColorClass()}`}>
+              <div className="result-header" style={getCustomColorStyle()}>
                 <h2>{scanResult.typeOfTicket}</h2>
                 <div className="result-event">
                   {scanResult.eventDetails?.title && (
@@ -564,13 +732,17 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
               </div>
 
               <div className="event-banner">
-                <div className="event-info">
-                  <RiUserLine />
-                  <div className="info-text">
-                    <div className="label">Name</div>
-                    <div className="value">{scanResult.name}</div>
+                {scanResult.metadata?.hostName && (
+                  <div className="event-info">
+                    <RiUserLine />
+                    <div className="info-text">
+                      <div className="label">Created By</div>
+                      <div className="value">
+                        {scanResult.metadata.hostName}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {scanResult.eventDetails && scanResult.eventDetails.date && (
                   <div className="event-info">
@@ -586,18 +758,27 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                   </div>
                 )}
 
-                {scanResult.condition && (
-                  <div className="event-info">
-                    <RiInformationLine />
-                    <div className="info-text">
-                      <div className="label">Condition</div>
-                      <div className="value">{scanResult.condition}</div>
+                {/* Always show the condition if it exists */}
+                <div className="event-info">
+                  <RiInformationLine />
+                  <div className="info-text">
+                    <div className="label">Condition</div>
+                    <div className="value">
+                      {scanResult.condition || "Standard Entry"}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="result-details">
+                <div className="detail-item">
+                  <RiUserLine />
+                  <div>
+                    <label>Name</label>
+                    <p>{scanResult.name}</p>
+                  </div>
+                </div>
+
                 {scanResult.typeOfTicket?.toLowerCase().includes("ticket") && (
                   <div className="detail-item">
                     <RiTimeLine />
@@ -614,16 +795,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                     <div>
                       <label>Table</label>
                       <p>{scanResult.tableNumber || "N/A"}</p>
-                    </div>
-                  </div>
-                )}
-
-                {scanResult.metadata?.hostName && (
-                  <div className="detail-item">
-                    <RiUserLine />
-                    <div>
-                      <label>Created By</label>
-                      <p>{scanResult.metadata.hostName}</p>
                     </div>
                   </div>
                 )}
