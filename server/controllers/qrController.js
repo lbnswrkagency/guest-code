@@ -12,36 +12,85 @@ const mongoose = require("mongoose");
 const validateTicket = async (req, res) => {
   try {
     const ticketId = req.body.ticketId;
+    const requestEventId = req.body.eventId; // Get eventId from request
+    const requestBrandId = req.body.brandId; // Get brandId from request
 
     console.log("QR Controller - Validating ticket:", ticketId);
+    if (requestEventId) console.log("For specific event ID:", requestEventId);
+    if (requestBrandId) console.log("For specific brand ID:", requestBrandId);
 
     if (!ticketId) {
       return res.status(400).json({ message: "Ticket ID is required" });
+    }
+
+    // Check if ticketId is a URL and extract the securityToken if it is
+    let securityTokenToCheck = ticketId;
+    if (ticketId.includes("/validate/")) {
+      const urlParts = ticketId.split("/");
+      if (urlParts.length >= 2) {
+        securityTokenToCheck = urlParts[urlParts.length - 1];
+        console.log("Extracted security token from URL:", securityTokenToCheck);
+      }
     }
 
     let ticket;
     let typeOfTicket;
     let event = null;
     let hostName = null;
+    let eventId = null;
+    let codeSetting = null; // Store codeSetting for later use
 
     // First check if this is a security token in the Code model
-    const codeBySecurityToken = await Code.findOne({ securityToken: ticketId });
+    let codeBySecurityToken = await Code.findOne({
+      securityToken: securityTokenToCheck,
+    });
+
+    // If not found by securityToken, try by code field (for manual entries)
+    if (!codeBySecurityToken) {
+      console.log("Trying to find code by 'code' field:", securityTokenToCheck);
+      codeBySecurityToken = await Code.findOne({ code: securityTokenToCheck });
+    }
 
     if (codeBySecurityToken) {
-      console.log(
-        "Found code by security token in Code model:",
-        codeBySecurityToken.code
-      );
+      console.log("Found code in Code model:", codeBySecurityToken.code);
       ticket = codeBySecurityToken;
-      typeOfTicket = `${
-        ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)
-      }-Code`;
+
+      // If the code has a codeSettingId, fetch it to get the proper name
+      if (ticket.codeSettingId) {
+        const CodeSettings = require("../models/codeSettingsModel");
+        codeSetting = await CodeSettings.findById(ticket.codeSettingId);
+
+        if (codeSetting && codeSetting.name) {
+          typeOfTicket = codeSetting.name;
+        } else {
+          // Fallback to default type naming
+          typeOfTicket = `${
+            ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)
+          }-Code`;
+        }
+      } else {
+        // Fallback to default type naming
+        typeOfTicket = `${
+          ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)
+        }-Code`;
+      }
 
       // Get the event details for this code
       if (ticket.eventId) {
+        eventId = ticket.eventId;
         const Event = require("../models/eventsModel");
         event = await Event.findById(ticket.eventId);
         console.log("Found event:", event ? event.title : "No event found");
+      }
+
+      // Check if the code belongs to the specified event
+      if (requestEventId && eventId && requestEventId !== eventId.toString()) {
+        return res.status(400).json({
+          message:
+            "This code belongs to a different event than the one selected.",
+          codeEventId: eventId.toString(),
+          requestedEventId: requestEventId,
+        });
       }
 
       // Get host name if available
@@ -60,15 +109,25 @@ const validateTicket = async (req, res) => {
     // Check if this is a security token in the Ticket model
     else {
       const Ticket = require("../models/ticketModel");
-      const ticketBySecurityToken = await Ticket.findOne({
-        securityToken: ticketId,
+
+      // First try by security token
+      let ticketBySecurityToken = await Ticket.findOne({
+        securityToken: securityTokenToCheck,
       });
 
-      if (ticketBySecurityToken) {
+      // If not found, try by code field
+      if (!ticketBySecurityToken) {
         console.log(
-          "Found ticket by security token in Ticket model:",
-          ticketBySecurityToken._id
+          "Trying to find ticket by 'code' field:",
+          securityTokenToCheck
         );
+        ticketBySecurityToken = await Ticket.findOne({
+          code: securityTokenToCheck,
+        });
+      }
+
+      if (ticketBySecurityToken) {
+        console.log("Found ticket in Ticket model:", ticketBySecurityToken._id);
         ticket = ticketBySecurityToken;
         typeOfTicket = "Ticket-Code";
 
@@ -106,11 +165,13 @@ const validateTicket = async (req, res) => {
             }
           }
         } else {
+          // Try GuestCode
           const guestCodeTicket = await GuestCode.findById(ticketId);
           if (guestCodeTicket) {
             ticket = guestCodeTicket;
             typeOfTicket = "Guest-Code";
           } else {
+            // Try BackstageCode
             const backstageCodeTicket = await BackstageCode.findById(ticketId);
             if (backstageCodeTicket) {
               ticket = backstageCodeTicket;
@@ -124,6 +185,7 @@ const validateTicket = async (req, res) => {
                 }
               }
             } else {
+              // Try TableCode
               const tableCodeTicket = await TableCode.findById(ticketId);
               if (tableCodeTicket) {
                 ticket = tableCodeTicket;
@@ -137,6 +199,7 @@ const validateTicket = async (req, res) => {
                   }
                 }
               } else {
+                // Try InvitationCode
                 const invitationCodeTicket = await InvitationCode.findById(
                   ticketId
                 );
@@ -144,6 +207,7 @@ const validateTicket = async (req, res) => {
                   ticket = invitationCodeTicket;
                   typeOfTicket = "Invitation-Code";
                 } else {
+                  // Try Code (new unified model)
                   const newCodeTicket = await Code.findById(ticketId);
                   if (newCodeTicket) {
                     ticket = newCodeTicket;
@@ -180,35 +244,125 @@ const validateTicket = async (req, res) => {
             }
           }
         }
-      } else {
-        // Try to find by code value
-        const codeByValue = await Code.findOne({ code: ticketId });
-        if (codeByValue) {
-          ticket = codeByValue;
-          typeOfTicket = `${
-            ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)
-          }-Code`;
+      }
+      // Try to find by code field if it's not a valid ObjectId
+      else {
+        console.log("Checking legacy models by code field:", ticketId);
 
-          // Get the event details for this code
-          if (codeByValue.eventId) {
-            const Event = require("../models/eventsModel");
-            event = await Event.findById(codeByValue.eventId);
-          }
+        // Check each model for a matching code field
+        const friendsCodeByCode = await FriendsCode.findOne({ code: ticketId });
+        if (friendsCodeByCode) {
+          ticket = friendsCodeByCode;
+          typeOfTicket = "Friends-Code";
 
-          // Get host name if available
-          if (codeByValue.createdBy) {
-            const user = await User.findById(codeByValue.createdBy);
+          // Get host name
+          if (ticket.hostId) {
+            const user = await User.findById(ticket.hostId);
             if (user) {
               hostName = user.firstName || user.username || user.email;
             }
           }
+        } else {
+          // Try GuestCode
+          const guestCodeByCode = await GuestCode.findOne({ code: ticketId });
+          if (guestCodeByCode) {
+            ticket = guestCodeByCode;
+            typeOfTicket = "Guest-Code";
+          } else {
+            // Try BackstageCode
+            const backstageCodeByCode = await BackstageCode.findOne({
+              code: ticketId,
+            });
+            if (backstageCodeByCode) {
+              ticket = backstageCodeByCode;
+              typeOfTicket = "Backstage-Code";
 
-          // Check if metadata has hostName
-          if (codeByValue.metadata && codeByValue.metadata.hostName) {
-            hostName = codeByValue.metadata.hostName;
+              // Get host name
+              if (ticket.hostId) {
+                const user = await User.findById(ticket.hostId);
+                if (user) {
+                  hostName = user.firstName || user.username || user.email;
+                }
+              }
+            } else {
+              // Try TableCode
+              const tableCodeByCode = await TableCode.findOne({
+                code: ticketId,
+              });
+              if (tableCodeByCode) {
+                ticket = tableCodeByCode;
+                typeOfTicket = "Table-Code";
+
+                // Get host name
+                if (ticket.hostId) {
+                  const user = await User.findById(ticket.hostId);
+                  if (user) {
+                    hostName = user.firstName || user.username || user.email;
+                  }
+                }
+              } else {
+                // Try InvitationCode
+                const invitationCodeByCode = await InvitationCode.findOne({
+                  code: ticketId,
+                });
+                if (invitationCodeByCode) {
+                  ticket = invitationCodeByCode;
+                  typeOfTicket = "Invitation-Code";
+                } else {
+                  // Try Code (new unified model)
+                  const newCodeByCode = await Code.findOne({ code: ticketId });
+                  if (newCodeByCode) {
+                    ticket = newCodeByCode;
+                    const type =
+                      newCodeByCode.type.charAt(0).toUpperCase() +
+                      newCodeByCode.type.slice(1);
+                    typeOfTicket = `${type}-Code`;
+
+                    // Get the event details for this code
+                    if (newCodeByCode.eventId) {
+                      const Event = require("../models/eventsModel");
+                      event = await Event.findById(newCodeByCode.eventId);
+                    }
+
+                    // Get host name if available
+                    if (newCodeByCode.createdBy) {
+                      const user = await User.findById(newCodeByCode.createdBy);
+                      if (user) {
+                        hostName =
+                          user.firstName || user.username || user.email;
+                      }
+                    }
+
+                    // Check if metadata has hostName
+                    if (
+                      newCodeByCode.metadata &&
+                      newCodeByCode.metadata.hostName
+                    ) {
+                      hostName = newCodeByCode.metadata.hostName;
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
+    }
+
+    // After all code is found (whether in the if or else blocks), add this check
+    // This is a final verification to ensure the event matches
+    if (
+      ticket &&
+      requestEventId &&
+      eventId &&
+      requestEventId !== eventId.toString()
+    ) {
+      return res.status(400).json({
+        message:
+          "This code belongs to a different event than the one selected.",
+        codeEventId: eventId.toString(),
+        requestedEventId: requestEventId,
+      });
     }
 
     if (!ticket) {
@@ -233,6 +387,20 @@ const validateTicket = async (req, res) => {
       event = await Event.findById(ticket.eventId);
     }
 
+    // Check if the code belongs to the specified event
+    if (
+      requestEventId &&
+      ticket.eventId &&
+      requestEventId !== ticket.eventId.toString()
+    ) {
+      return res.status(400).json({
+        message:
+          "This code belongs to a different event than the one selected.",
+        codeEventId: ticket.eventId.toString(),
+        requestedEventId: requestEventId,
+      });
+    }
+
     // Format the event details for the response
     const eventDetails = event
       ? {
@@ -244,13 +412,21 @@ const validateTicket = async (req, res) => {
 
     const ticketData = ticket.toObject ? ticket.toObject() : ticket;
 
+    // Determine the best condition value to use
+    let conditionToUse = ticketData.condition || "";
+
+    // If condition is empty and we have a codeSetting with a condition, use that
+    if (!conditionToUse && codeSetting && codeSetting.condition) {
+      conditionToUse = codeSetting.condition;
+    }
+
     // Add event details and type to the response
     res.json({
       ...ticketData,
       typeOfTicket,
       eventDetails,
-      // Make sure condition is included
-      condition: ticketData.condition || "",
+      // Use determined condition value
+      condition: conditionToUse,
       // Make sure we have event name in a consistent place
       eventName: event ? event.title : "Unknown Event",
       // Include host name
@@ -276,84 +452,39 @@ const increasePax = async (req, res) => {
     const ticketId = req.params.ticketId;
     console.log("Increasing pax for ticket:", ticketId);
 
-    // First check if this is a security token
-    let ticket = await Code.findOne({ securityToken: ticketId });
+    let ticket;
+    let model;
 
-    if (ticket) {
-      console.log("Found code by security token:", ticket.code);
-      // Update pax for the code
-      ticket = await Code.findByIdAndUpdate(
-        ticket._id,
-        { $inc: { paxChecked: 1, usageCount: 1 } },
-        { new: true }
-      );
-    } else {
-      // Try legacy code types
-      ticket = await FriendsCode.findByIdAndUpdate(
-        ticketId,
-        { $inc: { paxChecked: 1 } },
-        { new: true }
-      );
-
-      if (!ticket) {
-        ticket = await GuestCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: 1 } },
-          { new: true }
-        );
+    // First check in the Code model - our unified model for all codes
+    if (mongoose.Types.ObjectId.isValid(ticketId)) {
+      ticket = await Code.findById(ticketId);
+      if (ticket) {
+        model = Code;
+        console.log("Found ticket in Code model");
       }
+    }
 
-      if (!ticket) {
-        ticket = await BackstageCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: 1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        ticket = await TableCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: 1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        ticket = await InvitationCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: 1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        // Try to find by code value
-        const codeByValue = await Code.findOne({ code: ticketId });
-        if (codeByValue) {
-          if (codeByValue.paxChecked < codeByValue.maxPax) {
-            ticket = await Code.findByIdAndUpdate(
-              codeByValue._id,
-              {
-                $inc: { paxChecked: 1, usageCount: 1 },
-                $push: {
-                  usage: {
-                    timestamp: new Date(),
-                    paxUsed: 1,
-                    userId: req.user._id,
-                    location: "Scanner App",
-                    deviceInfo: req.headers["user-agent"] || "Unknown Device",
-                  },
-                },
-              },
-              { new: true }
-            );
+    // If not found in Code model, check in legacy models
+    if (!ticket) {
+      // Legacy code, check each model
+      if (mongoose.Types.ObjectId.isValid(ticketId)) {
+        ticket = await FriendsCode.findById(ticketId);
+        if (ticket) {
+          model = FriendsCode;
+        } else {
+          ticket = await GuestCode.findById(ticketId);
+          if (ticket) {
+            model = GuestCode;
           } else {
-            return res.status(400).json({
-              message: "Maximum allowed pax reached",
-              paxChecked: codeByValue.paxChecked,
-              maxPax: codeByValue.maxPax,
-            });
+            ticket = await BackstageCode.findById(ticketId);
+            if (ticket) {
+              model = BackstageCode;
+            } else {
+              ticket = await TableCode.findById(ticketId);
+              if (ticket) {
+                model = TableCode;
+              }
+            }
           }
         }
       }
@@ -363,10 +494,27 @@ const increasePax = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    res.json(ticket);
+    // Check if max capacity reached for the ticket
+    const maxPax = ticket.maxPax || ticket.pax || 1;
+    if (ticket.paxChecked >= maxPax) {
+      return res.status(400).json({
+        message: "Maximum capacity reached for this ticket",
+      });
+    }
+
+    // Increment paxChecked
+    ticket.paxChecked = (ticket.paxChecked || 0) + 1;
+    await ticket.save();
+
+    return res.json({
+      _id: ticket._id,
+      paxChecked: ticket.paxChecked,
+      maxPax: maxPax,
+      message: "Pax increased successfully",
+    });
   } catch (error) {
-    console.error("Error in increasePax:", error);
-    res.status(500).json({ message: error.message });
+    console.error("Error increasing pax:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -375,90 +523,39 @@ const decreasePax = async (req, res) => {
     const ticketId = req.params.ticketId;
     console.log("Decreasing pax for ticket:", ticketId);
 
-    // First check if this is a security token
-    let ticket = await Code.findOne({ securityToken: ticketId });
+    let ticket;
+    let model;
 
-    if (ticket) {
-      console.log("Found code by security token:", ticket.code);
-      // Update pax for the code
-      if (ticket.paxChecked > 0) {
-        ticket = await Code.findByIdAndUpdate(
-          ticket._id,
-          { $inc: { paxChecked: -1 } },
-          { new: true }
-        );
-      } else {
-        return res.status(400).json({
-          message: "Pax checked is already at minimum",
-          paxChecked: ticket.paxChecked,
-        });
+    // First check in the Code model - our unified model for all codes
+    if (mongoose.Types.ObjectId.isValid(ticketId)) {
+      ticket = await Code.findById(ticketId);
+      if (ticket) {
+        model = Code;
+        console.log("Found ticket in Code model");
       }
-    } else {
-      // Try legacy code types
-      ticket = await FriendsCode.findByIdAndUpdate(
-        ticketId,
-        { $inc: { paxChecked: -1 } },
-        { new: true }
-      );
+    }
 
-      if (!ticket) {
-        ticket = await GuestCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: -1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        ticket = await BackstageCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: -1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        ticket = await TableCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: -1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        ticket = await InvitationCode.findByIdAndUpdate(
-          ticketId,
-          { $inc: { paxChecked: -1 } },
-          { new: true }
-        );
-      }
-
-      if (!ticket) {
-        // Try to find by code value
-        const codeByValue = await Code.findOne({ code: ticketId });
-        if (codeByValue) {
-          if (codeByValue.paxChecked > 0) {
-            ticket = await Code.findByIdAndUpdate(
-              codeByValue._id,
-              {
-                $inc: { paxChecked: -1 },
-                $push: {
-                  usage: {
-                    timestamp: new Date(),
-                    paxUsed: -1,
-                    userId: req.user._id,
-                    location: "Scanner App",
-                    deviceInfo: req.headers["user-agent"] || "Unknown Device",
-                  },
-                },
-              },
-              { new: true }
-            );
+    // If not found in Code model, check in legacy models
+    if (!ticket) {
+      // Legacy code, check each model
+      if (mongoose.Types.ObjectId.isValid(ticketId)) {
+        ticket = await FriendsCode.findById(ticketId);
+        if (ticket) {
+          model = FriendsCode;
+        } else {
+          ticket = await GuestCode.findById(ticketId);
+          if (ticket) {
+            model = GuestCode;
           } else {
-            return res.status(400).json({
-              message: "Pax checked is already at minimum",
-              paxChecked: codeByValue.paxChecked,
-            });
+            ticket = await BackstageCode.findById(ticketId);
+            if (ticket) {
+              model = BackstageCode;
+            } else {
+              ticket = await TableCode.findById(ticketId);
+              if (ticket) {
+                model = TableCode;
+              }
+            }
           }
         }
       }
@@ -468,10 +565,26 @@ const decreasePax = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    res.json(ticket);
+    // Check if paxChecked is already 0
+    if (ticket.paxChecked <= 0) {
+      return res.status(400).json({
+        message: "Pax count is already 0 for this ticket",
+      });
+    }
+
+    // Decrement paxChecked
+    ticket.paxChecked = Math.max(0, (ticket.paxChecked || 0) - 1);
+    await ticket.save();
+
+    return res.json({
+      _id: ticket._id,
+      paxChecked: ticket.paxChecked,
+      maxPax: ticket.maxPax || ticket.pax || 1,
+      message: "Pax decreased successfully",
+    });
   } catch (error) {
-    console.error("Error in decreasePax:", error);
-    res.status(500).json({ message: error.message });
+    console.error("Error decreasing pax:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 

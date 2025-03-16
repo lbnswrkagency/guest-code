@@ -13,8 +13,9 @@ const Brand = require("../models/brandModel");
  */
 const generateCodeQR = async (codeId, securityToken) => {
   try {
-    // Create a URL or data to encode in the QR code
-    const qrData = `${process.env.CLIENT_BASE_URL}/validate/${codeId}/${securityToken}`;
+    // Instead of creating a URL, just use the security token directly
+    // This matches the approach used in guestCodeController.js
+    const qrData = securityToken;
 
     // Generate QR code as base64 string
     const qrCodeImage = await QRCode.toDataURL(qrData, {
