@@ -20,6 +20,7 @@ import DashboardMenu from "../DashboardMenu/DashboardMenu";
 import DashboardFeed from "../DashboardFeed/DashboardFeed";
 import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
+import TableSystem from "../TableSystem/TableSystem";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -398,6 +399,24 @@ const Dashboard = () => {
                   : "No user",
               });
             }}
+          />
+        ) : showTableSystem ? (
+          <TableSystem
+            user={user}
+            onClose={() => setShowTableSystem(false)}
+            refreshCounts={() => {
+              console.log("Refreshing table counts");
+              store.dispatch({ type: "FORCE_REFRESH" });
+            }}
+            currentEventDate={
+              selectedDate ||
+              (events[0] ? new Date(events[0].date) : new Date())
+            }
+            onPrevWeek={() => {}}
+            onNextWeek={() => {}}
+            dataInterval="week"
+            isStartingEvent={true}
+            counts={{ tableCounts: [] }}
           />
         ) : (
           <>

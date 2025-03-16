@@ -6,6 +6,7 @@ import {
   RiBarChartFill,
   RiQrCodeFill,
   RiCodeBoxFill,
+  RiTableLine,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
 
@@ -200,6 +201,20 @@ const DashboardMenu = ({
                 >
                   <RiCodeBoxFill />
                   <span>Codes</span>
+                </div>
+              )}
+
+              {/* Special Table System menu item only for specific user */}
+              {user && user._id === "65707f8da826dc13721ef735" && (
+                <div
+                  className="menu-item"
+                  onClick={() => {
+                    setShowTableSystem(true);
+                    setIsOpen(false);
+                  }}
+                >
+                  <RiTableLine />
+                  <span>Tables</span>
                 </div>
               )}
             </div>
