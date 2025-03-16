@@ -4,6 +4,7 @@ const {
   getCodePDF,
   getCodeView,
   getCodeImage,
+  getCodePNG,
 } = require("../controllers/codesCreationController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -12,6 +13,9 @@ router.get("/:codeId/pdf", protect, getCodePDF);
 
 // Route to view code PDF in browser
 router.get("/:codeId/view", protect, getCodeView);
+
+// Route to get code as PNG for fullscreen viewing
+router.get("/:codeId/png", protect, getCodePNG);
 
 // Route to get code image (QR code)
 router.get("/:codeId/image", protect, getCodeImage);

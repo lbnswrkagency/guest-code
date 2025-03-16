@@ -93,4 +93,11 @@ router.post(
   codesController.findBySecurityToken
 );
 
+// Get codes by event, user, and specific code settings
+router.post(
+  "/event-user-codes",
+  authenticate,
+  codesController.getEventUserCodes
+);
+
 module.exports = router;

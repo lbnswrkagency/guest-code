@@ -167,7 +167,8 @@ function Login() {
     </div>
   );
 
-  return <Maintenance>{loginContent}</Maintenance>;
+  // return <Maintenance>{loginContent}</Maintenance>;
+  return loginContent;
 }
 
 export default Login;

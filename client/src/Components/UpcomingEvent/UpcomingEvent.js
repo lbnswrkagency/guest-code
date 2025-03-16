@@ -1067,34 +1067,28 @@ const UpcomingEvent = ({
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
-          <div
-            className="event-image-container"
-            onClick={() => handleViewEvent(currentEvent)}
-          >
-            {eventImage ? (
-              <img
-                src={eventImage}
-                alt={currentEvent.title}
-                className="event-image"
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-              />
-            ) : (
-              <div className="no-image">
-                <RiImageLine />
-                <span>No image available</span>
-              </div>
-            )}
+          <div className="event-image-wrapper">
+            <div className="event-image-container">
+              {eventImage ? (
+                <img
+                  src={eventImage}
+                  alt={currentEvent.title}
+                  className="event-image"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+              ) : (
+                <div className="no-image">
+                  <RiImageLine />
+                  <span>No image available</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="event-details">
             <div className="event-header">
-              <h3
-                className="event-title"
-                onClick={() => handleViewEvent(currentEvent)}
-              >
-                {currentEvent.title}
-              </h3>
+              <h3 className="event-title">{currentEvent.title}</h3>
               {currentEvent.subTitle && (
                 <p className="event-subtitle">{currentEvent.subTitle}</p>
               )}

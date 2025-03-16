@@ -171,16 +171,7 @@ const Navigation = ({
               {/* Menu */}
               <motion.div
                 className="nav-icon-wrapper"
-                onClick={() => {
-                  if (typeof onMenuClick === "function") {
-                    onMenuClick();
-                  } else {
-                    console.error(
-                      "[Navigation] onMenuClick is not a function:",
-                      onMenuClick
-                    );
-                  }
-                }}
+                onClick={onMenuClick}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 role="button"

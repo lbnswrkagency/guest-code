@@ -18,6 +18,8 @@ import Navigation from "../Navigation/Navigation";
 import DashboardHeader from "../DashboardHeader/DashboardHeader";
 import DashboardMenu from "../DashboardMenu/DashboardMenu";
 import DashboardFeed from "../DashboardFeed/DashboardFeed";
+import CodeGenerator from "../CodeGenerator/CodeGenerator";
+import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -36,6 +38,15 @@ const Dashboard = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // State for menu functionality
+  const [showStatistic, setShowStatistic] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [codeType, setCodeType] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [showDropFiles, setShowDropFiles] = useState(false);
+  const [showTableSystem, setShowTableSystem] = useState(false);
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
 
   // Single comprehensive log function
   const logAppData = () => {
@@ -88,6 +99,7 @@ const Dashboard = () => {
               id: userRole._id,
               name: userRole.name,
               isFounder: userRole.isFounder,
+              permissions: userRole.permissions || null,
             }
           : null,
       };
@@ -136,6 +148,17 @@ const Dashboard = () => {
             };
           })
           .filter((b) => b.lineupCount > 0),
+      },
+      roles: {
+        count: roles.length,
+        sample: roles.slice(0, 3).map((role) => ({
+          id: role._id,
+          name: role.name,
+          brandId: role.brandId,
+          isFounder: role.isFounder,
+          hasPermissions: !!role.permissions,
+          permissions: role.permissions || null,
+        })),
       },
       persistence: persistedData,
       timestamp: new Date().toISOString(),
@@ -242,6 +265,57 @@ const Dashboard = () => {
     };
   };
 
+  // Get code settings for the selected brand
+  const getCodeSettingsForBrand = () => {
+    if (!selectedBrand) return [];
+
+    // Get events for this brand
+    const brandEvents = selectedBrand.events || [];
+
+    // Get all code settings for these events
+    const brandCodeSettings = brandEvents.flatMap((event) => {
+      return codeSettings.filter((setting) => setting.eventId === event._id);
+    });
+
+    return brandCodeSettings;
+  };
+
+  // Get user's role permissions for the selected brand
+  const getUserRolePermissions = () => {
+    if (!selectedBrand || !selectedBrand.role) return null;
+    return selectedBrand.role.permissions;
+  };
+
+  // Prepare code permissions based on the user's role
+  const prepareCodePermissions = () => {
+    const permissions = getUserRolePermissions();
+    if (!permissions || !permissions.codes) return [];
+
+    // Convert the codes Map to an array of objects
+    return Object.entries(permissions.codes).map(([name, permission]) => ({
+      name,
+      type: name,
+      generate: permission.generate || false,
+      limit: permission.limit || 0,
+      unlimited: permission.unlimited || false,
+    }));
+  };
+
+  // Prepare access summary for the DashboardMenu
+  const prepareAccessSummary = () => {
+    const permissions = getUserRolePermissions();
+    if (!permissions) return {};
+
+    return {
+      canCreateCodes:
+        permissions.codes &&
+        Object.values(permissions.codes).some((p) => p.generate),
+      canReadCodes: true, // Assuming read access is always granted if they have any code permissions
+      canEditCodes: false, // These would need to be determined based on your app's logic
+      canDeleteCodes: false,
+    };
+  };
+
   // Prepare all brands with data
   const brandsWithData = brands.map(prepareBrandWithData);
 
@@ -279,31 +353,99 @@ const Dashboard = () => {
 
   if (!user) return null;
 
+  // Get the user's role for the selected brand
+  const userRoleForSelectedBrand = selectedBrand?.role
+    ? [selectedBrand.role]
+    : [];
+  const brandCodeSettings = getCodeSettingsForBrand();
+  const codePermissions = prepareCodePermissions();
+  const accessSummary = prepareAccessSummary();
+
   return (
     <div className="dashboard">
       <Navigation
         onBack={handleBack}
-        onMenuClick={() => {}}
+        onMenuClick={() => setIsNavigationOpen(true)}
         onLogout={handleLogout}
       />
       <div className="dashboard-content">
-        <DashboardHeader
-          user={user}
-          brandsCount={brands.length}
-          eventsCount={events.length}
-          brands={brandsWithData}
-          selectedBrand={selectedBrand}
-          setSelectedBrand={handleSelectBrand}
-          selectedDate={selectedDate}
-          setSelectedDate={handleSelectDate}
-        />
-        <DashboardMenu />
-        <DashboardFeed
-          selectedBrand={selectedBrand}
-          selectedDate={selectedDate}
-          selectedEvent={selectedEvent}
-        />
+        {codeType ? (
+          <CodeGenerator
+            user={user}
+            onClose={() => setCodeType("")}
+            type={codeType}
+            codeSettings={brandCodeSettings}
+            codePermissions={codePermissions}
+            accessSummary={accessSummary}
+            selectedBrand={selectedBrand}
+            selectedEvent={selectedEvent}
+            refreshCounts={() => {
+              console.log("Refreshing code counts");
+              // Force a refresh of the dashboard data if needed
+              store.dispatch({ type: "FORCE_REFRESH" });
+            }}
+            onEventDataUpdate={(updatedEvent) => {
+              console.log("Brand-specific CodeSettings for Dashboard:", {
+                brand: selectedBrand?.name,
+                brandId: selectedBrand?._id,
+                codeSettingsCount: brandCodeSettings.length,
+                eventId: selectedEvent?._id,
+                user: user
+                  ? {
+                      id: user._id || user.id,
+                      username: user.username,
+                    }
+                  : "No user",
+              });
+            }}
+          />
+        ) : (
+          <>
+            <DashboardHeader
+              user={user}
+              brandsCount={brands.length}
+              eventsCount={events.length}
+              brands={brandsWithData}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={handleSelectBrand}
+              selectedDate={selectedDate}
+              setSelectedDate={handleSelectDate}
+            />
+            <DashboardMenu
+              userRoles={userRoleForSelectedBrand}
+              user={user}
+              selectedBrand={selectedBrand}
+              codeSettings={brandCodeSettings}
+              codePermissions={codePermissions}
+              accessSummary={accessSummary}
+              setShowStatistic={setShowStatistic}
+              setShowScanner={setShowScanner}
+              setCodeType={setCodeType}
+              setShowSettings={setShowSettings}
+              setShowDropFiles={setShowDropFiles}
+              setShowTableSystem={setShowTableSystem}
+              isOnline={true}
+            />
+            <DashboardFeed
+              selectedBrand={selectedBrand}
+              selectedDate={selectedDate}
+              selectedEvent={selectedEvent}
+            />
+          </>
+        )}
       </div>
+
+      <DashboardNavigation
+        isOpen={isNavigationOpen}
+        onClose={() => setIsNavigationOpen(false)}
+        currentUser={user}
+        setUser={(updatedUser) => {
+          store.dispatch({
+            type: "user/updateUser",
+            payload: updatedUser,
+          });
+        }}
+      />
     </div>
   );
 };

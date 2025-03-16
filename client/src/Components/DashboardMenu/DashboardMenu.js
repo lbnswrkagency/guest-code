@@ -44,63 +44,6 @@ const DashboardMenu = ({
     return str1 === str2;
   };
 
-  // Add a comprehensive console log to understand the data flow
-  useEffect(() => {
-    // Only log when we have meaningful data
-    if (
-      selectedBrand &&
-      (codeSettings.length > 0 || codePermissions.length > 0)
-    ) {
-      // Map code settings to a more readable format
-      const mappedSettings = codeSettings.map((setting) => ({
-        _id: setting._id,
-        name: setting.name,
-        type: setting.type,
-        isEnabled: setting.isEnabled,
-        maxPax: setting.maxPax,
-        condition: setting.condition,
-        limit: setting.limit,
-      }));
-
-      // Map code permissions to a more readable format
-      const mappedPermissions = codePermissions.map((perm) => ({
-        name: perm.name,
-        type: perm.type,
-        generate: perm.generate,
-        limit: perm.limit,
-        unlimited: perm.unlimited,
-        remaining:
-          perm.limit -
-          (accessSummary[perm.name?.toLowerCase()]?.generated || 0),
-      }));
-
-      // Create a mapping between settings and permissions
-      const codeTypeMapping = {};
-
-      // First add all settings
-      mappedSettings.forEach((setting) => {
-        codeTypeMapping[setting.name] = {
-          setting,
-          permission: null,
-        };
-      });
-
-      // Then match permissions to settings
-      mappedPermissions.forEach((perm) => {
-        // Try to find a matching setting by name
-        if (codeTypeMapping[perm.name]) {
-          codeTypeMapping[perm.name].permission = perm;
-        } else {
-          // If no matching setting, add just the permission
-          codeTypeMapping[perm.name] = {
-            setting: null,
-            permission: perm,
-          };
-        }
-      });
-    }
-  }, [selectedBrand, codeSettings, codePermissions, accessSummary, userRoles]);
-
   useEffect(() => {
     if (selectedBrand && user) {
       // Check user role permissions directly
@@ -251,8 +194,7 @@ const DashboardMenu = ({
                 <div
                   className="menu-item"
                   onClick={() => {
-                    const defaultType = getDefaultCodeType();
-                    setCodeType(defaultType);
+                    setCodeType("codes");
                     setIsOpen(false);
                   }}
                 >

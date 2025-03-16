@@ -196,6 +196,14 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
+    .event-image-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
     .event-image-container {
       width: 100%;
       min-height: 150px;
@@ -272,19 +280,46 @@
       }
     }
 
-    &.has-portrait-flyer .event-image-container {
-      background-color: #000; /* Match background color to avoid visible borders */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
+    &.has-portrait-flyer {
+      .event-image-wrapper {
+        background: linear-gradient(145deg, #111, #1a1a1a);
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
 
-      .event-image {
-        max-height: 450px; /* Portrait/9:16 images can be quite tall */
-        height: auto;
-        max-width: 100%;
-        width: auto; /* Allow the image to maintain its aspect ratio */
-        object-fit: contain; /* Use contain to avoid cropping */
+        /* Add a subtle grain texture overlay */
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 0;
+        }
+      }
+
+      .event-image-container {
+        background: transparent;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: auto;
+        margin: 0 auto;
+
+        .event-image {
+          max-height: 450px;
+          height: auto;
+          width: auto;
+          object-fit: contain;
+          z-index: 1;
+          position: relative;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
       }
     }
 
@@ -302,18 +337,25 @@
         object-fit: cover;
       }
 
-      &.has-portrait-flyer .event-image-container {
-        background-color: #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      &.has-portrait-flyer {
+        .event-image-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+        }
 
-        .event-image {
-          max-height: 400px;
-          height: auto;
-          max-width: 100%;
+        .event-image-container {
+          display: inline-flex;
           width: auto;
-          object-fit: contain;
+
+          .event-image {
+            max-height: 400px;
+            height: auto;
+            max-width: 100%;
+            width: auto;
+            object-fit: contain;
+          }
         }
       }
     }
@@ -332,18 +374,24 @@
         object-fit: cover;
       }
 
-      &.has-portrait-flyer .event-image-container {
-        background-color: #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      &.has-portrait-flyer {
+        .event-image-wrapper {
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
 
-        .event-image {
-          max-height: 450px;
-          height: auto;
-          max-width: 100%;
+        .event-image-container {
+          display: inline-flex;
           width: auto;
-          object-fit: contain;
+
+          .event-image {
+            max-height: 420px;
+            height: auto;
+            max-width: 100%;
+            width: auto;
+            object-fit: contain;
+          }
         }
       }
     }
@@ -370,10 +418,23 @@
 
       &.has-portrait-flyer .event-image-container {
         max-height: 480px;
-        background-color: #000;
+        background: linear-gradient(145deg, #111, #1a1a1a);
         display: flex;
         justify-content: center;
         align-items: center;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 0;
+        }
 
         .event-image {
           max-height: 480px;
@@ -381,6 +442,9 @@
           max-width: 100%;
           width: auto;
           object-fit: contain;
+          position: relative;
+          z-index: 1;
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
         }
       }
     }
@@ -655,9 +719,26 @@
 
       &.has-portrait-flyer .event-image-container {
         height: auto;
+        background: linear-gradient(145deg, #111, #1a1a1a);
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 0;
+        }
 
         .event-image {
           max-height: 500px;
+          position: relative;
+          z-index: 1;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
         }
       }
 
@@ -1263,17 +1344,46 @@
         position: relative;
         overflow: hidden;
 
-        &:before {
-          background: radial-gradient(
-            circle at center,
-            rgba(255, 255, 255, 0.3) 0%,
-            rgba(255, 255, 255, 0) 70%
-          );
-        }
-
         &:hover:before {
           opacity: 1;
         }
+      }
+    }
+  }
+}
+
+.event-image-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Media query styles for different viewports */
+@media (max-width: 767px) {
+  .event-card {
+    &.has-portrait-flyer {
+      .event-image-wrapper {
+        background: linear-gradient(145deg, #111, #1a1a1a);
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          opacity: 0.4;
+          pointer-events: none;
+          z-index: 0;
+        }
+      }
+
+      .event-image-container {
+        width: auto;
+        max-width: 100%;
       }
     }
   }

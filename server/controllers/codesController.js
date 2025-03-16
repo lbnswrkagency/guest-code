@@ -1542,6 +1542,79 @@ const findBySecurityToken = async (req, res) => {
   }
 };
 
+// Get codes by event, user, and specific code settings
+const getEventUserCodes = async (req, res) => {
+  try {
+    const { eventId, userId, codeSettingIds } = req.body;
+
+    console.log("🔍 Getting codes for event, user and specific settings:", {
+      eventId,
+      userId,
+      codeSettingIds,
+    });
+
+    // Validate required fields
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Build query
+    const query = {
+      eventId,
+      createdBy: userId,
+    };
+
+    // Add codeSettingIds to query if provided
+    if (codeSettingIds && codeSettingIds.length > 0) {
+      query.codeSettingId = { $in: codeSettingIds };
+    }
+
+    // Get all codes matching the query
+    const codes = await Code.find(query).sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${codes.length} codes for the query`);
+
+    // Group codes by codeSettingId
+    const codesBySettingId = {};
+
+    codes.forEach((code) => {
+      const settingId = code.codeSettingId
+        ? code.codeSettingId.toString()
+        : "unknown";
+
+      if (!codesBySettingId[settingId]) {
+        codesBySettingId[settingId] = [];
+      }
+
+      codesBySettingId[settingId].push({
+        id: code._id,
+        code: code.code,
+        name: code.name,
+        type: code.type,
+        maxPax: code.maxPax,
+        paxChecked: code.paxChecked,
+        condition: code.condition,
+        tableNumber: code.tableNumber,
+        qrCode: code.qrCode,
+        createdAt: code.createdAt,
+        status: code.status,
+      });
+    });
+
+    return res.status(200).json({
+      codes: codesBySettingId,
+      totalCount: codes.length,
+    });
+  } catch (error) {
+    console.error("Error getting event user codes:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   configureCodeSettings,
   getCodeSettings,
@@ -1558,4 +1631,5 @@ module.exports = {
   getCodeCounts,
   getUserCodeCounts,
   findBySecurityToken,
+  getEventUserCodes,
 };

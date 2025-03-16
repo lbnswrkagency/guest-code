@@ -128,11 +128,11 @@ exports.login = async (req, res) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Find user by email or username
+    // Find user by email or username using case-insensitive regex for better matching
     const user = await User.findOne({
       $or: [
-        { email: email.toLowerCase() },
-        { username: email.toLowerCase() }, // Check if the provided email field matches a username
+        { email: new RegExp("^" + email + "$", "i") }, // Case-insensitive email match
+        { username: new RegExp("^" + email + "$", "i") }, // Case-insensitive username match
       ],
     });
 

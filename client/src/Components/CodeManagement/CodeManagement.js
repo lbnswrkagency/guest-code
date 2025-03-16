@@ -1,11 +1,30 @@
 // CodeManagement.js
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../../utils/axiosConfig";
+import axios from "axios";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
-import moment from "moment";
-import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import { BsPeopleFill } from "react-icons/bs";
+
+// Helper function to adjust a color's brightness
+const adjustColor = (color, amount) => {
+  // Remove # if present
+  color = color.replace("#", "");
+
+  // Parse the color into RGB components
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+
+  // Adjust each component
+  const newR = Math.max(0, Math.min(255, r + amount));
+  const newG = Math.max(0, Math.min(255, g + amount));
+  const newB = Math.max(0, Math.min(255, b + amount));
+
+  // Convert back to hex
+  return `#${newR.toString(16).padStart(2, "0")}${newG
+    .toString(16)
+    .padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`;
+};
 
 /**
  * CodeManagement displays and manages the codes that have been generated.
@@ -14,230 +33,229 @@ import { BsPeopleFill } from "react-icons/bs";
 function CodeManagement({
   user,
   type,
-  setCodes: setCodesParent,
-  codes: codesFromParent,
-  refreshCounts,
-  refreshCodes,
-  currentEventDate,
-  counts,
-  onPrevWeek,
-  onNextWeek,
-  isStartingEvent,
-  dataInterval,
+  codes = [],
+  setCodes = null,
+  refreshCodes = null,
+  refreshCounts = null,
   selectedEvent,
+  isLoading: parentLoading = false,
+  activeSetting = null,
+  maxPeopleOptions = [],
+  maxPeopleAllowed = 5,
+  remainingQuota = Infinity,
+  hasLimitReached = false,
 }) {
   const { showSuccess, showError, showLoading } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [visibleCodes, setVisibleCodes] = useState(10);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [deleteCodeId, setDeleteCodeId] = useState(null);
-  const [editCodeId, setEditCodeId] = useState(null);
+  const [localCodes, setLocalCodes] = useState([]);
+  const [editingCode, setEditingCode] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editPax, setEditPax] = useState("");
-  const [codes, setCodes] = useState([]);
+  const [editPax, setEditPax] = useState(1);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [codeToDelete, setCodeToDelete] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [viewingCode, setViewingCode] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [visibleCodes, setVisibleCodes] = useState(10);
+  const [showPngModal, setShowPngModal] = useState(false);
+  const [pngUrl, setPngUrl] = useState("");
 
-  // Stabilize the codes state to prevent flickering
+  // Update local codes when parent codes change
   useEffect(() => {
-    if (codesFromParent?.length) {
-      console.log(
-        `📊 CodeManagement: Received ${codesFromParent.length} codes`
-      );
-
-      // Sort codes by createdAt in descending order (newest first)
-      const sortedCodes = [...codesFromParent].sort((a, b) => {
+    if (codes && codes.length > 0) {
+      // Sort codes by creation date (newest first)
+      const sortedCodes = [...codes].sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-
-      setCodes(sortedCodes);
+      setLocalCodes(sortedCodes);
     } else {
-      // Reset codes if none are provided
-      setCodes([]);
+      setLocalCodes([]);
     }
-  }, [codesFromParent]);
+  }, [codes]);
 
   // Load more codes
   const loadMore = () => {
     setVisibleCodes((prev) => prev + 10);
   };
 
-  // Reset edit state
-  const resetEditState = () => {
-    setEditCodeId(null);
-    setEditName("");
-    setEditPax("");
+  // Confirm code deletion
+  const confirmDelete = (code) => {
+    setCodeToDelete(code);
+    setShowDeleteModal(true);
   };
 
   // Delete a code
-  const confirmDelete = async () => {
-    if (!deleteCodeId) return;
+  const deleteCode = async () => {
+    if (!codeToDelete) return;
+
+    setIsLoading(true);
+    showLoading("Deleting code...");
 
     try {
-      showLoading("Deleting code...");
+      const codeId = codeToDelete._id || codeToDelete.id;
 
-      await axiosInstance.delete(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/${deleteCodeId}`,
+      await axios.delete(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/${codeId}`,
         {
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
 
-      // Update codes state
-      const updatedCodes = codes.filter(
-        (code) => code._id !== deleteCodeId && code.id !== deleteCodeId
+      // Remove the deleted code from the local state
+      const updatedCodes = localCodes.filter(
+        (c) => c._id !== codeId && c.id !== codeId
       );
-      setCodes(updatedCodes);
 
-      // Update the parent component
-      if (setCodesParent) {
-        setCodesParent(updatedCodes);
+      setLocalCodes(updatedCodes);
+
+      // Update parent component state if setCodes is provided
+      if (setCodes) {
+        setCodes(updatedCodes);
       }
 
       // Refresh counts and codes if provided
-      if (refreshCounts) {
-        try {
-          await refreshCounts();
-        } catch (error) {
-          console.error("Error refreshing counts:", error);
-        }
-      }
-
-      if (refreshCodes) {
-        try {
-          await refreshCodes();
-        } catch (error) {
-          console.error("Error refreshing codes:", error);
-        }
-      }
+      if (refreshCounts) refreshCounts();
+      if (refreshCodes) refreshCodes();
 
       showSuccess("Code deleted successfully");
     } catch (error) {
-      console.error("Error deleting code:", error);
-      showError(
-        error.response?.data?.message ||
-          "Failed to delete code. Please try again."
-      );
+      showError(error.response?.data?.message || "Failed to delete code");
     } finally {
-      setShowConfirmDelete(false);
-      setDeleteCodeId(null);
+      setIsLoading(false);
+      setShowDeleteModal(false);
+      setCodeToDelete(null);
     }
-  };
-
-  // Handle delete click
-  const handleDeleteClick = (codeId) => {
-    setDeleteCodeId(codeId);
-    setShowConfirmDelete(true);
   };
 
   // Start editing a code
   const startEdit = (code) => {
-    setEditCodeId(code._id || code.id);
+    setEditingCode(code);
     setEditName(code.name || "");
     setEditPax(code.maxPax || code.pax || 1);
   };
 
-  // Handle edit submission
-  const handleEdit = async () => {
-    if (!editCodeId) return;
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingCode(null);
+  };
+
+  // Save edited code
+  const saveEdit = async () => {
+    if (!editingCode) return;
+
+    setIsLoading(true);
+    showLoading("Updating code...");
 
     try {
-      showLoading("Updating code...");
+      const codeId = editingCode._id || editingCode.id;
 
-      const updateData = {
-        name: editName,
-        maxPax: parseInt(editPax),
-      };
-
-      const response = await axiosInstance.put(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/${editCodeId}`,
-        updateData,
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/${codeId}`,
         {
+          name: editName,
+          maxPax: parseInt(editPax),
+        },
+        {
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
 
-      if (response.data) {
-        // Update codes with the new data
-        const updatedCodes = codes.map((code) => {
-          const codeId = code._id || code.id;
-          return codeId === editCodeId ? { ...code, ...updateData } : code;
-        });
+      // Update the edited code in the local state
+      const updatedCodes = localCodes.map((c) => {
+        if (c._id === codeId || c.id === codeId) {
+          return {
+            ...c,
+            name: editName,
+            maxPax: parseInt(editPax),
+          };
+        }
+        return c;
+      });
 
+      setLocalCodes(updatedCodes);
+
+      // Update parent component state if setCodes is provided
+      if (setCodes) {
         setCodes(updatedCodes);
-
-        // Update the parent component
-        if (setCodesParent) {
-          setCodesParent(updatedCodes);
-        }
       }
 
-      // Refresh counts if provided
-      if (refreshCounts) {
-        try {
-          await refreshCounts();
-        } catch (error) {
-          console.error("Error refreshing counts:", error);
-        }
-      }
+      // Refresh counts and codes to update remaining values in the parent
+      if (refreshCounts) refreshCounts();
+      if (refreshCodes) refreshCodes();
 
-      resetEditState();
       showSuccess("Code updated successfully");
     } catch (error) {
-      console.error("Error updating code:", error);
-      showError(
-        error.response?.data?.message ||
-          "Failed to update code. Please try again."
-      );
+      showError(error.response?.data?.message || "Failed to update code");
+    } finally {
+      setIsLoading(false);
+      setEditingCode(null);
     }
   };
 
-  // Cancel editing
-  const cancelEdit = () => {
-    resetEditState();
-  };
-
-  // Handle code click to view QR code
-  const handleCodeClick = async (codeId) => {
+  // View code details
+  const viewCode = async (code) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
+      const loadingToast = showLoading("Preparing your ticket...");
 
-      // Use the view endpoint to get the PDF for viewing in browser
-      const viewUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/view`;
+      const codeId = code._id || code.id;
 
-      // Use axiosInstance to get the PDF with proper authentication
-      const response = await axiosInstance.get(viewUrl, {
-        responseType: "blob",
-      });
+      // Use the PNG endpoint to get the image
+      const pngUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/png`;
 
-      // Create a blob URL from the response
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
+      // Create a new Image element to preload the PNG before showing modal or setting URL
+      const img = new Image();
 
-      // Open the PDF in a new tab
-      window.open(url, "_blank");
+      // Set up load event handler
+      img.onload = () => {
+        // Only set the PNG URL and show modal after image is fully loaded
+        setPngUrl(pngUrl);
+        setShowPngModal(true);
 
-      setLoading(false);
+        // Dismiss the loading toast after image is loaded and modal is shown
+        loadingToast.dismiss();
+        setIsLoading(false);
+      };
+
+      // Set up error event handler
+      img.onerror = () => {
+        loadingToast.dismiss();
+        showError("Failed to load ticket image");
+        setIsLoading(false);
+      };
+
+      // Start loading the image
+      img.src = pngUrl;
     } catch (error) {
       console.error("Error viewing code:", error);
       showError("Failed to view code");
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Handle code download
-  const handleDownload = async (codeId) => {
+  // Download code PDF
+  const downloadCode = async (code) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
+      showLoading("Downloading code...");
+
+      const codeId = code._id || code.id;
 
       // Create a link to download the PDF
       const downloadUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/pdf`;
 
-      // Use axiosInstance to get the PDF with proper authentication
-      const response = await axiosInstance.get(downloadUrl, {
+      // Use axios to get the PDF with proper authentication
+      const response = await axios.get(downloadUrl, {
         responseType: "blob",
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
 
       // Create a blob URL from the response
@@ -247,7 +265,7 @@ function CodeManagement({
       // Create a temporary link element
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `code-${codeId}.pdf`);
+      link.setAttribute("download", `code-${code.name}.pdf`);
 
       // Append to the document, click it, and remove it
       document.body.appendChild(link);
@@ -257,11 +275,12 @@ function CodeManagement({
       // Clean up the blob URL
       window.URL.revokeObjectURL(url);
 
-      setLoading(false);
+      showSuccess("Code downloaded successfully");
     } catch (error) {
       console.error("Error downloading code:", error);
       showError("Failed to download code");
-      setLoading(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -280,62 +299,92 @@ function CodeManagement({
     // Calculate luminance
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-    // Return black for bright colors, white for dark colors
+    // Return black for light colors, white for dark colors
     return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
 
-  // Helper to get code color based on type
+  // Get code color based on type
   const getCodeColor = (code) => {
-    // First try to get color from code or codeSettings
+    // First try to get color directly from code
     if (code.color) return code.color;
-    if (code.codeSettings?.color) return code.codeSettings.color;
+
+    // If it's from metadata
+    if (code.metadata?.settingColor) return code.metadata.settingColor;
 
     // If code type matches specific types, use predefined colors
-    const codeType = code.type || type;
-    if (codeType === "Bottle Code") return "#e3a31d"; // Gold
-    if (codeType === "Special Code") return "#b92b27"; // Red
-    if (codeType === "Table Code") return "#7b1fa2"; // Purple
-    if (codeType === "Friends Code") return "#1976d2"; // Blue
-    if (codeType === "Backstage Code") return "#0d47a1"; // Dark Blue
+    const codeType = code.type?.toLowerCase() || "";
+    if (codeType.includes("bottle")) return "#e3a31d"; // Gold
+    if (codeType.includes("special")) return "#b92b27"; // Red
+    if (codeType.includes("table")) return "#7b1fa2"; // Purple
+    if (codeType.includes("friends")) return "#1976d2"; // Blue
+    if (codeType.includes("backstage")) return "#0d47a1"; // Dark Blue
 
     // Default to event's primary color
     return selectedEvent?.primaryColor || "#1976d2";
   };
 
-  // Render codes
-  const renderCodes = () => {
-    if (!selectedEvent) {
-      return (
-        <div className="no-codes">
-          No event selected. Please select an event in the header.
-        </div>
-      );
+  // Get code type class
+  const getCodeTypeClass = (code) => {
+    const codeType = code.type?.toLowerCase() || "";
+    if (codeType.includes("bottle")) return "bottle";
+    if (codeType.includes("special")) return "special";
+    if (codeType.includes("table")) return "table";
+    if (codeType.includes("friends")) return "friends";
+    if (codeType.includes("backstage")) return "backstage";
+    return "";
+  };
+
+  // Calculate max allowed value for editing a specific code
+  const getMaxEditValue = (code) => {
+    // Start with the setting's max allowed or a default of 5
+    const settingMax = activeSetting?.maxPax || 5;
+
+    // If unlimited, just use the setting max
+    if (remainingQuota === Infinity) {
+      return settingMax;
     }
 
-    if (loading && !codes.length) {
+    // Current code's maxPax
+    const currentMax = code.maxPax || 1;
+
+    // For editing, we can use the current value plus any remaining quota
+    // This allows a code to keep its current value plus use any available quota
+    const availableForThisCode = currentMax + remainingQuota;
+
+    // Don't exceed the setting's maximum and ensure at least 1
+    return Math.max(1, Math.min(availableForThisCode, settingMax));
+  };
+
+  // Render the list of codes
+  const renderCodes = () => {
+    if ((isLoading && !localCodes.length) || parentLoading) {
       return <div className="loading">Loading codes...</div>;
     }
 
-    if (!codes?.length) {
-      return <div className="no-codes">No codes found for this event.</div>;
+    if (localCodes.length === 0) {
+      return <div className="no-codes">No codes available for this type.</div>;
     }
 
     return (
       <>
-        {codes.slice(0, visibleCodes).map((code) => {
-          // Get code ID (handle different formats)
+        {localCodes.slice(0, visibleCodes).map((code) => {
           const codeId = code._id || code.id;
-          const isEditing = editCodeId === codeId;
+          const isEditing =
+            editingCode &&
+            (editingCode._id === codeId || editingCode.id === codeId);
           const primaryColor = selectedEvent?.primaryColor;
-
-          // Get color for this code
           const codeColor = getCodeColor(code);
-          const customStyle = codeColor
-            ? {
-                background: codeColor,
-                color: getContrastColor(codeColor),
-              }
-            : {};
+          const codeTypeClass = getCodeTypeClass(code);
+
+          // Custom styling for the code icon
+          const iconStyle = {
+            background: codeColor
+              ? `linear-gradient(45deg, ${codeColor}, ${adjustColor(
+                  codeColor,
+                  20
+                )})`
+              : undefined,
+          };
 
           return (
             <div
@@ -344,7 +393,7 @@ function CodeManagement({
               style={primaryColor ? { borderColor: `${primaryColor}30` } : {}}
             >
               <div className="code-management-item-info">
-                <div className="code-icon" style={customStyle}>
+                <div className={`code-icon ${codeTypeClass}`} style={iconStyle}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -385,7 +434,11 @@ function CodeManagement({
                     value={editPax}
                     onChange={(e) => setEditPax(parseInt(e.target.value))}
                   >
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                    {/* When editing, consider the code's current maxPax plus remaining quota */}
+                    {Array.from(
+                      { length: getMaxEditValue(editingCode) },
+                      (_, i) => i + 1
+                    ).map((num) => (
                       <option key={num} value={num}>
                         {num}
                       </option>
@@ -403,7 +456,7 @@ function CodeManagement({
                   <>
                     <button
                       className="save-edit-btn"
-                      onClick={handleEdit}
+                      onClick={saveEdit}
                       title="Save"
                     >
                       ✓
@@ -427,21 +480,21 @@ function CodeManagement({
                     </button>
                     <button
                       className="download-btn"
-                      onClick={() => handleDownload(codeId)}
+                      onClick={() => downloadCode(code)}
                       title="Download QR"
                     >
                       ⬇️
                     </button>
-                    {/* <button
+                    <button
                       className="view-btn"
-                      onClick={() => handleCodeClick(codeId)}
+                      onClick={() => viewCode(code)}
                       title="View QR"
                     >
                       👁️
-                    </button> */}
+                    </button>
                     <button
                       className="delete-btn"
-                      onClick={() => handleDeleteClick(codeId)}
+                      onClick={() => confirmDelete(code)}
                       title="Delete"
                     >
                       🗑️
@@ -453,15 +506,15 @@ function CodeManagement({
           );
         })}
 
-        {codes.length > visibleCodes && (
+        {localCodes.length > visibleCodes && (
           <button
             className="load-more-btn"
             onClick={loadMore}
             style={
               selectedEvent?.primaryColor
                 ? {
-                    backgroundColor: selectedEvent.primaryColor,
-                    color: "#fff",
+                    backgroundColor: `${selectedEvent.primaryColor}20`,
+                    borderColor: `${selectedEvent.primaryColor}40`,
                   }
                 : {}
             }
@@ -469,23 +522,64 @@ function CodeManagement({
             Load More Codes
           </button>
         )}
-
-        {showConfirmDelete && (
-          <ConfirmDialog
-            title="Delete Code"
-            message="Are you sure you want to delete this code? This action cannot be undone."
-            confirmText="Delete"
-            cancelText="Cancel"
-            onConfirm={confirmDelete}
-            onCancel={() => setShowConfirmDelete(false)}
-            type="danger"
-          />
-        )}
       </>
     );
   };
 
-  return <div className="code-management">{renderCodes()}</div>;
+  return (
+    <div className="code-management">
+      {renderCodes()}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="code-management-delete">
+          <div className="modal-content">
+            <button
+              className="close-btn"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              ✕
+            </button>
+            <div className="delete-content">
+              <h3>Delete Code</h3>
+              <p>
+                Are you sure you want to delete the code for{" "}
+                <strong>{codeToDelete?.name}</strong>?
+              </p>
+              <div className="delete-actions">
+                <button
+                  className="cancel"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="confirm"
+                  onClick={deleteCode}
+                  disabled={isLoading}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PNG View Modal - Fullscreen */}
+      {showPngModal && (
+        <div className="code-png-modal">
+          <button className="close-btn" onClick={() => setShowPngModal(false)}>
+            ✕
+          </button>
+          <div className="png-container">
+            <img src={pngUrl} alt="Code" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default CodeManagement;
