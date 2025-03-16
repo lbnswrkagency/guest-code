@@ -198,7 +198,6 @@ const RoleSetting = ({ brand, onClose }) => {
   };
 
   const handleDeleteClick = (role) => {
-    if (role.isFounder) return;
     setRoleToDelete(role);
     setShowDeleteConfirm(true);
   };
@@ -275,7 +274,7 @@ const RoleSetting = ({ brand, onClose }) => {
   };
 
   const handleStartEdit = (role) => {
-    if (role.isFounder) return;
+    // No check for isFounder here to allow editing founder roles
     setEditingRole(role);
 
     // Initialize role with basic permissions structure
@@ -330,6 +329,7 @@ const RoleSetting = ({ brand, onClose }) => {
       console.log("Updating role:", editingRole);
       console.log("New role data:", newRole);
 
+      // Allow updating founder roles by not checking isFounder here
       const normalizedRole = {
         ...newRole,
         name: newRole.name.toUpperCase(),
@@ -354,9 +354,9 @@ const RoleSetting = ({ brand, onClose }) => {
       );
       setShowCreateForm(false);
       setEditingRole(null);
-      toast.success("Role updated successfully");
+      toast.showSuccess("Role updated successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update role");
+      toast.showError(error.response?.data?.message || "Failed to update role");
       console.error("Error updating role:", error);
     }
   };
@@ -499,32 +499,25 @@ const RoleSetting = ({ brand, onClose }) => {
           >
             <div className="role-name">{role.name}</div>
             <div className="role-actions">
-              {role.isFounder ? (
-                <motion.span
-                  className="action-btn lock"
-                  whileHover={{ scale: 1 }}
+              {/* Show edit button for all roles including founder roles */}
+              <motion.button
+                className="action-btn edit"
+                onClick={() => handleStartEdit(role)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiEditLine />
+              </motion.button>
+              {/* Only show delete button for non-default and non-founder roles */}
+              {!role.isDefault && !role.isFounder && (
+                <motion.button
+                  className="action-btn delete"
+                  onClick={() => handleDeleteClick(role)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                 >
-                  <RiLockLine />
-                </motion.span>
-              ) : (
-                <>
-                  <motion.button
-                    className="action-btn edit"
-                    onClick={() => handleStartEdit(role)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <RiEditLine />
-                  </motion.button>
-                  <motion.button
-                    className="action-btn delete"
-                    onClick={() => handleDeleteClick(role)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <RiDeleteBin6Line />
-                  </motion.button>
-                </>
+                  <RiDeleteBin6Line />
+                </motion.button>
               )}
             </div>
           </div>

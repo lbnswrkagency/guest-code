@@ -311,10 +311,6 @@ exports.updateRole = async (req, res) => {
     const { roleId } = req.params;
     const { name, permissions } = req.body;
 
-    console.log(
-      `[RoleController:updateRole] Updating role ${roleId} with name: ${name}`
-    );
-
     if (!roleId) {
       return res.status(400).json({ message: "Role ID is required" });
     }
@@ -325,17 +321,13 @@ exports.updateRole = async (req, res) => {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    console.log(
-      `[RoleController:updateRole] Found role: ${role.name}, brandId: ${role.brandId}`
-    );
-
-    // Prevent updating Founder role
-    if (role.isFounder) {
-      return res.status(403).json({ message: "Cannot modify Founder role" });
-    }
+    // Allow updating Founder role by removing this check
+    // if (role.isFounder) {
+    //   return res.status(403).json({ message: "Cannot modify Founder role" });
+    // }
 
     // Prevent changing role name to Founder
-    if (name && name.toUpperCase() === "FOUNDER") {
+    if (name && name.toUpperCase() === "FOUNDER" && !role.isFounder) {
       return res.status(403).json({ message: "Cannot rename role to Founder" });
     }
 
@@ -343,10 +335,6 @@ exports.updateRole = async (req, res) => {
     const oldRoleName = role.name;
     const newRoleName = name ? name.toUpperCase() : oldRoleName;
     const isNameChanging = newRoleName !== oldRoleName;
-
-    console.log(
-      `[RoleController:updateRole] Old name: ${oldRoleName}, New name: ${newRoleName}, isNameChanging: ${isNameChanging}`
-    );
 
     // Process code permissions if present
     if (permissions && permissions.codes) {
@@ -365,76 +353,48 @@ exports.updateRole = async (req, res) => {
       { new: true }
     );
 
-    console.log(
-      `[RoleController:updateRole] Role updated in role model: ${updatedRole.name}`
-    );
-
     // If the role name has changed, update all brand team members with this role
     if (isNameChanging) {
-      console.log(
-        `[RoleController:updateRole] Role name changed from ${oldRoleName} to ${newRoleName}. Updating brand team members...`
-      );
-
       try {
         // Find the brand associated with this role
         const brandId = role.brandId;
-        console.log(
-          `[RoleController:updateRole] Looking for brand with ID: ${brandId}`
-        );
 
         // Find the brand
         const brand = await Brand.findById(brandId);
 
-        if (!brand) {
-          console.log(
-            `[RoleController:updateRole] Brand not found with ID: ${brandId}`
-          );
-        } else {
-          console.log(`[RoleController:updateRole] Found brand: ${brand.name}`);
+        if (brand && brand.team && Array.isArray(brand.team)) {
+          let teamUpdated = false;
+          let updatedCount = 0;
 
-          if (brand.team && Array.isArray(brand.team)) {
-            console.log(
-              `[RoleController:updateRole] Brand has ${brand.team.length} team members`
-            );
-
-            let teamUpdated = false;
-            let updatedCount = 0;
-
-            // Update team members with the old role name (case-insensitive)
-            brand.team.forEach((member) => {
-              console.log(
-                `[RoleController:updateRole] Checking team member with role: ${member.role}`
-              );
-
-              // Make comparison case-insensitive
+          // Update team members with the old role name (case-insensitive)
+          brand.team.forEach((member) => {
+            // Check if role is a string or ObjectId and compare appropriately
+            if (member.role) {
               if (
-                member.role &&
+                typeof member.role === "string" &&
                 member.role.toUpperCase() === oldRoleName.toUpperCase()
               ) {
-                console.log(
-                  `[RoleController:updateRole] Updating team member role from ${member.role} to ${newRoleName}`
-                );
+                // String comparison for legacy data
                 member.role = newRoleName;
                 teamUpdated = true;
                 updatedCount++;
+              } else if (
+                member.role.toString &&
+                role._id &&
+                member.role.toString() === role._id.toString()
+              ) {
+                // ObjectId comparison - team member has a reference to this role's ID
+                // We don't need to update anything here as the reference to role ID stays the same
+                // Just update our tracking metrics
+                teamUpdated = true;
+                updatedCount++;
               }
-            });
-
-            // Save the brand if any team members were updated
-            if (teamUpdated) {
-              await brand.save();
-              console.log(
-                `[RoleController:updateRole] Updated ${updatedCount} team members in brand ${brand.name}`
-              );
-            } else {
-              console.log(
-                `[RoleController:updateRole] No team members found with role: ${oldRoleName}`
-              );
             }
-          } else {
-            console.log(
-              `[RoleController:updateRole] Brand has no team members array`
-            );
+          });
+
+          // Save the brand if any team members were updated
+          if (teamUpdated) {
+            await brand.save();
           }
         }
       } catch (updateError) {
@@ -499,31 +459,70 @@ exports.deleteRole = async (req, res) => {
   }
 };
 
-// Add this function to the exports
+// Get user roles
 exports.getUserRoles = async (req, res) => {
   try {
-    console.log(
-      "[RoleController:getUserRoles] Fetching roles for user:",
-      req.user._id
-    );
-
     // Find all roles where brandId exists (to filter out any corrupted data)
     const roles = await Role.find({
       brandId: { $exists: true },
     });
-
-    console.log(
-      "[RoleController:getUserRoles] Found roles:",
-      roles.map((r) => ({
-        id: r._id,
-        name: r.name,
-        brandId: r.brandId,
-      }))
-    );
 
     res.status(200).json(roles);
   } catch (error) {
     console.error("[RoleController:getUserRoles] Error:", error);
     res.status(500).json({ message: "Error fetching user roles" });
   }
+};
+
+// Update just the permissions for a role
+exports.updatePermissions = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    const { permissions } = req.body;
+
+    if (!roleId) {
+      return res.status(400).json({ message: "Role ID is required" });
+    }
+
+    // Find the role first
+    const role = await Role.findById(roleId);
+    if (!role) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+
+    // Process code permissions if present
+    let processedPermissions = { ...permissions };
+    if (permissions && permissions.codes) {
+      processedPermissions.codes = processCodePermissions(permissions.codes);
+    }
+
+    // Update just the permissions
+    const updatedRole = await Role.findByIdAndUpdate(
+      roleId,
+      {
+        permissions: processedPermissions,
+        updatedBy: req.user._id,
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedRole);
+  } catch (error) {
+    console.error("[RoleController:updatePermissions] Error:", error);
+    res.status(500).json({
+      message: "Error updating role permissions",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  createDefaultRoles: exports.createDefaultRoles,
+  getRoles: exports.getRoles,
+  getUserRolesForBrand: exports.getUserRolesForBrand,
+  createRole: exports.createRole,
+  updateRole: exports.updateRole,
+  deleteRole: exports.deleteRole,
+  getUserRoles: exports.getUserRoles,
+  updatePermissions: exports.updatePermissions,
 };

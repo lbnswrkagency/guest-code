@@ -279,9 +279,13 @@ const NotificationPanel = ({ onClose }) => {
     // Get the avatar URL based on notification type
     const getAvatarUrl = () => {
       if (type === "new_follower" && metadata?.follower?.avatar) {
-        return metadata.follower.avatar;
+        // Handle nested avatar object structure
+        const avatar = metadata.follower.avatar;
+        return avatar.medium || avatar.thumbnail || avatar;
       } else if (metadata?.user?.avatar) {
-        return metadata.user.avatar;
+        // Handle nested avatar object structure
+        const avatar = metadata.user.avatar;
+        return avatar.medium || avatar.thumbnail || avatar;
       }
       return null;
     };

@@ -1,6 +1,7 @@
 const CodeSettings = require("../models/codeSettingsModel");
 const Event = require("../models/eventsModel");
 const Brand = require("../models/brandModel");
+const Role = require("../models/roleModel");
 
 // Helper to get parent event ID if this is a child event
 const getParentEventId = async (eventId) => {
@@ -216,6 +217,7 @@ const configureCodeSettings = async (req, res) => {
     }
 
     let codeSetting;
+    let isNewCodeSetting = false; // Flag to track if this is a new setting
 
     // If codeSettingId is provided, try to update existing code setting
     if (codeSettingId) {
@@ -253,6 +255,7 @@ const configureCodeSettings = async (req, res) => {
         // If we have a type, create a new setting instead of failing
         if (type) {
           // If setting doesn't exist, create new
+          isNewCodeSetting = true;
           codeSetting = new CodeSettings({
             eventId: parentEventId,
             name:
@@ -308,6 +311,7 @@ const configureCodeSettings = async (req, res) => {
 
       if (!codeSetting) {
         // If setting doesn't exist, create new
+        isNewCodeSetting = true;
         codeSetting = new CodeSettings({
           eventId: parentEventId,
           name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} Code`,
@@ -361,6 +365,40 @@ const configureCodeSettings = async (req, res) => {
     }
 
     await event.save();
+
+    // If this is a new code setting of type custom, update the founder role permissions
+    if (isNewCodeSetting && type === "custom") {
+      try {
+        // Find the brand associated with the event
+        const brand = await Brand.findById(event.brand);
+        if (brand) {
+          // Find the founder role for this brand
+          const founderRole = await Role.findOne({
+            brandId: brand._id,
+            isFounder: true,
+          });
+
+          if (founderRole) {
+            // Create permission key for the new code setting
+            const permissionKey = `codeSetting:${codeSetting._id}`;
+
+            // Update founder role with maximum access to this code setting
+            founderRole.permissions = {
+              ...founderRole.permissions,
+              [permissionKey]: "write", // Maximum permission level
+            };
+
+            await founderRole.save();
+            console.log(
+              `Updated founder role with permission for new code setting: ${codeSetting.name}`
+            );
+          }
+        }
+      } catch (roleError) {
+        console.error("Error updating founder role permissions:", roleError);
+        // Don't fail the main operation if this part fails
+      }
+    }
 
     // Get all code settings for this event to return
     const allCodeSettings = await CodeSettings.find({ eventId: parentEventId });
@@ -447,6 +485,39 @@ const deleteCodeSetting = async (req, res) => {
         message:
           "Cannot delete default code types. You can disable them instead.",
       });
+    }
+
+    // First, update any founder roles that might have permissions for this code setting
+    try {
+      // Find the brand associated with the event
+      const brand = await Brand.findById(event.brand);
+      if (brand) {
+        // Find the founder role for this brand
+        const founderRole = await Role.findOne({
+          brandId: brand._id,
+          isFounder: true,
+        });
+
+        if (founderRole && founderRole.permissions) {
+          // Create permission key for this code setting
+          const permissionKey = `codeSetting:${codeSettingId}`;
+
+          // Remove the permission from the founder role
+          if (founderRole.permissions[permissionKey]) {
+            const updatedPermissions = { ...founderRole.permissions };
+            delete updatedPermissions[permissionKey];
+
+            founderRole.permissions = updatedPermissions;
+            await founderRole.save();
+            console.log(
+              `Removed permission for deleted code setting from founder role: ${codeSetting.name}`
+            );
+          }
+        }
+      }
+    } catch (roleError) {
+      console.error("Error updating founder role permissions:", roleError);
+      // Don't fail the main operation if this part fails
     }
 
     // Delete the code setting
