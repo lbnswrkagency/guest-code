@@ -205,32 +205,28 @@ function CodeManagement({
 
       const codeId = code._id || code.id;
 
-      // Use the PNG endpoint to get the image
+      // Use the PNG endpoint with authentication
       const pngUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/png`;
 
-      // Create a new Image element to preload the PNG before showing modal or setting URL
-      const img = new Image();
+      // Fetch the PNG with proper authentication
+      const response = await axios.get(pngUrl, {
+        responseType: "blob",
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-      // Set up load event handler
-      img.onload = () => {
-        // Only set the PNG URL and show modal after image is fully loaded
-        setPngUrl(pngUrl);
+      // Convert blob to data URL
+      const reader = new FileReader();
+      reader.readAsDataURL(response.data);
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        setPngUrl(base64data);
         setShowPngModal(true);
-
-        // Dismiss the loading toast after image is loaded and modal is shown
         loadingToast.dismiss();
         setIsLoading(false);
       };
-
-      // Set up error event handler
-      img.onerror = () => {
-        loadingToast.dismiss();
-        showError("Failed to load ticket image");
-        setIsLoading(false);
-      };
-
-      // Start loading the image
-      img.src = pngUrl;
     } catch (error) {
       console.error("Error viewing code:", error);
       showError("Failed to view code");
