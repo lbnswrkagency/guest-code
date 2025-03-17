@@ -24,6 +24,7 @@ const DashboardMenu = ({
   setShowDropFiles,
   setShowTableSystem,
   isOnline,
+  selectedEvent,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [permissions, setPermissions] = useState({
@@ -148,6 +149,9 @@ const DashboardMenu = ({
     return "guest";
   };
 
+  // Helper to determine if menu should be disabled
+  const isMenuDisabled = !selectedEvent || !selectedBrand;
+
   return (
     <div className={`menuDashboard ${isOpen ? "open" : ""}`}>
       <button className="menu-trigger" onClick={handleMenuClick}>
@@ -163,13 +167,21 @@ const DashboardMenu = ({
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="menu-grid">
+            {isMenuDisabled && (
+              <div className="menu-disabled-message">
+                Please select an event first
+              </div>
+            )}
+
+            <div className={`menu-grid ${isMenuDisabled ? "disabled" : ""}`}>
               {permissions.analytics.view && (
                 <div
-                  className="menu-item"
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
-                    setShowStatistic(true);
-                    setIsOpen(false);
+                    if (!isMenuDisabled) {
+                      setShowStatistic(true);
+                      setIsOpen(false);
+                    }
                   }}
                 >
                   <RiBarChartFill />
@@ -179,10 +191,12 @@ const DashboardMenu = ({
 
               {permissions.scanner.use && (
                 <div
-                  className="menu-item"
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
-                    setShowScanner(true);
-                    setIsOpen(false);
+                    if (!isMenuDisabled) {
+                      setShowScanner(true);
+                      setIsOpen(false);
+                    }
                   }}
                 >
                   <RiQrCodeFill />
@@ -193,10 +207,12 @@ const DashboardMenu = ({
               {/* Show Codes option if user can generate codes and there are code settings */}
               {permissions.codes.canGenerateAny && codeSettings.length > 0 && (
                 <div
-                  className="menu-item"
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
-                    setCodeType("codes");
-                    setIsOpen(false);
+                    if (!isMenuDisabled) {
+                      setCodeType("codes");
+                      setIsOpen(false);
+                    }
                   }}
                 >
                   <RiCodeBoxFill />
@@ -207,10 +223,12 @@ const DashboardMenu = ({
               {/* Special Table System menu item only for specific user */}
               {user && user._id === "65707f8da826dc13721ef735" && (
                 <div
-                  className="menu-item"
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
-                    setShowTableSystem(true);
-                    setIsOpen(false);
+                    if (!isMenuDisabled) {
+                      setShowTableSystem(true);
+                      setIsOpen(false);
+                    }
                   }}
                 >
                   <RiTableLine />

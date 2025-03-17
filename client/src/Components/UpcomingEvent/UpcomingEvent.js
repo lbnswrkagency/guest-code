@@ -51,6 +51,7 @@ const UpcomingEvent = ({
   events: providedEvents,
   initialEventIndex = 0,
   hideNavigation = false,
+  onEventsLoaded = () => {},
 }) => {
   const [events, setEvents] = useState(
     providedEvents ? [...providedEvents] : []
@@ -122,6 +123,9 @@ const UpcomingEvent = ({
       setEvents(processedEvents);
       setTotalEvents(processedEvents.length);
       setLoading(false);
+
+      // Notify parent of the number of events
+      onEventsLoaded(processedEvents.length);
 
       // Preload the first event's image if available
       if (processedEvents[currentIndex]?.flyer) {
@@ -476,7 +480,10 @@ const UpcomingEvent = ({
 
       // Filter out past events and sort by date
       const now = new Date();
-      now.setHours(0, 0, 0, 0); // Set to start of day for more accurate comparison
+      console.log(
+        "[UpcomingEvent] Current time for filtering:",
+        now.toISOString()
+      );
 
       const upcomingEvents = events
         .filter((event) => {
@@ -564,6 +571,18 @@ const UpcomingEvent = ({
               }
             }
 
+            // Debug log for event end time comparison
+            console.log(
+              `[UpcomingEvent] Event "${eventInfo.title}" end time:`,
+              {
+                eventEndDateTime: eventEndDateTime
+                  ? eventEndDateTime.toISOString()
+                  : null,
+                isUpcoming: eventEndDateTime >= now,
+                comparison: `${eventEndDateTime} >= ${now}`,
+              }
+            );
+
             // For weekly events, we need special handling
             if (event.isWeekly) {
               // For parent weekly events (weekNumber === 0), check if the event date is in the future
@@ -640,6 +659,9 @@ const UpcomingEvent = ({
       setEvents(upcomingEvents);
       setTotalEvents(upcomingEvents.length);
 
+      // Notify parent of the number of events
+      onEventsLoaded(upcomingEvents.length);
+
       if (upcomingEvents.length > 0) {
         // Set the first event as the current event
         const firstEvent = upcomingEvents[0];
@@ -657,6 +679,9 @@ const UpcomingEvent = ({
       setError("Failed to load events");
       setEvents([]);
       setCurrentIndex(-1);
+
+      // Notify parent with 0 events on error
+      onEventsLoaded(0);
     } finally {
       setLoading(false);
     }
@@ -1002,10 +1027,7 @@ const UpcomingEvent = ({
       >
         <div className="empty-state">
           <div className="empty-icon">📅</div>
-          <p>No upcoming events found</p>
-          <span className="empty-state-subtext">
-            Check back later for new events
-          </span>
+          <p>No Upcoming Events yet, come back again later.</p>
         </div>
       </div>
     );
@@ -1022,9 +1044,12 @@ const UpcomingEvent = ({
     (cs) => cs.type === "guest"
   );
 
+  // Only show navigation when there's more than one event
+  const showNavigation = !hideNavigation && events.length > 1;
+
   return (
     <div className={`upcoming-event-container ${seamless ? "seamless" : ""}`}>
-      {!hideNavigation && (
+      {showNavigation && (
         <div className="event-navigation">
           <button
             className={`nav-button prev ${
@@ -1091,6 +1116,15 @@ const UpcomingEvent = ({
               <h3 className="event-title">{currentEvent.title}</h3>
               {currentEvent.subTitle && (
                 <p className="event-subtitle">{currentEvent.subTitle}</p>
+              )}
+
+              {/* Event Description */}
+              {currentEvent.description && (
+                <div className="event-description-container">
+                  <p className="event-description">
+                    {currentEvent.description}
+                  </p>
+                </div>
               )}
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RiCloseLine,
@@ -12,20 +12,45 @@ import ColorPicker from "../ColorPicker/ColorPicker";
 import "./CreateTicketDialog.scss";
 
 const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
-  const [ticketData, setTicketData] = useState({
-    name: "",
-    price: "",
-    originalPrice: "",
-    description: "",
-    color: "#2196F3",
-    hasCountdown: false,
-    endDate: new Date(),
-    endTime: "23:59",
-    isLimited: false,
-    maxTickets: 100,
-    minPurchase: 1,
-    maxPurchase: 10,
-    ...initialData,
+  const [ticketData, setTicketData] = useState(() => {
+    // Process initialData to ensure proper date/time format
+    const processedData = {
+      name: "",
+      price: "",
+      originalPrice: "",
+      description: "",
+      color: "#2196F3",
+      hasCountdown: false,
+      endDate: new Date().toISOString().split("T")[0], // Format as YYYY-MM-DD
+      endTime: "23:59",
+      isLimited: false,
+      maxTickets: 100,
+      minPurchase: 1,
+      maxPurchase: 10,
+      ...initialData,
+    };
+
+    // If endDate exists in initialData, parse it properly
+    if (initialData.endDate) {
+      try {
+        const endDate = new Date(initialData.endDate);
+        if (!isNaN(endDate.getTime())) {
+          // Valid date, extract date and time components
+          processedData.endDate = endDate.toISOString().split("T")[0];
+
+          // Set endTime from endDate if not explicitly provided
+          if (!initialData.endTime) {
+            const hours = endDate.getHours().toString().padStart(2, "0");
+            const minutes = endDate.getMinutes().toString().padStart(2, "0");
+            processedData.endTime = `${hours}:${minutes}`;
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing endDate:", error);
+      }
+    }
+
+    return processedData;
   });
 
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -210,6 +235,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder="Describe what this ticket includes..."
               maxLength={500}
+              style={{ whiteSpace: "pre-wrap" }}
             />
           </div>
 
@@ -252,15 +278,10 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
                 <div className="date-picker-container">
                   <input
                     type="date"
-                    value={
-                      ticketData.endDate instanceof Date
-                        ? ticketData.endDate.toISOString().split("T")[0]
-                        : ticketData.endDate
-                    }
+                    value={ticketData.endDate}
                     onChange={(e) => handleChange("endDate", e.target.value)}
                     className={errors.endDate ? "error" : ""}
                   />
-                  <RiCalendarEventLine className="date-icon" />
                 </div>
                 {errors.endDate && (
                   <span className="error-message">{errors.endDate}</span>

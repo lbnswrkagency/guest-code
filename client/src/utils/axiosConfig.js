@@ -16,29 +16,25 @@ const processQueue = (error, token = null) => {
   refreshSubscribers = [];
 };
 
-// Create axios instance with default config
+// Create axios instance with base URL
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
-  withCredentials: true, // This ensures cookies are sent with requests
+  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
 });
 
-// Add request interceptor to ensure credentials are always sent
+// Add token from localStorage to every request if available
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Always include the latest token from localStorage
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Ensure cookies are sent with every request
-    config.withCredentials = true;
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Add response interceptor to handle token refresh

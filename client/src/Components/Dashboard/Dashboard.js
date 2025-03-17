@@ -185,24 +185,31 @@ const Dashboard = () => {
   const findNextUpcomingEventDate = (brandEvents) => {
     if (!brandEvents || brandEvents.length === 0) return null;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+    const now = new Date();
 
-    // Filter for upcoming events (today or later)
-    const upcomingEvents = brandEvents.filter((event) => {
+    // Filter for upcoming and ongoing events
+    const relevantEvents = brandEvents.filter((event) => {
       if (!event.date) return false;
+
+      // Get the event date
       const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0); // Set to start of day
-      return eventDate >= today;
+
+      // Use event end time if available, otherwise default to end of day
+      const eventEndTime = event.endTime
+        ? new Date(event.endTime)
+        : new Date(eventDate.getTime() + 24 * 60 * 60 * 1000); // Default to next day
+
+      // An event is relevant if it hasn't ended yet
+      return eventEndTime > now;
     });
 
-    if (upcomingEvents.length === 0) return null;
+    if (relevantEvents.length === 0) return null;
 
     // Sort by date (ascending)
-    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    relevantEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Return the date of the closest upcoming event
-    const closestEvent = upcomingEvents[0];
+    // Return the date of the closest relevant event
+    const closestEvent = relevantEvents[0];
     return new Date(closestEvent.date).toISOString().split("T")[0];
   };
 
@@ -442,6 +449,7 @@ const Dashboard = () => {
               userRoles={userRoleForSelectedBrand}
               user={user}
               selectedBrand={selectedBrand}
+              selectedEvent={selectedEvent}
               codeSettings={brandCodeSettings}
               codePermissions={codePermissions}
               accessSummary={accessSummary}

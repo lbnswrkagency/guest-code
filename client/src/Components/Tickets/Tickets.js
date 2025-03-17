@@ -442,7 +442,20 @@ const Tickets = ({
 
       return normalizedTicket;
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    // Filter out expired Early Bird tickets
+    .filter((ticket) => {
+      // If it's an early bird ticket with an end date
+      if (ticket.name.toLowerCase().includes("early") && ticket.endDate) {
+        // Check if the end date has passed
+        const now = new Date();
+        const endDate = new Date(ticket.endDate);
+        return endDate > now; // Only include if the end date is in the future
+      }
+
+      // Keep all non-early bird tickets
+      return true;
+    });
 
   // If loading or no tickets, show appropriate message
   if (loadingTickets) {
@@ -521,7 +534,12 @@ const Tickets = ({
               </div>
 
               {ticket.description && (
-                <p className="ticket-description">{ticket.description}</p>
+                <p
+                  className="ticket-description"
+                  style={{ whiteSpace: "pre-wrap" }}
+                >
+                  {ticket.description}
+                </p>
               )}
 
               <div className="ticket-quantity">

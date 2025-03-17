@@ -15,12 +15,31 @@ export const useAuth = () => {
   return context;
 };
 
+// Function to decode JWT and check if it's expired
+const isTokenExpired = (token) => {
+  if (!token) return true;
+
+  try {
+    // Extract the payload from JWT (second part between dots)
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(window.atob(base64));
+
+    // Check expiration (exp is in seconds, Date.now() is in milliseconds)
+    return payload.exp * 1000 < Date.now();
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return true; // If there's any error, consider the token expired
+  }
+};
+
 // Inner provider that uses router hooks
 const AuthProviderWithRouter = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshPromise, setRefreshPromise] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -35,6 +54,49 @@ const AuthProviderWithRouter = ({ children }) => {
     "/registration-success",
     "/verify/:token",
   ];
+
+  const refreshToken = async () => {
+    try {
+      const response = await axiosInstance.post("/auth/refresh-token");
+
+      // Update localStorage with new tokens
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("refreshToken", response.data.refreshToken);
+
+      // Update axios headers
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
+
+      return response.data;
+    } catch (error) {
+      // Clear tokens on refresh failure
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      throw error;
+    }
+  };
+
+  // Centralized refresh handling to avoid multiple simultaneous refresh attempts
+  const handleTokenRefresh = async () => {
+    // If already refreshing, return the existing promise
+    if (refreshPromise) {
+      return refreshPromise;
+    }
+
+    // Create a new refresh promise
+    const newRefreshPromise = refreshToken().finally(() => {
+      // Clear the promise reference when done
+      setRefreshPromise(null);
+      setIsRefreshing(false);
+    });
+
+    // Store the promise so other requests can use it
+    setRefreshPromise(newRefreshPromise);
+    setIsRefreshing(true);
+
+    return newRefreshPromise;
+  };
 
   const fetchUserData = async () => {
     try {
@@ -59,58 +121,103 @@ const AuthProviderWithRouter = ({ children }) => {
     }
   };
 
-  // Add initial auth check
+  // Add initial auth check with token refresh if needed
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
       const token = localStorage.getItem("token");
+
       if (token) {
-        try {
-          await fetchUserData();
-        } catch (error) {
-          // Only redirect if on a protected route
-          if (pathsRequiringAuth.includes(location.pathname)) {
-            navigate("/login", { state: { from: location } });
+        // Set auth header for initial requests
+        axiosInstance.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${token}`;
+
+        // Check if token is expired and try to refresh it
+        if (isTokenExpired(token)) {
+          try {
+            console.log("Token expired on page load, attempting refresh");
+            await handleTokenRefresh();
+            await fetchUserData();
+          } catch (refreshError) {
+            console.error("Token refresh failed on page load:", refreshError);
+            // Clear user state but don't redirect yet
+            setUser(null);
+          }
+        } else {
+          try {
+            // Token is still valid, just fetch the user data
+            await fetchUserData();
+          } catch (error) {
+            console.error("Failed to fetch user data with valid token:", error);
+            // Try to refresh token as a fallback
+            try {
+              await handleTokenRefresh();
+              await fetchUserData();
+            } catch (refreshError) {
+              console.error("Fallback token refresh failed:", refreshError);
+              setUser(null);
+            }
           }
         }
       }
+
       setLoading(false);
       setAuthInitialized(true);
     };
 
     initializeAuth();
-  }, []); // Run once on mount
+  }, []);
 
   // Setup axios interceptor for token refresh
   useEffect(() => {
-    let refreshTimeout;
     const interceptor = axiosInstance.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // Prevent infinite loops
-        if (originalRequest._retry || isRefreshing) {
+        // Skip if the request is the refresh token request itself or already retried
+        if (
+          originalRequest.url?.includes("/auth/refresh-token") ||
+          originalRequest._retry
+        ) {
           return Promise.reject(error);
         }
 
+        // Handle unauthorized errors (401)
         if (error.response?.status === 401) {
           originalRequest._retry = true;
-          setIsRefreshing(true);
-          setLoading(true);
 
           try {
-            // Attempt to refresh tokens
-            await axiosInstance.post("/auth/refresh-token");
-            setIsRefreshing(false);
-            setLoading(false);
-            // Retry the original request
-            return axiosInstance(originalRequest);
+            // Use centralized refresh handling
+            await handleTokenRefresh();
+
+            // Clone the original request
+            const newRequest = {
+              ...originalRequest,
+              headers: {
+                ...originalRequest.headers,
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            };
+
+            // Retry the original request with new token
+            return axiosInstance(newRequest);
           } catch (refreshError) {
-            setIsRefreshing(false);
+            console.error("Token refresh failed in interceptor:", refreshError);
             setUser(null);
-            setLoading(false);
-            navigate("/login", { state: { from: location } });
+
+            // Only redirect if on a protected route
+            if (
+              pathsRequiringAuth.some((path) => {
+                // Convert path params to regex parts
+                const regexPath = path.replace(/:\w+/g, "[^/]+");
+                return new RegExp(`^${regexPath}$`).test(location.pathname);
+              })
+            ) {
+              navigate("/login", { state: { from: location } });
+            }
+
             return Promise.reject(refreshError);
           }
         }
@@ -120,19 +227,20 @@ const AuthProviderWithRouter = ({ children }) => {
     );
 
     // Set up periodic token refresh (every 14 minutes)
-    const setupRefreshTimer = () => {
-      refreshTimeout = setInterval(async () => {
-        try {
-          if (user) {
-            await axiosInstance.post("/auth/refresh-token");
+    const refreshTimeout = setInterval(async () => {
+      const token = localStorage.getItem("token");
+      if (token && user) {
+        // Check if token is close to expiry (80% of lifetime passed)
+        if (isTokenExpired(token) || isTokenNearExpiry(token)) {
+          try {
+            console.log("Performing scheduled token refresh");
+            await handleTokenRefresh();
+          } catch (error) {
+            console.error("Scheduled token refresh failed:", error);
           }
-        } catch (error) {
-          // Silent fail for periodic refresh
         }
-      }, 14 * 60 * 1000); // 14 minutes
-    };
-
-    setupRefreshTimer();
+      }
+    }, 10 * 60 * 1000); // 10 minutes
 
     return () => {
       axiosInstance.interceptors.response.eject(interceptor);
@@ -140,18 +248,62 @@ const AuthProviderWithRouter = ({ children }) => {
     };
   }, [navigate, location, user, isRefreshing]);
 
+  // Helper function to check if token is close to expiry
+  const isTokenNearExpiry = (token) => {
+    if (!token) return true;
+
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(window.atob(base64));
+
+      // Check if token is within 80% of its lifetime
+      const expiryTime = payload.exp * 1000;
+      const issuedAt = payload.iat * 1000;
+      const tokenLifetime = expiryTime - issuedAt;
+      const timeUntilExpiry = expiryTime - Date.now();
+
+      return timeUntilExpiry < tokenLifetime * 0.2; // 20% of lifetime left
+    } catch (error) {
+      return true;
+    }
+  };
+
   // Check auth state when path changes
   useEffect(() => {
     const checkAuthState = async () => {
-      if (pathsRequiringAuth.includes(location.pathname)) {
+      if (
+        pathsRequiringAuth.some((path) => {
+          // Convert path params to regex parts
+          const regexPath = path.replace(/:\w+/g, "[^/]+");
+          return new RegExp(`^${regexPath}$`).test(location.pathname);
+        })
+      ) {
         setLoading(true);
-        try {
-          await fetchUserData();
-        } catch (error) {
-          navigate("/login", { state: { from: location } });
-        } finally {
-          setLoading(false);
+        const token = localStorage.getItem("token");
+
+        if (!token || isTokenExpired(token)) {
+          try {
+            await handleTokenRefresh();
+            await fetchUserData();
+          } catch (error) {
+            navigate("/login", { state: { from: location } });
+          }
+        } else {
+          try {
+            await fetchUserData();
+          } catch (error) {
+            // If fetching fails with a valid token, try refreshing
+            try {
+              await handleTokenRefresh();
+              await fetchUserData();
+            } catch (refreshError) {
+              navigate("/login", { state: { from: location } });
+            }
+          }
         }
+
+        setLoading(false);
       }
     };
 
@@ -263,6 +415,7 @@ const AuthProviderWithRouter = ({ children }) => {
 
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
+      delete axiosInstance.defaults.headers.common["Authorization"];
 
       setUser(null);
       setLoading(false);
@@ -270,6 +423,7 @@ const AuthProviderWithRouter = ({ children }) => {
     } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
+      delete axiosInstance.defaults.headers.common["Authorization"];
       setUser(null);
       setLoading(false);
       navigate("/login");
@@ -284,6 +438,7 @@ const AuthProviderWithRouter = ({ children }) => {
     login,
     logout,
     fetchUserData,
+    refreshToken: handleTokenRefresh, // Expose the refresh function
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

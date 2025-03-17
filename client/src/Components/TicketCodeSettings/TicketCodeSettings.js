@@ -156,15 +156,6 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const renderTicketList = () => {
     return (
       <div className="ticket-list">
-        <div className="add-ticket-container">
-          <button
-            className="add-ticket-button"
-            onClick={handleAddTicket}
-            title="Add Ticket"
-          >
-            <RiAddLine />
-          </button>
-        </div>
         <div className="tickets-container">
           {tickets.map((ticket) => (
             <div
@@ -231,7 +222,12 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                         <RiInformationLine />
                         <div className="detail-content">
                           <div className="label">Description</div>
-                          <div className="value">{ticket.description}</div>
+                          <div
+                            className="value"
+                            style={{ whiteSpace: "pre-wrap" }}
+                          >
+                            {ticket.description}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -284,6 +280,15 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
               </motion.button> */}
             </div>
           ))}
+        </div>
+        <div className="add-ticket-container">
+          <button
+            className="add-ticket-button"
+            onClick={handleAddTicket}
+            title="Add Ticket"
+          >
+            <RiAddLine />
+          </button>
         </div>
       </div>
     );

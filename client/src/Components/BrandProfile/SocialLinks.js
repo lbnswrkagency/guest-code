@@ -26,17 +26,17 @@ const SocialLinks = ({ social }) => {
     instagram: {
       icon: RiInstagramFill,
       color: "#e1306c",
-      prefix: "https://instagram.com/",
+      prefix: "https://www.instagram.com/",
     },
     tiktok: {
       icon: RiTiktokFill,
       color: "#69c9d0",
-      prefix: "https://tiktok.com/@",
+      prefix: "https://www.tiktok.com/@",
     },
     facebook: {
       icon: RiFacebookCircleFill,
       color: "#1877f2",
-      prefix: "https://facebook.com/",
+      prefix: "https://www.facebook.com/",
     },
     twitter: {
       icon: RiTwitterXFill,
@@ -46,12 +46,12 @@ const SocialLinks = ({ social }) => {
     youtube: {
       icon: RiYoutubeFill,
       color: "#ff0000",
-      prefix: "https://youtube.com/",
+      prefix: "https://www.youtube.com/@",
     },
     spotify: {
       icon: RiSpotifyFill,
       color: "#1db954",
-      prefix: "https://open.spotify.com/",
+      prefix: "https://open.spotify.com/user/",
     },
     soundcloud: {
       icon: RiSoundcloudFill,
@@ -61,7 +61,7 @@ const SocialLinks = ({ social }) => {
     linkedin: {
       icon: RiLinkedinBoxFill,
       color: "#0077b5",
-      prefix: "https://linkedin.com/in/",
+      prefix: "https://www.linkedin.com/in/",
     },
     website: {
       icon: RiGlobalFill,
@@ -97,13 +97,42 @@ const SocialLinks = ({ social }) => {
       return url.startsWith("www.") ? `https://${url}` : `https://${url}`;
     }
 
-    // For other platforms, if URL already includes the prefix, return as is
-    if (config.prefix && url.includes(config.prefix.replace("https://", ""))) {
-      return `https://${url}`;
-    }
+    // Handle special cases for each platform
+    switch (platform) {
+      case "youtube":
+        // For YouTube, check if username starts with @ or not
+        return url.startsWith("@")
+          ? `${config.prefix}${url.substring(1)}`
+          : `${config.prefix}${url}`;
 
-    // Otherwise, add the prefix
-    return `${config.prefix}${url}`;
+      case "spotify":
+        // For Spotify, check if it's an artist, playlist, or user
+        if (url.startsWith("artist/") || url.startsWith("playlist/")) {
+          return `https://open.spotify.com/${url}`;
+        }
+        return `${config.prefix}${url}`;
+
+      case "whatsapp":
+        // For WhatsApp, ensure the number is properly formatted
+        // Remove any spaces, dashes, or parentheses
+        const cleanNumber = url.replace(/[\s\-\(\)]/g, "");
+        return `${config.prefix}${cleanNumber}`;
+
+      case "twitter":
+        // For Twitter/X, we keep the twitter.com domain for now
+        return `https://twitter.com/${url.replace("@", "")}`;
+
+      case "linkedin":
+        // Check if it's a company or personal page
+        if (url.startsWith("company/")) {
+          return `https://www.linkedin.com/${url}`;
+        }
+        return `https://www.linkedin.com/in/${url.replace(/^in\//, "")}`;
+
+      default:
+        // For other platforms, use the standard prefix
+        return `${config.prefix}${url}`;
+    }
   };
 
   return (

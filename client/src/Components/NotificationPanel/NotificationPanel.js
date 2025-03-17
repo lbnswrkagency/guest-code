@@ -60,6 +60,7 @@ const NotificationPanel = ({ onClose }) => {
                   ? "join_request_accepted"
                   : "join_request_rejected",
               read: true,
+              processed: true,
             };
           }
           return notification;
@@ -422,30 +423,32 @@ const NotificationPanel = ({ onClose }) => {
               })}
             </span>
           </div>
-          {type === "join_request" && !notification.read && (
-            <div className="actions">
-              <button
-                className="accept"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleProcessJoinRequest(requestId, "accept");
-                }}
-              >
-                <RiCheckLine />
-                Accept
-              </button>
-              <button
-                className="reject"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleProcessJoinRequest(requestId, "reject");
-                }}
-              >
-                <RiCloseLine />
-                Reject
-              </button>
-            </div>
-          )}
+          {type === "join_request" &&
+            !notification.read &&
+            !notification.processed && (
+              <div className="actions">
+                <button
+                  className="accept"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProcessJoinRequest(requestId, "accept");
+                  }}
+                >
+                  <RiCheckLine />
+                  Accept
+                </button>
+                <button
+                  className="reject"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProcessJoinRequest(requestId, "reject");
+                  }}
+                >
+                  <RiCloseLine />
+                  Reject
+                </button>
+              </div>
+            )}
           {(type === "join_request_accepted" ||
             type === "join_request_rejected") && (
             <div className="status-badge">

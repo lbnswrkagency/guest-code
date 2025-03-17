@@ -195,24 +195,6 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
               )}
             </div>
           </div>
-
-          {/* Additional Info Section */}
-          {event.description && (
-            <div className="details-section">
-              <div className="section-header">
-                <RiInformationLine />
-                <h4>Additional Information</h4>
-              </div>
-
-              <div className="section-content">
-                <div className="detail-item description-item">
-                  <div className="detail-value description-value">
-                    {event.description}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

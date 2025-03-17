@@ -360,9 +360,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       <div className="dashboard-feed empty">
         <div className="empty-content">
           <RiCalendarEventLine size={48} />
-          <h2>No Events Found</h2>
-          <p>There are no events scheduled for the selected date and brand.</p>
-          <p>Try selecting a different date or brand from the header above.</p>
+          <h2>No Events Selected</h2>
         </div>
       </div>
     );

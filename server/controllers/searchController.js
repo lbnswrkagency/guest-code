@@ -99,6 +99,8 @@ exports.search = async (req, res) => {
             ],
             // Include events where date is today or in the future
             date: { $gte: today },
+            // Only include events that are live or where isLive is not set (backward compatibility)
+            $or: [{ isLive: true }, { isLive: { $exists: false } }],
           })
             .select(
               "title subTitle description date startTime endTime location flyer link brand"
@@ -199,6 +201,8 @@ exports.search = async (req, res) => {
               ],
               // Include events where date is today or in the future
               date: { $gte: today },
+              // Only include events that are live or where isLive is not set (backward compatibility)
+              $or: [{ isLive: true }, { isLive: { $exists: false } }],
             })
               .select(
                 "title subTitle description date startTime endTime location flyer link brand"
