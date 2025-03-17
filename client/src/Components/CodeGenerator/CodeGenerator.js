@@ -446,10 +446,6 @@ function CodeGenerator({
               status: "active",
               metadata: newCode.metadata,
               color: activeSetting.color || "#2196F3",
-              icon:
-                newCode.metadata?.settingIcon ||
-                activeSetting.icon ||
-                "RiCodeLine",
             },
             ...updatedCodes[settingId],
           ];
@@ -798,14 +794,6 @@ function CodeGenerator({
                 ? userCodes[activeSetting._id].map((code) => ({
                     ...code,
                     color: code.color || activeSetting.color || "#2196F3",
-                    icon: code.icon || activeSetting.icon || "RiCodeLine",
-                    metadata: {
-                      ...code.metadata,
-                      settingIcon:
-                        code.metadata?.settingIcon ||
-                        activeSetting.icon ||
-                        "RiCodeLine",
-                    },
                   }))
                 : []
             }
