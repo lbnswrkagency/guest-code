@@ -42,6 +42,96 @@
     gap: 1rem;
   }
 
+  // Color field container styles
+  .color-field-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .color-field {
+    position: relative;
+    height: 150px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: crosshair;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+    &-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0)),
+        linear-gradient(to top, #000, rgba(0, 0, 0, 0));
+    }
+
+    &-cursor {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+  }
+
+  .hue-slider-container {
+    width: 100%;
+    padding: 0 2px;
+  }
+
+  .hue-slider {
+    width: 100%;
+    height: 16px;
+    -webkit-appearance: none;
+    background: linear-gradient(
+      to right,
+      #ff0000,
+      #ffff00,
+      #00ff00,
+      #00ffff,
+      #0000ff,
+      #ff00ff,
+      #ff0000
+    );
+    border-radius: 8px;
+    outline: none;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      border: none;
+    }
+  }
+
   .color-inputs {
     display: flex;
     flex-direction: column;
@@ -202,6 +292,10 @@
       gap: 0.75rem;
     }
 
+    .color-field {
+      height: 120px;
+    }
+
     .color-preview {
       height: 50px;
     }
@@ -230,6 +324,10 @@
   .color-picker-dialog {
     max-height: calc(100vh - 2rem);
     overflow-y: auto;
+
+    .color-field {
+      height: 100px;
+    }
 
     .color-preview {
       height: 40px;
