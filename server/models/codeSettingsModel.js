@@ -50,6 +50,11 @@ const CodeSettingsSchema = new Schema(
         message: (props) => `${props.value} is not a valid hex color!`,
       },
     },
+    // Icon field to store the React icon name
+    icon: {
+      type: String,
+      default: "RiCodeLine",
+    },
     // Additional fields for specific code types
     price: {
       type: Number,

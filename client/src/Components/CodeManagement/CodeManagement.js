@@ -4,6 +4,40 @@ import axios from "axios";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
 import { BsPeopleFill } from "react-icons/bs";
+import {
+  RiCodeLine,
+  RiTicketLine,
+  RiUserLine,
+  RiVipLine,
+  RiTableLine,
+  RiGridLine,
+  RiStarLine,
+  RiFireLine,
+  RiHeartLine,
+  RiThumbUpLine,
+  RiCupLine,
+  RiGift2Line,
+  RiMedalLine,
+  RiTrophyLine,
+} from "react-icons/ri";
+
+// Map icon names to React components
+const iconComponents = {
+  RiCodeLine: RiCodeLine,
+  RiTicketLine: RiTicketLine,
+  RiUserLine: RiUserLine,
+  RiVipLine: RiVipLine,
+  RiTableLine: RiTableLine,
+  RiGridLine: RiGridLine,
+  RiStarLine: RiStarLine,
+  RiFireLine: RiFireLine,
+  RiHeartLine: RiHeartLine,
+  RiThumbUpLine: RiThumbUpLine,
+  RiCupLine: RiCupLine,
+  RiGift2Line: RiGift2Line,
+  RiMedalLine: RiMedalLine,
+  RiTrophyLine: RiTrophyLine,
+};
 
 // Helper function to adjust a color's brightness
 const adjustColor = (color, amount) => {
@@ -390,14 +424,21 @@ function CodeManagement({
             >
               <div className="code-management-item-info">
                 <div className={`code-icon ${codeTypeClass}`} style={iconStyle}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="qr-icon"
-                  >
-                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 11h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 0h2v3h-2v-3zm0 4h3v2h-3v-2zm-3 0h2v3h-2v-3zm3 3h3v2h-3v-2z" />
-                  </svg>
+                  {(() => {
+                    // Get icon name from code metadata, or from the code itself, or from activeSetting, or fallback to default
+                    const iconName =
+                      code.metadata?.settingIcon ||
+                      code.icon ||
+                      activeSetting?.icon ||
+                      "RiCodeLine";
+
+                    // Make sure the icon component exists, otherwise use default
+                    const IconComponent = iconComponents[iconName]
+                      ? iconComponents[iconName]
+                      : RiCodeLine;
+
+                    return <IconComponent className="qr-icon" />;
+                  })()}
                 </div>
                 <div className="code-details">
                   {isEditing ? (

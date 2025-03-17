@@ -22,6 +22,7 @@ function CodeGenerator({
   const [pax, setPax] = useState(1);
   const [condition, setCondition] = useState("");
   const [tableNumber, setTableNumber] = useState("");
+  const [icon, setIcon] = useState("");
   const [activeSetting, setActiveSetting] = useState(null);
   const [availableSettings, setAvailableSettings] = useState([]);
   const [selectedCodeType, setSelectedCodeType] = useState(null);
@@ -95,6 +96,8 @@ function CodeGenerator({
       setSelectedCodeType(defaultType);
       setActiveSetting(defaultSetting);
       setCondition(defaultSetting.condition || "");
+      // Initialize icon if available
+      setIcon(defaultSetting.icon || "RiCodeLine");
       updateMaxPeopleOptions(defaultSetting);
     }
   }, [selectedBrand, codeSettings]);
@@ -375,6 +378,7 @@ function CodeGenerator({
           settingId: activeSetting._id || "",
           settingName: activeSetting.name || "",
           settingColor: activeSetting.color || "#2196F3",
+          settingIcon: icon || activeSetting.icon || "RiCodeLine",
           displayName: selectedCodeType,
           actualType: activeSetting.type,
           generatedFrom: "CodeGenerator",
@@ -442,6 +446,10 @@ function CodeGenerator({
               status: "active",
               metadata: newCode.metadata,
               color: activeSetting.color || "#2196F3",
+              icon:
+                newCode.metadata?.settingIcon ||
+                activeSetting.icon ||
+                "RiCodeLine",
             },
             ...updatedCodes[settingId],
           ];
@@ -581,6 +589,43 @@ function CodeGenerator({
         </div>
       </div>
     );
+  };
+
+  // Handle icon change
+  const handleIconChange = async (newIcon) => {
+    setIcon(newIcon);
+
+    // Save the updated icon to the code setting
+    if (activeSetting) {
+      try {
+        const response = await axios.put(
+          `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${selectedEvent._id}`,
+          {
+            codeSettingId: activeSetting._id,
+            icon: newIcon,
+          },
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.codeSettings) {
+          // Update the active setting in memory
+          const updatedSetting = response.data.codeSettings.find(
+            (s) => s._id === activeSetting._id
+          );
+
+          if (updatedSetting) {
+            setActiveSetting(updatedSetting);
+          }
+        }
+      } catch (error) {
+        console.error("Error updating code setting icon:", error);
+      }
+    }
   };
 
   if (!activeSetting) {
@@ -753,6 +798,14 @@ function CodeGenerator({
                 ? userCodes[activeSetting._id].map((code) => ({
                     ...code,
                     color: code.color || activeSetting.color || "#2196F3",
+                    icon: code.icon || activeSetting.icon || "RiCodeLine",
+                    metadata: {
+                      ...code.metadata,
+                      settingIcon:
+                        code.metadata?.settingIcon ||
+                        activeSetting.icon ||
+                        "RiCodeLine",
+                    },
                   }))
                 : []
             }
