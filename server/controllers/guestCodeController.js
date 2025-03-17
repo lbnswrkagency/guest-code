@@ -254,7 +254,7 @@ const generateGuestCodePDF = async (code, event) => {
             
             <!-- Floating code text -->
             <div style="position: absolute; top: 1rem; right: 1.5rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 500; font-size: 0.8rem;">${
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 500; font-size: 0.7rem;">${
       code.code
     }</p>
             </div>

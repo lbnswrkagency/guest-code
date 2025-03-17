@@ -263,7 +263,7 @@ const generateTicketPDF = async (ticket) => {
             
             <!-- Ticket code displayed in the top right corner -->
             <div style="position: absolute; top: 1rem; right: 1.5rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 700; font-size: 1rem; letter-spacing: 1px;">${ticketCode}</p>
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 700; font-size: .75rem; letter-spacing: 1px;">${ticketCode}</p>
             </div>
           </div>
         </div>

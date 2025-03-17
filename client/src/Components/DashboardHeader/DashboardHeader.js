@@ -91,6 +91,13 @@ const DashboardHeader = ({
     setSelectedBrand(brand);
     setBrandDropdown(false);
 
+    // Reset the selected date to null when switching brands
+    // This will trigger the parent component to find the next upcoming event
+    setSelectedDate(null);
+    if (propSetSelectedDate) {
+      propSetSelectedDate(null);
+    }
+
     // Call parent component's setter if provided
     // The parent will handle finding the next upcoming event
     if (propSetSelectedBrand) {

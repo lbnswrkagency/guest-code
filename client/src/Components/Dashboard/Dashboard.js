@@ -181,50 +181,132 @@ const Dashboard = () => {
     }
   }, [user, brands, events, roles, codeSettings, navigate]);
 
-  // Find the next upcoming event date
+  // Find the next upcoming event date or the most recent past event if no upcoming events
   const findNextUpcomingEventDate = (brandEvents) => {
     if (!brandEvents || brandEvents.length === 0) return null;
 
     const now = new Date();
 
     // Filter for upcoming and ongoing events
-    const relevantEvents = brandEvents.filter((event) => {
+    const upcomingEvents = brandEvents.filter((event) => {
       if (!event.date) return false;
 
-      // Get the event date
+      // Get the event date and time
       const eventDate = new Date(event.date);
 
-      // Use event end time if available, otherwise default to end of day
-      const eventEndTime = event.endTime
-        ? new Date(event.endTime)
-        : new Date(eventDate.getTime() + 24 * 60 * 60 * 1000); // Default to next day
+      // Parse end time (HH:MM format) or use end of day
+      let eventEndDateTime = new Date(eventDate);
+      if (event.endTime) {
+        const [hours, minutes] = event.endTime.split(":").map(Number);
+        eventEndDateTime.setHours(hours, minutes, 0, 0);
 
-      // An event is relevant if it hasn't ended yet
-      return eventEndTime > now;
+        // If end time is earlier than start time, it's the next day
+        if (event.startTime) {
+          const [startHours, startMinutes] = event.startTime
+            .split(":")
+            .map(Number);
+          if (
+            hours < startHours ||
+            (hours === startHours && minutes < startMinutes)
+          ) {
+            eventEndDateTime.setDate(eventEndDateTime.getDate() + 1);
+          }
+        }
+      } else {
+        // Default to end of day
+        eventEndDateTime.setHours(23, 59, 59, 999);
+      }
+
+      // An event is upcoming if it hasn't ended yet
+      return eventEndDateTime > now;
     });
 
-    if (relevantEvents.length === 0) return null;
+    // Sort upcoming events by date (ascending)
+    if (upcomingEvents.length > 0) {
+      upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+      // Return the date of the next upcoming event
+      return new Date(upcomingEvents[0].date).toISOString().split("T")[0];
+    }
 
-    // Sort by date (ascending)
-    relevantEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // If no upcoming events, find the most recent past event
+    const pastEvents = brandEvents.filter(
+      (event) => new Date(event.date) <= now
+    );
+    if (pastEvents.length > 0) {
+      // Sort by date descending to get the most recent
+      pastEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+      return new Date(pastEvents[0].date).toISOString().split("T")[0];
+    }
 
-    // Return the date of the closest relevant event
-    const closestEvent = relevantEvents[0];
-    return new Date(closestEvent.date).toISOString().split("T")[0];
+    return null;
+  };
+
+  // Find the brand with the most imminent upcoming event
+  const findBrandWithNextEvent = () => {
+    if (brands.length === 0) return null;
+
+    const now = new Date();
+    let nextEventBrand = null;
+    let nextEventDate = null;
+    let closestTimeDiff = Infinity;
+
+    // Check each brand for their next upcoming event
+    for (const brand of brands) {
+      const brandWithData = prepareBrandWithData(brand);
+      const brandEvents = brandWithData.events || [];
+
+      // Skip if brand has no events
+      if (brandEvents.length === 0) continue;
+
+      // Filter for upcoming events
+      const upcomingEvents = brandEvents.filter((event) => {
+        if (!event.date) return false;
+        const eventDate = new Date(event.date);
+        return eventDate >= now;
+      });
+
+      if (upcomingEvents.length > 0) {
+        // Find the event closest to now
+        upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const closestEvent = upcomingEvents[0];
+        const timeDiff = new Date(closestEvent.date) - now;
+
+        // If this is the closest event so far, save it
+        if (timeDiff < closestTimeDiff) {
+          closestTimeDiff = timeDiff;
+          nextEventBrand = brandWithData;
+          nextEventDate = new Date(closestEvent.date)
+            .toISOString()
+            .split("T")[0];
+        }
+      }
+    }
+
+    // If no upcoming events found across all brands, use the first brand
+    if (!nextEventBrand) {
+      nextEventBrand = prepareBrandWithData(brands[0]);
+      // Find the most recent past event for this brand
+      nextEventDate = findNextUpcomingEventDate(nextEventBrand.events);
+    }
+
+    return { brand: nextEventBrand, date: nextEventDate };
   };
 
   // Set initial selected brand when brands are loaded
   useEffect(() => {
     if (brands.length > 0 && !selectedBrand) {
-      // Prepare the first brand with events data
-      const firstBrand = brands[0];
-      const brandWithData = prepareBrandWithData(firstBrand);
-      setSelectedBrand(brandWithData);
+      // Find the brand with the next upcoming event
+      const { brand, date } = findBrandWithNextEvent();
 
-      // Find the next upcoming event date for this brand
-      const nextEventDate = findNextUpcomingEventDate(brandWithData.events);
-      if (nextEventDate) {
-        setSelectedDate(nextEventDate);
+      if (brand) {
+        setSelectedBrand(brand);
+        if (date) {
+          setSelectedDate(date);
+        }
+      } else {
+        // Fallback to first brand if no brand with events found
+        const firstBrand = prepareBrandWithData(brands[0]);
+        setSelectedBrand(firstBrand);
       }
     }
   }, [brands]);
