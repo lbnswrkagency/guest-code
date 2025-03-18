@@ -619,28 +619,32 @@ const BrandProfile = () => {
             {renderActions()}
           </div>
 
-          <div className="brand-stats">
-            <div className="stat-item">
-              <span className="stat-value">{brand.team?.length || 0}</span>
-              <span className="stat-label">
-                {(brand.team?.length || 0) === 1 ? "Member" : "Members"}
-              </span>
+          {user && (
+            <div className="brand-stats">
+              <div className="stat-item">
+                <span className="stat-value">{brand.team?.length || 0}</span>
+                <span className="stat-label">
+                  {(brand.team?.length || 0) === 1 ? "Member" : "Members"}
+                </span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">
+                  {brand.followers?.length || 0}
+                </span>
+                <span className="stat-label">
+                  {(brand.followers?.length || 0) === 1
+                    ? "Follower"
+                    : "Followers"}
+                </span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{brand.events?.length || 0}</span>
+                <span className="stat-label">
+                  {(brand.events?.length || 0) === 1 ? "Event" : "Events"}
+                </span>
+              </div>
             </div>
-            <div className="stat-item">
-              <span className="stat-value">{brand.followers?.length || 0}</span>
-              <span className="stat-label">
-                {(brand.followers?.length || 0) === 1
-                  ? "Follower"
-                  : "Followers"}
-              </span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{brand.events?.length || 0}</span>
-              <span className="stat-label">
-                {(brand.events?.length || 0) === 1 ? "Event" : "Events"}
-              </span>
-            </div>
-          </div>
+          )}
 
           {brand.social &&
             Object.keys(brand.social).some((key) => brand.social[key]) && (

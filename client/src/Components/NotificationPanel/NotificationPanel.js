@@ -49,26 +49,28 @@ const NotificationPanel = ({ onClose }) => {
         action,
       });
 
-      // Update notifications locally
-      setNotifications((prev) =>
-        prev.map((notification) => {
-          if (notification.requestId === requestId) {
-            return {
-              ...notification,
-              type:
-                action === "accept"
-                  ? "join_request_accepted"
-                  : "join_request_rejected",
-              read: true,
-              processed: true,
-            };
-          }
-          return notification;
-        })
-      );
+      // Find the notification associated with this request
+      const notification = notifications.find((n) => n.requestId === requestId);
+
+      if (notification) {
+        // Mark as read and update locally first
+        await axiosInstance.put(`/notifications/${notification._id}/read`);
+
+        // Delete the notification to prevent it from reappearing
+        await axiosInstance.delete(`/notifications/${notification._id}`);
+
+        // Update local state by removing the notification entirely
+        setNotifications((prev) =>
+          prev.filter((n) => n._id !== notification._id)
+        );
+      }
 
       toast.showSuccess(`Join request ${action}ed successfully`);
     } catch (error) {
+      console.error(
+        `[NotificationPanel] Error processing join request:`,
+        error
+      );
       toast.showError(`Failed to ${action} join request`);
     }
   };
