@@ -4,6 +4,42 @@ import axios from "axios";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
 import { BsPeopleFill } from "react-icons/bs";
+import {
+  RiCodeLine,
+  RiTicketLine,
+  RiUserLine,
+  RiVipLine,
+  RiTableLine,
+  RiGridLine,
+  RiStarLine,
+  RiFireLine,
+  RiHeartLine,
+  RiThumbUpLine,
+  RiCupLine,
+  RiGift2Line,
+  RiMedalLine,
+  RiTrophyLine,
+  RiMailLine,
+} from "react-icons/ri";
+
+// Map icon names to React components
+const iconComponents = {
+  RiCodeLine: RiCodeLine,
+  RiTicketLine: RiTicketLine,
+  RiUserLine: RiUserLine,
+  RiVipLine: RiVipLine,
+  RiTableLine: RiTableLine,
+  RiGridLine: RiGridLine,
+  RiStarLine: RiStarLine,
+  RiFireLine: RiFireLine,
+  RiHeartLine: RiHeartLine,
+  RiThumbUpLine: RiThumbUpLine,
+  RiCupLine: RiCupLine,
+  RiGift2Line: RiGift2Line,
+  RiMedalLine: RiMedalLine,
+  RiTrophyLine: RiTrophyLine,
+  RiMailLine: RiMailLine,
+};
 
 // Helper function to adjust a color's brightness
 const adjustColor = (color, amount) => {
@@ -58,6 +94,12 @@ function CodeManagement({
   const [visibleCodes, setVisibleCodes] = useState(10);
   const [showPngModal, setShowPngModal] = useState(false);
   const [pngUrl, setPngUrl] = useState("");
+
+  // Email modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailingCode, setEmailingCode] = useState(null);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Update local codes when parent codes change
   useEffect(() => {
@@ -280,6 +322,52 @@ function CodeManagement({
     }
   };
 
+  // Download code PNG
+  const downloadCodePNG = async (code) => {
+    try {
+      setIsLoading(true);
+      showLoading("Downloading code as PNG...");
+
+      const codeId = code._id || code.id;
+
+      // Create a link to download the PNG
+      const downloadUrl = `${process.env.REACT_APP_API_BASE_URL}/codes-creation/${codeId}/png-download`;
+
+      // Use axios to get the PNG with proper authentication
+      const response = await axios.get(downloadUrl, {
+        responseType: "blob",
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      // Create a blob URL from the response
+      const blob = new Blob([response.data], { type: "image/png" });
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `code-${code.name}.png`);
+
+      // Append to the document, click it, and remove it
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the blob URL
+      window.URL.revokeObjectURL(url);
+
+      showSuccess("PNG downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading PNG:", error);
+      showError("Failed to download PNG");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper function to determine text color based on background color
   const getContrastColor = (hexColor) => {
     if (!hexColor) return "#FFFFFF";
@@ -351,6 +439,59 @@ function CodeManagement({
     return Math.max(1, Math.min(availableForThisCode, settingMax));
   };
 
+  // Send code by email
+  const sendCodeByEmail = async () => {
+    if (!emailingCode || !recipientEmail) return;
+
+    try {
+      setSendingEmail(true);
+      showLoading("Sending code by email...");
+
+      const codeId = emailingCode._id || emailingCode.id;
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/codes/${codeId}/email`,
+        {
+          recipientName: emailingCode.name || "Guest", // Use the code's name
+          recipientEmail,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      showSuccess("Code sent by email successfully");
+
+      // Reset form
+      setRecipientEmail("");
+      setShowEmailModal(false);
+      setEmailingCode(null);
+    } catch (error) {
+      showError(
+        error.response?.data?.message || "Failed to send code by email"
+      );
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Start email process
+  const openEmailForm = (code) => {
+    setEmailingCode(code);
+    setRecipientEmail("");
+    setShowEmailModal(true);
+  };
+
+  // Close email form
+  const closeEmailForm = () => {
+    setShowEmailModal(false);
+    setEmailingCode(null);
+    setRecipientEmail("");
+  };
+
   // Render the list of codes
   const renderCodes = () => {
     if ((isLoading && !localCodes.length) || parentLoading) {
@@ -390,14 +531,21 @@ function CodeManagement({
             >
               <div className="code-management-item-info">
                 <div className={`code-icon ${codeTypeClass}`} style={iconStyle}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="qr-icon"
-                  >
-                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 11h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 0h2v3h-2v-3zm0 4h3v2h-3v-2zm-3 0h2v3h-2v-3zm3 3h3v2h-3v-2z" />
-                  </svg>
+                  {(() => {
+                    // Get icon name from code metadata, or from the code itself, or from activeSetting, or fallback to default
+                    const iconName =
+                      code.metadata?.settingIcon ||
+                      code.icon ||
+                      activeSetting?.icon ||
+                      "RiCodeLine";
+
+                    // Make sure the icon component exists, otherwise use default
+                    const IconComponent = iconComponents[iconName]
+                      ? iconComponents[iconName]
+                      : RiCodeLine;
+
+                    return <IconComponent className="qr-icon" />;
+                  })()}
                 </div>
                 <div className="code-details">
                   {isEditing ? (
@@ -474,12 +622,28 @@ function CodeManagement({
                     >
                       ✏️
                     </button>
+                    {/* PDF Download button - commented out as requested
                     <button
                       className="download-btn"
                       onClick={() => downloadCode(code)}
-                      title="Download QR"
+                      title="Download PDF"
                     >
-                      ⬇️
+                      📄
+                    </button>
+                    */}
+                    <button
+                      className="download-png-btn"
+                      onClick={() => downloadCodePNG(code)}
+                      title="Download PNG"
+                    >
+                      🖼️
+                    </button>
+                    <button
+                      className="email-btn"
+                      onClick={() => openEmailForm(code)}
+                      title="Send by Email"
+                    >
+                      <RiMailLine />
                     </button>
                     <button
                       className="view-btn"
@@ -563,6 +727,26 @@ function CodeManagement({
         </div>
       )}
 
+      {/* View QR Code Modal */}
+      {showViewModal && (
+        <div className="modal view-modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>View QR Code</h3>
+              <button
+                className="close-btn"
+                onClick={() => setShowViewModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <img src={viewingCode?.qrCode} alt="QR Code" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PNG View Modal - Fullscreen */}
       {showPngModal && (
         <div className="code-png-modal">
@@ -571,6 +755,34 @@ function CodeManagement({
           </button>
           <div className="png-container">
             <img src={pngUrl} alt="Code" />
+          </div>
+        </div>
+      )}
+
+      {/* Email Code Modal */}
+      {showEmailModal && (
+        <div className="email-modal-overlay">
+          <div className="email-modal">
+            <button className="close-btn" onClick={closeEmailForm}>
+              ×
+            </button>
+            <h3>Send Invitation to</h3>
+            <div className="email-form">
+              <input
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="recipient@example.com"
+                autoFocus
+              />
+              <button
+                className="send-btn"
+                onClick={sendCodeByEmail}
+                disabled={sendingEmail || !recipientEmail}
+              >
+                {sendingEmail ? "Sending..." : "Send"}
+              </button>
+            </div>
           </div>
         </div>
       )}

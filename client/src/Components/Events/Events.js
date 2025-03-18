@@ -960,6 +960,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     return date;
   };
 
+  // Format date for display (09.04, 16.04, etc.)
   const formatDate = (date) => {
     try {
       const d = new Date(date);
@@ -967,11 +968,12 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         console.error("[formatDate] Invalid date:", date);
         return "Invalid date";
       }
-      return d.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
+
+      // Use dd.MM format to match the required format (09.04, 16.04, etc.)
+      const day = d.getDate().toString().padStart(2, "0");
+      const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
+
+      return `${day}.${month}`;
     } catch (error) {
       console.error("[formatDate] Error formatting date:", error);
       return "Invalid date";
@@ -986,10 +988,12 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         console.error("[formatWeeklyDate] Invalid date:", date);
         return "Invalid date";
       }
-      const month = d.toLocaleString("en-US", { month: "short" });
-      const day = d.getDate();
-      const year = d.getFullYear();
-      return `${month} ${day}, ${year}`;
+
+      // Format as DD.MM to match the required format
+      const day = d.getDate().toString().padStart(2, "0");
+      const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
+
+      return `${day}.${month}`;
     } catch (error) {
       console.error("[formatWeeklyDate] Error formatting date:", error);
       return "Invalid date";

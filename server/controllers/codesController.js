@@ -4,6 +4,14 @@ const CodeSettings = require("../models/codeSettingsModel");
 const QRCode = require("qrcode");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+const puppeteer = require("puppeteer");
+const { createEventEmailTemplate } = require("../utils/emailLayout");
+
+// Configure Brevo API Key
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // Helper function to generate a unique code
 const generateUniqueCode = async (length = 8) => {
@@ -470,7 +478,8 @@ const createDynamicCode = async (req, res) => {
     if (!codeSetting.isEnabled) {
       console.error("❌ Code setting is not enabled:", codeSetting.name);
       return res.status(400).json({
-        message: `${codeSetting.name} is not enabled for this event`,
+        message: `${codeSetting.name} codes are no longer accepted`,
+        status: "disabled",
       });
     }
 
@@ -1615,6 +1624,381 @@ const getEventUserCodes = async (req, res) => {
   }
 };
 
+// Send a code by email
+const sendCodeByEmail = async (req, res) => {
+  try {
+    const { codeId } = req.params;
+    const { recipientName, recipientEmail } = req.body;
+
+    // Validate required fields
+    if (!recipientName || !recipientEmail) {
+      return res.status(400).json({
+        message: "Recipient name and email are required",
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail.trim())) {
+      return res.status(400).json({
+        message: "Invalid email format",
+      });
+    }
+
+    // Find the code
+    const code = await Code.findById(codeId);
+    if (!code) {
+      return res.status(404).json({ message: "Code not found" });
+    }
+
+    // Find the event
+    const event = await Event.findById(code.eventId)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Find code settings if available
+    let codeSetting = null;
+    if (code.codeSettingId) {
+      codeSetting = await CodeSettings.findById(code.codeSettingId);
+    }
+
+    // Get brand colors or use defaults
+    const primaryColor = codeSetting?.color || event?.primaryColor || "#ffc807";
+
+    // Generate PDF version of the code
+    const pdfBuffer = await generateCodePDF(code, event, codeSetting);
+
+    // Set up the email sender using Brevo
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Format attachment
+    const attachments = [
+      {
+        content: pdfBuffer.toString("base64"),
+        name: `${code.type}_code_${code.code}.pdf`,
+      },
+    ];
+
+    // Get code display name from settings or use capitalized type
+    const displayType =
+      codeSetting?.name ||
+      code.type.charAt(0).toUpperCase() + code.type.slice(1);
+
+    // Generate custom content section with code details
+    const codeDetailsHtml = `
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <h3 style="color: ${primaryColor}; margin-top: 0;">Your ${displayType}</h3>
+        <p style="font-size: 16px; margin: 0 0 10px;">We've attached your ticket code as a PDF to this email. You can print it or show it on your phone at the event.</p>
+        <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+          <p style="margin: 0 0 5px;"><strong>Code:</strong> <span style="font-family: monospace; font-size: 16px; background-color: #f1f1f1; padding: 2px 6px; border-radius: 3px;">${
+            code.code
+          }</span></p>
+          <p style="margin: 0 0 5px;"><strong>Type:</strong> ${displayType}</p>
+          <p style="margin: 0 0 5px;"><strong>Name:</strong> ${
+            code.name || recipientName
+          }</p>
+          <p style="margin: 0 0 5px;"><strong>People:</strong> ${
+            code.maxPax || 1
+          }</p>
+          ${
+            code.condition
+              ? `<p style="margin: 0;"><strong>Conditions:</strong> ${code.condition}</p>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+    // Build the email using our template
+    const emailHtml = createEventEmailTemplate({
+      recipientName,
+      eventTitle: event.title,
+      eventDate: event.date,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime,
+      endTime: event.endTime,
+      description: event.description,
+      lineups: event.lineups,
+      primaryColor,
+      additionalContent: codeDetailsHtml,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+    });
+
+    // Set up email parameters
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: recipientEmail.trim(),
+          name: recipientName.trim(),
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guestcode.com",
+        name: "GuestCode",
+      },
+      subject: `Your ${displayType} for ${event?.title || "Event"}`,
+      htmlContent: emailHtml,
+      attachment: attachments,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+
+    // Update the code to record that it was sent by email
+    code.emailedTo = code.emailedTo || [];
+    code.emailedTo.push({
+      name: recipientName,
+      email: recipientEmail,
+      sentAt: new Date(),
+    });
+    await code.save();
+
+    return res.status(200).json({
+      message: "Code sent by email successfully",
+      code: {
+        _id: code._id,
+        code: code.code,
+        name: code.name,
+        type: code.type,
+      },
+    });
+  } catch (error) {
+    console.error("Error sending code by email:", error);
+    return res.status(500).json({ message: "Failed to send code by email" });
+  }
+};
+
+// Generate PDF for a code
+const generateCodePDF = async (code, event, codeSetting) => {
+  try {
+    // Generate QR code
+    const qrCodeDataUrl = await QRCode.toDataURL(
+      code.securityToken || code.code,
+      {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 225,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      }
+    );
+
+    // Get brand colors or use defaults
+    const primaryColor = codeSetting?.color || event?.primaryColor || "#ffc807";
+    const accentColor = "#000000";
+
+    // Get code display name from settings or use capitalized type
+    const displayType =
+      codeSetting?.name ||
+      code.type.charAt(0).toUpperCase() + code.type.slice(1);
+
+    // Format date
+    const date = new Date(event?.date);
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const eventDate = {
+      day: days[date.getDay()],
+      date: date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }),
+      time: "20:00", // Default time if not specified
+    };
+
+    // Use event's startTime if available
+    if (event?.startTime && eventDate.time === "20:00") {
+      eventDate.time = event.startTime;
+    }
+
+    // Create HTML template for the code
+    const htmlTemplate = `
+    <html>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body {
+            font-family: 'Manrope', sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
+      <body style="position: relative; background-color: ${primaryColor}; width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
+        <!-- Header section with logo -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 3.25rem 2.313rem 0;">
+          <h1 style="margin: 0; font-weight: 700; font-size: 1.85rem; color: #000000;">${displayType}</h1>
+          ${
+            event.brand?.logo?.medium
+              ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; overflow: hidden;"><img src="${event.brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
+              : `<div style="width: 3.5rem; height: 3.5rem; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-weight: bold; font-size: 1.5rem;">${
+                event?.name?.charAt(0) || "E"
+              }</span>
+            </div>`
+          }
+        </div>
+        
+        <!-- Main content area - Whitish theme with improved contrast -->
+        <div style="position: absolute; width: 20.375rem; height: 27rem; background-color: #f5f5f5; border-radius: 1.75rem; top: 7.5rem; left: 2rem; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+          
+          <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: #222222;">${
+            event?.title || "Event"
+          }</h3>   
+          
+          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
+            <div>
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Location</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                event?.location || event?.venue || ""
+              }</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${
+                event?.street || ""
+              }</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                event?.postalCode ? `${event.postalCode} ` : ""
+              }${event?.city || ""}</p>
+            </div>
+            <div>
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Date</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                eventDate.day
+              }</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                eventDate.date
+              }</p>
+            </div>
+          </div>
+          
+          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
+            <div> 
+              <div style="margin-top: 0.5rem;">
+                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Start</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                  event?.startTime || eventDate.time
+                }</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 0.5rem;">
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">End</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                event?.endTime || "06:00"
+              }</p>
+            </div>
+          </div>
+          
+          <!-- Entry Requirements Section -->
+          <div style="margin-top: 1.5rem; padding-left: 2.438rem; padding-right: 2.438rem;">
+            <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Entry Requirements</p>
+            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+              code.condition ||
+              codeSetting?.condition ||
+              "Free entrance all night"
+            }</p>
+          </div>
+          
+          <div style="margin-top: 1.313rem; margin-bottom: .3rem; margin-left: 2.438rem; border: 1px solid ${primaryColor}; width: 15.5rem;"></div>
+
+          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
+            <div style="margin-top: 0.75rem;">
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Guest</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                code.name
+              }</p>        
+            </div>
+            
+            <div style="margin-top: 0.75rem;">
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">People</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+                code.maxPax || 1
+              }</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Code section with centered QR and floating code -->
+        <div style="position: absolute; bottom: 2.938rem; left: 2rem; background-color: #222222; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center;">
+          <div style="position: relative; width: 100%; height: 100%;">
+            <!-- Centered QR code -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+              <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem;" src="${qrCodeDataUrl}"></img>
+            </div>
+            
+            <!-- Floating code text -->
+            <div style="position: absolute; top: 1rem; right: 1.5rem;">
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 500; font-size: 0.7rem;">${
+      code.code
+    }</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>`;
+
+    // Launch puppeteer to generate PDF
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(htmlTemplate);
+    await page.emulateMediaType("screen");
+
+    // Generate PDF with 9:16 aspect ratio
+    const pdfBuffer = await page.pdf({
+      width: "390px",
+      height: "760px",
+      printBackground: true,
+      margin: {
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+        left: "0px",
+      },
+    });
+
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error("Error generating code PDF:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   configureCodeSettings,
   getCodeSettings,
@@ -1632,4 +2016,5 @@ module.exports = {
   getUserCodeCounts,
   findBySecurityToken,
   getEventUserCodes,
+  sendCodeByEmail,
 };

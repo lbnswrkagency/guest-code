@@ -122,12 +122,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("[AuthController:Login] Login attempt", {
-      identifier: email, // can be email or username
-      hasPassword: !!password,
-      timestamp: new Date().toISOString(),
-    });
-
     // Find user by email or username using case-insensitive regex for better matching
     const user = await User.findOne({
       $or: [
@@ -137,20 +131,11 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      console.log("[AuthController:Login] User not found", {
-        identifier: email,
-        timestamp: new Date().toISOString(),
-      });
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Check if user is verified
     if (!user.isVerified) {
-      console.log("[AuthController:Login] User not verified", {
-        userId: user._id,
-        email: user.email,
-        timestamp: new Date().toISOString(),
-      });
       return res.status(401).json({
         message: "Please verify your email before logging in",
         isVerificationError: true,
@@ -161,10 +146,6 @@ exports.login = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      console.log("[AuthController:Login] Invalid password", {
-        userId: user._id,
-        timestamp: new Date().toISOString(),
-      });
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -181,21 +162,11 @@ exports.login = async (req, res) => {
     res.cookie("refreshToken", refreshToken, refreshTokenCookieOptions);
 
     // STEP 1: Fetch user's brands
-    console.log(
-      "[AuthController:Login] STEP 1: Fetching brands for user:",
-      user._id
-    );
     const userBrands = await Brand.find({
       $or: [{ owner: user._id }, { "team.user": user._id }],
     })
       .select("-bannedMembers")
       .lean();
-
-    console.log("[AuthController:Login] Found brands:", {
-      userId: user._id,
-      brandsCount: userBrands.length,
-      brandIds: userBrands.map((b) => b._id),
-    });
 
     // Prepare collections for our flat data structure
     const allRoles = [];
@@ -209,18 +180,7 @@ exports.login = async (req, res) => {
       userBrands.map(async (brand) => {
         try {
           // STEP 2: Fetch roles for this brand
-          console.log(
-            "[AuthController:Login] STEP 2: Fetching roles for brand:",
-            brand._id
-          );
           const roles = await Role.find({ brandId: brand._id }).lean();
-
-          console.log("[AuthController:Login] Found roles for brand:", {
-            brandId: brand._id,
-            brandName: brand.name,
-            rolesCount: roles.length,
-            roleNames: roles.map((r) => r.name),
-          });
 
           // Find user's role in this brand
           let userRole = null;
@@ -255,22 +215,12 @@ exports.login = async (req, res) => {
           }
 
           // STEP 3: Fetch events for this brand
-          console.log(
-            "[AuthController:Login] STEP 3: Fetching events for brand:",
-            brand._id
-          );
           const parentEvents = await Event.find({
             brand: brand._id,
             parentEventId: null,
           })
             .select("-__v")
             .lean();
-
-          console.log("[AuthController:Login] Found parent events:", {
-            brandId: brand._id,
-            brandName: brand.name,
-            count: parentEvents.length,
-          });
 
           // Get child events for weekly events
           const weeklyEventIds = parentEvents
@@ -284,23 +234,12 @@ exports.login = async (req, res) => {
             })
               .select("-__v")
               .lean();
-
-            console.log("[AuthController:Login] Found child events:", {
-              brandId: brand._id,
-              brandName: brand.name,
-              weeklyParentCount: weeklyEventIds.length,
-              childCount: childEvents.length,
-            });
           }
 
           // Combine all events
           const allBrandEvents = [...parentEvents, ...childEvents];
 
           // STEP 4: Fetch code settings for each event
-          console.log(
-            "[AuthController:Login] STEP 4: Fetching code settings for events"
-          );
-
           await Promise.all(
             allBrandEvents.map(async (event) => {
               try {
@@ -311,10 +250,6 @@ exports.login = async (req, res) => {
                 const codeSettings = await CodeSetting.find({
                   eventId: effectiveEventId,
                 }).lean();
-
-                console.log(
-                  `[AuthController:Login] Found ${codeSettings.length} code settings for event ${event.title}`
-                );
 
                 // Add event to collection with brand reference
                 allEvents.push({
@@ -330,11 +265,6 @@ exports.login = async (req, res) => {
                   });
                 });
               } catch (error) {
-                console.error(
-                  `[AuthController:Login] Error fetching code settings for event ${event._id}:`,
-                  error.message
-                );
-
                 // Still add the event even if code settings failed
                 allEvents.push({
                   ...event,
@@ -355,26 +285,10 @@ exports.login = async (req, res) => {
             });
           });
         } catch (error) {
-          console.error("[AuthController:Login] Error processing brand:", {
-            brandId: brand._id,
-            brandName: brand.name,
-            error: error.message,
-          });
+          // Error handling for individual brand processing
         }
       })
     );
-
-    // Count totals for logging
-    console.log("[AuthController:Login] Completed data fetch:", {
-      userId: user._id,
-      username: user.username,
-      brandsCount: userBrands.length,
-      eventsCount: allEvents.length,
-      rolesCount: allRoles.length,
-      codeSettingsCount: allCodeSettings.length,
-      lineupsCount: allLineUps.length,
-      timestamp: new Date().toISOString(),
-    });
 
     // Return user data and tokens
     const userData = {
@@ -404,28 +318,12 @@ exports.login = async (req, res) => {
       lineups: allLineUps,
     };
 
-    console.log("[AuthController:Login] Login successful", {
-      userId: user._id,
-      username: user.username,
-      brandsCount: userBrands.length,
-      eventsCount: allEvents.length,
-      rolesCount: allRoles.length,
-      lineupsCount: allLineUps.length,
-      timestamp: new Date().toISOString(),
-    });
-
     res.json({
       user: userData,
       token: accessToken,
       refreshToken: refreshToken,
     });
   } catch (error) {
-    console.error("[AuthController:Login] Login error", {
-      error: error.message,
-      stack: error.stack,
-      email: req.body?.email,
-      timestamp: new Date().toISOString(),
-    });
     res.status(500).json({ message: "Internal server error" });
   }
 };

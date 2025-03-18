@@ -188,17 +188,16 @@
       z-index: 2;
 
       .code-icon {
-        width: 3.5rem;
-        height: 3.5rem;
-        min-width: 3.5rem;
-        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        font-weight: 700;
-        position: relative;
-        overflow: hidden;
+        width: 3rem;
+        height: 3rem;
+        min-width: 3rem;
+        border-radius: 0.5rem;
+        background: linear-gradient(45deg, #1976d2, #2196f3);
+        margin-right: 1rem;
+        flex-shrink: 0;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         transition: all 0.3s ease;
 
@@ -208,20 +207,19 @@
         }
 
         @media (max-width: 768px) {
-          width: 3rem;
-          height: 3rem;
-          min-width: 3rem;
-          font-size: 1.25rem;
+          width: 2.5rem;
+          height: 2.5rem;
+          min-width: 2.5rem;
         }
 
-        // QR code icon styling
-        .qr-icon {
-          width: 60%;
-          height: 60%;
+        svg.qr-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          color: #ffffff;
           transition: all 0.3s ease;
         }
 
-        &:hover .qr-icon {
+        &:hover svg.qr-icon {
           transform: scale(1.1);
         }
 
@@ -233,6 +231,10 @@
         &.bottle {
           background: linear-gradient(45deg, #d1a300, #ffc807);
           color: #000;
+
+          svg.qr-icon {
+            color: #000;
+          }
         }
 
         // Special Code
@@ -424,6 +426,23 @@
         &.download-btn:hover {
           background: rgba(255, 193, 7, 0.2);
           color: #ffc107;
+        }
+
+        &.download-png-btn:hover {
+          background: rgba(33, 150, 243, 0.2);
+          color: #2196f3;
+        }
+
+        &.email-btn {
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: rgba(156, 39, 176, 0.2);
+            color: #9c27b0;
+          }
         }
 
         &.save-edit-btn {
@@ -649,6 +668,144 @@
         animation: imageFadeIn 0.5s ease;
       }
     }
+  }
+
+  // Email modal styling
+  .email-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    animation: modalFadeIn 0.3s ease;
+  }
+
+  .email-modal {
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: 360px;
+    max-width: 95%;
+    padding: 1.5rem;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ffc107, #e3a31d);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: white;
+        transform: scale(1.1);
+      }
+    }
+
+    h3 {
+      margin: 0 0 1.25rem;
+      color: white;
+      font-size: 1.1rem;
+      padding-right: 1.5rem;
+    }
+
+    .email-form {
+      display: flex;
+      gap: 8px;
+
+      input {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #ffc107;
+          box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+      }
+
+      .send-btn {
+        min-width: 80px;
+        padding: 0 15px;
+        border-radius: 8px;
+        border: none;
+        background: linear-gradient(45deg, #ffc107, #e3a31d);
+        color: #212121;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.6);
+        }
+      }
+    }
+  }
+
+  @keyframes modalPopIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // Delete the old email-modal styling and replace with this:
+  .modal.email-modal {
+    display: none; // Hide the old modal
   }
 }
 

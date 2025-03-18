@@ -72,6 +72,9 @@ router.delete("/:codeId", authenticate, codesController.deleteCode);
 // Generate QR code image for a code
 router.get("/:codeId/image", authenticate, codesController.generateCodeImage);
 
+// Send a code by email
+router.post("/:codeId/email", authenticate, codesController.sendCodeByEmail);
+
 // Verify a code
 router.post("/verify", authenticate, codesController.verifyCode);
 
