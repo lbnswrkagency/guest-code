@@ -631,19 +631,20 @@ function CodeManagement({
                       📄
                     </button>
                     */}
-                    <button
-                      className="download-png-btn"
-                      onClick={() => downloadCodePNG(code)}
-                      title="Download PNG"
-                    >
-                      🖼️
-                    </button>
+
                     <button
                       className="email-btn"
                       onClick={() => openEmailForm(code)}
                       title="Send by Email"
                     >
                       <RiMailLine />
+                    </button>
+                    <button
+                      className="download-png-btn"
+                      onClick={() => downloadCodePNG(code)}
+                      title="Download PNG"
+                    >
+                      🖼️
                     </button>
                     <button
                       className="view-btn"
