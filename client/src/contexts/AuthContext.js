@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosConfig";
+import tokenService from "../utils/tokenService";
 import { cleanUsername } from "../utils/stringUtils";
 import { useDispatch } from "react-redux";
 import { setUser as setReduxUser, clearUser } from "../redux/userSlice";
@@ -15,31 +16,11 @@ export const useAuth = () => {
   return context;
 };
 
-// Function to decode JWT and check if it's expired
-const isTokenExpired = (token) => {
-  if (!token) return true;
-
-  try {
-    // Extract the payload from JWT (second part between dots)
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(window.atob(base64));
-
-    // Check expiration (exp is in seconds, Date.now() is in milliseconds)
-    return payload.exp * 1000 < Date.now();
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    return true; // If there's any error, consider the token expired
-  }
-};
-
 // Inner provider that uses router hooks
 const AuthProviderWithRouter = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshPromise, setRefreshPromise] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -55,52 +36,13 @@ const AuthProviderWithRouter = ({ children }) => {
     "/verify/:token",
   ];
 
-  const refreshToken = async () => {
-    try {
-      const response = await axiosInstance.post("/auth/refresh-token");
-
-      // Update localStorage with new tokens
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-
-      // Update axios headers
-      axiosInstance.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${response.data.token}`;
-
-      return response.data;
-    } catch (error) {
-      // Clear tokens on refresh failure
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      throw error;
-    }
-  };
-
-  // Centralized refresh handling to avoid multiple simultaneous refresh attempts
-  const handleTokenRefresh = async () => {
-    // If already refreshing, return the existing promise
-    if (refreshPromise) {
-      return refreshPromise;
-    }
-
-    // Create a new refresh promise
-    const newRefreshPromise = refreshToken().finally(() => {
-      // Clear the promise reference when done
-      setRefreshPromise(null);
-      setIsRefreshing(false);
-    });
-
-    // Store the promise so other requests can use it
-    setRefreshPromise(newRefreshPromise);
-    setIsRefreshing(true);
-
-    return newRefreshPromise;
-  };
-
+  // Function to fetch user data
   const fetchUserData = async () => {
     try {
       setLoading(true);
+      // Ensure token is fresh before fetching user data
+      await tokenService.ensureFreshToken();
+
       const response = await axiosInstance.get("/auth/user");
       if (response.data) {
         // Clean the username when fetching user data
@@ -125,40 +67,19 @@ const AuthProviderWithRouter = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = tokenService.getToken();
 
       if (token) {
-        // Set auth header for initial requests
-        axiosInstance.defaults.headers.common[
-          "Authorization"
-        ] = `Bearer ${token}`;
+        try {
+          // Ensure we have a fresh token
+          if (tokenService.isTokenExpiredOrNearExpiry(token)) {
+            await tokenService.refreshToken();
+          }
 
-        // Check if token is expired and try to refresh it
-        if (isTokenExpired(token)) {
-          try {
-            console.log("Token expired on page load, attempting refresh");
-            await handleTokenRefresh();
-            await fetchUserData();
-          } catch (refreshError) {
-            console.error("Token refresh failed on page load:", refreshError);
-            // Clear user state but don't redirect yet
-            setUser(null);
-          }
-        } else {
-          try {
-            // Token is still valid, just fetch the user data
-            await fetchUserData();
-          } catch (error) {
-            console.error("Failed to fetch user data with valid token:", error);
-            // Try to refresh token as a fallback
-            try {
-              await handleTokenRefresh();
-              await fetchUserData();
-            } catch (refreshError) {
-              console.error("Fallback token refresh failed:", refreshError);
-              setUser(null);
-            }
-          }
+          await fetchUserData();
+        } catch (error) {
+          console.error("Failed to initialize auth:", error);
+          setUser(null);
         }
       }
 
@@ -169,122 +90,24 @@ const AuthProviderWithRouter = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // Setup axios interceptor for token refresh
-  useEffect(() => {
-    const interceptor = axiosInstance.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
-        // Skip if the request is the refresh token request itself or already retried
-        if (
-          originalRequest.url?.includes("/auth/refresh-token") ||
-          originalRequest._retry
-        ) {
-          return Promise.reject(error);
-        }
-
-        // Handle unauthorized errors (401)
-        if (error.response?.status === 401) {
-          originalRequest._retry = true;
-
-          try {
-            // Use centralized refresh handling
-            await handleTokenRefresh();
-
-            // Clone the original request
-            const newRequest = {
-              ...originalRequest,
-              headers: {
-                ...originalRequest.headers,
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            };
-
-            // Retry the original request with new token
-            return axiosInstance(newRequest);
-          } catch (refreshError) {
-            console.error("Token refresh failed in interceptor:", refreshError);
-            setUser(null);
-
-            // Only redirect if on a protected route
-            if (
-              pathsRequiringAuth.some((path) => {
-                // Convert path params to regex parts
-                const regexPath = path.replace(/:\w+/g, "[^/]+");
-                return new RegExp(`^${regexPath}$`).test(location.pathname);
-              })
-            ) {
-              navigate("/login", { state: { from: location } });
-            }
-
-            return Promise.reject(refreshError);
-          }
-        }
-
-        return Promise.reject(error);
-      }
-    );
-
-    // Set up periodic token refresh (every 14 minutes)
-    const refreshTimeout = setInterval(async () => {
-      const token = localStorage.getItem("token");
-      if (token && user) {
-        // Check if token is close to expiry (80% of lifetime passed)
-        if (isTokenExpired(token) || isTokenNearExpiry(token)) {
-          try {
-            console.log("Performing scheduled token refresh");
-            await handleTokenRefresh();
-          } catch (error) {
-            console.error("Scheduled token refresh failed:", error);
-          }
-        }
-      }
-    }, 10 * 60 * 1000); // 10 minutes
-
-    return () => {
-      axiosInstance.interceptors.response.eject(interceptor);
-      clearInterval(refreshTimeout);
-    };
-  }, [navigate, location, user, isRefreshing]);
-
-  // Helper function to check if token is close to expiry
-  const isTokenNearExpiry = (token) => {
-    if (!token) return true;
-
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(window.atob(base64));
-
-      // Check if token is within 80% of its lifetime
-      const expiryTime = payload.exp * 1000;
-      const issuedAt = payload.iat * 1000;
-      const tokenLifetime = expiryTime - issuedAt;
-      const timeUntilExpiry = expiryTime - Date.now();
-
-      return timeUntilExpiry < tokenLifetime * 0.2; // 20% of lifetime left
-    } catch (error) {
-      return true;
-    }
-  };
-
   // Check auth state when path changes
   useEffect(() => {
     const checkAuthState = async () => {
-      if (
-        pathsRequiringAuth.some((path) => {
-          // Convert path params to regex parts
-          const regexPath = path.replace(/:\w+/g, "[^/]+");
-          return new RegExp(`^${regexPath}$`).test(location.pathname);
-        })
-      ) {
-        setLoading(true);
-        const token = localStorage.getItem("token");
+      // Determine if this route needs authentication
+      const requiresAuth = pathsRequiringAuth.some((path) => {
+        // Convert path params to regex parts
+        const regexPath = path.replace(/:\w+/g, "[^/]+");
+        return new RegExp(`^${regexPath}$`).test(location.pathname);
+      });
 
-        if (!token || isTokenExpired(token)) {
+      if (requiresAuth) {
+        setLoading(true);
+        const token = tokenService.getToken();
+
+        // If no token or token is expired/near expiry
+        if (!token || tokenService.isTokenExpiredOrNearExpiry(token)) {
           try {
-            await handleTokenRefresh();
+            await tokenService.refreshToken();
             await fetchUserData();
           } catch (error) {
             navigate("/login", { state: { from: location } });
@@ -295,7 +118,7 @@ const AuthProviderWithRouter = ({ children }) => {
           } catch (error) {
             // If fetching fails with a valid token, try refreshing
             try {
-              await handleTokenRefresh();
+              await tokenService.refreshToken();
               await fetchUserData();
             } catch (refreshError) {
               navigate("/login", { state: { from: location } });
@@ -310,7 +133,34 @@ const AuthProviderWithRouter = ({ children }) => {
     if (authInitialized) {
       checkAuthState();
     }
-  }, [location.pathname, authInitialized]);
+  }, [location.pathname, authInitialized, navigate, location]);
+
+  // Listen for auth:required events to handle auth failures across the app
+  useEffect(() => {
+    const handleAuthRequired = (event) => {
+      // Clear the user data
+      setUser(null);
+
+      // Get the redirect URL from the event detail
+      const redirectUrl = event.detail?.redirectUrl || "/login";
+
+      // Navigate to login with the current location as the 'from' state
+      navigate("/login", {
+        state: {
+          from: redirectUrl,
+          message: event.detail?.message,
+        },
+      });
+    };
+
+    // Add event listener
+    window.addEventListener("auth:required", handleAuthRequired);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("auth:required", handleAuthRequired);
+    };
+  }, [navigate]);
 
   // Sync user state with Redux when user changes
   useEffect(() => {
@@ -372,6 +222,14 @@ const AuthProviderWithRouter = ({ children }) => {
 
       const response = await axiosInstance.post("/auth/login", credentials);
 
+      // Process token and user data
+      const token = response.data.token;
+      const refreshToken = response.data.refreshToken;
+
+      // Store tokens using token service
+      tokenService.setToken(token);
+      tokenService.setRefreshToken(refreshToken);
+
       // Prepare the user data object
       let userData = null;
 
@@ -385,23 +243,14 @@ const AuthProviderWithRouter = ({ children }) => {
         };
       }
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-
-      axiosInstance.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${response.data.token}`;
-
       setUser(userData);
       setLoading(false);
-
-      navigate(`/@${userData.username}`);
 
       // Return the full user data object
       return userData;
     } catch (error) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      // Clear tokens on login failure
+      tokenService.clearTokens();
       setUser(null);
       setLoading(false);
       throw error;
@@ -411,19 +260,20 @@ const AuthProviderWithRouter = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
+      // Call logout endpoint
       await axiosInstance.post("/auth/logout");
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      delete axiosInstance.defaults.headers.common["Authorization"];
+      // Clean up token service and state
+      tokenService.clearTokens();
+      tokenService.cleanup();
 
       setUser(null);
       setLoading(false);
       navigate("/login");
     } catch (error) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      delete axiosInstance.defaults.headers.common["Authorization"];
+      // Even on error, clean up tokens and navigate to login
+      tokenService.clearTokens();
+      tokenService.cleanup();
       setUser(null);
       setLoading(false);
       navigate("/login");
@@ -432,13 +282,13 @@ const AuthProviderWithRouter = ({ children }) => {
 
   const value = {
     user,
-    setUser: setUserWithRedux, // Use our enhanced setter
+    setUser: setUserWithRedux,
     loading,
     authInitialized,
     login,
     logout,
     fetchUserData,
-    refreshToken: handleTokenRefresh, // Expose the refresh function
+    refreshToken: tokenService.refreshToken.bind(tokenService), // Use token service
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

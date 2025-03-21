@@ -1,5 +1,5 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useContext, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./Login.scss";
 import AuthContext from "../../../contexts/AuthContext";
@@ -20,10 +20,21 @@ function Login() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState(null);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const dispatch = useDispatch();
+
+  // Check for error messages in location state
+  useEffect(() => {
+    if (location.state?.message) {
+      setAuthMessage(location.state.message);
+      // Show the message as a toast too
+      toast.showError(location.state.message);
+    }
+  }, [location.state, toast]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -86,9 +97,12 @@ function Login() {
         dispatch(setLineups(fullUserData.lineups));
       }
 
-      // Show success toast and navigate
+      // Show success toast
       toast.showSuccess("Welcome back!");
-      navigate(`/@${fullUserData.username}`);
+
+      // Determine where to navigate
+      const redirectTo = location.state?.from || `/@${fullUserData.username}`;
+      navigate(redirectTo);
     } catch (error) {
       dispatch(setError(error.message || "Login failed"));
       toast.showError(
@@ -118,6 +132,17 @@ function Login() {
         >
           Welcome Back
         </motion.h1>
+
+        {authMessage && (
+          <motion.div
+            className="auth-message"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            {authMessage}
+          </motion.div>
+        )}
 
         <motion.form
           className="login-form"

@@ -11,6 +11,7 @@ const {
   refreshAccessToken,
   logout,
   syncToken,
+  pingSession,
 } = require("../controllers/authController");
 
 router.use((req, res, next) => {
@@ -46,5 +47,8 @@ router.get("/user", authenticate, getUserData);
 
 // Logout route
 router.post("/logout", logout);
+
+// Add the ping route - this should be authenticated
+router.get("/ping", authenticate, pingSession);
 
 module.exports = router;

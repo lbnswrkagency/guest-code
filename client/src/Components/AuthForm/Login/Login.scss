@@ -712,6 +712,18 @@ $star-twinkle-duration: 4s;
   }
 }
 
+.auth-message {
+  background-color: rgba(255, 59, 48, 0.1);
+  border-left: 3px solid #ff3b30;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #ff3b30;
+  text-align: left;
+  width: 100%;
+}
+
 // Media queries for responsiveness
 @media (max-width: 768px) {
   .login {

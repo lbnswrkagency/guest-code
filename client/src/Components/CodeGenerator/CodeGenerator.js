@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import "./CodeGenerator.scss";
 import Navigation from "../Navigation/Navigation";
@@ -114,20 +114,11 @@ function CodeGenerator({
 
           console.log("🔧 Using code setting IDs:", settingIds);
 
-          const response = await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/codes/event-user-codes`,
-            {
-              eventId: selectedEvent._id,
-              userId: user._id,
-              codeSettingIds: settingIds,
-            },
-            {
-              withCredentials: true,
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
+          const response = await axiosInstance.post(`/codes/event-user-codes`, {
+            eventId: selectedEvent._id,
+            userId: user._id,
+            codeSettingIds: settingIds,
+          });
 
           console.log("✅ User codes data:", response.data);
 
@@ -400,15 +391,9 @@ function CodeGenerator({
         lastName: user?.lastName,
       });
 
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/codes/create-dynamic`,
-        codeData,
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+      const response = await axiosInstance.post(
+        `/codes/create-dynamic`,
+        codeData
       );
 
       // Reset form fields
@@ -598,17 +583,11 @@ function CodeGenerator({
     // Save the updated icon to the code setting
     if (activeSetting) {
       try {
-        const response = await axios.put(
-          `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${selectedEvent._id}`,
+        const response = await axiosInstance.put(
+          `/code-settings/events/${selectedEvent._id}`,
           {
             codeSettingId: activeSetting._id,
             icon: newIcon,
-          },
-          {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
           }
         );
 

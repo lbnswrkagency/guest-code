@@ -459,3 +459,38 @@ exports.syncToken = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// Add a lightweight ping endpoint for session refresh
+exports.pingSession = async (req, res) => {
+  try {
+    // This endpoint just checks if the token is valid
+    // The authentication middleware already validates the token
+
+    // We can extend the user's session by refreshing the token
+    if (req.user && req.user.userId) {
+      // Generate new access token with the same user ID
+      const newAccessToken = generateAccessToken(req.user.userId);
+
+      // Set the token in the response
+      res.cookie("accessToken", newAccessToken, accessTokenCookieOptions);
+
+      // Return minimal information to keep the payload small
+      return res.status(200).json({
+        status: "active",
+        tokenRefreshed: true,
+      });
+    }
+
+    // If no user in request (middleware didn't populate it)
+    return res.status(200).json({
+      status: "active",
+      tokenRefreshed: false,
+    });
+  } catch (error) {
+    // Even if there's an error, return 200 to prevent error handling on client
+    return res.status(200).json({
+      status: "error",
+      message: "Session ping failed",
+    });
+  }
+};
