@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Routes,
   Route,
@@ -34,6 +34,7 @@ import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
 import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
+import notificationManager from "./utils/notificationManager";
 
 // Main routing component
 const AppRoutes = () => {
@@ -363,7 +364,9 @@ const AppRoutes = () => {
         path="/"
         element={
           <RouteDebug name="home-root">
-            <Home />
+            <ClearNotificationsOnMount>
+              <Home />
+            </ClearNotificationsOnMount>
           </RouteDebug>
         }
       />
@@ -447,6 +450,15 @@ const UserProfileRoute = () => {
   const navigate = useNavigate();
 
   return <Outlet />;
+};
+
+// Add this component to clear notifications on routes
+const ClearNotificationsOnMount = ({ children }) => {
+  useEffect(() => {
+    notificationManager.clearAllAuthNotifications();
+  }, []);
+
+  return children;
 };
 
 // Main App component - we don't need BrowserRouter anymore since it's provided by index.js

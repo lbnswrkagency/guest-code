@@ -13,6 +13,20 @@ router.put("/increase/:ticketId", authenticate, qrController.increasePax);
 // PUT route to decrease paxChecked
 router.put("/decrease/:ticketId", authenticate, qrController.decreasePax);
 
+// New route for ticket model check-in/check-out
+router.put(
+  "/tickets/:ticketId/update-pax",
+  authenticate,
+  qrController.updateTicketPax
+);
+
+// Add route for Code model check-in/check-out
+router.put(
+  "/codes/:ticketId/update-pax",
+  authenticate,
+  qrController.updateCodePax
+);
+
 // Keep legacy count endpoints but make them try new endpoints first
 router.get("/counts", authenticate, async (req, res, next) => {
   try {

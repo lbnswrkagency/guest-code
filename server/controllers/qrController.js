@@ -688,6 +688,168 @@ const decreasePax = async (req, res) => {
   }
 };
 
+// New controller function to handle ticket model pax updates
+const updateTicketPax = async (req, res) => {
+  try {
+    const ticketId = req.params.ticketId;
+    const { increment } = req.body;
+
+    console.log(`Updating pax for ticket ${ticketId}, increment: ${increment}`);
+
+    // Load the Ticket model and find the ticket
+    const Ticket = require("../models/ticketModel");
+
+    if (!mongoose.Types.ObjectId.isValid(ticketId)) {
+      return res.status(400).json({ message: "Invalid ticket ID format" });
+    }
+
+    const ticket = await Ticket.findById(ticketId);
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // If increasing pax
+    if (increment) {
+      // Check if max capacity reached for the ticket
+      const maxPax = ticket.pax || 1;
+      if (ticket.paxChecked >= maxPax) {
+        return res.status(400).json({
+          message: "Maximum capacity reached for this ticket",
+        });
+      }
+
+      // Increment paxChecked
+      ticket.paxChecked = (ticket.paxChecked || 0) + 1;
+    }
+    // If decreasing pax
+    else {
+      // Check if paxChecked is already 0
+      if (ticket.paxChecked <= 0) {
+        return res.status(400).json({
+          message: "Pax count is already 0 for this ticket",
+        });
+      }
+
+      // Decrement paxChecked
+      ticket.paxChecked = Math.max(0, (ticket.paxChecked || 0) - 1);
+    }
+
+    // If this is the first check-in, mark the ticket as used
+    if (increment && ticket.paxChecked === 1 && ticket.status === "valid") {
+      ticket.status = "used";
+      ticket.usedAt = new Date();
+    }
+
+    // If this is a check-out that removes all guests, consider reverting to valid
+    if (!increment && ticket.paxChecked === 0 && ticket.status === "used") {
+      ticket.status = "valid";
+      ticket.usedAt = null;
+    }
+
+    await ticket.save();
+
+    return res.json({
+      _id: ticket._id,
+      paxChecked: ticket.paxChecked,
+      maxPax: ticket.pax || 1,
+      status: ticket.status,
+      message: increment
+        ? "Checked in successfully"
+        : "Checked out successfully",
+    });
+  } catch (error) {
+    console.error("Error updating ticket pax:", error);
+    return res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+// New controller function to handle unified code model pax updates
+const updateCodePax = async (req, res) => {
+  try {
+    const codeId = req.params.ticketId;
+    const { increment } = req.body;
+
+    console.log(`Updating pax for code ${codeId}, increment: ${increment}`);
+
+    if (!mongoose.Types.ObjectId.isValid(codeId)) {
+      return res.status(400).json({ message: "Invalid code ID format" });
+    }
+
+    const code = await Code.findById(codeId);
+
+    if (!code) {
+      return res.status(404).json({ message: "Code not found" });
+    }
+
+    // If increasing pax
+    if (increment) {
+      // Check if max capacity reached for the code
+      const maxPax = code.maxPax || 1;
+      if (code.paxChecked >= maxPax) {
+        return res.status(400).json({
+          message: "Maximum capacity reached for this code",
+        });
+      }
+
+      // Increment paxChecked
+      code.paxChecked = (code.paxChecked || 0) + 1;
+
+      // Record usage information if it doesn't exceed the limit
+      if (code.limit === 0 || code.usageCount < code.limit) {
+        code.usageCount = (code.usageCount || 0) + 1;
+
+        // If this is the first check-in and the code is active, add usage record
+        if (code.status === "active") {
+          // Record usage information
+          const usage = {
+            timestamp: new Date(),
+            paxUsed: 1,
+            userId: req.user ? req.user._id : null,
+            location: req.body.location || "",
+            deviceInfo: req.body.deviceInfo || "",
+          };
+
+          // Add to usage array if it exists, otherwise create it
+          if (code.usage && Array.isArray(code.usage)) {
+            code.usage.push(usage);
+          } else {
+            code.usage = [usage];
+          }
+        }
+      }
+    }
+    // If decreasing pax
+    else {
+      // Check if paxChecked is already 0
+      if (code.paxChecked <= 0) {
+        return res.status(400).json({
+          message: "Pax count is already 0 for this code",
+        });
+      }
+
+      // Decrement paxChecked
+      code.paxChecked = Math.max(0, (code.paxChecked || 0) - 1);
+    }
+
+    // If all checks passed, save the updated code
+    await code.save();
+
+    return res.json({
+      _id: code._id,
+      paxChecked: code.paxChecked,
+      maxPax: code.maxPax || 1,
+      status: code.status,
+      message: increment
+        ? "Checked in successfully"
+        : "Checked out successfully",
+    });
+  } catch (error) {
+    console.error("Error updating code pax:", error);
+    return res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
 const getCounts = async (req, res) => {
   try {
     const { startDate, endDate, userId, eventId } = req.query;
@@ -978,6 +1140,8 @@ module.exports = {
   validateTicket,
   increasePax,
   decreasePax,
+  updateTicketPax,
+  updateCodePax,
   getCounts,
   getUserSpecificCounts,
 };

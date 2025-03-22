@@ -1,5 +1,6 @@
 import axios from "axios";
 import tokenService from "./tokenService";
+import notificationManager from "./notificationManager";
 
 // Create axios instance with base URL
 const axiosInstance = axios.create({
@@ -31,6 +32,9 @@ axiosInstance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Keep track of auth error handling
+let isHandlingAuthError = false;
 
 // Set up response interceptor to handle token refresh
 axiosInstance.interceptors.response.use(
@@ -64,15 +68,33 @@ axiosInstance.interceptors.response.use(
         // If refresh fails, clear tokens and redirect to login
         tokenService.clearTokens();
 
-        // Dispatch a custom event to notify the app of authentication failure
-        window.dispatchEvent(
-          new CustomEvent("auth:required", {
-            detail: {
-              redirectUrl: window.location.pathname,
-              message: "Your session has expired. Please login again.",
-            },
-          })
-        );
+        // Prevent multiple auth errors from showing notifications
+        if (!isHandlingAuthError) {
+          isHandlingAuthError = true;
+
+          // First clear any existing auth notifications
+          notificationManager.clearAllAuthNotifications();
+
+          // Show a single notification using our manager
+          const message = "Your session has expired. Please login again.";
+          notificationManager.showAuthNotification(message);
+
+          // Dispatch a custom event to notify the app of authentication failure
+          // This event will trigger the redirect to login
+          window.dispatchEvent(
+            new CustomEvent("auth:required", {
+              detail: {
+                redirectUrl: window.location.pathname,
+                message: message,
+              },
+            })
+          );
+
+          // Reset the handling flag after a short delay
+          setTimeout(() => {
+            isHandlingAuthError = false;
+          }, 1000);
+        }
 
         return Promise.reject(refreshError);
       }

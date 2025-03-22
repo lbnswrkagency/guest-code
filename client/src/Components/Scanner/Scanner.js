@@ -419,8 +419,23 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       let endpoint = "";
       let payload = {};
 
+      // Check if this is a ticket from ticketModel.js
+      const isTicketModel =
+        scanResult.typeOfTicket === "Ticket-Code" && !scanResult.type; // Regular tickets don't have a 'type' field
+
+      if (isTicketModel) {
+        // For tickets from ticketModel.js, use the ticket endpoints
+        endpoint = `/qr/tickets/${scanResult._id}/update-pax`;
+        payload = {
+          eventId: scanResult.eventId || selectedEvent?._id,
+          increment: increment,
+        };
+      }
       // New approach - check the typeOfTicket to determine how to update
-      if (scanResult.typeOfTicket && scanResult.typeOfTicket.includes("Code")) {
+      else if (
+        scanResult.typeOfTicket &&
+        scanResult.typeOfTicket.includes("Code")
+      ) {
         // For the new Code model (includes all types like Guest-Code, Friends-Code, etc.)
         const codeType = scanResult.typeOfTicket.split("-")[0].toLowerCase();
 
@@ -431,13 +446,15 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         };
 
         // The endpoint depends on whether we're dealing with legacy or new code types
-        endpoint = `/codes/${scanResult._id}/update-pax`;
+        endpoint = `/qr/codes/${scanResult._id}/update-pax`;
       } else {
         // Legacy approach
         endpoint = increment
           ? `/qr/increase/${scanResult._id}`
           : `/qr/decrease/${scanResult._id}`;
       }
+
+      console.log("Calling endpoint for check-in/out:", endpoint); // Debug log to show which endpoint is called
 
       // Make the request with proper payload
       const response = await axiosInstance.put(endpoint, payload);
@@ -460,6 +477,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         `${increment ? "Checked in" : "Checked out"}: ${scanResult.name}`
       );
     } catch (error) {
+      console.error("Error updating pax:", error);
       const errorMessage =
         error.response?.data?.message ||
         `Error ${increment ? "increasing" : "decreasing"} pax`;

@@ -13,6 +13,7 @@ import { setRoles, setUserRole } from "../../../redux/rolesSlice";
 import { setCodeSettings } from "../../../redux/codeSettingsSlice";
 import { setLineups } from "../../../redux/lineupSlice";
 import Maintenance from "../../Maintenance/Maintenance";
+import notificationManager from "../../../utils/notificationManager";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -26,6 +27,11 @@ function Login() {
   const location = useLocation();
   const toast = useToast();
   const dispatch = useDispatch();
+
+  // Clear any existing auth notifications when the component mounts
+  useEffect(() => {
+    notificationManager.clearAllAuthNotifications();
+  }, []);
 
   // Check for error messages in location state
   useEffect(() => {
@@ -44,6 +50,9 @@ function Login() {
     e.preventDefault();
     setIsLoading(true);
     dispatch(setLoading());
+
+    // Clear any existing auth notifications before attempting login
+    notificationManager.clearAllAuthNotifications();
 
     try {
       const userData = await login(formData);
