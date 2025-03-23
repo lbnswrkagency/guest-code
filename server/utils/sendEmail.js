@@ -9,6 +9,8 @@ const {
   createTicketsForOrder,
   generateTicketPDF,
 } = require("../controllers/ticketController");
+// Import email layout utility
+const { createEventEmailTemplate } = require("../utils/emailLayout");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -468,73 +470,44 @@ const sendEmail = async (order) => {
     sendSmtpEmail.subject = `${
       brand?.name || "GuestCode"
     } - Your Invoice and Tickets`;
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-        <div style="text-align: center; background-color: ${accentColor}; padding: 20px; margin-bottom: 30px;">
-          <h1 style="color: ${primaryColor}; font-size: 28px; font-weight: 700; margin: 0;">GuestCode</h1>
-          <p style="color: white; font-size: 14px; margin: 5px 0 0;">The Future of Event Management</p>
-          ${
-            brand?.logo?.medium
-              ? `<div style="margin-top: 15px; display: inline-block;"><img src="${brand.logo.medium}" alt="${brand.name}" style="max-height: 80px; max-width: 200px; object-fit: contain;"></div>`
-              : ""
-          }
-        </div>
-        
-        <h2 style="color: #333; text-align: center; font-size: 24px; margin-bottom: 20px;">Thank You for Your Purchase</h2>
-        
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Dear ${
-          order.firstName
-        },</p>
-        
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">Thank you for your purchase. Your payment has been successfully processed, and your invoice and tickets are attached to this email.</p>
-        
-        ${
-          event
-            ? `
-        <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
-          <p style="margin: 0; font-weight: 500;">Event: <span style="color: #333;">${
-            event.title || "Event"
-          }</span></p>
-          <p style="margin: 8px 0 0;">Organizer: <strong>${
-            brand ? brand.name : "GuestCode"
-          }</strong></p>
-          ${
-            event.date
-              ? `<p style="margin: 8px 0 0;">Date: <strong>${new Date(
-                  event.date
-                ).toLocaleDateString()}</strong></p>`
-              : ""
-          }
-        </div>
-        `
-            : ""
-        }
-        
-        <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
-          <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
+
+    // Create additional content specific to the order and tickets
+    const additionalContent = `
+      <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
+        <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
       order.stripeSessionId
     )}</span></p>
-          <p style="margin: 8px 0 0;">Total Amount: <strong>${order.totalAmount.toFixed(
-            2
-          )} EUR</strong></p>
-          <p style="margin: 8px 0 0;">Tickets: <strong>${
-            Object.keys(ticketGroups).length
-          }</strong></p>
-        </div>
-        
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">We look forward to seeing you at the event! If you have any questions, please don't hesitate to contact us.</p>
-        
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">Best regards,<br>${
-          brand ? brand.name : "The GuestCode Team"
-        }</p>
-        
-        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
-          <p style="color: ${primaryColor}; font-size: 18px; font-weight: bold; margin: 0;">GuestCode</p>
-          <p style="color: #777; font-size: 14px; margin: 5px 0 0;">The Future of Event Management</p>
-          <p style="color: #777; font-size: 14px; margin: 15px 0 0;">Email: contact@guest-code.com | Web: www.guest-code.com</p>
-        </div>
+        <p style="margin: 8px 0 0;">Total Amount: <strong>${order.totalAmount.toFixed(
+          2
+        )} EUR</strong></p>
+        <p style="margin: 8px 0 0;">Tickets: <strong>${
+          Object.keys(ticketGroups).length
+        }</strong></p>
+        <p style="margin: 8px 0 0;">Payment Status: <strong>Successfully Processed</strong></p>
       </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your invoice and tickets are attached to this email. Please bring your tickets with you to the event.</p>
     `;
+
+    // Use the common email template
+    sendSmtpEmail.htmlContent = createEventEmailTemplate({
+      recipientName: `${order.firstName} ${order.lastName}`,
+      eventTitle: event?.title || "Event",
+      eventDate: event?.date,
+      eventLocation: event?.location || event?.venue || "",
+      eventAddress: event?.street || "",
+      eventCity: event?.city || "",
+      eventPostalCode: event?.postalCode || "",
+      startTime: event?.startTime || "",
+      endTime: event?.endTime || "",
+      description:
+        "Thank you for your purchase. Your payment has been successfully processed, and your invoice and tickets are attached to this email.",
+      lineups: event?.lineups || [],
+      primaryColor: brand?.colors?.primary || "#ffc807",
+      additionalContent: additionalContent,
+      footerText:
+        "This is an automated email. For any questions, please contact us at contact@guest-code.com.",
+    });
 
     // Prepare attachments
     const attachments = [

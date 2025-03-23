@@ -4,6 +4,9 @@ require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
 const createTicketPDFInvitation = require("../utils/pdf-invite");
+// Import the email layout utility
+const { createEventEmailTemplate } = require("../utils/emailLayout");
+
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications["api-key"];
@@ -33,23 +36,27 @@ const sendVerificationEmail = async (to, token) => {
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
     sendSmtpEmail.subject = "Welcome to GuestCode - Verify Your Email";
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #ffc807; text-align: center; font-size: 2.5rem; font-weight: 800;">GuestCode</h1>
-        <h2 style="color: #333; text-align: center;">Welcome to the Future of Event Management</h2>
-        <p style="color: #666; font-size: 16px; line-height: 1.5;">Thank you for joining GuestCode! To complete your registration and start creating amazing events, please verify your email address by clicking the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email</a>
-        </div>
-        <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
-        <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${verificationLink}</p>
-        <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
-        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
-          <p style="color: #ffc807; font-size: 1.2rem; font-weight: bold;">GuestCode</p>
-          <p style="color: #999; font-size: 0.9rem;">The Future of Event Management</p>
-        </div>
+
+    // Create additional content with verification button
+    const additionalContent = `
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email</a>
       </div>
+      <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+      <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${verificationLink}</p>
+      <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
     `;
+
+    // Use the common email template
+    sendSmtpEmail.htmlContent = createEventEmailTemplate({
+      recipientName: "New User",
+      eventTitle: "Welcome to GuestCode",
+      description:
+        "Thank you for joining GuestCode! To complete your registration and start creating amazing events, please verify your email address by clicking the button below:",
+      primaryColor: "#ffc807",
+      additionalContent: additionalContent,
+      footerText: "GuestCode - The Future of Event Management",
+    });
 
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
     await apiInstance.sendTransacEmail(sendSmtpEmail);
@@ -81,42 +88,49 @@ const sendQRCodeEmail = async (
       pax
     );
 
-    // const pdfPath = path.join(
-    //   __dirname,
-    //   "../tickets",
-    //   `${name}-${Date.now()}.pdf`
-    // );
-    // fs.writeFileSync(pdfPath, ticketPdfBuffer);
-
-    // console.debug("PDF saved to:", pdfPath);
-
     // Configure the QR code email
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
     sendSmtpEmail.sender = {
-      name: "Afro Spiti",
+      name: event?.brand?.name || "Afro Spiti",
       email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
     };
-    sendSmtpEmail.subject = "Afro Spiti - Guest Code";
-    sendSmtpEmail.htmlContent = `
-    <table width="100%" border="0" cellspacing="0" cellpadding="0">
-      <tr>
-        <td align="left" style="font-family: Arial, sans-serif; color: #333333;">
-          <h2 style="font-size: 22px; margin-top: 0;">Hey ${name},</h2>
-          <p style="font-size: 16px;">Thank you for getting your Guest Code. With this code, enjoy a special offer:</p>
-          <h3 style="font-size: 18px;">FREE ENTRANCE, valid until 00:30 H every Sunday at Afro Spiti, Studio 24.</h3>
-          <p style="font-size: 16px;">Please show the attached Guest Code at the entrance for it to be scanned when you order.</p>
-          <p style="font-size: 16px;">Remember, your Guest Code can be used once.</p>
-          <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>
-          <p style="font-size: 16px; margin-bottom: 0;">Sincerely,</p>
-          <br />
-          <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png" alt="Logo" style="width: 100px; height: auto; display: block; margin-top: 20px;">
-        </td>
-      </tr>
-    </table>
+    sendSmtpEmail.subject = `${
+      event?.brand?.name || "Afro Spiti"
+    } - Guest Code`;
 
+    // Create additional content specific to the QR code
+    const additionalContent = `
+      <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin: 20px 0;">
+        <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Guest Code Details:</p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Condition: <strong>${
+          condition || "No specific conditions"
+        }</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">People: <strong>${
+          pax || 1
+        }</strong></p>
+        <p style="font-size: 16px; margin: 0;">Please show the attached Guest Code at the entrance for it to be scanned.</p>
+      </div>
     `;
+
+    // Use the common email template
+    sendSmtpEmail.htmlContent = createEventEmailTemplate({
+      recipientName: name,
+      eventTitle: event?.title || "Event",
+      eventDate: event?.date,
+      eventLocation: event?.location || event?.venue || "",
+      eventAddress: event?.street || event?.address || "",
+      eventCity: event?.city || "",
+      eventPostalCode: event?.postalCode || "",
+      startTime: event?.startTime || "20:00",
+      endTime: event?.endTime || "04:00",
+      description:
+        "Thank you for getting your Guest Code. With this code, enjoy special access to our event.",
+      primaryColor: event?.brand?.colors?.primary || "#ffc807",
+      additionalContent: additionalContent,
+      footerText: "Remember, your Guest Code can be used once.",
+    });
 
     sendSmtpEmail.attachment = [
       {
@@ -155,21 +169,33 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
     };
     sendSmtpEmail.subject =
       "Afro Spiti - Personal Invitation - Hendricks Birthday Special - Tonight - Studio 24";
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">
-        <h1 style="font-size: 24px;">Hey ${name},</h1>
-           <p style="font-size: 16px;">We wanted to say thank you for joining us in the past.</p>
-        <p style="font-size: 16px;">This is your personal invitation for Afro Spiti - at Studio 24, Athens - Tonight.</p>
-        <p style="font-size: 16px;">Join us for a special night as we celebrate Hendricks' Birthday with an incredible lineup!</p>
-        <h2 style="font-size: 18px;">You have free entrance all night with this invitation code.</h2>
-        <p style="font-size: 16px;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
-        <p style="font-size: 16px;">Remember, your Invitation Code can only be used once.</p>
-        <p style="font-size: 16px;">We're looking forward to seeing you at the event!</p>
-        <p style="font-size: 16px; margin-bottom: 0;">Sincerely,</p>
-        <br />
-        <img src="https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png" alt="Logo" style="width: 100px; height: auto; display: block; margin-top: 20px;">
+
+    // Create additional content specific to the invitation
+    const additionalContent = `
+      <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin: 20px 0;">
+        <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Invitation Details:</p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Special Event: <strong>Hendricks' Birthday Special</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Benefit: <strong>Free entrance all night</strong></p>
+        <p style="font-size: 16px; margin: 0;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
       </div>
     `;
+
+    // Use the common email template
+    sendSmtpEmail.htmlContent = createEventEmailTemplate({
+      recipientName: name,
+      eventTitle: "Afro Spiti - Hendricks Birthday Special",
+      eventDate: new Date(), // Current date since it's tonight
+      eventLocation: "Studio 24",
+      eventAddress: "Studio 24, Athens",
+      eventCity: "Athens",
+      startTime: "22:00",
+      endTime: "04:00",
+      description:
+        "We wanted to say thank you for joining us in the past. This is your personal invitation for Afro Spiti tonight. Join us for a special night as we celebrate Hendricks' Birthday with an incredible lineup!",
+      primaryColor: "#ffc807",
+      additionalContent: additionalContent,
+      footerText: "Remember, your Invitation Code can only be used once.",
+    });
 
     sendSmtpEmail.attachment = [
       {

@@ -7,6 +7,9 @@ const path = require("path");
 const crypto = require("crypto");
 const puppeteer = require("puppeteer");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
+const { format } = require("date-fns");
+const mongoose = require("mongoose");
+const { createEventEmailTemplate } = require("../utils/emailLayout");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -926,7 +929,55 @@ const sendCodeEmail = async (code, email, pdfBuffer) => {
       },
     ];
 
-    // Build the improved email template
+    // Fetch the event data if available
+    let event = null;
+    if (code.eventId) {
+      const Event = require("../models/eventsModel");
+      event = await Event.findById(code.eventId)
+        .populate("brand")
+        .populate("lineups");
+    }
+
+    // Create additional content specific to the code
+    const additionalContent = `
+      <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin: 20px 0;">
+        <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Code Details:</p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Code: <strong>${
+          code.code
+        }</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Type: <strong>${
+          code.type
+        }</strong></p>
+        ${
+          code.maxPax > 1
+            ? `<p style="font-size: 16px; margin: 0;">Valid for: <strong>${code.maxPax} people</strong></p>`
+            : ""
+        }
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your code is attached to this email as a PDF file. You can either show the PDF on your phone or print it out for entry.</p>
+    `;
+
+    // Use the common email template
+    const htmlContent = createEventEmailTemplate({
+      recipientName: code.guestName || "Guest",
+      eventTitle: event?.title || "Event",
+      eventDate: event?.date,
+      eventLocation: event?.location || event?.venue || "",
+      eventAddress: event?.street || event?.address || "",
+      eventCity: event?.city || "",
+      eventPostalCode: event?.postalCode || "",
+      startTime: event?.startTime || "",
+      endTime: event?.endTime || "",
+      description: `Your ${code.type.toUpperCase()} code has been generated and is attached to this email. Use this code for entry to the event.`,
+      primaryColor: event?.brand?.colors?.primary || "#ffc807",
+      additionalContent: additionalContent,
+      lineups: event?.lineups || [],
+      footerText:
+        "This is an automated email. Please do not reply to this message.",
+    });
+
+    // Build the email parameters
     const params = {
       sender: {
         name: "GuestCode",
@@ -938,45 +989,10 @@ const sendCodeEmail = async (code, email, pdfBuffer) => {
           name: code.guestName || "Guest",
         },
       ],
-      subject: `Your ${code.type.toUpperCase()} Code for Event`,
-      htmlContent: `
-        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; padding: 20px; background-color: #222; margin-bottom: 20px; border-radius: 8px;">
-            <h1 style="color: #ffc807; margin: 0; font-size: 28px;">Your ${code.type.toUpperCase()} Code is Ready!</h1>
-          </div>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${
-            code.guestName || "there"
-          },</p>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Your ${
-            code.type
-          } code has been generated and is attached to this email as a PDF file. Use this code for entry to the event.</p>
-          
-          <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin-bottom: 20px;">
-            <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Code Details:</p>
-            <p style="font-size: 16px; margin: 0 0 5px;">Code: <strong>${
-              code.code
-            }</strong></p>
-            <p style="font-size: 16px; margin: 0 0 5px;">Type: <strong>${
-              code.type
-            }</strong></p>
-            ${
-              code.maxPax > 1
-                ? `<p style="font-size: 16px; margin: 0;">Valid for: <strong>${code.maxPax} people</strong></p>`
-                : ""
-            }
-          </div>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Please keep this email for your records. You can either show the PDF on your phone or print it out for entry.</p>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 30px;">We look forward to seeing you at the event!</p>
-          
-          <div style="text-align: center; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
-            <p style="font-size: 14px; color: #666; margin: 0;">This is an automated email. Please do not reply to this message.</p>
-          </div>
-        </div>
-      `,
+      subject: `Your ${code.type.toUpperCase()} Code for ${
+        event?.title || "Event"
+      }`,
+      htmlContent: htmlContent,
       attachment: attachments,
     };
 

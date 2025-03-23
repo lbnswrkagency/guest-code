@@ -9,11 +9,11 @@ const User = require("./models/User");
 
 // Required user information - EDIT THESE VALUES
 const USER_DATA = {
-  username: "bricks", // Required: unique username
-  firstName: "Bricks", // Required: first name
-  lastName: "Berlin", // Required: last name
-  email: "bricks@whitechocolate.club", // Required: unique email address
-  password: "bricks101", // Required: minimum 6 characters
+  username: "dazedboi", // Required: unique username
+  firstName: "Dazed", // Required: first name
+  lastName: "Boi", // Required: last name
+  email: "dazedboi@afrospiti.com", // Required: unique email address
+  password: "dazed101", // Required: minimum 6 characters
   birthday: "1990-01-01", // Required: format YYYY-MM-DD
 };
 

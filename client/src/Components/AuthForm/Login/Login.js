@@ -106,9 +106,6 @@ function Login() {
         dispatch(setLineups(fullUserData.lineups));
       }
 
-      // Show success toast
-      toast.showSuccess("Welcome back!");
-
       // Determine where to navigate
       const redirectTo = location.state?.from || `/@${fullUserData.username}`;
       navigate(redirectTo);
