@@ -1105,6 +1105,30 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
+        {/* Add weekly navigation arrows */}
+        {event.isWeekly && (
+          <div className="weekly-navigation">
+            <button
+              className="nav-arrow prev"
+              onClick={
+                hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
+              }
+              disabled={currentWeek === 0 || !hasPermission}
+            >
+              <RiArrowLeftLine />
+            </button>
+            <button
+              className="nav-arrow next"
+              onClick={
+                hasPermission ? handleNextWeek : (e) => e.stopPropagation()
+              }
+              disabled={!hasPermission}
+            >
+              <RiArrowRightSLine />
+            </button>
+          </div>
+        )}
+
         <div className="event-card-header">
           <div className="event-cover-image glassy-element">
             {currentEvent.flyer && (
@@ -1173,32 +1197,10 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
             {event.isWeekly ? (
               <div className="weekly-date-navigation">
                 <div className="navigation-controls">
-                  <button
-                    className="nav-arrow prev"
-                    onClick={
-                      hasPermission
-                        ? handlePrevWeek
-                        : (e) => e.stopPropagation()
-                    }
-                    disabled={currentWeek === 0 || !hasPermission}
-                  >
-                    ←
-                  </button>
                   <div className="date-display">
                     <RiCalendarEventLine className="calendar-icon" />
                     {formatWeeklyDate(displayDate)}
                   </div>
-                  <button
-                    className="nav-arrow next"
-                    onClick={
-                      hasPermission
-                        ? handleNextWeek
-                        : (e) => e.stopPropagation()
-                    }
-                    disabled={!hasPermission}
-                  >
-                    →
-                  </button>
                 </div>
               </div>
             ) : (

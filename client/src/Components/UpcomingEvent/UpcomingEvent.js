@@ -381,7 +381,6 @@ const UpcomingEvent = ({
 
           for (const parentEvent of parentEvents) {
             try {
-              // Fetch all child events that already exist for this parent
               const childrenResponse = await axiosInstance.get(
                 `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
               );
@@ -478,183 +477,40 @@ const UpcomingEvent = ({
         }
       }
 
-      // Filter out past events and sort by date
+      // Simplified filtering logic for upcoming events
       const now = new Date();
-      console.log(
-        "[UpcomingEvent] Current time for filtering:",
-        now.toISOString()
-      );
+      now.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
 
       const upcomingEvents = events
         .filter((event) => {
           try {
             // Get event date
             const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
 
-            // For debugging
-            const eventInfo = {
-              id: event._id,
-              title: event.title,
-              date: event.date,
-              endDate: event.endDate,
-              startTime: event.startTime,
-              endTime: event.endTime,
-              isWeekly: event.isWeekly,
-              weekNumber: event.weekNumber,
-            };
-
-            // Check if we have endDate and endTime (new fields)
-            let eventEndDateTime;
-
-            if (event.endDate) {
-              // If we have endDate, use it directly
-              try {
-                eventEndDateTime = new Date(event.endDate);
-                if (isNaN(eventEndDateTime.getTime())) {
-                  console.warn(
-                    "[UpcomingEvent] Invalid endDate detected, falling back to date + endTime",
-                    eventInfo
-                  );
-                  eventEndDateTime = null;
-                }
-              } catch (err) {
-                console.warn(
-                  "[UpcomingEvent] Error parsing endDate:",
-                  err,
-                  eventInfo
-                );
-                eventEndDateTime = null;
-              }
-            }
-
-            // If endDate is not available or invalid, construct from date and endTime
-            if (!eventEndDateTime) {
-              eventEndDateTime = new Date(eventDate); // Clone the date
-
-              // Parse endTime (format: "HH:MM")
-              if (event.endTime) {
-                try {
-                  const [hours, minutes] = event.endTime.split(":").map(Number);
-                  if (!isNaN(hours) && !isNaN(minutes)) {
-                    eventEndDateTime.setHours(hours, minutes, 0, 0);
-
-                    // If end time is earlier than start time, it means it's the next day
-                    if (event.startTime) {
-                      const [startHours, startMinutes] = event.startTime
-                        .split(":")
-                        .map(Number);
-                      if (
-                        !isNaN(startHours) &&
-                        !isNaN(startMinutes) &&
-                        (hours < startHours ||
-                          (hours === startHours && minutes < startMinutes))
-                      ) {
-                        eventEndDateTime.setDate(
-                          eventEndDateTime.getDate() + 1
-                        );
-                      }
-                    }
-                  } else {
-                    console.warn(
-                      "[UpcomingEvent] Invalid endTime format:",
-                      event.endTime,
-                      eventInfo
-                    );
-                  }
-                } catch (err) {
-                  console.warn(
-                    "[UpcomingEvent] Error parsing endTime:",
-                    err,
-                    eventInfo
-                  );
-                }
-              }
-            }
-
-            // Debug log for event end time comparison
-            console.log(
-              `[UpcomingEvent] Event "${eventInfo.title}" end time:`,
-              {
-                eventEndDateTime: eventEndDateTime
-                  ? eventEndDateTime.toISOString()
-                  : null,
-                isUpcoming: eventEndDateTime >= now,
-                comparison: `${eventEndDateTime} >= ${now}`,
-              }
-            );
-
-            // For weekly events, we need special handling
+            // For weekly events
             if (event.isWeekly) {
-              // For parent weekly events (weekNumber === 0), check if the event date is in the future
-              // or if it has upcoming child events
               if (event.weekNumber === 0 || !event.weekNumber) {
-                // Check if the parent event's date is in the future
-                const parentEventDate = new Date(event.date);
-
-                // For parent events, we need to check if the event date + end time is in the future
-                let parentEndDateTime = new Date(parentEventDate);
-
-                // Parse endTime (format: "HH:MM")
-                if (event.endTime) {
-                  try {
-                    const [hours, minutes] = event.endTime
-                      .split(":")
-                      .map(Number);
-                    if (!isNaN(hours) && !isNaN(minutes)) {
-                      parentEndDateTime.setHours(hours, minutes, 0, 0);
-
-                      // If end time is earlier than start time, it means it's the next day
-                      if (event.startTime) {
-                        const [startHours, startMinutes] = event.startTime
-                          .split(":")
-                          .map(Number);
-                        if (
-                          !isNaN(startHours) &&
-                          !isNaN(startMinutes) &&
-                          (hours < startHours ||
-                            (hours === startHours && minutes < startMinutes))
-                        ) {
-                          parentEndDateTime.setDate(
-                            parentEndDateTime.getDate() + 1
-                          );
-                        }
-                      }
-                    }
-                  } catch (err) {
-                    console.warn(
-                      "[UpcomingEvent] Error parsing parent event endTime:",
-                      err,
-                      eventInfo
-                    );
-                  }
-                }
-
-                // Check if the parent event's end date/time is in the future
-                const isParentUpcoming = parentEndDateTime >= now;
-
-                if (isParentUpcoming) {
-                  return true;
-                } else {
-                  // Even if the parent event is in the past, we should still show it if it has upcoming child events
-                  // This will be handled by the child events filter, so we can return false here
-                  return false;
-                }
+                // For parent events, show if date is today or future
+                return eventDate >= now;
               }
-
-              // For child weekly events, check if their end date/time is in the future
-              return eventEndDateTime >= now;
             }
 
-            // For regular events, check if their end date/time is in the future
-            const isUpcoming = eventEndDateTime >= now;
-
-            return isUpcoming;
+            // For regular events or weekly child events
+            return eventDate >= now;
           } catch (err) {
             console.error("[UpcomingEvent] Error filtering event:", err, event);
             return false;
           }
         })
         .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      console.log("[UpcomingEvent] Filtered upcoming events:", {
+        totalEvents: events.length,
+        upcomingEvents: upcomingEvents.length,
+        firstEventDate: upcomingEvents[0]?.date,
+        now: now.toISOString(),
+      });
 
       setEvents(upcomingEvents);
       setTotalEvents(upcomingEvents.length);
@@ -664,12 +520,11 @@ const UpcomingEvent = ({
 
       if (upcomingEvents.length > 0) {
         // Set the first event as the current event
-        const firstEvent = upcomingEvents[0];
         setCurrentIndex(0);
 
         // Preload the first event's image if available
-        if (firstEvent.flyer) {
-          preloadEventImage(firstEvent);
+        if (upcomingEvents[0].flyer) {
+          preloadEventImage(upcomingEvents[0]);
         }
       } else {
         setCurrentIndex(-1);
@@ -679,8 +534,6 @@ const UpcomingEvent = ({
       setError("Failed to load events");
       setEvents([]);
       setCurrentIndex(-1);
-
-      // Notify parent with 0 events on error
       onEventsLoaded(0);
     } finally {
       setLoading(false);

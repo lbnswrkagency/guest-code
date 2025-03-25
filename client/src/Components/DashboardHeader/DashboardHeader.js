@@ -272,32 +272,55 @@ const DashboardHeader = ({
               {selectedBrand &&
               selectedBrand.events &&
               selectedBrand.events.length > 0 ? (
-                // Get unique dates from events
-                [
-                  ...new Set(
-                    selectedBrand.events
-                      .map((event) =>
-                        event.date
-                          ? new Date(event.date).toISOString().split("T")[0]
-                          : null
-                      )
-                      .filter(Boolean)
-                  ),
-                ].map((date) => (
-                  <div
-                    key={date}
-                    className={`date-option ${
-                      selectedDate === date ? "selected" : ""
-                    }`}
-                    onClick={() => handleSelectDate(date)}
-                  >
-                    {new Date(date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </div>
-                ))
+                (() => {
+                  // Get current date at the start of the day
+                  const now = new Date();
+                  now.setHours(0, 0, 0, 0);
+
+                  // Get unique dates and convert them to Date objects
+                  const dates = [
+                    ...new Set(
+                      selectedBrand.events
+                        .map((event) =>
+                          event.date ? new Date(event.date) : null
+                        )
+                        .filter(Boolean)
+                    ),
+                  ].sort((a, b) => a - b);
+
+                  // Separate past and future dates
+                  const pastDates = dates.filter((date) => date < now);
+                  const futureDates = dates.filter((date) => date >= now);
+
+                  // Get at most 1 past date (the most recent one)
+                  const pastDate =
+                    pastDates.length > 0
+                      ? [pastDates[pastDates.length - 1]]
+                      : [];
+
+                  // Get at most 3 future dates
+                  const limitedFutureDates = futureDates.slice(0, 3);
+
+                  // Combine and sort the final set of dates
+                  return [...pastDate, ...limitedFutureDates].map((date) => {
+                    const dateStr = date.toISOString().split("T")[0];
+                    return (
+                      <div
+                        key={dateStr}
+                        className={`date-option ${
+                          selectedDate === dateStr ? "selected" : ""
+                        }`}
+                        onClick={() => handleSelectDate(dateStr)}
+                      >
+                        {date.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </div>
+                    );
+                  });
+                })()
               ) : (
                 <div className="no-dates">No events found</div>
               )}
