@@ -14,7 +14,7 @@ const EmailVerification = () => {
     const verifyEmail = async () => {
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/auth/verify/${token}`
+          `${process.env.REACT_APP_API_BASE_URL}/auth/verify-email/${token}`
         );
         if (response.data.success) {
           setVerificationStatus("success");

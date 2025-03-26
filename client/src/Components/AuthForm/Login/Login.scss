@@ -681,30 +681,28 @@ $star-twinkle-duration: 4s;
         }
       }
 
-      .login-options {
+      // Auth links styling
+      .auth-links {
         display: flex;
         justify-content: space-between;
-        align-items: center;
         margin-top: 1.5rem;
-        font-size: 0.9rem;
+        width: 100%;
+        padding: 0 0.5rem;
 
-        .forgot-password {
+        p {
+          font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.7);
-          text-decoration: none;
-          transition: all 0.3s ease;
+          margin: 0;
 
-          &:hover {
+          span {
             color: $primary-gold;
-          }
-        }
+            cursor: pointer;
+            transition: all 0.2s ease;
 
-        .register-link {
-          color: $primary-gold;
-          text-decoration: none;
-          transition: all 0.3s ease;
-
-          &:hover {
-            text-decoration: underline;
+            &:hover {
+              color: $light-gold;
+              text-decoration: underline;
+            }
           }
         }
       }

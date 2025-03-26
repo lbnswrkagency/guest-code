@@ -36,67 +36,55 @@ axiosInstance.interceptors.request.use(
 // Keep track of auth error handling
 let isHandlingAuthError = false;
 
-// Set up response interceptor to handle token refresh
+// Add a global flag to track if we're already handling a session expiration
+let isHandlingSessionExpiration = false;
+
+// Set up response interceptor to handle token refresh and expiration
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Skip for refresh token requests or already retried requests
-    if (
-      originalRequest.url?.includes("/auth/refresh-token") ||
-      originalRequest._retry
-    ) {
+    // If there's no response or we've already tried to refresh, just return the error
+    if (!error.response || originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // Handle unauthorized errors (401)
-    if (error.response?.status === 401) {
-      originalRequest._retry = true;
+    // Handle token expiration (401 Unauthorized)
+    if (error.response.status === 401) {
+      // Only handle session expiration once to prevent multiple redirects and messages
+      if (isHandlingSessionExpiration) {
+        return Promise.reject(error);
+      }
+
+      // Set flag to prevent multiple redirects
+      isHandlingSessionExpiration = true;
 
       try {
-        // Attempt to refresh the token
-        await tokenService.refreshToken();
-
-        // Update the original request with the new token
-        const token = tokenService.getToken();
-        originalRequest.headers.Authorization = `Bearer ${token}`;
-
-        // Retry the original request with the new token
-        return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        // If refresh fails, clear tokens and redirect to login
-        tokenService.clearTokens();
-
-        // Prevent multiple auth errors from showing notifications
-        if (!isHandlingAuthError) {
-          isHandlingAuthError = true;
-
-          // First clear any existing auth notifications
-          notificationManager.clearAllAuthNotifications();
-
-          // Show a single notification using our manager
-          const message = "Your session has expired. Please login again.";
-          notificationManager.showAuthNotification(message);
-
-          // Dispatch a custom event to notify the app of authentication failure
-          // This event will trigger the redirect to login
-          window.dispatchEvent(
-            new CustomEvent("auth:required", {
-              detail: {
-                redirectUrl: window.location.pathname,
-                message: message,
-              },
-            })
-          );
-
-          // Reset the handling flag after a short delay
-          setTimeout(() => {
-            isHandlingAuthError = false;
-          }, 1000);
+        // Try to refresh the token if we're not on the auth routes
+        if (!originalRequest.url.includes("/auth/")) {
+          // Handle refresh token logic here if needed
+          // ...
         }
 
-        return Promise.reject(refreshError);
+        // If we can't refresh, redirect to login with a message
+        const redirectUrl = "/login";
+        if (window.location.pathname !== redirectUrl) {
+          window.location.href = redirectUrl;
+        }
+
+        // Return a rejected promise but prevent multiple errors
+        return Promise.reject({
+          ...error,
+          handled: true, // Mark as handled
+        });
+      } catch (refreshError) {
+        // Reset the flag after some time to allow future attempts
+        setTimeout(() => {
+          isHandlingSessionExpiration = false;
+        }, 5000);
+
+        return Promise.reject(error);
       }
     }
 

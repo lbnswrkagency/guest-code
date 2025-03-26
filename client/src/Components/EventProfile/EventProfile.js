@@ -837,7 +837,7 @@ const EventProfile = () => {
                 <span className="event-date-icon">
                   <RiCalendarEventLine />
                 </span>
-                {new Date(event.date)
+                {new Date(event.startDate)
                   .toLocaleDateString(undefined, {
                     day: "numeric",
                     month: "short",
@@ -978,7 +978,7 @@ const EventProfile = () => {
                 <Tickets
                   eventId={event._id}
                   eventTitle={event.title}
-                  eventDate={event.date}
+                  eventDate={event.startDate}
                   fetchTicketSettings={async (eventId) => {
                     try {
                       // Try the event profile endpoint which has optional authentication

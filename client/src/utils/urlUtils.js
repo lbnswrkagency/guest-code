@@ -33,6 +33,15 @@ export const generateSlug = (text) => {
 };
 
 /**
+ * Helper for determining the event date field to use
+ * @param {Object} event - Event object
+ * @returns {Date} The event date to use
+ */
+export const getEventDate = (event) => {
+  return event.startDate || event.date;
+};
+
+/**
  * Generates a pretty URL for an event
  * @param {Object} event - Event object with title, date, and brand
  * @param {Object} user - Current user object (optional)
@@ -50,11 +59,44 @@ export const getEventUrl = (event, user = null) => {
     return null;
   }
 
-  const dateSlug = formatDateForUrl(new Date(event.date));
+  const dateSlug = formatDateForUrl(new Date(getEventDate(event)));
   const titleSlug = generateSlug(event.title);
   const brandUsername = event.brand.username;
 
   return user
     ? `/@${user.username}/@${brandUsername}/e/${dateSlug}/${titleSlug}`
     : `/@${brandUsername}/e/${dateSlug}/${titleSlug}`;
+};
+
+/**
+ * Create a URL slug for an event
+ * @param {Object} event - Event object
+ * @param {Object} user - Current user object (optional)
+ * @param {string} brandUsername - Brand username
+ * @returns {string} Formatted URL for the event
+ */
+export const createEventSlug = (event, user, brandUsername) => {
+  if (
+    !event ||
+    !event._id ||
+    !brandUsername ||
+    (!event.startDate && !event.date) ||
+    !event.title
+  ) {
+    // If we don't have all the required fields, return null
+    return null;
+  }
+
+  // Clean up brand username and ensure it doesn't start with @
+  const brand = brandUsername.replace(/^@/, "");
+
+  // Format date for URL (MMDDYY)
+  const dateSlug = formatDateForUrl(new Date(getEventDate(event)));
+
+  // Construct URL based on user authentication status
+  if (user) {
+    return `/@${user.username}/@${brand}/${dateSlug}`;
+  } else {
+    return `/@${brand}/${dateSlug}`;
+  }
 };

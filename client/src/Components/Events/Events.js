@@ -769,7 +769,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
         try {
           // Calculate the date for this week's occurrence
-          const weekDate = new Date(event.startDate || event.date);
+          const weekDate = new Date(event.startDate || event.startDate);
 
           if (isNaN(weekDate.getTime())) {
             throw new Error("Invalid date");

@@ -492,7 +492,7 @@ const validateTicket = async (req, res) => {
       ? {
           _id: event._id,
           title: event.title,
-          date: event.date,
+          date: event.startDate,
         }
       : null;
 

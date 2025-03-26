@@ -12,6 +12,9 @@ const {
   logout,
   syncToken,
   pingSession,
+  forgotPassword,
+  validateResetToken,
+  resetPassword,
 } = require("../controllers/authController");
 
 router.use((req, res, next) => {
@@ -50,5 +53,14 @@ router.post("/logout", logout);
 
 // Add the ping route - this should be authenticated
 router.get("/ping", authenticate, pingSession);
+
+// Forgot password route
+router.post("/forgot-password", forgotPassword);
+
+// Validate reset token route
+router.get("/validate-reset-token/:token", validateResetToken);
+
+// Reset password route
+router.post("/reset-password/:token", resetPassword);
 
 module.exports = router;

@@ -273,16 +273,19 @@ const DashboardHeader = ({
               selectedBrand.events &&
               selectedBrand.events.length > 0 ? (
                 (() => {
-                  // Get current date at the start of the day
+                  // Get current date without time component for more accurate date comparison
                   const now = new Date();
-                  now.setHours(0, 0, 0, 0);
 
                   // Get unique dates and convert them to Date objects
                   const dates = [
                     ...new Set(
                       selectedBrand.events
                         .map((event) =>
-                          event.date ? new Date(event.date) : null
+                          event.startDate
+                            ? new Date(event.startDate)
+                            : event.date
+                            ? new Date(event.date)
+                            : null
                         )
                         .filter(Boolean)
                     ),
@@ -341,8 +344,10 @@ const DashboardHeader = ({
         onClose={() => setShowEventsPopup(false)}
         selectedBrand={selectedBrand}
         onSelectEvent={(event) => {
-          if (event && event.date) {
-            const eventDate = new Date(event.date).toISOString().split("T")[0];
+          if (event && (event.startDate || event.date)) {
+            const eventDate = new Date(event.startDate || event.date)
+              .toISOString()
+              .split("T")[0];
             handleSelectDate(eventDate);
           }
           setShowEventsPopup(false);

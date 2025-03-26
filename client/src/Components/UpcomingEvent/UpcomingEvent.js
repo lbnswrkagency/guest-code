@@ -484,32 +484,44 @@ const UpcomingEvent = ({
       const upcomingEvents = events
         .filter((event) => {
           try {
-            // Get event date
-            const eventDate = new Date(event.date);
-            eventDate.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
+            // First check for startDate (preferred) then fall back to date
+            const eventDate = event.startDate
+              ? new Date(event.startDate)
+              : new Date(event.date);
+
+            // Keep full time information for better comparison
+            // Don't reset hours to 0 since we want to use the actual start time
+
+            // Current date with hours for better comparison
+            const currentDate = new Date();
 
             // For weekly events
             if (event.isWeekly) {
               if (event.weekNumber === 0 || !event.weekNumber) {
                 // For parent events, show if date is today or future
-                return eventDate >= now;
+                return eventDate >= currentDate;
               }
             }
 
             // For regular events or weekly child events
-            return eventDate >= now;
+            return eventDate >= currentDate;
           } catch (err) {
             console.error("[UpcomingEvent] Error filtering event:", err, event);
             return false;
           }
         })
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .sort((a, b) => {
+          // Sort by startDate if available, otherwise fall back to date
+          const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
+          const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
+          return dateA - dateB;
+        });
 
       console.log("[UpcomingEvent] Filtered upcoming events:", {
         totalEvents: events.length,
         upcomingEvents: upcomingEvents.length,
-        firstEventDate: upcomingEvents[0]?.date,
-        now: now.toISOString(),
+        firstEventDate: upcomingEvents[0]?.startDate || upcomingEvents[0]?.date,
+        now: new Date().toISOString(),
       });
 
       setEvents(upcomingEvents);
@@ -550,6 +562,11 @@ const UpcomingEvent = ({
     setShowGuestCodeForm(false); // Hide form when changing events
   };
 
+  // Helper function to get the best date field (prioritizing startDate over date)
+  const getEventDate = (event) => {
+    return event.startDate || event.date;
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const options = { weekday: "short", month: "short", day: "numeric" };
@@ -573,7 +590,7 @@ const UpcomingEvent = ({
     }
 
     // Generate date slug from event date
-    const eventDate = new Date(event.date);
+    const eventDate = new Date(getEventDate(event));
     const dateSlug = `${String(eventDate.getMonth() + 1).padStart(
       2,
       "0"
@@ -1069,6 +1086,11 @@ const UpcomingEvent = ({
               <div ref={guestCodeSectionRef} className="guest-code-section">
                 {currentEvent && <GuestCode event={currentEvent} />}
               </div>
+            </div>
+
+            {/* Date display */}
+            <div className="upcoming-event-date">
+              {formatDate(getEventDate(currentEvent))}
             </div>
           </div>
 

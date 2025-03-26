@@ -36,9 +36,16 @@ function Login() {
   // Check for error messages in location state
   useEffect(() => {
     if (location.state?.message) {
+      // Set the message in auth message state
       setAuthMessage(location.state.message);
-      // Show the message as a toast too
+
+      // Show the message as a toast
       toast.showError(location.state.message);
+
+      // Remove the message from location state to prevent showing multiple times
+      const newState = { ...location.state };
+      delete newState.message;
+      window.history.replaceState(newState, document.title);
     }
   }, [location.state, toast]);
 
@@ -193,6 +200,25 @@ function Login() {
               "Log In"
             )}
           </button>
+
+          <div className="auth-links">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <span onClick={() => navigate("/register")}>Create account</span>
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              <span onClick={() => navigate("/forgot-password")}>
+                Forgot password?
+              </span>
+            </motion.p>
+          </div>
         </motion.form>
       </motion.div>
     </div>

@@ -520,7 +520,7 @@ exports.editEvent = async (req, res) => {
     if (title) event.title = title;
     if (subTitle !== undefined) event.subTitle = subTitle;
     if (description !== undefined) event.description = description;
-    if (date) event.date = new Date(date);
+    if (date) event.startDate = new Date(date);
     if (startDate) event.startDate = new Date(startDate);
     if (endDate) event.endDate = new Date(endDate);
     if (startTime) event.startTime = startTime;

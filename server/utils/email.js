@@ -6,6 +6,7 @@ const fs = require("fs");
 const createTicketPDFInvitation = require("../utils/pdf-invite");
 // Import the email layout utility
 const { createEventEmailTemplate } = require("../utils/emailLayout");
+const User = require("../models/User");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -27,7 +28,7 @@ const sendVerificationEmail = async (to, token) => {
   try {
     console.debug("Preparing verification email...");
 
-    const verificationLink = `${getBaseUrl()}/verify/${token}`;
+    const verificationLink = `${getBaseUrl()}/verify-email/${token}`;
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: to }];
@@ -219,8 +220,73 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
   }
 };
 
+const sendPasswordResetEmail = async (to, token) => {
+  try {
+    console.debug("Preparing password reset email...");
+
+    // Find the user to get their name
+    const user = await User.findOne({ email: to });
+    const userName = user
+      ? `${user.firstName} ${user.lastName}`
+      : "GuestCode User";
+
+    const resetLink = `${getBaseUrl()}/reset-password/${token}`;
+
+    let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: to }];
+    sendSmtpEmail.sender = {
+      name: "GuestCode",
+      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
+    };
+    sendSmtpEmail.subject = "GuestCode - Reset Your Password";
+
+    // Create reset password specific HTML rather than using the event template
+    sendSmtpEmail.htmlContent = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; padding: 20px; background-color: #ffc807; margin-bottom: 20px; border-radius: 8px; color: #222;">
+        <h1 style="margin: 0; font-size: 28px;">Password Reset Request</h1>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${userName},</p>
+      
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 16px; line-height: 1.5;">We received a request to reset your password for your GuestCode account. To create a new password, please click the button below:</p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+      <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${resetLink}</p>
+      
+      <div style="margin-top: 30px; font-size: 14px; color: #666;">
+        <p>If you didn't request a password reset, please ignore this email or contact support if you're concerned.</p>
+        <p>This link will expire in 1 hour for security reasons.</p>
+      </div>
+      
+      <div style="margin-top: 30px;">
+        <p style="font-size: 16px; line-height: 1.5;">Best regards,<br>The GuestCode Team</p>
+      </div>
+      
+      <div style="text-align: center; padding: 20px; background-color: #f8f8f8; border-radius: 8px; margin-top: 30px;">
+        <p style="font-size: 14px; color: #666; margin: 0;">GuestCode - The Future of Event Management</p>
+      </div>
+    </div>
+    `;
+
+    let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.debug("Password reset email sent successfully to:", to);
+  } catch (error) {
+    console.error("Error sending password reset email:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendQRCodeEmail,
   sendQRCodeInvitation,
+  sendPasswordResetEmail,
 };

@@ -4,6 +4,7 @@ import toast, { Toaster } from "react-hot-toast";
 import "./Register.scss";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import Navigation from "../../Navigation/Navigation";
 
 function Register({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
@@ -66,6 +67,7 @@ function Register({ onRegisterSuccess }) {
   if (registrationComplete) {
     return (
       <div className="register">
+        <Navigation />
         <motion.div
           className="register-container"
           initial={{ opacity: 0, y: 20 }}
@@ -77,12 +79,12 @@ function Register({ onRegisterSuccess }) {
             <h2>Welcome to GuestCode!</h2>
             <p>Please check your email to verify your account.</p>
             <motion.button
-              onClick={() => navigate("/login")}
+              onClick={() => {}}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="register-form-submit active"
             >
-              Go to Login
+              Registration Complete
             </motion.button>
           </div>
         </motion.div>
@@ -93,6 +95,7 @@ function Register({ onRegisterSuccess }) {
   return (
     <div className="register">
       <Toaster />
+      <Navigation />
 
       <motion.div
         className="register-container"
@@ -221,6 +224,18 @@ function Register({ onRegisterSuccess }) {
         >
           Already have an account?{" "}
           <span onClick={() => navigate("/login")}>Login here</span>
+        </motion.p>
+
+        <motion.p
+          className="register-login-link"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+        >
+          Forgot your password?{" "}
+          <span onClick={() => navigate("/forgot-password")}>
+            Reset it here
+          </span>
         </motion.p>
       </motion.div>
     </div>

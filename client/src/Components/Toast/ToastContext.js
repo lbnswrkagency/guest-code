@@ -48,19 +48,31 @@ export const ToastProvider = ({ children }) => {
   );
 
   const showError = useCallback(
-    (message) => {
-      clearLoadingToasts(); // Clear any loading toasts first
-      const truncatedMessage =
-        typeof message === "string" && message.length > 100
-          ? message.substring(0, 100) + "..."
-          : message;
-      return addToast({
-        message: truncatedMessage,
+    (message, options = {}) => {
+      // Check if a toast with this ID already exists
+      if (options.id && toasts.some((toast) => toast.id === options.id)) {
+        // Don't add duplicate toast with same ID
+        return;
+      }
+
+      const id = options.id || Date.now();
+      const toast = {
+        id,
+        message,
         type: "error",
-        duration: 3000,
-      });
+        duration: options.duration || 5000,
+      };
+
+      setToasts((prev) => [...prev, toast]);
+
+      // Auto remove after duration
+      if (toast.duration > 0) {
+        setTimeout(() => {
+          removeToast(id);
+        }, toast.duration);
+      }
     },
-    [addToast, clearLoadingToasts]
+    [toasts, addToast, removeToast]
   );
 
   const showInfo = useCallback(

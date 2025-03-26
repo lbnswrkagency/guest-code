@@ -23,6 +23,8 @@ import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
 import Login from "./Components/AuthForm/Login/Login";
 import Register from "./Components/AuthForm/Register/Register";
+import ForgotPassword from "./Components/AuthForm/ForgotPassword/ForgotPassword";
+import ResetPassword from "./Components/AuthForm/ResetPassword/ResetPassword";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
 import RegistrationSuccess from "./Components/RegistrationSuccess/RegistrationSuccess";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
@@ -306,6 +308,22 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/forgot-password"
+        element={
+          <RouteDebug name="forgot-password">
+            <ForgotPassword />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/reset-password/:token"
+        element={
+          <RouteDebug name="reset-password">
+            <ResetPassword />
+          </RouteDebug>
+        }
+      />
+      <Route
         path="/registration-success"
         element={
           <RouteDebug name="registration-success">
@@ -317,6 +335,14 @@ const AppRoutes = () => {
         path="/verify/:token"
         element={
           <RouteDebug name="verify">
+            <EmailVerification />
+          </RouteDebug>
+        }
+      />
+      <Route
+        path="/verify-email/:token"
+        element={
+          <RouteDebug name="verify-email">
             <EmailVerification />
           </RouteDebug>
         }

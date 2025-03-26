@@ -116,7 +116,7 @@ exports.search = async (req, res) => {
             results.map((event) => ({
               id: event._id,
               title: event.title,
-              date: event.date,
+              date: event.startDate,
               startTime: event.startTime,
               endTime: event.endTime,
             }))
@@ -125,7 +125,7 @@ exports.search = async (req, res) => {
           results = results.map((event) => ({
             _id: event._id,
             name: event.title,
-            date: event.date,
+            date: event.startDate,
             avatar:
               event.flyer?.landscape?.thumbnail ||
               event.flyer?.portrait?.thumbnail ||
@@ -242,7 +242,7 @@ exports.search = async (req, res) => {
             ...events.map((event) => ({
               _id: event._id,
               name: event.title,
-              date: event.date,
+              date: event.startDate,
               avatar:
                 event.flyer?.landscape?.thumbnail ||
                 event.flyer?.portrait?.thumbnail ||

@@ -67,7 +67,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-1px);
   }
   100% {
     transform: translateY(0);
@@ -252,14 +252,14 @@
 
   // Animation only when active (quantity > 0)
   &.active {
-    animation: float 3s ease infinite;
-    transform: translateY(-3px) rotateX(2deg);
+    animation: float 6s ease-in-out infinite;
+    transform: translateY(-1px) rotateX(2deg);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
       0 10px 30px -10px rgba(0, 0, 0, 0.3);
   }
 
   &:hover {
-    transform: translateY(-3px) rotateX(2deg);
+    transform: translateY(-1px) rotateX(2deg);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
       0 10px 30px -10px rgba(0, 0, 0, 0.3);
   }

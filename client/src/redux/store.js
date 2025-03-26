@@ -87,8 +87,8 @@ export const selectUniqueDates = (state) => {
   const dates = new Set();
 
   events.forEach((event) => {
-    if (event.date) {
-      dates.add(new Date(event.date).toISOString().split("T")[0]);
+    if (event.startDate) {
+      dates.add(new Date(event.startDate).toISOString().split("T")[0]);
     }
   });
 

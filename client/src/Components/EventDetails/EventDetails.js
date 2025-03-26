@@ -24,9 +24,14 @@ import {
 const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
   if (!event) return null;
 
-  // Format date for display
+  // Helper function to get most appropriate date
+  const getEventDate = (event) => {
+    return event.startDate || event.date;
+  };
+
+  // Format date in a readable way
   const formatDate = (dateString) => {
-    if (!dateString) return "TBA";
+    if (!dateString) return "Date TBD";
     const date = new Date(dateString);
     const options = { weekday: "short", month: "short", day: "numeric" };
     return date.toLocaleDateString("en-US", options);
@@ -35,7 +40,37 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
   // Format time for display
   const formatTime = (timeString) => {
     if (!timeString) return "TBA";
-    return timeString;
+
+    try {
+      // Check if timeString is a valid time format (HH:MM)
+      if (/^\d{1,2}:\d{2}$/.test(timeString)) {
+        return timeString;
+      }
+
+      // If it's a date object with time, extract just the time
+      if (
+        timeString instanceof Date ||
+        (typeof timeString === "string" && timeString.includes("T"))
+      ) {
+        const date = new Date(timeString);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+        }
+      }
+
+      // Return the original if it doesn't match known formats
+      return timeString;
+    } catch (error) {
+      console.error(
+        `[EventDetails] Error formatting time: ${timeString}`,
+        error
+      );
+      return timeString || "TBA";
+    }
   };
 
   // Get guest code condition if available
@@ -61,7 +96,9 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
                   <RiCalendarEventLine />
                   <span>Start Date</span>
                 </div>
-                <div className="detail-value">{formatDate(event.date)}</div>
+                <div className="detail-value">
+                  {formatDate(getEventDate(event))}
+                </div>
               </div>
 
               <div className="detail-item">
@@ -74,14 +111,15 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
                 </div>
               </div>
 
-              {event.endDate && (
+              {/* End Date (if different from start date) */}
+              {(event.endDate || event.startDate) && (
                 <div className="detail-item">
                   <div className="detail-label">
-                    <RiCalendarCheckLine />
+                    <RiCalendarEventLine />
                     <span>End Date</span>
                   </div>
                   <div className="detail-value">
-                    {formatDate(event.endDate)}
+                    {formatDate(event.endDate || getEventDate(event))}
                   </div>
                 </div>
               )}

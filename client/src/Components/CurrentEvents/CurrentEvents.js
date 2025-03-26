@@ -54,10 +54,26 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
     }
   };
 
+  // Format event date for display
   const formatDate = (dateString) => {
-    const options = { weekday: "short", month: "short", day: "numeric" };
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", options);
+    if (!dateString) return "TBA";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error("[CurrentEvents] Error formatting date:", error);
+      return "TBA";
+    }
+  };
+
+  // Get best date based on availability (startDate or date)
+  const getEventDate = (event) => {
+    return event.startDate || event.date;
   };
 
   const backdropVariants = {
@@ -99,7 +115,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
 
   const isEventLive = (event) => {
     const now = new Date();
-    const eventDate = new Date(event.date);
+    const eventDate = new Date(event.startDate);
 
     // Check if today is the event date
     return (
@@ -165,7 +181,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
                         <div className="event-info">
                           <div className="event-date">
                             <FaCalendarAlt />
-                            <span>{formatDate(event.date)}</span>
+                            <span>{formatDate(getEventDate(event))}</span>
                           </div>
                           {event.location && (
                             <div className="event-location">

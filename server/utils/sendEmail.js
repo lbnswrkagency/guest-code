@@ -319,9 +319,9 @@ const sendEmail = async (order) => {
                 brand ? brand.name : ""
               }</p>
               ${
-                event.date
+                event.startDate
                   ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${formatDateWithLeadingZeros(
-                      event.date
+                      event.startDate
                     )}</p>`
                   : ""
               }

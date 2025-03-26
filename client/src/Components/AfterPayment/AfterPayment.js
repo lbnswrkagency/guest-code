@@ -79,7 +79,7 @@ const AfterPayment = () => {
           const event = data.event;
 
           // Format date for URL (MMDDYY)
-          const eventDate = new Date(event.date);
+          const eventDate = new Date(event.startDate);
           const month = String(eventDate.getMonth() + 1).padStart(2, "0");
           const day = String(eventDate.getDate()).padStart(2, "0");
           const year = String(eventDate.getFullYear()).slice(2);

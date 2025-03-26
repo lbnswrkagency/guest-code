@@ -2,7 +2,10 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
-const { sendVerificationEmail } = require("../utils/email");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} = require("../utils/email");
 const Brand = require("../models/brandModel");
 const Event = require("../models/eventsModel");
 const CodeSetting = require("../models/codeSettingsModel");
@@ -491,6 +494,159 @@ exports.pingSession = async (req, res) => {
     return res.status(200).json({
       status: "error",
       message: "Session ping failed",
+    });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    // If no user is found, still return success to prevent email enumeration
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "If your email is registered, you will receive reset instructions.",
+      });
+    }
+
+    // Generate a reset token
+    const resetToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_RESET_SECRET || process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Store the token hash in the user document
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send reset password email
+    await sendPasswordResetEmail(user.email, resetToken);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset instructions sent to your email",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to process request",
+    });
+  }
+};
+
+exports.validateResetToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    // Verify the token
+    let decoded;
+    try {
+      decoded = jwt.verify(
+        token,
+        process.env.JWT_RESET_SECRET || process.env.JWT_SECRET
+      );
+    } catch (error) {
+      console.error("JWT verification error:", error);
+      return res.status(400).json({
+        message: "Password reset token is invalid or has expired",
+      });
+    }
+
+    // Find the user by ID and check if resetPasswordExpires is greater than now
+    const user = await User.findOne({
+      _id: decoded.userId,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Password reset token is invalid or has expired",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Token is valid",
+    });
+  } catch (error) {
+    console.error("Token validation error:", error);
+    res.status(500).json({
+      message: "Failed to validate token",
+    });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      return res
+        .status(400)
+        .json({ message: "Token and password are required" });
+    }
+
+    // Verify the token
+    let decoded;
+    try {
+      decoded = jwt.verify(
+        token,
+        process.env.JWT_RESET_SECRET || process.env.JWT_SECRET
+      );
+    } catch (error) {
+      console.error("JWT verification error:", error);
+      return res.status(400).json({
+        message: "Password reset token is invalid or has expired",
+      });
+    }
+
+    // Find the user by ID and check if resetPasswordExpires is greater than now
+    const user = await User.findOne({
+      _id: decoded.userId,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Password reset token is invalid or has expired",
+      });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // Clear the reset token fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password has been reset successfully",
+    });
+  } catch (error) {
+    console.error("Password reset error:", error);
+    res.status(500).json({
+      message: "Failed to reset password",
     });
   }
 };

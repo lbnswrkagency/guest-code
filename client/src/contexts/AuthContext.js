@@ -31,9 +31,6 @@ const AuthProviderWithRouter = ({ children }) => {
     "/events/create",
     "/events/:eventId",
     "/guest-code-settings",
-    "/register",
-    "/registration-success",
-    "/verify/:token",
   ];
 
   // Function to fetch user data
@@ -135,28 +132,35 @@ const AuthProviderWithRouter = ({ children }) => {
     }
   }, [location.pathname, authInitialized, navigate, location]);
 
-  // Listen for auth:required events to handle auth failures across the app
+  // Handle auth:required events (session expiration)
   useEffect(() => {
+    // Handler for auth:required events (session expired)
     const handleAuthRequired = (event) => {
-      // Clear the user data
+      console.log("[AuthContext] Auth required event:", event.detail);
+      const { message, redirectUrl } = event.detail;
+
+      // Set auth state to logged out
       setUser(null);
 
-      // Get the redirect URL from the event detail
-      const redirectUrl = event.detail?.redirectUrl || "/login";
+      // Clear any stored tokens
+      tokenService.clearTokens();
 
-      // Navigate to login with the current location as the 'from' state
-      navigate("/login", {
-        state: {
-          from: redirectUrl,
-          message: event.detail?.message,
-        },
-      });
+      // Navigate to login with error message and intended redirect
+      if (navigate) {
+        navigate("/login", {
+          state: {
+            message: message || "Your session has expired. Please login again.",
+            from: redirectUrl || "/",
+          },
+          replace: true, // Replace current history entry to prevent back button issues
+        });
+      }
     };
 
-    // Add event listener
+    // Listen for auth events
     window.addEventListener("auth:required", handleAuthRequired);
 
-    // Cleanup
+    // Cleanup listener on unmount
     return () => {
       window.removeEventListener("auth:required", handleAuthRequired);
     };
