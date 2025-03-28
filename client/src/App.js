@@ -499,9 +499,7 @@ function App() {
               <ToastProvider>
                 <DeviceRestriction>
                   <div className="app">
-                    <RouteGuard>
-                      <AppRoutes />
-                    </RouteGuard>
+                    <AppRoutes />
                   </div>
                 </DeviceRestriction>
               </ToastProvider>

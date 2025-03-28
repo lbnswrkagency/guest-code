@@ -111,7 +111,7 @@ const Search = ({ isOpen, onClose }) => {
         console.log("[Search] Event data for URL generation:", {
           id: item._id,
           name: item.name,
-          date: item.date,
+          date: item.date || item.startDate,
           brandUsername: item.brandUsername,
         });
 
@@ -129,9 +129,28 @@ const Search = ({ isOpen, onClose }) => {
 
         console.log("[Search] Using item.name for title:", item.name);
 
-        if (brandUsername && item.date && item.name) {
+        if (brandUsername) {
+          // Try to get a valid date
+          let eventDate;
+          try {
+            // Try to use startDate if date is null
+            eventDate = new Date(item.date || item.startDate);
+            // Check if date is valid
+            if (isNaN(eventDate.getTime())) {
+              throw new Error("Invalid date");
+            }
+          } catch (err) {
+            console.error(
+              "[Search] Invalid event date:",
+              item.date,
+              item.startDate
+            );
+            // Navigate to event by ID as fallback
+            navigate(`/events/${item._id}`);
+            return;
+          }
+
           // Format date for URL (MMDDYY)
-          const eventDate = new Date(item.date);
           const month = String(eventDate.getMonth() + 1).padStart(2, "0");
           const day = String(eventDate.getDate()).padStart(2, "0");
           const year = String(eventDate.getFullYear()).slice(2);
@@ -139,7 +158,7 @@ const Search = ({ isOpen, onClose }) => {
 
           console.log("[Search] Formatted date slug:", dateSlug);
 
-          // Construct the URL path with /@username/@brandusername/dateSlug format
+          // Construct the URL path with /@username/@brandusername/dateSlug format or /@brandusername/dateSlug for public
           const eventPath = user
             ? `/@${user.username}/@${brandUsername}/${dateSlug}`
             : `/@${brandUsername}/${dateSlug}`;
@@ -162,7 +181,7 @@ const Search = ({ isOpen, onClose }) => {
               hasBrand: !!item.brand || !!item.brandUsername,
               hasBrandUsername:
                 (item.brand && !!item.brand.username) || !!item.brandUsername,
-              hasDate: !!item.date,
+              hasDate: !!(item.date || item.startDate),
               hasName: !!item.name,
             }
           );
@@ -222,7 +241,22 @@ const Search = ({ isOpen, onClose }) => {
           {/* {item.type === "user" && <p>{item.email}</p>} */}
           {item.type === "event" && (
             <p>
-              {new Date(item.date).toLocaleDateString()} • {item.location}
+              {(() => {
+                // Try to parse the date safely - first attempt date, then startDate
+                try {
+                  const date = item.date
+                    ? new Date(item.date)
+                    : item.startDate
+                    ? new Date(item.startDate)
+                    : null;
+                  return date && !isNaN(date.getTime())
+                    ? date.toLocaleDateString()
+                    : "TBD";
+                } catch (e) {
+                  return "TBD";
+                }
+              })()}{" "}
+              • {item.location || "TBD"}
             </p>
           )}
           {item.type === "brand" && (

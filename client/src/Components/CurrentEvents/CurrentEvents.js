@@ -82,8 +82,18 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
   };
 
   const menuVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { delay: 0.1 } },
+    hidden: { opacity: 0, scale: 0.9, y: -20 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        damping: 25,
+        stiffness: 500,
+      },
+    },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
   };
 
   const getEventImage = (event) => {
@@ -130,7 +140,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
       {isOpen && (
         <>
           <motion.div
-            className="current-events-backdrop mobile-flex-center"
+            className="current-events-backdrop"
             variants={backdropVariants}
             initial="hidden"
             animate="visible"
@@ -142,7 +152,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
             variants={menuVariants}
             initial="hidden"
             animate="visible"
-            exit="hidden"
+            exit="exit"
           >
             <div className="current-events-header">
               <h3>Current Events</h3>

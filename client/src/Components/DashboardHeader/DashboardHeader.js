@@ -80,7 +80,7 @@ const DashboardHeader = ({
 
   // Get user role from the selected brand - properly capitalize (first letter uppercase, rest lowercase)
   const formatRole = (roleName) => {
-    if (!roleName) return "Member";
+    if (!roleName) return "";
     return roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase();
   };
 
@@ -212,18 +212,24 @@ const DashboardHeader = ({
             whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
             onClick={() => setBrandDropdown(!brandDropdown)}
           >
-            <div className="event-logo">{renderBrandLogo(selectedBrand)}</div>
-            <h2 className="event-name">
-              {selectedBrand ? selectedBrand.name : "Select Brand"}
-            </h2>
-            <motion.div
-              className="dropdown-icon"
-              initial={false}
-              animate={{ rotate: brandDropdown ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <RiArrowDownSLine />
-            </motion.div>
+            {brands && brands.length > 0 ? (
+              <>
+                <div className="event-logo">
+                  {renderBrandLogo(selectedBrand)}
+                </div>
+                <h2 className="event-name">
+                  {selectedBrand ? selectedBrand.name : "Select Brand"}
+                </h2>
+                <motion.div
+                  className="dropdown-icon"
+                  initial={false}
+                  animate={{ rotate: brandDropdown ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <RiArrowDownSLine />
+                </motion.div>
+              </>
+            ) : null}
           </motion.div>
 
           {brandDropdown && (
@@ -255,16 +261,22 @@ const DashboardHeader = ({
             whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
             onClick={() => setDateDropdown(!dateDropdown)}
           >
-            <RiCalendarEventLine className="calendar-icon" />
-            <span>{formatDateForDisplay(selectedDate)}</span>
-            <motion.div
-              className="dropdown-icon"
-              initial={false}
-              animate={{ rotate: dateDropdown ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <RiArrowDownSLine />
-            </motion.div>
+            {selectedBrand &&
+            selectedBrand.events &&
+            selectedBrand.events.length > 0 ? (
+              <>
+                <RiCalendarEventLine className="calendar-icon" />
+                <span>{formatDateForDisplay(selectedDate)}</span>
+                <motion.div
+                  className="dropdown-icon"
+                  initial={false}
+                  animate={{ rotate: dateDropdown ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <RiArrowDownSLine />
+                </motion.div>
+              </>
+            ) : null}
           </motion.div>
 
           {dateDropdown && (

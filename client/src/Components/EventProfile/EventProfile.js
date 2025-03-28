@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./EventProfile.scss";
-import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -63,6 +62,7 @@ const EventProfile = () => {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const [redirectToLogin, setRedirectToLogin] = useState(false);
 
   // Check for section parameter in URL
   useEffect(() => {
@@ -712,39 +712,131 @@ const EventProfile = () => {
     const fetchMissingSettings = async () => {
       if (!event || !event._id) return;
 
+      console.log("[EventProfile] fetchMissingSettings for event:", event._id);
+
       try {
-        // Only fetch if we don't have the data yet
+        // Only fetch ticket settings if we don't have them yet
         if (ticketSettings.length === 0) {
-          const ticketResponse = await axiosInstance.get(
-            `${process.env.REACT_APP_API_BASE_URL}/ticket-settings/events/${event._id}`
+          // Use the public event profile endpoint instead of protected ticket-settings endpoint
+          const publicEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event._id}`;
+          console.log(
+            "[EventProfile] Fetching public event profile for ticket settings:",
+            publicEndpoint
           );
 
-          if (ticketResponse.data && ticketResponse.data.ticketSettings) {
-            setTicketSettings(ticketResponse.data.ticketSettings);
+          const response = await axiosInstance.get(publicEndpoint);
+
+          if (
+            response.data &&
+            response.data.ticketSettings &&
+            response.data.ticketSettings.length > 0
+          ) {
+            console.log(
+              "[EventProfile] Got ticket settings from profile endpoint:",
+              response.data.ticketSettings.length
+            );
+            setTicketSettings(response.data.ticketSettings);
+          } else if (event.parentEventId) {
+            // If this is a child event and no ticket settings were found, check parent event
+            console.log(
+              "[EventProfile] Checking parent event for tickets:",
+              event.parentEventId
+            );
+            try {
+              const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event.parentEventId}`;
+              const parentResponse = await axiosInstance.get(parentEndpoint);
+
+              if (
+                parentResponse.data &&
+                parentResponse.data.ticketSettings &&
+                parentResponse.data.ticketSettings.length > 0
+              ) {
+                console.log(
+                  "[EventProfile] Got ticket settings from parent:",
+                  parentResponse.data.ticketSettings.length
+                );
+                setTicketSettings(parentResponse.data.ticketSettings);
+              }
+            } catch (parentError) {
+              console.error(
+                "Error fetching parent ticket settings:",
+                parentError
+              );
+            }
           }
         }
 
+        // Only fetch code settings if we don't have them yet
         if (codeSettings.length === 0) {
-          const codeSettingsResponse = await axios.get(
-            `${process.env.REACT_APP_API_BASE_URL}/code-settings/events/${event._id}`
+          // Use the same public profile endpoint for code settings as well
+          const publicEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event._id}`;
+          console.log(
+            "[EventProfile] Fetching public event profile for code settings:",
+            publicEndpoint
           );
 
-          if (
-            codeSettingsResponse.data &&
-            codeSettingsResponse.data.codeSettings
-          ) {
-            setCodeSettings(codeSettingsResponse.data.codeSettings);
+          // Only make a second request if we didn't already get the data above
+          if (!ticketSettings.length) {
+            const response = await axiosInstance.get(publicEndpoint);
+
+            if (
+              response.data &&
+              response.data.codeSettings &&
+              response.data.codeSettings.length > 0
+            ) {
+              console.log(
+                "[EventProfile] Got code settings from profile endpoint:",
+                response.data.codeSettings.length
+              );
+              setCodeSettings(response.data.codeSettings);
+            }
           }
         }
       } catch (error) {
-        // Handle error silently
+        console.error(
+          "[EventProfile] Error in fetchMissingSettings:",
+          error.message
+        );
       }
     };
 
     fetchMissingSettings();
   }, [event, ticketSettings.length, codeSettings.length]);
 
-  // Rendering logic with loading, error, and event states
+  // Modify the useEffect that fetches event data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        await fetchEventData();
+      } catch (err) {
+        console.error("[EventProfile] Error in main fetchData effect:", err);
+      } finally {
+        setLoading(false);
+        setHasFetchAttempted(true);
+      }
+    };
+
+    // Only fetch if we haven't already and if the component is actually visible
+    if (!hasFetchAttempted) {
+      fetchData();
+    }
+  }, [hasFetchAttempted, fetchEventData]);
+
+  // Add this to protect against unwanted redirects
+  useEffect(() => {
+    // For EventProfile, we want to allow public access
+    // Only redirect if user is explicitly required for this specific functionality
+    const isAccessingRestrictedFeature = false; // Only set true for member-only features
+
+    if (!user && isAccessingRestrictedFeature) {
+      navigate("/login", { state: { from: location.pathname } });
+    }
+  }, [user, navigate, location]);
+
+  // Rendering logic moved outside of useEffect
   if (loading) {
     return (
       <div className="event-profile-loading">
@@ -775,7 +867,6 @@ const EventProfile = () => {
     );
   }
 
-  // Render the event content if we have event data
   return (
     <div className="page-wrapper">
       <Navigation
@@ -973,27 +1064,55 @@ const EventProfile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {event &&
-              (event.ticketsAvailable || ticketSettings.length > 0) ? (
+              {event ? (
                 <Tickets
                   eventId={event._id}
                   eventTitle={event.title}
-                  eventDate={event.startDate}
+                  eventDate={event.startDate || event.date}
+                  event={event}
+                  ticketSettings={ticketSettings}
                   fetchTicketSettings={async (eventId) => {
                     try {
-                      // Try the event profile endpoint which has optional authentication
-                      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-                      const response = await axiosInstance.get(endpoint);
-                      let ticketSettings = [];
+                      console.log(
+                        "[EventProfile] Fetching ticket settings for:",
+                        eventId
+                      );
+
+                      // If we already have ticket settings, return them
+                      if (ticketSettings && ticketSettings.length > 0) {
+                        console.log(
+                          "[EventProfile] Using cached ticket settings:",
+                          ticketSettings.length
+                        );
+                        return ticketSettings;
+                      }
+
+                      // Try public endpoint first (same as in UpcomingEvent)
+                      const publicEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+                      console.log(
+                        "[EventProfile] Trying public endpoint:",
+                        publicEndpoint
+                      );
+
+                      const response = await axiosInstance.get(publicEndpoint);
+                      let settings = [];
 
                       if (
                         response.data &&
                         response.data.ticketSettings &&
                         response.data.ticketSettings.length > 0
                       ) {
-                        ticketSettings = response.data.ticketSettings;
+                        console.log(
+                          "[EventProfile] Got ticket settings from public endpoint:",
+                          response.data.ticketSettings.length
+                        );
+                        settings = response.data.ticketSettings;
                       } else if (event.parentEventId) {
                         // If this is a child event and no ticket settings were found, check parent event
+                        console.log(
+                          "[EventProfile] Checking parent event for tickets:",
+                          event.parentEventId
+                        );
                         try {
                           const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event.parentEventId}`;
                           const parentResponse = await axiosInstance.get(
@@ -1005,7 +1124,11 @@ const EventProfile = () => {
                             parentResponse.data.ticketSettings &&
                             parentResponse.data.ticketSettings.length > 0
                           ) {
-                            ticketSettings = parentResponse.data.ticketSettings;
+                            console.log(
+                              "[EventProfile] Got ticket settings from parent:",
+                              parentResponse.data.ticketSettings.length
+                            );
+                            settings = parentResponse.data.ticketSettings;
                           }
                         } catch (parentError) {
                           console.error(
@@ -1015,9 +1138,17 @@ const EventProfile = () => {
                         }
                       }
 
-                      return ticketSettings;
+                      // Update state if we found settings
+                      if (settings.length > 0) {
+                        setTicketSettings(settings);
+                      }
+
+                      return settings;
                     } catch (error) {
-                      console.error("Error fetching ticket settings:", error);
+                      console.error(
+                        "[EventProfile] Error fetching ticket settings:",
+                        error
+                      );
                       return [];
                     }
                   }}

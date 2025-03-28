@@ -22,6 +22,9 @@ import CodeGenerator from "../CodeGenerator/CodeGenerator";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import TableSystem from "../TableSystem/TableSystem";
 import Scanner from "../Scanner/Scanner";
+import Analytics from "../Analytics/Analytics";
+import { motion } from "framer-motion";
+import { RiArrowUpSLine } from "react-icons/ri";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -496,6 +499,9 @@ const Dashboard = () => {
   const codePermissions = prepareCodePermissions();
   const accessSummary = prepareAccessSummary();
 
+  // Check if user has no brands
+  const hasNoBrands = brands.length === 0;
+
   return (
     <div className="dashboard">
       <Navigation
@@ -541,6 +547,13 @@ const Dashboard = () => {
             selectedEvent={selectedEvent}
             selectedBrand={selectedBrand}
           />
+        ) : showStatistic ? (
+          <Analytics
+            user={user}
+            onClose={() => setShowStatistic(false)}
+            selectedBrand={selectedBrand}
+            selectedEvent={selectedEvent}
+          />
         ) : showTableSystem ? (
           <TableSystem
             user={user}
@@ -561,6 +574,26 @@ const Dashboard = () => {
           />
         ) : (
           <>
+            {/* Golden Arrow Guide for new users with no brands */}
+            {hasNoBrands && (
+              <motion.div
+                className="golden-arrow-guide"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: 1,
+                  y: [0, -5, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: "loop",
+                }}
+              >
+                <RiArrowUpSLine className="arrow-icon" />
+                <span className="arrow-text">Join/Create Brand</span>
+              </motion.div>
+            )}
+
             <DashboardHeader
               user={user}
               brandsCount={brands.length}

@@ -646,6 +646,8 @@
       cursor: pointer;
       transition: all 0.2s ease;
       max-width: 220px; /* Limit width for long brand names */
+      min-width: 140px; /* Maintain width even when empty */
+      min-height: 34px; /* Maintain height even when empty */
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -753,6 +755,13 @@
           color: rgba(255, 255, 255, 0.9);
         }
       }
+
+      .no-brands {
+        padding: 12px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+      }
     }
   }
 
@@ -771,6 +780,8 @@
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
+      min-width: 120px; /* Maintain width even when empty */
+      min-height: 34px; /* Maintain height even when empty */
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);

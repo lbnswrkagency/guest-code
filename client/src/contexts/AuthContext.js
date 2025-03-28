@@ -97,6 +97,18 @@ const AuthProviderWithRouter = ({ children }) => {
         return new RegExp(`^${regexPath}$`).test(location.pathname);
       });
 
+      // Skip auth check for EventProfile routes - these are public pages
+      const isEventProfileRoute =
+        location.pathname.includes("/@") && /\d{6}/.test(location.pathname); // Contains a date pattern like 033025
+
+      if (isEventProfileRoute) {
+        console.log(
+          "[AuthContext] Skipping auth check for public EventProfile route:",
+          location.pathname
+        );
+        return; // Skip the auth check completely
+      }
+
       if (requiresAuth) {
         setLoading(true);
         const token = tokenService.getToken();

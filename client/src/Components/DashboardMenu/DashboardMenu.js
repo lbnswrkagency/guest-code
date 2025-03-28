@@ -152,11 +152,56 @@ const DashboardMenu = ({
   // Helper to determine if menu should be disabled
   const isMenuDisabled = !selectedEvent || !selectedBrand;
 
+  // Don't render menu if user has no brands
+  if (!selectedBrand) return null;
+
   return (
     <div className={`menuDashboard ${isOpen ? "open" : ""}`}>
-      <button className="menu-trigger" onClick={handleMenuClick}>
+      <motion.button
+        className="menu-trigger"
+        onClick={handleMenuClick}
+        initial={{ scale: 0, opacity: 0, x: -50 }}
+        animate={{
+          scale: 1,
+          opacity: 1,
+          x: 0,
+          y: [0, -3, 0, 3, 0],
+          boxShadow: [
+            "0 4px 15px rgba(255, 200, 7, 0.25)",
+            "0 6px 20px rgba(255, 200, 7, 0.5)",
+            "0 4px 15px rgba(255, 200, 7, 0.25)",
+          ],
+        }}
+        transition={{
+          duration: 0.4,
+          ease: "easeOut",
+          y: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration: 2,
+            ease: "easeInOut",
+          },
+          boxShadow: {
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 1,
+            ease: "easeInOut",
+          },
+        }}
+        whileHover={{
+          scale: 1.1,
+          x: 10,
+          transition: { duration: 0.2, ease: "easeOut" },
+        }}
+        whileTap={{ scale: 0.9 }}
+        style={{
+          position: "fixed",
+          top: "50%",
+          transform: "translateY(-50%)",
+        }}
+      >
         <RiToolsFill className="trigger-icon" />
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {isOpen && (

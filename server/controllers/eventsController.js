@@ -390,33 +390,11 @@ exports.getBrandEvents = async (req, res) => {
   try {
     const { brandId } = req.params;
 
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({
-        message: "User not authenticated",
-        debug: { user: req.user },
-      });
-    }
-
-    const userId = req.user.userId; // Get the correct user ID
-
-    // First find the brand without team check to debug
+    // Check if brand exists without team check
     const brandExists = await Brand.findById(brandId);
     if (!brandExists) {
       return res.status(404).json({
         message: "Brand not found",
-      });
-    }
-
-    // Now check if user has permission
-    const brand = await Brand.findOne({
-      _id: brandId,
-      $or: [{ owner: userId }, { "team.user": userId }],
-    });
-
-    if (!brand) {
-      return res.status(403).json({
-        message: "You don't have permission to view this brand's events",
       });
     }
 
@@ -1185,14 +1163,56 @@ exports.getEventProfile = async (req, res) => {
       }
 
       // Create date range for the day (start and end of the day)
-      const startDate = new Date(year, month, day, 0, 0, 0);
-      const endDate = new Date(year, month, day, 23, 59, 59);
+      // Use UTC to avoid timezone issues
+      console.log(
+        `[Events] Parsed date components: month=${
+          month + 1
+        }, day=${day}, year=${year}`
+      );
 
-      // Find all events for this brand on this date
-      const eventsOnDate = await Event.find({
+      // Create date range with timezone consideration - use UTC
+      const startDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
+      const endDate = new Date(Date.UTC(year, month, day, 23, 59, 59));
+
+      console.log(
+        `[Events] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`
+      );
+
+      // For dateSlug queries, we need to search both date and startDate fields
+      console.log(
+        `[Events] Searching for events with brand=${brand._id} on either date or startDate fields`
+      );
+
+      // Create a query that searches in both date and startDate fields
+      // We'll try to be more flexible with the date matching to catch timezone edge cases
+      const query = {
         brand: brand._id,
-        date: { $gte: startDate, $lte: endDate },
-      })
+        $or: [
+          // Match on date field - convert to string date for comparison to avoid timezone issues
+          {
+            $expr: {
+              $eq: [
+                { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                { $dateToString: { format: "%Y-%m-%d", date: startDate } },
+              ],
+            },
+          },
+          // Match on startDate field
+          {
+            $expr: {
+              $eq: [
+                { $dateToString: { format: "%Y-%m-%d", date: "$startDate" } },
+                { $dateToString: { format: "%Y-%m-%d", date: startDate } },
+              ],
+            },
+          },
+        ],
+      };
+
+      console.log(`[Events] MongoDB query:`, JSON.stringify(query, null, 2));
+
+      // Find events matching our query
+      let eventsOnDate = await Event.find(query)
         .populate({
           path: "brand",
           select: "name username logo description",
@@ -1202,59 +1222,148 @@ exports.getEventProfile = async (req, res) => {
           select: "username firstName lastName avatar",
         });
 
+      console.log(
+        `[Events] Found ${eventsOnDate.length} events for brand ${
+          brand.username
+        } on date ${startDate.toISOString().split("T")[0]}`
+      );
+
+      // If no events found, try a broader query without the date expressions
       if (eventsOnDate.length === 0) {
+        console.log(
+          "[Events] No events found with strict date match, trying broader match"
+        );
+
+        // Create a broader query that looks for events in a wider date range
+        const dateStr = startDate.toISOString().split("T")[0]; // YYYY-MM-DD
+        console.log(`[Events] Looking for date ${dateStr} as string match`);
+
+        const broadQuery = {
+          brand: brand._id,
+          $or: [
+            // Check date as string prefix match
+            { date: { $regex: `^${dateStr}` } },
+            { startDate: { $regex: `^${dateStr}` } },
+          ],
+        };
+
+        eventsOnDate = await Event.find(broadQuery)
+          .populate({
+            path: "brand",
+            select: "name username logo description",
+          })
+          .populate({
+            path: "user",
+            select: "username firstName lastName avatar",
+          });
+
+        console.log(
+          `[Events] Found ${eventsOnDate.length} events with broader date match`
+        );
+      }
+
+      // If still no events found, try one final approach - querying by day number
+      if (eventsOnDate.length === 0) {
+        console.log(
+          "[Events] No events found with regex match, trying day number match"
+        );
+
+        // Final fallback: query directly looking for the day number
+        const monthQuery = {
+          brand: brand._id,
+          $or: [
+            // Try to match based on the day of month
+            { $expr: { $eq: [{ $dayOfMonth: "$date" }, day] } },
+            { $expr: { $eq: [{ $dayOfMonth: "$startDate" }, day] } },
+            { $expr: { $eq: [{ $month: "$date" }, month + 1] } },
+            { $expr: { $eq: [{ $month: "$startDate" }, month + 1] } },
+          ],
+        };
+
+        eventsOnDate = await Event.find(monthQuery)
+          .populate({
+            path: "brand",
+            select: "name username logo description",
+          })
+          .populate({
+            path: "user",
+            select: "username firstName lastName avatar",
+          });
+
+        console.log(
+          `[Events] Found ${eventsOnDate.length} events with day/month match`
+        );
+
+        // Filter the results to keep only events that match our specific date
+        if (eventsOnDate.length > 0) {
+          console.log(
+            "[Events] Filtering results to match the requested date more closely"
+          );
+
+          const dateStr = `${year}-${String(month + 1).padStart(
+            2,
+            "0"
+          )}-${String(day).padStart(2, "0")}`;
+
+          // Manual filtering to check event dates
+          eventsOnDate = eventsOnDate.filter((event) => {
+            const eventDateStr = event.date
+              ? new Date(event.date).toISOString().substring(0, 10)
+              : null;
+            const eventStartDateStr = event.startDate
+              ? new Date(event.startDate).toISOString().substring(0, 10)
+              : null;
+
+            console.log(
+              `[Events] Comparing date: want=${dateStr}, event date=${eventDateStr}, event startDate=${eventStartDateStr}`
+            );
+
+            return eventDateStr === dateStr || eventStartDateStr === dateStr;
+          });
+
+          console.log(
+            `[Events] After filtering, found ${eventsOnDate.length} matching events`
+          );
+        }
+      }
+
+      if (eventsOnDate.length === 0) {
+        console.log(
+          `[Events] No events found for ${brand.username} on ${
+            startDate.toISOString().split("T")[0]
+          } after all attempts`
+        );
         return res.status(404).json({
           success: false,
           message: "No events found on this date.",
         });
       }
 
-      // For the original format with eventSlug
-      if (hasEventSlug) {
-        // Try to find the event with the closest matching title
-        // First, check if any event's slug field matches exactly (for backward compatibility)
-        event = eventsOnDate.find((e) => e.slug === req.params.eventSlug);
+      // Function to process events once we've found them (by either date or startDate)
+      function processEventsForResponse(events) {
+        console.log(
+          `[Events] Processing ${events.length} events for brand ${brand.username}`
+        );
 
-        // If no match by slug, try to find by title
-        if (!event) {
-          // Create a normalized version of each event title to compare with the slug
-          const eventWithSlugMatch = eventsOnDate.map((e) => {
-            // Create a slug from the event title
-            const titleSlug = e.title
-              .toString()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^\w\-]+/g, "")
-              .replace(/\-\-+/g, "-")
-              .replace(/^-+/, "")
-              .replace(/-+$/, "");
-
-            return {
-              event: e,
-              titleSlug,
-              // Calculate a simple similarity score
-              similarity: titleSlug === req.params.eventSlug ? 1 : 0,
-            };
-          });
-
-          // Find the event with the highest similarity score
-          const bestMatch = eventWithSlugMatch.reduce(
-            (best, current) => {
-              return current.similarity > best.similarity ? current : best;
-            },
-            { similarity: -1 }
+        // Log first event details for debugging
+        if (events.length > 0) {
+          const firstEvent = events[0];
+          console.log(
+            `[Events] First event details: ID=${firstEvent._id}, Title=${firstEvent.title}, Date=${firstEvent.date}, StartDate=${firstEvent.startDate}`
           );
+        }
 
-          if (bestMatch.similarity > 0) {
-            event = bestMatch.event;
-          } else if (eventsOnDate.length === 1) {
-            // If there's only one event on this date, use it
-            event = eventsOnDate[0];
-          } else {
-            // Otherwise, try to find a partial match
-            for (const e of eventsOnDate) {
+        // For the original format with eventSlug
+        if (hasEventSlug) {
+          // Try to find the event with the closest matching title
+          // First, check if any event's slug field matches exactly (for backward compatibility)
+          event = events.find((e) => e.slug === req.params.eventSlug);
+
+          // If no match by slug, try to find by title
+          if (!event) {
+            // Create a normalized version of each event title to compare with the slug
+            const eventWithSlugMatch = events.map((e) => {
+              // Create a slug from the event title
               const titleSlug = e.title
                 .toString()
                 .normalize("NFD")
@@ -1266,46 +1375,104 @@ exports.getEventProfile = async (req, res) => {
                 .replace(/^-+/, "")
                 .replace(/-+$/, "");
 
-              if (
-                titleSlug.includes(req.params.eventSlug) ||
-                req.params.eventSlug.includes(titleSlug)
-              ) {
-                event = e;
-                break;
+              return {
+                event: e,
+                titleSlug,
+                // Calculate a simple similarity score
+                similarity: titleSlug === req.params.eventSlug ? 1 : 0,
+              };
+            });
+
+            // Find the event with the highest similarity score
+            const bestMatch = eventWithSlugMatch.reduce(
+              (best, current) => {
+                return current.similarity > best.similarity ? current : best;
+              },
+              { similarity: -1 }
+            );
+
+            if (bestMatch.similarity > 0) {
+              event = bestMatch.event;
+            } else if (events.length === 1) {
+              // If there's only one event on this date, use it
+              event = events[0];
+            } else {
+              // Otherwise, try to find a partial match
+              for (const e of events) {
+                const titleSlug = e.title
+                  .toString()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")
+                  .replace(/[^\w\-]+/g, "")
+                  .replace(/\-\-+/g, "-")
+                  .replace(/^-+/, "")
+                  .replace(/-+$/, "");
+
+                if (
+                  titleSlug.includes(req.params.eventSlug) ||
+                  req.params.eventSlug.includes(titleSlug)
+                ) {
+                  event = e;
+                  break;
+                }
+              }
+
+              // If still no match, just use the first event
+              if (!event) {
+                event = events[0];
               }
             }
-
-            // If still no match, just use the first event
-            if (!event) {
-              event = eventsOnDate[0];
-            }
-          }
-        }
-      } else {
-        // Sort events to ensure consistent order
-        eventsOnDate.sort((a, b) => {
-          // Sort by start time if available
-          if (a.startTime && b.startTime) {
-            return a.startTime.localeCompare(b.startTime);
-          }
-          // Fallback to created date
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        });
-
-        // If we have a specific event number in the URL (e.g., 032225-2 for the second event)
-        if (eventNumber > 1) {
-          // Subtract 1 since arrays are 0-indexed
-          const index = eventNumber - 1;
-          if (index < eventsOnDate.length) {
-            event = eventsOnDate[index];
-          } else {
-            // If the specified index doesn't exist, use the first event
-            event = eventsOnDate[0];
           }
         } else {
-          // Default to the first event if no specific number is provided
-          event = eventsOnDate[0];
+          // Sort events to ensure consistent order
+          events.sort((a, b) => {
+            // Sort by start time if available
+            if (a.startTime && b.startTime) {
+              return a.startTime.localeCompare(b.startTime);
+            }
+            // Fallback to created date
+            return new Date(a.createdAt) - new Date(b.createdAt);
+          });
+
+          // If we have a specific event number in the URL (e.g., 032225-2 for the second event)
+          if (eventNumber > 1) {
+            // Subtract 1 since arrays are 0-indexed
+            const index = eventNumber - 1;
+            if (index < events.length) {
+              event = events[index];
+            } else {
+              // If the specified index doesn't exist, use the first event
+              event = events[0];
+            }
+          } else {
+            // Default to the first event if no specific number is provided
+            event = events[0];
+          }
         }
+
+        // Log the selected event for debugging
+        if (event) {
+          console.log(
+            `[Events] Selected event: ID=${event._id}, Title=${event.title}`
+          );
+          return true; // Successfully set the event
+        } else {
+          console.log(`[Events] No event selected after processing`);
+          return false; // Failed to set event
+        }
+      }
+
+      // Process events found with our query
+      const eventFound = processEventsForResponse(eventsOnDate);
+
+      // If no event was found, return 404
+      if (!eventFound) {
+        return res.status(404).json({
+          success: false,
+          message: "No event could be selected from the results.",
+        });
       }
     } else {
       // Find the event by ID (original approach)
@@ -1331,21 +1498,6 @@ exports.getEventProfile = async (req, res) => {
     try {
       // Ensure we use the event's _id consistently
       const eventId = event._id.toString();
-
-      // Check if the event has lineup IDs
-      if (event.lineups && event.lineups.length > 0) {
-        // Fetch lineups using their IDs from the event
-        const lineups = await LineUp.find({
-          _id: { $in: event.lineups },
-          isActive: true,
-        }).sort({ sortOrder: 1 });
-      } else {
-        // Try the old method as a fallback
-        const fallbackLineups = await LineUp.find({
-          events: eventId,
-          isActive: true,
-        }).sort({ sortOrder: 1 });
-      }
 
       // Fetch lineups using their IDs from the event
       const lineups =
@@ -1390,7 +1542,11 @@ exports.getEventProfile = async (req, res) => {
         };
       }
 
-      // Return the response with user data if available
+      console.log(
+        `[Events] Successfully returning event profile for event ID ${event._id}`
+      );
+
+      // Return the full response
       return res.status(200).json({
         success: true,
         event,

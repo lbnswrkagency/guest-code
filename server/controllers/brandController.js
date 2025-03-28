@@ -276,25 +276,63 @@ exports.getBrandProfile = async (req, res) => {
 
     // Check if user is authenticated and update status accordingly
     if (req.user && req.user._id) {
-      const userId = req.user._id.toString();
+      try {
+        const userId = req.user._id.toString();
 
-      // Get join request status if exists
-      const joinRequest = await JoinRequest.findOne({
-        user: userId,
-        brand: brand._id,
-      }).select("status");
+        // Safely check if user is following the brand
+        const isFollowing =
+          Array.isArray(brand.followers) && brand.followers.includes(userId);
 
-      userStatus = {
-        isFollowing: brand.followers.includes(userId),
-        isFavorited: brand.favorites.includes(userId),
-        isMember: brand.team.some(
-          (member) => member.user._id.toString() === userId
-        ),
-        role:
-          brand.team.find((member) => member.user._id.toString() === userId)
-            ?.role || null,
-        joinRequestStatus: joinRequest?.status || null,
-      };
+        // Safely check if user has favorited the brand
+        const isFavorited =
+          Array.isArray(brand.favorites) && brand.favorites.includes(userId);
+
+        // Safely check if user is a member of the brand
+        const isMember =
+          Array.isArray(brand.team) &&
+          brand.team.some(
+            (member) =>
+              member.user &&
+              member.user._id &&
+              member.user._id.toString() === userId
+          );
+
+        // Safely get user's role in the brand
+        let role = null;
+        if (Array.isArray(brand.team)) {
+          const teamMember = brand.team.find(
+            (member) =>
+              member.user &&
+              member.user._id &&
+              member.user._id.toString() === userId
+          );
+          role = teamMember && teamMember.role ? teamMember.role : null;
+        }
+
+        // Get join request status if exists
+        let joinRequestStatus = null;
+        try {
+          const joinRequest = await JoinRequest.findOne({
+            user: userId,
+            brand: brand._id,
+          }).select("status");
+          joinRequestStatus = joinRequest ? joinRequest.status : null;
+        } catch (joinRequestError) {
+          console.error("Error fetching join request:", joinRequestError);
+          // Continue with null joinRequestStatus
+        }
+
+        userStatus = {
+          isFollowing,
+          isFavorited,
+          isMember,
+          role,
+          joinRequestStatus,
+        };
+      } catch (userStatusError) {
+        console.error("Error determining user status:", userStatusError);
+        // Fall back to default userStatus values
+      }
     }
 
     // Format the response
@@ -307,6 +345,7 @@ exports.getBrandProfile = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
+    console.error("Error in getBrandProfile:", error);
     res.status(500).json({
       message: "Error fetching brand profile",
       error: error.message,
@@ -351,25 +390,63 @@ exports.getBrandProfileByUsername = async (req, res) => {
 
     // Check if user is authenticated and update status accordingly
     if (req.user && req.user._id) {
-      const userId = req.user._id.toString();
+      try {
+        const userId = req.user._id.toString();
 
-      // Get join request status if exists
-      const joinRequest = await JoinRequest.findOne({
-        user: userId,
-        brand: brand._id,
-      }).select("status");
+        // Safely check if user is following the brand
+        const isFollowing =
+          Array.isArray(brand.followers) && brand.followers.includes(userId);
 
-      userStatus = {
-        isFollowing: brand.followers.includes(userId),
-        isFavorited: brand.favorites.includes(userId),
-        isMember: brand.team.some(
-          (member) => member.user._id.toString() === userId
-        ),
-        role:
-          brand.team.find((member) => member.user._id.toString() === userId)
-            ?.role || null,
-        joinRequestStatus: joinRequest?.status || null,
-      };
+        // Safely check if user has favorited the brand
+        const isFavorited =
+          Array.isArray(brand.favorites) && brand.favorites.includes(userId);
+
+        // Safely check if user is a member of the brand
+        const isMember =
+          Array.isArray(brand.team) &&
+          brand.team.some(
+            (member) =>
+              member.user &&
+              member.user._id &&
+              member.user._id.toString() === userId
+          );
+
+        // Safely get user's role in the brand
+        let role = null;
+        if (Array.isArray(brand.team)) {
+          const teamMember = brand.team.find(
+            (member) =>
+              member.user &&
+              member.user._id &&
+              member.user._id.toString() === userId
+          );
+          role = teamMember && teamMember.role ? teamMember.role : null;
+        }
+
+        // Get join request status if exists
+        let joinRequestStatus = null;
+        try {
+          const joinRequest = await JoinRequest.findOne({
+            user: userId,
+            brand: brand._id,
+          }).select("status");
+          joinRequestStatus = joinRequest ? joinRequest.status : null;
+        } catch (joinRequestError) {
+          console.error("Error fetching join request:", joinRequestError);
+          // Continue with null joinRequestStatus
+        }
+
+        userStatus = {
+          isFollowing,
+          isFavorited,
+          isMember,
+          role,
+          joinRequestStatus,
+        };
+      } catch (userStatusError) {
+        console.error("Error determining user status:", userStatusError);
+        // Fall back to default userStatus values
+      }
     }
 
     // Format the response
@@ -382,6 +459,7 @@ exports.getBrandProfileByUsername = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
+    console.error("Error in getBrandProfileByUsername:", error);
     res.status(500).json({
       message: "Error fetching brand profile",
       error: error.message,

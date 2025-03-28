@@ -64,7 +64,7 @@ const {
 } = require("../../controllers/eventsController");
 
 // Brand-specific event routes
-router.get("/brand/:brandId", authenticate, getBrandEvents);
+router.get("/brand/:brandId", optionalAuthenticateToken, getBrandEvents);
 router.post(
   "/brand/:brandId",
   authenticate,

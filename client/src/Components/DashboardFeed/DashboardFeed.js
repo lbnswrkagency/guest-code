@@ -369,10 +369,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   if (!eventData) {
     return (
       <div className="dashboard-feed empty">
-        <div className="empty-content">
-          <RiCalendarEventLine size={48} />
-          <h2>No Events Selected</h2>
-        </div>
+        <div className="empty-content"></div>
       </div>
     );
   }

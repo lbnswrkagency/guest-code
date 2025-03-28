@@ -7,6 +7,7 @@ const { format } = require("date-fns");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
+const { createEventEmailTemplate } = require("../utils/emailLayout");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -311,6 +312,39 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
       },
     ];
 
+    // Get lineups if they're populated
+    const lineups = event.lineups || [];
+
+    // Use the emailLayout template
+    const htmlContent = createEventEmailTemplate({
+      recipientName: code.guestName || "Guest",
+      eventTitle: event?.title || "Event",
+      eventDate: event?.startDate || event?.date,
+      eventLocation: event?.location || event?.venue || "",
+      eventAddress: event?.street || event?.address || "",
+      eventCity: event?.city || "",
+      eventPostalCode: event?.postalCode || "",
+      startTime: event?.startTime || "",
+      endTime: event?.endTime || "",
+      description: event?.description || "",
+      lineups: lineups,
+      primaryColor: "#ffc807",
+      additionalContent: `
+        <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin: 20px 0;">
+          <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Your Guest Code:</p>
+          <p style="font-size: 18px; margin: 0 0 5px; font-weight: bold; color: #ffc807;">${
+            code.code
+          }</p>
+          <p style="font-size: 14px; margin: 10px 0 0;">Max guests: ${
+            code.maxPax || 1
+          }</p>
+          <p style="font-size: 14px; margin: 10px 0 0;">You can show this email or the attached PDF at the event entrance. The code can be scanned from your phone screen.</p>
+        </div>
+      `,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+    });
+
     // Build email template
     const params = {
       sender: {
@@ -333,57 +367,7 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
         name: "GuestCode",
       },
       subject: `Your Guest Code for ${event?.title || "Event"}`,
-      htmlContent: `
-        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; padding: 20px; background-color: #f8f8f8; margin-bottom: 20px; border-radius: 8px;">
-            <h1 style="color: #222; margin: 0; font-size: 28px;">Your Guest Code</h1>
-            <p style="margin: 10px 0 0; color: #555;">For ${
-              event?.title || "the event"
-            }</p>
-          </div>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${
-            code.guestName
-          },</p>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Here is your guest code for the event. Please keep this email and bring it with you to the event.</p>
-          
-          <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin-bottom: 20px;">
-            <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Code Details:</p>
-            <p style="font-size: 16px; margin: 0 0 5px;">Code: <strong>${
-              code.code
-            }</strong></p>
-            <p style="font-size: 16px; margin: 0 0 5px;">Event Date: <strong>${
-              formatGuestCodeDate(event?.date).date
-            }</strong></p>
-            <p style="font-size: 16px; margin: 0 0 5px;">Location: <strong>${
-              event?.location || event?.venue || ""
-            }</strong></p>
-            ${
-              event?.street || event?.address
-                ? `<p style="font-size: 16px; margin: 0 0 5px;">Address: <strong>${
-                    event?.street || event?.address || ""
-                  }</strong></p>`
-                : ""
-            }
-            ${
-              event?.postalCode || event?.city
-                ? `<p style="font-size: 16px; margin: 0 0 5px;">City: <strong>${
-                    event?.postalCode ? event.postalCode + " " : ""
-                  }${event?.city || ""}</strong></p>`
-                : ""
-            }
-          </div>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">You can show this email or the attached PDF at the event entrance. The code can be scanned from your phone screen.</p>
-          
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 30px;">We look forward to seeing you at the event!</p>
-          
-          <div style="text-align: center; padding: 20px; background-color: #f8f8f8; border-radius: 8px;">
-            <p style="font-size: 14px; color: #666; margin: 0;">This is an automated email. Please do not reply to this message.</p>
-          </div>
-        </div>
-      `,
+      htmlContent: htmlContent,
       attachment: attachments,
     };
 

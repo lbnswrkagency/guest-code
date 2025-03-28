@@ -81,15 +81,12 @@ exports.search = async (req, res) => {
         try {
           // Get current date and time for proper comparison
           const now = new Date();
-          const today = new Date(now);
-          today.setHours(0, 0, 0, 0);
 
           console.log("[SearchController] Events search using date filter:", {
-            today: today.toISOString(),
-            currentTime: now.toISOString(),
+            currentDateTime: now.toISOString(),
           });
 
-          // Find events that are happening today or in the future
+          // Find events that are not in the past, considering endDate and endTime
           results = await Event.find({
             $or: [
               { title: searchRegex },
@@ -97,26 +94,86 @@ exports.search = async (req, res) => {
               { description: searchRegex },
               { location: searchRegex },
             ],
-            // Include events where date is today or in the future
-            date: { $gte: today },
             // Only include events that are live or where isLive is not set (backward compatibility)
             $or: [{ isLive: true }, { isLive: { $exists: false } }],
           })
             .select(
-              "title subTitle description date startTime endTime location flyer link brand"
+              "title subTitle description date startDate endDate startTime endTime location flyer link brand"
             )
             .populate("brand", "name username")
             .sort({ date: 1 })
-            .limit(10)
+            .limit(25)
             .lean();
+
+          // Post-processing to filter events that have already ended
+          results = results.filter((event) => {
+            // Determine the end date/time of the event
+            let eventEndDate;
+
+            // If event has an explicit endDate, use that
+            if (event.endDate) {
+              eventEndDate = new Date(event.endDate);
+
+              // If it also has endTime, add that to the date
+              if (event.endTime) {
+                const [hours, minutes] = event.endTime.split(":").map(Number);
+                eventEndDate.setHours(hours || 23);
+                eventEndDate.setMinutes(minutes || 59);
+              } else {
+                // No end time specified, default to end of day
+                eventEndDate.setHours(23, 59, 59);
+              }
+            }
+            // No explicit endDate, use date/startDate as the event date
+            else {
+              const eventDate = event.startDate || event.date;
+              if (!eventDate) return false; // No date information at all
+
+              eventEndDate = new Date(eventDate);
+
+              // If it has endTime, add that to the date, otherwise default to end of day
+              if (event.endTime) {
+                const [hours, minutes] = event.endTime.split(":").map(Number);
+                eventEndDate.setHours(hours || 23);
+                eventEndDate.setMinutes(minutes || 59);
+              } else {
+                // No end time specified, default to end of day
+                eventEndDate.setHours(23, 59, 59);
+              }
+            }
+
+            // Debug the date comparison
+            console.log(
+              `[SearchController] Event ${
+                event.title
+              } - end date: ${eventEndDate.toISOString()}, now: ${now.toISOString()}, is future: ${
+                eventEndDate > now
+              }`
+            );
+
+            // Keep the event if end date/time is in the future
+            return eventEndDate > now;
+          });
+
+          // Sort by closest upcoming date
+          results.sort((a, b) => {
+            const dateA = a.startDate || a.date;
+            const dateB = b.startDate || b.date;
+            return new Date(dateA) - new Date(dateB);
+          });
+
+          // Limit to 10 after filtering
+          results = results.slice(0, 10);
 
           // Add debug info about found events
           console.log(
-            "[SearchController] Events found:",
+            "[SearchController] Events found after filtering:",
             results.map((event) => ({
               id: event._id,
               title: event.title,
-              date: event.startDate,
+              date: event.date,
+              startDate: event.startDate,
+              endDate: event.endDate,
               startTime: event.startTime,
               endTime: event.endTime,
             }))
@@ -125,7 +182,9 @@ exports.search = async (req, res) => {
           results = results.map((event) => ({
             _id: event._id,
             name: event.title,
-            date: event.startDate,
+            date: event.date,
+            startDate: event.startDate,
+            endDate: event.endDate,
             avatar:
               event.flyer?.landscape?.thumbnail ||
               event.flyer?.portrait?.thumbnail ||
@@ -149,31 +208,13 @@ exports.search = async (req, res) => {
         try {
           // Get current date and time for proper comparison
           const now = new Date();
-          const today = new Date(now);
-          today.setHours(0, 0, 0, 0);
 
           console.log("[SearchController] All search using date filter:", {
-            today: today.toISOString(),
-            currentTime: now.toISOString(),
+            currentDateTime: now.toISOString(),
           });
 
-          const [brands, events] = await Promise.all([
-            // User.find({
-            //   $or: [
-            //     { username: searchRegex },
-            //     { email: searchRegex },
-            //     { firstName: searchRegex },
-            //     { lastName: searchRegex },
-            //   ],
-            // })
-            //   .select("username firstName lastName email avatar")
-            //   .limit(5)
-            //   .lean()
-            //   .catch((err) => {
-            //     console.error("[SearchController] User search error in all:", err);
-            //     return [];
-            //   }),
-
+          const [brands, allEvents] = await Promise.all([
+            // Brand search remains the same
             Brand.find({
               $or: [
                 { name: searchRegex },
@@ -192,6 +233,7 @@ exports.search = async (req, res) => {
                 return [];
               }),
 
+            // Event search now gets more results and filters later
             Event.find({
               $or: [
                 { title: searchRegex },
@@ -199,17 +241,15 @@ exports.search = async (req, res) => {
                 { description: searchRegex },
                 { location: searchRegex },
               ],
-              // Include events where date is today or in the future
-              date: { $gte: today },
               // Only include events that are live or where isLive is not set (backward compatibility)
               $or: [{ isLive: true }, { isLive: { $exists: false } }],
             })
               .select(
-                "title subTitle description date startTime endTime location flyer link brand"
+                "title subTitle description date startDate endDate startTime endTime location flyer link brand"
               )
               .populate("brand", "name username")
               .sort({ date: 1 })
-              .limit(5)
+              .limit(25)
               .lean()
               .catch((err) => {
                 console.error(
@@ -220,17 +260,56 @@ exports.search = async (req, res) => {
               }),
           ]);
 
+          // Filter events using the same logic as above
+          const events = allEvents
+            .filter((event) => {
+              // Determine the end date/time of the event
+              let eventEndDate;
+
+              // If event has an explicit endDate, use that
+              if (event.endDate) {
+                eventEndDate = new Date(event.endDate);
+
+                // If it also has endTime, add that to the date
+                if (event.endTime) {
+                  const [hours, minutes] = event.endTime.split(":").map(Number);
+                  eventEndDate.setHours(hours || 23);
+                  eventEndDate.setMinutes(minutes || 59);
+                } else {
+                  // No end time specified, default to end of day
+                  eventEndDate.setHours(23, 59, 59);
+                }
+              }
+              // No explicit endDate, use date/startDate as the event date
+              else {
+                const eventDate = event.startDate || event.date;
+                if (!eventDate) return false; // No date information at all
+
+                eventEndDate = new Date(eventDate);
+
+                // If it has endTime, add that to the date, otherwise default to end of day
+                if (event.endTime) {
+                  const [hours, minutes] = event.endTime.split(":").map(Number);
+                  eventEndDate.setHours(hours || 23);
+                  eventEndDate.setMinutes(minutes || 59);
+                } else {
+                  // No end time specified, default to end of day
+                  eventEndDate.setHours(23, 59, 59);
+                }
+              }
+
+              // Keep the event if end date/time is in the future
+              return eventEndDate > now;
+            })
+            // Sort by date and limit to 5
+            .sort((a, b) => {
+              const dateA = a.startDate || a.date;
+              const dateB = b.startDate || b.date;
+              return new Date(dateA) - new Date(dateB);
+            })
+            .slice(0, 5);
+
           results = [
-            // ...users.map((user) => ({
-            //   _id: user._id,
-            //   name:
-            //     user.firstName && user.lastName
-            //       ? `${user.firstName} ${user.lastName}`
-            //       : user.username,
-            //   email: user.email,
-            //   avatar: user.avatar,
-            //   type: "user",
-            // })),
             ...brands.map((brand) => ({
               _id: brand._id,
               name: brand.name,
@@ -242,7 +321,9 @@ exports.search = async (req, res) => {
             ...events.map((event) => ({
               _id: event._id,
               name: event.title,
-              date: event.startDate,
+              date: event.date,
+              startDate: event.startDate,
+              endDate: event.endDate,
               avatar:
                 event.flyer?.landscape?.thumbnail ||
                 event.flyer?.portrait?.thumbnail ||
@@ -256,6 +337,18 @@ exports.search = async (req, res) => {
               type: "event",
             })),
           ];
+
+          // Debug info about found events
+          console.log(
+            "[SearchController] Events found after filtering in 'all' search:",
+            events.map((event) => ({
+              id: event._id,
+              title: event.title,
+              date: event.date,
+              endDate: event.endDate,
+              endTime: event.endTime,
+            }))
+          );
         } catch (error) {
           console.error("[SearchController] Combined search error:", error);
           results = [];
@@ -271,6 +364,8 @@ exports.search = async (req, res) => {
         name: r.name,
         type: r.type,
         date: r.date ? new Date(r.date).toISOString() : null,
+        startDate: r.startDate ? new Date(r.startDate).toISOString() : null,
+        endDate: r.endDate ? new Date(r.endDate).toISOString() : null,
       })),
     });
 

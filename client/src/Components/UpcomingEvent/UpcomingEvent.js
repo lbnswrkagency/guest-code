@@ -404,30 +404,24 @@ const UpcomingEvent = ({
             error.message
           );
 
-          // Handle both 401 (Unauthorized) and 403 (Forbidden) errors by falling back to public endpoint
-          if (
-            error.response &&
-            (error.response.status === 401 || error.response.status === 403)
-          ) {
-            // Not authenticated or not authorized, try using brandUsername as fallback
-            if (brandUsername) {
-              const cleanUsername = brandUsername.replace(/^@/, "");
-              endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+          // Fall back to using brandUsername for any error, not just 401/403
+          if (brandUsername) {
+            const cleanUsername = brandUsername.replace(/^@/, "");
+            endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
 
-              try {
-                const response = await axiosInstance.get(endpoint);
-                if (response.data && Array.isArray(response.data)) {
-                  events = response.data;
-                } else {
-                  events = [];
-                }
-              } catch (usernameError) {
-                console.warn(
-                  `[UpcomingEvent] Error fetching events by username:`,
-                  usernameError.message
-                );
+            try {
+              const response = await axiosInstance.get(endpoint);
+              if (response.data && Array.isArray(response.data)) {
+                events = response.data;
+              } else {
                 events = [];
               }
+            } catch (usernameError) {
+              console.warn(
+                `[UpcomingEvent] Error fetching events by username:`,
+                usernameError.message
+              );
+              events = [];
             }
           }
         }
