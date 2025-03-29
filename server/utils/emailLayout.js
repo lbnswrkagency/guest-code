@@ -60,7 +60,7 @@ const createEventEmailTemplate = (options) => {
   const {
     recipientName,
     eventTitle,
-    eventDate,
+    eventDate, // This could be either startDate or date from event
     eventLocation,
     eventAddress,
     eventCity,

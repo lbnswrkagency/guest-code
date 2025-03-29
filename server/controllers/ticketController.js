@@ -122,8 +122,8 @@ const generateTicketPDF = async (ticket) => {
     // Generate QR code
     const qrCodeDataUrl = await generateTicketQR(ticket.securityToken);
 
-    // Format date
-    const eventDate = formatTicketDate(event?.date);
+    // Format date - prioritize startDate over date
+    const eventDate = formatTicketDate(event?.startDate || event?.date);
 
     // Format ticket name for display - only show the first word (e.g., "EARLY" from "Early Bird")
     const ticketNameParts = ticket.ticketName.split(" ");
