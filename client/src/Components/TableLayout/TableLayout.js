@@ -1,15 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./TableLayout.scss"; // Ensure the CSS file exists and is correctly linked
 
-const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
+const TableLayout = ({
+  codes,
+  tableNumber,
+  setTableNumber,
+  counts,
+  refreshTrigger,
+}) => {
   // This function checks if a specific table is booked
   const isBooked = (table) =>
+    counts &&
+    counts.tableCounts &&
     counts.tableCounts.some(
       (code) =>
         (code.table === table || code.tableNumber === table) &&
         code.status !== "declined" &&
         code.status !== "cancelled"
     );
+
+  // Re-render when refreshTrigger changes
+  useEffect(() => {
+    // This effect will trigger a component re-render when refreshTrigger changes
+    // No additional logic needed as the render will use the updated counts
+  }, [refreshTrigger, counts]);
 
   // Function to determine CSS classes for each table
   const getClass = (table, baseClass) => {

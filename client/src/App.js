@@ -57,6 +57,44 @@ const AppRoutes = () => {
   const isUserOwnProfilePath =
     userProfilePath && location.pathname === userProfilePath;
 
+  // Create a simple loading screen component for auth loading
+  const AuthLoadingScreen = () => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        background: "linear-gradient(135deg, #3a1a5a 0%, #1a0b29 100%)",
+        color: "white",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>Loading...</div>
+      <div
+        style={{
+          width: "40px",
+          height: "40px",
+          border: "3px solid rgba(255, 255, 255, 0.3)",
+          borderRadius: "50%",
+          borderTopColor: "white",
+          animation: "spin 1s linear infinite",
+        }}
+      ></div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+
+  // If auth is still loading and we're on a /@username path, show loading screen
+  // This prevents the race condition between auth and BrandProfile
+  if (authLoading && isBrandRelatedPath) {
+    return <AuthLoadingScreen />;
+  }
+
   return (
     <Routes>
       {/* Special case for brand profile path - but only if it's not the user's own profile */}
@@ -216,6 +254,13 @@ const AppRoutes = () => {
         element={
           <RouteDebug name="brand-profile-public">
             {({ params }) => {
+              // Don't load BrandProfile if this could be the user's profile and auth is still loading
+              if (
+                authLoading &&
+                location.pathname === `/@${params.brandUsername}`
+              ) {
+                return <AuthLoadingScreen />;
+              }
               return <BrandProfile />;
             }}
           </RouteDebug>

@@ -94,6 +94,25 @@ const BrandProfile = () => {
     timestamp: new Date().toISOString(),
   });
 
+  // Skip fetching if this is the user's own profile
+  useEffect(() => {
+    // Extract brandUsername from URL path
+    const pathMatch = location.pathname.match(/\/@([^\/]+)/);
+    const brandUsername = pathMatch ? pathMatch[1] : null;
+
+    // Skip fetching if this might be the user's profile and we have a user
+    if (user && brandUsername && user.username === brandUsername) {
+      console.log(
+        "[BrandProfile] Prevented API call - this is the user's own profile"
+      );
+      return; // Don't proceed with the fetch
+    }
+
+    if (cleanUsername) {
+      fetchBrand();
+    }
+  }, [cleanUsername, user, location.pathname]); // Add user and location.pathname as dependencies
+
   useEffect(() => {
     console.log("[BrandProfile] useEffect triggered with:", {
       cleanUsername,

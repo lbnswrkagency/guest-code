@@ -1,7 +1,7 @@
 // TableSystem.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import { useToast } from "../Toast/ToastContext";
 import "./TableSystem.scss";
 import TableLayout from "../TableLayout/TableLayout";
 import Navigation from "../Navigation/Navigation";
@@ -17,6 +17,7 @@ function TableSystem({
   selectedBrand,
   counts = { tableCounts: [] },
 }) {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [pax, setPax] = useState(1);
   const [tableNumber, setTableNumber] = useState("");
@@ -37,9 +38,14 @@ function TableSystem({
   };
 
   // Set up data interval for API calls
-  const [dataInterval, setDataInterval] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
+  const [dataInterval, setDataInterval] = useState(() => {
+    // Initialize with properly formatted date range for today
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+    return { startDate, endDate };
   });
 
   // Update data interval when selectedEvent changes
@@ -59,33 +65,65 @@ function TableSystem({
       const endDate = new Date(eventDate);
       endDate.setHours(23, 59, 59, 999);
 
+      console.log("Updating data interval:", { startDate, endDate });
       setDataInterval({ startDate, endDate });
 
       // Fetch table counts for this event
       fetchTableCounts(selectedEvent._id);
+
+      // Force a refresh trigger on initial load to ensure data is loaded
+      setRefreshTrigger((prev) => prev + 1);
     }
   }, [selectedEvent]);
+
+  // Set up event listener for table count updates from TableCodeManagement
+  useEffect(() => {
+    const handleTableCountUpdate = (event) => {
+      console.log("Table count update event received:", event.detail);
+      // Force update of counts when a table is modified
+      if (selectedEvent && selectedEvent._id) {
+        fetchTableCounts(selectedEvent._id);
+        refreshCounts(); // Also refresh the parent counts
+        // Force an immediate refresh trigger update
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+
+    // Add event listener
+    window.addEventListener("tableCountUpdated", handleTableCountUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("tableCountUpdated", handleTableCountUpdate);
+    };
+  }, [selectedEvent, refreshCounts]);
 
   // Fetch table counts for the event
   const fetchTableCounts = async (eventId) => {
     try {
       console.log(`Fetching table counts for event: ${eventId}`);
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/api/table/counts/${eventId}`,
+        `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
         {
+          params: {
+            eventId: eventId,
+            startDate: dataInterval.startDate.toISOString(),
+            endDate: dataInterval.endDate.toISOString(),
+          },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
 
-      if (response.data && response.data.tableCounts) {
-        console.log(
-          `Successfully fetched ${response.data.tableCounts.length} table counts`
-        );
-        setLocalCounts(response.data);
+      if (response.data && Array.isArray(response.data)) {
+        const tableCounts = response.data;
+        console.log(`Successfully fetched ${tableCounts.length} table counts`);
+        setLocalCounts({ tableCounts });
       } else {
-        console.log("No table counts found in the response");
+        console.log(
+          "No table counts found in the response or unexpected format"
+        );
         setLocalCounts({ tableCounts: [] });
       }
     } catch (error) {
@@ -149,24 +187,24 @@ function TableSystem({
 
   const handleBookingSubmit = async ({ name, pax }) => {
     if (!selectedEvent) {
-      toast.error("Please select an event first.");
+      toast.showError("Please select an event first.");
       return;
     }
 
     if (!name || !pax || !selectedTable) {
-      toast.error("Please fill in all required fields.");
+      toast.showError("Please fill in all required fields.");
       return;
     }
 
     if (remainingTables <= 0) {
-      toast.error("All tables have been booked.");
+      toast.showError("All tables have been booked.");
       return;
     }
 
     const isBackstageTable = tableCategories.backstage.includes(selectedTable);
 
     setIsSubmitting(true);
-    toast.loading(
+    const loadingToast = toast.showLoading(
       user.isAdmin
         ? "Booking table reservation..."
         : "Submitting table reservation request..."
@@ -197,8 +235,8 @@ function TableSystem({
         }
       );
 
-      toast.dismiss();
-      toast.success(
+      loadingToast.dismiss();
+      toast.showSuccess(
         user.isAdmin
           ? "Table reservation booked successfully!"
           : "Table reservation request submitted!"
@@ -229,7 +267,8 @@ function TableSystem({
       }, 500);
     } catch (error) {
       console.error("Table booking error:", error);
-      toast.error("Error submitting table reservation request.");
+      loadingToast.dismiss();
+      toast.showError("Error submitting table reservation request.");
       setIsSubmitting(false);
     }
   };
@@ -264,7 +303,6 @@ function TableSystem({
     return (
       <div className="table-system">
         <div className="table-system-wrapper">
-          <Toaster />
           <Navigation onBack={onClose} />
           <div className="table-system-content">
             <h1 className="table-system-title">Table Booking</h1>
@@ -281,7 +319,6 @@ function TableSystem({
   return (
     <div className="table-system">
       <div className="table-system-wrapper">
-        <Toaster />
         <Navigation onBack={onClose} />
 
         <div className="table-system-content">
@@ -312,6 +349,7 @@ function TableSystem({
               counts={{ tableCounts: allTableCounts }}
               tableNumber={tableNumber}
               setTableNumber={handleTableSelection}
+              refreshTrigger={refreshTrigger}
             />
           </div>
 

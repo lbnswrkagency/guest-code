@@ -79,10 +79,13 @@ const generateQR = async (data) => {
       errorCorrectionLevel: "H",
       type: "image/png",
       margin: 1,
-      width: 225,
+      width: 300, // Increased from 225 for higher resolution
       color: {
         dark: "#000000",
         light: "#ffffff",
+      },
+      rendererOpts: {
+        quality: 1.0, // Highest quality
       },
     });
     return qrCodeDataURL;
@@ -90,6 +93,27 @@ const generateQR = async (data) => {
     console.error("Error generating QR code:", error);
     throw error;
   }
+};
+
+// Generate a unique code for table codes
+const generateUniqueTableCode = async () => {
+  // Generate a random string (8 characters)
+  const randomString = crypto.randomBytes(4).toString("hex").toUpperCase();
+
+  // Check if code already exists
+  const existingCode = await TableCode.findOne({ code: randomString });
+  if (existingCode) {
+    // Recursively generate a new code if this one exists
+    return generateUniqueTableCode();
+  }
+
+  return randomString;
+};
+
+// Generate a unique security token for QR code
+const generateSecurityToken = () => {
+  // Generate a random string (32 characters)
+  return crypto.randomBytes(16).toString("hex");
 };
 
 const addTableCode = async (req, res) => {
@@ -112,6 +136,14 @@ const addTableCode = async (req, res) => {
   }
 
   try {
+    // Generate unique code and security token
+    const code = await generateUniqueTableCode();
+    const securityToken = generateSecurityToken();
+
+    // Generate QR code with the security token
+    const qrData = securityToken;
+    const qrCodeDataUrl = await generateQR(qrData);
+
     const tableCodeData = {
       name,
       pax,
@@ -123,6 +155,9 @@ const addTableCode = async (req, res) => {
       paxChecked: paxChecked || 0, // Default value
       backstagePass: backstagePass || false,
       status: req.body.isAdmin ? "confirmed" : "pending",
+      code,
+      qrCodeData: qrCodeDataUrl,
+      securityToken,
       createdAt: new Date(),
     };
 
@@ -248,6 +283,9 @@ const generateCodePNGDownload = async (req, res) => {
         tableCode.tableNumber
       }_${tableCode.name.replace(/\s+/g, "_")}.png`,
       "Content-Length": pngBuffer.length,
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     });
 
     // Send the PNG
@@ -286,7 +324,7 @@ const generateCodePDF = async (req, res) => {
     }
 
     // Generate PDF
-    const pdfBuffer = await generateTablePDF(tableCode, event);
+    const { buffer } = await generateTablePDF(tableCode, event);
 
     // Set headers for PDF
     res.set({
@@ -294,11 +332,11 @@ const generateCodePDF = async (req, res) => {
       "Content-Disposition": `attachment; filename=Table_${
         tableCode.tableNumber
       }_${tableCode.name.replace(/\s+/g, "_")}.pdf`,
-      "Content-Length": pdfBuffer.length,
+      "Content-Length": buffer.length,
     });
 
     // Send the PDF
-    res.send(pdfBuffer);
+    res.send(buffer);
   } catch (error) {
     console.error("Error generating table code PDF:", error);
     res.status(500).json({
@@ -309,7 +347,7 @@ const generateCodePDF = async (req, res) => {
 };
 
 /**
- * Send a table code via email
+ * Send a table code via email - Updated to match the guest code email approach
  */
 const sendTableCodeEmail = async (req, res) => {
   try {
@@ -347,10 +385,10 @@ const sendTableCodeEmail = async (req, res) => {
     }
 
     // Get brand colors or use defaults
-    const primaryColor = event?.primaryColor || "#ffc807";
+    const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
 
-    // Generate PDF version of the code for email
-    const pdfBuffer = await generateTablePDF(tableCode, event);
+    // Generate PDF version of the code for email using the improved method
+    const { buffer: pdfBuffer } = await generateTablePDF(tableCode, event);
 
     // Set up the email sender using Brevo
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
@@ -366,7 +404,7 @@ const sendTableCodeEmail = async (req, res) => {
       },
     ];
 
-    // Prioritize startDate over date, similar to guestCodeController
+    // Prioritize startDate over date
     const eventDate = event?.startDate || event?.date;
     const formattedDate = formatCodeDate(eventDate);
     const formattedDateDE = formatDateDE(eventDate);
@@ -385,6 +423,9 @@ const sendTableCodeEmail = async (req, res) => {
           <p style="margin: 0 0 5px;"><strong>Table Number:</strong> ${
             tableCode.tableNumber
           }</p>
+          <p style="margin: 0 0 5px;"><strong>Unique Code:</strong> <span style="color: ${primaryColor}; font-weight: bold;">${
+      tableCode.code || "N/A"
+    }</span></p>
           <p style="margin: 0 0 5px;"><strong>People:</strong> ${
             tableCode.pax || 1
           }</p>
@@ -459,6 +500,7 @@ const sendTableCodeEmail = async (req, res) => {
         _id: tableCode._id,
         name: tableCode.name,
         tableNumber: tableCode.tableNumber,
+        code: tableCode.code,
       },
     });
   } catch (error) {
@@ -472,24 +514,30 @@ const sendTableCodeEmail = async (req, res) => {
 // Generate PNG image of a table code
 const generateTablePNG = async (tableCode, event) => {
   try {
-    // Generate a unique display code if it doesn't exist
-    // This is what will be shown to users - using tableNumber for simplicity
-    const displayCode = `TABLE-${tableCode.tableNumber}`;
+    // Use the stored code or generate a display code
+    const displayCode = tableCode.code || `TABLE-${tableCode.tableNumber}`;
 
-    // Generate QR code with the table ID
-    const qrData = tableCode._id.toString();
-    const qrCodeDataUrl = await generateQR(qrData);
+    // Generate QR code with the security token if it doesn't exist already
+    const qrCodeDataUrl =
+      tableCode.qrCodeData ||
+      (await generateQR(tableCode.securityToken || tableCode._id.toString()));
 
-    // Get brand colors or use defaults
-    const primaryColor = event?.primaryColor || "#ffc807";
-    const accentColor = "#000000";
+    // Force purple theme colors, ignore any event colors
+    const primaryColor = "#4A1D96"; // Enhanced vibrant purple
+    const accentColor = "#d4af37"; // Gold
+    const darkColor = "#301568"; // Darker purple for depth
+    const lightColor = "#f5f5f7"; // Very light gray for text areas
 
     // Get event start and end times
     const startTime = event?.startTime || "23:00";
     const endTime = event?.endTime || "06:00";
 
-    // Prioritize startDate over date, similar to guestCodeController
+    // Prioritize startDate over date
     const eventDate = event?.startDate || event?.date;
+
+    // Get formatted dates and day of week
+    const formattedDateDE = formatDateDE(eventDate);
+    const dayOfWeek = getDayOfWeek(eventDate);
 
     // Create HTML template for the PNG
     const htmlTemplate = `
@@ -503,62 +551,13 @@ const generateTablePNG = async (tableCode, event) => {
             font-family: 'Manrope', sans-serif;
             margin: 0;
             padding: 0;
-          }
-          
-          /* VIP QR code section with luxury pattern */
-          .qr-section {
             position: relative;
-            width: 100%;
-            height: 100%;
+            background: linear-gradient(135deg, ${primaryColor} 0%, ${darkColor} 100%);
+            width: 390px;
+            height: 760px;
             overflow: hidden;
-          }
-          
-          .qr-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(135deg, #000000 25%, #222222 25%, #222222 50%, #000000 50%, #000000 75%, #222222 75%, #222222 100%);
-            background-size: 20px 20px;
-            opacity: 1;
-          }
-          
-          .qr-gold-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
-          }
-          
-          .qr-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-          }
-          
-          .qr-code-image {
-            background-color: white;
-            width: 8rem;
-            height: 8rem;
-            border-radius: 0.5rem;
-            border: 3px solid ${primaryColor};
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-          }
-          
-          .qr-code-text {
-            position: absolute;
-            top: 1rem;
-            right: 1.5rem;
-            color: ${primaryColor};
-            font-weight: 600;
-            font-size: 0.8rem;
-            z-index: 20;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+            border-radius: 28px;
+            color: #222222;
           }
           
           /* Luxury background styling */
@@ -569,119 +568,271 @@ const generateTablePNG = async (tableCode, event) => {
             width: 100%;
             height: 100%;
             background-image: 
-              linear-gradient(135deg, 
-                rgba(255, 215, 0, 0.15) 25%, 
-                transparent 25%, 
-                transparent
+              repeating-linear-gradient(
+                -45deg,
+                rgba(212, 175, 55, 0.1),
+                rgba(212, 175, 55, 0.1) 2px,
+                transparent 2px,
+                transparent 8px
               );
-            background-size: 15px 15px;
             z-index: 1;
+          }
+          
+          /* Diagonal stripes for VIP section backgrounds */
+          .vip-bg-pattern {
+            background-image: 
+              linear-gradient(135deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(225deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(315deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(45deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0, 10px -10px, 0px 10px;
+          }
+          
+          .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3.25rem 2.313rem 0;
+            z-index: 2;
+          }
+          .header h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.85rem;
+            color: ${lightColor};
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+          }
+          .logo {
+            width: 3.5rem;
+            height: 3.5rem;
+            background-color: #000000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 2px ${accentColor};
+          }
+          .logo img {
+            max-width: 2.8rem;
+            max-height: 2.8rem;
+            object-fit: contain;
+          }
+          .main-content {
+            position: absolute;
+            width: 20.375rem;
+            height: 27rem;
+            background-color: ${lightColor};
+            border-radius: 1.75rem;
+            top: 7.5rem;
+            left: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(212, 175, 55, 0.3);
+            z-index: 2;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding-left: 2.438rem;
+          }
+          .info-section {
+            margin-top: 0.75rem;
+          }
+          .info-label {
+            margin: 0;
+            color: ${primaryColor};
+            font-weight: 600;
+            font-size: 0.625rem;
+            line-height: 1rem;
+            text-transform: uppercase;
+          }
+          .info-value {
+            margin: 0;
+            font-weight: 500;
+            font-size: 0.857rem;
+            line-height: 1.25rem;
+            color: #222;
+          }
+          .divider {
+            margin-top: 1.313rem;
+            margin-bottom: .3rem;
+            margin-left: 2.438rem;
+            border: 1px solid ${accentColor};
+            width: 15.5rem;
+          }
+          .table-number-section {
+            margin-top: 1.5rem;
+            padding: 0.75rem 2.438rem;
+            background: rgba(58, 26, 90, 0.07);
+          }
+          .qr-section {
+            position: absolute;
+            bottom: 2.938rem;
+            left: 2rem;
+            width: 20.375rem;
+            height: 10rem;
+            border-radius: 1.75rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(212, 175, 55, 0.3);
+            background-color: #222222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .qr-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+              45deg,
+              ${darkColor},
+              ${darkColor} 10px,
+              #121212 10px,
+              #121212 20px
+            );
+            opacity: 0.8;
+          }
+          .qr-gold-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+              circle at center,
+              rgba(212, 175, 55, 0.2) 0%,
+              rgba(212, 175, 55, 0) 70%
+            );
+          }
+          .qr-container {
+            position: relative;
+            background-color: white;
+            padding: 10px;
+            border-radius: 0.5rem;
+            border: 2px solid ${accentColor};
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 2;
+          }
+          .qr-code-image {
+            width: 8rem;
+            height: 8rem;
+            display: block;
+          }
+          .qr-code-text {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background-color: ${darkColor};
+            color: ${accentColor};
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            z-index: 3;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid ${accentColor};
           }
         </style>
       </head>
-      <body style="position: relative; background: linear-gradient(135deg, ${primaryColor} 0%, #e8b800 100%); width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
+      <body>
         <!-- Luxury background pattern overlay -->
         <div class="luxury-bg-pattern"></div>
         
         <!-- Header section with logo -->
-        <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 3.25rem 2.313rem 0; z-index: 2;">
-          <h1 style="margin: 0; font-weight: 700; font-size: 1.85rem; color: #000000; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);">Table Code</h1>
+        <div class="header">
+          <h1>Table Code</h1>
           ${
-            event.brand?.logo?.medium
-              ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);"><img src="${event.brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
-              : `<div style="width: 3.5rem; height: 3.5rem; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);">
-              <span style="color: white; font-weight: bold; font-size: 1.5rem;">${
-                event?.title?.charAt(0) || "E"
-              }</span>
-            </div>`
+            event?.brand?.logo?.medium
+              ? `<div class="logo"><img src="${event.brand.logo.medium}" alt="Brand logo"></div>`
+              : `<div class="logo"><span>${
+                  event?.brand?.name?.charAt(0) || "G"
+                }</span></div>`
           }
         </div>
         
-        <!-- Main content area - Whitish theme with improved contrast -->
-        <div style="position: absolute; width: 20.375rem; height: 27rem; background-color: #f5f5f5; border-radius: 1.75rem; top: 7.5rem; left: 2rem; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 2;">
-          
-          <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem; color: #222222;">${
+        <!-- Main content area -->
+        <div class="main-content vip-bg-pattern">
+          <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem;">${
             event?.title || "Event"
           }</h3>   
           
-          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
+          <div class="info-grid" style="margin-top: 1.5rem;">             
             <div>
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">LOCATION</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-                event?.location || event?.venue || ""
-              }</p>
+              <p class="info-label">LOCATION</p>
+              <p class="info-value">${event?.location || event?.venue || ""}</p>
               ${
-                event?.street
-                  ? `<p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${event.street}</p>`
+                event?.street ? `<p class="info-value">${event.street}</p>` : ""
+              }
+              ${
+                event?.address && !event?.street
+                  ? `<p class="info-value">${event.address}</p>`
                   : ""
               }
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-                event?.postalCode ? `${event.postalCode} ` : ""
-              }${event?.city || ""}</p>
+              ${
+                event?.postalCode || event?.city
+                  ? `<p class="info-value">${event.postalCode || ""} ${
+                      event.city || ""
+                    }</p>`
+                  : ""
+              }
             </div>
             <div>
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">DATE</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${dayOfWeek}</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${formattedDateDE}</p>
+              <p class="info-label">DATE</p>
+              <p class="info-value">${dayOfWeek}</p>
+              <p class="info-value">${formattedDateDE}</p>
             </div>
           </div>
           
-          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
-            <div> 
-              <div style="margin-top: 0.5rem;">
-                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">START</p>
-                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${startTime}</p>
-              </div>
+          <div class="info-grid" style="margin-top: 1.5rem;">
+            <div class="info-section"> 
+              <p class="info-label">START</p>
+              <p class="info-value">${startTime}</p>
             </div>
+            <div class="info-section">
+              <p class="info-label">END</p>
+              <p class="info-value">${endTime}</p>
+            </div>
+          </div>
+          
+          <div class="table-number-section">
+            <p class="info-label">TABLE NUMBER</p>
+            <p style="margin: 0; font-weight: 700; font-size: 1.25rem; line-height: 1.5rem; color: ${primaryColor};">${
+      tableCode.tableNumber
+    }</p>
+          </div>
+          
+          <div class="divider"></div>
 
-            <div style="margin-top: 0.5rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">END</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${endTime}</p>
-            </div>
-          </div>
-          
-          <!-- Table Number Section -->
-          <div style="margin-top: 1.5rem; padding-left: 2.438rem; padding-right: 2.438rem;">
-            <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">TABLE NUMBER</p>
-            <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-              tableCode.tableNumber
-            }</p>
-          </div>
-          
-          <div style="margin-top: 1.313rem; margin-bottom: .3rem; margin-left: 2.438rem; border: 1px solid ${primaryColor}; width: 15.5rem;"></div>
-
-          <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
-            <div style="margin-top: 0.75rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">GUEST</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-                tableCode.name
-              }</p>        
+          <div class="info-grid">
+            <div class="info-section">
+              <p class="info-label">GUEST</p>
+              <p class="info-value">${tableCode.name}</p>        
             </div>
             
-            <div style="margin-top: 0.75rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">PEOPLE</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-                tableCode.pax || 1
-              }</p>
+            <div class="info-section">
+              <p class="info-label">PEOPLE</p>
+              <p class="info-value">${tableCode.pax || 1}</p>
             </div>
           </div>
         </div>
 
-        <!-- QR Code section with luxury VIP-style background -->
-        <div style="position: absolute; bottom: 2.938rem; left: 2rem; width: 20.375rem; height: 10rem; border-radius: 1.75rem; overflow: hidden; z-index: 2; box-shadow: 0 8px 24px rgba(0,0,0,0.2);">
-          <div class="qr-section">
-            <!-- Luxury pattern background -->
-            <div class="qr-background"></div>
-            <!-- Gold radial overlay -->
-            <div class="qr-gold-overlay"></div>
-            <!-- Centered QR code -->
-            <div class="qr-container">
-              <img class="qr-code-image" src="${qrCodeDataUrl}"></img>
-            </div>
-            <!-- Floating code text -->
-            <div class="qr-code-text">
-              <p style="margin: 0;">${displayCode}</p>
-            </div>
+        <!-- QR Code section -->
+        <div class="qr-section">
+          <div class="qr-background"></div>
+          <div class="qr-gold-overlay"></div>
+          <div class="qr-container">
+            <img class="qr-code-image" src="${qrCodeDataUrl}" alt="QR code">
+          </div>
+          <div class="qr-code-text">
+            <p style="margin: 0;">${tableCode.code || displayCode}</p>
           </div>
         </div>
       </body>
@@ -694,19 +845,26 @@ const generateTablePNG = async (tableCode, event) => {
     });
     const page = await browser.newPage();
 
-    await page.setContent(htmlTemplate);
+    // Set content first
+    await page.setContent(htmlTemplate, {
+      waitUntil: "networkidle0",
+    });
+
     await page.emulateMediaType("screen");
 
-    // Generate PNG
+    // Set viewport to match the ticket dimensions (9:16 aspect ratio)
+    // IMPORTANT: Set viewport AFTER content is loaded
+    await page.setViewport({
+      width: 390,
+      height: 760,
+      deviceScaleFactor: 2.0, // Higher resolution for crisp image
+    });
+
+    // Generate PNG with high resolution
     const pngBuffer = await page.screenshot({
       type: "png",
-      omitBackground: true,
-      clip: {
-        x: 0,
-        y: 0,
-        width: 390,
-        height: 760,
-      },
+      fullPage: true,
+      omitBackground: false,
     });
 
     await browser.close();
@@ -718,74 +876,381 @@ const generateTablePNG = async (tableCode, event) => {
   }
 };
 
-// Generate PDF for a table code (mainly for email)
+// Generate PDF for a table code (used for email and download)
 const generateTablePDF = async (tableCode, event) => {
   try {
-    // Get the PNG buffer first using the updated PNG generation method
-    const pngBuffer = await generateTablePNG(tableCode, event);
+    // Force purple theme colors, ignore any event colors - EXACT SAME values as PNG
+    const primaryColor = "#4A1D96"; // Enhanced vibrant purple
+    const accentColor = "#d4af37"; // Gold
+    const darkColor = "#301568"; // Darker purple for depth
+    const lightColor = "#f5f5f7"; // Light background
 
-    // Create HTML template that will embed the PNG image
+    // Generate QR code
+    const qrData = tableCode.securityToken || tableCode._id.toString();
+    const qrCodeDataUrl = await generateQR(qrData);
+
+    // Format date - prioritize startDate over date
+    const eventDate = event?.startDate || event?.date;
+    const formattedDate = formatCodeDate(eventDate);
+    const formattedDateDE = formatDateDE(eventDate);
+    const dayOfWeek = getDayOfWeek(eventDate);
+
+    // Get event start and end times
+    const startTime = event?.startTime || "23:00";
+    const endTime = event?.endTime || "06:00";
+
+    // Generate a displayCode
+    const displayCode = `TABLE-${tableCode.tableNumber}`;
+
+    // Create HTML template for the table code - with luxury VIP style
     const htmlTemplate = `
     <html>
       <head>
+        <meta charset="UTF-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
+          @page {
+            margin: 0;
+            size: 390px 760px;
+          }
           body {
+            font-family: 'Manrope', sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            background-color: transparent;
-          }
-          .container {
+            position: relative;
+            background: linear-gradient(135deg, ${primaryColor} 0%, ${darkColor} 100%);
             width: 390px;
             height: 760px;
             overflow: hidden;
+            border-radius: 28px;
+            color: #222222;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          img {
+          
+          /* Luxury background styling */
+          .luxury-bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
+            background-image: 
+              repeating-linear-gradient(
+                -45deg,
+                rgba(212, 175, 55, 0.1),
+                rgba(212, 175, 55, 0.1) 2px,
+                transparent 2px,
+                transparent 8px
+              );
+            z-index: 1;
+          }
+          
+          /* Diagonal stripes for VIP section backgrounds */
+          .vip-bg-pattern {
+            background-image: 
+              linear-gradient(135deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(225deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(315deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%),
+              linear-gradient(45deg, rgba(212, 175, 55, 0.1) 25%, transparent 25%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0, 10px -10px, 0px 10px;
+          }
+          
+          .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3.25rem 2.313rem 0;
+            z-index: 2;
+          }
+          .header h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.85rem;
+            color: ${lightColor};
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+          }
+          .logo {
+            width: 3.5rem;
+            height: 3.5rem;
+            background-color: #000000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 2px ${accentColor};
+          }
+          .logo img {
+            max-width: 2.8rem;
+            max-height: 2.8rem;
             object-fit: contain;
+          }
+          .main-content {
+            position: absolute;
+            width: 20.375rem;
+            height: 27rem;
+            background-color: ${lightColor};
+            border-radius: 1.75rem;
+            top: 7.5rem;
+            left: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(212, 175, 55, 0.3);
+            z-index: 2;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding-left: 2.438rem;
+          }
+          .info-section {
+            margin-top: 0.75rem;
+          }
+          .info-label {
+            margin: 0;
+            color: ${primaryColor};
+            font-weight: 600;
+            font-size: 0.625rem;
+            line-height: 1rem;
+            text-transform: uppercase;
+          }
+          .info-value {
+            margin: 0;
+            font-weight: 500;
+            font-size: 0.857rem;
+            line-height: 1.25rem;
+            color: #222;
+          }
+          .divider {
+            margin-top: 1.313rem;
+            margin-bottom: .3rem;
+            margin-left: 2.438rem;
+            border: 1px solid ${accentColor};
+            width: 15.5rem;
+          }
+          .table-number-section {
+            margin-top: 1.5rem;
+            padding: 0.75rem 2.438rem;
+            background: rgba(58, 26, 90, 0.07);
+          }
+          .qr-section {
+            position: absolute;
+            bottom: 2.938rem;
+            left: 2rem;
+            width: 20.375rem;
+            height: 10rem;
+            border-radius: 1.75rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(212, 175, 55, 0.3);
+            background-color: #222222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .qr-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+              45deg,
+              ${darkColor},
+              ${darkColor} 10px,
+              #121212 10px,
+              #121212 20px
+            );
+            opacity: 0.8;
+          }
+          .qr-gold-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+              circle at center,
+              rgba(212, 175, 55, 0.2) 0%,
+              rgba(212, 175, 55, 0) 70%
+            );
+          }
+          .qr-container {
+            position: relative;
+            background-color: white;
+            padding: 10px;
+            border-radius: 0.5rem;
+            border: 2px solid ${accentColor};
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 2;
+          }
+          .qr-code-image {
+            width: 8rem;
+            height: 8rem;
+            display: block;
+          }
+          .qr-code-text {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background-color: ${darkColor};
+            color: ${accentColor};
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            z-index: 3;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid ${accentColor};
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          <img src="data:image/png;base64,${pngBuffer.toString(
-            "base64"
-          )}" alt="Table Code">
+        <!-- Luxury background pattern overlay -->
+        <div class="luxury-bg-pattern"></div>
+        
+        <!-- Header section with logo -->
+        <div class="header">
+          <h1>Table Code</h1>
+          ${
+            event?.brand?.logo?.medium
+              ? `<div class="logo"><img src="${event.brand.logo.medium}" alt="Brand logo"></div>`
+              : `<div class="logo"><span>${
+                  event?.brand?.name?.charAt(0) || "G"
+                }</span></div>`
+          }
+        </div>
+        
+        <!-- Main content area -->
+        <div class="main-content vip-bg-pattern">
+          <h3 style="padding-left: 2.438rem; font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; margin-top: 2.063rem;">${
+            event?.title || "Event"
+          }</h3>   
+          
+          <div class="info-grid" style="margin-top: 1.5rem;">             
+            <div>
+              <p class="info-label">LOCATION</p>
+              <p class="info-value">${event?.location || event?.venue || ""}</p>
+              ${
+                event?.street ? `<p class="info-value">${event.street}</p>` : ""
+              }
+              ${
+                event?.address && !event?.street
+                  ? `<p class="info-value">${event.address}</p>`
+                  : ""
+              }
+              ${
+                event?.postalCode || event?.city
+                  ? `<p class="info-value">${event.postalCode || ""} ${
+                      event.city || ""
+                    }</p>`
+                  : ""
+              }
+            </div>
+            <div>
+              <p class="info-label">DATE</p>
+              <p class="info-value">${dayOfWeek}</p>
+              <p class="info-value">${formattedDateDE}</p>
+            </div>
+          </div>
+          
+          <div class="info-grid" style="margin-top: 1.5rem;">
+            <div class="info-section"> 
+              <p class="info-label">START</p>
+              <p class="info-value">${startTime}</p>
+            </div>
+            <div class="info-section">
+              <p class="info-label">END</p>
+              <p class="info-value">${endTime}</p>
+            </div>
+          </div>
+          
+          <div class="table-number-section">
+            <p class="info-label">TABLE NUMBER</p>
+            <p style="margin: 0; font-weight: 700; font-size: 1.25rem; line-height: 1.5rem; color: ${primaryColor};">${
+      tableCode.tableNumber
+    }</p>
+          </div>
+          
+          <div class="divider"></div>
+
+          <div class="info-grid">
+            <div class="info-section">
+              <p class="info-label">GUEST</p>
+              <p class="info-value">${tableCode.name}</p>        
+            </div>
+            
+            <div class="info-section">
+              <p class="info-label">PEOPLE</p>
+              <p class="info-value">${tableCode.pax || 1}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Code section -->
+        <div class="qr-section">
+          <div class="qr-background"></div>
+          <div class="qr-gold-overlay"></div>
+          <div class="qr-container">
+            <img class="qr-code-image" src="${qrCodeDataUrl}" alt="QR code">
+          </div>
+          <div class="qr-code-text">
+            <p style="margin: 0;">${tableCode.code || displayCode}</p>
+          </div>
         </div>
       </body>
     </html>`;
 
-    // Launch puppeteer to generate PDF from the HTML that includes the PNG
+    // Launch puppeteer to directly generate PDF (without PNG intermediary)
     const browser = await puppeteer.launch({
       headless: "new",
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
     const page = await browser.newPage();
 
-    await page.setContent(htmlTemplate);
+    // Set content first
+    await page.setContent(htmlTemplate, {
+      waitUntil: "networkidle0",
+    });
+
     await page.emulateMediaType("screen");
 
-    // Generate PDF with 9:16 aspect ratio exactly like in guestCodeController.js
+    // Set viewport to match the ticket dimensions (9:16 aspect ratio)
+    await page.setViewport({
+      width: 390,
+      height: 760,
+      deviceScaleFactor: 2.0, // Higher resolution for crisp image
+    });
+
+    // Generate high-quality PDF
     const pdfBuffer = await page.pdf({
       width: "390px",
       height: "760px",
       printBackground: true,
+      preferCSSPageSize: true,
       margin: {
         top: "0px",
         right: "0px",
         bottom: "0px",
         left: "0px",
       },
+      scale: 1.0, // Ensure 1:1 scaling
     });
 
     await browser.close();
 
-    return pdfBuffer;
+    return {
+      buffer: pdfBuffer,
+      html: htmlTemplate,
+    };
   } catch (error) {
     console.error("Error generating table code PDF:", error);
     throw error;

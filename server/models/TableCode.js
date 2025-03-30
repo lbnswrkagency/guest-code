@@ -18,6 +18,15 @@ const TableCodeSchema = new Schema(
       enum: ["pending", "confirmed", "declined", "cancelled"],
       default: "pending",
     },
+    code: { type: String, unique: true },
+    qrCodeData: { type: String },
+    securityToken: { type: String },
+    emailedTo: [
+      {
+        email: { type: String },
+        sentAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,
