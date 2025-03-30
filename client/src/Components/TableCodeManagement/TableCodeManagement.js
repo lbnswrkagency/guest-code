@@ -648,19 +648,36 @@ function TableCodeManagement({
             <select
               value={editTableNumber}
               onChange={(e) => setEditTableNumber(e.target.value)}
+              className="table-select"
             >
-              {tableCategories[getCategoryForTable(code.tableNumber)].map(
-                (table) => (
-                  <option
-                    key={table}
-                    value={table}
-                    disabled={isTableBooked(table)}
-                  >
-                    {table} {isTableBooked(table) ? "(Unavailable)" : ""}
-                  </option>
-                )
-              )}
+              {categoryOrder.map((category) => (
+                <optgroup
+                  key={category}
+                  label={
+                    category === "djarea"
+                      ? "DJ Area"
+                      : category.charAt(0).toUpperCase() + category.slice(1)
+                  }
+                  style={{ color: tableColors[category] }}
+                >
+                  {tableCategories[category].map((table) => (
+                    <option
+                      key={table}
+                      value={table}
+                      disabled={isTableBooked(table)}
+                      style={{
+                        color: isTableBooked(table) ? "#888" : "#fff",
+                        fontWeight:
+                          table === code.tableNumber ? "bold" : "normal",
+                      }}
+                    >
+                      {table} {isTableBooked(table) ? "(Unavailable)" : ""}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
+
             <div className="edit-actions">
               <button onClick={handleEdit} className="action-btn">
                 ✓ Save
