@@ -285,27 +285,111 @@ const DashboardHeader = ({
               selectedBrand.events &&
               selectedBrand.events.length > 0 ? (
                 (() => {
-                  // Get current date without time component for more accurate date comparison
+                  // Get current date for comparison
                   const now = new Date();
 
-                  // Get unique dates and convert them to Date objects
-                  const dates = [
-                    ...new Set(
-                      selectedBrand.events
-                        .map((event) =>
-                          event.startDate
-                            ? new Date(event.startDate)
-                            : event.date
-                            ? new Date(event.date)
-                            : null
-                        )
-                        .filter(Boolean)
-                    ),
-                  ].sort((a, b) => a - b);
+                  // Process events to handle end dates and times properly
+                  const eventsWithEndDates = selectedBrand.events
+                    .map((event) => {
+                      // Get event start date (prioritize startDate over date)
+                      const startDate = event.startDate
+                        ? new Date(event.startDate)
+                        : event.date
+                        ? new Date(event.date)
+                        : null;
 
-                  // Separate past and future dates
-                  const pastDates = dates.filter((date) => date < now);
-                  const futureDates = dates.filter((date) => date >= now);
+                      if (!startDate) return null;
+
+                      // Get end date (either endDate or calculated from startDate + endTime)
+                      let endDate;
+
+                      if (event.endDate) {
+                        // If event has explicit end date, use it
+                        endDate = new Date(event.endDate);
+
+                        // If there's an endTime, set it on the end date
+                        if (event.endTime) {
+                          const [hours, minutes] = event.endTime
+                            .split(":")
+                            .map(Number);
+                          endDate.setHours(hours, minutes || 0, 0);
+                        }
+                      } else if (event.endTime && startDate) {
+                        // If only endTime exists, calculate endDate based on startDate
+                        endDate = new Date(startDate);
+                        const [hours, minutes] = event.endTime
+                          .split(":")
+                          .map(Number);
+
+                        // If end time is earlier than start time, it means it ends the next day
+                        if (event.startTime) {
+                          const [startHours, startMinutes] = event.startTime
+                            .split(":")
+                            .map(Number);
+                          if (
+                            hours < startHours ||
+                            (hours === startHours && minutes < startMinutes)
+                          ) {
+                            endDate.setDate(endDate.getDate() + 1);
+                          }
+                        }
+
+                        endDate.setHours(hours, minutes || 0, 0);
+                      } else {
+                        // If no end date/time info, assume event ends same day at 23:59
+                        endDate = new Date(startDate);
+                        endDate.setHours(23, 59, 59);
+                      }
+
+                      return {
+                        event,
+                        startDate,
+                        endDate,
+                        displayDate: startDate,
+                      };
+                    })
+                    .filter(Boolean); // Remove null items
+
+                  // Sort events by start date
+                  eventsWithEndDates.sort((a, b) => a.startDate - b.startDate);
+
+                  // Group by unique start dates (for UI display)
+                  const uniqueDates = [];
+                  const dateMap = {};
+
+                  eventsWithEndDates.forEach((item) => {
+                    const dateStr = item.startDate.toISOString().split("T")[0];
+                    if (!dateMap[dateStr]) {
+                      dateMap[dateStr] = true;
+                      uniqueDates.push({
+                        date: item.startDate,
+                        dateStr: dateStr,
+                      });
+                    }
+                  });
+
+                  // Separate past and active/future events based on end dates
+                  const pastDates = uniqueDates.filter((item) => {
+                    // Find all events for this date
+                    const dateEvents = eventsWithEndDates.filter(
+                      (e) =>
+                        e.startDate.toISOString().split("T")[0] === item.dateStr
+                    );
+
+                    // Date is considered past only if ALL events on that date have ended
+                    return dateEvents.every((e) => e.endDate < now);
+                  });
+
+                  const activeFutureDates = uniqueDates.filter((item) => {
+                    // Find all events for this date
+                    const dateEvents = eventsWithEndDates.filter(
+                      (e) =>
+                        e.startDate.toISOString().split("T")[0] === item.dateStr
+                    );
+
+                    // Date is active/future if ANY event on that date has not ended yet
+                    return dateEvents.some((e) => e.endDate >= now);
+                  });
 
                   // Get at most 1 past date (the most recent one)
                   const pastDate =
@@ -313,28 +397,32 @@ const DashboardHeader = ({
                       ? [pastDates[pastDates.length - 1]]
                       : [];
 
-                  // Get at most 3 future dates
-                  const limitedFutureDates = futureDates.slice(0, 3);
+                  // Get at most 3 future/active dates
+                  const limitedActiveFutureDates = activeFutureDates.slice(
+                    0,
+                    3
+                  );
 
                   // Combine and sort the final set of dates
-                  return [...pastDate, ...limitedFutureDates].map((date) => {
-                    const dateStr = date.toISOString().split("T")[0];
-                    return (
-                      <div
-                        key={dateStr}
-                        className={`date-option ${
-                          selectedDate === dateStr ? "selected" : ""
-                        }`}
-                        onClick={() => handleSelectDate(dateStr)}
-                      >
-                        {date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </div>
-                    );
-                  });
+                  return [...pastDate, ...limitedActiveFutureDates].map(
+                    (item) => {
+                      return (
+                        <div
+                          key={item.dateStr}
+                          className={`date-option ${
+                            selectedDate === item.dateStr ? "selected" : ""
+                          }`}
+                          onClick={() => handleSelectDate(item.dateStr)}
+                        >
+                          {item.date.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </div>
+                      );
+                    }
+                  );
                 })()
               ) : (
                 <div className="no-dates">No events found</div>

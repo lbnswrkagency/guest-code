@@ -34,9 +34,107 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
       }
 
       if (brandEvents.length > 0) {
-        // Sort events by date (closest to today first)
-        const sortedEvents = [...brandEvents].sort((a, b) => {
-          return new Date(a.date) - new Date(b.date);
+        const now = new Date();
+
+        // Process events to add calculated end dates
+        const processedEvents = brandEvents.map((event) => {
+          // Get start date (prioritize startDate over date)
+          const startDate = event.startDate
+            ? new Date(event.startDate)
+            : event.date
+            ? new Date(event.date)
+            : new Date(); // Fallback to now if no date
+
+          // Set start time if available
+          if (event.startTime) {
+            const [startHours, startMinutes] = event.startTime
+              .split(":")
+              .map(Number);
+            startDate.setHours(startHours, startMinutes || 0, 0);
+          }
+
+          // Get end date (either endDate or calculated from startDate + endTime)
+          let endDate;
+
+          if (event.endDate) {
+            // If event has explicit end date, use it
+            endDate = new Date(event.endDate);
+
+            // If there's an endTime, set it on the end date
+            if (event.endTime) {
+              const [hours, minutes] = event.endTime.split(":").map(Number);
+              endDate.setHours(hours, minutes || 0, 0);
+            }
+          } else if (event.endTime && startDate) {
+            // If only endTime exists, calculate endDate based on startDate
+            endDate = new Date(startDate);
+            const [hours, minutes] = event.endTime.split(":").map(Number);
+
+            // If end time is earlier than start time, it means it ends the next day
+            if (event.startTime) {
+              const [startHours, startMinutes] = event.startTime
+                .split(":")
+                .map(Number);
+              if (
+                hours < startHours ||
+                (hours === startHours && minutes < startMinutes)
+              ) {
+                endDate.setDate(endDate.getDate() + 1);
+              }
+            }
+
+            endDate.setHours(hours, minutes || 0, 0);
+          } else {
+            // If no end date/time info, assume event ends same day at 23:59
+            endDate = new Date(startDate);
+            endDate.setHours(23, 59, 59);
+          }
+
+          // Define event status
+          let status;
+          if (now >= startDate && now <= endDate) {
+            status = "active"; // Event is happening now
+          } else if (now < startDate) {
+            status = "upcoming"; // Event is in the future
+          } else {
+            status = "past"; // Event has ended
+          }
+
+          return {
+            ...event,
+            calculatedStartDate: startDate,
+            calculatedEndDate: endDate,
+            status,
+          };
+        });
+
+        // Sort events by status and then by date
+        const sortedEvents = processedEvents.sort((a, b) => {
+          // First, sort by status (active events first, then upcoming, then past)
+          if (a.status !== b.status) {
+            if (a.status === "active") return -1;
+            if (b.status === "active") return 1;
+            if (a.status === "upcoming") return -1;
+            if (b.status === "upcoming") return 1;
+          }
+
+          // Then, for active events, sort by end date (soonest ending first)
+          if (a.status === "active" && b.status === "active") {
+            return a.calculatedEndDate - b.calculatedEndDate;
+          }
+
+          // For upcoming events, sort by start date (soonest first)
+          if (a.status === "upcoming" && b.status === "upcoming") {
+            return a.calculatedStartDate - b.calculatedStartDate;
+          }
+
+          // For past events, sort by end date (most recent first)
+          if (a.status === "past" && b.status === "past") {
+            return b.calculatedEndDate - a.calculatedEndDate;
+          }
+
+          // Default sort by start date
+          return a.calculatedStartDate - b.calculatedStartDate;
         });
 
         setEvents(sortedEvents);
@@ -125,14 +223,61 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
 
   const isEventLive = (event) => {
     const now = new Date();
-    const eventDate = new Date(event.startDate);
 
-    // Check if today is the event date
-    return (
-      now.getDate() === eventDate.getDate() &&
-      now.getMonth() === eventDate.getMonth() &&
-      now.getFullYear() === eventDate.getFullYear()
-    );
+    // Get start date (prioritize startDate over date)
+    const startDate = event.startDate
+      ? new Date(event.startDate)
+      : event.date
+      ? new Date(event.date)
+      : null;
+
+    if (!startDate) return false;
+
+    // Get end date (either endDate or calculated from startDate + endTime)
+    let endDate;
+
+    if (event.endDate) {
+      // If event has explicit end date, use it
+      endDate = new Date(event.endDate);
+
+      // If there's an endTime, set it on the end date
+      if (event.endTime) {
+        const [hours, minutes] = event.endTime.split(":").map(Number);
+        endDate.setHours(hours, minutes || 0, 0);
+      }
+    } else if (event.endTime && startDate) {
+      // If only endTime exists, calculate endDate based on startDate
+      endDate = new Date(startDate);
+      const [hours, minutes] = event.endTime.split(":").map(Number);
+
+      // If end time is earlier than start time, it means it ends the next day
+      if (event.startTime) {
+        const [startHours, startMinutes] = event.startTime
+          .split(":")
+          .map(Number);
+        if (
+          hours < startHours ||
+          (hours === startHours && minutes < startMinutes)
+        ) {
+          endDate.setDate(endDate.getDate() + 1);
+        }
+      }
+
+      endDate.setHours(hours, minutes || 0, 0);
+    } else {
+      // If no end date/time info, assume event ends same day at 23:59
+      endDate = new Date(startDate);
+      endDate.setHours(23, 59, 59);
+    }
+
+    // Apply start time if available
+    if (event.startTime && startDate) {
+      const [startHours, startMinutes] = event.startTime.split(":").map(Number);
+      startDate.setHours(startHours, startMinutes || 0, 0);
+    }
+
+    // Event is live if current time is between start and end
+    return now >= startDate && now <= endDate;
   };
 
   return (
@@ -170,7 +315,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
                     <div
                       key={event._id || event.id}
                       className={`event-item ${
-                        isEventLive(event) ? "live" : ""
+                        event.status === "active" ? "active" : event.status
                       }`}
                       onClick={() => handleSelectEvent(event)}
                     >
@@ -182,8 +327,8 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
                             {event.title ? event.title.charAt(0) : "E"}
                           </div>
                         )}
-                        {isEventLive(event) && (
-                          <div className="live-badge">Live</div>
+                        {event.status === "active" && (
+                          <div className="active-badge">Active</div>
                         )}
                       </div>
                       <div className="event-details">

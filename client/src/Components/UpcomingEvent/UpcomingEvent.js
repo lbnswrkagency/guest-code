@@ -473,47 +473,114 @@ const UpcomingEvent = ({
 
       // Simplified filtering logic for upcoming events
       const now = new Date();
-      now.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
+      // Don't reset hours to 0 since we need exact time for comparison
 
-      const upcomingEvents = events
-        .filter((event) => {
-          try {
-            // First check for startDate (preferred) then fall back to date
-            const eventDate = event.startDate
-              ? new Date(event.startDate)
-              : new Date(event.date);
+      // Process events to calculate end dates/times
+      const processedEvents = events
+        .map((event) => {
+          // Skip events with no date information
+          if (!event.startDate && !event.date) return null;
 
-            // Keep full time information for better comparison
-            // Don't reset hours to 0 since we want to use the actual start time
+          // Get the start date (prioritize startDate over date)
+          const startDate = event.startDate
+            ? new Date(event.startDate)
+            : new Date(event.date);
 
-            // Current date with hours for better comparison
-            const currentDate = new Date();
+          // Calculate end date/time
+          let endDate;
 
-            // For weekly events
-            if (event.isWeekly) {
-              if (event.weekNumber === 0 || !event.weekNumber) {
-                // For parent events, show if date is today or future
-                return eventDate >= currentDate;
+          if (event.endDate) {
+            // If event has explicit end date, use it
+            endDate = new Date(event.endDate);
+
+            // If there's an endTime, set it on the end date
+            if (event.endTime) {
+              const [hours, minutes] = event.endTime.split(":").map(Number);
+              endDate.setHours(hours, minutes, 0, 0);
+            }
+          } else if (event.endTime && startDate) {
+            // If only endTime exists, calculate endDate based on startDate
+            endDate = new Date(startDate);
+            const [hours, minutes] = event.endTime.split(":").map(Number);
+
+            // If end time is earlier than start time, it means it ends the next day
+            if (event.startTime) {
+              const [startHours, startMinutes] = event.startTime
+                .split(":")
+                .map(Number);
+              if (
+                hours < startHours ||
+                (hours === startHours && minutes < startMinutes)
+              ) {
+                endDate.setDate(endDate.getDate() + 1);
               }
             }
 
-            // For regular events or weekly child events
-            return eventDate >= currentDate;
-          } catch (err) {
-            console.error("[UpcomingEvent] Error filtering event:", err, event);
-            return false;
+            endDate.setHours(hours, minutes, 0, 0);
+          } else {
+            // If no end date/time info, assume event ends same day at 23:59
+            endDate = new Date(startDate);
+            endDate.setHours(23, 59, 59, 999);
           }
+
+          // Apply start time if available
+          if (event.startTime && startDate) {
+            const [startHours, startMinutes] = event.startTime
+              .split(":")
+              .map(Number);
+            startDate.setHours(startHours, startMinutes || 0, 0);
+          }
+
+          // Determine event status
+          let status;
+          if (now >= startDate && now <= endDate) {
+            status = "active"; // Event is happening now
+          } else if (now < startDate) {
+            status = "upcoming"; // Event is in the future
+          } else {
+            status = "past"; // Event has ended
+          }
+
+          return {
+            ...event,
+            calculatedStartDate: startDate,
+            calculatedEndDate: endDate,
+            status,
+          };
         })
-        .sort((a, b) => {
-          // Sort by startDate if available, otherwise fall back to date
-          const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
-          const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
-          return dateA - dateB;
-        });
+        .filter(Boolean); // Remove null events
+
+      // Filter for active and upcoming events (not past)
+      const relevantEvents = processedEvents.filter((event) => {
+        // For weekly events, handle them differently
+        if (event.isWeekly) {
+          if (event.weekNumber === 0 || !event.weekNumber) {
+            // For parent events, always show if active or upcoming
+            return event.status === "active" || event.status === "upcoming";
+          }
+        }
+
+        // For regular events or weekly child events
+        return event.status === "active" || event.status === "upcoming";
+      });
+
+      // Sort with active events first, then upcoming events by start date
+      const upcomingEvents = relevantEvents.sort((a, b) => {
+        // First prioritize active events
+        if (a.status !== b.status) {
+          if (a.status === "active") return -1;
+          if (b.status === "active") return 1;
+        }
+
+        // Then sort by start date
+        return a.calculatedStartDate - b.calculatedStartDate;
+      });
 
       console.log("[UpcomingEvent] Filtered upcoming events:", {
         totalEvents: events.length,
+        processedEvents: processedEvents.length,
         upcomingEvents: upcomingEvents.length,
+        firstEventStatus: upcomingEvents[0]?.status,
         firstEventDate: upcomingEvents[0]?.startDate || upcomingEvents[0]?.date,
         now: new Date().toISOString(),
       });
@@ -558,7 +625,67 @@ const UpcomingEvent = ({
 
   // Helper function to get the best date field (prioritizing startDate over date)
   const getEventDate = (event) => {
+    // If we have calculated fields from our processing, use those
+    if (event.calculatedStartDate) {
+      return event.calculatedStartDate;
+    }
     return event.startDate || event.date;
+  };
+
+  // Helper function to check if an event is active
+  const isActive = (event) => {
+    // If we have processed the event and have a status
+    if (event.status) {
+      return event.status === "active";
+    }
+
+    // Fallback if status is not available - calculate it
+    const now = new Date();
+    const startDate = event.startDate
+      ? new Date(event.startDate)
+      : event.date
+      ? new Date(event.date)
+      : null;
+
+    if (!startDate) return false;
+
+    // Calculate end date/time
+    let endDate;
+    if (event.endDate) {
+      endDate = new Date(event.endDate);
+      if (event.endTime) {
+        const [hours, minutes] = event.endTime.split(":").map(Number);
+        endDate.setHours(hours, minutes, 0, 0);
+      }
+    } else if (event.endTime && startDate) {
+      endDate = new Date(startDate);
+      const [hours, minutes] = event.endTime.split(":").map(Number);
+
+      if (event.startTime) {
+        const [startHours, startMinutes] = event.startTime
+          .split(":")
+          .map(Number);
+        if (
+          hours < startHours ||
+          (hours === startHours && minutes < startMinutes)
+        ) {
+          endDate.setDate(endDate.getDate() + 1);
+        }
+      }
+
+      endDate.setHours(hours, minutes, 0, 0);
+    } else {
+      endDate = new Date(startDate);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // Apply start time
+    if (event.startTime && startDate) {
+      const [startHours, startMinutes] = event.startTime.split(":").map(Number);
+      startDate.setHours(startHours, startMinutes || 0, 0);
+    }
+
+    return now >= startDate && now <= endDate;
   };
 
   const formatDate = (dateString) => {

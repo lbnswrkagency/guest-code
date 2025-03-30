@@ -104,8 +104,17 @@
           background: rgba(255, 255, 255, 0.1);
         }
 
-        &.live {
+        &.active {
           border-left: 3px solid #ffc807;
+        }
+
+        &.upcoming {
+          border-left: 3px solid #4dabf7;
+        }
+
+        &.past {
+          border-left: 3px solid #868e96;
+          opacity: 0.8;
         }
 
         .event-image {
@@ -134,7 +143,7 @@
             font-size: 1.5rem;
           }
 
-          .live-badge {
+          .active-badge {
             position: absolute;
             top: 5px;
             right: 5px;

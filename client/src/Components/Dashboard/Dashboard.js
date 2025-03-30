@@ -339,8 +339,103 @@ const Dashboard = () => {
       // Skip if brand has no events
       if (brandEvents.length === 0) continue;
 
-      // Filter for valid events that have dates
-      const eventsWithDates = brandEvents.filter((event) => {
+      // First check for active events (ongoing right now)
+      const activeEvents = brandEvents.filter((event) => {
+        // Skip events without any date information
+        if (!event.startDate && !event.date) return false;
+
+        // Get the event date - prioritize startDate
+        const eventDate = event.startDate
+          ? new Date(event.startDate)
+          : new Date(event.date);
+
+        // Calculate end date/time
+        let eventEndDateTime;
+        if (event.endDate) {
+          // If event has explicit end date, use it
+          eventEndDateTime = new Date(event.endDate);
+
+          // If there's an endTime, set it on the end date
+          if (event.endTime) {
+            const [hours, minutes] = event.endTime.split(":").map(Number);
+            eventEndDateTime.setHours(hours, minutes, 0, 0);
+          }
+        } else if (event.endTime && eventDate) {
+          // If only endTime exists, calculate endDate based on eventDate
+          eventEndDateTime = new Date(eventDate);
+          const [hours, minutes] = event.endTime.split(":").map(Number);
+
+          // If end time is earlier than start time, it means it ends the next day
+          if (event.startTime) {
+            const [startHours, startMinutes] = event.startTime
+              .split(":")
+              .map(Number);
+            if (
+              hours < startHours ||
+              (hours === startHours && minutes < startMinutes)
+            ) {
+              eventEndDateTime.setDate(eventEndDateTime.getDate() + 1);
+            }
+          }
+
+          eventEndDateTime.setHours(hours, minutes, 0, 0);
+        } else {
+          // If no end date/time info, assume event ends same day at 23:59
+          eventEndDateTime = new Date(eventDate);
+          eventEndDateTime.setHours(23, 59, 59, 999);
+        }
+
+        // An event is active if it has started but not ended yet
+        return eventDate <= now && eventEndDateTime >= now;
+      });
+
+      // If we found active events, prioritize them over future events
+      if (activeEvents.length > 0) {
+        // Sort active events by end time (soonest ending first)
+        const sortedActiveEvents = activeEvents.sort((a, b) => {
+          const getEndDate = (event) => {
+            const baseDate = event.endDate
+              ? new Date(event.endDate)
+              : event.startDate
+              ? new Date(event.startDate)
+              : new Date(event.date);
+
+            if (event.endTime) {
+              const [hours, minutes] = event.endTime.split(":").map(Number);
+              baseDate.setHours(hours, minutes, 0, 0);
+
+              // If end time is earlier than start time, it's the next day
+              if (event.startTime) {
+                const [startHours, startMinutes] = event.startTime
+                  .split(":")
+                  .map(Number);
+                if (
+                  hours < startHours ||
+                  (hours === startHours && minutes < startMinutes)
+                ) {
+                  baseDate.setDate(baseDate.getDate() + 1);
+                }
+              }
+            }
+            return baseDate;
+          };
+
+          return getEndDate(a) - getEndDate(b);
+        });
+
+        // Use the active event with the soonest end time
+        const activeEvent = sortedActiveEvents[0];
+        nextEventBrand = brandWithData;
+        nextEventDate = new Date(activeEvent.startDate || activeEvent.date)
+          .toISOString()
+          .split("T")[0];
+
+        // This is active, so it has the highest priority
+        return { brand: nextEventBrand, date: nextEventDate };
+      }
+
+      // If no active events, filter for upcoming events
+      const upcomingEvents = brandEvents.filter((event) => {
         // Skip events without any date information
         if (!event.startDate && !event.date) return false;
 
@@ -350,11 +445,11 @@ const Dashboard = () => {
           : new Date(event.date);
 
         // Include time information for more accurate comparison
-        return eventDate >= now;
+        return eventDate > now;
       });
 
       // Sort by date (ascending)
-      const sortedEvents = eventsWithDates.sort((a, b) => {
+      const sortedEvents = upcomingEvents.sort((a, b) => {
         const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
         const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
         return dateA - dateB;
