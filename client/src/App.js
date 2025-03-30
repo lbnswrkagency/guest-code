@@ -37,12 +37,14 @@ import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
 import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
 import notificationManager from "./utils/notificationManager";
+import tokenService from "./utils/tokenService";
 
 // Main routing component
 const AppRoutes = () => {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const params = useParams();
+  const navigate = useNavigate();
 
   // Pre-build the user profile route if we have a user
   const userProfilePath = user ? `/@${user.username.trim()}` : null;
@@ -261,6 +263,47 @@ const AppRoutes = () => {
               ) {
                 return <AuthLoadingScreen />;
               }
+
+              // Only check for session expiration once (avoid repeated session checks)
+              const sessionCheckKey = `session-check-${params.brandUsername}`;
+              const hasCheckedSession = sessionStorage.getItem(sessionCheckKey);
+
+              if (!hasCheckedSession) {
+                // Check if we recently had a token but it's now missing or expired
+                const wasRecentlyAuthenticated =
+                  localStorage.getItem("wasAuthenticated") === "true";
+                const hasToken = tokenService.getToken();
+
+                // If we were recently authenticated and now the token is gone,
+                // it's likely a session expiration - redirect to login
+                if (
+                  wasRecentlyAuthenticated &&
+                  !hasToken &&
+                  params.brandUsername
+                ) {
+                  // Mark that we've checked this session
+                  sessionStorage.setItem(sessionCheckKey, "true");
+
+                  // Clear flag since we're handling the scenario
+                  localStorage.removeItem("wasAuthenticated");
+
+                  // Redirect to login with message
+                  navigate("/login", {
+                    state: {
+                      message: "Your session has expired. Please login again.",
+                      from: location.pathname,
+                    },
+                    replace: true,
+                  });
+
+                  // Return loading screen while redirect happens
+                  return <AuthLoadingScreen />;
+                }
+
+                // Mark that we've checked this session either way
+                sessionStorage.setItem(sessionCheckKey, "true");
+              }
+
               return <BrandProfile />;
             }}
           </RouteDebug>

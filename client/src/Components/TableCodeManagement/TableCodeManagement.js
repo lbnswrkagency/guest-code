@@ -613,32 +613,35 @@ function TableCodeManagement({
               }}
             >
               {isEditing ? (
-                <select
-                  value={editTableNumber}
-                  onChange={(e) => setEditTableNumber(e.target.value)}
-                  className="table-select-inline"
-                >
-                  {categoryOrder.map((category) => (
-                    <optgroup
-                      key={category}
-                      label={
-                        category === "djarea"
-                          ? "DJ Area"
-                          : category.charAt(0).toUpperCase() + category.slice(1)
-                      }
-                    >
-                      {tableCategories[category].map((table) => (
-                        <option
-                          key={table}
-                          value={table}
-                          disabled={isTableBooked(table)}
-                        >
-                          {table}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                <div className="table-select-inline-wrapper">
+                  <select
+                    value={editTableNumber}
+                    onChange={(e) => setEditTableNumber(e.target.value)}
+                    className="table-select-inline"
+                  >
+                    {categoryOrder.map((category) => (
+                      <optgroup
+                        key={category}
+                        label={
+                          category === "djarea"
+                            ? "DJ Area"
+                            : category.charAt(0).toUpperCase() +
+                              category.slice(1)
+                        }
+                      >
+                        {tableCategories[category].map((table) => (
+                          <option
+                            key={table}
+                            value={table}
+                            disabled={isTableBooked(table)}
+                          >
+                            {table}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
               ) : (
                 code.tableNumber
               )}

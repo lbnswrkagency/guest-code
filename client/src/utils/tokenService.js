@@ -46,30 +46,69 @@ class TokenService {
       clearInterval(this.sessionPingTimer);
     }
 
-    // Set up regular pings to keep session active
+    // Set up regular pings to keep session active - but only if we're in an active tab
     this.sessionPingTimer = setInterval(() => {
-      this.pingSession();
+      // Only ping if document is visible (active tab)
+      if (document.visibilityState === "visible") {
+        this.pingSession().catch((err) => {
+          // Silently catch errors - we don't want to trigger state changes
+          console.log(
+            "[TokenService] Session ping failed (handled):",
+            err.message
+          );
+        });
+      }
     }, this.PING_INTERVAL);
   }
 
-  // Lightweight call to keep session alive
+  /**
+   * Pings the server to keep the session alive
+   * Lightweight check that's useful for detecting expired sessions
+   */
   async pingSession() {
+    // Skip ping if no token available - don't throw error to avoid state changes
+    if (!this.getToken()) {
+      console.log("[TokenService] Skipping session ping - no token");
+      return { status: "no-token" };
+    }
+
     try {
-      const token = this.getToken();
-      // Only ping if we have a token
-      if (token) {
-        // First check if token needs refresh
-        if (this.isTokenExpiredOrNearExpiry(token)) {
-          await this.refreshToken();
-        } else {
-          // Just ping a lightweight endpoint
-          await this.axiosInstance.get("/auth/ping", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+      // Call the lightweight ping endpoint without setting the Authorization header directly
+      const response = await axios.get("/api/auth/ping-session", {
+        headers: {
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        // Add cache-busting to avoid cached responses
+        params: {
+          _t: new Date().getTime(),
+        },
+      });
+
+      // If we got a new token from the ping, update it without triggering state changes
+      if (response.data && response.data.tokenRefreshed) {
+        // Try to extract token from cookies instead of relying on response
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith("accessToken=")) {
+            const token = cookie.substring(
+              "accessToken=".length,
+              cookie.length
+            );
+            if (token) {
+              // Update token in storage but avoid state changes
+              localStorage.setItem("token", token);
+              // Don't update axiosInstance here to avoid triggering changes
+            }
+          }
         }
       }
+
+      return response.data;
     } catch (error) {
-      console.log("Session ping failed, will retry on next interval");
+      // Don't throw error to avoid propagating to AuthContext unnecessarily
+      console.log("[TokenService] Ping session failed:", error.message);
+      return { status: "error", message: error.message };
     }
   }
 

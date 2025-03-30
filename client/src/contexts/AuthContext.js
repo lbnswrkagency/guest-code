@@ -89,7 +89,25 @@ const AuthProviderWithRouter = ({ children }) => {
 
   // Check auth state when path changes
   useEffect(() => {
+    // Skip if auth isn't initialized yet
+    if (!authInitialized) return;
+
+    // Skip redundant checks by tracking the last checked path
+    const lastCheckedPath = sessionStorage.getItem("last-auth-check-path");
+    if (lastCheckedPath === location.pathname) {
+      return;
+    }
+
     const checkAuthState = async () => {
+      // Store the path we're currently checking
+      sessionStorage.setItem("last-auth-check-path", location.pathname);
+
+      // Handle ambiguous @username routes that might be dashboard or brand profile
+      const isAmbiguousRoute =
+        location.pathname.startsWith("/@") &&
+        !location.pathname.includes("/e/") &&
+        !/\d{6}/.test(location.pathname);
+
       // Determine if this route needs authentication
       const requiresAuth = pathsRequiringAuth.some((path) => {
         // Convert path params to regex parts
@@ -109,9 +127,28 @@ const AuthProviderWithRouter = ({ children }) => {
         return; // Skip the auth check completely
       }
 
-      if (requiresAuth) {
+      // For ambiguous routes or routes requiring auth, check authentication
+      if (isAmbiguousRoute || requiresAuth) {
         setLoading(true);
         const token = tokenService.getToken();
+
+        // Only compute these values if needed
+        let currentUsername = null;
+        let routeUsername = null;
+        let isPotentialDashboard = false;
+
+        if (isAmbiguousRoute) {
+          currentUsername = user?.username;
+          routeUsername = location.pathname.startsWith("/@")
+            ? location.pathname.substring(2).split("/")[0]
+            : null;
+
+          // Check if this might be the user's dashboard based on URL pattern
+          isPotentialDashboard =
+            routeUsername &&
+            currentUsername &&
+            routeUsername.toLowerCase() === currentUsername.toLowerCase();
+        }
 
         // If no token or token is expired/near expiry
         if (!token || tokenService.isTokenExpiredOrNearExpiry(token)) {
@@ -119,7 +156,25 @@ const AuthProviderWithRouter = ({ children }) => {
             await tokenService.refreshToken();
             await fetchUserData();
           } catch (error) {
-            navigate("/login", { state: { from: location } });
+            console.log(
+              "[AuthContext] Auth failed on route:",
+              location.pathname
+            );
+
+            // If this is potentially the user's dashboard or requires auth, redirect to login
+            if (isPotentialDashboard || requiresAuth) {
+              console.log(
+                "[AuthContext] Redirecting from potential dashboard to login"
+              );
+              navigate("/login", {
+                state: {
+                  from: isPotentialDashboard
+                    ? `/@${currentUsername}`
+                    : location.pathname,
+                  message: "Your session has expired. Please login again.",
+                },
+              });
+            }
           }
         } else {
           try {
@@ -130,7 +185,25 @@ const AuthProviderWithRouter = ({ children }) => {
               await tokenService.refreshToken();
               await fetchUserData();
             } catch (refreshError) {
-              navigate("/login", { state: { from: location } });
+              console.log(
+                "[AuthContext] Auth refresh failed on route:",
+                location.pathname
+              );
+
+              // If this is potentially the user's dashboard or requires auth, redirect to login
+              if (isPotentialDashboard || requiresAuth) {
+                console.log(
+                  "[AuthContext] Redirecting from potential dashboard to login after refresh failure"
+                );
+                navigate("/login", {
+                  state: {
+                    from: isPotentialDashboard
+                      ? `/@${currentUsername}`
+                      : location.pathname,
+                    message: "Your session has expired. Please login again.",
+                  },
+                });
+              }
             }
           }
         }
@@ -139,10 +212,8 @@ const AuthProviderWithRouter = ({ children }) => {
       }
     };
 
-    if (authInitialized) {
-      checkAuthState();
-    }
-  }, [location.pathname, authInitialized, navigate, location]);
+    checkAuthState();
+  }, [location.pathname, authInitialized, navigate]);
 
   // Handle auth:required events (session expiration)
   useEffect(() => {
@@ -226,9 +297,50 @@ const AuthProviderWithRouter = ({ children }) => {
     }
   }, [user, dispatch, authInitialized]);
 
+  // Add heartbeat ping to detect mobile browser issues
+  useEffect(() => {
+    if (user) {
+      // Set up heartbeat to check token validity
+      const heartbeatInterval = setInterval(async () => {
+        try {
+          // Try to refresh token to maintain session
+          // Just update the wasAuthenticated flag without causing state changes
+          // Don't await on the ping as it may cause re-renders
+          localStorage.setItem("wasAuthenticated", "true");
+
+          // Don't call pingSession here as it may trigger state updates
+          // instead use a direct check against expiry
+          const token = tokenService.getToken();
+          if (token && tokenService.isTokenExpiredOrNearExpiry(token)) {
+            try {
+              await tokenService.refreshToken();
+            } catch (error) {
+              console.log(
+                "[AuthContext] Token refresh in heartbeat failed:",
+                error
+              );
+              // Don't trigger any state changes here
+            }
+          }
+        } catch (error) {
+          console.log("[AuthContext] Heartbeat check failed:", error);
+          // Don't do anything that would trigger state changes
+        }
+      }, 5 * 60 * 1000); // Check every 5 minutes
+
+      return () => clearInterval(heartbeatInterval);
+    }
+  }, [user?._id]); // Only depend on user ID, not the entire user object
+
   // Define our custom user setter that updates local state
   const setUserWithRedux = (userData) => {
     setUser(userData);
+    // Set a flag in localStorage to indicate the user was authenticated
+    if (userData) {
+      localStorage.setItem("wasAuthenticated", "true");
+    } else {
+      localStorage.removeItem("wasAuthenticated");
+    }
     // Redux sync is handled by the useEffect above
   };
 
@@ -245,6 +357,9 @@ const AuthProviderWithRouter = ({ children }) => {
       // Store tokens using token service
       tokenService.setToken(token);
       tokenService.setRefreshToken(refreshToken);
+
+      // Set a flag in localStorage that user was authenticated
+      localStorage.setItem("wasAuthenticated", "true");
 
       // Prepare the user data object
       let userData = null;
@@ -283,6 +398,9 @@ const AuthProviderWithRouter = ({ children }) => {
       tokenService.clearTokens();
       tokenService.cleanup();
 
+      // Clean up authentication flag
+      localStorage.removeItem("wasAuthenticated");
+
       setUser(null);
       setLoading(false);
       navigate("/login");
@@ -290,6 +408,10 @@ const AuthProviderWithRouter = ({ children }) => {
       // Even on error, clean up tokens and navigate to login
       tokenService.clearTokens();
       tokenService.cleanup();
+
+      // Clean up authentication flag
+      localStorage.removeItem("wasAuthenticated");
+
       setUser(null);
       setLoading(false);
       navigate("/login");

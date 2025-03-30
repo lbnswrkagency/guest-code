@@ -237,6 +237,9 @@
             }
 
             .table-select-inline {
+              -webkit-appearance: none;
+              -moz-appearance: none;
+              appearance: none;
               width: 100%;
               height: 100%;
               background: transparent;
@@ -245,7 +248,7 @@
               font-weight: bold;
               font-size: 1rem;
               text-align: center;
-              appearance: none;
+              text-align-last: center;
               cursor: pointer;
               padding: 0;
 
@@ -265,7 +268,7 @@
               }
             }
 
-            // Add a visual indicator that it's selectable
+            // Add a more robust visual indicator that it's selectable
             &:has(.table-select-inline) {
               cursor: pointer;
 
@@ -294,6 +297,48 @@
 
               &:hover:before {
                 opacity: 1;
+              }
+            }
+
+            /* Fallback for browsers that don't support :has() */
+            .table-select-inline-wrapper {
+              position: relative;
+              width: 100%;
+              height: 100%;
+
+              &:after {
+                content: "▼";
+                position: absolute;
+                bottom: 0.25rem;
+                right: 0.25rem;
+                font-size: 0.6rem;
+                opacity: 0.8;
+                pointer-events: none;
+                z-index: 1;
+              }
+
+              &:hover:before {
+                opacity: 1;
+              }
+
+              &:before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+                border-radius: 0.4rem;
+                z-index: 1;
+              }
+            }
+
+            /* iOS Safari specific styles */
+            @supports (-webkit-touch-callout: none) {
+              .table-select-inline {
+                text-align-last: center;
+                padding-bottom: 2px; /* Slight adjustment for iOS centering */
               }
             }
           }
@@ -367,6 +412,9 @@
             }
 
             .edit-pax-select {
+              -webkit-appearance: none;
+              -moz-appearance: none;
+              appearance: none;
               background: rgba(0, 0, 0, 0.4);
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
@@ -374,16 +422,18 @@
               padding: 2px 8px;
               font-size: 0.9rem;
               font-weight: 600;
-              appearance: none;
               cursor: pointer;
               position: relative;
               min-width: 2.5rem;
               text-align: center;
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%23fff' d='M4 6L0 0h8z'/%3E%3C/svg%3E");
-              background-repeat: no-repeat;
-              background-position: right 0.3rem center;
-              padding-right: 1.2rem;
+              padding-right: 1.5rem;
               transition: all 0.2s ease;
+
+              /* More robust dropdown arrow */
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23ffffff' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
+              background-repeat: no-repeat;
+              background-position: calc(100% - 6px) center;
+              background-size: 10px;
 
               &:focus {
                 outline: none;
@@ -400,6 +450,32 @@
                 background-color: #2a2a2a;
                 color: white;
                 padding: 4px;
+                font-weight: normal;
+              }
+
+              /* iOS Safari specific styles */
+              @supports (-webkit-touch-callout: none) {
+                background-color: rgba(30, 30, 30, 0.95);
+                padding-right: 2rem;
+                text-align-last: center;
+
+                /* Simplify the background arrow for iOS */
+                background-image: none;
+
+                /* Add position relative for the custom arrow */
+                position: relative;
+
+                /* Add custom arrow using ::after for iOS */
+                &::after {
+                  content: "▼";
+                  position: absolute;
+                  right: 8px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  pointer-events: none;
+                  font-size: 8px;
+                  opacity: 0.8;
+                }
               }
             }
           }
