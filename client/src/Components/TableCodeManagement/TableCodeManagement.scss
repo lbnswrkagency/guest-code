@@ -73,13 +73,45 @@
     gap: 1rem;
 
     .reservation-item {
-      margin-bottom: 15px;
-      padding: 15px;
-      background-color: rgba(0, 0, 0, 0.4);
-      border-radius: 8px;
-      overflow: hidden;
-      transition: all 0.2s ease;
+      background: rgba(21, 21, 21, 0.8);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+      position: relative;
+      overflow: visible !important;
 
+      // Paper texture overlay
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+        border-radius: 12px;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.4;
+        mix-blend-mode: overlay;
+      }
+
+      @media (max-width: 768px) {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: 0.5rem;
+        gap: 0.75rem;
+      }
+
+      // Specific status styles with left borders
       &.confirmed {
         border-left: 3px solid #28a745;
       }
@@ -94,16 +126,16 @@
         opacity: 0.7;
       }
 
-      &.checked-in {
-        background-color: rgba(40, 167, 69, 0.2);
-      }
-
       &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        border-color: rgba(255, 200, 7, 0.3);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        animation: subtle-float 3s ease infinite;
       }
 
+      // Checked-in styles
       &.checked-in {
+        background-color: rgba(40, 167, 69, 0.15);
         position: relative;
         overflow: hidden;
 
@@ -155,281 +187,240 @@
         flex-wrap: wrap;
         gap: 10px;
         width: 100%;
+        position: relative;
+        z-index: 2;
 
         .reservation-info {
-          display: grid;
-          grid-template-columns: auto 1fr;
-          gap: 12px;
+          flex: 1;
+          display: flex;
           align-items: center;
+          gap: 1rem;
+          min-width: 0;
 
-          .table-number {
+          .table-number-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3rem;
+            height: 3rem;
+            min-width: 3rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(45deg, #7b1fa2, #9c27b0);
+            margin-right: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
             font-weight: bold;
             font-size: 1.2rem;
-            grid-row: 1 / span 2;
+            color: white;
+
+            @media (max-width: 768px) {
+              width: 2.5rem;
+              height: 2.5rem;
+              min-width: 2.5rem;
+              font-size: 1rem;
+            }
+
+            &:hover {
+              transform: scale(1.05);
+              box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            }
           }
 
-          .guest-name {
-            font-weight: 500;
-            font-size: 1rem;
+          .guest-details {
+            min-width: 0;
+            flex: 1;
+
+            .guest-name {
+              font-size: 1.1rem;
+              font-weight: 600;
+              color: white;
+              margin: 0;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+
+              @media (max-width: 768px) {
+                font-size: 1rem;
+              }
+            }
+
+            .host-name {
+              font-size: 0.8rem;
+              color: rgba(255, 255, 255, 0.5);
+              margin-top: 0.25rem;
+            }
+
+            .status-badge {
+              display: inline-block;
+              padding: 0.2rem 0.5rem;
+              border-radius: 4px;
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              font-weight: 500;
+              margin-top: 0.25rem;
+
+              &.confirmed {
+                background-color: rgba(40, 167, 69, 0.2);
+                color: #28a745;
+              }
+
+              &.pending {
+                background-color: rgba(255, 193, 7, 0.2);
+                color: #ffc107;
+              }
+
+              &.declined,
+              &.cancelled {
+                background-color: rgba(220, 53, 69, 0.2);
+                color: #dc3545;
+              }
+            }
+          }
+        }
+
+        .pax-count-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0 1.25rem;
+          border-left: 1px solid rgba(255, 255, 255, 0.1);
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+          height: 3rem;
+          position: relative;
+          z-index: 2;
+
+          @media (max-width: 768px) {
+            border-left: none;
+            border-right: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.75rem 0;
+            height: auto;
+            justify-content: center;
           }
 
-          .pax-count {
+          .people-icon {
             color: rgba(255, 255, 255, 0.7);
-            font-size: 0.8rem;
-
-            .checked-count {
-              margin-left: 0.25rem;
-              color: #28a745;
-            }
+            font-size: 1.25rem;
           }
 
-          .status-badge {
-            grid-column: 2;
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            font-weight: 500;
-            margin-right: auto;
-
-            &.confirmed {
-              background-color: rgba(40, 167, 69, 0.2);
-              color: #28a745;
-            }
-
-            &.pending {
-              background-color: rgba(255, 193, 7, 0.2);
-              color: #ffc107;
-            }
-
-            &.declined,
-            &.cancelled {
-              background-color: rgba(220, 53, 69, 0.2);
-              color: #dc3545;
-            }
+          .people-count {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
           }
 
-          .host-name {
-            grid-column: 2;
-            font-size: 0.75rem;
+          .people-separator {
+            font-size: 0.9rem;
             color: rgba(255, 255, 255, 0.5);
+            margin: 0 0.25rem;
+          }
+
+          .people-max {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+          }
+
+          .checked-count {
+            margin-left: 0.25rem;
+            color: #28a745;
           }
         }
 
         .reservation-actions {
           display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-          margin-top: 0.5rem;
+          gap: 0.75rem;
+          position: relative;
+          z-index: 2;
 
-          @media (min-width: 480px) {
-            margin-top: 0;
+          @media (max-width: 768px) {
+            justify-content: space-between;
+            width: 100%;
           }
 
-          .action-btn {
-            width: 32px;
-            height: 32px;
+          button {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.5rem;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
-            border: none;
-            background-color: #f5f5f7;
-            cursor: pointer;
-            font-size: 16px;
+            font-size: 1.4rem;
+
+            @media (max-width: 768px) {
+              width: 3.2rem;
+              height: 3.2rem;
+              font-size: 1.5rem;
+            }
 
             &:hover {
-              background-color: #e5e5e7;
+              transform: translateY(-2px);
+            }
+
+            svg {
+              width: 1.4rem;
+              height: 1.4rem;
             }
 
             &.confirm {
-              color: #28a745;
-              background-color: rgba(40, 167, 69, 0.1);
               &:hover {
-                background-color: rgba(40, 167, 69, 0.2);
+                background: rgba(40, 167, 69, 0.2);
+                color: #28a745;
               }
             }
 
             &.decline,
-            &.cancel {
-              color: #dc3545;
-              background-color: rgba(220, 53, 69, 0.1);
+            &.cancel,
+            &.delete {
               &:hover {
-                background-color: rgba(220, 53, 69, 0.2);
+                background: rgba(220, 53, 69, 0.2);
+                color: #dc3545;
               }
             }
 
             &.view {
-              color: #17a2b8;
-              background-color: rgba(23, 162, 184, 0.1);
               &:hover {
-                background-color: rgba(23, 162, 184, 0.2);
+                background: rgba(76, 175, 80, 0.2);
+                color: #4caf50;
               }
             }
 
             &.download {
-              color: #6610f2;
-              background-color: rgba(102, 16, 242, 0.1);
               &:hover {
-                background-color: rgba(102, 16, 242, 0.2);
+                background: rgba(255, 193, 7, 0.2);
+                color: #ffc107;
               }
             }
 
             &.email {
-              color: #007bff;
-              background-color: rgba(0, 123, 255, 0.1);
               &:hover {
-                background-color: rgba(0, 123, 255, 0.2);
+                background: rgba(156, 39, 176, 0.2);
+                color: #9c27b0;
               }
             }
 
             &.edit {
-              color: #fd7e14;
-              background-color: rgba(253, 126, 20, 0.1);
               &:hover {
-                background-color: rgba(253, 126, 20, 0.2);
-              }
-            }
-
-            &.delete {
-              color: #dc3545;
-              background-color: rgba(220, 53, 69, 0.1);
-              &:hover {
-                background-color: rgba(220, 53, 69, 0.2);
+                background: rgba(33, 150, 243, 0.2);
+                color: #2196f3;
               }
             }
 
             &.reset {
-              color: #6f42c1;
-              background-color: rgba(111, 66, 193, 0.1);
               &:hover {
-                background-color: rgba(111, 66, 193, 0.2);
+                background: rgba(111, 66, 193, 0.2);
+                color: #6f42c1;
               }
             }
           }
         }
       }
-    }
-  }
-
-  .reservation-details {
-    padding: 0.75rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-
-    @media (min-width: 480px) {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-
-  .reservation-info {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.5rem 1rem;
-    align-items: center;
-
-    .table-number {
-      font-weight: 700;
-      font-size: 1.1rem;
-      grid-row: 1 / span 2;
-    }
-
-    .guest-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .pax-count {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.8rem;
-
-      .checked-count {
-        margin-left: 0.25rem;
-        color: #28a745;
-      }
-    }
-
-    .status-badge {
-      grid-column: 2;
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      font-weight: 500;
-      margin-right: auto;
-
-      &.confirmed {
-        background-color: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-      }
-
-      &.pending {
-        background-color: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-      }
-
-      &.declined,
-      &.cancelled {
-        background-color: rgba(220, 53, 69, 0.2);
-        color: #dc3545;
-      }
-    }
-
-    .host-name {
-      grid-column: 2;
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-
-  .reservation-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    margin-top: 0.5rem;
-
-    @media (min-width: 480px) {
-      margin-top: 0;
-    }
-  }
-
-  .action-btn {
-    background: none;
-    border: none;
-    padding: 0.3rem;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    img {
-      width: 20px;
-      height: 20px;
-    }
-
-    &:hover {
-      opacity: 0.7;
-    }
-
-    &.confirm {
-      color: #28a745;
-    }
-
-    &.decline,
-    &.delete,
-    &.cancel {
-      color: #dc3545;
-    }
-
-    &.edit {
-      color: #ffc107;
     }
   }
 
@@ -496,14 +487,30 @@
         border: none;
         cursor: pointer;
 
-        &:first-child {
-          background-color: #4caf50;
-          color: white;
+        &.save-edit-btn {
+          background: rgba(76, 175, 80, 0.2);
+          color: #4caf50;
+          font-size: 1.1rem;
+          font-weight: bold;
+
+          &:hover {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+            transform: translateY(-2px);
+          }
         }
 
-        &:last-child {
-          background-color: #f44336;
-          color: white;
+        &.cancel-edit-btn {
+          background: rgba(244, 67, 54, 0.2);
+          color: #f44336;
+          font-size: 1.1rem;
+          font-weight: bold;
+
+          &:hover {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+            transform: translateY(-2px);
+          }
         }
       }
     }
@@ -532,6 +539,54 @@
     img {
       width: 100%;
       height: auto;
+    }
+  }
+
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    color: white;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+
+      &::before {
+        transform: translateX(100%);
+      }
+    }
+
+    &:active {
+      transform: translateY(-1px);
     }
   }
 
@@ -819,38 +874,106 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      border: none;
-      border-radius: 50%;
       width: 40px;
       height: 40px;
-      font-size: 20px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
       display: flex;
       justify-content: center;
       align-items: center;
+      font-size: 20px;
       cursor: pointer;
-      transition: background 0.3s ease;
+      z-index: 1010;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.8);
+        background-color: rgba(50, 50, 50, 0.9);
+        transform: scale(1.1);
       }
     }
 
     .png-container {
-      max-width: 80%;
-      max-height: 90vh;
+      max-width: 100%;
+      max-height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
 
       img {
         max-width: 100%;
-        max-height: 100%;
+        max-height: 100vh;
         object-fit: contain;
-        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-        border-radius: 10px;
+        animation: imageFadeIn 0.5s ease;
+      }
+    }
+  }
+
+  @keyframes imageFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes subtle-float {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .table-code-management {
+    .reservations-list {
+      .reservation-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+
+        .reservation-details {
+          .reservation-info {
+            width: 100%;
+          }
+
+          .pax-count-badge {
+            border-left: none;
+            border-right: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            padding: 0.5rem 0;
+            height: auto;
+            justify-content: center;
+          }
+
+          .reservation-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
       }
     }
   }

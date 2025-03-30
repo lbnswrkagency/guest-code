@@ -36,6 +36,8 @@ function TableCodeManagement({
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [cancelCodeId, setCancelCodeId] = useState(null);
 
+  const [visibleCodes, setVisibleCodes] = useState(10);
+
   const tableColors = {
     djarea: "#ffd700", // Gold for DJ Area tables
     backstage: "#80221c", // Rich red for backstage
@@ -655,10 +657,10 @@ function TableCodeManagement({
             </select>
 
             <div className="edit-actions">
-              <button onClick={handleEdit} className="action-btn">
+              <button onClick={handleEdit} className="save-edit-btn">
                 ✓ Save
               </button>
-              <button onClick={resetEditFields} className="action-btn">
+              <button onClick={resetEditFields} className="cancel-edit-btn">
                 ✕ Cancel
               </button>
             </div>
@@ -666,27 +668,30 @@ function TableCodeManagement({
         ) : (
           <div className="reservation-details">
             <div className="reservation-info">
-              <span
-                className="table-number"
+              <div
+                className="table-number-badge"
                 style={{
-                  color: tableColors[getCategoryForTable(code.tableNumber)],
+                  background: `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
                 }}
               >
                 {code.tableNumber}
+              </div>
+              <div className="guest-details">
+                <div className="guest-name">{code.name}</div>
+                <div className="host-name">Host: {code.host}</div>
+                <span className={`status-badge ${code.status}`}>
+                  {code.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="pax-count-badge">
+              <span className="people-icon">👥</span>
+              <span className="people-count">
+                {code.paxChecked > 0 ? code.paxChecked : 0}
               </span>
-              <span className="guest-name">{code.name}</span>
-              <span className="pax-count">
-                {code.pax} People
-                {code.paxChecked > 0 && (
-                  <span className="checked-count">
-                    ({code.paxChecked}/{code.pax} in)
-                  </span>
-                )}
-              </span>
-              <span className={`status-badge ${code.status}`}>
-                {code.status}
-              </span>
-              <span className="host-name">Host: {code.host}</span>
+              <span className="people-separator">/</span>
+              <span className="people-max">{code.pax}</span>
             </div>
 
             <div className="reservation-actions">
@@ -696,7 +701,7 @@ function TableCodeManagement({
                   {code.status === "pending" && (
                     <>
                       <button
-                        className="action-btn confirm"
+                        className="confirm"
                         onClick={() =>
                           handleStatusChange(code._id, "confirmed")
                         }
@@ -705,21 +710,21 @@ function TableCodeManagement({
                         ✓
                       </button>
                       <button
-                        className="action-btn decline"
+                        className="decline"
                         onClick={() => handleStatusChange(code._id, "declined")}
                         title="Decline"
                       >
                         ✕
                       </button>
                       <button
-                        className="action-btn edit"
+                        className="edit"
                         onClick={() => startEdit(code)}
                         title="Edit"
                       >
                         ✏️
                       </button>
                       <button
-                        className="action-btn delete"
+                        className="delete"
                         onClick={() => handleDeleteClick(code._id)}
                         title="Delete"
                       >
@@ -730,35 +735,35 @@ function TableCodeManagement({
                   {code.status === "confirmed" && (
                     <>
                       <button
-                        className="action-btn view"
+                        className="view"
                         onClick={() => handleCodeView(code._id)}
                         title="View QR"
                       >
                         👁️
                       </button>
                       <button
-                        className="action-btn download"
+                        className="download"
                         onClick={() => handleDownload(code._id)}
                         title="Download"
                       >
                         📥
                       </button>
                       <button
-                        className="action-btn email"
+                        className="email"
                         onClick={() => handleSendEmail(code._id)}
                         title="Send Email"
                       >
                         📧
                       </button>
                       <button
-                        className="action-btn edit"
+                        className="edit"
                         onClick={() => startEdit(code)}
                         title="Edit"
                       >
                         ✏️
                       </button>
                       <button
-                        className="action-btn cancel"
+                        className="cancel"
                         onClick={() => handleCancelClick(code._id)}
                         title="Cancel Reservation"
                       >
@@ -769,14 +774,14 @@ function TableCodeManagement({
                   {["declined", "cancelled"].includes(code.status) && (
                     <>
                       <button
-                        className="action-btn reset"
+                        className="reset"
                         onClick={() => handleStatusChange(code._id, "pending")}
                         title="Reset to Pending"
                       >
                         🔄
                       </button>
                       <button
-                        className="action-btn delete"
+                        className="delete"
                         onClick={() => handleDeleteClick(code._id)}
                         title="Delete"
                       >
@@ -793,14 +798,14 @@ function TableCodeManagement({
                       {code.status === "pending" && (
                         <>
                           <button
-                            className="action-btn edit"
+                            className="edit"
                             onClick={() => startEdit(code)}
                             title="Edit"
                           >
                             ✏️
                           </button>
                           <button
-                            className="action-btn delete"
+                            className="delete"
                             onClick={() => handleDeleteClick(code._id)}
                             title="Delete"
                           >
@@ -811,28 +816,28 @@ function TableCodeManagement({
                       {code.status === "confirmed" && (
                         <>
                           <button
-                            className="action-btn view"
+                            className="view"
                             onClick={() => handleCodeView(code._id)}
                             title="View QR"
                           >
                             👁️
                           </button>
                           <button
-                            className="action-btn download"
+                            className="download"
                             onClick={() => handleDownload(code._id)}
                             title="Download"
                           >
                             📥
                           </button>
                           <button
-                            className="action-btn email"
+                            className="email"
                             onClick={() => handleSendEmail(code._id)}
                             title="Send Email"
                           >
                             📧
                           </button>
                           <button
-                            className="action-btn cancel"
+                            className="cancel"
                             onClick={() => handleCancelClick(code._id)}
                             title="Cancel Reservation"
                           >
@@ -849,6 +854,10 @@ function TableCodeManagement({
         )}
       </div>
     );
+  };
+
+  const loadMore = () => {
+    setVisibleCodes((prev) => prev + 10);
   };
 
   return (
@@ -974,13 +983,34 @@ function TableCodeManagement({
               (code) => user.isAdmin || code.hostId === user._id
             );
 
-            return categoryItems?.length > 0 ? (
+            // Only show first "visibleCodes" items
+            const visibleItems = categoryItems?.slice(0, visibleCodes);
+
+            return visibleItems?.length > 0 ? (
               <div key={category} className="table-category">
                 {renderCategoryTitle(category)}
-                {categoryItems.map((code) => renderCodeItem(code))}
+                {visibleItems.map((code) => renderCodeItem(code))}
               </div>
             ) : null;
           })}
+
+          {/* Load More Button */}
+          {codes.length > visibleCodes && (
+            <button
+              className="load-more-btn"
+              onClick={loadMore}
+              style={
+                selectedEvent?.primaryColor
+                  ? {
+                      backgroundColor: `${selectedEvent.primaryColor}20`,
+                      borderColor: `${selectedEvent.primaryColor}40`,
+                    }
+                  : {}
+              }
+            >
+              Load More Reservations
+            </button>
+          )}
         </div>
       )}
     </div>
