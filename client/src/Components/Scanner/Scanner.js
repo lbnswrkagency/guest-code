@@ -184,6 +184,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       if (/^[A-Z0-9]{8}$/.test(data)) {
         codeType = "Short Code";
         // No need to modify data, codeToValidate already set to data
+        console.log("Detected 8-character alphanumeric code:", data);
       } else {
         // Check if the data is JSON
         let codeData;
@@ -307,6 +308,18 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       try {
         // Single API call to validate the code - will handle security tokens, IDs, and code values
         const response = await axiosInstance.post("/qr/validate", payload);
+
+        // Log TableCode validation details
+        if (response.data.typeOfTicket === "Table-Code") {
+          console.log("TableCode validation successful:", {
+            id: response.data._id,
+            code: response.data.code,
+            status: response.data.status,
+            tableNumber: response.data.tableNumber,
+            pax: response.data.pax,
+            paxChecked: response.data.paxChecked,
+          });
+        }
 
         // If the ticket doesn't belong to the selected event, show an error
         if (

@@ -25,6 +25,40 @@ const validateTicket = async (req, res) => {
 
     // Check if ticketId is a URL and extract the securityToken if it is
     let securityTokenToCheck = ticketId;
+
+    // Special handling for 8-character alphanumeric codes like "402A0264" which are TableCode codes
+    if (/^[A-Z0-9]{8}$/.test(ticketId)) {
+      console.log("Detected 8-character alphanumeric code format:", ticketId);
+
+      // Try to find in TableCode directly by code field
+      const tableCodeByShortCode = await TableCode.findOne({
+        code: ticketId,
+      });
+
+      if (tableCodeByShortCode) {
+        console.log(
+          "Found TableCode by short code format:",
+          tableCodeByShortCode._id,
+          "with status:",
+          tableCodeByShortCode.status
+        );
+
+        ticket = tableCodeByShortCode;
+        typeOfTicket = "Table-Code";
+
+        // Get event information
+        if (ticket.event) {
+          eventId = ticket.event;
+          const Event = require("../models/eventsModel");
+          event = await Event.findById(ticket.event);
+        }
+
+        // Get host name
+        hostName = ticket.host || "Unknown Host";
+      }
+    }
+
+    // Handle URL format tickets
     if (ticketId.includes("/validate/")) {
       try {
         // First check if it's a full URL
@@ -32,27 +66,23 @@ const validateTicket = async (req, res) => {
 
         // For URLs, extract just the path part
         if (ticketId.includes("http")) {
-          try {
-            const url = new URL(ticketId);
-            urlToProcess = url.pathname;
-            console.log("Extracted path from URL:", urlToProcess);
-          } catch (urlError) {
-            console.log(
-              "Error parsing full URL, treating as path:",
-              urlError.message
-            );
-          }
+          const url = new URL(ticketId);
+          urlToProcess = url.pathname;
+          console.log("Extracted path from URL:", urlToProcess);
         }
 
         // Extract the security token (last part after /)
         const urlParts = urlToProcess.split("/").filter((part) => part.trim());
         if (urlParts.length > 0) {
           const securityToken = urlParts[urlParts.length - 1];
-          console.log("Extracted security token from URL:", securityToken);
 
           // Validate that it looks like a security token (alphanumeric, reasonable length)
           if (securityToken && securityToken.length >= 8) {
             securityTokenToCheck = securityToken;
+            console.log(
+              "Extracted security token from URL:",
+              securityTokenToCheck
+            );
           }
         }
       } catch (error) {
@@ -163,7 +193,11 @@ const validateTicket = async (req, res) => {
       if (tableCodeBySecurityToken) {
         console.log(
           "Found TableCode by securityToken:",
-          tableCodeBySecurityToken._id
+          tableCodeBySecurityToken._id,
+          "with status:",
+          tableCodeBySecurityToken.status,
+          "and code value:",
+          tableCodeBySecurityToken.code
         );
         ticket = tableCodeBySecurityToken;
         typeOfTicket = "Table-Code";
@@ -191,6 +225,35 @@ const validateTicket = async (req, res) => {
 
         // Get host name
         hostName = ticket.host || "Unknown Host";
+      } else {
+        // Try by code field directly
+        console.log("Trying to find TableCode by code field:", ticketId);
+        const tableCodeByCode = await TableCode.findOne({
+          code: ticketId,
+        });
+
+        if (tableCodeByCode) {
+          console.log(
+            "Found TableCode by code field:",
+            tableCodeByCode._id,
+            "with status:",
+            tableCodeByCode.status,
+            "and security token:",
+            tableCodeByCode.securityToken
+          );
+          ticket = tableCodeByCode;
+          typeOfTicket = "Table-Code";
+
+          // Get event information if available
+          if (ticket.event) {
+            eventId = ticket.event;
+            const Event = require("../models/eventsModel");
+            event = await Event.findById(ticket.event);
+          }
+
+          // Get host name
+          hostName = ticket.host || "Unknown Host";
+        }
       }
     }
     // Check if this is a security token in the Ticket model
@@ -478,18 +541,6 @@ const validateTicket = async (req, res) => {
     // If no ticket was found, return an error
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
-    }
-
-    // Check if code is active (for new code model)
-    if (
-      ticket.status &&
-      ticket.status !== "active" &&
-      ticket.status !== "valid"
-    ) {
-      return res.status(400).json({
-        message: `Code is ${ticket.status}`,
-        status: ticket.status,
-      });
     }
 
     // Get event details if we haven't already and the ticket has an eventId
