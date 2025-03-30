@@ -116,7 +116,7 @@ const updateCodeStatus = async (req, res) => {
 };
 
 const fetchCodes = async (req, res) => {
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, eventId } = req.query;
   const type = req.params.type;
 
   try {
@@ -145,6 +145,9 @@ const fetchCodes = async (req, res) => {
         break;
       case "table":
         model = TableCode;
+        if (eventId) {
+          query.event = eventId;
+        }
         break;
       default:
         return res.status(400).send("Invalid code type");

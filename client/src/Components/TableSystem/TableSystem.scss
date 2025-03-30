@@ -10,9 +10,14 @@
     margin: 0 auto;
     background: #111;
     border-radius: 16px;
-
     display: grid;
     flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  &-content {
+    padding-top: 15px; // Add space to prevent navigation overlap
+    display: grid;
     gap: 1.5rem;
   }
 
@@ -182,44 +187,6 @@
     }
   }
 
-  .table-navigation {
-    @include grid(3);
-
-    justify-self: center;
-    grid-gap: 1rem;
-    background-color: #000;
-    border-radius: 1rem;
-    padding: 0.25rem 0.25rem;
-
-    &-button {
-      background: none;
-      border: none;
-      font-weight: 800;
-      color: #fff;
-      font-size: 1.5rem;
-      align-self: center;
-      display: grid;
-
-      img {
-        align-self: center;
-      }
-    }
-
-    button:nth-child(1) {
-      justify-self: start;
-    }
-
-    &-date {
-      justify-self: center;
-      align-self: center;
-      text-transform: uppercase;
-    }
-
-    button:nth-child(3) {
-      justify-self: end;
-    }
-  }
-
   &-download {
     text-align: center;
 
@@ -237,6 +204,24 @@
         background: darken(#28a745, 10%);
         transform: translateY(-1px);
       }
+    }
+  }
+
+  .no-event-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    margin: 30px 0;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    text-align: center;
+
+    p {
+      font-size: 18px;
+      color: #ffffff;
+      opacity: 0.8;
     }
   }
 }
@@ -281,4 +266,37 @@
   100% {
     transform: rotate(720deg);
   }
+}
+
+// Loading state and empty state styling
+.loading-state,
+.no-reservations {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  margin: 20px 0;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  text-align: center;
+
+  p {
+    font-size: 16px;
+    color: #ffffff;
+    opacity: 0.7;
+    margin: 5px 0;
+  }
+
+  p:first-child {
+    font-weight: 500;
+    opacity: 0.9;
+  }
+}
+
+// Additional style for TableCodeManagement
+.table-code-management {
+  margin-top: 20px;
+  padding-bottom: 20px;
 }

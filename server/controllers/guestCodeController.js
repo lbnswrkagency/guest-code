@@ -119,8 +119,8 @@ const generateGuestCodePDF = async (code, event) => {
     // Generate QR code
     const qrCodeDataUrl = await generateGuestCodeQR(code.securityToken);
 
-    // Format date
-    const eventDate = formatGuestCodeDate(event?.date);
+    // Format date - prioritize startDate over date
+    const eventDate = formatGuestCodeDate(event?.startDate || event?.date);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -501,7 +501,7 @@ const generateGuestCode = async (req, res) => {
       .populate("brand")
       .populate("lineups")
       .select(
-        "title date startTime endTime location street address postalCode city brand lineups venue"
+        "title date startDate startTime endTime location street address postalCode city brand lineups venue"
       );
     if (!event) {
       console.log("[GuestCode] Event not found:", eventId);

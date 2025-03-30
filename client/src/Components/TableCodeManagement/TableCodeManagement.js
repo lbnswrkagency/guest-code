@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import "./TableCodeManagement.scss";
-import moment from "moment";
 
 function TableCodeManagement({
   user,
@@ -11,6 +10,8 @@ function TableCodeManagement({
   dataInterval,
   tableCategories,
   refreshTrigger,
+  selectedEvent,
+  counts = { tableCounts: [] },
 }) {
   const [codes, setCodes] = useState([]);
   const [codesByCategory, setCodesByCategory] = useState({});
@@ -20,9 +21,15 @@ function TableCodeManagement({
   const [editTableNumber, setEditTableNumber] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteCodeId, setDeleteCodeId] = useState(null);
-  const [codeViewUrl, setCodeViewUrl] = useState("");
   const [showCodeView, setShowCodeView] = useState(false);
+  const [pngUrl, setPngUrl] = useState("");
+  const [showPngModal, setShowPngModal] = useState(false);
   const [tablesBookedCount, setTablesBookedCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSendEmailModal, setShowSendEmailModal] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [selectedCodeId, setSelectedCodeId] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const tableColors = {
     djarea: "#ffd700", // Gold for DJ Area tables
@@ -53,56 +60,88 @@ function TableCodeManagement({
   };
 
   useEffect(() => {
-    const fetchCodes = async () => {
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
-          {
-            params: {
-              startDate: dataInterval.startDate.toISOString(),
-              endDate: dataInterval.endDate.toISOString(),
-            },
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
+    if (selectedEvent && selectedEvent._id) {
+      fetchCodes();
+    }
+  }, [selectedEvent, refreshTrigger]);
+
+  const fetchCodes = async () => {
+    if (!selectedEvent || !selectedEvent._id) {
+      console.log("No selectedEvent or selectedEvent._id available");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log(
+        "Fetching table codes for event:",
+        selectedEvent._id,
+        "with date range:",
+        dataInterval.startDate.toISOString(),
+        "to",
+        dataInterval.endDate.toISOString()
+      );
+
+      // The server expects startDate and endDate parameters
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
+        {
+          params: {
+            eventId: selectedEvent._id,
+            startDate: dataInterval.startDate.toISOString(),
+            endDate: dataInterval.endDate.toISOString(),
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const fetchedCodes = response.data;
+      console.log(`Successfully fetched ${fetchedCodes.length} table codes`);
+
+      // Sort and group the codes
+      const groupedCodes = categoryOrder.reduce((acc, category) => {
+        acc[category] = fetchedCodes.filter(
+          (code) => getCategoryForTable(code.tableNumber) === category
         );
+        return acc;
+      }, {});
 
-        const fetchedCodes = response.data.filter((code) => {
-          const codeDate = moment(code.createdAt);
-          const isInRange = codeDate.isBetween(
-            dataInterval.startDate,
-            dataInterval.endDate,
-            undefined,
-            "[]"
-          );
+      setCodesByCategory(groupedCodes);
+      setCodes(fetchedCodes);
 
-          return isInRange;
-        });
+      // Calculate total booked tables
+      const activeTableCodes = fetchedCodes.filter(
+        (code) => code.status !== "declined" && code.status !== "cancelled"
+      );
+      setTablesBookedCount(activeTableCodes.length);
+    } catch (error) {
+      console.error("=== Fetch Error ===", error);
 
-        // Sort and group the codes...
-        const groupedCodes = categoryOrder.reduce((acc, category) => {
-          acc[category] = fetchedCodes.filter(
-            (code) => getCategoryForTable(code.tableNumber) === category
-          );
-          return acc;
-        }, {});
-
-        setCodesByCategory(groupedCodes);
-        setCodes(fetchedCodes);
-      } catch (error) {
-        console.error("=== Fetch Error ===", error);
-        toast.error("Failed to fetch table reservations");
+      // Detailed error logging
+      if (error.response) {
+        console.error(
+          "Response error:",
+          error.response.status,
+          error.response.data
+        );
+      } else if (error.request) {
+        console.error("Request error:", error.request);
+      } else {
+        console.error("Error message:", error.message);
       }
-    };
 
-    fetchCodes();
-  }, [
-    dataInterval.startDate.toISOString(),
-    dataInterval.endDate.toISOString(),
-    refreshCounts,
-    refreshTrigger,
-  ]);
+      toast.error("Failed to fetch table reservations");
+
+      // Reset states to empty when there's an error
+      setCodesByCategory({});
+      setCodes([]);
+      setTablesBookedCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Compute total tables and tables left
   const totalTables = Object.values(tableCategories).reduce(
@@ -120,6 +159,7 @@ function TableCodeManagement({
   const confirmDelete = async () => {
     setShowConfirmDelete(false);
     if (deleteCodeId) {
+      setIsLoading(true);
       try {
         toast.loading("Deleting reservation...");
         await axios.delete(
@@ -133,9 +173,26 @@ function TableCodeManagement({
         toast.dismiss();
         toast.success("Reservation deleted successfully");
         refreshCounts();
+        fetchCodes();
       } catch (error) {
         console.error("Error deleting reservation", error);
+
+        // Detailed error logging
+        if (error.response) {
+          console.error(
+            "Response error:",
+            error.response.status,
+            error.response.data
+          );
+        } else if (error.request) {
+          console.error("Request error:", error.request);
+        } else {
+          console.error("Error message:", error.message);
+        }
+
         toast.error("Failed to delete reservation");
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -198,6 +255,7 @@ function TableCodeManagement({
   };
 
   const handleStatusChange = async (codeId, newStatus) => {
+    setIsLoading(true);
     try {
       toast.loading("Updating status...");
       await axios.put(
@@ -212,17 +270,37 @@ function TableCodeManagement({
       toast.dismiss();
       toast.success("Status updated successfully");
       refreshCounts();
+      fetchCodes();
     } catch (error) {
       console.error("Error updating status:", error);
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(
+          "Response error:",
+          error.response.status,
+          error.response.data
+        );
+      } else if (error.request) {
+        console.error("Request error:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
+
       toast.error("Failed to update status");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleCodeView = async (codeId) => {
     try {
-      toast.loading("Loading QR code...");
+      setIsLoading(true);
+      toast.loading("Preparing your table code...");
+
+      // Use the PNG endpoint for viewing
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/code/${codeId}`,
+        `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png`,
         {
           responseType: "blob",
           headers: {
@@ -230,21 +308,55 @@ function TableCodeManagement({
           },
         }
       );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      setCodeViewUrl(url);
-      setShowCodeView(true);
-      toast.dismiss();
+
+      // Convert blob to data URL
+      const reader = new FileReader();
+      reader.readAsDataURL(response.data);
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        setPngUrl(base64data);
+        setShowPngModal(true);
+        toast.dismiss();
+        setIsLoading(false);
+      };
     } catch (error) {
-      console.error("Error displaying code:", error);
-      toast.error("Failed to load QR code");
+      console.error("Error viewing code:", error);
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(
+          "Response error:",
+          error.response.status,
+          error.response.data
+        );
+      } else if (error.request) {
+        console.error("Request error:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
+
+      toast.dismiss();
+      toast.error("Failed to view the table code");
+      setIsLoading(false);
     }
   };
 
   const handleDownload = async (codeId) => {
     try {
-      toast.loading("Preparing download...");
+      setIsLoading(true);
+      toast.loading("Downloading table code as PNG...");
+
+      // Get the code to determine filename
+      const code = codes.find((c) => c._id === codeId);
+      if (!code) {
+        toast.error("Code not found");
+        setIsLoading(false);
+        return;
+      }
+
+      // Use the PNG download endpoint
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/code/${codeId}`,
+        `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png-download`,
         {
           responseType: "blob",
           headers: {
@@ -253,28 +365,112 @@ function TableCodeManagement({
         }
       );
 
-      // Find the code object
-      const code = codes.find((c) => c._id === codeId);
-
-      // Create a filename based on the code's name and type
-      let filename = `${code.name}-TableCode.png`;
-
-      // Sanitize filename
-      filename = filename.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-
-      // Use response.data directly as it's already a Blob
-      const url = window.URL.createObjectURL(response.data);
+      // Create a blob URL and trigger download
+      const blob = new Blob([response.data], { type: "image/png" });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", filename);
+      link.setAttribute(
+        "download",
+        `Table_${code.tableNumber}_${code.name.replace(/\s+/g, "_")}.png`
+      );
       document.body.appendChild(link);
       link.click();
-      link.parentNode.removeChild(link);
-      toast.dismiss();
-      toast.success("Code downloaded successfully.");
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        setIsLoading(false);
+        toast.dismiss();
+        toast.success("Table code downloaded successfully");
+      }, 500);
     } catch (error) {
       console.error("Error downloading code:", error);
-      toast.error("Failed to download the code.");
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(
+          "Response error:",
+          error.response.status,
+          error.response.data
+        );
+      } else if (error.request) {
+        console.error("Request error:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
+
+      toast.dismiss();
+      toast.error("Failed to download the table code");
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendEmail = (codeId) => {
+    // Find the code to get the guest name for the email
+    const code = codes.find((c) => c._id === codeId);
+    if (code) {
+      setEmailRecipient(code.email || ""); // Use existing email if available
+      setSelectedCodeId(codeId);
+      setShowSendEmailModal(true);
+    }
+  };
+
+  const confirmSendEmail = async () => {
+    if (!emailRecipient || !selectedCodeId) {
+      toast.error("Email address is required");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailRecipient)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingEmail(true);
+    setIsLoading(true);
+    try {
+      toast.loading("Sending email...");
+
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/table/code/${selectedCodeId}/send`,
+        { email: emailRecipient },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      toast.dismiss();
+      toast.success("Table code sent successfully");
+      setShowSendEmailModal(false);
+      setEmailRecipient("");
+      setSelectedCodeId(null);
+    } catch (error) {
+      console.error("Error sending email:", error);
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(
+          "Response error:",
+          error.response.status,
+          error.response.data
+        );
+      } else if (error.request) {
+        console.error("Request error:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
+
+      toast.dismiss();
+      toast.error("Failed to send email");
+    } finally {
+      setIsSendingEmail(false);
+      setIsLoading(false);
     }
   };
 
@@ -286,6 +482,7 @@ function TableCodeManagement({
   };
 
   const handleEdit = async () => {
+    setIsLoading(true);
     try {
       toast.loading("Updating reservation...");
       await axios.put(
@@ -304,11 +501,14 @@ function TableCodeManagement({
       toast.dismiss();
       toast.success("Reservation updated successfully");
       refreshCounts();
+      fetchCodes();
       setEditCodeId(null);
       resetEditFields();
     } catch (error) {
       console.error("Error updating reservation:", error);
       toast.error("Failed to update reservation");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -464,6 +664,13 @@ function TableCodeManagement({
                         <img src="/image/download-icon.svg" alt="Download" />
                       </button>
                       <button
+                        className="action-btn email"
+                        onClick={() => handleSendEmail(code._id)}
+                        title="Send Email"
+                      >
+                        <img src="/image/email-icon.svg" alt="Send Email" />
+                      </button>
+                      <button
                         className="action-btn edit"
                         onClick={() => startEdit(code)}
                         title="Edit"
@@ -526,14 +733,14 @@ function TableCodeManagement({
                       {code.status === "confirmed" && (
                         <>
                           <button
-                            className="action-btn"
+                            className="action-btn view"
                             onClick={() => handleCodeView(code._id)}
                             title="View QR"
                           >
                             <img src="/image/show-icon.svg" alt="View QR" />
                           </button>
                           <button
-                            className="action-btn"
+                            className="action-btn download"
                             onClick={() => handleDownload(code._id)}
                             title="Download"
                           >
@@ -543,7 +750,14 @@ function TableCodeManagement({
                             />
                           </button>
                           <button
-                            className="action-btn"
+                            className="action-btn email"
+                            onClick={() => handleSendEmail(code._id)}
+                            title="Send Email"
+                          >
+                            <img src="/image/email-icon.svg" alt="Send Email" />
+                          </button>
+                          <button
+                            className="action-btn cancel"
                             onClick={() =>
                               handleStatusChange(code._id, "cancelled")
                             }
@@ -567,13 +781,49 @@ function TableCodeManagement({
   return (
     <div className="table-code-management">
       <Toaster />
-      {showCodeView && (
-        <div
-          className="code-view-overlay"
-          onClick={() => setShowCodeView(false)}
-        >
-          <div className="code-view-content">
-            <img src={codeViewUrl} alt="QR Code" />
+
+      {/* PNG View Modal - Fullscreen */}
+      {showPngModal && (
+        <div className="code-png-modal">
+          <button className="close-btn" onClick={() => setShowPngModal(false)}>
+            ✕
+          </button>
+          <div className="png-container">
+            <img src={pngUrl} alt="Table Code" />
+          </div>
+        </div>
+      )}
+
+      {showSendEmailModal && (
+        <div className="send-email-modal-overlay">
+          <div className="send-email-modal-content">
+            <h3>Send Table Code via Email</h3>
+            <p>Enter the recipient's email address:</p>
+            <input
+              type="email"
+              value={emailRecipient}
+              onChange={(e) => setEmailRecipient(e.target.value)}
+              placeholder="email@example.com"
+              disabled={isSendingEmail}
+            />
+            <div className="send-email-modal-buttons">
+              <button
+                className="confirm-btn"
+                onClick={confirmSendEmail}
+                disabled={isSendingEmail}
+              >
+                <img src="/image/email-icon.svg" alt="Send" />
+                Send
+              </button>
+              <button
+                className="cancel-btn"
+                onClick={() => setShowSendEmailModal(false)}
+                disabled={isSendingEmail}
+              >
+                <img src="/image/cancel-icon_w.svg" alt="Cancel" />
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -599,20 +849,31 @@ function TableCodeManagement({
         </div>
       )}
 
-      <div className="reservations-list">
-        {categoryOrder.map((category) => {
-          const categoryItems = codesByCategory[category]?.filter(
-            (code) => user.isAdmin || code.hostId === user._id
-          );
+      {isLoading ? (
+        <div className="loading-state">
+          <p>Loading reservations...</p>
+        </div>
+      ) : codes.length === 0 ? (
+        <div className="no-reservations">
+          <p>No table reservations found for this event.</p>
+          <p>Create a new reservation by selecting a table above.</p>
+        </div>
+      ) : (
+        <div className="reservations-list">
+          {categoryOrder.map((category) => {
+            const categoryItems = codesByCategory[category]?.filter(
+              (code) => user.isAdmin || code.hostId === user._id
+            );
 
-          return categoryItems?.length > 0 ? (
-            <div key={category} className="table-category">
-              {renderCategoryTitle(category)}
-              {categoryItems.map((code) => renderCodeItem(code))}
-            </div>
-          ) : null;
-        })}
-      </div>
+            return categoryItems?.length > 0 ? (
+              <div key={category} className="table-category">
+                {renderCategoryTitle(category)}
+                {categoryItems.map((code) => renderCodeItem(code))}
+              </div>
+            ) : null;
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -617,14 +617,8 @@ const Dashboard = () => {
               console.log("Refreshing table counts");
               store.dispatch({ type: "FORCE_REFRESH" });
             }}
-            currentEventDate={
-              selectedDate ||
-              (events[0] ? new Date(events[0].date) : new Date())
-            }
-            onPrevWeek={() => {}}
-            onNextWeek={() => {}}
-            dataInterval="week"
-            isStartingEvent={true}
+            selectedEvent={selectedEvent}
+            selectedBrand={selectedBrand}
             counts={{ tableCounts: [] }}
           />
         ) : (

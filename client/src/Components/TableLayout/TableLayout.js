@@ -6,7 +6,7 @@ const TableLayout = ({ codes, tableNumber, setTableNumber, counts }) => {
   const isBooked = (table) =>
     counts.tableCounts.some(
       (code) =>
-        code.table === table &&
+        (code.table === table || code.tableNumber === table) &&
         code.status !== "declined" &&
         code.status !== "cancelled"
     );
