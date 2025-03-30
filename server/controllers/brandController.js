@@ -728,9 +728,20 @@ exports.getTeamMembers = async (req, res) => {
       };
     });
 
+    // Filter out any invalid team members before mapping
+    const validTeamMembers = brand.team.filter(
+      (member) => member && member.user
+    );
+
     // Transform team members data
     const members = await Promise.all(
-      brand.team.map(async (member) => {
+      validTeamMembers.map(async (member) => {
+        // Ensure member.user exists before accessing properties
+        if (!member.user || !member.user._id) {
+          console.log("Skipping invalid team member:", member);
+          return null;
+        }
+
         let roleName = "Unknown";
         let isFounderRole = false;
 
@@ -745,18 +756,26 @@ exports.getTeamMembers = async (req, res) => {
 
         return {
           _id: member.user._id,
-          name: `${member.user.firstName} ${member.user.lastName}`,
-          username: member.user.username,
+          name:
+            `${member.user.firstName || ""} ${
+              member.user.lastName || ""
+            }`.trim() ||
+            member.user.username ||
+            "Unknown User",
+          username: member.user.username || "unknown",
           role: member.role, // Keep the role ID
           roleName: roleName, // Add role name
           isFounderRole: isFounderRole, // Add isFounder flag
-          avatar: member.user.avatar?.medium || member.user.avatar,
-          joinedAt: member.joinedAt,
+          avatar: member.user.avatar?.medium || member.user.avatar || null,
+          joinedAt: member.joinedAt || new Date(),
         };
       })
     );
 
-    res.json(members);
+    // Filter out any null results that might have occurred during mapping
+    const validMembers = members.filter((member) => member !== null);
+
+    res.json(validMembers);
   } catch (error) {
     console.error("Error fetching team members:", error);
     res.status(500).json({ message: "Error fetching team members" });

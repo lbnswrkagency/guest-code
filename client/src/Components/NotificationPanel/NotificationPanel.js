@@ -14,34 +14,24 @@ import "./NotificationPanel.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNotifications } from "../../contexts/NotificationContext";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 const NotificationPanel = ({ onClose }) => {
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const [showHistory, setShowHistory] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // console.log("[NotificationPanel] Fetching notifications...");
-    fetchNotifications();
-  }, [user]);
+  // Use the NotificationContext instead of local state
+  const { notifications, markAsRead, fetchNotifications } = useNotifications();
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await axiosInstance.get(
-        `/notifications/user/${user._id}`
-      );
-      setNotifications(response.data);
-      setLoading(false);
-    } catch (error) {
-      toast.showError("Failed to load notifications");
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchNotifications();
+    setLoading(false);
+  }, [fetchNotifications]);
 
   const handleProcessJoinRequest = async (requestId, action) => {
     try {
@@ -54,15 +44,13 @@ const NotificationPanel = ({ onClose }) => {
 
       if (notification) {
         // Mark as read and update locally first
-        await axiosInstance.put(`/notifications/${notification._id}/read`);
+        await markAsRead(notification._id);
 
         // Delete the notification to prevent it from reappearing
         await axiosInstance.delete(`/notifications/${notification._id}`);
 
-        // Update local state by removing the notification entirely
-        setNotifications((prev) =>
-          prev.filter((n) => n._id !== notification._id)
-        );
+        // Refresh notifications after processing
+        fetchNotifications();
       }
 
       toast.showSuccess(`Join request ${action}ed successfully`);
@@ -75,15 +63,16 @@ const NotificationPanel = ({ onClose }) => {
     }
   };
 
-  const markAsRead = async (notificationId) => {
+  // Now using the markAsRead from context instead of local function
+  const handleMarkAsRead = async (notificationId) => {
+    if (!notificationId) return;
     try {
-      // console.log("[NotificationPanel] Marking notification as read:", notificationId);
-      await axiosInstance.put(`/notifications/${notificationId}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
-      );
+      await markAsRead(notificationId);
     } catch (error) {
-      // console.error("[NotificationPanel] Error marking notification as read:", error);
+      console.error(
+        "[NotificationPanel] Error marking notification as read:",
+        error
+      );
     }
   };
 
@@ -106,8 +95,8 @@ const NotificationPanel = ({ onClose }) => {
 
   const handleEntityClick = async (type, id, notification) => {
     // Mark notification as read when clicked
-    if (!notification.isRead) {
-      await markAsRead(notification._id);
+    if (!notification.read) {
+      await handleMarkAsRead(notification._id);
     }
 
     // console.log("[NotificationPanel] handleEntityClick - Raw data:", {
@@ -521,7 +510,7 @@ const NotificationPanel = ({ onClose }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 onClick={() =>
-                  !notification.read && markAsRead(notification._id)
+                  !notification.read && handleMarkAsRead(notification._id)
                 }
               >
                 {renderNotificationContent(notification)}
