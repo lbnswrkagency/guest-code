@@ -73,16 +73,25 @@ class TokenService {
     }
 
     try {
-      // Call the lightweight ping endpoint without setting the Authorization header directly
-      const response = await axios.get("/api/auth/ping-session", {
-        headers: {
-          Authorization: `Bearer ${this.getToken()}`,
-        },
+      // Log the exact URL being used
+      const pingUrl = "/auth/ping";
+      console.log(`[TokenService] Pinging session at: ${pingUrl}`);
+
+      // Use the configured axiosInstance instead of axios global
+      if (!this.axiosInstance) {
+        console.log("[TokenService] Warning: axiosInstance not initialized");
+        return { status: "error", message: "axiosInstance not initialized" };
+      }
+
+      // Call the lightweight ping endpoint
+      const response = await this.axiosInstance.get(pingUrl, {
         // Add cache-busting to avoid cached responses
         params: {
           _t: new Date().getTime(),
         },
       });
+
+      console.log("[TokenService] Ping successful:", response.status);
 
       // If we got a new token from the ping, update it without triggering state changes
       if (response.data && response.data.tokenRefreshed) {
