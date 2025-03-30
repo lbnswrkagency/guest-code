@@ -133,6 +133,14 @@
         animation: subtle-float 3s ease infinite;
       }
 
+      // Styling for when the item is being edited
+      &.editing {
+        background: rgba(30, 30, 30, 0.9);
+        border-color: rgba(255, 200, 7, 0.5) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px);
+      }
+
       // Checked-in styles
       &.checked-in {
         background-color: rgba(40, 167, 69, 0.15);
@@ -213,6 +221,8 @@
             font-weight: bold;
             font-size: 1.2rem;
             color: white;
+            overflow: hidden;
+            position: relative;
 
             @media (max-width: 768px) {
               width: 2.5rem;
@@ -224,6 +234,67 @@
             &:hover {
               transform: scale(1.05);
               box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            }
+
+            .table-select-inline {
+              width: 100%;
+              height: 100%;
+              background: transparent;
+              border: none;
+              color: white;
+              font-weight: bold;
+              font-size: 1rem;
+              text-align: center;
+              appearance: none;
+              cursor: pointer;
+              padding: 0;
+
+              &:focus {
+                outline: none;
+              }
+
+              optgroup,
+              option {
+                background-color: #2a2a2a;
+                color: white;
+                font-size: 0.9rem;
+              }
+
+              optgroup {
+                font-weight: bold;
+              }
+            }
+
+            // Add a visual indicator that it's selectable
+            &:has(.table-select-inline) {
+              cursor: pointer;
+
+              &:after {
+                content: "▼";
+                position: absolute;
+                bottom: 0.25rem;
+                right: 0.25rem;
+                font-size: 0.6rem;
+                opacity: 0.8;
+                pointer-events: none;
+                z-index: 1;
+              }
+
+              &:before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+                border-radius: 0.4rem;
+                z-index: 1;
+              }
+
+              &:hover:before {
+                opacity: 1;
+              }
             }
           }
 
@@ -242,6 +313,24 @@
 
               @media (max-width: 768px) {
                 font-size: 1rem;
+              }
+            }
+
+            .edit-name-input {
+              width: 100%;
+              padding: 6px 10px;
+              border-radius: 6px;
+              background: rgba(0, 0, 0, 0.2);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              color: white;
+              font-size: 1rem;
+              font-weight: 500;
+              margin-bottom: 4px;
+
+              &:focus {
+                outline: none;
+                border-color: rgba(255, 200, 7, 0.5);
+                box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.2);
               }
             }
 
@@ -274,6 +363,43 @@
               &.cancelled {
                 background-color: rgba(220, 53, 69, 0.2);
                 color: #dc3545;
+              }
+            }
+
+            .edit-pax-select {
+              background: rgba(0, 0, 0, 0.4);
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 4px;
+              color: white;
+              padding: 2px 8px;
+              font-size: 0.9rem;
+              font-weight: 600;
+              appearance: none;
+              cursor: pointer;
+              position: relative;
+              min-width: 2.5rem;
+              text-align: center;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%23fff' d='M4 6L0 0h8z'/%3E%3C/svg%3E");
+              background-repeat: no-repeat;
+              background-position: right 0.3rem center;
+              padding-right: 1.2rem;
+              transition: all 0.2s ease;
+
+              &:focus {
+                outline: none;
+                border-color: rgba(255, 200, 7, 0.7);
+                box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.2);
+              }
+
+              &:hover {
+                background-color: rgba(0, 0, 0, 0.5);
+                border-color: rgba(255, 255, 255, 0.4);
+              }
+
+              option {
+                background-color: #2a2a2a;
+                color: white;
+                padding: 4px;
               }
             }
           }
@@ -418,6 +544,30 @@
                 color: #6f42c1;
               }
             }
+
+            &.save-edit-btn {
+              background: rgba(76, 175, 80, 0.2);
+              color: #4caf50;
+              font-size: 1.4rem;
+              font-weight: bold;
+
+              &:hover {
+                background: rgba(76, 175, 80, 0.3);
+                transform: translateY(-2px);
+              }
+            }
+
+            &.cancel-edit-btn {
+              background: rgba(244, 67, 54, 0.2);
+              color: #f44336;
+              font-size: 1.4rem;
+              font-weight: bold;
+
+              &:hover {
+                background: rgba(244, 67, 54, 0.3);
+                transform: translateY(-2px);
+              }
+            }
           }
         }
       }
@@ -425,10 +575,15 @@
   }
 
   .edit-form {
+    /* @deprecated - Kept for backward compatibility, use inline editing instead */
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
+    background: rgba(30, 30, 30, 0.9);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 200, 7, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 
     input,
     select {
@@ -438,6 +593,12 @@
       background: rgba(0, 0, 0, 0.2);
       color: #fff;
       font-size: 0.9rem;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 200, 7, 0.5);
+        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.2);
+      }
     }
 
     .table-select {
@@ -446,6 +607,7 @@
       optgroup {
         font-weight: 700;
         padding: 4px 0;
+        background-color: #2a2a2a;
 
         &[label="DJ Area"] {
           color: #ffd700; // Gold
@@ -467,6 +629,7 @@
       option {
         padding: 8px 12px;
         margin: 2px 0;
+        background-color: #2a2a2a;
 
         &:disabled {
           color: #888;
@@ -486,6 +649,7 @@
         border-radius: 0.25rem;
         border: none;
         cursor: pointer;
+        transition: all 0.2s ease;
 
         &.save-edit-btn {
           background: rgba(76, 175, 80, 0.2);

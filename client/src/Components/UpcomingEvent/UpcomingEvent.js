@@ -1081,11 +1081,6 @@ const UpcomingEvent = ({
                 {currentEvent && <GuestCode event={currentEvent} />}
               </div>
             </div>
-
-            {/* Date display */}
-            <div className="upcoming-event-date">
-              {formatDate(getEventDate(currentEvent))}
-            </div>
           </div>
 
           {/* Add See Full Event button */}

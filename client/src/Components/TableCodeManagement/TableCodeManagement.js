@@ -594,264 +594,288 @@ function TableCodeManagement({
     // Get the category for the table
     const category = getCategoryForTable(code.tableNumber);
     const borderColor = tableColors[category] || "#ccc";
+    const isEditing = editCodeId === code._id;
 
     return (
       <div
         key={code._id}
         className={`reservation-item ${code.status} ${
           code.paxChecked > 0 ? "checked-in" : ""
-        }`}
+        } ${isEditing ? "editing" : ""}`}
         style={{ borderLeft: `4px solid ${borderColor}` }}
       >
-        {editCodeId === code._id ? (
-          <div className="edit-form">
-            <input
-              type="text"
-              placeholder="Guest Name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
-            <select
-              value={editPax}
-              onChange={(e) => setEditPax(e.target.value)}
+        <div className="reservation-details">
+          <div className="reservation-info">
+            <div
+              className="table-number-badge"
+              style={{
+                background: `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
+              }}
             >
-              {/* Changed options from 1-5 to 1-10 */}
-              {[...Array(10)].map((_, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {index + 1} People
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={editTableNumber}
-              onChange={(e) => setEditTableNumber(e.target.value)}
-              className="table-select"
-            >
-              {categoryOrder.map((category) => (
-                <optgroup
-                  key={category}
-                  label={
-                    category === "djarea"
-                      ? "DJ Area"
-                      : category.charAt(0).toUpperCase() + category.slice(1)
-                  }
-                  style={{ color: tableColors[category] }}
+              {isEditing ? (
+                <select
+                  value={editTableNumber}
+                  onChange={(e) => setEditTableNumber(e.target.value)}
+                  className="table-select-inline"
                 >
-                  {tableCategories[category].map((table) => (
-                    <option
-                      key={table}
-                      value={table}
-                      disabled={isTableBooked(table)}
-                      style={{
-                        color: isTableBooked(table) ? "#888" : "#fff",
-                        fontWeight:
-                          table === code.tableNumber ? "bold" : "normal",
-                      }}
+                  {categoryOrder.map((category) => (
+                    <optgroup
+                      key={category}
+                      label={
+                        category === "djarea"
+                          ? "DJ Area"
+                          : category.charAt(0).toUpperCase() + category.slice(1)
+                      }
                     >
-                      {table} {isTableBooked(table) ? "(Unavailable)" : ""}
-                    </option>
+                      {tableCategories[category].map((table) => (
+                        <option
+                          key={table}
+                          value={table}
+                          disabled={isTableBooked(table)}
+                        >
+                          {table}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
-                </optgroup>
-              ))}
-            </select>
-
-            <div className="edit-actions">
-              <button onClick={handleEdit} className="save-edit-btn">
-                ✓ Save
-              </button>
-              <button onClick={resetEditFields} className="cancel-edit-btn">
-                ✕ Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="reservation-details">
-            <div className="reservation-info">
-              <div
-                className="table-number-badge"
-                style={{
-                  background: `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
-                }}
-              >
-                {code.tableNumber}
-              </div>
-              <div className="guest-details">
-                <div className="guest-name">{code.name}</div>
-                <div className="host-name">Host: {code.host}</div>
-                <span className={`status-badge ${code.status}`}>
-                  {code.status}
-                </span>
-              </div>
-            </div>
-
-            <div className="pax-count-badge">
-              <span className="people-icon">👥</span>
-              <span className="people-count">
-                {code.paxChecked > 0 ? code.paxChecked : 0}
-              </span>
-              <span className="people-separator">/</span>
-              <span className="people-max">{code.pax}</span>
-            </div>
-
-            <div className="reservation-actions">
-              {user.isAdmin ? (
-                <>
-                  {/* Admin actions - updated with emoji icons */}
-                  {code.status === "pending" && (
-                    <>
-                      <button
-                        className="confirm"
-                        onClick={() =>
-                          handleStatusChange(code._id, "confirmed")
-                        }
-                        title="Confirm"
-                      >
-                        ✓
-                      </button>
-                      <button
-                        className="decline"
-                        onClick={() => handleStatusChange(code._id, "declined")}
-                        title="Decline"
-                      >
-                        ✕
-                      </button>
-                      <button
-                        className="edit"
-                        onClick={() => startEdit(code)}
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="delete"
-                        onClick={() => handleDeleteClick(code._id)}
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </>
-                  )}
-                  {code.status === "confirmed" && (
-                    <>
-                      <button
-                        className="view"
-                        onClick={() => handleCodeView(code._id)}
-                        title="View QR"
-                      >
-                        👁️
-                      </button>
-                      <button
-                        className="download"
-                        onClick={() => handleDownload(code._id)}
-                        title="Download"
-                      >
-                        📥
-                      </button>
-                      <button
-                        className="email"
-                        onClick={() => handleSendEmail(code._id)}
-                        title="Send Email"
-                      >
-                        📧
-                      </button>
-                      <button
-                        className="edit"
-                        onClick={() => startEdit(code)}
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="cancel"
-                        onClick={() => handleCancelClick(code._id)}
-                        title="Cancel Reservation"
-                      >
-                        ❌
-                      </button>
-                    </>
-                  )}
-                  {["declined", "cancelled"].includes(code.status) && (
-                    <>
-                      <button
-                        className="reset"
-                        onClick={() => handleStatusChange(code._id, "pending")}
-                        title="Reset to Pending"
-                      >
-                        🔄
-                      </button>
-                      <button
-                        className="delete"
-                        onClick={() => handleDeleteClick(code._id)}
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </>
-                  )}
-                </>
+                </select>
               ) : (
-                <>
-                  {/* Non-admin actions - updated with emoji icons */}
-                  {code.hostId === user._id && (
-                    <>
-                      {code.status === "pending" && (
-                        <>
-                          <button
-                            className="edit"
-                            onClick={() => startEdit(code)}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="delete"
-                            onClick={() => handleDeleteClick(code._id)}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      )}
-                      {code.status === "confirmed" && (
-                        <>
-                          <button
-                            className="view"
-                            onClick={() => handleCodeView(code._id)}
-                            title="View QR"
-                          >
-                            👁️
-                          </button>
-                          <button
-                            className="download"
-                            onClick={() => handleDownload(code._id)}
-                            title="Download"
-                          >
-                            📥
-                          </button>
-                          <button
-                            className="email"
-                            onClick={() => handleSendEmail(code._id)}
-                            title="Send Email"
-                          >
-                            📧
-                          </button>
-                          <button
-                            className="cancel"
-                            onClick={() => handleCancelClick(code._id)}
-                            title="Cancel Reservation"
-                          >
-                            ❌
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
+                code.tableNumber
               )}
             </div>
+            <div className="guest-details">
+              {isEditing ? (
+                <input
+                  type="text"
+                  className="edit-name-input"
+                  placeholder="Guest Name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  autoFocus
+                />
+              ) : (
+                <div className="guest-name">{code.name}</div>
+              )}
+              <div className="host-name">Host: {code.host}</div>
+              <span className={`status-badge ${code.status}`}>
+                {code.status}
+              </span>
+            </div>
           </div>
-        )}
+
+          <div className="pax-count-badge">
+            <span className="people-icon">👥</span>
+            <span className="people-count">
+              {code.paxChecked > 0 ? code.paxChecked : 0}
+            </span>
+            <span className="people-separator">/</span>
+            {isEditing ? (
+              <select
+                className="edit-pax-select"
+                value={editPax}
+                onChange={(e) => setEditPax(e.target.value)}
+              >
+                {/* Changed options from 1-5 to 1-10 */}
+                {[...Array(10)].map((_, index) => (
+                  <option key={index + 1} value={index + 1}>
+                    {index + 1}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="people-max">{code.pax}</span>
+            )}
+          </div>
+
+          <div className="reservation-actions">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="save-edit-btn"
+                  title="Save"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={resetEditFields}
+                  className="cancel-edit-btn"
+                  title="Cancel"
+                >
+                  ✕
+                </button>
+              </>
+            ) : (
+              <>
+                {user.isAdmin ? (
+                  <>
+                    {/* Admin actions - updated with emoji icons */}
+                    {code.status === "pending" && (
+                      <>
+                        <button
+                          className="confirm"
+                          onClick={() =>
+                            handleStatusChange(code._id, "confirmed")
+                          }
+                          title="Confirm"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          className="decline"
+                          onClick={() =>
+                            handleStatusChange(code._id, "declined")
+                          }
+                          title="Decline"
+                        >
+                          ✕
+                        </button>
+                        <button
+                          className="edit"
+                          onClick={() => startEdit(code)}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="delete"
+                          onClick={() => handleDeleteClick(code._id)}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
+                    {code.status === "confirmed" && (
+                      <>
+                        <button
+                          className="email"
+                          onClick={() => handleSendEmail(code._id)}
+                          title="Send Email"
+                        >
+                          📧
+                        </button>
+                        <button
+                          className="download"
+                          onClick={() => handleDownload(code._id)}
+                          title="Download"
+                        >
+                          📥
+                        </button>
+                        <button
+                          className="view"
+                          onClick={() => handleCodeView(code._id)}
+                          title="View QR"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          className="edit"
+                          onClick={() => startEdit(code)}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="cancel"
+                          onClick={() => handleCancelClick(code._id)}
+                          title="Cancel Reservation"
+                        >
+                          ❌
+                        </button>
+                      </>
+                    )}
+                    {["declined", "cancelled"].includes(code.status) && (
+                      <>
+                        <button
+                          className="reset"
+                          onClick={() =>
+                            handleStatusChange(code._id, "pending")
+                          }
+                          title="Reset to Pending"
+                        >
+                          🔄
+                        </button>
+                        <button
+                          className="delete"
+                          onClick={() => handleDeleteClick(code._id)}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Non-admin actions - updated with emoji icons */}
+                    {code.hostId === user._id && (
+                      <>
+                        {code.status === "pending" && (
+                          <>
+                            <button
+                              className="edit"
+                              onClick={() => startEdit(code)}
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="delete"
+                              onClick={() => handleDeleteClick(code._id)}
+                              title="Delete"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                        {code.status === "confirmed" && (
+                          <>
+                            <button
+                              className="email"
+                              onClick={() => handleSendEmail(code._id)}
+                              title="Send Email"
+                            >
+                              📧
+                            </button>
+                            <button
+                              className="download"
+                              onClick={() => handleDownload(code._id)}
+                              title="Download"
+                            >
+                              📥
+                            </button>
+                            <button
+                              className="view"
+                              onClick={() => handleCodeView(code._id)}
+                              title="View QR"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              className="edit"
+                              onClick={() => startEdit(code)}
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="cancel"
+                              onClick={() => handleCancelClick(code._id)}
+                              title="Cancel Reservation"
+                            >
+                              ❌
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
