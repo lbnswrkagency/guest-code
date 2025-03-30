@@ -18,7 +18,7 @@ import { getEventUrl } from "../../utils/urlUtils";
 
 const Search = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("brands");
   const [results, setResults] = useState([]);
   const [resultCounts, setResultCounts] = useState({ brands: 0, events: 0 });
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ const Search = ({ isOpen, onClose }) => {
         const response = await axiosInstance.get("/search", {
           params: {
             q: query,
-            type: type === "all" ? undefined : type,
+            type: undefined,
           },
         });
 
@@ -65,11 +65,23 @@ const Search = ({ isOpen, onClose }) => {
   );
 
   useEffect(() => {
-    performSearch(searchQuery, activeTab);
-  }, [searchQuery, activeTab, performSearch]);
+    performSearch(searchQuery);
+  }, [searchQuery, performSearch]);
+
+  // Debug function to check results
+  useEffect(() => {
+    if (results.length > 0) {
+      console.log("[Search] Results:", results);
+      console.log("[Search] Active tab:", activeTab);
+      console.log(
+        "[Search] Filtered results:",
+        results.filter((item) => activeTab === "all" || item.type === activeTab)
+      );
+    }
+  }, [results, activeTab]);
 
   const handleTabClick = (tabId) => {
-    setActiveTab((prev) => (prev === tabId ? "all" : tabId));
+    setActiveTab(tabId);
   };
 
   const handleResultClick = (item) => {
@@ -195,10 +207,26 @@ const Search = ({ isOpen, onClose }) => {
   };
 
   const tabs = [
-    // { id: "users", label: "Users", icon: RiUserLine }, // Commented out user search tab
-    { id: "events", label: "Events", icon: RiCalendarEventLine },
     { id: "brands", label: "Brands", icon: RiBuildingLine },
+    { id: "events", label: "Events", icon: RiCalendarEventLine },
   ];
+
+  // Render an event date in the proper format
+  const formatEventDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "TBD";
+
+      // Format as DD.MM.YY with leading zeros
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = String(date.getFullYear()).slice(2);
+
+      return `${day}.${month}.${year}`;
+    } catch (e) {
+      return "TBD";
+    }
+  };
 
   const renderResultItem = (item) => {
     const commonProps = {
@@ -241,22 +269,8 @@ const Search = ({ isOpen, onClose }) => {
           {/* {item.type === "user" && <p>{item.email}</p>} */}
           {item.type === "event" && (
             <p>
-              {(() => {
-                // Try to parse the date safely - first attempt date, then startDate
-                try {
-                  const date = item.date
-                    ? new Date(item.date)
-                    : item.startDate
-                    ? new Date(item.startDate)
-                    : null;
-                  return date && !isNaN(date.getTime())
-                    ? date.toLocaleDateString()
-                    : "TBD";
-                } catch (e) {
-                  return "TBD";
-                }
-              })()}{" "}
-              • {item.location || "TBD"}
+              {formatEventDate(item.date || item.startDate)} •{" "}
+              {item.location || "TBD"}
             </p>
           )}
           {item.type === "brand" && (
@@ -319,7 +333,13 @@ const Search = ({ isOpen, onClose }) => {
           <AnimatePresence>
             {!loading &&
               !error &&
-              results.map((item) => renderResultItem(item))}
+              results
+                .filter((item) =>
+                  item.type === "brand"
+                    ? activeTab === "brands"
+                    : activeTab === "events"
+                )
+                .map((item) => renderResultItem(item))}
           </AnimatePresence>
         </div>
       </div>

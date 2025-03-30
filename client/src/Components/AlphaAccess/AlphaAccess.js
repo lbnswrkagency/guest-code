@@ -4,6 +4,7 @@ import axiosInstance from "../../utils/axiosConfig";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import "./AlphaAccess.scss";
+import { store } from "../../redux/store";
 
 const AlphaAccess = ({ user, setUser, onSuccess }) => {
   const [code, setCode] = useState(["", "", "", ""]);
@@ -90,16 +91,63 @@ const AlphaAccess = ({ user, setUser, onSuccess }) => {
         toast.success(response.data.message);
 
         // Update user state to reflect alpha access
-        if (setUser) {
-          setUser({ ...user, isAlpha: true });
-        }
+        if (user) {
+          // Create a new user object with isAlpha set to true
+          const updatedUser = { ...user, isAlpha: true };
 
-        // Close modal after a short delay
-        setTimeout(() => {
-          if (onSuccess) {
-            onSuccess();
+          // 1. Directly update Redux store first to ensure global state is updated
+          store.dispatch({
+            type: "user/updateUser",
+            payload: updatedUser,
+          });
+
+          // 2. Then update local component state if setUser is provided
+          if (setUser) {
+            setUser(updatedUser);
           }
-        }, 2000);
+
+          console.log(
+            "[AlphaAccess] User state updated with alpha access:",
+            updatedUser
+          );
+
+          // 3. Force a local storage update if your app uses it
+          try {
+            const userString = localStorage.getItem("user");
+            if (userString) {
+              const storedUser = JSON.parse(userString);
+              localStorage.setItem(
+                "user",
+                JSON.stringify({
+                  ...storedUser,
+                  isAlpha: true,
+                })
+              );
+              console.log(
+                "[AlphaAccess] localStorage updated with alpha access"
+              );
+            }
+          } catch (err) {
+            console.error("Failed to update local storage:", err);
+          }
+
+          // 4. Dispatch a custom event to notify other components
+          console.log("[AlphaAccess] Dispatching alphaAccessGranted event");
+          const alphaEvent = new CustomEvent("alphaAccessGranted", {
+            detail: {
+              userId: user._id || user.id,
+              timestamp: Date.now(), // Add timestamp to ensure uniqueness
+            },
+          });
+          window.dispatchEvent(alphaEvent);
+
+          // 5. Close modal after a short delay
+          setTimeout(() => {
+            if (onSuccess) {
+              onSuccess();
+            }
+          }, 300);
+        }
       }
     } catch (error) {
       console.error("Alpha code verification error:", error);

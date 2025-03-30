@@ -52,6 +52,7 @@ const Dashboard = () => {
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showTableSystem, setShowTableSystem] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const [shouldRefreshNav, setShouldRefreshNav] = useState(false);
 
   // Single comprehensive log function
   const logAppData = () => {
@@ -183,6 +184,60 @@ const Dashboard = () => {
       hasLoggedStore.current = true;
     }
   }, [user, brands, events, roles, codeSettings, navigate]);
+
+  // Listen for alpha access granted event
+  useEffect(() => {
+    const handleAlphaAccessGranted = (event) => {
+      if (
+        event.detail.userId === user?._id ||
+        event.detail.userId === user?.id
+      ) {
+        console.log("[Dashboard] Alpha access granted event received");
+
+        // Get the latest user from Redux store
+        const latestUser = store.getState().user;
+
+        // Double-check that the Redux store has the updated isAlpha status
+        if (!latestUser.isAlpha) {
+          console.log(
+            "[Dashboard] Forcing Redux store update as isAlpha is still false"
+          );
+          // Force the Redux store update if somehow it wasn't updated
+          store.dispatch({
+            type: "user/updateUser",
+            payload: { ...latestUser, isAlpha: true },
+          });
+        }
+
+        // Close the navigation menu first
+        setIsNavigationOpen(false);
+
+        // Set refresh flag to force complete re-render of navigation
+        setShouldRefreshNav((prevState) => !prevState);
+
+        // Wait for closing animation to complete, then reopen with updated state
+        setTimeout(() => {
+          setIsNavigationOpen(true);
+        }, 500);
+      }
+    };
+
+    window.addEventListener("alphaAccessGranted", handleAlphaAccessGranted);
+
+    return () => {
+      window.removeEventListener(
+        "alphaAccessGranted",
+        handleAlphaAccessGranted
+      );
+    };
+  }, [user]);
+
+  // Reset refresh flag after render
+  useEffect(() => {
+    if (shouldRefreshNav) {
+      setShouldRefreshNav(false);
+    }
+  }, [shouldRefreshNav]);
 
   // Find the next upcoming event date or the most recent past event if no upcoming events
   const findNextUpcomingEventDate = (brandEvents) => {
@@ -639,6 +694,7 @@ const Dashboard = () => {
             payload: updatedUser,
           });
         }}
+        key={`nav-${shouldRefreshNav}-${user?.isAlpha}`}
       />
     </div>
   );

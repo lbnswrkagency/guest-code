@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./DashboardNavigation.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,20 +20,90 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   const { isConnected } = useSocket();
   const [isCropMode, setIsCropMode] = useState(false);
   const [showAlphaAccess, setShowAlphaAccess] = useState(false);
+  const [newlyUnlocked, setNewlyUnlocked] = useState(false);
+  const [animateItems, setAnimateItems] = useState(false);
 
-  // Log isAlpha status whenever currentUser changes
+  // Explicitly calculate hasAlphaAccess from current user props
+  const hasAlphaAccess = useMemo(
+    () => Boolean(currentUser?.isAlpha),
+    [currentUser?.isAlpha]
+  );
+
   useEffect(() => {
-    // Effect remains but logs removed
+    console.log("[DashboardNavigation] Render with currentUser:", {
+      isAlpha: currentUser?.isAlpha,
+      hasAlphaAccess,
+    });
+  }, [currentUser, hasAlphaAccess]);
+
+  // Reset states when navigation is opened
+  useEffect(() => {
+    if (isOpen) {
+      console.log(
+        "[DashboardNavigation] Menu opened, checking alpha status:",
+        hasAlphaAccess ? "ALPHA" : "NON-ALPHA"
+      );
+
+      // If user has alpha access but animation hasn't played yet,
+      // set animation states for newly unlocked items
+      if (hasAlphaAccess && !newlyUnlocked && !animateItems) {
+        setNewlyUnlocked(true);
+        setTimeout(() => {
+          setAnimateItems(true);
+        }, 300);
+      }
+    }
+  }, [isOpen, hasAlphaAccess, newlyUnlocked, animateItems]);
+
+  // Listen for alpha access granted event
+  useEffect(() => {
+    const handleAlphaAccessGranted = (event) => {
+      // Check if this event is for the current user
+      if (
+        event.detail.userId === currentUser?._id ||
+        event.detail.userId === currentUser?.id
+      ) {
+        console.log(
+          "[DashboardNavigation] Alpha access granted event received, current isAlpha:",
+          currentUser?.isAlpha
+        );
+
+        // Force animation states
+        setNewlyUnlocked(true);
+        setAnimateItems(true);
+      }
+    };
+
+    window.addEventListener("alphaAccessGranted", handleAlphaAccessGranted);
+
+    return () => {
+      window.removeEventListener(
+        "alphaAccessGranted",
+        handleAlphaAccessGranted
+      );
+    };
   }, [currentUser]);
+
+  // Reset animation state when menu is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setAnimateItems(false);
+
+      // Reset newly unlocked state after a delay to ensure it's ready for next open
+      setTimeout(() => {
+        setNewlyUnlocked(false);
+      }, 300);
+    }
+  }, [isOpen]);
 
   if (!currentUser) return null;
 
-  // FIXED: Only use isAlpha for access control, not isDeveloper
-  const hasAlphaAccess = Boolean(currentUser.isAlpha);
-
-  // Force debug - remove this in production
-  // This is just for debugging to see what's happening
+  // Generate menu items each render using the current hasAlphaAccess value
   const menuItems = () => {
+    console.log(
+      "[DashboardNavigation] Generating menu items, hasAlphaAccess:",
+      hasAlphaAccess
+    );
     const items = [];
 
     // Always add Profile
@@ -53,6 +123,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Brands",
         icon: <RiBuildingLine />,
         path: `/@${currentUser.username}/brands`,
+        isNew: newlyUnlocked,
         action: () => {
           navigate(`/@${currentUser.username}/brands`);
           onClose();
@@ -66,6 +137,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Events",
         icon: <RiCalendarEventLine />,
         path: `/@${currentUser.username}/events`,
+        isNew: newlyUnlocked,
         action: () => {
           navigate(`/@${currentUser.username}/events`);
           onClose();
@@ -79,6 +151,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Settings",
         icon: <RiSettings4Line />,
         path: "/settings",
+        isNew: newlyUnlocked,
         action: () => {
           navigate("/settings");
           onClose();
@@ -127,6 +200,22 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         duration: 0.2,
       },
     }),
+  };
+
+  // Enhanced animation for newly unlocked items
+  const newItemVariants = {
+    hidden: { opacity: 0, x: 40, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 15,
+        duration: 0.5,
+      },
+    },
   };
 
   const handleCloseAlphaAccess = () => {
@@ -184,7 +273,22 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                     </span>
                     <span className="username">@{currentUser.username}</span>
                     {currentUser.isAlpha && (
-                      <span className="alpha-badge">Alpha</span>
+                      <motion.span
+                        className="alpha-badge"
+                        initial={
+                          newlyUnlocked
+                            ? { scale: 0.5, opacity: 0 }
+                            : { scale: 1 }
+                        }
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 15,
+                        }}
+                      >
+                        Alpha
+                      </motion.span>
                     )}
                   </div>
                 </div>
@@ -192,26 +296,40 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
             </div>
 
             <div className="dashboard-navigation-content">
-              {menuItems().map((item, index) => (
-                <motion.div
-                  key={item.title}
-                  className={`menu-item ${
-                    item.title === "Alpha Access" && currentUser.isAlpha
-                      ? "alpha-active"
-                      : ""
-                  }`}
-                  variants={menuItemVariants}
-                  custom={index}
-                  onClick={item.action}
-                  whileHover={{ x: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="menu-item-icon">{item.icon}</div>
-                  <div className="menu-item-text">
-                    <h4>{item.title}</h4>
-                  </div>
-                </motion.div>
-              ))}
+              <AnimatePresence>
+                {menuItems().map((item, index) => (
+                  <motion.div
+                    key={item.title}
+                    className={`menu-item ${item.isNew ? "menu-item-new" : ""}`}
+                    variants={
+                      item.isNew && animateItems
+                        ? newItemVariants
+                        : menuItemVariants
+                    }
+                    initial="hidden"
+                    animate="visible"
+                    custom={index}
+                    onClick={item.action}
+                    whileHover={{ x: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="menu-item-icon">{item.icon}</div>
+                    <div className="menu-item-text">
+                      <h4>{item.title}</h4>
+                    </div>
+                    {item.isNew && (
+                      <motion.div
+                        className="menu-item-new-badge"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 + 0.3 }}
+                      >
+                        New
+                      </motion.div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
             {/* Alpha Access Modal */}
