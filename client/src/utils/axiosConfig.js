@@ -57,6 +57,29 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // IMPORTANT: Check the current URL path to determine if we're on a public page
+      const isPublicBrandOrEventRoute =
+        window.location.pathname.startsWith("/@");
+      if (isPublicBrandOrEventRoute) {
+        console.log(
+          "[axiosConfig] Skipping login redirect for public brand/event route:",
+          window.location.pathname
+        );
+        return Promise.reject(error);
+      }
+
+      // Skip redirect for brand-related API calls - these should be publicly accessible
+      if (
+        originalRequest.url.includes("/brands/") ||
+        originalRequest.url.includes("/events/")
+      ) {
+        console.log(
+          "[axiosConfig] Skipping login redirect for brand/event API call:",
+          originalRequest.url
+        );
+        return Promise.reject(error);
+      }
+
       // Set flag to prevent multiple redirects
       isHandlingSessionExpiration = true;
 
@@ -69,7 +92,12 @@ axiosInstance.interceptors.response.use(
 
         // If we can't refresh, redirect to login with a message
         const redirectUrl = "/login";
-        if (window.location.pathname !== redirectUrl) {
+        // Only redirect if we're not already on a public brand/event route
+        if (
+          !isPublicBrandOrEventRoute &&
+          window.location.pathname !== redirectUrl
+        ) {
+          console.log("[axiosConfig] Redirecting to login due to 401 error");
           window.location.href = redirectUrl;
         }
 
