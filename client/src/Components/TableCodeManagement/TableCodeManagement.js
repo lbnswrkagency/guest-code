@@ -66,37 +66,21 @@ function TableCodeManagement({
 
   useEffect(() => {
     if (selectedEvent && selectedEvent._id) {
-      console.log(
-        "TableCodeManagement: Fetching codes due to refreshTrigger change:",
-        refreshTrigger
-      );
       fetchCodes();
     }
   }, [selectedEvent, refreshTrigger, dataInterval]);
 
   const fetchCodes = async () => {
     if (!selectedEvent || !selectedEvent._id) {
-      console.log("No selectedEvent or selectedEvent._id available");
       return;
     }
 
     if (!dataInterval || !dataInterval.startDate || !dataInterval.endDate) {
-      console.log("Data interval not properly initialized yet");
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log(
-        "Fetching table codes for event:",
-        selectedEvent._id,
-        "with date range:",
-        dataInterval.startDate.toISOString(),
-        "to",
-        dataInterval.endDate.toISOString()
-      );
-
-      // The server expects startDate and endDate parameters
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
         {
@@ -112,7 +96,6 @@ function TableCodeManagement({
       );
 
       const fetchedCodes = response.data;
-      console.log(`Successfully fetched ${fetchedCodes.length} table codes`);
 
       // If we have successfully fetched codes from the server
       if (fetchedCodes && Array.isArray(fetchedCodes)) {
@@ -133,25 +116,18 @@ function TableCodeManagement({
         );
         setTablesBookedCount(activeTableCodes.length);
       } else {
-        console.log("Response is not in expected format:", fetchedCodes);
         setCodesByCategory({});
         setCodes([]);
         setTablesBookedCount(0);
       }
     } catch (error) {
-      console.error("=== Fetch Error ===", error);
-
-      // Detailed error logging
+      // Detailed error logging - keep this but remove console.error statements
       if (error.response) {
-        console.error(
-          "Response error:",
-          error.response.status,
-          error.response.data
-        );
+        // Response error - remove console.error
       } else if (error.request) {
-        console.error("Request error:", error.request);
+        // Request error - remove console.error
       } else {
-        console.error("Error message:", error.message);
+        // Error message - remove console.error
       }
 
       toast.showError("Failed to fetch table reservations");
@@ -893,29 +869,35 @@ function TableCodeManagement({
       {showSendEmailModal && (
         <div className="send-email-modal-overlay">
           <div className="send-email-modal-content">
-            <h3>Send Table Code via Email</h3>
-            <p>Enter the recipient's email address:</p>
+            <button
+              className="close-btn"
+              onClick={() => setShowSendEmailModal(false)}
+            >
+              ×
+            </button>
+            <h3>Send Invitation to</h3>
             <input
               type="email"
               value={emailRecipient}
               onChange={(e) => setEmailRecipient(e.target.value)}
-              placeholder="email@example.com"
+              placeholder="recipient@example.com"
               disabled={isSendingEmail}
+              autoFocus
             />
             <div className="send-email-modal-buttons">
-              <button
-                className="confirm-btn"
-                onClick={confirmSendEmail}
-                disabled={isSendingEmail}
-              >
-                📧 Send
-              </button>
               <button
                 className="cancel-btn"
                 onClick={() => setShowSendEmailModal(false)}
                 disabled={isSendingEmail}
               >
-                ✕ Cancel
+                Cancel
+              </button>
+              <button
+                className="confirm-btn"
+                onClick={confirmSendEmail}
+                disabled={isSendingEmail || !emailRecipient}
+              >
+                {isSendingEmail ? "Sending..." : "Send"}
               </button>
             </div>
           </div>
@@ -926,21 +908,23 @@ function TableCodeManagement({
       {showConfirmDelete && (
         <div className="delete-modal-overlay">
           <div className="delete-modal-content">
+            <button
+              className="close-btn"
+              onClick={() => setShowConfirmDelete(false)}
+            >
+              ✕
+            </button>
+            <h3>Delete Reservation</h3>
             <p>Are you sure you want to delete this reservation?</p>
             <div className="delete-modal-buttons">
               <button
-                className="confirm-btn"
-                onClick={confirmDelete}
-                style={{ backgroundColor: "#dc3545", color: "white" }}
-              >
-                🗑️ Delete
-              </button>
-              <button
                 className="cancel-btn"
                 onClick={() => setShowConfirmDelete(false)}
-                style={{ backgroundColor: "#f8f9fa", color: "#495057" }}
               >
-                ✕ Cancel
+                Cancel
+              </button>
+              <button className="confirm-btn" onClick={confirmDelete}>
+                Delete
               </button>
             </div>
           </div>
@@ -951,21 +935,23 @@ function TableCodeManagement({
       {showConfirmCancel && (
         <div className="delete-modal-overlay">
           <div className="delete-modal-content">
+            <button
+              className="close-btn"
+              onClick={() => setShowConfirmCancel(false)}
+            >
+              ✕
+            </button>
+            <h3>Cancel Reservation</h3>
             <p>Are you sure you want to cancel this reservation?</p>
             <div className="delete-modal-buttons">
               <button
-                className="confirm-btn"
-                onClick={confirmCancel}
-                style={{ backgroundColor: "#dc3545", color: "white" }}
-              >
-                ❌ Cancel Reservation
-              </button>
-              <button
                 className="cancel-btn"
                 onClick={() => setShowConfirmCancel(false)}
-                style={{ backgroundColor: "#f8f9fa", color: "#495057" }}
               >
-                ✕ Close
+                Close
+              </button>
+              <button className="confirm-btn" onClick={confirmCancel}>
+                Cancel Reservation
               </button>
             </div>
           </div>

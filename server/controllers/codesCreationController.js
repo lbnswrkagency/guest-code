@@ -67,7 +67,7 @@ const formatCodeDate = (dateString) => {
       month: "2-digit",
       year: "numeric",
     }),
-    time: "20:00", // Default time if not specified
+    time: "20:00", // Will be overridden by event.startTime if available
   };
 };
 
@@ -97,7 +97,7 @@ const generateCodePDF = async (code, event, codeSettings) => {
     const qrCodeDataUrl = await generateCodeQR(code._id, code.securityToken);
 
     // Format date
-    const eventDate = formatCodeDate(event?.date);
+    const eventDate = formatCodeDate(event?.startDate || event?.date);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -474,7 +474,7 @@ const getCodePNG = async (req, res) => {
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
     // Format date
-    const eventDate = formatCodeDate(event?.date);
+    const eventDate = formatCodeDate(event?.startDate || event?.date);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -695,7 +695,7 @@ const getCodePNGDownload = async (req, res) => {
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
     // Format date
-    const eventDate = formatCodeDate(event?.date);
+    const eventDate = formatCodeDate(event?.startDate || event?.date);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {

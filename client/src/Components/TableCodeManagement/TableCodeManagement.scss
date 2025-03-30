@@ -541,56 +541,79 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
 
     .delete-modal-content {
-      background-color: white;
-      padding: 24px;
-      border-radius: 8px;
-      width: 400px;
+      background: #151515;
+      border-radius: 1rem;
+      padding: 2rem;
       max-width: 90%;
-      text-align: center;
+      max-height: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+
+      .close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1.5rem;
+        cursor: pointer;
+
+        &:hover {
+          color: white;
+        }
+      }
 
       p {
-        font-size: 18px;
-        margin-bottom: 24px;
-        color: #333;
+        margin-bottom: 2rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1rem;
+      }
+
+      h3 {
+        margin-bottom: 1rem;
+        color: white;
+        font-size: 1.25rem;
+        text-align: center;
       }
 
       .delete-modal-buttons {
         display: flex;
+        gap: 1rem;
         justify-content: center;
-        gap: 16px;
 
         button {
-          padding: 10px 20px;
-          border-radius: 4px;
+          padding: 0.75rem 1.5rem;
+          border-radius: 0.5rem;
           border: none;
           font-weight: 500;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
+          transition: all 0.2s ease;
 
-          &.confirm-btn {
-            background-color: #dc3545;
+          &.cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
             color: white;
 
             &:hover {
-              background-color: #c82333;
+              background: rgba(255, 255, 255, 0.2);
             }
           }
 
-          &.cancel-btn {
-            background-color: #f8f9fa;
-            color: #495057;
+          &.confirm-btn {
+            background: #f44336;
+            color: white;
 
             &:hover {
-              background-color: #e2e6ea;
+              background: #d32f2f;
             }
           }
         }
@@ -630,97 +653,152 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    backdrop-filter: blur(5px);
+    animation: modalFadeIn 0.3s ease;
+  }
 
-    .send-email-modal-content {
-      background-color: #fff;
-      padding: 25px;
+  .send-email-modal-content {
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: 360px;
+    max-width: 95%;
+    padding: 1.5rem;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ffc107, #e3a31d);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: white;
+        transform: scale(1.1);
+      }
+    }
+
+    h3 {
+      margin: 0 0 1.25rem;
+      color: white;
+      font-size: 1.1rem;
+      padding-right: 1.5rem;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 1rem;
+    }
+
+    input[type="email"] {
+      width: 100%;
+      padding: 12px 16px;
       border-radius: 8px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
 
-      h3 {
-        margin-top: 0;
-        color: #333;
-        margin-bottom: 15px;
+      &:focus {
+        outline: none;
+        border-color: #ffc107;
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
       }
 
-      p {
-        margin-bottom: 15px;
-        color: #666;
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
       }
+    }
 
-      input[type="email"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        font-size: 1rem;
+    .send-email-modal-buttons {
+      display: flex;
+      gap: 8px;
 
-        &:focus {
-          outline: none;
-          border-color: #4a90e2;
-          box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
-        }
+      button {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
 
-        &:disabled {
-          background-color: #f5f5f5;
-          cursor: not-allowed;
-        }
-      }
+        &.confirm-btn {
+          background: linear-gradient(45deg, #ffc107, #e3a31d);
+          color: #212121;
 
-      .send-email-modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 16px;
-        margin-top: 20px;
-
-        button {
-          padding: 10px 20px;
-          border-radius: 4px;
-          border: none;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-
-          &.confirm-btn {
-            background-color: #007bff;
-            color: white;
-
-            &:hover {
-              background-color: #0069d9;
-            }
-
-            &:disabled {
-              background-color: #ccc;
-              cursor: not-allowed;
-            }
+          &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
           }
 
-          &.cancel-btn {
-            background-color: #f8f9fa;
-            color: #495057;
+          &:active:not(:disabled) {
+            transform: translateY(0);
+          }
 
-            &:hover {
-              background-color: #e2e6ea;
-            }
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+          }
+        }
 
-            &:disabled {
-              background-color: #e9ecef;
-              color: #adb5bd;
-              cursor: not-allowed;
-            }
+        &.cancel-btn {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+
+          &:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
           }
         }
       }
+    }
+  }
+
+  @keyframes modalPopIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 

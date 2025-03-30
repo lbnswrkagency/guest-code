@@ -1814,8 +1814,8 @@ const generateCodePDF = async (code, event, codeSetting) => {
       codeSetting?.name ||
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
-    // Format date
-    const date = new Date(event?.date);
+    // Format date - prioritize startDate over date
+    const date = new Date(event?.startDate || event?.date);
     const days = [
       "Sunday",
       "Monday",
