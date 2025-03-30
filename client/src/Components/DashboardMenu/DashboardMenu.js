@@ -46,6 +46,37 @@ const DashboardMenu = ({
     return str1 === str2;
   };
 
+  // Check if the current event is the Afro Spiti event or one of its children
+  const isAfroSpitiEvent = () => {
+    if (!selectedEvent) return false;
+
+    // The specific Afro Spiti event ID
+    const afroSpitiEventId = "67c9fd654bc504b8b07627e2";
+
+    // Check if it's the specific event
+    if (selectedEvent._id === afroSpitiEventId) return true;
+
+    // Check if it's a child event (has parentEventId)
+    if (selectedEvent.parentEventId === afroSpitiEventId) return true;
+
+    // Check if the event name contains "Afro Spiti" (fallback)
+    if (selectedEvent.title && selectedEvent.title.includes("Afro Spiti"))
+      return true;
+
+    return false;
+  };
+
+  // Function to check if the user should see the table system option
+  const shouldShowTableSystem = () => {
+    // Always show for the master user
+    if (user && user._id === "65707f8da826dc13721ef735") return true;
+
+    // Show for any admin user that's in the Afro Spiti event
+    if (user && user.isAdmin && isAfroSpitiEvent()) return true;
+
+    return false;
+  };
+
   useEffect(() => {
     if (selectedBrand && user) {
       // Check user role permissions directly
@@ -265,8 +296,8 @@ const DashboardMenu = ({
                 </div>
               )}
 
-              {/* Special Table System menu item only for specific user */}
-              {user && user._id === "65707f8da826dc13721ef735" && (
+              {/* Table System menu item only for specific events/users */}
+              {shouldShowTableSystem() && (
                 <div
                   className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {

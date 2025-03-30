@@ -11,6 +11,7 @@ const formatEventDate = (dateString) => {
 
     // Check if the date is valid
     if (isNaN(date.getTime())) {
+      console.error("Invalid date:", dateString);
       return { day: "", date: "", time: "" };
     }
 
@@ -51,6 +52,7 @@ const formatEventDate = (dateString) => {
       }),
     };
   } catch (error) {
+    console.error("Error formatting date:", error, dateString);
     return { day: "", date: "", time: "" };
   }
 };
@@ -76,6 +78,9 @@ const createEventEmailTemplate = (options) => {
 
   // Format date for display
   const formattedDate = formatEventDate(eventDate);
+
+  // Skip date section if no valid date
+  const hasValidDate = formattedDate.day && formattedDate.date;
 
   // Process lineups if available
   let lineupHtml = "";
@@ -131,18 +136,22 @@ const createEventEmailTemplate = (options) => {
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; padding: 20px; background-color: ${primaryColor}; margin-bottom: 20px; border-radius: 8px; color: #222;">
         <h1 style="margin: 0; font-size: 28px;">${eventTitle}</h1>
-        <p style="margin: 10px 0 0; font-size: 16px;">${formattedDate.day}, ${
-    formattedDate.date
-  }</p>
+        ${
+          hasValidDate
+            ? `<p style="margin: 10px 0 0; font-size: 16px;">${formattedDate.day}, ${formattedDate.date}</p>`
+            : ""
+        }
       </div>
       
       <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${recipientName},</p>
       
       <div style="background-color: #f8f8f8; border-left: 4px solid ${primaryColor}; padding: 15px; margin-bottom: 20px;">
         <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Event Details:</p>
-        <p style="font-size: 16px; margin: 0 0 5px;"><strong>📅 Date:</strong> ${
-          formattedDate.day
-        }, ${formattedDate.date}</p>
+        ${
+          hasValidDate
+            ? `<p style="font-size: 16px; margin: 0 0 5px;"><strong>📅 Date:</strong> ${formattedDate.day}, ${formattedDate.date}</p>`
+            : ""
+        }
         <p style="font-size: 16px; margin: 0 0 5px;"><strong>⏰ Time:</strong> ${
           startTime || formattedDate.time
         } - ${endTime || "End"}</p>
