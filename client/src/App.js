@@ -72,7 +72,6 @@ const AppRoutes = () => {
         flexDirection: "column",
       }}
     >
-      <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>Loading...</div>
       <div
         style={{
           width: "40px",

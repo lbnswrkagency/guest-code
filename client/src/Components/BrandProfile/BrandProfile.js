@@ -186,7 +186,9 @@ const BrandProfile = () => {
         setLoading(false);
       } else {
         toast.showError("Failed to load brand profile");
-        navigate("/");
+        // Don't redirect - just show error state
+        setBrand(null);
+        setLoading(false);
       }
     } finally {
       setLoading(false);
