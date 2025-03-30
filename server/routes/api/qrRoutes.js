@@ -27,6 +27,13 @@ router.put(
   qrController.updateCodePax
 );
 
+// Add route for TableCode model check-in/check-out
+router.put(
+  "/tablecodes/:ticketId/update-pax",
+  authenticate,
+  qrController.updateTableCodePax
+);
+
 // Keep legacy count endpoints but make them try new endpoints first
 router.get("/counts", authenticate, async (req, res, next) => {
   try {

@@ -150,6 +150,49 @@ const validateTicket = async (req, res) => {
         hostName = ticket.metadata.hostName;
       }
     }
+    // Check for TableCode by securityToken
+    else if (securityTokenToCheck) {
+      console.log(
+        "Trying to find TableCode by securityToken:",
+        securityTokenToCheck
+      );
+      const tableCodeBySecurityToken = await TableCode.findOne({
+        securityToken: securityTokenToCheck,
+      });
+
+      if (tableCodeBySecurityToken) {
+        console.log(
+          "Found TableCode by securityToken:",
+          tableCodeBySecurityToken._id
+        );
+        ticket = tableCodeBySecurityToken;
+        typeOfTicket = "Table-Code";
+
+        // Get event information if available
+        if (ticket.event) {
+          eventId = ticket.event;
+          const Event = require("../models/eventsModel");
+          event = await Event.findById(ticket.event);
+          console.log(
+            "Found event for TableCode:",
+            event ? event.title : "No event found"
+          );
+
+          // Check for event mismatch
+          if (
+            requestEventId &&
+            eventId &&
+            requestEventId !== eventId.toString()
+          ) {
+            console.log("Event mismatch detected for TableCode");
+            wrongEventError = true;
+          }
+        }
+
+        // Get host name
+        hostName = ticket.host || "Unknown Host";
+      }
+    }
     // Check if this is a security token in the Ticket model
     else {
       const Ticket = require("../models/ticketModel");
@@ -243,44 +286,63 @@ const validateTicket = async (req, res) => {
                   }
                 }
               } else {
-                // Try InvitationCode
-                const invitationCodeTicket = await InvitationCode.findById(
-                  ticketId
-                );
-                if (invitationCodeTicket) {
-                  ticket = invitationCodeTicket;
-                  typeOfTicket = "Invitation-Code";
+                // Try TableCode by securityToken
+                const tableCodeBySecurityToken = await TableCode.findOne({
+                  securityToken: securityTokenToCheck,
+                });
+                if (tableCodeBySecurityToken) {
+                  ticket = tableCodeBySecurityToken;
+                  typeOfTicket = "Table-Code";
+
+                  // Get host name
+                  if (ticket.hostId) {
+                    const user = await User.findById(ticket.hostId);
+                    if (user) {
+                      hostName = user.firstName || user.username || user.email;
+                    }
+                  }
                 } else {
-                  // Try Code (new unified model)
-                  const newCodeTicket = await Code.findById(ticketId);
-                  if (newCodeTicket) {
-                    ticket = newCodeTicket;
-                    const type =
-                      newCodeTicket.type.charAt(0).toUpperCase() +
-                      newCodeTicket.type.slice(1);
-                    typeOfTicket = `${type}-Code`;
+                  // Try InvitationCode
+                  const invitationCodeTicket = await InvitationCode.findById(
+                    ticketId
+                  );
+                  if (invitationCodeTicket) {
+                    ticket = invitationCodeTicket;
+                    typeOfTicket = "Invitation-Code";
+                  } else {
+                    // Try Code (new unified model)
+                    const newCodeTicket = await Code.findById(ticketId);
+                    if (newCodeTicket) {
+                      ticket = newCodeTicket;
+                      const type =
+                        newCodeTicket.type.charAt(0).toUpperCase() +
+                        newCodeTicket.type.slice(1);
+                      typeOfTicket = `${type}-Code`;
 
-                    // Get the event details for this code
-                    if (newCodeTicket.eventId) {
-                      const Event = require("../models/eventsModel");
-                      event = await Event.findById(newCodeTicket.eventId);
-                    }
-
-                    // Get host name if available
-                    if (newCodeTicket.createdBy) {
-                      const user = await User.findById(newCodeTicket.createdBy);
-                      if (user) {
-                        hostName =
-                          user.firstName || user.username || user.email;
+                      // Get the event details for this code
+                      if (newCodeTicket.eventId) {
+                        const Event = require("../models/eventsModel");
+                        event = await Event.findById(newCodeTicket.eventId);
                       }
-                    }
 
-                    // Check if metadata has hostName
-                    if (
-                      newCodeTicket.metadata &&
-                      newCodeTicket.metadata.hostName
-                    ) {
-                      hostName = newCodeTicket.metadata.hostName;
+                      // Get host name if available
+                      if (newCodeTicket.createdBy) {
+                        const user = await User.findById(
+                          newCodeTicket.createdBy
+                        );
+                        if (user) {
+                          hostName =
+                            user.firstName || user.username || user.email;
+                        }
+                      }
+
+                      // Check if metadata has hostName
+                      if (
+                        newCodeTicket.metadata &&
+                        newCodeTicket.metadata.hostName
+                      ) {
+                        hostName = newCodeTicket.metadata.hostName;
+                      }
                     }
                   }
                 }
@@ -764,6 +826,71 @@ const updateTicketPax = async (req, res) => {
   }
 };
 
+// Function to update pax for TableCode model
+const updateTableCodePax = async (req, res) => {
+  try {
+    const tableCodeId = req.params.ticketId;
+    const { increment } = req.body;
+
+    console.log(
+      `Updating pax for TableCode ${tableCodeId}, increment: ${increment}`
+    );
+
+    if (!mongoose.Types.ObjectId.isValid(tableCodeId)) {
+      return res.status(400).json({ message: "Invalid TableCode ID format" });
+    }
+
+    // Find the TableCode
+    const tableCode = await TableCode.findById(tableCodeId);
+
+    if (!tableCode) {
+      return res.status(404).json({ message: "TableCode not found" });
+    }
+
+    // If increasing pax
+    if (increment) {
+      // Check if max capacity reached for the table code
+      const maxPax = tableCode.pax || 1;
+      if (tableCode.paxChecked >= maxPax) {
+        return res.status(400).json({
+          message: "Maximum capacity reached for this table reservation",
+        });
+      }
+
+      // Increment paxChecked
+      tableCode.paxChecked = (tableCode.paxChecked || 0) + 1;
+    }
+    // If decreasing pax
+    else {
+      // Check if paxChecked is already 0
+      if (tableCode.paxChecked <= 0) {
+        return res.status(400).json({
+          message: "Pax count is already 0 for this table reservation",
+        });
+      }
+
+      // Decrement paxChecked
+      tableCode.paxChecked = Math.max(0, (tableCode.paxChecked || 0) - 1);
+    }
+
+    // Save the updated TableCode
+    await tableCode.save();
+
+    return res.json({
+      _id: tableCode._id,
+      paxChecked: tableCode.paxChecked,
+      maxPax: tableCode.pax || 1,
+      status: tableCode.status,
+      message: increment
+        ? "Checked in successfully to table " + tableCode.tableNumber
+        : "Checked out successfully from table " + tableCode.tableNumber,
+    });
+  } catch (error) {
+    console.error("Error updating TableCode pax:", error);
+    return res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
 // New controller function to handle unified code model pax updates
 const updateCodePax = async (req, res) => {
   try {
@@ -1141,6 +1268,7 @@ module.exports = {
   increasePax,
   decreasePax,
   updateTicketPax,
+  updateTableCodePax,
   updateCodePax,
   getCounts,
   getUserSpecificCounts,

@@ -431,6 +431,15 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           increment: increment,
         };
       }
+      // Check if this is a TableCode
+      else if (scanResult.typeOfTicket === "Table-Code") {
+        // For Table Codes, use the tablecode endpoints
+        endpoint = `/qr/tablecodes/${scanResult._id}/update-pax`;
+        payload = {
+          eventId: scanResult.eventId || selectedEvent?._id,
+          increment: increment,
+        };
+      }
       // New approach - check the typeOfTicket to determine how to update
       else if (
         scanResult.typeOfTicket &&
