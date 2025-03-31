@@ -74,6 +74,7 @@ const createEventEmailTemplate = (options) => {
     primaryColor = "#ffc807",
     additionalContent = "",
     footerText = "This is an automated email. Please do not reply to this message.",
+    showEventDetails = true, // New option to control event details visibility
   } = options;
 
   // Format date for display
@@ -137,7 +138,7 @@ const createEventEmailTemplate = (options) => {
       <div style="text-align: center; padding: 20px; background-color: ${primaryColor}; margin-bottom: 20px; border-radius: 8px; color: #222;">
         <h1 style="margin: 0; font-size: 28px;">${eventTitle}</h1>
         ${
-          hasValidDate
+          hasValidDate && showEventDetails
             ? `<p style="margin: 10px 0 0; font-size: 16px;">${formattedDate.day}, ${formattedDate.date}</p>`
             : ""
         }
@@ -145,6 +146,10 @@ const createEventEmailTemplate = (options) => {
       
       <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">Hello ${recipientName},</p>
       
+      ${
+        showEventDetails &&
+        (eventLocation || hasValidDate || startTime || eventAddress)
+          ? `
       <div style="background-color: #f8f8f8; border-left: 4px solid ${primaryColor}; padding: 15px; margin-bottom: 20px;">
         <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Event Details:</p>
         ${
@@ -152,10 +157,18 @@ const createEventEmailTemplate = (options) => {
             ? `<p style="font-size: 16px; margin: 0 0 5px;"><strong>📅 Date:</strong> ${formattedDate.day}, ${formattedDate.date}</p>`
             : ""
         }
-        <p style="font-size: 16px; margin: 0 0 5px;"><strong>⏰ Time:</strong> ${
-          startTime || formattedDate.time
-        } - ${endTime || "End"}</p>
-        <p style="font-size: 16px; margin: 0 0 5px;"><strong>📍 Location:</strong> ${eventLocation}</p>
+        ${
+          startTime
+            ? `<p style="font-size: 16px; margin: 0 0 5px;"><strong>⏰ Time:</strong> ${startTime} - ${
+                endTime || "End"
+              }</p>`
+            : ""
+        }
+        ${
+          eventLocation
+            ? `<p style="font-size: 16px; margin: 0 0 5px;"><strong>📍 Location:</strong> ${eventLocation}</p>`
+            : ""
+        }
         ${
           eventAddress
             ? `<p style="font-size: 16px; margin: 0 0 5px;"><strong>🏢 Address:</strong> ${eventAddress}</p>`
@@ -169,6 +182,9 @@ const createEventEmailTemplate = (options) => {
             : ""
         }
       </div>
+      `
+          : ""
+      }
       
       ${
         description
@@ -186,7 +202,6 @@ const createEventEmailTemplate = (options) => {
       ${additionalContent}
       
       <div style="margin-top: 30px;">
-        <p style="font-size: 16px; line-height: 1.5;">We look forward to seeing you at the event!</p>
         <p style="font-size: 16px; line-height: 1.5;">Best regards,<br>The Event Team</p>
       </div>
       

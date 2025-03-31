@@ -61,32 +61,10 @@ const AppRoutes = () => {
 
   // Create a simple loading screen component for auth loading
   const AuthLoadingScreen = () => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "linear-gradient(135deg, #3a1a5a 0%, #1a0b29 100%)",
-        color: "white",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          width: "40px",
-          height: "40px",
-          border: "3px solid rgba(255, 255, 255, 0.3)",
-          borderRadius: "50%",
-          borderTopColor: "white",
-          animation: "spin 1s linear infinite",
-        }}
-      ></div>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    <div className="event-profile-loading">
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+      </div>
     </div>
   );
 

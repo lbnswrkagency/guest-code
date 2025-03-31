@@ -75,6 +75,7 @@ exports.register = async (req, res) => {
       expiresIn: "1h",
     });
 
+    // Send verification email without event details
     await sendVerificationEmail(user.email, token);
 
     res.json({

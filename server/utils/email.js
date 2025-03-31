@@ -48,7 +48,7 @@ const sendVerificationEmail = async (to, token) => {
       <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
     `;
 
-    // Use the common email template
+    // Use the common email template with showEventDetails set to false
     sendSmtpEmail.htmlContent = createEventEmailTemplate({
       recipientName: "New User",
       eventTitle: "Welcome to GuestCode",
@@ -57,6 +57,7 @@ const sendVerificationEmail = async (to, token) => {
       primaryColor: "#ffc807",
       additionalContent: additionalContent,
       footerText: "GuestCode - The Future of Event Management",
+      showEventDetails: false,
     });
 
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
