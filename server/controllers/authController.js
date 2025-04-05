@@ -15,13 +15,13 @@ const LineUp = require("../models/lineupModel");
 // Token generation with different expiration times
 const generateAccessToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, {
-    expiresIn: "15m", // Short-lived access token
+    expiresIn: "24h", // Extended from 15m to 24h for better persistence
   });
 };
 
 const generateRefreshToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: "7d", // Longer-lived refresh token
+    expiresIn: "30d", // Extended from 7d to 30d for longer persistence
   });
 };
 
@@ -30,14 +30,14 @@ const accessTokenCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
-  maxAge: 15 * 60 * 1000, // 15 minutes
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours (matching token expiry)
 };
 
 const refreshTokenCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days (matching token expiry)
 };
 
 exports.register = async (req, res) => {

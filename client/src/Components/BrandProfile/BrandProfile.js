@@ -32,13 +32,6 @@ import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
 
 const BrandProfile = () => {
-  console.log("[BrandProfile] Component initialization:", {
-    params: useParams(),
-    location: useLocation(),
-    isAuthenticated: !!useAuth().user,
-    timestamp: new Date().toISOString(),
-  });
-
   const navigate = useNavigate();
   const location = useLocation();
   const { brandUsername } = useParams();
@@ -84,16 +77,6 @@ const BrandProfile = () => {
     cleanUsername = brandUsername.replace(/^@/, "");
   }
 
-  // Enhanced logging for debugging
-  console.log("[BrandProfile] Detailed params:", {
-    brandUsername,
-    cleanUsername,
-    rawParams: useParams(),
-    pathname: location.pathname,
-    lastAtIndex: location.pathname.lastIndexOf("/@"),
-    timestamp: new Date().toISOString(),
-  });
-
   // Skip fetching if this is the user's own profile
   useEffect(() => {
     // Extract brandUsername from URL path
@@ -102,9 +85,6 @@ const BrandProfile = () => {
 
     // Skip fetching if this might be the user's profile and we have a user
     if (user && brandUsername && user.username === brandUsername) {
-      console.log(
-        "[BrandProfile] Prevented API call - this is the user's own profile"
-      );
       return; // Don't proceed with the fetch
     }
 
@@ -114,16 +94,9 @@ const BrandProfile = () => {
   }, [cleanUsername, user, location.pathname]); // Add user and location.pathname as dependencies
 
   useEffect(() => {
-    console.log("[BrandProfile] useEffect triggered with:", {
-      cleanUsername,
-      user: !!user,
-      timestamp: new Date().toISOString(),
-    });
-
     if (cleanUsername) {
       fetchBrand();
     } else {
-      console.error("[BrandProfile] No username found in params or path");
       toast.showError("Invalid brand profile");
       navigate("/");
     }
@@ -139,30 +112,13 @@ const BrandProfile = () => {
   }, [brand?.userStatus]);
 
   const fetchBrand = async () => {
-    console.log("[BrandProfile] Fetching brand data:", {
-      brandUsername,
-      cleanUsername,
-      isAuthenticated: !!user,
-      currentUser: user?.username,
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       setLoading(true);
 
       // Log the exact API endpoint being called
       const apiEndpoint = `/brands/profile/username/${cleanUsername}`;
-      console.log(`[BrandProfile] Calling API endpoint: ${apiEndpoint}`);
 
       const response = await axiosInstance.get(apiEndpoint);
-
-      console.log("[BrandProfile] Brand data fetched:", {
-        brandId: response.data._id,
-        brandUsername: response.data.username,
-        isOwner: user?._id === response.data.owner,
-        userStatus: response.data.userStatus,
-        timestamp: new Date().toISOString(),
-      });
 
       setBrand(response.data);
       if (user) {
@@ -171,13 +127,6 @@ const BrandProfile = () => {
         setIsFavorited(response.data.userStatus?.isFavorited || false);
       }
     } catch (error) {
-      console.error("[BrandProfile] Error fetching brand:", {
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        timestamp: new Date().toISOString(),
-      });
-
       // Only redirect to home if it's not a 404 error
       if (error.response?.status === 404) {
         toast.showError(`Brand "${cleanUsername}" not found`);
@@ -201,50 +150,19 @@ const BrandProfile = () => {
 
   const handleFollow = async () => {
     if (!user) {
-      console.log("[BrandProfile:handleFollow] No user logged in");
       toast.showError("Please log in to follow brands");
       return;
     }
 
-    console.log(
-      "[BrandProfile:handleFollow] Starting follow/unfollow action:",
-      {
-        isCurrentlyFollowing: isFollowing,
-        brandId: brand._id,
-        userId: user._id,
-        currentFollowers: brand.followers,
-        timestamp: new Date().toISOString(),
-      }
-    );
-
     try {
       const endpoint = isFollowing ? "unfollow" : "follow";
-      console.log(
-        `[BrandProfile:handleFollow] Making ${endpoint} request to:`,
-        {
-          url: `/brands/${brand._id}/${endpoint}`,
-          method: "POST",
-        }
-      );
 
       const response = await axiosInstance.post(
         `/brands/${brand._id}/${endpoint}`
       );
 
-      console.log("[BrandProfile:handleFollow] Received response:", {
-        status: response.status,
-        data: response.data,
-        followers: response.data.followers,
-        userStatus: response.data.userStatus,
-      });
-
       if (response.status === 200) {
         const newFollowingState = !isFollowing;
-        console.log("[BrandProfile:handleFollow] Updating local state:", {
-          oldFollowingState: isFollowing,
-          newFollowingState,
-          newFollowersCount: response.data.followers.length,
-        });
 
         setIsFollowing(newFollowingState);
         toast.showSuccess(
@@ -260,28 +178,11 @@ const BrandProfile = () => {
               isFollowing: newFollowingState,
             },
           };
-          console.log("[BrandProfile:handleFollow] Updated brand state:", {
-            previousFollowers: prev.followers,
-            newFollowers: updatedBrand.followers,
-            followersCount: updatedBrand.followers.length,
-          });
           return updatedBrand;
         });
       }
     } catch (error) {
-      console.error("[BrandProfile:handleFollow] Error:", {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        isFollowing,
-        brandId: brand._id,
-        userId: user._id,
-      });
-
       if (error.response?.status === 400) {
-        console.log(
-          "[BrandProfile:handleFollow] Refreshing brand data due to error"
-        );
         await fetchBrand();
         toast.showError(
           error.response.data.message || "Failed to update follow status"
@@ -320,7 +221,6 @@ const BrandProfile = () => {
         await fetchBrand();
       }
     } catch (error) {
-      console.error("Error cancelling join request:", error);
       toast.showError(
         error.response?.data?.message || "Failed to cancel join request"
       );
@@ -370,7 +270,6 @@ const BrandProfile = () => {
       if (error.response?.status === 400 && error.response.data?.message) {
         toast.showError(error.response.data.message);
       } else {
-        console.error("Error sending join request:", error);
         toast.showError("Failed to send join request");
       }
     }
@@ -394,7 +293,6 @@ const BrandProfile = () => {
         await fetchBrand();
       }
     } catch (error) {
-      console.error("Error processing join request:", error);
       toast.showError("Failed to process join request");
     }
   };
@@ -443,7 +341,6 @@ const BrandProfile = () => {
           : prev.favorites.filter((id) => id !== user._id),
       }));
 
-      console.error("Error favoriting brand:", error);
       toast.showError("Failed to update favorite status");
     }
   };
@@ -500,7 +397,6 @@ const BrandProfile = () => {
         await fetchBrand();
       }
     } catch (error) {
-      console.error("Error leaving brand:", error);
       toast.showError("Failed to leave brand");
     }
   };
@@ -561,11 +457,6 @@ const BrandProfile = () => {
       </div>
     );
   };
-
-  // Add effect to log navigation state changes
-  useEffect(() => {
-    console.log("[BrandProfile] DashboardNavigation isOpen:", isNavigationOpen);
-  }, [isNavigationOpen]);
 
   if (loading) {
     return (
@@ -719,19 +610,6 @@ const BrandProfile = () => {
             </div>
           )}
         </div>
-
-        {/* Log brand data before passing to BrandProfileFeed */}
-        {console.log(
-          "[BrandProfile] Brand data being passed to BrandProfileFeed:",
-          {
-            id: brand._id,
-            username: brand.username,
-            name: brand.name,
-            hasEvents: Array.isArray(brand.events),
-            eventCount: Array.isArray(brand.events) ? brand.events.length : 0,
-            timestamp: new Date().toISOString(),
-          }
-        )}
 
         <BrandProfileFeed brand={brand} />
       </div>

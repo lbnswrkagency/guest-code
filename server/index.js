@@ -43,6 +43,8 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const debugRoutes = require("./routes/api/debugRoutes");
 const alphaKeysRoutes = require("./routes/alphaKeysRoute");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const commissionRoutes = require("./routes/commissionRoutes");
+const adminFinanceRoutes = require("./routes/adminFinanceRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -236,8 +238,10 @@ app.use("/api", searchRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/alpha-keys", alphaKeysRoutes);
+app.use("/api/commissions", commissionRoutes);
 app.use("/api", debugRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/admin/finance", adminFinanceRoutes);
 
 // MongoDB connection
 mongoose

@@ -37,6 +37,35 @@ exports.authenticate = async (req, res, next) => {
 
 // Alias for authenticate middleware to maintain compatibility with existing code
 exports.protect = exports.authenticate;
+exports.isAuthenticated = exports.authenticate;
+
+// Admin middleware to check if the user has admin privileges
+exports.isAdmin = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        status: "error",
+        message: "Not authenticated",
+      });
+    }
+
+    // Check if the user has admin role or isAdmin flag
+    if (req.user.role === "admin" || req.user.isAdmin === true) {
+      return next();
+    }
+
+    return res.status(403).json({
+      status: "error",
+      message: "Access denied. Admin privileges required.",
+    });
+  } catch (error) {
+    console.error("[AuthMiddleware] Error in isAdmin middleware:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+};
 
 // Optional: Middleware to verify refresh token
 exports.verifyRefreshToken = async (req, res, next) => {

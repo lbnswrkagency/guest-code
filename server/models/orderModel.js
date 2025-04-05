@@ -12,6 +12,10 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: false, // Not required as guests can buy tickets
     },
+    commissionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Commission",
+    },
     email: {
       type: String,
       required: true,
@@ -50,6 +54,27 @@ const orderSchema = new mongoose.Schema(
         pricePerUnit: Number,
       },
     ],
+    originalCurrency: {
+      type: String,
+      default: "EUR",
+      required: true,
+    },
+    originalAmount: {
+      type: Number,
+      required: true,
+    },
+    conversionRate: {
+      type: Number,
+      default: 1.08, // Default fallback conversion rate if not available from Stripe
+    },
+    isEstimatedRate: {
+      type: Boolean,
+      default: false, // True if using fallback rate, false if using real-time rate
+    },
+    vatRate: {
+      type: Number,
+      default: 0, // Will be set based on customer's country
+    },
     totalAmount: {
       type: Number,
       required: true,

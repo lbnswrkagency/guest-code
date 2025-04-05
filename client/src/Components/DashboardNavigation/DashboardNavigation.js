@@ -123,7 +123,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Brands",
         icon: <RiBuildingLine />,
         path: `/@${currentUser.username}/brands`,
-        isNew: newlyUnlocked,
         action: () => {
           navigate(`/@${currentUser.username}/brands`);
           onClose();
@@ -137,7 +136,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Events",
         icon: <RiCalendarEventLine />,
         path: `/@${currentUser.username}/events`,
-        isNew: newlyUnlocked,
         action: () => {
           navigate(`/@${currentUser.username}/events`);
           onClose();
@@ -151,7 +149,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         title: "Settings",
         icon: <RiSettings4Line />,
         path: "/settings",
-        isNew: newlyUnlocked,
         action: () => {
           navigate("/settings");
           onClose();
@@ -300,12 +297,8 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                 {menuItems().map((item, index) => (
                   <motion.div
                     key={item.title}
-                    className={`menu-item ${item.isNew ? "menu-item-new" : ""}`}
-                    variants={
-                      item.isNew && animateItems
-                        ? newItemVariants
-                        : menuItemVariants
-                    }
+                    className="menu-item"
+                    variants={menuItemVariants}
                     initial="hidden"
                     animate="visible"
                     custom={index}
@@ -317,16 +310,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                     <div className="menu-item-text">
                       <h4>{item.title}</h4>
                     </div>
-                    {item.isNew && (
-                      <motion.div
-                        className="menu-item-new-badge"
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 + 0.3 }}
-                      >
-                        New
-                      </motion.div>
-                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>

@@ -8,14 +8,6 @@ const BrandProfileFeed = ({ brand }) => {
   const isAuthenticated = !!user;
   const [eventCount, setEventCount] = useState(0);
 
-  console.log("[BrandProfileFeed] Received brand data:", {
-    id: brand?._id,
-    username: brand?.username,
-    name: brand?.name,
-    isAuthenticated,
-    timestamp: new Date().toISOString(),
-  });
-
   // Handle the event count update
   const handleEventsLoaded = (count) => {
     setEventCount(count);

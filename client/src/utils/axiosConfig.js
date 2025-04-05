@@ -6,38 +6,12 @@ import notificationManager from "./notificationManager";
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api",
   timeout: 30000, // 30 seconds timeout
-  withCredentials: true,
+  withCredentials: true, // Important: enables cookies to be sent with requests
 });
-
-// Set up request interceptor to add token to all requests
-axiosInstance.interceptors.request.use(
-  async (config) => {
-    // For token refresh requests, don't try to refresh the token
-    if (config.url?.includes("/auth/refresh-token")) {
-      return config;
-    }
-
-    // For all other requests, ensure we have a fresh token
-    await tokenService.ensureFreshToken();
-
-    // Get the latest token and add it to the request
-    const token = tokenService.getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Keep track of auth error handling
 let isHandlingAuthError = false;
-
-// Add a global flag to track if we're already handling a session expiration
-let isHandlingSessionExpiration = false;
+let authErrorTimeout = null;
 
 // Set up response interceptor to handle token refresh and expiration
 axiosInstance.interceptors.response.use(
@@ -45,74 +19,99 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If there's no response or we've already tried to refresh, just return the error
-    if (!error.response || originalRequest._retry) {
+    // If there's no response, just return the error
+    if (!error.response) {
       return Promise.reject(error);
     }
 
     // Handle token expiration (401 Unauthorized)
-    if (error.response.status === 401) {
-      // Only handle session expiration once to prevent multiple redirects and messages
-      if (isHandlingSessionExpiration) {
-        return Promise.reject(error);
-      }
+    if (error.response.status === 401 && !originalRequest._retry) {
+      // Mark this request as retried to prevent infinite loops
+      originalRequest._retry = true;
 
-      // IMPORTANT: Check the current URL path to determine if we're on a public page
-      const isPublicBrandOrEventRoute =
-        window.location.pathname.startsWith("/@");
-      if (isPublicBrandOrEventRoute) {
-        console.log(
-          "[axiosConfig] Skipping login redirect for public brand/event route:",
-          window.location.pathname
-        );
-        return Promise.reject(error);
-      }
-
-      // Skip redirect for brand-related API calls - these should be publicly accessible
-      if (
+      // Skip auth handling for public routes
+      const isPublicRoute =
         originalRequest.url.includes("/brands/") ||
-        originalRequest.url.includes("/events/")
-      ) {
-        console.log(
-          "[axiosConfig] Skipping login redirect for brand/event API call:",
-          originalRequest.url
-        );
+        originalRequest.url.includes("/events/") ||
+        originalRequest.url.includes("/auth/login") ||
+        originalRequest.url.includes("/auth/register");
+
+      // Skip auth error handling for public routes
+      if (isPublicRoute) {
         return Promise.reject(error);
       }
 
-      // Set flag to prevent multiple redirects
-      isHandlingSessionExpiration = true;
+      // Prevent multiple simultaneous auth error handling
+      if (isHandlingAuthError) {
+        return new Promise((resolve, reject) => {
+          // Wait for the auth error handling to complete before retrying
+          const retryInterval = setInterval(async () => {
+            if (!isHandlingAuthError) {
+              clearInterval(retryInterval);
+
+              try {
+                // Try to refresh the token and retry the request
+                await tokenService.ensureFreshToken();
+                const response = await axios(originalRequest);
+                resolve(response);
+              } catch (err) {
+                reject(error);
+              }
+            }
+          }, 500); // Check every 500ms
+
+          // Set a timeout to prevent infinite waiting
+          setTimeout(() => {
+            clearInterval(retryInterval);
+            reject(error);
+          }, 10000); // 10 second timeout
+        });
+      }
 
       try {
-        // Try to refresh the token if we're not on the auth routes
-        if (!originalRequest.url.includes("/auth/")) {
-          // Handle refresh token logic here if needed
-          // ...
+        isHandlingAuthError = true;
+
+        // Try to refresh the token
+        if (!originalRequest.url.includes("/auth/refresh-token")) {
+          try {
+            await tokenService.refreshToken();
+
+            // Retry the original request with the new token
+            return axios(originalRequest);
+          } catch (refreshError) {
+            // If refresh fails and we're not on a public page, trigger auth required event
+            const isPublicBrandOrEventRoute =
+              window.location.pathname.startsWith("/@");
+
+            if (!isPublicBrandOrEventRoute) {
+              // Dispatch an event that the auth context can listen for
+              const authRequiredEvent = new CustomEvent("auth:required", {
+                detail: {
+                  message: "Your session has expired. Please login again.",
+                  redirectUrl: window.location.pathname,
+                },
+              });
+
+              window.dispatchEvent(authRequiredEvent);
+            }
+
+            throw refreshError;
+          }
         }
-
-        // If we can't refresh, redirect to login with a message
-        const redirectUrl = "/login";
-        // Only redirect if we're not already on a public brand/event route
-        if (
-          !isPublicBrandOrEventRoute &&
-          window.location.pathname !== redirectUrl
-        ) {
-          console.log("[axiosConfig] Redirecting to login due to 401 error");
-          window.location.href = redirectUrl;
-        }
-
-        // Return a rejected promise but prevent multiple errors
-        return Promise.reject({
-          ...error,
-          handled: true, // Mark as handled
-        });
-      } catch (refreshError) {
-        // Reset the flag after some time to allow future attempts
-        setTimeout(() => {
-          isHandlingSessionExpiration = false;
-        }, 5000);
-
+      } catch (e) {
         return Promise.reject(error);
+      } finally {
+        isHandlingAuthError = false;
+
+        // Clear any existing timeout
+        if (authErrorTimeout) {
+          clearTimeout(authErrorTimeout);
+        }
+
+        // Set a new timeout to reset the flag after some time
+        authErrorTimeout = setTimeout(() => {
+          isHandlingAuthError = false;
+        }, 5000);
       }
     }
 

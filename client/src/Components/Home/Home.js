@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import Navigation from "../Navigation/Navigation";
 import Footer from "./Footer/Footer";
+import ContactSection from "./ContactSection/ContactSection";
 import "./Home.scss";
 
 const Home = () => {
@@ -115,6 +116,9 @@ const Home = () => {
           </Link>
         </div>
       </header>
+
+      {/* Contact Section */}
+      <ContactSection />
 
       <Footer />
     </div>

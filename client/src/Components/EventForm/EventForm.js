@@ -365,9 +365,6 @@ const EventForm = ({
       // Create FormData for event details
       const formDataToSend = new FormData();
 
-      // Log the form data being sent
-      console.log("[EventForm] Submitting form data:", formData);
-
       // Format date and times for API
       const date = formData.startDate.toISOString();
       const startDate = formData.startDate.toISOString();
@@ -426,14 +423,6 @@ const EventForm = ({
         (!event?._id && isChildEvent && weekNumber > 0);
 
       if (isCalculatedOccurrence) {
-        console.log(
-          "[EventForm] This is a calculated occurrence - creating child event first",
-          {
-            parentId: event.parentEventId || event.id, // Use either parentEventId or fallback to id
-            weekNumber: event.weekNumber || weekNumber,
-          }
-        );
-
         // Need to create the child event first by toggling it live (which creates it in the DB)
         try {
           // Create a loading toast
@@ -456,11 +445,6 @@ const EventForm = ({
             loadingToast.dismiss();
             toast.showSuccess("Child event created successfully");
 
-            console.log(
-              "[EventForm] Child event created:",
-              createResponse.data.childEvent
-            );
-
             // Now we can proceed with the update using the newly created child event ID
             event._id = createResponse.data.childEvent._id;
 
@@ -473,7 +457,6 @@ const EventForm = ({
             throw new Error("Failed to create child event");
           }
         } catch (createError) {
-          console.error("[EventForm] Error creating child event:", createError);
           toast.showError(
             "Failed to create child event: " +
               (createError.message || "Unknown error")
@@ -485,11 +468,6 @@ const EventForm = ({
 
       if (event?._id) {
         // Update event details first
-        console.log("[Event Update] Sending update request:", {
-          eventId: event._id,
-          formData: Object.fromEntries(formDataToSend.entries()),
-        });
-
         // Convert FormData to plain object for PUT request
         const updateData = {};
         for (const [key, value] of formDataToSend.entries()) {
@@ -523,15 +501,7 @@ const EventForm = ({
             flyerFormData.append("flyer", files.full.file);
 
             try {
-              console.log(`[Event Update] Uploading ${format} flyer:`, {
-                eventId: event._id,
-                format,
-                fileSize: files.full.file.size,
-                fileName: files.full.file.name,
-              });
-
               const uploadUrl = `/events/${event._id}/flyer/${format}`;
-              console.log(`[Event Update] Upload URL:`, uploadUrl);
 
               const response = await axiosInstance.put(
                 uploadUrl,
@@ -552,11 +522,6 @@ const EventForm = ({
                 }
               );
 
-              console.log(
-                `[Event Update] ${format} flyer upload response:`,
-                response.data
-              );
-
               if (response.data?.flyer?.[format]) {
                 setFlyerPreviews((prev) => ({
                   ...prev,
@@ -570,12 +535,6 @@ const EventForm = ({
                 eventResponse = response;
               }
             } catch (uploadError) {
-              console.error(`[Event Update] Error uploading ${format} flyer:`, {
-                error: uploadError.message,
-                response: uploadError.response?.data,
-                status: uploadError.response?.status,
-                url: uploadError.config?.url,
-              });
               throw uploadError; // Let parent handle the error
             }
           }
@@ -586,11 +545,6 @@ const EventForm = ({
           if (files?.full?.file) {
             formDataToSend.append(`flyer.${format}`, files.full.file);
           }
-        });
-
-        console.log("[Event Creation] Creating new event:", {
-          brandId: selectedBrand._id,
-          formData: Object.fromEntries(formDataToSend.entries()),
         });
 
         eventResponse = await axiosInstance.post(
@@ -607,24 +561,32 @@ const EventForm = ({
       await onSave(eventResponse.data);
       onClose();
     } catch (error) {
-      console.error("[EventForm] Error submitting form:", error);
       throw error; // Let parent handle the error
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Add debugging for event object
+  // Clean up debugging logs throughout the file
   useEffect(() => {
     if (event) {
-      console.log("EventForm received event:", {
-        id: event._id,
-        title: event.title,
-        hasLineups: !!event.lineups,
-        lineups: event.lineups,
-      });
+      // Remove console.log for event debugging
     }
   }, [event]);
+
+  // Check component mount
+  useEffect(() => {
+    // For calculated occurrences, make sure we have correct initialization
+    if (!event?._id && event?.parentEventId && weekNumber > 0) {
+      // Remove console.log for calculated occurrence
+    }
+
+    // Component cleanup
+    return () => {
+      // Clean up blob URLs when component unmounts
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   // Handle delete event
   const handleDeleteClick = () => {
@@ -662,23 +624,6 @@ const EventForm = ({
     isCalculatedOccurrence:
       !event?._id && event?.parentEventId && weekNumber > 0,
   });
-
-  // Check component mount
-  useEffect(() => {
-    // For calculated occurrences, make sure we have correct initialization
-    if (!event?._id && event?.parentEventId && weekNumber > 0) {
-      console.log("[EventForm] Handling calculated occurrence:", {
-        parentId: event.parentEventId,
-        weekNumber,
-      });
-    }
-
-    // Component cleanup
-    return () => {
-      // Clean up blob URLs when component unmounts
-      blobUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
 
   return (
     <AnimatePresence>

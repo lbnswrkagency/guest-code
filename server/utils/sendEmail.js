@@ -59,6 +59,22 @@ const formatDateWithLeadingZeros = (dateString) => {
   return `${day}.${month}.${year}`;
 };
 
+// US Company Information
+const COMPANY_INFO = {
+  name: "LBNSWRK LLC",
+  dba: "GuestCode",
+  address: {
+    line1: "5830 E 2ND ST, STE 7000 #14531",
+    city: "CASPER",
+    state: "WYOMING",
+    zip: "82609",
+    country: "USA",
+  },
+  email: "contact@guest-code.com",
+  phone: "888-462-3453",
+  ein: "32-0758843",
+};
+
 const sendEmail = async (order) => {
   try {
     // Fetch event and brand information
@@ -73,9 +89,9 @@ const sendEmail = async (order) => {
 
     // Create an elegant logo with SVG for better quality
     const logoHtml = `
-      <div style="text-align: center; padding: 10px; background-color: ${accentColor}; color: white;">
-        <h1 style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 24px; font-weight: 700; margin: 0; color: ${primaryColor}; letter-spacing: 1px;">GuestCode</h1>
-        <p style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; margin: 3px 0 0; letter-spacing: 0.5px;">The Future of Event Management</p>
+      <div style="text-align: center; padding: 20px;">
+        <h1 style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 28px; font-weight: 700; margin: 0; color: ${primaryColor}; letter-spacing: 1px;">${COMPANY_INFO.dba}</h1>
+        <p style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; margin: 5px 0 0; letter-spacing: 0.5px; color: #666;">The Future of Event Management</p>
       </div>
     `;
 
@@ -102,23 +118,27 @@ const sendEmail = async (order) => {
         } Stk</p>
         <p style="justify-self: end; padding-right: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0;">${ticket.pricePerUnit.toFixed(
           2
-        )} EUR</p>
+        )} ${order.originalCurrency || "EUR"}</p>
         <p style="justify-self: end; padding-right: 1rem; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600; margin: 0;">${(
           ticket.quantity * ticket.pricePerUnit
-        ).toFixed(2)} EUR</p>
+        ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
       </div>
     `
       )
       .join("");
 
     const line2HTML = order.billingAddress.line2
-      ? `<p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.line2}</p>`
+      ? `<p style="margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.line2}</p>`
       : "";
     const addressHTML = `
-      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600;">${order.firstName} ${order.lastName}</p>
-      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.line1}</p>
-      ${line2HTML}
-      <p style="margin: 2px 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333;">${order.billingAddress.postal_code}, ${order.billingAddress.city}</p>
+      <div style="margin-top: 20px;">
+        <p style="margin: 0 0 15px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #666; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Invoice To:</p>
+        <p style="margin: 0 0 5px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600; font-size: 15px;">${order.firstName} ${order.lastName}</p>
+        <p style="margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.line1}</p>
+        ${line2HTML}
+        <p style="margin: 3px 0 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.postal_code} ${order.billingAddress.city}</p>
+        <p style="margin: 3px 0 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.country}</p>
+      </div>
     `;
 
     // Launch puppeteer to generate PDF with new headless mode
@@ -149,34 +169,50 @@ const sendEmail = async (order) => {
           flex-direction: column;
         }
         .header {
-          background-color: ${accentColor};
-          height: 6rem;
+          background-color: white;
+          padding: 2rem 0;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-direction: column;
+          border-bottom: 1px solid #eee;
         }
         .content {
-          padding: 1.5rem 2rem;
+          padding: 2rem;
           flex: 1;
         }
         .address-section {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          margin-bottom: 1.5rem;
+          margin: 2rem 0;
+          gap: 2rem;
         }
-        .company-address {
-          margin-top: 1rem;
-        }
-        .client-address {
-          margin-top: 0.5rem;
+        .company-info {
+          font-size: 12px;
+          color: #666;
+          margin: 0 0 20px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #eee;
         }
         .invoice-details {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          justify-content: end;
-          justify-items: end;
-          margin-top: 1rem;
+          text-align: right;
+        }
+        .invoice-details-grid {
+          display: inline-grid;
+          grid-template-columns: auto auto;
+          gap: 10px;
+          text-align: left;
+        }
+        .invoice-details-label {
+          color: #666;
+          font-size: 13px;
+          text-align: right;
+          padding-right: 15px;
+        }
+        .invoice-details-value {
+          color: #333;
+          font-size: 13px;
+          font-weight: 500;
         }
         .invoice-title-section {
           display: flex;
@@ -277,23 +313,23 @@ const sendEmail = async (order) => {
 
         <div class="content">
           <div class="address-section">
-            <div class="company-address">
-              <p style="font-size: 0.6rem; margin-bottom: .5rem; color: #777;">
-                GuestCode - Davaki Pindou 14 - 15773 Athens
-              </p>
+            <div>
+              <div class="company-info">
+                ${COMPANY_INFO.dba} • ${COMPANY_INFO.email} • www.guest-code.com
+              </div>
               ${addressHTML}
             </div>
 
             <div class="invoice-details">
-              <div>
-                <p style="font-weight: 600; margin: 2px 0;">Invoice No.</p>
-                <p style="margin: 2px 0;">Date</p>
-              </div>
-              <div>
-                <p class="invoice-number" style="margin: 2px 0;">${generateInvoiceNumber(
-                  order.stripeSessionId
-                )}</p>
-                <p style="margin: 2px 0;">${formattedDate()}</p>
+              <div class="invoice-details-grid">
+                <span class="invoice-details-label">Invoice No.</span>
+                <span class="invoice-details-value" style="color: ${primaryColor};">${generateInvoiceNumber(
+      order.stripeSessionId
+    )}</span>
+                <span class="invoice-details-label">Date</span>
+                <span class="invoice-details-value">${formattedDate()}</span>
+                <span class="invoice-details-label">EIN</span>
+                <span class="invoice-details-value">${COMPANY_INFO.ein}</span>
               </div>
             </div>
           </div>
@@ -358,24 +394,54 @@ const sendEmail = async (order) => {
             <p style="font-weight: 500; margin: 0;">Total Amount</p>
             <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
             <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
-            <p class="total-amount" style="justify-self: end; padding-right: 1rem; margin: 0;">${order.totalAmount.toFixed(
-              2
-            )} EUR</p>
+            <p class="total-amount" style="justify-self: end; padding-right: 1rem; margin: 0;">${(
+              order.originalAmount || order.totalAmount
+            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
           </div>
 
-          <!-- International VAT Information -->
+          <!-- Tax Information -->
           <div style="margin-top: 1rem; text-align: right; padding-right: 1rem;">
+            ${
+              order.vatRate > 0
+                ? `
             <p style="margin: 0; font-size: 0.9rem;">Net Amount: ${(
-              order.totalAmount / 1.19
-            ).toFixed(2)} EUR</p>
-            <p style="margin: 0; font-size: 0.9rem;">VAT (19%): ${(
-              order.totalAmount -
-              order.totalAmount / 1.19
-            ).toFixed(2)} EUR</p>
-            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Gross Amount: ${order.totalAmount.toFixed(
-              2
-            )} EUR</p>
-            <p style="margin: 0.5rem 0 0; font-size: 0.8rem; color: #777;">This invoice includes 19% Value Added Tax (VAT).</p>
+              (order.originalAmount || order.totalAmount) /
+              (1 + order.vatRate / 100)
+            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
+            <p style="margin: 0; font-size: 0.9rem;">VAT (${
+              order.vatRate
+            }%): ${(
+                    (order.originalAmount || order.totalAmount) -
+                    (order.originalAmount || order.totalAmount) /
+                      (1 + order.vatRate / 100)
+                  ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Gross Amount: ${(
+              order.originalAmount || order.totalAmount
+            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
+            `
+                : `
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Total Amount: ${(
+              order.originalAmount || order.totalAmount
+            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
+            <p style="margin: 0; font-size: 0.8rem; color: #666;">No VAT applicable</p>
+            `
+            }
+            ${
+              order.conversionRate && order.conversionRate !== 1
+                ? `<p style="margin: 5px 0 0; font-size: 0.8rem; color: #666;">
+                    Conversion to USD: ${order.totalAmount.toFixed(2)} USD 
+                    (Rate: ${order.conversionRate.toFixed(4)})
+                    ${
+                      order.isEstimatedRate
+                        ? '<span style="color: #999; font-style: italic;">*estimated</span>'
+                        : ""
+                    }
+                  </p>
+                  <p style="margin: 2px 0 0; font-size: 0.7rem; color: #888;">
+                    *Commission is calculated based on USD amount
+                  </p>`
+                : ""
+            }
           </div>
 
           <div class="footer-message">
@@ -386,18 +452,23 @@ const sendEmail = async (order) => {
 
         <div class="footer">
           <div class="footer-left">
-            <p style="margin:0; font-weight: 600;">GuestCode</p>
-            <p style="margin:2px 0 0;">Davaki Pindou 14</p>
-            <p style="margin:2px 0 0;">15773 Athens</p>
+            <p style="margin:0; font-weight: 600;">${COMPANY_INFO.name}</p>
+            <p style="margin:2px 0 0;">${COMPANY_INFO.address.line1}</p>
+            <p style="margin:2px 0 0;">${COMPANY_INFO.address.city}, ${
+      COMPANY_INFO.address.state
+    } ${COMPANY_INFO.address.zip}</p>
           </div>
 
           <div class="footer-center">
             <p style="color: white; font-size: 0.8rem; margin: 0;">Powered by</p>
-            <p style="color: ${primaryColor}; font-weight: 600; font-size: 1rem; margin: 0;">GuestCode</p>
+            <p style="color: ${primaryColor}; font-weight: 600; font-size: 1rem; margin: 0;">${
+      COMPANY_INFO.dba
+    }</p>
           </div>
 
           <div class="footer-right">
-            <p style="margin:0;">Email: contact@guest-code.com</p>
+            <p style="margin:0;">EIN: ${COMPANY_INFO.ein}</p>
+            <p style="margin:2px 0 0;">Email: ${COMPANY_INFO.email}</p>
             <p style="margin:2px 0 0;">Web: www.guest-code.com</p>
           </div>
         </div>
@@ -477,9 +548,9 @@ const sendEmail = async (order) => {
         <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
       order.stripeSessionId
     )}</span></p>
-        <p style="margin: 8px 0 0;">Total Amount: <strong>${order.totalAmount.toFixed(
-          2
-        )} EUR</strong></p>
+        <p style="margin: 8px 0 0;">Total Amount: <strong>${(
+          order.originalAmount || order.totalAmount
+        ).toFixed(2)} ${order.originalCurrency || "EUR"}</strong></p>
         <p style="margin: 8px 0 0;">Tickets: <strong>${
           Object.keys(ticketGroups).length
         }</strong></p>

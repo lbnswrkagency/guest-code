@@ -19,7 +19,7 @@ const checkOutSession = async (req, res) => {
     // Create line items from tickets with more detailed information
     const line_items = tickets.map((ticket) => ({
       price_data: {
-        currency: "eur",
+        currency: "eur", // Explicit EUR currency for customer checkout
         product_data: {
           name: ticket.name,
           description: `${event.title} - ${
@@ -52,16 +52,22 @@ const checkOutSession = async (req, res) => {
         lastName,
         email,
         tickets: JSON.stringify(tickets),
+        userId: req.user ? req.user._id : undefined, // Add user ID if logged in, otherwise undefined for guests
       },
       billing_address_collection: "required",
       allow_promotion_codes: true,
       automatic_tax: { enabled: true },
       client_reference_id: eventId,
-      locale: "de", // Set to German locale
+      locale: "auto", // Changed from "de" to "auto" to use browser's locale
       custom_text: {
         submit: {
-          message: "Wir reservieren Ihre Tickets für 30 Minuten.", // Custom message in German
+          message: "We'll reserve your tickets for 30 minutes.", // Changed to English for consistency
         },
+      },
+      payment_intent_data: {
+        // Add payment intent data to ensure we get currency exchange information
+        description: `Tickets for ${tickets.map((t) => t.name).join(", ")}`,
+        capture_method: "automatic",
       },
     });
 

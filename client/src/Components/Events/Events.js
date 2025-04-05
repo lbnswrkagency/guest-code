@@ -37,16 +37,8 @@ import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 const hasEventPermissions = (event, user, userBrands) => {
   // If no user or event, permission denied
   if (!user || !event) {
-    console.log("[hasEventPermissions] No user or event provided");
     return false;
   }
-
-  console.log("[hasEventPermissions] Checking permissions for:", {
-    userId: user._id,
-    eventId: event._id,
-    brandId: typeof event.brand === "object" ? event.brand._id : event.brand,
-    userBrandsCount: userBrands?.length || 0,
-  });
 
   // Get the brand associated with this event
   const eventBrand = userBrands?.find(
@@ -56,20 +48,8 @@ const hasEventPermissions = (event, user, userBrands) => {
   );
 
   if (!eventBrand) {
-    console.log("[hasEventPermissions] Brand not found in user's brands");
     return false;
   }
-
-  console.log("[hasEventPermissions] Found brand:", {
-    brandId: eventBrand._id,
-    brandName: eventBrand.name,
-    brandOwner:
-      typeof eventBrand.owner === "object"
-        ? eventBrand.owner._id
-        : eventBrand.owner,
-    hasTeam: !!eventBrand.team,
-    teamSize: eventBrand.team?.length || 0,
-  });
 
   // If user is the brand owner, they have permission
   const ownerId =
@@ -79,9 +59,6 @@ const hasEventPermissions = (event, user, userBrands) => {
   const userId = user._id;
 
   if (ownerId === userId) {
-    console.log(
-      "[hasEventPermissions] User is brand owner, granting permission"
-    );
     return true;
   }
 
@@ -102,31 +79,10 @@ const hasEventPermissions = (event, user, userBrands) => {
       if (typeof teamMember.permissions === "string") {
         try {
           parsedPermissions = JSON.parse(teamMember.permissions);
-          console.log(
-            "[hasEventPermissions] Successfully parsed permissions from string"
-          );
         } catch (error) {
-          console.error(
-            "[hasEventPermissions] Error parsing permissions string:",
-            error
-          );
           parsedPermissions = {};
         }
       }
-
-      // Log team member details
-      console.log("[hasEventPermissions] Found team member:", {
-        memberId:
-          typeof teamMember.user === "object"
-            ? teamMember.user._id
-            : teamMember.user,
-        memberRole: teamMember.role,
-        permissions:
-          typeof parsedPermissions === "object"
-            ? JSON.stringify(parsedPermissions)
-            : "{}",
-        parsedPermissionsType: typeof parsedPermissions,
-      });
 
       // Define roles that should have edit permissions by default
       const editRoles = [
@@ -147,19 +103,9 @@ const hasEventPermissions = (event, user, userBrands) => {
           (role) => role.toUpperCase() === teamMember.role.toUpperCase()
         );
 
-      // Log the role-based permission check
-      console.log(`[hasEventPermissions] Role-based permission check:`, {
-        role: teamMember.role,
-        hasEditRole,
-        editRoles: editRoles.join(", "),
-      });
-
       // IMPORTANT FIX: If the role is in our editRoles list, grant permission regardless of
       // what's in the permissions object. This is the key fix.
       if (hasEditRole) {
-        console.log(
-          `[hasEventPermissions] Granting permission based on role: ${teamMember.role}`
-        );
         return true;
       }
 
@@ -167,17 +113,6 @@ const hasEventPermissions = (event, user, userBrands) => {
       if (parsedPermissions) {
         // Check if the team member has edit permissions for events
         const hasEditPermission = parsedPermissions?.events?.edit === true;
-
-        // Log detailed information about the permissions
-        console.log(
-          "[hasEventPermissions] Team member direct permissions check:",
-          {
-            role: teamMember.role,
-            hasEditPermission,
-            eventsPermissions: JSON.stringify(parsedPermissions?.events || {}),
-            allPermissions: JSON.stringify(parsedPermissions || {}),
-          }
-        );
 
         // If the permissions object has events.edit defined, use that value
         if (typeof parsedPermissions?.events?.edit === "boolean") {
@@ -187,14 +122,10 @@ const hasEventPermissions = (event, user, userBrands) => {
 
       // If we get here, the role doesn't have automatic access and there's no
       // valid permissions object, so deny access
-      console.log(
-        `[hasEventPermissions] No valid permissions found for role: ${teamMember.role}`
-      );
       return false;
     }
   }
 
-  console.log("[hasEventPermissions] No permissions found for user");
   return false;
 };
 
@@ -219,18 +150,8 @@ const Events = () => {
 
   const fetchBrands = async () => {
     try {
-      console.log("[Events] Fetching brands...");
       const response = await axiosInstance.get("/brands");
       if (Array.isArray(response.data)) {
-        console.log("[Events] Brands fetched:", {
-          count: response.data.length,
-          brands: response.data.map((b) => ({
-            id: b._id,
-            name: b.name,
-            owner: typeof b.owner === "object" ? b.owner._id : b.owner,
-            teamSize: b.team?.length || 0,
-          })),
-        });
         setUserBrands(response.data);
         setBrandsLoaded(true);
         if (response.data.length > 0 && !selectedBrand) {
@@ -238,7 +159,6 @@ const Events = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching brands:", error);
       toast.showError("Failed to load brands");
       setUserBrands([]);
       setBrandsLoaded(true);
@@ -253,15 +173,12 @@ const Events = () => {
     if (!selectedBrand?._id) return;
 
     try {
-      console.log("Fetching events for brand:", selectedBrand._id);
       const response = await axiosInstance.get(
         `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`
       );
-      console.log("Events fetched:", response.data);
       setEvents(response.data);
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching events:", error);
       toast.showError("Failed to load events");
       setEvents([]);
       setLoading(false);
@@ -283,13 +200,6 @@ const Events = () => {
   const handleEventClick = (event, weekNumber = 0) => {
     // Make sure that if it's a calculated occurrence (childExists is false), we properly mark it
     if (event.childExists === false) {
-      console.log("[Events] Editing a calculated occurrence:", {
-        isCalculatedOccurrence: true,
-        parentId: event.parentEventId,
-        weekNumber: event.weekNumber || weekNumber,
-      });
-
-      // Make sure we keep the parentEventId and weekNumber intact
       setSelectedEvent({
         ...event,
         _id: null, // Explicitly set _id to null for calculated occurrences
@@ -320,23 +230,8 @@ const Events = () => {
       );
       let response;
 
-      console.log("[Event Operation] Attempting to create/update event:", {
-        isUpdate: !!selectedEvent,
-        eventData,
-        selectedBrandId: selectedBrand._id,
-        weekNumber: currentWeek,
-        isChildEvent: selectedEvent?.parentEventId ? true : false,
-      });
-
       if (selectedEvent) {
-        console.log(`[Event Update] Updating event ${selectedEvent._id}`);
-
-        // If this is a child event, use its ID directly
         if (selectedEvent.parentEventId) {
-          console.log(
-            `[Event Update] This is a child event with parentEventId: ${selectedEvent.parentEventId}`
-          );
-
           response = await axiosInstance.put(
             `${process.env.REACT_APP_API_BASE_URL}/events/${selectedEvent._id}`,
             eventData,
@@ -365,9 +260,6 @@ const Events = () => {
           );
         }
       } else {
-        console.log(
-          `[Event Creation] Creating new event for brand ${selectedBrand._id}`
-        );
         response = await axiosInstance.post(
           `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`,
           eventData,
@@ -379,18 +271,12 @@ const Events = () => {
         );
       }
 
-      console.log("[Event Operation] Server response:", {
-        status: response.status,
-        data: response.data,
-      });
-
       // Update the events array
       setEvents((prev) => {
         if (selectedEvent) {
           // If we're updating an event
           if (selectedEvent.parentEventId) {
             // If this is a child event, update it directly
-            console.log("[Event Update] Updating child event in events array");
             return prev.map((e) =>
               e._id === selectedEvent._id ? response.data : e
             );
@@ -405,17 +291,10 @@ const Events = () => {
 
             if (!childEventExists && response.data.parentEventId) {
               // Add the new child event to the array
-              console.log(
-                "[Event Update] Adding new child event to events array:",
-                response.data
-              );
               return [...prev, response.data];
             }
 
             // Update the child event if it exists
-            console.log(
-              "[Event Update] Updating existing child event in events array"
-            );
             return prev.map((e) =>
               e.parentEventId === selectedEvent._id &&
               e.weekNumber === currentWeek
@@ -424,14 +303,12 @@ const Events = () => {
             );
           } else {
             // Regular update for parent event
-            console.log("[Event Update] Updating parent event in events array");
             return prev.map((e) =>
               e._id === selectedEvent._id ? response.data : e
             );
           }
         } else {
           // New event creation
-          console.log("[Event Creation] Adding new event to events array");
           return [...prev, response.data];
         }
       });
@@ -449,12 +326,6 @@ const Events = () => {
       // This ensures we stay on the same week after editing
       handleClose();
     } catch (error) {
-      console.error("[Event Operation Error]", {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config,
-      });
       toast.showError(error.response?.data?.message || "Failed to save event");
     }
   };
@@ -649,61 +520,17 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
   // Check if the user has permission to edit this event
   const hasPermission = hasEventPermissions(event, user, userBrands);
 
-  // Log permission status for debugging
   useEffect(() => {
-    console.log("[EventCard] Permission check result:", {
-      hasPermission,
-      eventId: event._id,
-      eventTitle: event.title,
-      userId: user?._id,
-      userBrandsCount: userBrands?.length || 0,
-    });
-
-    // If user has a HOST role but doesn't have permission, log more details
-    if (!hasPermission && user && userBrands) {
-      const eventBrand = userBrands.find(
-        (b) =>
-          b._id === event.brand ||
-          (typeof event.brand === "object" && b._id === event.brand._id)
-      );
-
-      if (eventBrand) {
-        console.log("[EventCard] Detailed brand info for debugging:", {
-          brandId: eventBrand._id,
-          brandName: eventBrand.name,
-          brandOwner: eventBrand.owner,
-          teamMembers: eventBrand.team?.map((member) => ({
-            id: member._id,
-            name: member.name,
-            userId:
-              typeof member.user === "object" ? member.user._id : member.user,
-            permissions: member.permissions,
-          })),
-        });
-      }
-    }
-  }, [event._id, user, userBrands, hasPermission]);
-
-  useEffect(() => {
-    console.log("[EventCard] Event prop changed:", event);
-
     // Reset the current event to the new event
     setCurrentEvent(event);
 
     // If this is a child event (has parentEventId and weekNumber), set currentWeek to event.weekNumber
     // Otherwise, if we're already on a specific week, maintain that week number
     if (event.parentEventId && event.weekNumber) {
-      console.log(
-        `[EventCard] Setting currentWeek to ${event.weekNumber} from child event`
-      );
       setCurrentWeek(event.weekNumber);
     } else if (event.isWeekly && currentWeek > 0) {
-      console.log(
-        `[EventCard] Maintaining current week ${currentWeek} for weekly event`
-      );
       // Keep the current week number
     } else {
-      console.log(`[EventCard] Resetting currentWeek to 0 for parent event`);
       setCurrentWeek(0);
     }
 
@@ -729,10 +556,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         return;
       }
 
-      console.log(
-        `[findChildEvent] Finding child event for parent ${event._id}, week ${currentWeek}`
-      );
-
       try {
         setIsLoading(true);
         const response = await axiosInstance.get(
@@ -740,9 +563,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         );
 
         // Set the event data regardless of whether it's a real child or calculated occurrence
-        console.log(`[findChildEvent] Response received:`, response.data);
-
-        // Ensure the weekNumber is set on the child event
         const receivedEvent = {
           ...response.data,
           weekNumber: currentWeek,
@@ -750,25 +570,10 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
         // Check if this is a real child event or a calculated one
         if (response.data._id) {
-          console.log(
-            `[findChildEvent] Real child event found with ID: ${response.data._id}`
-          );
+          setCurrentEvent(receivedEvent);
+          setIsLive(receivedEvent.isLive || false);
         } else {
-          console.log(
-            `[findChildEvent] Using calculated occurrence (no child event exists yet)`
-          );
-        }
-
-        setCurrentEvent(receivedEvent);
-        setIsLive(receivedEvent.isLive || false);
-      } catch (error) {
-        console.error("[findChildEvent] Error fetching child event:", error);
-
-        // Create a fallback calculated occurrence
-        console.log(`[findChildEvent] Creating fallback calculated occurrence`);
-
-        try {
-          // Calculate the date for this week's occurrence
+          // Create a fallback calculated occurrence
           const weekDate = new Date(event.startDate || event.startDate);
 
           if (isNaN(weekDate.getTime())) {
@@ -790,22 +595,30 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
           setCurrentEvent(tempEvent);
           setIsLive(false);
-        } catch (dateError) {
-          console.error(
-            "[findChildEvent] Error creating fallback occurrence:",
-            dateError
-          );
-          toast.showError("Error calculating event date");
-
-          // Use parent as last resort
-          setCurrentEvent({
-            ...event,
-            weekNumber: currentWeek,
-            parentEventId: event._id,
-            childExists: false,
-          });
-          setIsLive(false);
         }
+      } catch (error) {
+        // Create a fallback calculated occurrence
+        const weekDate = new Date(event.startDate || event.startDate);
+
+        if (isNaN(weekDate.getTime())) {
+          throw new Error("Invalid date");
+        }
+
+        weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+
+        // Create a temporary event object with parent data but updated date
+        const tempEvent = {
+          ...event,
+          _id: null, // NULL ID indicates it doesn't exist in DB yet
+          parentEventId: event._id,
+          weekNumber: currentWeek,
+          date: weekDate.toISOString(),
+          isLive: false,
+          childExists: false, // Flag to indicate this is a calculated occurrence
+        };
+
+        setCurrentEvent(tempEvent);
+        setIsLive(false);
       } finally {
         setIsLoading(false);
       }
@@ -851,14 +664,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
   const handleEditClick = (e) => {
     e.stopPropagation();
-    console.log("[Event Edit] Editing event:", {
-      eventId: currentEvent._id,
-      isChildEvent: currentEvent.parentEventId ? true : false,
-      weekNumber: currentEvent.weekNumber || currentWeek,
-    });
-
-    // Pass the currentEvent (which could be parent or child) and the current week number
-    // Use the weekNumber from the currentEvent if available, otherwise use the currentWeek state
     onClick(currentEvent, currentEvent.weekNumber || currentWeek);
   };
 
@@ -872,17 +677,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     e.stopPropagation();
     if (currentWeek > 0) {
       const newWeek = currentWeek - 1;
-      console.log(`[Weekly Navigation] Moving to previous week: ${newWeek}`);
-      console.log("[WEEKLY DEBUG] handlePrevWeek - Before state update:", {
-        currentWeek,
-        newWeek,
-        eventId: event?._id,
-        eventTitle: event?.title,
-        eventDate: event?.date,
-        currentEventId: currentEvent?._id,
-        currentEventTitle: currentEvent?.title,
-        currentEventDate: currentEvent?.date,
-      });
       setCurrentWeek(newWeek);
     }
   };
@@ -891,50 +685,18 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
   const handleNextWeek = (e) => {
     e.stopPropagation();
     const newWeek = currentWeek + 1;
-    console.log(`[Weekly Navigation] Moving to next week: ${newWeek}`);
-    console.log("[WEEKLY DEBUG] handleNextWeek - Before state update:", {
-      currentWeek,
-      newWeek,
-      eventId: event?._id,
-      eventTitle: event?.title,
-      eventDate: event?.date,
-      currentEventId: currentEvent?._id,
-      currentEventTitle: currentEvent?.title,
-      currentEventDate: currentEvent?.date,
-    });
     setCurrentWeek(newWeek);
   };
 
   // Update when currentWeek changes
   useEffect(() => {
     if (currentEvent.isWeekly && currentWeek > 0) {
-      console.log(`[Weekly Navigation] Week changed to ${currentWeek}`);
-      console.log(
-        "[WEEKLY DEBUG] useEffect[currentWeek] - Before findChildEvent:",
-        {
-          currentWeek,
-          eventId: event?._id,
-          eventTitle: event?.title,
-          eventDate: new Date(event?.date).toISOString(),
-          eventIsWeekly: event?.isWeekly,
-          currentEventId: currentEvent?._id,
-          currentEventTitle: currentEvent?.title,
-          currentEventDate: currentEvent?.date
-            ? new Date(currentEvent.date).toISOString()
-            : null,
-        }
-      );
-
       try {
         // Calculate the date for this week's occurrence
         const weekDate = new Date(event.startDate || event.date);
 
         // Check if the date is valid before proceeding
         if (isNaN(weekDate.getTime())) {
-          console.error(
-            "[Weekly Navigation] Invalid date:",
-            event.startDate || event.date
-          );
           return;
         }
 
@@ -965,7 +727,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     try {
       const d = new Date(date);
       if (isNaN(d.getTime())) {
-        console.error("[formatDate] Invalid date:", date);
         return "Invalid date";
       }
 
@@ -975,7 +736,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
       return `${day}.${month}`;
     } catch (error) {
-      console.error("[formatDate] Error formatting date:", error);
       return "Invalid date";
     }
   };
@@ -985,7 +745,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     try {
       const d = new Date(date);
       if (isNaN(d.getTime())) {
-        console.error("[formatWeeklyDate] Invalid date:", date);
         return "Invalid date";
       }
 
@@ -995,7 +754,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
       return `${day}.${month}`;
     } catch (error) {
-      console.error("[formatWeeklyDate] Error formatting date:", error);
       return "Invalid date";
     }
   };
@@ -1012,14 +770,9 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     // Use the weekNumber from the currentEvent if available, otherwise use the currentWeek state
     const weekToUse = currentEvent.weekNumber || currentWeek;
 
-    console.log(
-      `[Go Live] Toggling live status for event ${event._id}, week ${weekToUse}`
-    );
-
     // Check if we have a valid token before making the request
     const token = localStorage.getItem("token");
     if (!token) {
-      console.log("[Go Live] No auth token available");
       toast.showError("Authentication required. Please log in again.");
       loadingToast.dismiss();
       return;
@@ -1043,22 +796,11 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         }`
       )
       .then((response) => {
-        console.log(`[Go Live] Response:`, response.data);
-
         // Update the local state
         setIsLive(response.data.isLive);
 
         // If a child event was included in the response, it means it was just created or updated
         if (response.data.childEvent) {
-          console.log(
-            `[Go Live] Updating current event with child event data:`,
-            {
-              childId: response.data.childEvent._id,
-              isLive: response.data.childEvent.isLive,
-            }
-          );
-
-          // Update with the real child event that was created/updated
           setCurrentEvent({
             ...response.data.childEvent,
             weekNumber: weekToUse, // Ensure weekNumber is set correctly
@@ -1076,7 +818,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         loadingToast.dismiss();
       })
       .catch((error) => {
-        console.error("[Go Live] Error:", error);
         toast.showError("Failed to update event status");
         loadingToast.dismiss();
       });
