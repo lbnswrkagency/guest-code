@@ -12,6 +12,7 @@ import { setEvents } from "../../../redux/eventsSlice";
 import { setRoles, setUserRole } from "../../../redux/rolesSlice";
 import { setCodeSettings } from "../../../redux/codeSettingsSlice";
 import { setLineups } from "../../../redux/lineupSlice";
+import Maintenance from "../../Maintenance/Maintenance";
 import notificationManager from "../../../utils/notificationManager";
 
 function Login() {
@@ -46,6 +47,13 @@ function Login() {
       delete newState.message;
       window.history.replaceState(newState, document.title);
     }
+
+    // Add a log to check if Login is being mounted unexpectedly
+    console.log("[Login] Component mounted with location:", {
+      pathname: location.pathname,
+      search: location.search,
+      state: location.state,
+    });
   }, [location.state, toast]);
 
   const handleChange = (e) => {
@@ -62,37 +70,36 @@ function Login() {
 
     try {
       const userData = await login(formData);
+      const fullUserData = userData?.user || userData;
 
-      if (!userData) {
-        throw new Error("Login failed - no user data returned");
-      }
-
-      // Process the user data for Redux storage
       // Dispatch loginSuccess with the full user data
-      dispatch(loginSuccess({ user: userData }));
+      dispatch(loginSuccess({ user: fullUserData }));
 
       // Process and store data in their respective slices
-      if (userData.brands && userData.brands.length > 0) {
+      if (fullUserData.brands && fullUserData.brands.length > 0) {
         // Store brands
-        dispatch(setBrands(userData.brands));
+        dispatch(setBrands(fullUserData.brands));
       }
 
       // Store events if available
-      if (userData.events && Array.isArray(userData.events)) {
-        dispatch(setEvents(userData.events));
+      if (fullUserData.events && Array.isArray(fullUserData.events)) {
+        dispatch(setEvents(fullUserData.events));
       }
 
       // Store roles if available
-      if (userData.roles) {
+      if (fullUserData.roles) {
         // Store all roles
-        if (userData.roles.allRoles && Array.isArray(userData.roles.allRoles)) {
-          dispatch(setRoles(userData.roles.allRoles));
+        if (
+          fullUserData.roles.allRoles &&
+          Array.isArray(fullUserData.roles.allRoles)
+        ) {
+          dispatch(setRoles(fullUserData.roles.allRoles));
         }
 
         // Store user roles mapping
-        if (userData.roles.userRoles) {
+        if (fullUserData.roles.userRoles) {
           // Set each user role individually
-          Object.entries(userData.roles.userRoles).forEach(
+          Object.entries(fullUserData.roles.userRoles).forEach(
             ([brandId, roleId]) => {
               dispatch(setUserRole({ brandId, roleId }));
             }
@@ -101,20 +108,22 @@ function Login() {
       }
 
       // Store code settings if available
-      if (userData.codeSettings && Array.isArray(userData.codeSettings)) {
-        dispatch(setCodeSettings(userData.codeSettings));
+      if (
+        fullUserData.codeSettings &&
+        Array.isArray(fullUserData.codeSettings)
+      ) {
+        dispatch(setCodeSettings(fullUserData.codeSettings));
       }
 
       // Store lineups if available
-      if (userData.lineups && Array.isArray(userData.lineups)) {
-        dispatch(setLineups(userData.lineups));
+      if (fullUserData.lineups && Array.isArray(fullUserData.lineups)) {
+        dispatch(setLineups(fullUserData.lineups));
       }
 
       // Determine where to navigate
-      const redirectTo = location.state?.from || `/@${userData.username}`;
+      const redirectTo = location.state?.from || `/@${fullUserData.username}`;
       navigate(redirectTo);
     } catch (error) {
-      console.error("Login error:", error);
       dispatch(setError(error.message || "Login failed"));
       toast.showError(
         error.response?.data?.message || "Login failed. Please try again."
@@ -222,6 +231,7 @@ function Login() {
     </div>
   );
 
+  // return <Maintenance>{loginContent}</Maintenance>;
   return loginContent;
 }
 

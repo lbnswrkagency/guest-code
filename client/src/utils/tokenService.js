@@ -8,124 +8,138 @@ class TokenService {
     this.refreshPromise = null;
     this.isRefreshing = false;
     this.refreshTimer = null;
+    this.sessionPingTimer = null;
     this.tokenRefreshListeners = [];
 
-    // Refresh threshold (75% of token lifetime - more conservative with longer tokens)
-    this.REFRESH_THRESHOLD = 0.75;
+    // Initialize ping interval (2.5 minutes)
+    this.PING_INTERVAL = 2.5 * 60 * 1000;
+
+    // Initialize refresh threshold (50% of token lifetime)
+    this.REFRESH_THRESHOLD = 0.5;
   }
 
-  // Initialize with axiosInstance and start background refresh
+  // Initialize with axiosInstance and start timers
   init(axiosInstance) {
     this.axiosInstance = axiosInstance;
     this.setupRefreshTimer();
-    this.setupVisibilityListener();
+    this.setupSessionPing();
     return this;
   }
 
-  // Setup page visibility listener to refresh token when page becomes visible
-  setupVisibilityListener() {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        // When page becomes visible (app comes to foreground)
-        this.checkAndRefreshToken();
-      }
-    });
-  }
-
-  // Set up a timer to proactively refresh tokens
+  // Set up a timer to regularly check and refresh tokens
   setupRefreshTimer() {
     // Clear any existing timer
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
 
-    // Get current token to check expiry
-    const token = this.getTokenFromCookie();
-    if (!token) return;
+    // Set up a new timer that checks tokens every 5 minutes
+    this.refreshTimer = setInterval(() => {
+      this.checkAndRefreshToken();
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  // Set up a lightweight ping to keep the session active
+  setupSessionPing() {
+    // Clear any existing ping timer
+    if (this.sessionPingTimer) {
+      clearInterval(this.sessionPingTimer);
+    }
+
+    // Set up regular pings to keep session active - but only if we're in an active tab
+    this.sessionPingTimer = setInterval(() => {
+      // Only ping if document is visible (active tab)
+      if (document.visibilityState === "visible") {
+        this.pingSession().catch((err) => {
+          // Silently catch errors - we don't want to trigger state changes
+          console.log(
+            "[TokenService] Session ping failed (handled):",
+            err.message
+          );
+        });
+      }
+    }, this.PING_INTERVAL);
+  }
+
+  /**
+   * Pings the server to keep the session alive
+   * Lightweight check that's useful for detecting expired sessions
+   */
+  async pingSession() {
+    // Skip ping if no token available - don't throw error to avoid state changes
+    if (!this.getToken()) {
+      console.log("[TokenService] Skipping session ping - no token");
+      return { status: "no-token" };
+    }
 
     try {
-      // Calculate when to refresh (75% through the token lifetime)
-      const decoded = jwtDecode(token);
-      const tokenLifetime = decoded.exp - decoded.iat;
-      const refreshAt = decoded.iat + tokenLifetime * this.REFRESH_THRESHOLD;
-      const now = Math.floor(Date.now() / 1000);
+      // Log the exact URL being used
+      const pingUrl = "/auth/ping";
+      console.log(`[TokenService] Pinging session at: ${pingUrl}`);
 
-      // Calculate time until refresh in milliseconds
-      let timeUntilRefresh = (refreshAt - now) * 1000;
-
-      // If already past refresh time, do it immediately
-      if (timeUntilRefresh < 0) {
-        this.checkAndRefreshToken();
-        return;
+      // Use the configured axiosInstance instead of axios global
+      if (!this.axiosInstance) {
+        console.log("[TokenService] Warning: axiosInstance not initialized");
+        return { status: "error", message: "axiosInstance not initialized" };
       }
 
-      // Schedule the refresh at exactly the right time
-      this.refreshTimer = setTimeout(() => {
-        this.checkAndRefreshToken();
-        // After refreshing, set up the next cycle
-        this.setupRefreshTimer();
-      }, timeUntilRefresh);
+      // Call the lightweight ping endpoint
+      const response = await this.axiosInstance.get(pingUrl, {
+        // Add cache-busting to avoid cached responses
+        params: {
+          _t: new Date().getTime(),
+        },
+      });
 
-      console.log(
-        `[TokenService] Token refresh scheduled in ${Math.floor(
-          timeUntilRefresh / 1000 / 60
-        )} minutes`
-      );
+      console.log("[TokenService] Ping successful:", response.status);
+
+      // If we got a new token from the ping, update it without triggering state changes
+      if (response.data && response.data.tokenRefreshed) {
+        // Try to extract token from cookies instead of relying on response
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith("accessToken=")) {
+            const token = cookie.substring(
+              "accessToken=".length,
+              cookie.length
+            );
+            if (token) {
+              // Update token in storage but avoid state changes
+              localStorage.setItem("token", token);
+              // Don't update axiosInstance here to avoid triggering changes
+            }
+          }
+        }
+      }
+
+      return response.data;
     } catch (error) {
-      console.error("Error scheduling token refresh:", error);
-      // Fall back to a reasonable default interval for refresh
-      this.refreshTimer = setTimeout(() => {
-        this.checkAndRefreshToken();
-      }, 60 * 60 * 1000); // Hourly refresh
+      // Don't throw error to avoid propagating to AuthContext unnecessarily
+      console.log("[TokenService] Ping session failed:", error.message);
+      return { status: "error", message: error.message };
     }
-  }
-
-  // Parse the token from cookies
-  getTokenFromCookie() {
-    const cookies = document.cookie.split(";");
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith("accessToken=")) {
-        return cookie.substring("accessToken=".length);
-      }
-    }
-    return null;
-  }
-
-  // Get refresh token from cookies (rarely needed, but kept for completeness)
-  getRefreshTokenFromCookie() {
-    const cookies = document.cookie.split(";");
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith("refreshToken=")) {
-        return cookie.substring("refreshToken=".length);
-      }
-    }
-    return null;
   }
 
   // Check if token needs refresh and refresh if needed
   async checkAndRefreshToken() {
-    const token = this.getTokenFromCookie();
+    const token = this.getToken();
 
     if (token) {
       try {
         // Check if token is expired or near expiry
         if (this.isTokenExpiredOrNearExpiry(token)) {
           await this.refreshToken();
-          return true;
         }
       } catch (error) {
         console.error("Token refresh check failed:", error);
-        return false;
       }
     }
-    return false;
   }
 
   // Ensure we have a fresh token before making important API calls
   async ensureFreshToken() {
-    const token = this.getTokenFromCookie();
+    const token = this.getToken();
 
     // If no token, nothing to do
     if (!token) return false;
@@ -170,17 +184,46 @@ class TokenService {
     }
   }
 
-  // Legacy method for backward compatibility
+  // Get token from localStorage
   getToken() {
-    return this.getTokenFromCookie();
+    return localStorage.getItem("token");
   }
 
-  // Legacy method for backward compatibility
+  // Get refresh token from localStorage
   getRefreshToken() {
-    return this.getRefreshTokenFromCookie();
+    return localStorage.getItem("refreshToken");
   }
 
-  // Refresh the token - simplified to rely on HTTP-only cookies
+  // Set token in localStorage
+  setToken(token) {
+    if (token) {
+      localStorage.setItem("token", token);
+      // Also update Authorization header
+      if (this.axiosInstance) {
+        this.axiosInstance.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${token}`;
+      }
+    }
+  }
+
+  // Set refresh token in localStorage
+  setRefreshToken(refreshToken) {
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
+  }
+
+  // Clear all tokens
+  clearTokens() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    if (this.axiosInstance) {
+      delete this.axiosInstance.defaults.headers.common["Authorization"];
+    }
+  }
+
+  // Refresh the token
   async refreshToken() {
     // If already refreshing, return the existing promise
     if (this.refreshPromise) {
@@ -194,19 +237,17 @@ class TokenService {
       try {
         const response = await this.axiosInstance.post("/auth/refresh-token");
 
-        // Notify any listeners that token has been refreshed
-        // (cookies are automatically updated by the server)
-        if (response.data.token) {
-          this.notifyTokenRefreshed(response.data.token);
-        }
+        // Update tokens in localStorage
+        this.setToken(response.data.token);
+        this.setRefreshToken(response.data.refreshToken);
 
-        // Reset the refresh timer after a successful refresh
-        this.setupRefreshTimer();
+        // Notify any listeners that token has been refreshed
+        this.notifyTokenRefreshed(response.data.token);
 
         resolve(response.data);
       } catch (error) {
-        // Auth error handling is centralized in axios interceptors
-        console.error("Token refresh failed:", error);
+        // Clear tokens on refresh failure
+        this.clearTokens();
         reject(error);
       } finally {
         this.isRefreshing = false;
@@ -240,23 +281,16 @@ class TokenService {
     });
   }
 
-  // Trigger logout by clearing cookies
-  async logout() {
-    try {
-      // Call server to invalidate the token and clear cookies
-      await this.axiosInstance.post("/auth/logout");
-    } catch (error) {
-      console.error("Logout API call failed:", error);
-    } finally {
-      this.cleanup();
-    }
-  }
-
   // Stop all timers
   cleanup() {
     if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
+      clearInterval(this.refreshTimer);
       this.refreshTimer = null;
+    }
+
+    if (this.sessionPingTimer) {
+      clearInterval(this.sessionPingTimer);
+      this.sessionPingTimer = null;
     }
   }
 }
