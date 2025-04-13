@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import Navigation from "../Navigation/Navigation";
 import Footer from "./Footer/Footer";
 import ContactSection from "./ContactSection/ContactSection";
+import HomeHeader from "../HomeHeader/HomeHeader";
 import "./Home.scss";
 
 const Home = () => {
@@ -14,7 +15,13 @@ const Home = () => {
       <Navigation />
 
       <header className="home-header">
-        <div className="animated-background">
+        {/* 3D Background Layer */}
+        <div className="three-d-layer">
+          <HomeHeader />
+        </div>
+
+        {/* Reduced opacity for the animated background */}
+        <div className="animated-background" style={{ opacity: 0.7 }}>
           {/* Nebula effects */}
           <div className="nebula-container">
             <div className="nebula"></div>
@@ -22,8 +29,8 @@ const Home = () => {
             <div className="nebula"></div>
           </div>
 
-          {/* Star field - increased to 200 stars with varied colors */}
-          <div className="star-container">
+          {/* Star field - reduced opacity to let 3D effects show through */}
+          <div className="star-container" style={{ opacity: 0.6 }}>
             {[...Array(200)].map((_, i) => (
               <div key={`star-${i}`} className="star"></div>
             ))}
@@ -64,23 +71,21 @@ const Home = () => {
             ))}
           </div>
 
-          {/* Meteors - reduced to 4 */}
+          {/* Other effects with reduced quantities for better performance */}
           <div className="meteor-container">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(2)].map((_, i) => (
               <div key={`meteor-${i}`} className="meteor"></div>
             ))}
           </div>
 
-          {/* Shooting stars - reduced to 3 */}
           <div className="shooting-star-container">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(2)].map((_, i) => (
               <div key={`shooting-star-${i}`} className="shooting-star"></div>
             ))}
           </div>
 
-          {/* Particles */}
           <div className="particles-container">
-            {[...Array(50)].map((_, i) => (
+            {[...Array(30)].map((_, i) => (
               <div
                 key={`particle-${i}`}
                 className={`particle particle-${i + 1}`}
@@ -88,27 +93,25 @@ const Home = () => {
             ))}
           </div>
 
-          {/* Gold dust */}
           <div className="dust-container">
-            {[...Array(150)].map((_, i) => (
+            {[...Array(80)].map((_, i) => (
               <div key={`dust-${i}`} className="dust-particle"></div>
             ))}
           </div>
 
-          {/* Lightning effect */}
           <div className="lightning-container">
-            <div className="lightning"></div>
             <div className="lightning"></div>
           </div>
 
-          {/* Vortex effect */}
           <div className="vortex"></div>
-
-          {/* Glow overlay */}
           <div className="glow-overlay"></div>
         </div>
 
-        <div className="header-content">
+        {/* Keep the header content in front */}
+        <div
+          className="header-content"
+          style={{ position: "relative", zIndex: 20 }}
+        >
           <h1>GuestCode</h1>
           <p className="subtitle">The Future of Event Management</p>
           <Link to="/login" className="alpha-badge-link">

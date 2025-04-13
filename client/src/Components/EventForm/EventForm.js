@@ -14,6 +14,9 @@ import {
   RiMusicLine,
   RiDeleteBinLine,
   RiInformationLine,
+  RiSearchLine,
+  RiAddLine,
+  RiEditLine,
 } from "react-icons/ri";
 import { useToast } from "../Toast/ToastContext";
 import axiosInstance from "../../utils/axiosConfig";
@@ -30,6 +33,7 @@ import { FaTimes, FaCheck } from "react-icons/fa";
 import { BiTime } from "react-icons/bi";
 import LineUp from "../LineUp/LineUp";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import GenreSelector from "../GenreSelector/GenreSelector";
 
 const FLYER_TYPES = [
   {
@@ -212,34 +216,75 @@ const EventForm = ({
   // Add state for selected lineups
   const [selectedLineups, setSelectedLineups] = useState([]);
 
-  // Load existing lineups if event exists
+  // Add state for GenreSelector modal
+  const [showGenreModal, setShowGenreModal] = useState(false);
+
+  // Add state for selected genres
+  const [selectedGenres, setSelectedGenres] = useState([]);
+
+  // Add state for search and filtered genres
+  const [search, setSearch] = useState("");
+  const [filteredGenres, setFilteredGenres] = useState([]);
+  const [showNewGenreForm, setShowNewGenreForm] = useState(false);
+  const [newGenre, setNewGenre] = useState("");
+
+  // Add state for genres loading and management
+  const [allGenres, setAllGenres] = useState([]);
+
+  // Add state for genre editing
+  const [editingGenre, setEditingGenre] = useState(null);
+  const [editGenreName, setEditGenreName] = useState("");
+  const [showDeleteGenreConfirm, setShowDeleteGenreConfirm] = useState(false);
+  const [genreToDelete, setGenreToDelete] = useState(null);
+
+  // Fetch genres for the brand
+  useEffect(() => {
+    if (selectedBrand?._id) {
+      fetchBrandGenres();
+    }
+  }, [selectedBrand]);
+
+  const fetchBrandGenres = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(
+        `/genres/brand/${selectedBrand._id}`
+      );
+      setAllGenres(response.data || []);
+    } catch (error) {
+      console.error("Error fetching brand genres:", error);
+      toast.showError("Failed to load music genres");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load existing genres if event exists
   useEffect(() => {
     if (event?._id) {
-      // If event already has lineups populated, use those
-      if (event.lineups && Array.isArray(event.lineups)) {
-        console.log("Using lineups from event object:", event.lineups);
-        setSelectedLineups(event.lineups);
+      // If event already has genres populated, use those
+      if (event.genres && Array.isArray(event.genres)) {
+        setSelectedGenres(event.genres);
       } else {
-        // Otherwise, fetch lineups from API
-        const fetchEventLineups = async () => {
+        // Otherwise, fetch genres from API
+        const fetchEventGenres = async () => {
           try {
             const token = localStorage.getItem("token");
             const response = await axiosInstance.get(
-              `/lineup/event/${event._id}`,
+              `/genres/event/${event._id}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
               }
             );
-            console.log("Fetched lineups from API:", response.data);
-            setSelectedLineups(response.data);
+            setSelectedGenres(response.data);
           } catch (error) {
-            console.error("Error fetching event lineups:", error);
+            console.error("Error fetching event genres:", error);
           }
         };
 
-        fetchEventLineups();
+        fetchEventGenres();
       }
     }
   }, [event]);
@@ -247,6 +292,11 @@ const EventForm = ({
   // Handle saving selected lineups
   const handleSaveLineups = (lineups) => {
     setSelectedLineups(lineups);
+  };
+
+  // Handle saving selected genres
+  const handleSaveGenres = (genres) => {
+    setSelectedGenres(genres);
   };
 
   // Cleanup function
@@ -414,6 +464,14 @@ const EventForm = ({
         );
       }
 
+      // Add selected genres to the form data
+      if (selectedGenres.length > 0) {
+        formDataToSend.append(
+          "genres",
+          JSON.stringify(selectedGenres.map((genre) => genre._id))
+        );
+      }
+
       let eventResponse;
 
       // Check if this is a calculated occurrence (temporary event that doesn't exist in DB yet)
@@ -468,6 +526,10 @@ const EventForm = ({
 
       if (event?._id) {
         // Update event details first
+        // For event update, we need to handle genres properly:
+        // If using FormData, the backend needs special handling
+        // If using a regular PUT request, we need to properly structure the body
+
         // Convert FormData to plain object for PUT request
         const updateData = {};
         for (const [key, value] of formDataToSend.entries()) {
@@ -483,6 +545,11 @@ const EventForm = ({
         // Add selected lineups to the update data
         if (selectedLineups.length > 0) {
           updateData.lineups = selectedLineups.map((lineup) => lineup._id);
+        }
+
+        // Add selected genres to the update data (not as a stringified array)
+        if (selectedGenres.length > 0) {
+          updateData.genres = selectedGenres.map((genre) => genre._id);
         }
 
         // Include the weekNumber in the URL if this is a child event or we're editing a specific week
@@ -561,7 +628,8 @@ const EventForm = ({
       await onSave(eventResponse.data);
       onClose();
     } catch (error) {
-      throw error; // Let parent handle the error
+      console.error("Error submitting event:", error);
+      toast.showError(error.response?.data?.message || "Failed to save event");
     } finally {
       setIsSubmitting(false);
     }
@@ -625,6 +693,180 @@ const EventForm = ({
       !event?._id && event?.parentEventId && weekNumber > 0,
   });
 
+  // Add state and functions for genre selection
+  const [genreSelection, setGenreSelection] = useState([]);
+
+  const handleAddNewGenre = () => {
+    setShowNewGenreForm(true);
+  };
+
+  const handleCreateGenre = async () => {
+    if (!newGenre.trim()) {
+      toast.showError("Genre name cannot be empty");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axiosInstance.post("/genres", {
+        brandId: selectedBrand._id,
+        name: newGenre.trim(),
+        icon: "music",
+      });
+
+      // Add new genre to the list
+      const newGenreObj = response.data;
+      setAllGenres((prev) => [...prev, newGenreObj]);
+
+      // Automatically select the new genre
+      setSelectedGenres((prev) => [...prev, newGenreObj]);
+
+      // Reset form but keep the create form open for easier multiple additions
+      setNewGenre("");
+
+      toast.showSuccess(`"${newGenreObj.name}" created and selected`);
+    } catch (error) {
+      console.error("Error creating genre:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to create genre"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle genre selection
+  const toggleGenreSelection = (genre) => {
+    setSelectedGenres((prevGenres) => {
+      const isSelected = prevGenres.some((g) => g._id === genre._id);
+
+      if (isSelected) {
+        return prevGenres.filter((g) => g._id !== genre._id);
+      } else {
+        return [...prevGenres, genre];
+      }
+    });
+  };
+
+  // Handle editing a genre
+  const handleEditGenre = (genre, e) => {
+    e.preventDefault(); // Add preventDefault
+    e.stopPropagation(); // Prevent selection of the genre when clicking edit
+    setEditingGenre(genre);
+    setEditGenreName(genre.name);
+    setShowNewGenreForm(false); // Close the new genre form if it's open
+  };
+
+  // Save edited genre
+  const handleSaveGenreEdit = async (e) => {
+    if (e) e.preventDefault(); // Add preventDefault
+
+    if (!editGenreName.trim()) {
+      toast.showError("Genre name cannot be empty");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axiosInstance.put(`/genres/${editingGenre._id}`, {
+        name: editGenreName.trim(),
+      });
+
+      // Update the genre in allGenres list
+      setAllGenres((prev) =>
+        prev.map((g) =>
+          g._id === editingGenre._id ? { ...g, name: editGenreName.trim() } : g
+        )
+      );
+
+      // Update in selectedGenres if it's selected
+      setSelectedGenres((prev) =>
+        prev.map((g) =>
+          g._id === editingGenre._id ? { ...g, name: editGenreName.trim() } : g
+        )
+      );
+
+      toast.showSuccess("Genre updated successfully");
+      setEditingGenre(null);
+      setEditGenreName("");
+    } catch (error) {
+      console.error("Error updating genre:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to update genre"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle deleting a genre
+  const handleDeleteGenre = (genre, e) => {
+    e.preventDefault(); // Add preventDefault
+    e.stopPropagation(); // Prevent selection of the genre when clicking delete
+    setGenreToDelete(genre);
+    setShowDeleteGenreConfirm(true);
+  };
+
+  // Confirm genre deletion
+  const confirmDeleteGenre = async (e) => {
+    if (e) e.preventDefault(); // Add preventDefault
+    if (!genreToDelete) return;
+
+    try {
+      setLoading(true);
+      await axiosInstance.delete(`/genres/${genreToDelete._id}`);
+
+      // Remove from allGenres
+      setAllGenres((prev) => prev.filter((g) => g._id !== genreToDelete._id));
+
+      // Remove from selectedGenres if it's selected
+      setSelectedGenres((prev) =>
+        prev.filter((g) => g._id !== genreToDelete._id)
+      );
+
+      toast.showSuccess("Genre deleted successfully");
+    } catch (error) {
+      console.error("Error deleting genre:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to delete genre"
+      );
+    } finally {
+      setLoading(false);
+      setShowDeleteGenreConfirm(false);
+      setGenreToDelete(null);
+    }
+  };
+
+  // Update the GenreItem component to include edit and delete icons
+  const GenreItem = ({ genre, isSelected, onSelect }) => (
+    <div
+      className={`genre-item ${isSelected ? "selected" : ""}`}
+      onClick={(e) => {
+        e.preventDefault(); // Add preventDefault
+        onSelect();
+      }}
+    >
+      <RiMusicLine className="genre-icon" />
+      <span className="genre-name">{genre.name}</span>
+      {isSelected ? (
+        <div className="selected-indicator">
+          <FaCheck className="check-icon" />
+        </div>
+      ) : (
+        <div className="genre-actions" onClick={(e) => e.stopPropagation()}>
+          <RiEditLine
+            className="action-icon edit-icon"
+            onClick={(e) => handleEditGenre(genre, e)}
+          />
+          <RiDeleteBinLine
+            className="action-icon delete-icon"
+            onClick={(e) => handleDeleteGenre(genre, e)}
+          />
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <AnimatePresence>
       <motion.div
@@ -639,11 +881,10 @@ const EventForm = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
-          <button className="close-button" onClick={onClose}>
-            <RiCloseLine />
-          </button>
-
-          <h2>{event ? "Edit Event" : "Create Event"}</h2>
+          <h2>
+            <RiCloseLine className="close-button" onClick={onClose} />
+            {event ? "Edit Event" : "Create Event"}
+          </h2>
 
           <form onSubmit={handleSubmit}>
             <div className="form-section">
@@ -918,23 +1159,15 @@ const EventForm = ({
               {/* Only show weekly toggle for parent events */}
               {!isChildEvent && (
                 <div className="form-group weekly-event-toggle">
-                  <div className="toggle-container">
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        name="isWeekly"
-                        checked={formData.isWeekly}
-                        onChange={handleInputChange}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
+                  <label className="toggle-container">
+                    <input
+                      type="checkbox"
+                      name="isWeekly"
+                      checked={formData.isWeekly}
+                      onChange={handleInputChange}
+                    />
                     <span className="toggle-label">Weekly Event</span>
-                  </div>
-                  {formData.isWeekly && (
-                    <p className="toggle-hint">
-                      This event will repeat every week
-                    </p>
-                  )}
+                  </label>
                 </div>
               )}
 
@@ -1041,7 +1274,15 @@ const EventForm = ({
             {/* Event Media section - moved after Line Up */}
             <div className="form-section">
               <h3>Event Media</h3>
-              <div className="flyer-options">
+              <div
+                className="flyer-options"
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1rem",
+                  marginTop: "1rem",
+                }}
+              >
                 {FLYER_TYPES.map((type) => (
                   <div
                     key={type.id}
@@ -1059,8 +1300,8 @@ const EventForm = ({
                       accept="image/*"
                       style={{ display: "none" }}
                     />
-                    <div className="ratio-preview">
-                      {flyerPreviews[type.id] && (
+                    <div className={`ratio-preview ratio-${type.id}`}>
+                      {flyerPreviews[type.id] ? (
                         <ProgressiveImage
                           thumbnailSrc={flyerPreviews[type.id].thumbnail}
                           mediumSrc={flyerPreviews[type.id].medium}
@@ -1068,6 +1309,8 @@ const EventForm = ({
                           blurDataURL={flyerPreviews[type.id].blur}
                           alt={`${type.label} flyer preview`}
                         />
+                      ) : (
+                        <div className="ratio-placeholder"></div>
                       )}
                     </div>
                     <span className="ratio-text">{type.ratio}</span>
@@ -1093,15 +1336,127 @@ const EventForm = ({
             {/* Music section */}
             <div className="form-section">
               <h3>Music</h3>
-              <div className="form-group">
-                <label>Music Genres</label>
-                <textarea
-                  value={formData.music}
-                  onChange={handleInputChange}
-                  name="music"
-                  placeholder="Enter music genres (e.g., Afrobeats, Amapiano, Dancehall)"
-                  rows="3"
-                />
+
+              {/* Direct genre selection with minimal design */}
+              <div className="genre-selection">
+                {loading ? (
+                  <div className="loading-message">Loading genres...</div>
+                ) : (
+                  <>
+                    {/* Selected genres */}
+                    {selectedGenres.length > 0 && (
+                      <div className="selected-genres">
+                        {selectedGenres.map((genre) => (
+                          <div key={genre._id} className="genre-tag">
+                            <RiMusicLine className="icon" />
+                            <span>{genre.name}</span>
+                            <RiCloseLine
+                              className="remove-icon"
+                              onClick={() => toggleGenreSelection(genre)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="genre-grid">
+                      {allGenres
+                        .filter(
+                          (genre) =>
+                            !selectedGenres.some((g) => g._id === genre._id)
+                        )
+                        .map((genre) => (
+                          <GenreItem
+                            key={genre._id}
+                            genre={genre}
+                            isSelected={false}
+                            onSelect={() => toggleGenreSelection(genre)}
+                          />
+                        ))}
+
+                      {/* Add new genre button */}
+                      <div
+                        className="genre-item add-new"
+                        onClick={() => setShowNewGenreForm(true)}
+                      >
+                        <RiAddLine className="genre-icon" />
+                        <span className="genre-name">Add New</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* New genre form */}
+                {showNewGenreForm && (
+                  <div className="new-genre-form">
+                    <input
+                      type="text"
+                      placeholder="Enter genre name..."
+                      value={newGenre || ""}
+                      onChange={(e) => setNewGenre(e.target.value)}
+                      autoFocus
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateGenre();
+                        }
+                      }}
+                    />
+                    <div className="form-actions">
+                      <button
+                        className="cancel-button"
+                        onClick={() => {
+                          setShowNewGenreForm(false);
+                          setNewGenre("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="create-button"
+                        onClick={handleCreateGenre}
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit genre form */}
+                {editingGenre && (
+                  <div className="new-genre-form">
+                    <input
+                      type="text"
+                      placeholder="Edit genre name..."
+                      value={editGenreName || ""}
+                      onChange={(e) => setEditGenreName(e.target.value)}
+                      autoFocus
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSaveGenreEdit();
+                        }
+                      }}
+                    />
+                    <div className="form-actions">
+                      <button
+                        className="cancel-button"
+                        onClick={() => {
+                          setEditingGenre(null);
+                          setEditGenreName("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="create-button"
+                        onClick={handleSaveGenreEdit}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1136,6 +1491,18 @@ const EventForm = ({
           selectedBrand={selectedBrand}
           onSave={handleSaveLineups}
           initialSelectedLineups={selectedLineups}
+        />
+      )}
+
+      {/* GenreSelector Modal */}
+      {showGenreModal && (
+        <GenreSelector
+          key="event-genre-modal"
+          event={event}
+          onClose={() => setShowGenreModal(false)}
+          selectedBrand={selectedBrand}
+          onSave={handleSaveGenres}
+          initialSelectedGenres={selectedGenres}
         />
       )}
 
@@ -1202,6 +1569,64 @@ const EventForm = ({
                   e.preventDefault();
                   e.stopPropagation();
                   confirmDelete();
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Delete
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Delete Genre Confirmation Dialog */}
+      {showDeleteGenreConfirm && genreToDelete && (
+        <motion.div
+          className="delete-confirmation-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowDeleteGenreConfirm(false);
+          }}
+        >
+          <motion.div
+            className="delete-confirmation"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => {
+              e.preventDefault(); // Add preventDefault
+              e.stopPropagation();
+            }}
+          >
+            <h3>Delete Genre</h3>
+            <p>
+              Are you sure you want to delete the genre "{genreToDelete.name}"?
+              This cannot be undone.
+            </p>
+            <div className="confirmation-actions">
+              <motion.button
+                className="cancel-btn"
+                onClick={(e) => {
+                  e.preventDefault(); // Add preventDefault
+                  e.stopPropagation();
+                  setShowDeleteGenreConfirm(false);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                className="confirm-delete-btn"
+                onClick={(e) => {
+                  e.preventDefault(); // Add preventDefault
+                  e.stopPropagation();
+                  confirmDeleteGenre();
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

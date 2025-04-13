@@ -462,6 +462,7 @@ exports.editEvent = async (req, res) => {
       friendsCode,
       ticketCode,
       tableCode,
+      genres,
     } = req.body;
 
     // Handle lineups if they exist
@@ -472,6 +473,18 @@ exports.editEvent = async (req, res) => {
           req.body.lineups = JSON.parse(lineups);
         } catch (e) {
           delete req.body.lineups;
+        }
+      }
+    }
+
+    // Handle genres if they exist
+    if (genres) {
+      // If genres is a string (from FormData), parse it
+      if (typeof genres === "string") {
+        try {
+          req.body.genres = JSON.parse(genres);
+        } catch (e) {
+          delete req.body.genres;
         }
       }
     }
@@ -730,7 +743,15 @@ exports.editEvent = async (req, res) => {
       eventId,
       { $set: req.body },
       { new: true, runValidators: true }
-    );
+    ).catch((err) => {
+      console.error("Event update error details:", err);
+      if (err.name === "CastError" && err.path.includes("genres")) {
+        throw new Error(
+          "Invalid genre format. Please ensure genres are valid IDs."
+        );
+      }
+      throw err;
+    });
 
     // Check if we need to update code settings for this event
     if (

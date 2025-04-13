@@ -59,6 +59,7 @@ const EventSchema = new Schema(
     postalCode: { type: String },
     city: { type: String },
     music: { type: String },
+    genres: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
     isWeekly: { type: Boolean, default: false },
     parentEventId: { type: Schema.Types.ObjectId, ref: "Event" },
     weekNumber: { type: Number, default: 0 },
