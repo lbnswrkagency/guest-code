@@ -85,6 +85,15 @@ const AppRoutes = () => {
 
   // Determine if this should be treated as the user's dashboard
   const routeUsername = getRouteUsername();
+
+  // Check if this is a dashboard subpage (brands, events)
+  const isDashboardSubpage =
+    user &&
+    routeUsername &&
+    routeUsername.toLowerCase() === user.username.toLowerCase() &&
+    location.pathname.match(/\/@[^\/]+\/(brands|events)$/); // Ends with /brands or /events
+
+  // Check if this is the user's dashboard homepage
   const shouldTreatAsUserDashboard =
     user &&
     routeUsername &&
@@ -96,11 +105,26 @@ const AppRoutes = () => {
     user &&
     routeUsername &&
     routeUsername.toLowerCase() === user.username.toLowerCase() &&
-    location.pathname.includes(`/@${routeUsername}/`); // Has additional path segments
+    location.pathname.includes(`/@${routeUsername}/`) && // Has additional path segments
+    !isDashboardSubpage; // Not a dashboard subpage
 
   return (
     <Routes>
-      {shouldTreatAsUserDashboard ? (
+      {isDashboardSubpage ? (
+        // Dashboard subpages (brands, events)
+        <Route
+          path={location.pathname}
+          element={
+            <RouteDebug name="user-dashboard-subpage">
+              {({ params }) => {
+                // Extract the subpage type from the URL
+                const subpage = location.pathname.split("/").pop();
+                return subpage === "brands" ? <Brands /> : <Events />;
+              }}
+            </RouteDebug>
+          }
+        />
+      ) : shouldTreatAsUserDashboard ? (
         // Treat as user dashboard when username matches authenticated user
         // AND there are no additional path segments
         <Route path={location.pathname} element={<Dashboard />} />
