@@ -867,6 +867,72 @@ const EventForm = ({
     </div>
   );
 
+  // Effect to initialize form when editing
+  useEffect(() => {
+    if (event?._id) {
+      // Populate standard fields
+      setFormData({
+        title: event.title || "",
+        subTitle: event.subTitle || "",
+        description: event.description || "",
+        date: event.date ? event.date.split("T")[0] : "", // Format date
+        startDate: event.startDate || null,
+        endDate: event.endDate || null,
+        startTime: event.startTime || "",
+        endTime: event.endTime || "",
+        location: event.location || "",
+        street: event.street || "",
+        postalCode: event.postalCode || "",
+        city: event.city || "",
+        music: event.music || "",
+        isWeekly: event.isWeekly || false,
+        isLive: event.isLive || false,
+        flyer: event.flyer || null,
+        guestCode: event.guestCode || false,
+        friendsCode: event.friendsCode || false,
+        ticketCode: event.ticketCode || false,
+        tableCode: event.tableCode || false,
+      });
+
+      // *** FIX 2: Populate selected lineups state with full objects ***
+      // Ensure event.lineups is an array (it should contain full objects now)
+      if (Array.isArray(event.lineups)) {
+        // Directly set the state with the array of lineup objects
+        setSelectedLineups(event.lineups);
+      } else {
+        setSelectedLineups([]); // Default to empty array if no lineups
+      }
+
+      // ... handle other complex state like genres, images etc. ...
+    } else {
+      // Reset form if not editing
+      setFormData({
+        title: "",
+        subTitle: "",
+        description: "",
+        date: "",
+        startDate: null,
+        endDate: null,
+        startTime: "",
+        endTime: "",
+        location: "",
+        street: "",
+        postalCode: "",
+        city: "",
+        music: "",
+        isWeekly: false,
+        isLive: false,
+        flyer: null,
+        guestCode: false,
+        friendsCode: false,
+        ticketCode: false,
+        tableCode: false,
+      });
+      setSelectedLineups([]);
+      // ... reset other state ...
+    }
+  }, [event]); // Dependency array includes event
+
   return (
     <AnimatePresence>
       <motion.div

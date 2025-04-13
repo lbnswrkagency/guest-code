@@ -42,7 +42,7 @@ import tokenService from "./utils/tokenService";
 // Main routing component
 const AppRoutes = () => {
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, authInitialized } = useAuth();
   const params = useParams();
   const navigate = useNavigate();
 
@@ -68,16 +68,60 @@ const AppRoutes = () => {
     </div>
   );
 
-  // If auth is still loading and we're on a /@username path, show loading screen
-  // This prevents the race condition between auth and BrandProfile
-  if (authLoading && isBrandRelatedPath) {
+  // If auth is not yet initialized or still loading and we're on a potentially ambiguous path,
+  // show loading screen to prevent incorrect routing decisions
+  if ((!authInitialized || authLoading) && isBrandRelatedPath) {
     return <AuthLoadingScreen />;
   }
 
+  // Extract username from path for ambiguous routes
+  const getRouteUsername = () => {
+    if (isBrandRelatedPath) {
+      const pathParts = location.pathname.substring(2).split("/");
+      return pathParts[0]; // Only the first segment after /@
+    }
+    return null;
+  };
+
+  // Determine if this should be treated as the user's dashboard
+  const routeUsername = getRouteUsername();
+  const shouldTreatAsUserDashboard =
+    user &&
+    routeUsername &&
+    routeUsername.toLowerCase() === user.username.toLowerCase() &&
+    !location.pathname.includes(`/@${routeUsername}/`); // Not a nested path
+
+  // Check if this is a brand profile within the user's account
+  const isBrandProfileWithinUserAccount =
+    user &&
+    routeUsername &&
+    routeUsername.toLowerCase() === user.username.toLowerCase() &&
+    location.pathname.includes(`/@${routeUsername}/`); // Has additional path segments
+
   return (
     <Routes>
-      {/* Special case for brand profile path - but only if it's not the user's own profile */}
-      {isBrandProfilePath && !isUserOwnProfilePath && (
+      {shouldTreatAsUserDashboard ? (
+        // Treat as user dashboard when username matches authenticated user
+        // AND there are no additional path segments
+        <Route path={location.pathname} element={<Dashboard />} />
+      ) : isBrandProfileWithinUserAccount ? (
+        // Brand profile within user account
+        <Route
+          path={location.pathname}
+          element={
+            <RouteDebug name="brand-profile-within-account">
+              {({ params }) => {
+                // Extract the brand username from the path
+                const brandUsername = location.pathname
+                  .split("/")[2]
+                  .replace("@", "");
+                return <BrandProfile key={brandUsername} />;
+              }}
+            </RouteDebug>
+          }
+        />
+      ) : isBrandProfilePath ? (
+        // Public brand profile
         <Route
           path={location.pathname}
           element={
@@ -90,7 +134,7 @@ const AppRoutes = () => {
             </RouteDebug>
           }
         />
-      )}
+      ) : null}
 
       {user ? (
         <>

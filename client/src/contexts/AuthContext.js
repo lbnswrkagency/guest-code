@@ -60,213 +60,88 @@ const AuthProviderWithRouter = ({ children }) => {
     }
   };
 
-  // Add initial auth check with token refresh if needed
+  // Initial auth check on app load
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
       const token = tokenService.getToken();
+      const refreshTokenExists = !!tokenService.getRefreshToken();
 
       if (token) {
         try {
-          // Ensure we have a fresh token
-          if (tokenService.isTokenExpiredOrNearExpiry(token)) {
-            await tokenService.refreshToken();
-          }
-
+          // Verify token validity by fetching user data
+          // If token is invalid/expired, interceptor will handle refresh or logout
           await fetchUserData();
         } catch (error) {
-          console.error("Failed to initialize auth:", error);
-          setUser(null);
+          // Error handled within fetchUserData or by interceptor
+          // setUser(null) should have been called
         }
+      } else if (refreshTokenExists) {
+        // If no access token but refresh token exists, try refreshing
+        try {
+          await tokenService.refreshToken();
+          await fetchUserData(); // Fetch user data after successful refresh
+        } catch (error) {
+          console.error("[AuthContext] Initial refresh failed:", error);
+          setUser(null);
+          tokenService.clearTokens(); // Ensure tokens are cleared
+        }
+      } else {
+        // No tokens exist
+        setUser(null);
       }
 
-      setLoading(false);
-      setAuthInitialized(true);
+      setAuthInitialized(true); // Mark auth as initialized
+      setLoading(false); // Finish loading
     };
 
     initializeAuth();
+    // Run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Check auth state when path changes
-  useEffect(() => {
-    // Skip if auth isn't initialized yet
-    if (!authInitialized) return;
-
-    // Skip redundant checks by tracking the last checked path
-    const lastCheckedPath = sessionStorage.getItem("last-auth-check-path");
-    if (lastCheckedPath === location.pathname) {
-      return;
-    }
-
-    const checkAuthState = async () => {
-      // Store the path we're currently checking
-      sessionStorage.setItem("last-auth-check-path", location.pathname);
-
-      // Handle ambiguous @username routes that might be dashboard or brand profile
-      const isAmbiguousRoute =
-        location.pathname.startsWith("/@") &&
-        !location.pathname.includes("/e/") &&
-        !/\d{6}/.test(location.pathname);
-
-      // Determine if this route needs authentication
-      const requiresAuth = pathsRequiringAuth.some((path) => {
-        // Convert path params to regex parts
-        const regexPath = path.replace(/:\w+/g, "[^/]+");
-        return new RegExp(`^${regexPath}$`).test(location.pathname);
-      });
-
-      // Skip auth check for EventProfile routes - these are public pages
-      const isEventProfileRoute =
-        location.pathname.includes("/@") && /\d{6}/.test(location.pathname); // Contains a date pattern like 033025
-
-      if (isEventProfileRoute) {
-        console.log(
-          "[AuthContext] Skipping auth check for public EventProfile route:",
-          location.pathname
-        );
-        return; // Skip the auth check completely
-      }
-
-      // For ambiguous routes or routes requiring auth, check authentication
-      if (isAmbiguousRoute || requiresAuth) {
-        setLoading(true);
-        const token = tokenService.getToken();
-
-        // Only compute these values if needed
-        let currentUsername = null;
-        let routeUsername = null;
-        let isPotentialDashboard = false;
-
-        if (isAmbiguousRoute) {
-          currentUsername = user?.username;
-          routeUsername = location.pathname.startsWith("/@")
-            ? location.pathname.substring(2).split("/")[0]
-            : null;
-
-          // Check if this might be the user's dashboard based on URL pattern
-          isPotentialDashboard =
-            routeUsername &&
-            currentUsername &&
-            routeUsername.toLowerCase() === currentUsername.toLowerCase();
-        }
-
-        // If no token or token is expired/near expiry
-        if (!token || tokenService.isTokenExpiredOrNearExpiry(token)) {
-          try {
-            await tokenService.refreshToken();
-            await fetchUserData();
-          } catch (error) {
-            console.log(
-              "[AuthContext] Auth failed on route:",
-              location.pathname
-            );
-
-            // If this is potentially the user's dashboard or requires auth, redirect to login
-            if (isPotentialDashboard || requiresAuth) {
-              console.log(
-                "[AuthContext] Redirecting from potential dashboard to login"
-              );
-              navigate("/login", {
-                state: {
-                  from: isPotentialDashboard
-                    ? `/@${currentUsername}`
-                    : location.pathname,
-                  message: "Your session has expired. Please login again.",
-                },
-              });
-            }
-          }
-        } else {
-          try {
-            await fetchUserData();
-          } catch (error) {
-            // If fetching fails with a valid token, try refreshing
-            try {
-              await tokenService.refreshToken();
-              await fetchUserData();
-            } catch (refreshError) {
-              console.log(
-                "[AuthContext] Auth refresh failed on route:",
-                location.pathname
-              );
-
-              // If this is potentially the user's dashboard or requires auth, redirect to login
-              if (isPotentialDashboard || requiresAuth) {
-                console.log(
-                  "[AuthContext] Redirecting from potential dashboard to login after refresh failure"
-                );
-                navigate("/login", {
-                  state: {
-                    from: isPotentialDashboard
-                      ? `/@${currentUsername}`
-                      : location.pathname,
-                    message: "Your session has expired. Please login again.",
-                  },
-                });
-              }
-            }
-          }
-        }
-
-        setLoading(false);
-      }
-    };
-
-    checkAuthState();
-  }, [location.pathname, authInitialized, navigate]);
 
   // Handle auth:required events (session expiration)
   useEffect(() => {
-    // Handler for auth:required events (session expired)
     const handleAuthRequired = (event) => {
-      console.log("[AuthContext] Auth required event:", event.detail);
-      const { message, redirectUrl } = event.detail;
+      console.log("[AuthContext] Auth required event received:", event.detail);
+      const { message, redirectUrl } = event.detail || {};
 
-      // Set auth state to logged out
-      setUser(null);
+      setUser(null); // Clear user state
+      dispatch(clearUser()); // Clear redux state
+      tokenService.clearTokens(); // Clear tokens
 
-      // Clear any stored tokens
-      tokenService.clearTokens();
-
-      // Navigate to login with error message and intended redirect
+      // Navigate to login
       if (navigate) {
         navigate("/login", {
           state: {
             message: message || "Your session has expired. Please login again.",
-            from: redirectUrl || "/",
+            // Use current location as 'from' unless a specific one was provided
+            from: redirectUrl || location.pathname,
           },
-          replace: true, // Replace current history entry to prevent back button issues
+          replace: true,
         });
       }
     };
 
-    // Listen for auth events
     window.addEventListener("auth:required", handleAuthRequired);
-
-    // Cleanup listener on unmount
     return () => {
       window.removeEventListener("auth:required", handleAuthRequired);
     };
-  }, [navigate]);
+    // Ensure navigate and location are stable dependencies if needed, but usually okay
+  }, [navigate, location, dispatch]);
 
   // Sync user state with Redux when user changes
   useEffect(() => {
-    // Only dispatch if user exists to prevent unnecessary actions
     if (user) {
-      // Ensure all user properties from the User model are passed to Redux
       dispatch(
         setReduxUser({
-          ...user, // Keep all original properties
-
-          // Make sure these critical fields are included explicitly
+          ...user,
           _id: user._id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
           username: user.username,
           birthday: user.birthday,
-
-          // Permission flags
           isVerified: user.isVerified || false,
           isAdmin: user.isAdmin || false,
           isScanner: user.isScanner || false,
@@ -277,110 +152,49 @@ const AuthProviderWithRouter = ({ children }) => {
           isSpitixBattle: user.isSpitixBattle || false,
           isTable: user.isTable || false,
           isAlpha: user.isAlpha || false,
-
-          // Avatar (all paths)
           avatar: user.avatar || null,
-
-          // Events and timestamps
           events: user.events || [],
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
           lastLogin: user.lastLogin,
-
-          // Metadata for Redux tracking
           lastSyncedAt: new Date().toISOString(),
         })
       );
     } else if (authInitialized) {
-      // Only clear if we're past initialization
       dispatch(clearUser());
     }
   }, [user, dispatch, authInitialized]);
 
-  // Add heartbeat ping to detect mobile browser issues
-  useEffect(() => {
-    if (user) {
-      // Set up heartbeat to check token validity
-      const heartbeatInterval = setInterval(async () => {
-        try {
-          // Try to refresh token to maintain session
-          // Just update the wasAuthenticated flag without causing state changes
-          // Don't await on the ping as it may cause re-renders
-          localStorage.setItem("wasAuthenticated", "true");
-
-          // Don't call pingSession here as it may trigger state updates
-          // instead use a direct check against expiry
-          const token = tokenService.getToken();
-          if (token && tokenService.isTokenExpiredOrNearExpiry(token)) {
-            try {
-              await tokenService.refreshToken();
-            } catch (error) {
-              console.log(
-                "[AuthContext] Token refresh in heartbeat failed:",
-                error
-              );
-              // Don't trigger any state changes here
-            }
-          }
-        } catch (error) {
-          console.log("[AuthContext] Heartbeat check failed:", error);
-          // Don't do anything that would trigger state changes
-        }
-      }, 5 * 60 * 1000); // Check every 5 minutes
-
-      return () => clearInterval(heartbeatInterval);
-    }
-  }, [user?._id]); // Only depend on user ID, not the entire user object
-
   // Define our custom user setter that updates local state
   const setUserWithRedux = (userData) => {
     setUser(userData);
-    // Set a flag in localStorage to indicate the user was authenticated
-    if (userData) {
-      localStorage.setItem("wasAuthenticated", "true");
-    } else {
-      localStorage.removeItem("wasAuthenticated");
-    }
     // Redux sync is handled by the useEffect above
   };
 
   const login = async (credentials) => {
     try {
       setLoading(true);
-
       const response = await axiosInstance.post("/auth/login", credentials);
 
-      // Process token and user data
       const token = response.data.token;
       const refreshToken = response.data.refreshToken;
 
-      // Store tokens using token service
       tokenService.setToken(token);
       tokenService.setRefreshToken(refreshToken);
 
-      // Set a flag in localStorage that user was authenticated
-      localStorage.setItem("wasAuthenticated", "true");
-
-      // Prepare the user data object
       let userData = null;
-
-      // Clean the username when logging in
       if (response.data.user) {
         userData = {
           ...response.data.user,
           username: cleanUsername(response.data.user.username),
-          // Ensure brands are included if they exist
           brands: response.data.user.brands || [],
         };
       }
 
-      setUser(userData);
+      setUser(userData); // Update local state
       setLoading(false);
-
-      // Return the full user data object
       return userData;
     } catch (error) {
-      // Clear tokens on login failure
       tokenService.clearTokens();
       setUser(null);
       setLoading(false);
@@ -391,28 +205,24 @@ const AuthProviderWithRouter = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
-      // Call logout endpoint
-      await axiosInstance.post("/auth/logout");
+      // Optional: Inform the backend about logout
+      try {
+        await axiosInstance.post("/auth/logout");
+      } catch (logoutError) {
+        console.warn("[AuthContext] Backend logout call failed:", logoutError);
+        // Proceed with client-side logout anyway
+      }
 
-      // Clean up token service and state
       tokenService.clearTokens();
-      tokenService.cleanup();
-
-      // Clean up authentication flag
-      localStorage.removeItem("wasAuthenticated");
-
       setUser(null);
+      dispatch(clearUser()); // Ensure Redux is cleared
       setLoading(false);
       navigate("/login");
     } catch (error) {
-      // Even on error, clean up tokens and navigate to login
+      // Ensure cleanup even if logout call fails
       tokenService.clearTokens();
-      tokenService.cleanup();
-
-      // Clean up authentication flag
-      localStorage.removeItem("wasAuthenticated");
-
       setUser(null);
+      dispatch(clearUser());
       setLoading(false);
       navigate("/login");
     }
@@ -426,7 +236,7 @@ const AuthProviderWithRouter = ({ children }) => {
     login,
     logout,
     fetchUserData,
-    refreshToken: tokenService.refreshToken.bind(tokenService), // Use token service
+    refreshToken: tokenService.refreshToken.bind(tokenService),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

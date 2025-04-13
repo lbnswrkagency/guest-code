@@ -111,11 +111,20 @@ const Search = ({ isOpen, onClose }) => {
           toast.showError("Unable to navigate to brand profile");
           return;
         }
-        const brandPath = user
-          ? `/@${user.username}/@${item.username}`
-          : `/@${item.username}`;
-        console.log("[Search] Navigating to brand:", brandPath);
-        navigate(brandPath);
+
+        if (user) {
+          // For authenticated users, use full URL and force a page reload
+          // to ensure proper route resolution
+          const brandPath = `/@${user.username}/@${item.username}`;
+          console.log("[Search] Navigating to brand (with reload):", brandPath);
+          // Use window.location.href to force a full page reload
+          window.location.href = brandPath;
+        } else {
+          // For non-authenticated users, client-side navigation works fine
+          const brandPath = `/@${item.username}`;
+          console.log("[Search] Navigating to brand:", brandPath);
+          navigate(brandPath);
+        }
         break;
       case "event":
         // Navigate to the event with a pretty URL

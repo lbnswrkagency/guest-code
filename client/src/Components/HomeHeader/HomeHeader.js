@@ -224,15 +224,18 @@ const Scene = () => {
       {/* Environment for better reflections */}
       <Environment preset="city" />
 
-      {/* Camera controls - limited but responsive */}
+      {/* Camera controls - enhanced for full navigation */}
       <OrbitControls
-        enablePan={false}
-        enableZoom={false}
-        minPolarAngle={Math.PI / 2.5}
-        maxPolarAngle={Math.PI / 1.8}
-        rotateSpeed={0.3}
+        enablePan={true}
+        enableZoom={true}
+        minDistance={5}
+        maxDistance={200}
+        minPolarAngle={Math.PI * 0.1}
+        maxPolarAngle={Math.PI * 0.9}
+        rotateSpeed={0.5}
+        zoomSpeed={0.8}
         enableDamping={true}
-        dampingFactor={0.05}
+        dampingFactor={0.1}
       />
     </>
   );
