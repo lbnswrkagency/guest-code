@@ -412,53 +412,108 @@ const EventForm = ({
     setIsSubmitting(true);
 
     try {
-      // Create FormData for event details
-      const formDataToSend = new FormData();
+      // Validate required fields in formData
+      if (!formData.title) {
+        toast.showError("Title is required");
+        setIsFormValid(false);
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Format date and times for API
-      const date = formData.startDate.toISOString();
-      const startDate = formData.startDate.toISOString();
-      const endDate = formData.endDate.toISOString();
+      if (!formData.location) {
+        toast.showError("Location is required");
+        setIsFormValid(false);
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Extract hours and minutes for startTime and endTime
-      const startHours = formData.startDate
-        .getHours()
-        .toString()
-        .padStart(2, "0");
-      const startMinutes = formData.startDate
-        .getMinutes()
-        .toString()
-        .padStart(2, "0");
-      const startTime = `${startHours}:${startMinutes}`;
+      // Create a new FormData object to handle file uploads
+      const dataToSend = new FormData();
 
-      const endHours = formData.endDate.getHours().toString().padStart(2, "0");
-      const endMinutes = formData.endDate
-        .getMinutes()
-        .toString()
-        .padStart(2, "0");
-      const endTime = `${endHours}:${endMinutes}`;
+      // Format and append date fields properly
+      let startDate, endDate, startTime, endTime;
 
-      // Add all the regular form data
+      try {
+        // Handle startDate - ensure it's a valid Date object
+        if (typeof formData.startDate === "string") {
+          startDate = new Date(formData.startDate);
+        } else if (formData.startDate instanceof Date) {
+          startDate = formData.startDate;
+        } else {
+          // Default to current date if invalid
+          startDate = new Date();
+          console.warn("Invalid startDate format, using current date");
+        }
+
+        // Handle endDate similarly
+        if (typeof formData.endDate === "string") {
+          endDate = new Date(formData.endDate);
+        } else if (formData.endDate instanceof Date) {
+          endDate = formData.endDate;
+        } else {
+          // Default to startDate + 2 hours if invalid
+          endDate = new Date(startDate);
+          endDate.setHours(endDate.getHours() + 2);
+          console.warn("Invalid endDate format, using startDate + 2 hours");
+        }
+
+        // Format times
+        const startHours = startDate.getHours().toString().padStart(2, "0");
+        const startMinutes = startDate.getMinutes().toString().padStart(2, "0");
+        startTime = `${startHours}:${startMinutes}`;
+
+        const endHours = endDate.getHours().toString().padStart(2, "0");
+        const endMinutes = endDate.getMinutes().toString().padStart(2, "0");
+        endTime = `${endHours}:${endMinutes}`;
+
+        // Add the formatted date and times to FormData
+        dataToSend.append("date", startDate.toISOString()); // For backward compatibility
+        dataToSend.append("startDate", startDate.toISOString());
+        dataToSend.append("endDate", endDate.toISOString());
+        dataToSend.append("startTime", startTime);
+        dataToSend.append("endTime", endTime);
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        toast.showError("Invalid date format");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Append other form fields
       Object.keys(formData).forEach((key) => {
-        if (key !== "flyer" && key !== "startDate" && key !== "endDate") {
-          if (typeof formData[key] === "boolean") {
-            formDataToSend.append(key, formData[key].toString());
-          } else {
-            formDataToSend.append(key, formData[key]);
-          }
+        // Skip date fields as we've already handled them
+        if (key === "startDate" || key === "endDate" || key === "date") {
+          return;
+        }
+        // Skip flyer as we'll handle it separately
+        else if (key === "flyer") {
+          return;
+        }
+        // Handle arrays
+        else if (Array.isArray(formData[key])) {
+          dataToSend.append(key, JSON.stringify(formData[key]));
+        }
+        // Handle objects
+        else if (
+          typeof formData[key] === "object" &&
+          formData[key] !== null &&
+          !(formData[key] instanceof File)
+        ) {
+          dataToSend.append(key, JSON.stringify(formData[key]));
+        }
+        // Handle booleans
+        else if (typeof formData[key] === "boolean") {
+          dataToSend.append(key, formData[key].toString());
+        }
+        // Handle other values
+        else if (formData[key] !== undefined && formData[key] !== null) {
+          dataToSend.append(key, formData[key]);
         }
       });
 
-      // Add the formatted date and times
-      formDataToSend.append("date", date); // For backward compatibility
-      formDataToSend.append("startDate", startDate);
-      formDataToSend.append("endDate", endDate);
-      formDataToSend.append("startTime", startTime);
-      formDataToSend.append("endTime", endTime);
-
       // Add selected lineups to the form data
       if (selectedLineups.length > 0) {
-        formDataToSend.append(
+        dataToSend.append(
           "lineups",
           JSON.stringify(selectedLineups.map((lineup) => lineup._id))
         );
@@ -466,7 +521,7 @@ const EventForm = ({
 
       // Add selected genres to the form data
       if (selectedGenres.length > 0) {
-        formDataToSend.append(
+        dataToSend.append(
           "genres",
           JSON.stringify(selectedGenres.map((genre) => genre._id))
         );
@@ -532,7 +587,7 @@ const EventForm = ({
 
         // Convert FormData to plain object for PUT request
         const updateData = {};
-        for (const [key, value] of formDataToSend.entries()) {
+        for (const [key, value] of dataToSend.entries()) {
           if (key === "date") {
             updateData[key] = new Date(value).toISOString();
           } else if (value === "true" || value === "false") {
@@ -607,19 +662,28 @@ const EventForm = ({
           }
         }
       } else {
-        // For new events, include flyer files in initial creation
+        // Handle flyer uploads as part of the event creation
         Object.entries(flyerFiles).forEach(([format, files]) => {
           if (files?.full?.file) {
-            formDataToSend.append(`flyer.${format}`, files.full.file);
+            dataToSend.append(`flyer.${format}`, files.full.file);
           }
         });
 
         eventResponse = await axiosInstance.post(
           `/events/brand/${selectedBrand._id}`,
-          formDataToSend,
+          dataToSend,
           {
             headers: {
               "Content-Type": "multipart/form-data",
+            },
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress((prev) => ({
+                ...prev,
+                overall: percentCompleted,
+              }));
             },
           }
         );

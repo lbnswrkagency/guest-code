@@ -559,49 +559,47 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
 
     .feature {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      padding: 4px 10px;
+      font-size: 0.75rem;
+      padding: 3px 8px;
       border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-
-      &.weekly-badge {
-        background-color: rgba(103, 58, 183, 0.2);
-        color: #b388ff;
-      }
-
-      &.live-badge {
-        background-color: rgba(76, 175, 80, 0.2);
-        color: #81c784;
-      }
+      white-space: nowrap;
 
       &.guest-code {
-        background-color: rgba(255, 193, 7, 0.2);
-        color: #ffd54f;
+        background: rgba(var(--primary-rgb), 0.2);
+        color: var(--primary);
       }
 
       &.friends-code {
-        background-color: rgba(33, 150, 243, 0.2);
-        color: #64b5f6;
+        background: rgba(var(--purple-rgb), 0.2);
+        color: var(--purple);
       }
 
       &.ticket-code {
-        background-color: rgba(233, 30, 99, 0.2);
-        color: #f48fb1;
+        background: rgba(var(--orange-rgb), 0.2);
+        color: var(--orange);
       }
 
       &.table-code {
-        background-color: rgba(0, 188, 212, 0.2);
-        color: #4dd0e1;
+        background: rgba(var(--green-rgb), 0.2);
+        color: var(--green);
       }
+
+      &.weekly-badge {
+        background: rgba(var(--blue-rgb), 0.2);
+        color: var(--blue);
+      }
+
+      &.live-badge {
+        background: rgba(var(--red-rgb), 0.2);
+        color: var(--red);
+      }
+    }
+
+    &::after {
+      display: none;
     }
   }
 }

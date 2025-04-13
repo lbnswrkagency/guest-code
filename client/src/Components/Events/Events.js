@@ -961,25 +961,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
               <span>{currentEvent.location}</span>
             </div>
           </div>
-
-          <div className="event-features">
-            {currentEvent.guestCode && (
-              <span className="feature guest-code">Guest Code</span>
-            )}
-            {currentEvent.friendsCode && (
-              <span className="feature friends-code">Friends Code</span>
-            )}
-            {currentEvent.ticketCode && (
-              <span className="feature ticket-code">Ticket Code</span>
-            )}
-            {currentEvent.tableCode && (
-              <span className="feature table-code">Table Code</span>
-            )}
-            {event.isWeekly && (
-              <span className="feature weekly-badge">Weekly</span>
-            )}
-            {isLive && <span className="feature live-badge">Live</span>}
-          </div>
         </div>
       </div>
 
