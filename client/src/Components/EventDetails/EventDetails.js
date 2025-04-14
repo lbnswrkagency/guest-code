@@ -171,8 +171,8 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
             </div>
           </div>
 
-          {/* Music Section */}
-          {event.music && (
+          {/* Music/Genres Section */}
+          {(event.genres?.length > 0 || event.music) && (
             <div className="details-section">
               <div className="section-header">
                 <RiMusic2Line />
@@ -183,7 +183,17 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
                 <div className="detail-item">
                   <div className="detail-value music-value">
                     <RiMusic2Line />
-                    <span>{event.music}</span>
+                    {event.genres && event.genres.length > 0 ? (
+                      <div className="genre-tags">
+                        {event.genres.map((genre, index) => (
+                          <span key={genre._id || index} className="genre-tag">
+                            {typeof genre === "object" ? genre.name : genre}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span>{event.music}</span>
+                    )}
                   </div>
                 </div>
               </div>

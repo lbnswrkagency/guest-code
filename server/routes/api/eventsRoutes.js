@@ -132,7 +132,8 @@ router.get(
         .populate({
           path: "codeSettings",
           model: "CodeSettings",
-        });
+        })
+        .populate("genres");
 
       console.log(
         `[Events] Found ${events.length} parent events for brand: ${brand.name}`
@@ -146,6 +147,8 @@ router.get(
           date: events[0].date,
           hasLineups: !!events[0].lineups,
           lineupCount: events[0].lineups?.length,
+          hasGenres: !!events[0].genres,
+          genreCount: events[0].genres?.length,
         });
       }
 
@@ -365,7 +368,8 @@ router.get(
         .populate({
           path: "codeSettings",
           model: "CodeSettings",
-        });
+        })
+        .populate("genres");
 
       console.log(
         `[Events] Found ${childEvents.length} child events for parent: ${parentId}`

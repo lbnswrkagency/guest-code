@@ -83,6 +83,10 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       weekNumber: weekNumber,
       isLive: false, // Default to not live
       flyer: parentEvent.flyer,
+      // Copy the genres array from parent
+      genres: parentEvent.genres || [],
+      // Copy the lineups array from parent
+      lineups: parentEvent.lineups || [],
       // Copy legacy code settings for backward compatibility
       guestCode: parentEvent.guestCode,
       friendsCode: parentEvent.friendsCode,
@@ -254,6 +258,16 @@ exports.createEvent = async (req, res) => {
       }
     }
 
+    // Parse genres if they exist
+    let genres = [];
+    if (req.body.genres) {
+      try {
+        genres = JSON.parse(req.body.genres);
+      } catch (e) {
+        console.error("Error parsing genres:", e);
+      }
+    }
+
     // Extract event data from request body
     const {
       title,
@@ -298,6 +312,7 @@ exports.createEvent = async (req, res) => {
       slug: finalSlug,
       flyer: {},
       lineups: lineups,
+      genres: genres,
       guestCode: guestCode,
       friendsCode: friendsCode,
       ticketCode: ticketCode,
@@ -406,7 +421,8 @@ exports.getBrandEvents = async (req, res) => {
     })
       .sort({ date: -1 })
       .populate("user", "username firstName lastName avatar")
-      .populate("lineups");
+      .populate("lineups")
+      .populate("genres");
 
     res.status(200).json(events);
   } catch (error) {
@@ -523,6 +539,17 @@ exports.editEvent = async (req, res) => {
     if (music !== undefined) event.music = music;
     if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
 
+    // Update the genres field if provided
+    if (req.body.genres) {
+      // We already parsed genres if it was a string
+      event.genres = req.body.genres;
+    }
+
+    // Update lineups if provided
+    if (req.body.lineups) {
+      event.lineups = req.body.lineups;
+    }
+
     // Check if this is a child event being edited directly
     if (event.parentEventId) {
       // Update the child event with the new data
@@ -541,7 +568,16 @@ exports.editEvent = async (req, res) => {
           key !== "weekNumber" &&
           key !== "isWeekly"
         ) {
-          event[key] = updatedChildData[key];
+          // Handle special fields that might need parsing
+          if (key === "genres" && typeof updatedChildData[key] === "string") {
+            try {
+              event[key] = JSON.parse(updatedChildData[key]);
+            } catch (e) {
+              console.error("Error parsing genres for child event:", e);
+            }
+          } else {
+            event[key] = updatedChildData[key];
+          }
         }
       });
 
@@ -651,7 +687,16 @@ exports.editEvent = async (req, res) => {
             key !== "weekNumber" &&
             key !== "isWeekly"
           ) {
-            childEvent[key] = updatedChildData[key];
+            // Handle special fields that might need parsing
+            if (key === "genres" && typeof updatedChildData[key] === "string") {
+              try {
+                childEvent[key] = JSON.parse(updatedChildData[key]);
+              } catch (e) {
+                console.error("Error parsing genres for child event:", e);
+              }
+            } else {
+              childEvent[key] = updatedChildData[key];
+            }
           }
         });
 
@@ -1241,7 +1286,9 @@ exports.getEventProfile = async (req, res) => {
         .populate({
           path: "user",
           select: "username firstName lastName avatar",
-        });
+        })
+        .populate("genres")
+        .populate("lineups");
 
       console.log(
         `[Events] Found ${eventsOnDate.length} events for brand ${
@@ -1276,7 +1323,9 @@ exports.getEventProfile = async (req, res) => {
           .populate({
             path: "user",
             select: "username firstName lastName avatar",
-          });
+          })
+          .populate("genres")
+          .populate("lineups");
 
         console.log(
           `[Events] Found ${eventsOnDate.length} events with broader date match`
@@ -1309,7 +1358,9 @@ exports.getEventProfile = async (req, res) => {
           .populate({
             path: "user",
             select: "username firstName lastName avatar",
-          });
+          })
+          .populate("genres")
+          .populate("lineups");
 
         console.log(
           `[Events] Found ${eventsOnDate.length} events with day/month match`
@@ -1505,7 +1556,9 @@ exports.getEventProfile = async (req, res) => {
         .populate({
           path: "user",
           select: "username firstName lastName avatar",
-        });
+        })
+        .populate("genres")
+        .populate("lineups");
     }
 
     if (!event) {

@@ -91,11 +91,13 @@ const EventForm = ({
   onSave,
   selectedBrand,
   weekNumber = 0,
+  parentEventData,
 }) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const isChildEvent =
     event?.parentEventId || (event?.isWeekly && weekNumber > 0);
+  const isNewChildEvent = !event?._id && isChildEvent && parentEventData;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Parse event dates and times
@@ -139,24 +141,48 @@ const EventForm = ({
 
   const { startDate, endDate } = parseEventDateTime(event);
 
-  const [formData, setFormData] = useState({
-    title: event?.title || "",
-    subTitle: event?.subTitle || "",
-    description: event?.description || "",
-    startDate: startDate,
-    endDate: endDate,
-    location: event?.location || "",
-    street: event?.street || "",
-    postalCode: event?.postalCode || "",
-    city: event?.city || "",
-    music: event?.music || "",
-    isWeekly: event?.isWeekly || false,
-    flyer: null,
-    guestCode: event?.guestCode || false,
-    friendsCode: event?.friendsCode || false,
-    ticketCode: event?.ticketCode || false,
-    tableCode: event?.tableCode || false,
-  });
+  // Determine initial data based on whether it's a new child event
+  const initialData = isNewChildEvent
+    ? {
+        // Inherit from parent
+        title: parentEventData?.title || "",
+        subTitle: parentEventData?.subTitle || "",
+        description: parentEventData?.description || "",
+        startDate: startDate, // Keep calculated date for the specific week
+        endDate: endDate, // Keep calculated end date
+        location: parentEventData?.location || "",
+        street: parentEventData?.street || "",
+        postalCode: parentEventData?.postalCode || "",
+        city: parentEventData?.city || "",
+        music: parentEventData?.music || "",
+        isWeekly: true, // It's a child of a weekly event
+        flyer: null, // Don't inherit flyer initially
+        guestCode: parentEventData?.guestCode || false,
+        friendsCode: parentEventData?.friendsCode || false,
+        ticketCode: parentEventData?.ticketCode || false,
+        tableCode: parentEventData?.tableCode || false,
+      }
+    : {
+        // Use existing event data or defaults
+        title: event?.title || "",
+        subTitle: event?.subTitle || "",
+        description: event?.description || "",
+        startDate: startDate,
+        endDate: endDate,
+        location: event?.location || "",
+        street: event?.street || "",
+        postalCode: event?.postalCode || "",
+        city: event?.city || "",
+        music: event?.music || "",
+        isWeekly: event?.isWeekly || false,
+        flyer: null,
+        guestCode: event?.guestCode || false,
+        friendsCode: event?.friendsCode || false,
+        ticketCode: event?.ticketCode || false,
+        tableCode: event?.tableCode || false,
+      };
+
+  const [formData, setFormData] = useState(initialData);
 
   const [processedFiles, setProcessedFiles] = useState({
     landscape: null,
@@ -236,6 +262,9 @@ const EventForm = ({
   const [editGenreName, setEditGenreName] = useState("");
   const [showDeleteGenreConfirm, setShowDeleteGenreConfirm] = useState(false);
   const [genreToDelete, setGenreToDelete] = useState(null);
+
+  // Add a new state to track genre IDs that need to be selected
+  const [genreIdsToSelect, setGenreIdsToSelect] = useState([]);
 
   // Fetch genres for the brand
   useEffect(() => {
@@ -934,7 +963,7 @@ const EventForm = ({
   // Effect to initialize form when editing
   useEffect(() => {
     if (event?._id) {
-      // Populate standard fields
+      // Existing event with an ID - use its data
       setFormData({
         title: event.title || "",
         subTitle: event.subTitle || "",
@@ -958,18 +987,111 @@ const EventForm = ({
         tableCode: event.tableCode || false,
       });
 
-      // *** FIX 2: Populate selected lineups state with full objects ***
-      // Ensure event.lineups is an array (it should contain full objects now)
-      if (Array.isArray(event.lineups)) {
-        // Directly set the state with the array of lineup objects
-        setSelectedLineups(event.lineups);
-      } else {
-        setSelectedLineups([]); // Default to empty array if no lineups
+      // Populate selected genres if available
+      if (Array.isArray(event.genres) && event.genres.length > 0) {
+        if (typeof event.genres[0] === "object") {
+          setSelectedGenres(event.genres);
+        } else {
+          setGenreIdsToSelect(event.genres);
+        }
       }
 
-      // ... handle other complex state like genres, images etc. ...
+      // Populate selected lineups
+      if (Array.isArray(event.lineups)) {
+        setSelectedLineups(event.lineups);
+      } else {
+        setSelectedLineups([]);
+      }
+    }
+    // For non-created child events - if event has no ID but we have parentEventData and it's a child/weekly event
+    else if (
+      !event?._id &&
+      parentEventData &&
+      (weekNumber > 0 || event?.weekNumber > 0)
+    ) {
+      // Calculate the date for this occurrence
+      const weekNum = event?.weekNumber || weekNumber;
+      const baseDate = new Date(
+        parentEventData.startDate || parentEventData.date
+      );
+      const occurrenceDate = new Date(baseDate);
+      occurrenceDate.setDate(occurrenceDate.getDate() + weekNum * 7);
+
+      // If parent has startDate and endDate, calculate child event dates preserving time
+      let childStartDate = null;
+      let childEndDate = null;
+
+      if (parentEventData.startDate) {
+        childStartDate = new Date(parentEventData.startDate);
+        // Adjust the date while preserving the time
+        childStartDate.setDate(childStartDate.getDate() + weekNum * 7);
+      }
+
+      if (parentEventData.endDate) {
+        childEndDate = new Date(parentEventData.endDate);
+        // Adjust the date while preserving the time
+        childEndDate.setDate(childEndDate.getDate() + weekNum * 7);
+      }
+
+      // Set form data from parent event
+      setFormData({
+        title: parentEventData.title || "",
+        subTitle: parentEventData.subTitle || "",
+        description: parentEventData.description || "",
+        date: occurrenceDate.toISOString().split("T")[0],
+        startDate: childStartDate,
+        endDate: childEndDate,
+        startTime: parentEventData.startTime || "",
+        endTime: parentEventData.endTime || "",
+        location: parentEventData.location || "",
+        street: parentEventData.street || "",
+        postalCode: parentEventData.postalCode || "",
+        city: parentEventData.city || "",
+        music: parentEventData.music || "",
+        isWeekly: true,
+        isLive: false,
+        flyer: parentEventData.flyer || null,
+        guestCode: parentEventData.guestCode || false,
+        friendsCode: parentEventData.friendsCode || false,
+        ticketCode: parentEventData.ticketCode || false,
+        tableCode: parentEventData.tableCode || false,
+      });
+
+      // Copy parent's lineups
+      if (Array.isArray(parentEventData.lineups)) {
+        setSelectedLineups(parentEventData.lineups);
+      }
+
+      // Copy parent's genres
+      if (
+        Array.isArray(parentEventData.genres) &&
+        parentEventData.genres.length > 0
+      ) {
+        if (typeof parentEventData.genres[0] === "object") {
+          setSelectedGenres(parentEventData.genres);
+        } else {
+          setGenreIdsToSelect(parentEventData.genres);
+        }
+      }
+
+      // Copy flyer previews from parent
+      if (parentEventData.flyer) {
+        const previews = {};
+        Object.entries(parentEventData.flyer).forEach(([format, urls]) => {
+          if (urls) {
+            previews[format] = {
+              thumbnail: urls.thumbnail,
+              medium: urls.medium,
+              full: urls.full,
+              blur: urls.blur || urls.thumbnail,
+              isExisting: true,
+            };
+          }
+        });
+        setFlyerPreviews(previews);
+      }
     } else {
-      // Reset form if not editing
+      // Reset form for new events (non-child)
       setFormData({
         title: "",
         subTitle: "",
@@ -993,9 +1115,24 @@ const EventForm = ({
         tableCode: false,
       });
       setSelectedLineups([]);
+      setSelectedGenres([]);
       // ... reset other state ...
     }
-  }, [event]); // Dependency array includes event
+  }, [event, parentEventData, weekNumber]); // Add parentEventData and weekNumber to dependencies
+
+  // Add effect to match genre IDs with full genre objects when allGenres changes
+  useEffect(() => {
+    if (genreIdsToSelect.length > 0 && allGenres.length > 0) {
+      const matchedGenres = allGenres.filter((genre) =>
+        genreIdsToSelect.includes(genre._id)
+      );
+
+      if (matchedGenres.length > 0) {
+        setSelectedGenres(matchedGenres);
+        setGenreIdsToSelect([]); // Clear the IDs after matching
+      }
+    }
+  }, [genreIdsToSelect, allGenres]);
 
   return (
     <AnimatePresence>

@@ -117,11 +117,26 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding-left: 0;
+      color: var(--color-text-light);
 
       svg {
-        color: #ffc807;
-        font-size: 1.1rem;
+        color: var(--color-accent);
+        font-size: 1.2rem;
+      }
+
+      .genre-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+
+        .genre-tag {
+          background: rgba(var(--primary-rgb), 0.15);
+          color: var(--primary);
+          padding: 3px 10px;
+          border-radius: 12px;
+          font-size: 0.9rem;
+          white-space: nowrap;
+        }
       }
     }
 

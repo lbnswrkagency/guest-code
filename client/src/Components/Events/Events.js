@@ -147,6 +147,7 @@ const Events = () => {
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
   const [isLive, setIsLive] = useState(false); // Track live status
   const [brandsLoaded, setBrandsLoaded] = useState(false);
+  const [parentEventForForm, setParentEventForForm] = useState(null);
 
   const fetchBrands = async () => {
     try {
@@ -197,17 +198,23 @@ const Events = () => {
     };
   }, [selectedBrand?._id]);
 
-  const handleEventClick = (event, weekNumber = 0) => {
-    // Make sure that if it's a calculated occurrence (childExists is false), we properly mark it
-    if (event.childExists === false) {
-      setSelectedEvent({
-        ...event,
-        _id: null, // Explicitly set _id to null for calculated occurrences
-      });
-    } else {
-      setSelectedEvent(event);
-    }
+  const handleEventClick = (
+    eventToEdit,
+    parentEventData = null,
+    weekNumber = 0
+  ) => {
+    // Debug log to verify data is flowing correctly
+    console.log("[handleEventClick] Data:", {
+      isNewChildEvent: !eventToEdit?._id && parentEventData && weekNumber > 0,
+      eventToEditId: eventToEdit?._id,
+      hasParentData: !!parentEventData,
+      parentId: parentEventData?._id,
+      weekNumber,
+    });
 
+    setSelectedEvent(eventToEdit);
+    // Store the parent event data if provided (for new child events)
+    setParentEventForForm(parentEventData);
     setCurrentWeek(weekNumber);
     setShowForm(true);
   };
@@ -498,6 +505,7 @@ const Events = () => {
             onSave={handleSave}
             selectedBrand={selectedBrand}
             weekNumber={currentWeek}
+            parentEventData={parentEventForForm}
           />
         )}
       </div>
@@ -568,37 +576,12 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           weekNumber: currentWeek,
         };
 
-        // Check if this is a real child event or a calculated one
-        if (response.data._id) {
-          setCurrentEvent(receivedEvent);
-          setIsLive(receivedEvent.isLive || false);
-        } else {
-          // Create a fallback calculated occurrence
-          const weekDate = new Date(event.startDate || event.startDate);
-
-          if (isNaN(weekDate.getTime())) {
-            throw new Error("Invalid date");
-          }
-
-          weekDate.setDate(weekDate.getDate() + currentWeek * 7);
-
-          // Create a temporary event object with parent data but updated date
-          const tempEvent = {
-            ...event,
-            _id: null, // NULL ID indicates it doesn't exist in DB yet
-            parentEventId: event._id,
-            weekNumber: currentWeek,
-            date: weekDate.toISOString(),
-            isLive: false,
-            childExists: false, // Flag to indicate this is a calculated occurrence
-          };
-
-          setCurrentEvent(tempEvent);
-          setIsLive(false);
-        }
+        // Update the current event with the data from the API
+        setCurrentEvent(receivedEvent);
+        setIsLive(receivedEvent.isLive || false);
       } catch (error) {
         // Create a fallback calculated occurrence
-        const weekDate = new Date(event.startDate || event.startDate);
+        const weekDate = new Date(event.startDate || event.date);
 
         if (isNaN(weekDate.getTime())) {
           throw new Error("Invalid date");
@@ -664,7 +647,30 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
   const handleEditClick = (e) => {
     e.stopPropagation();
-    onClick(currentEvent, currentEvent.weekNumber || currentWeek);
+
+    // Check if this is a calculated occurrence (non-created child event)
+    const isCalculatedOccurrence =
+      currentEvent.childExists === false ||
+      currentEvent._id === null ||
+      (currentEvent.weekNumber > 0 && !currentEvent._id);
+
+    // Get the week number from the currentEvent or state
+    const weekNumber = currentEvent.weekNumber || currentWeek;
+
+    // Pass the parent event data if this is a calculated/non-created occurrence
+    const parentData = isCalculatedOccurrence ? event : null;
+
+    // Log debug information
+    console.log("[EditClick] Current event:", {
+      id: currentEvent._id,
+      title: currentEvent.title,
+      isCalculated: isCalculatedOccurrence,
+      weekNumber,
+      hasParentData: !!parentData,
+    });
+
+    // Call the main click handler with all the necessary data
+    onClick(currentEvent, parentData, weekNumber);
   };
 
   const handleSettingsClick = (e) => {
@@ -722,7 +728,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     return date;
   };
 
-  // Format date for display (09.04, 16.04, etc.)
+  // Format date for display (09.04.25, 16.04.25, etc.)
   const formatDate = (date) => {
     try {
       const d = new Date(date);
@@ -730,17 +736,18 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         return "Invalid date";
       }
 
-      // Use dd.MM format to match the required format (09.04, 16.04, etc.)
+      // Use dd.MM.yy format to include 2-digit year
       const day = d.getDate().toString().padStart(2, "0");
       const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
+      const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
 
-      return `${day}.${month}`;
+      return `${day}.${month}.${year}`;
     } catch (error) {
       return "Invalid date";
     }
   };
 
-  // Format date for weekly display (Mar 22, 2025)
+  // Format date for weekly display with 2-digit year
   const formatWeeklyDate = (date) => {
     try {
       const d = new Date(date);
@@ -748,11 +755,12 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         return "Invalid date";
       }
 
-      // Format as DD.MM to match the required format
+      // Format as DD.MM.YY to include 2-digit year
       const day = d.getDate().toString().padStart(2, "0");
       const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
+      const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
 
-      return `${day}.${month}`;
+      return `${day}.${month}.${year}`;
     } catch (error) {
       return "Invalid date";
     }
@@ -846,7 +854,15 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        {/* Add weekly navigation arrows */}
+        {/* Move Title/Subtitle to the header area */}
+        <div className="event-card-title-area">
+          <h3>{currentEvent.title}</h3>
+          {currentEvent.subTitle && (
+            <span className="subtitle">{currentEvent.subTitle}</span>
+          )}
+        </div>
+
+        {/* Weekly Navigation remains here */}
         {event.isWeekly && (
           <div className="weekly-navigation">
             <button
@@ -870,6 +886,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           </div>
         )}
 
+        {/* Header with image and actions */}
         <div className="event-card-header">
           <div className="event-cover-image glassy-element">
             {currentEvent.flyer && (
@@ -906,14 +923,10 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           </div>
         </div>
 
+        {/* Content section now focuses on details */}
         <div className="event-card-content">
+          {/* Move Go Live button here */}
           <div className="event-info">
-            <div className="title-container">
-              <h3>{currentEvent.title}</h3>
-              {currentEvent.subTitle && (
-                <span className="subtitle">{currentEvent.subTitle}</span>
-              )}
-            </div>
             {hasPermission && (
               <motion.button
                 className={`go-live-button ${isLive ? "live" : ""}`}
@@ -934,6 +947,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
             )}
           </div>
 
+          {/* Details (Date, Time, Location) */}
           <div className="event-details">
             {event.isWeekly ? (
               <div className="weekly-date-navigation">
