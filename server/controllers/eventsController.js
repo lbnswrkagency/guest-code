@@ -443,7 +443,8 @@ exports.getAllEvents = async (req, res) => {
     const events = await Event.find({ brand: { $in: brandIds } })
       .sort({ date: -1 })
       .populate("brand", "name username logo")
-      .populate("user", "username firstName lastName avatar");
+      .populate("user", "username firstName lastName avatar")
+      .populate("genres");
 
     res.status(200).json(events);
   } catch (error) {
@@ -1145,7 +1146,9 @@ exports.getEventByLink = async (req, res) => {
   try {
     const eventData = await Event.findOne({
       link: req.params.eventLink,
-    }).populate("lineups");
+    })
+      .populate("lineups")
+      .populate("genres");
     if (!eventData) {
       return res
         .status(404)
@@ -1161,7 +1164,8 @@ exports.getEvent = async (req, res) => {
   try {
     const eventData = await Event.findById(req.params.eventId)
       .populate("lineups")
-      .populate("brand"); // Populate the brand to get brand data including colors
+      .populate("brand") // Populate the brand to get brand data including colors
+      .populate("genres");
 
     if (!eventData) {
       return res
@@ -1184,9 +1188,9 @@ exports.getEvent = async (req, res) => {
 
 exports.getEventPage = async (req, res) => {
   try {
-    const eventData = await Event.findById(req.params.eventId).populate(
-      "lineups"
-    );
+    const eventData = await Event.findById(req.params.eventId)
+      .populate("lineups")
+      .populate("genres");
     if (!eventData) {
       return res
         .status(404)

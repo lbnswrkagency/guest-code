@@ -6,15 +6,14 @@ import "./TableCodeManagement.scss";
 
 function TableCodeManagement({
   user,
-  refreshCounts,
-  dataInterval,
+  triggerRefresh,
   tableCategories,
   refreshTrigger,
   selectedEvent,
-  counts = { tableCounts: [] },
+  counts,
+  isLoading: parentIsLoading,
 }) {
   const toast = useToast();
-  const [codes, setCodes] = useState([]);
   const [codesByCategory, setCodesByCategory] = useState({});
   const [editCodeId, setEditCodeId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -25,17 +24,13 @@ function TableCodeManagement({
   const [showCodeView, setShowCodeView] = useState(false);
   const [pngUrl, setPngUrl] = useState("");
   const [showPngModal, setShowPngModal] = useState(false);
-  const [tablesBookedCount, setTablesBookedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showSendEmailModal, setShowSendEmailModal] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [selectedCodeId, setSelectedCodeId] = useState(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
-
-  // Add new state for cancel confirmation
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [cancelCodeId, setCancelCodeId] = useState(null);
-
   const [visibleCodes, setVisibleCodes] = useState(10);
 
   const tableColors = {
@@ -45,110 +40,49 @@ function TableCodeManagement({
     premium: "#4a90e2", // Blue for premium
   };
 
-  // Define the desired category order
   const categoryOrder = ["djarea", "backstage", "vip", "premium"];
 
   const getCategoryForTable = (tableNumber) => {
-    if (tableNumber.startsWith("B")) {
-      return "djarea";
-    } else if (tableNumber.startsWith("P") || tableNumber.startsWith("E")) {
+    if (!tableNumber) return "unknown";
+    if (tableNumber.startsWith("B")) return "djarea";
+    if (tableNumber.startsWith("P") || tableNumber.startsWith("E"))
       return "backstage";
-    } else if (
+    if (
       tableNumber.startsWith("A") ||
       tableNumber.startsWith("F") ||
       tableNumber.startsWith("R")
-    ) {
+    )
       return "vip";
-    } else if (tableNumber.startsWith("K")) {
-      return "premium";
-    } else {
-      return "unknown";
-    }
+    if (tableNumber.startsWith("K")) return "premium";
+    return "unknown";
   };
 
   useEffect(() => {
-    if (selectedEvent && selectedEvent._id) {
-      fetchCodes();
-    }
-  }, [selectedEvent, refreshTrigger, dataInterval]);
+    const allCodes = counts?.tableCounts || [];
 
-  const fetchCodes = async () => {
-    if (!selectedEvent || !selectedEvent._id) {
-      return;
-    }
-
-    if (!dataInterval || !dataInterval.startDate || !dataInterval.endDate) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
-        {
-          params: {
-            eventId: selectedEvent._id,
-            startDate: dataInterval.startDate.toISOString(),
-            endDate: dataInterval.endDate.toISOString(),
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+    // Group the codes received from props
+    const groupedCodes = categoryOrder.reduce((acc, category) => {
+      acc[category] = allCodes.filter(
+        (code) => getCategoryForTable(code.tableNumber) === category
       );
+      return acc;
+    }, {});
 
-      const fetchedCodes = response.data;
+    setCodesByCategory(groupedCodes);
 
-      // If we have successfully fetched codes from the server
-      if (fetchedCodes && Array.isArray(fetchedCodes)) {
-        // Sort and group the codes
-        const groupedCodes = categoryOrder.reduce((acc, category) => {
-          acc[category] = fetchedCodes.filter(
-            (code) => getCategoryForTable(code.tableNumber) === category
-          );
-          return acc;
-        }, {});
+    // Reset visible codes count when data changes significantly
+    setVisibleCodes(10);
+  }, [counts, refreshTrigger]);
 
-        setCodesByCategory(groupedCodes);
-        setCodes(fetchedCodes);
-
-        // Calculate total booked tables
-        const activeTableCodes = fetchedCodes.filter(
-          (code) => code.status !== "declined" && code.status !== "cancelled"
-        );
-        setTablesBookedCount(activeTableCodes.length);
-      } else {
-        setCodesByCategory({});
-        setCodes([]);
-        setTablesBookedCount(0);
-      }
-    } catch (error) {
-      // Detailed error logging - keep this but remove console.error statements
-      if (error.response) {
-        // Response error - remove console.error
-      } else if (error.request) {
-        // Request error - remove console.error
-      } else {
-        // Error message - remove console.error
-      }
-
-      toast.showError("Failed to fetch table reservations");
-
-      // Reset states to empty when there's an error
-      setCodesByCategory({});
-      setCodes([]);
-      setTablesBookedCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Compute total tables and tables left
+  const allCodes = counts?.tableCounts || [];
+  const activeTableCodes = allCodes.filter(
+    (code) => code.status !== "declined" && code.status !== "cancelled"
+  );
+  const tablesBookedCount = activeTableCodes.length;
   const totalTables = Object.values(tableCategories).reduce(
     (sum, tables) => sum + tables.length,
     0
   );
-
   const tablesLeft = totalTables - tablesBookedCount;
 
   const handleDeleteClick = (codeId) => {
@@ -156,7 +90,6 @@ function TableCodeManagement({
     setShowConfirmDelete(true);
   };
 
-  // Add new handler for cancel click
   const handleCancelClick = (codeId) => {
     setCancelCodeId(codeId);
     setShowConfirmCancel(true);
@@ -178,41 +111,23 @@ function TableCodeManagement({
         );
         loadingToast.dismiss();
         toast.showSuccess("Reservation deleted successfully");
-        refreshCounts();
-        fetchCodes();
+        triggerRefresh();
 
-        // Add additional refreshTrigger increment to ensure TableLayout updates
-        if (typeof refreshTrigger === "number") {
-          // Create a custom event that TableSystem can listen for
-          const event = new CustomEvent("tableCountUpdated", {
-            detail: { type: "delete" },
-          });
-          window.dispatchEvent(event);
-        }
+        const event = new CustomEvent("tableCountUpdated", {
+          detail: { type: "delete" },
+        });
+        window.dispatchEvent(event);
       } catch (error) {
         console.error("Error deleting reservation", error);
-
-        // Detailed error logging
-        if (error.response) {
-          console.error(
-            "Response error:",
-            error.response.status,
-            error.response.data
-          );
-        } else if (error.request) {
-          console.error("Request error:", error.request);
-        } else {
-          console.error("Error message:", error.message);
-        }
-
-        toast.showError("Failed to delete reservation");
+        toast.showError(
+          error.response?.data?.message || "Failed to delete reservation"
+        );
       } finally {
         setIsLoading(false);
       }
     }
   };
 
-  // Add confirm cancel function
   const confirmCancel = async () => {
     setShowConfirmCancel(false);
     if (cancelCodeId) {
@@ -230,20 +145,17 @@ function TableCodeManagement({
         );
         loadingToast.dismiss();
         toast.showSuccess("Reservation cancelled successfully");
-        refreshCounts();
-        fetchCodes();
+        triggerRefresh();
 
-        // Add additional refreshTrigger increment to ensure TableLayout updates
-        if (typeof refreshTrigger === "number") {
-          // Create a custom event that TableSystem can listen for
-          const event = new CustomEvent("tableCountUpdated", {
-            detail: { type: "cancel" },
-          });
-          window.dispatchEvent(event);
-        }
+        const event = new CustomEvent("tableCountUpdated", {
+          detail: { type: "cancel" },
+        });
+        window.dispatchEvent(event);
       } catch (error) {
         console.error("Error cancelling reservation:", error);
-        toast.showError("Failed to cancel reservation");
+        toast.showError(
+          error.response?.data?.message || "Failed to cancel reservation"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -251,7 +163,6 @@ function TableCodeManagement({
   };
 
   const handleStatusChange = async (codeId, newStatus) => {
-    // For cancel status, use the confirmation dialog
     if (newStatus === "cancelled") {
       handleCancelClick(codeId);
       return;
@@ -275,24 +186,19 @@ function TableCodeManagement({
       );
       loadingToast.dismiss();
       toast.showSuccess(
-        `Reservation ${
-          newStatus === "confirmed" ? "confirmed" : "updated"
-        } successfully`
+        `Reservation ${newStatus === "confirmed" ? "confirmed" : "updated"}`
       );
-      refreshCounts();
-      fetchCodes();
+      triggerRefresh();
 
-      // Add additional refreshTrigger increment to ensure TableLayout updates
-      if (typeof refreshTrigger === "number") {
-        // Create a custom event that TableSystem can listen for
-        const event = new CustomEvent("tableCountUpdated", {
-          detail: { type: "statusChange", status: newStatus },
-        });
-        window.dispatchEvent(event);
-      }
+      const event = new CustomEvent("tableCountUpdated", {
+        detail: { type: "statusChange", status: newStatus },
+      });
+      window.dispatchEvent(event);
     } catch (error) {
       console.error("Error updating status:", error);
-      toast.showError("Failed to update status");
+      toast.showError(
+        error.response?.data?.message || "Failed to update status"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -302,8 +208,6 @@ function TableCodeManagement({
     try {
       setIsLoading(true);
       const loadingToast = toast.showLoading("Preparing your table code...");
-
-      // Use the PNG endpoint for viewing
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png`,
         {
@@ -313,34 +217,19 @@ function TableCodeManagement({
           },
         }
       );
-
-      // Convert blob to data URL
       const reader = new FileReader();
       reader.readAsDataURL(response.data);
       reader.onloadend = () => {
-        const base64data = reader.result;
-        setPngUrl(base64data);
+        setPngUrl(reader.result);
         setShowPngModal(true);
         loadingToast.dismiss();
         setIsLoading(false);
       };
     } catch (error) {
       console.error("Error viewing code:", error);
-
-      // Detailed error logging
-      if (error.response) {
-        console.error(
-          "Response error:",
-          error.response.status,
-          error.response.data
-        );
-      } else if (error.request) {
-        console.error("Request error:", error.request);
-      } else {
-        console.error("Error message:", error.message);
-      }
-
-      toast.showError("Failed to view the table code");
+      toast.showError(
+        error.response?.data?.message || "Failed to view the table code"
+      );
       setIsLoading(false);
     }
   };
@@ -351,16 +240,12 @@ function TableCodeManagement({
       const loadingToast = toast.showLoading(
         "Downloading table code as PNG..."
       );
-
-      // Get the code to determine filename
-      const code = codes.find((c) => c._id === codeId);
+      const code = allCodes.find((c) => c._id === codeId);
       if (!code) {
         toast.showError("Code not found");
         setIsLoading(false);
         return;
       }
-
-      // Use the PNG download endpoint
       const response = await axios.get(
         `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png-download`,
         {
@@ -370,8 +255,6 @@ function TableCodeManagement({
           },
         }
       );
-
-      // Create a blob URL and trigger download
       const blob = new Blob([response.data], { type: "image/png" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -382,8 +265,6 @@ function TableCodeManagement({
       );
       document.body.appendChild(link);
       link.click();
-
-      // Cleanup
       setTimeout(() => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
@@ -393,30 +274,17 @@ function TableCodeManagement({
       }, 500);
     } catch (error) {
       console.error("Error downloading code:", error);
-
-      // Detailed error logging
-      if (error.response) {
-        console.error(
-          "Response error:",
-          error.response.status,
-          error.response.data
-        );
-      } else if (error.request) {
-        console.error("Request error:", error.request);
-      } else {
-        console.error("Error message:", error.message);
-      }
-
-      toast.showError("Failed to download the table code");
+      toast.showError(
+        error.response?.data?.message || "Failed to download the table code"
+      );
       setIsLoading(false);
     }
   };
 
   const handleSendEmail = (codeId) => {
-    // Find the code to get the guest name for the email
-    const code = codes.find((c) => c._id === codeId);
+    const code = allCodes.find((c) => c._id === codeId);
     if (code) {
-      setEmailRecipient(code.email || ""); // Use existing email if available
+      setEmailRecipient(code.email || "");
       setSelectedCodeId(codeId);
       setShowSendEmailModal(true);
     }
@@ -427,19 +295,15 @@ function TableCodeManagement({
       toast.showError("Email address is required");
       return;
     }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
     if (!emailRegex.test(emailRecipient)) {
       toast.showError("Please enter a valid email address");
       return;
     }
-
     setIsSendingEmail(true);
     setIsLoading(true);
     try {
       const loadingToast = toast.showLoading("Sending email...");
-
       await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/table/code/${selectedCodeId}/send`,
         { email: emailRecipient },
@@ -449,7 +313,6 @@ function TableCodeManagement({
           },
         }
       );
-
       loadingToast.dismiss();
       toast.showSuccess("Table code sent successfully");
       setShowSendEmailModal(false);
@@ -457,21 +320,7 @@ function TableCodeManagement({
       setSelectedCodeId(null);
     } catch (error) {
       console.error("Error sending email:", error);
-
-      // Detailed error logging
-      if (error.response) {
-        console.error(
-          "Response error:",
-          error.response.status,
-          error.response.data
-        );
-      } else if (error.request) {
-        console.error("Request error:", error.request);
-      } else {
-        console.error("Error message:", error.message);
-      }
-
-      toast.showError("Failed to send email");
+      toast.showError(error.response?.data?.message || "Failed to send email");
     } finally {
       setIsSendingEmail(false);
       setIsLoading(false);
@@ -504,13 +353,19 @@ function TableCodeManagement({
       );
       loadingToast.dismiss();
       toast.showSuccess("Reservation updated successfully");
-      refreshCounts();
-      fetchCodes();
+      triggerRefresh();
       setEditCodeId(null);
       resetEditFields();
+
+      const event = new CustomEvent("tableCountUpdated", {
+        detail: { type: "edit" },
+      });
+      window.dispatchEvent(event);
     } catch (error) {
       console.error("Error updating reservation:", error);
-      toast.showError("Failed to update reservation");
+      toast.showError(
+        error.response?.data?.message || "Failed to update reservation"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -524,23 +379,24 @@ function TableCodeManagement({
   };
 
   const isTableBooked = (table) => {
-    return codes.some(
+    return allCodes.some(
       (code) =>
         code.tableNumber === table &&
-        ["confirmed", "pending", "declined"].includes(code.status) &&
-        code._id !== editCodeId // Exclude the code being edited
+        code.status !== "declined" &&
+        code.status !== "cancelled" &&
+        code._id !== editCodeId
     );
   };
 
-  // **Fix:** Move getCategoryCounts before renderCategoryTitle
-  // ✨ Set total to the total number of tables in the category
   const getCategoryCounts = (category) => {
     const categoryItems =
-      codesByCategory[category]?.filter(
-        (code) => user.isAdmin || code.hostId === user._id
+      allCodes.filter(
+        (code) =>
+          getCategoryForTable(code.tableNumber) === category &&
+          (user.isAdmin || code.hostId === user._id)
       ) || [];
 
-    const totalTablesInCategory = tableCategories[category].length; // Total tables available in the category
+    const totalTablesInCategory = tableCategories[category]?.length || 0;
     const acceptedCount = categoryItems.filter(
       (code) => code.status === "confirmed"
     ).length;
@@ -549,7 +405,7 @@ function TableCodeManagement({
     ).length;
 
     return {
-      total: totalTablesInCategory, // Updated to reflect total tables
+      total: totalTablesInCategory,
       accepted: acceptedCount,
       pending: pendingCount,
     };
@@ -557,7 +413,6 @@ function TableCodeManagement({
 
   const renderCategoryTitle = (category) => {
     const counts = getCategoryCounts(category);
-    // Format the display name properly for DJ Area
     const displayName =
       category === "djarea"
         ? "DJ Area"
@@ -591,7 +446,6 @@ function TableCodeManagement({
   };
 
   const renderCodeItem = (code) => {
-    // Get the category for the table
     const category = getCategoryForTable(code.tableNumber);
     const borderColor = tableColors[category] || "#ccc";
     const isEditing = editCodeId === code._id;
@@ -629,7 +483,7 @@ function TableCodeManagement({
                               category.slice(1)
                         }
                       >
-                        {tableCategories[category].map((table) => (
+                        {tableCategories[category]?.map((table) => (
                           <option
                             key={table}
                             value={table}
@@ -637,7 +491,7 @@ function TableCodeManagement({
                           >
                             {table}
                           </option>
-                        ))}
+                        )) || null}
                       </optgroup>
                     ))}
                   </select>
@@ -678,7 +532,6 @@ function TableCodeManagement({
                 value={editPax}
                 onChange={(e) => setEditPax(e.target.value)}
               >
-                {/* Changed options from 1-5 to 1-10 */}
                 {[...Array(10)].map((_, index) => (
                   <option key={index + 1} value={index + 1}>
                     {index + 1}
@@ -697,6 +550,7 @@ function TableCodeManagement({
                   onClick={handleEdit}
                   className="save-edit-btn"
                   title="Save"
+                  disabled={isLoading}
                 >
                   ✓
                 </button>
@@ -704,6 +558,7 @@ function TableCodeManagement({
                   onClick={resetEditFields}
                   className="cancel-edit-btn"
                   title="Cancel"
+                  disabled={isLoading}
                 >
                   ✕
                 </button>
@@ -712,7 +567,6 @@ function TableCodeManagement({
               <>
                 {user.isAdmin ? (
                   <>
-                    {/* Admin actions - updated with emoji icons */}
                     {code.status === "pending" && (
                       <>
                         <button
@@ -721,6 +575,7 @@ function TableCodeManagement({
                             handleStatusChange(code._id, "confirmed")
                           }
                           title="Confirm"
+                          disabled={isLoading}
                         >
                           ✓
                         </button>
@@ -730,6 +585,7 @@ function TableCodeManagement({
                             handleStatusChange(code._id, "declined")
                           }
                           title="Decline"
+                          disabled={isLoading}
                         >
                           ✕
                         </button>
@@ -737,6 +593,7 @@ function TableCodeManagement({
                           className="edit"
                           onClick={() => startEdit(code)}
                           title="Edit"
+                          disabled={isLoading}
                         >
                           ✏️
                         </button>
@@ -744,6 +601,7 @@ function TableCodeManagement({
                           className="delete"
                           onClick={() => handleDeleteClick(code._id)}
                           title="Delete"
+                          disabled={isLoading}
                         >
                           🗑️
                         </button>
@@ -755,6 +613,7 @@ function TableCodeManagement({
                           className="email"
                           onClick={() => handleSendEmail(code._id)}
                           title="Send Email"
+                          disabled={isLoading}
                         >
                           📧
                         </button>
@@ -762,6 +621,7 @@ function TableCodeManagement({
                           className="download"
                           onClick={() => handleDownload(code._id)}
                           title="Download"
+                          disabled={isLoading}
                         >
                           📥
                         </button>
@@ -769,6 +629,7 @@ function TableCodeManagement({
                           className="view"
                           onClick={() => handleCodeView(code._id)}
                           title="View QR"
+                          disabled={isLoading}
                         >
                           👁️
                         </button>
@@ -776,6 +637,7 @@ function TableCodeManagement({
                           className="edit"
                           onClick={() => startEdit(code)}
                           title="Edit"
+                          disabled={isLoading}
                         >
                           ✏️
                         </button>
@@ -783,6 +645,7 @@ function TableCodeManagement({
                           className="cancel"
                           onClick={() => handleCancelClick(code._id)}
                           title="Cancel Reservation"
+                          disabled={isLoading}
                         >
                           ❌
                         </button>
@@ -796,6 +659,7 @@ function TableCodeManagement({
                             handleStatusChange(code._id, "pending")
                           }
                           title="Reset to Pending"
+                          disabled={isLoading}
                         >
                           🔄
                         </button>
@@ -803,6 +667,7 @@ function TableCodeManagement({
                           className="delete"
                           onClick={() => handleDeleteClick(code._id)}
                           title="Delete"
+                          disabled={isLoading}
                         >
                           🗑️
                         </button>
@@ -811,7 +676,6 @@ function TableCodeManagement({
                   </>
                 ) : (
                   <>
-                    {/* Non-admin actions - updated with emoji icons */}
                     {code.hostId === user._id && (
                       <>
                         {code.status === "pending" && (
@@ -820,6 +684,7 @@ function TableCodeManagement({
                               className="edit"
                               onClick={() => startEdit(code)}
                               title="Edit"
+                              disabled={isLoading}
                             >
                               ✏️
                             </button>
@@ -827,6 +692,7 @@ function TableCodeManagement({
                               className="delete"
                               onClick={() => handleDeleteClick(code._id)}
                               title="Delete"
+                              disabled={isLoading}
                             >
                               🗑️
                             </button>
@@ -838,6 +704,7 @@ function TableCodeManagement({
                               className="email"
                               onClick={() => handleSendEmail(code._id)}
                               title="Send Email"
+                              disabled={isLoading}
                             >
                               📧
                             </button>
@@ -845,6 +712,7 @@ function TableCodeManagement({
                               className="download"
                               onClick={() => handleDownload(code._id)}
                               title="Download"
+                              disabled={isLoading}
                             >
                               📥
                             </button>
@@ -852,6 +720,7 @@ function TableCodeManagement({
                               className="view"
                               onClick={() => handleCodeView(code._id)}
                               title="View QR"
+                              disabled={isLoading}
                             >
                               👁️
                             </button>
@@ -859,6 +728,7 @@ function TableCodeManagement({
                               className="edit"
                               onClick={() => startEdit(code)}
                               title="Edit"
+                              disabled={isLoading}
                             >
                               ✏️
                             </button>
@@ -866,6 +736,7 @@ function TableCodeManagement({
                               className="cancel"
                               onClick={() => handleCancelClick(code._id)}
                               title="Cancel Reservation"
+                              disabled={isLoading}
                             >
                               ❌
                             </button>
@@ -887,9 +758,12 @@ function TableCodeManagement({
     setVisibleCodes((prev) => prev + 10);
   };
 
+  const totalVisibleCodes = allCodes.filter(
+    (code) => user.isAdmin || code.hostId === user._id
+  ).length;
+
   return (
     <div className="table-code-management">
-      {/* PNG View Modal - Fullscreen */}
       {showPngModal && (
         <div className="code-png-modal">
           <button className="close-btn" onClick={() => setShowPngModal(false)}>
@@ -900,8 +774,6 @@ function TableCodeManagement({
           </div>
         </div>
       )}
-
-      {/* Send Email Modal */}
       {showSendEmailModal && (
         <div className="send-email-modal-overlay">
           <div className="send-email-modal-content">
@@ -939,8 +811,6 @@ function TableCodeManagement({
           </div>
         </div>
       )}
-
-      {/* Delete Confirmation Modal */}
       {showConfirmDelete && (
         <div className="delete-modal-overlay">
           <div className="delete-modal-content">
@@ -966,8 +836,6 @@ function TableCodeManagement({
           </div>
         </div>
       )}
-
-      {/* Cancel Confirmation Modal */}
       {showConfirmCancel && (
         <div className="delete-modal-overlay">
           <div className="delete-modal-content">
@@ -994,11 +862,11 @@ function TableCodeManagement({
         </div>
       )}
 
-      {isLoading ? (
+      {parentIsLoading ? (
         <div className="loading-state">
           <p>Loading reservations...</p>
         </div>
-      ) : codes.length === 0 ? (
+      ) : allCodes.length === 0 ? (
         <div className="no-reservations">
           <p>No table reservations found for this event.</p>
           <p>Create a new reservation by selecting a table above.</p>
@@ -1009,8 +877,6 @@ function TableCodeManagement({
             const categoryItems = codesByCategory[category]?.filter(
               (code) => user.isAdmin || code.hostId === user._id
             );
-
-            // Only show first "visibleCodes" items
             const visibleItems = categoryItems?.slice(0, visibleCodes);
 
             return visibleItems?.length > 0 ? (
@@ -1021,19 +887,17 @@ function TableCodeManagement({
             ) : null;
           })}
 
-          {/* Load More Button */}
-          {codes.length > visibleCodes && (
+          {totalVisibleCodes > visibleCodes && (
             <button
               className="load-more-btn"
               onClick={loadMore}
-              style={
-                selectedEvent?.primaryColor
-                  ? {
-                      backgroundColor: `${selectedEvent.primaryColor}20`,
-                      borderColor: `${selectedEvent.primaryColor}40`,
-                    }
-                  : {}
-              }
+              style={{
+                backgroundColor: `${
+                  selectedEvent?.primaryColor || "#FFC807"
+                }20`,
+                borderColor: `${selectedEvent?.primaryColor || "#FFC807"}40`,
+              }}
+              disabled={isLoading}
             >
               Load More Reservations
             </button>

@@ -37,17 +37,51 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
         // Handle case where event.lineups is an array of IDs (strings) instead of objects
         if (selectedEvent.lineups && Array.isArray(selectedEvent.lineups)) {
+          console.log("[DashboardFeed] Debug selectedEvent lineups:", {
+            lineups: selectedEvent.lineups,
+            lineupType: typeof selectedEvent.lineups[0],
+            selectedBrandExists: !!selectedBrand,
+            selectedBrandLineups: selectedBrand?.lineups
+              ? `${selectedBrand.lineups.length} items`
+              : "undefined/null",
+          });
+
           if (
             selectedEvent.lineups.length > 0 &&
             typeof selectedEvent.lineups[0] === "string"
           ) {
-            // If lineups are string IDs, find the full lineup objects from selectedBrand.lineups
+            console.log(
+              "[DashboardFeed] Processing lineup string IDs:",
+              selectedEvent.lineups
+            );
+
+            if (!selectedBrand || !selectedBrand.lineups) {
+              console.error(
+                "[DashboardFeed] ERROR: selectedBrand or its lineups is null/undefined",
+                {
+                  selectedBrandExists: !!selectedBrand,
+                  lineups: selectedBrand?.lineups,
+                }
+              );
+            }
+
             eventLineups = selectedEvent.lineups
               .map((lineupId) => {
-                // Find the full lineup object from selectedBrand.lineups
-                const fullLineup = selectedBrand.lineups.find(
-                  (l) => l._id === lineupId || l.id === lineupId
+                // Log each lineup ID we're looking for
+                console.log(
+                  `[DashboardFeed] Looking for lineup ID: ${lineupId}`
                 );
+
+                // Find the full lineup object from selectedBrand.lineups
+                const fullLineup = selectedBrand?.lineups?.find(
+                  (l) => l?._id === lineupId || l?.id === lineupId
+                );
+
+                if (!fullLineup) {
+                  console.warn(
+                    `[DashboardFeed] Could not find lineup with ID: ${lineupId}`
+                  );
+                }
 
                 return fullLineup || null;
               })
@@ -153,17 +187,51 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
             // Handle case where event.lineups is an array of IDs (strings) instead of objects
             if (event.lineups && Array.isArray(event.lineups)) {
+              console.log("[DashboardFeed] Debug event lineups:", {
+                lineups: event.lineups,
+                lineupType: typeof event.lineups[0],
+                selectedBrandExists: !!selectedBrand,
+                selectedBrandLineups: selectedBrand?.lineups
+                  ? `${selectedBrand.lineups.length} items`
+                  : "undefined/null",
+              });
+
               if (
                 event.lineups.length > 0 &&
                 typeof event.lineups[0] === "string"
               ) {
-                // If lineups are string IDs, find the full lineup objects from selectedBrand.lineups
+                console.log(
+                  "[DashboardFeed] Processing event lineup string IDs:",
+                  event.lineups
+                );
+
+                if (!selectedBrand || !selectedBrand.lineups) {
+                  console.error(
+                    "[DashboardFeed] ERROR: selectedBrand or its lineups is null/undefined",
+                    {
+                      selectedBrandExists: !!selectedBrand,
+                      lineups: selectedBrand?.lineups,
+                    }
+                  );
+                }
+
                 eventLineups = event.lineups
                   .map((lineupId) => {
-                    // Find the full lineup object from selectedBrand.lineups
-                    const fullLineup = selectedBrand.lineups.find(
-                      (l) => l._id === lineupId || l.id === lineupId
+                    // Log each lineup ID we're looking for
+                    console.log(
+                      `[DashboardFeed] Looking for lineup ID: ${lineupId}`
                     );
+
+                    // Find the full lineup object from selectedBrand.lineups
+                    const fullLineup = selectedBrand?.lineups?.find(
+                      (l) => l?._id === lineupId || l?.id === lineupId
+                    );
+
+                    if (!fullLineup) {
+                      console.warn(
+                        `[DashboardFeed] Could not find lineup with ID: ${lineupId}`
+                      );
+                    }
 
                     return fullLineup || null;
                   })
@@ -344,7 +412,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
   if (isLoading) {
     return (
-      <div className="dashboard-feed loading">
+      <div className="dashboardFeed-container dashboardFeed-loading">
         <LoadingSpinner size="large" color="primary" />
         <p>Loading event information...</p>
       </div>
@@ -353,12 +421,12 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
   if (error) {
     return (
-      <div className="dashboard-feed error">
-        <div className="error-content">
+      <div className="dashboardFeed-container dashboardFeed-error">
+        <div className="dashboardFeed-error-content">
           <RiInformationLine size={48} />
           <h2>Oops! Something went wrong</h2>
           <p>{error}</p>
-          <button onClick={handleRetry} className="retry-button">
+          <button onClick={handleRetry} className="dashboardFeed-retry-button">
             <RiRefreshLine /> Retry
           </button>
         </div>
@@ -368,16 +436,16 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
   if (!eventData) {
     return (
-      <div className="dashboard-feed empty">
-        <div className="empty-content"></div>
+      <div className="dashboardFeed-container dashboardFeed-empty">
+        <div className="dashboardFeed-empty-content"></div>
       </div>
     );
   }
 
   // Use UpcomingEvent component to display the selected event
   return (
-    <div className="dashboard-feed">
-      <div className="dashboard-feed-content">
+    <div className="dashboardFeed-container">
+      <div className="dashboardFeed-content">
         <UpcomingEvent
           key={`${selectedBrand?._id}-${eventData?._id}`}
           brandId={selectedBrand?._id}

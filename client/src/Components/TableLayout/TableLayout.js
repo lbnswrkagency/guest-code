@@ -8,22 +8,22 @@ const TableLayout = ({
   counts,
   refreshTrigger,
 }) => {
-  // This function checks if a specific table is booked
+  // Extract tableCounts from the counts object
+  const tableCounts = counts?.tableCounts || [];
+
+  // This function checks if a specific table is booked using the correct data
   const isBooked = (table) =>
-    counts &&
-    counts.tableCounts &&
-    counts.tableCounts.some(
+    tableCounts.some(
       (code) =>
         (code.table === table || code.tableNumber === table) &&
         code.status !== "declined" &&
         code.status !== "cancelled"
     );
 
-  // Re-render when refreshTrigger changes
+  // Re-render when refreshTrigger or counts change
   useEffect(() => {
-    // This effect will trigger a component re-render when refreshTrigger changes
-    // No additional logic needed as the render will use the updated counts
-  }, [refreshTrigger, counts]);
+    // Logic to handle updates can go here if needed, but re-render is automatic
+  }, [refreshTrigger, counts]); // Depend on counts object
 
   // Function to determine CSS classes for each table
   const getClass = (table, baseClass) => {
@@ -36,6 +36,7 @@ const TableLayout = ({
   const handleTableClick = (table, event) => {
     if (!isBooked(table)) {
       const rect = event.target.getBoundingClientRect();
+      // Pass the table identifier and position to the parent
       setTableNumber(table, {
         x: rect.left + rect.width / 2,
         y: rect.bottom,
@@ -45,7 +46,7 @@ const TableLayout = ({
 
   return (
     <div className="table-layout">
-      <div className="table-guide">Click a Table</div>
+      <div className="table-guide">Click an Available Table</div>
 
       {/* Table Layout 01 */}
       <div className="tables table-layout-01">

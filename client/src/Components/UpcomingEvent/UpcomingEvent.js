@@ -32,7 +32,7 @@ const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
   const spinnerSize = size === "small" ? "16px" : "24px";
   return (
     <div
-      className="spinner"
+      className="upcomingEvent-spinner"
       style={{
         width: spinnerSize,
         height: spinnerSize,
@@ -982,11 +982,14 @@ const UpcomingEvent = ({
   if (loading) {
     return (
       <div
-        className={`upcoming-event-container loading ${
+        className={`upcomingEvent-container loading ${
           seamless ? "seamless" : ""
         }`}
       >
-        <div className="loading-spinner"></div>
+        <div className="upcomingEvent-loader">
+          <LoadingSpinner size="large" color="#ffc807" />
+          <p>Loading events...</p>
+        </div>
       </div>
     );
   }
@@ -994,16 +997,22 @@ const UpcomingEvent = ({
   if (error) {
     return (
       <div
-        className={`upcoming-event-container error ${
+        className={`upcomingEvent-container error ${
           seamless ? "seamless" : ""
         }`}
       >
-        <div className="empty-state">
-          <div className="empty-icon">⚠️</div>
-          <p>{error}</p>
-          <button className="retry-button" onClick={fetchUpcomingEvents}>
-            Try Again
-          </button>
+        <div className="upcomingEvent-error">
+          <div className="upcomingEvent-error-content">
+            <RiInformationLine size={48} />
+            <h3>Oops! Something went wrong</h3>
+            <p>{error}</p>
+            <button
+              onClick={fetchUpcomingEvents}
+              className="upcomingEvent-retry-button"
+            >
+              <RiRefreshLine /> Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1012,13 +1021,18 @@ const UpcomingEvent = ({
   if (!events || events.length === 0) {
     return (
       <div
-        className={`upcoming-event-container empty ${
+        className={`upcomingEvent-container empty ${
           seamless ? "seamless" : ""
         }`}
       >
-        <div className="empty-state">
-          <div className="empty-icon">📅</div>
-          <p>No Upcoming Events yet, come back again later.</p>
+        <div className="upcomingEvent-empty">
+          <div className="upcomingEvent-empty-state">
+            <RiCalendarEventLine className="upcomingEvent-empty-icon" />
+            <p>No upcoming events</p>
+            <span className="upcomingEvent-empty-state-subtext">
+              Check back later for new events
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -1039,32 +1053,36 @@ const UpcomingEvent = ({
   const showNavigation = !hideNavigation && events.length > 1;
 
   return (
-    <div className={`upcoming-event-container ${seamless ? "seamless" : ""}`}>
+    <div
+      className={`upcomingEvent-container ${
+        seamless ? "upcomingEvent-seamless" : ""
+      } ${loading ? "upcomingEvent-loading" : ""}`}
+    >
       {showNavigation && (
-        <div className="event-navigation">
+        <div className="upcomingEvent-navigation">
           <button
-            className={`nav-button prev ${
-              currentIndex === 0 ? "disabled" : ""
+            className={`upcomingEvent-nav-button ${
+              currentIndex === 0 ? "upcomingEvent-disabled" : ""
             }`}
             onClick={handlePrevEvent}
             disabled={currentIndex === 0}
           >
             <RiArrowLeftSLine />
           </button>
-          <div className="navigation-indicator">
+          <div className="upcomingEvent-navigation-indicator">
             {events.map((_, index) => (
               <div
                 key={index}
-                className={`indicator-dot ${
-                  index === currentIndex ? "active" : ""
+                className={`upcomingEvent-indicator-dot ${
+                  index === currentIndex ? "upcomingEvent-active" : ""
                 }`}
                 onClick={() => setCurrentIndex(index)}
               />
             ))}
           </div>
           <button
-            className={`nav-button next ${
-              currentIndex === events.length - 1 ? "disabled" : ""
+            className={`upcomingEvent-nav-button ${
+              currentIndex === events.length - 1 ? "upcomingEvent-disabled" : ""
             }`}
             onClick={handleNextEvent}
             disabled={currentIndex === events.length - 1}
@@ -1077,24 +1095,24 @@ const UpcomingEvent = ({
       <AnimatePresence mode="wait">
         <motion.div
           key={currentEvent?._id || `event-${currentIndex}`}
-          className={`event-card ${determineAspectRatioClass()}`}
+          className={`upcomingEvent-card ${determineAspectRatioClass()}`}
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="event-image-wrapper">
-            <div className="event-image-container">
+          <div className="upcomingEvent-image-wrapper">
+            <div className="upcomingEvent-image-container">
               {eventImage ? (
                 <img
                   src={eventImage}
                   alt={currentEvent.title}
-                  className="event-image"
+                  className="upcomingEvent-event-image"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                 />
               ) : (
-                <div className="no-image">
+                <div className="upcomingEvent-no-image">
                   <RiImageLine />
                   <span>No image available</span>
                 </div>
@@ -1102,17 +1120,21 @@ const UpcomingEvent = ({
             </div>
           </div>
 
-          <div className="event-details">
-            <div className="event-header">
-              <h3 className="event-title">{currentEvent.title}</h3>
+          <div className="upcomingEvent-details">
+            <div className="upcomingEvent-header">
+              <h3 className="upcomingEvent-event-title">
+                {currentEvent.title}
+              </h3>
               {currentEvent.subTitle && (
-                <p className="event-subtitle">{currentEvent.subTitle}</p>
+                <p className="upcomingEvent-event-subtitle">
+                  {currentEvent.subTitle}
+                </p>
               )}
 
               {/* Event Description */}
               {currentEvent.description && (
-                <div className="event-description-container">
-                  <p className="event-description">
+                <div className="upcomingEvent-description-container">
+                  <p className="upcomingEvent-event-description">
                     {currentEvent.description}
                   </p>
                 </div>
@@ -1120,7 +1142,7 @@ const UpcomingEvent = ({
             </div>
 
             {/* EventDetails Component with integrated action buttons */}
-            <div className="event-details-section">
+            <div className="upcomingEvent-details-section">
               <EventDetails
                 event={currentEvent}
                 scrollToTickets={(e) => {
@@ -1142,9 +1164,12 @@ const UpcomingEvent = ({
             )}
 
             {/* Content sections wrapper for responsive layout */}
-            <div className="content-sections">
+            <div className="upcomingEvent-content-sections">
               {/* Ticket Purchase Section */}
-              <div ref={ticketSectionRef} className="ticket-section full-width">
+              <div
+                ref={ticketSectionRef}
+                className="upcomingEvent-ticket-section full-width"
+              >
                 {currentEvent &&
                   (currentEvent.ticketsAvailable ||
                     ticketSettings.length > 0) && (
@@ -1204,7 +1229,10 @@ const UpcomingEvent = ({
               </div>
 
               {/* GuestCode component section */}
-              <div ref={guestCodeSectionRef} className="guest-code-section">
+              <div
+                ref={guestCodeSectionRef}
+                className="upcomingEvent-guest-code-section"
+              >
                 {currentEvent && <GuestCode event={currentEvent} />}
               </div>
             </div>
@@ -1212,7 +1240,7 @@ const UpcomingEvent = ({
 
           {/* Add See Full Event button */}
           <button
-            className="see-full-event-btn"
+            className="upcomingEvent-see-full-event-btn"
             onClick={(e) => {
               e.stopPropagation();
               handleViewEvent(currentEvent);

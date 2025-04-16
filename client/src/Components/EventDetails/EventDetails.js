@@ -80,57 +80,57 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
   const guestCodeCondition = guestCodeSetting?.condition;
 
   return (
-    <div className="event-details-container">
-      <div className="event-details-card">
-        <div className="event-details-content">
+    <div className="eventDetails-container">
+      <div className="eventDetails-card">
+        <div className="eventDetails-content">
           {/* Date and Time Section */}
-          <div className="details-section">
-            <div className="section-header">
+          <div className="eventDetails-section">
+            <div className="eventDetails-section-header">
               <RiCalendarEventLine />
               <h4>Date & Time</h4>
             </div>
 
-            <div className="section-content time-grid">
-              <div className="detail-item">
-                <div className="detail-label">
+            <div className="eventDetails-section-content eventDetails-time-grid">
+              <div className="eventDetails-detail-item">
+                <div className="eventDetails-detail-label">
                   <RiCalendarEventLine />
                   <span>Start Date</span>
                 </div>
-                <div className="detail-value">
+                <div className="eventDetails-detail-value">
                   {formatDate(getEventDate(event))}
                 </div>
               </div>
 
-              <div className="detail-item">
-                <div className="detail-label">
+              <div className="eventDetails-detail-item">
+                <div className="eventDetails-detail-label">
                   <RiTimeLine />
                   <span>Start Time</span>
                 </div>
-                <div className="detail-value">
+                <div className="eventDetails-detail-value">
                   {formatTime(event.startTime)}
                 </div>
               </div>
 
               {/* End Date (if different from start date) */}
               {(event.endDate || event.startDate) && (
-                <div className="detail-item">
-                  <div className="detail-label">
+                <div className="eventDetails-detail-item">
+                  <div className="eventDetails-detail-label">
                     <RiCalendarEventLine />
                     <span>End Date</span>
                   </div>
-                  <div className="detail-value">
+                  <div className="eventDetails-detail-value">
                     {formatDate(event.endDate || getEventDate(event))}
                   </div>
                 </div>
               )}
 
               {event.endTime && (
-                <div className="detail-item">
-                  <div className="detail-label">
+                <div className="eventDetails-detail-item">
+                  <div className="eventDetails-detail-label">
                     <RiTimeLine />
                     <span>End Time</span>
                   </div>
-                  <div className="detail-value">
+                  <div className="eventDetails-detail-value">
                     {formatTime(event.endTime)}
                   </div>
                 </div>
@@ -139,28 +139,30 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
           </div>
 
           {/* Location Section */}
-          <div className="details-section">
-            <div className="section-header">
+          <div className="eventDetails-section">
+            <div className="eventDetails-section-header">
               <RiMapPinLine />
               <h4>Location</h4>
             </div>
 
-            <div className="section-content">
-              <div className="detail-item">
-                <div className="detail-label">
+            <div className="eventDetails-section-content">
+              <div className="eventDetails-detail-item">
+                <div className="eventDetails-detail-label">
                   <RiMapPinLine />
                   <span>Venue</span>
                 </div>
-                <div className="detail-value">{event.location || "TBA"}</div>
+                <div className="eventDetails-detail-value">
+                  {event.location || "TBA"}
+                </div>
               </div>
 
               {(event.street || event.address) && (
-                <div className="detail-item">
-                  <div className="detail-label">
+                <div className="eventDetails-detail-item">
+                  <div className="eventDetails-detail-label">
                     <RiMapPin2Line />
                     <span>Address</span>
                   </div>
-                  <div className="detail-value">
+                  <div className="eventDetails-detail-value">
                     {event.street || event.address}
                     {event.postalCode && `, ${event.postalCode}`}
                     {!event.postalCode && event.zipCode && `, ${event.zipCode}`}
@@ -173,20 +175,22 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
 
           {/* Music/Genres Section */}
           {(event.genres?.length > 0 || event.music) && (
-            <div className="details-section">
-              <div className="section-header">
+            <div className="eventDetails-section">
+              <div className="eventDetails-section-header">
                 <RiMusic2Line />
                 <h4>Music</h4>
               </div>
 
-              <div className="section-content">
-                <div className="detail-item">
-                  <div className="detail-value music-value">
-                    <RiMusic2Line />
+              <div className="eventDetails-section-content">
+                <div className="eventDetails-detail-item">
+                  <div className="eventDetails-detail-value eventDetails-music-value">
                     {event.genres && event.genres.length > 0 ? (
-                      <div className="genre-tags">
+                      <div className="eventDetails-genre-tags">
                         {event.genres.map((genre, index) => (
-                          <span key={genre._id || index} className="genre-tag">
+                          <span
+                            key={genre._id || index}
+                            className="eventDetails-genre-tag"
+                          >
                             {typeof genre === "object" ? genre.name : genre}
                           </span>
                         ))}
@@ -201,22 +205,22 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
           )}
 
           {/* Tickets & Guest Code Section */}
-          <div className="details-section availability-section">
-            <div className="availability-items">
+          <div className="eventDetails-section eventDetails-availability-section">
+            <div className="eventDetails-availability-items">
               {(event.ticketsAvailable || event.ticketSettings?.length > 0) && (
                 <motion.div
-                  className="availability-item tickets-available"
+                  className="eventDetails-availability-item eventDetails-tickets-available"
                   whileHover={{ scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   onClick={scrollToTickets}
                 >
-                  <div className="availability-icon">
+                  <div className="eventDetails-availability-icon">
                     <RiTicketLine />
                   </div>
-                  <div className="availability-text">
+                  <div className="eventDetails-availability-text">
                     <h5>Tickets</h5>
                   </div>
-                  <div className="availability-action">
+                  <div className="eventDetails-availability-action">
                     <RiArrowRightSLine />
                   </div>
                 </motion.div>
@@ -224,19 +228,19 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
 
               {guestCodeSetting && (
                 <motion.div
-                  className="availability-item guest-code-available"
+                  className="eventDetails-availability-item eventDetails-guest-code-available"
                   whileHover={{ scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   onClick={scrollToGuestCode}
                 >
-                  <div className="availability-icon">
+                  <div className="eventDetails-availability-icon">
                     <RiVipCrownLine />
                   </div>
-                  <div className="availability-text">
+                  <div className="eventDetails-availability-text">
                     <h5>Guest Code</h5>
                     {guestCodeCondition && <p>{guestCodeCondition}</p>}
                   </div>
-                  <div className="availability-action">
+                  <div className="eventDetails-availability-action">
                     <RiArrowRightSLine />
                   </div>
                 </motion.div>

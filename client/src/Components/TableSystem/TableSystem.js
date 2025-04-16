@@ -15,7 +15,6 @@ function TableSystem({
   refreshCounts,
   selectedEvent,
   selectedBrand,
-  counts = { tableCounts: [] },
 }) {
   const toast = useToast();
   const [name, setName] = useState("");
@@ -27,7 +26,11 @@ function TableSystem({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [localCounts, setLocalCounts] = useState({ tableCounts: [] });
+  const [tableData, setTableData] = useState({
+    tableCounts: [],
+    totalCount: 0,
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   // Updated table categories
   const tableCategories = {
@@ -37,97 +40,65 @@ function TableSystem({
     premium: ["K1", "K2", "K3", "K4"],
   };
 
-  // Set up data interval for API calls
-  const [dataInterval, setDataInterval] = useState(() => {
-    // Initialize with properly formatted date range for today
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
-    return { startDate, endDate };
-  });
-
-  // Update data interval when selectedEvent changes
+  // Fetch table counts when selectedEvent changes or refresh is triggered
   useEffect(() => {
-    if (selectedEvent) {
-      const eventDate = selectedEvent.startDate
-        ? new Date(selectedEvent.startDate)
-        : selectedEvent.date
-        ? new Date(selectedEvent.date)
-        : new Date();
-
-      // Set start date to the beginning of the day
-      const startDate = new Date(eventDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      // Set end date to the end of the day
-      const endDate = new Date(eventDate);
-      endDate.setHours(23, 59, 59, 999);
-
-      console.log("Updating data interval:", { startDate, endDate });
-      setDataInterval({ startDate, endDate });
-
-      // Fetch table counts for this event
+    if (selectedEvent && selectedEvent._id) {
       fetchTableCounts(selectedEvent._id);
-
-      // Force a refresh trigger on initial load to ensure data is loaded
-      setRefreshTrigger((prev) => prev + 1);
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, refreshTrigger]);
 
-  // Set up event listener for table count updates from TableCodeManagement
+  // Set up event listener for table count updates triggered by children
   useEffect(() => {
     const handleTableCountUpdate = (event) => {
-      console.log("Table count update event received:", event.detail);
-      // Force update of counts when a table is modified
-      if (selectedEvent && selectedEvent._id) {
-        fetchTableCounts(selectedEvent._id);
-        refreshCounts(); // Also refresh the parent counts
-        // Force an immediate refresh trigger update
-        setRefreshTrigger((prev) => prev + 1);
+      console.log(
+        "Table count update event received in TableSystem:",
+        event.detail
+      );
+      // Force a refresh when a child component modifies data
+      setRefreshTrigger((prev) => prev + 1);
+      // Optionally notify parent if needed
+      if (refreshCounts) {
+        refreshCounts();
       }
     };
 
-    // Add event listener
     window.addEventListener("tableCountUpdated", handleTableCountUpdate);
-
-    // Cleanup
     return () => {
       window.removeEventListener("tableCountUpdated", handleTableCountUpdate);
     };
-  }, [selectedEvent, refreshCounts]);
+  }, [refreshCounts]);
 
-  // Fetch table counts for the event
+  // Fetch table counts for the event using the new endpoint
   const fetchTableCounts = async (eventId) => {
+    setIsLoading(true);
     try {
-      console.log(`Fetching table counts for event: ${eventId}`);
+      console.log(
+        `Fetching table counts for event: ${eventId} using /table/counts`
+      );
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/codes`,
+        `${process.env.REACT_APP_API_BASE_URL}/table/counts/${eventId}`,
         {
-          params: {
-            eventId: eventId,
-            startDate: dataInterval.startDate.toISOString(),
-            endDate: dataInterval.endDate.toISOString(),
-          },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
 
-      if (response.data && Array.isArray(response.data)) {
-        const tableCounts = response.data;
-        console.log(`Successfully fetched ${tableCounts.length} table counts`);
-        setLocalCounts({ tableCounts });
+      // Expecting response format { tableCounts: [], totalCount: 0 }
+      if (response.data && Array.isArray(response.data.tableCounts)) {
+        const { tableCounts, totalCount } = response.data;
+        console.log(
+          `Successfully fetched ${tableCounts.length} table counts (Total: ${totalCount})`
+        );
+        setTableData({ tableCounts, totalCount });
       } else {
         console.log(
-          "No table counts found in the response or unexpected format"
+          "No table counts found in the response or unexpected format from /table/counts"
         );
-        setLocalCounts({ tableCounts: [] });
+        setTableData({ tableCounts: [], totalCount: 0 });
       }
     } catch (error) {
-      console.error("Error fetching table counts:", error);
+      console.error("Error fetching table counts from /table/counts:", error);
       // Detailed error logging
       if (error.response) {
         console.error(
@@ -140,8 +111,10 @@ function TableSystem({
       } else {
         console.error("Error message:", error.message);
       }
-      // Fallback to empty counts
-      setLocalCounts({ tableCounts: [] });
+      toast.showError("Failed to load table reservations.");
+      setTableData({ tableCounts: [], totalCount: 0 });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,11 +124,8 @@ function TableSystem({
     0
   );
 
-  // Compute number of booked tables - use localCounts as primary, fallback to props counts
-  const allTableCounts =
-    localCounts?.tableCounts?.length > 0
-      ? localCounts.tableCounts
-      : counts?.tableCounts || [];
+  // Use the centralized tableData state
+  const allTableCounts = tableData.tableCounts || [];
 
   // Filter table counts to only include active tables (not declined or cancelled)
   const bookedTables = allTableCounts.filter(
@@ -170,17 +140,18 @@ function TableSystem({
   // Calculate remaining tables
   const remainingTables = totalTables - uniqueBookedTableNumbers.length;
 
-  const getTableType = (tableNumber) => {
-    if (tableCategories.backstage.includes(tableNumber)) return "Backstage";
-    if (tableCategories.vip.includes(tableNumber)) return "VIP";
-    if (tableCategories.premium.includes(tableNumber)) return "Premium";
-    return "";
+  const getTableType = (table) => {
+    if (!table) return "";
+    if (tableCategories.backstage.includes(table)) return "Backstage";
+    if (tableCategories.vip.includes(table)) return "VIP";
+    if (tableCategories.premium.includes(table)) return "Premium";
+    if (tableCategories.djarea.includes(table)) return "DJ Area";
+    return "General"; // Fallback category if needed
   };
 
   const handleTableSelection = (table, position) => {
-    const tableType = getTableType(table);
-    setSelectedTable(table); // Just store the table number
-    setTableNumber(table); // Keep this for the visual selection
+    setSelectedTable(table);
+    setTableNumber(table);
     setPopupPosition(position);
     setIsPopupOpen(true);
   };
@@ -245,15 +216,10 @@ function TableSystem({
       setIsSubmitting(false);
       setIsPopupOpen(false);
       setSelectedTable(null);
+      setTableNumber("");
 
-      // Refresh counts to get updated table counts
-      refreshCounts();
-      fetchTableCounts(selectedEvent._id);
-
-      // Force refresh to tableCodeManagement
       setRefreshTrigger((prev) => prev + 1);
 
-      // Scroll to TableCodeManagement after successful booking
       setTimeout(() => {
         const tableManagement = document.querySelector(
           ".table-code-management"
@@ -268,35 +234,22 @@ function TableSystem({
     } catch (error) {
       console.error("Table booking error:", error);
       loadingToast.dismiss();
-      toast.showError("Error submitting table reservation request.");
+      toast.showError(
+        error.response?.data?.message ||
+          "Error submitting table reservation request."
+      );
       setIsSubmitting(false);
     }
   };
 
-  const isTableBooked = (table) => {
-    return allTableCounts.some(
-      (code) =>
-        code.table === table &&
-        code.status !== "declined" &&
-        code.status !== "cancelled"
-    );
-  };
-
   const handleRefresh = () => {
+    console.log("Manual refresh triggered");
     setIsSpinning(true);
     setRefreshTrigger((prev) => prev + 1);
 
-    if (selectedEvent && selectedEvent._id) {
-      fetchTableCounts(selectedEvent._id);
-    }
-
-    // Refresh counts to get updated table counts from parent
-    refreshCounts();
-
-    // Reset spinning state after animation completes
     setTimeout(() => {
       setIsSpinning(false);
-    }, 1000); // Match this with your animation duration
+    }, 1000);
   };
 
   if (!selectedEvent) {
@@ -327,17 +280,17 @@ function TableSystem({
           <div className="table-system-count">
             <h4>Remaining Tables</h4>
             <div className="table-system-count-number">
-              <p>{remainingTables}</p>
+              <p>{isLoading ? "..." : remainingTables}</p>
             </div>
           </div>
 
-          {/* Table Reservation Form */}
           <div className="table-system-form">
             <TableBookingPopup
               isOpen={isPopupOpen}
               onClose={() => {
                 setIsPopupOpen(false);
                 setSelectedTable(null);
+                setTableNumber("");
               }}
               tableNumber={selectedTable}
               onSubmit={handleBookingSubmit}
@@ -346,7 +299,7 @@ function TableSystem({
               isSubmitting={isSubmitting}
             />
             <TableLayout
-              counts={{ tableCounts: allTableCounts }}
+              counts={tableData}
               tableNumber={tableNumber}
               setTableNumber={handleTableSelection}
               refreshTrigger={refreshTrigger}
@@ -358,21 +311,20 @@ function TableSystem({
               onClick={handleRefresh}
               title="Refresh Data"
               className={isSpinning ? "spinning" : ""}
-              disabled={isSpinning}
+              disabled={isSpinning || isLoading}
             >
               <img src="/image/reload-icon.svg" alt="Refresh" />
             </button>
           </div>
 
-          {/* Table Reservations List */}
           <TableCodeManagement
             user={user}
-            refreshCounts={refreshCounts}
-            dataInterval={dataInterval}
+            triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
             tableCategories={tableCategories}
             refreshTrigger={refreshTrigger}
             selectedEvent={selectedEvent}
-            counts={{ tableCounts: allTableCounts }}
+            counts={tableData}
+            isLoading={isLoading}
           />
         </div>
       </div>
