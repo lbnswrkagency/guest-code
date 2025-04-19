@@ -229,12 +229,15 @@ const generateCodeImage = async (req, res) => {
     // Generate PNG
     const pngBuffer = await generateTablePNG(tableCode, event);
 
+    // Sanitize filename for Content-Disposition header
+    const sanitizedName = encodeURIComponent(
+      tableCode.name.replace(/\s+/g, "_")
+    );
+
     // Set headers for PNG inline display
     res.set({
       "Content-Type": "image/png",
-      "Content-Disposition": `inline; filename=Table_${
-        tableCode.tableNumber
-      }_${tableCode.name.replace(/\s+/g, "_")}.png`,
+      "Content-Disposition": `inline; filename="${tableCode.tableNumber}_table.png"; filename*=UTF-8''${sanitizedName}`,
       "Content-Length": pngBuffer.length,
     });
 
@@ -276,12 +279,15 @@ const generateCodePNGDownload = async (req, res) => {
     // Generate PNG
     const pngBuffer = await generateTablePNG(tableCode, event);
 
+    // Sanitize filename for Content-Disposition header
+    const sanitizedName = encodeURIComponent(
+      tableCode.name.replace(/\s+/g, "_")
+    );
+
     // Set headers for PNG download
     res.set({
       "Content-Type": "image/png",
-      "Content-Disposition": `attachment; filename=Table_${
-        tableCode.tableNumber
-      }_${tableCode.name.replace(/\s+/g, "_")}.png`,
+      "Content-Disposition": `attachment; filename="Table_${tableCode.tableNumber}.png"; filename*=UTF-8''Table_${tableCode.tableNumber}_${sanitizedName}.png`,
       "Content-Length": pngBuffer.length,
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
@@ -324,19 +330,23 @@ const generateCodePDF = async (req, res) => {
     }
 
     // Generate PDF
-    const { buffer } = await generateTablePDF(tableCode, event);
+    const pdfResult = await generateTablePDF(tableCode, event);
+    const pdfBuffer = pdfResult.buffer;
+
+    // Sanitize filename for Content-Disposition header
+    const sanitizedName = encodeURIComponent(
+      tableCode.name.replace(/\s+/g, "_")
+    );
 
     // Set headers for PDF
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=Table_${
-        tableCode.tableNumber
-      }_${tableCode.name.replace(/\s+/g, "_")}.pdf`,
-      "Content-Length": buffer.length,
+      "Content-Disposition": `attachment; filename="Table_${tableCode.tableNumber}.pdf"; filename*=UTF-8''Table_${tableCode.tableNumber}_${sanitizedName}.pdf`,
+      "Content-Length": pdfBuffer.length,
     });
 
     // Send the PDF
-    res.send(buffer);
+    res.send(pdfBuffer);
   } catch (error) {
     console.error("Error generating table code PDF:", error);
     res.status(500).json({
@@ -388,7 +398,8 @@ const sendTableCodeEmail = async (req, res) => {
     const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
 
     // Generate PDF version of the code for email using the improved method
-    const { buffer: pdfBuffer } = await generateTablePDF(tableCode, event);
+    const pdfResult = await generateTablePDF(tableCode, event);
+    const pdfBuffer = pdfResult.buffer;
 
     // Set up the email sender using Brevo
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
@@ -504,23 +515,41 @@ const sendTableCodeEmail = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("[sendTableCodeEmail] Error sending email:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to send table code by email" });
+    console.error("Error sending table code email:", error);
+    res.status(500).json({
+      message: "Error sending table code email",
+      error: error.message,
+    });
   }
 };
 
 // Generate PNG image of a table code
 const generateTablePNG = async (tableCode, event) => {
   try {
+    // Validate input objects
+    if (!tableCode) {
+      throw new Error("Table code object is required");
+    }
+
+    if (!event) {
+      throw new Error("Event object is required");
+    }
+
     // Use the stored code or generate a display code
     const displayCode = tableCode.code || `TABLE-${tableCode.tableNumber}`;
 
-    // Generate QR code with the security token if it doesn't exist already
-    const qrCodeDataUrl =
-      tableCode.qrCodeData ||
-      (await generateQR(tableCode.securityToken || tableCode._id.toString()));
+    // Generate QR code with better error handling
+    let qrCodeDataUrl;
+    try {
+      qrCodeDataUrl =
+        tableCode.qrCodeData ||
+        (await generateQR(tableCode.securityToken || tableCode._id.toString()));
+    } catch (qrError) {
+      console.error("QR code generation failed:", qrError);
+      // Fallback to a simple text representation if QR fails
+      qrCodeDataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    }
 
     // Force purple theme colors, ignore any event colors
     const primaryColor = "#4A1D96"; // Enhanced vibrant purple
@@ -528,12 +557,12 @@ const generateTablePNG = async (tableCode, event) => {
     const darkColor = "#301568"; // Darker purple for depth
     const lightColor = "#f5f5f7"; // Very light gray for text areas
 
-    // Get event start and end times
+    // Get event start and end times with safe defaults
     const startTime = event?.startTime || "23:00";
     const endTime = event?.endTime || "06:00";
 
-    // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    // Prioritize startDate over date with null checks
+    const eventDate = event?.startDate || event?.date || new Date();
 
     // Get formatted dates and day of week
     const formattedDateDE = formatDateDE(eventDate);
@@ -838,40 +867,62 @@ const generateTablePNG = async (tableCode, event) => {
       </body>
     </html>`;
 
-    // Launch puppeteer to generate PNG
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-    const page = await browser.newPage();
+    // Launch puppeteer with more robust error handling
+    let browser = null;
+    try {
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process",
+          "--disable-gpu",
+        ],
+        timeout: 30000, // 30 second timeout
+      });
 
-    // Set content first
-    await page.setContent(htmlTemplate, {
-      waitUntil: "networkidle0",
-    });
+      const page = await browser.newPage();
 
-    await page.emulateMediaType("screen");
+      // Set content with longer timeout
+      await page.setContent(htmlTemplate, {
+        waitUntil: "networkidle0",
+        timeout: 30000,
+      });
 
-    // Set viewport to match the ticket dimensions (9:16 aspect ratio)
-    // IMPORTANT: Set viewport AFTER content is loaded
-    await page.setViewport({
-      width: 390,
-      height: 760,
-      deviceScaleFactor: 2.0, // Higher resolution for crisp image
-    });
+      await page.emulateMediaType("screen");
 
-    // Generate PNG with high resolution
-    const pngBuffer = await page.screenshot({
-      type: "png",
-      fullPage: true,
-      omitBackground: false,
-    });
+      // Set viewport to match the ticket dimensions (9:16 aspect ratio)
+      await page.setViewport({
+        width: 390,
+        height: 760,
+        deviceScaleFactor: 2.0, // Higher resolution for crisp image
+      });
 
-    await browser.close();
+      // Generate PNG with high resolution
+      const pngBuffer = await page.screenshot({
+        type: "png",
+        fullPage: true,
+        omitBackground: false,
+      });
 
-    return pngBuffer;
+      return pngBuffer;
+    } catch (puppeteerError) {
+      console.error("Puppeteer error in generateTablePNG:", puppeteerError);
+      throw new Error(`PNG generation failed: ${puppeteerError.message}`);
+    } finally {
+      if (browser) {
+        await browser.close().catch((err) => {
+          console.error("Error closing browser:", err);
+        });
+      }
+    }
   } catch (error) {
-    console.error("Error generating table code PNG:", error);
+    console.error("Error in generateTablePNG:", error);
+    console.error("Stack trace:", error.stack);
     throw error;
   }
 };
@@ -879,23 +930,40 @@ const generateTablePNG = async (tableCode, event) => {
 // Generate PDF for a table code (used for email and download)
 const generateTablePDF = async (tableCode, event) => {
   try {
+    // Validate input objects
+    if (!tableCode) {
+      throw new Error("Table code object is required");
+    }
+
+    if (!event) {
+      throw new Error("Event object is required");
+    }
+
     // Force purple theme colors, ignore any event colors - EXACT SAME values as PNG
     const primaryColor = "#4A1D96"; // Enhanced vibrant purple
     const accentColor = "#d4af37"; // Gold
     const darkColor = "#301568"; // Darker purple for depth
     const lightColor = "#f5f5f7"; // Light background
 
-    // Generate QR code
-    const qrData = tableCode.securityToken || tableCode._id.toString();
-    const qrCodeDataUrl = await generateQR(qrData);
+    // Generate QR code with better error handling
+    let qrCodeDataUrl;
+    try {
+      const qrData = tableCode.securityToken || tableCode._id.toString();
+      qrCodeDataUrl = await generateQR(qrData);
+    } catch (qrError) {
+      console.error("QR code generation failed:", qrError);
+      // Fallback to a simple text representation if QR fails
+      qrCodeDataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    }
 
-    // Format date - prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    // Format date - prioritize startDate over date with null checks
+    const eventDate = event?.startDate || event?.date || new Date();
     const formattedDate = formatCodeDate(eventDate);
     const formattedDateDE = formatDateDE(eventDate);
     const dayOfWeek = getDayOfWeek(eventDate);
 
-    // Get event start and end times
+    // Get event start and end times with safe defaults
     const startTime = event?.startTime || "23:00";
     const endTime = event?.endTime || "06:00";
 
@@ -1208,51 +1276,73 @@ const generateTablePDF = async (tableCode, event) => {
       </body>
     </html>`;
 
-    // Launch puppeteer to directly generate PDF (without PNG intermediary)
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    // Launch puppeteer with more robust error handling
+    let browser = null;
+    try {
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process",
+          "--disable-gpu",
+        ],
+        timeout: 30000, // 30 second timeout
+      });
 
-    const page = await browser.newPage();
+      const page = await browser.newPage();
 
-    // Set content first
-    await page.setContent(htmlTemplate, {
-      waitUntil: "networkidle0",
-    });
+      // Set content with longer timeout
+      await page.setContent(htmlTemplate, {
+        waitUntil: "networkidle0",
+        timeout: 30000,
+      });
 
-    await page.emulateMediaType("screen");
+      await page.emulateMediaType("screen");
 
-    // Set viewport to match the ticket dimensions (9:16 aspect ratio)
-    await page.setViewport({
-      width: 390,
-      height: 760,
-      deviceScaleFactor: 2.0, // Higher resolution for crisp image
-    });
+      // Set viewport to match the ticket dimensions (9:16 aspect ratio)
+      await page.setViewport({
+        width: 390,
+        height: 760,
+        deviceScaleFactor: 2.0, // Higher resolution for crisp image
+      });
 
-    // Generate high-quality PDF
-    const pdfBuffer = await page.pdf({
-      width: "390px",
-      height: "760px",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: "0px",
-        right: "0px",
-        bottom: "0px",
-        left: "0px",
-      },
-      scale: 1.0, // Ensure 1:1 scaling
-    });
+      // Generate high-quality PDF
+      const pdfBuffer = await page.pdf({
+        width: "390px",
+        height: "760px",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: {
+          top: "0px",
+          right: "0px",
+          bottom: "0px",
+          left: "0px",
+        },
+        scale: 1.0, // Ensure 1:1 scaling
+      });
 
-    await browser.close();
-
-    return {
-      buffer: pdfBuffer,
-      html: htmlTemplate,
-    };
+      return {
+        buffer: pdfBuffer,
+        html: htmlTemplate,
+      };
+    } catch (puppeteerError) {
+      console.error("Puppeteer error in generateTablePDF:", puppeteerError);
+      throw new Error(`PDF generation failed: ${puppeteerError.message}`);
+    } finally {
+      if (browser) {
+        await browser.close().catch((err) => {
+          console.error("Error closing browser:", err);
+        });
+      }
+    }
   } catch (error) {
-    console.error("Error generating table code PDF:", error);
+    console.error("Error in generateTablePDF:", error);
+    console.error("Stack trace:", error.stack);
     throw error;
   }
 };

@@ -636,12 +636,14 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     return null;
   };
 
+  // Revised useEffect to show back content immediately when flipped
   useEffect(() => {
     if (isFlipped) {
-      const timer = setTimeout(() => setShowBackContent(true), 150);
-      return () => clearTimeout(timer);
+      setShowBackContent(true);
     } else {
-      setShowBackContent(false);
+      // Only hide back content after the flip animation is complete
+      const timer = setTimeout(() => setShowBackContent(false), 300);
+      return () => clearTimeout(timer);
     }
   }, [isFlipped]);
 
@@ -736,12 +738,22 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         return "Invalid date";
       }
 
-      // Use dd.MM.yy format to include 2-digit year
+      // Add day of week and use dd.MM.yy format
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const dayOfWeek = days[d.getDay()];
       const day = d.getDate().toString().padStart(2, "0");
       const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
       const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
 
-      return `${day}.${month}.${year}`;
+      return `${dayOfWeek}, ${day}.${month}.${year}`;
     } catch (error) {
       return "Invalid date";
     }
@@ -755,12 +767,22 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         return "Invalid date";
       }
 
-      // Format as DD.MM.YY to include 2-digit year
+      // Add day of week and format as DD.MM.YY to include 2-digit year
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const dayOfWeek = days[d.getDay()];
       const day = d.getDate().toString().padStart(2, "0");
       const month = (d.getMonth() + 1).toString().padStart(2, "0"); // getMonth() is 0-based
       const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
 
-      return `${day}.${month}.${year}`;
+      return `${dayOfWeek}, ${day}.${month}.${year}`;
     } catch (error) {
       return "Invalid date";
     }
@@ -846,23 +868,16 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         className="card-front"
         style={{
           backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
           transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          zIndex: isFlipped ? 0 : 1,
           position: "absolute",
           inset: 0,
           transformOrigin: "center",
           transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          zIndex: isFlipped ? 0 : 1,
         }}
       >
-        {/* Move Title/Subtitle to the header area */}
-        <div className="event-card-title-area">
-          <h3>{currentEvent.title}</h3>
-          {currentEvent.subTitle && (
-            <span className="subtitle">{currentEvent.subTitle}</span>
-          )}
-        </div>
-
-        {/* Weekly Navigation remains here */}
+        {/* Weekly Navigation */}
         {event.isWeekly && (
           <div className="weekly-navigation">
             <button
@@ -886,6 +901,36 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           </div>
         )}
 
+        {/* Title/Subtitle area */}
+        <div className="event-card-title-area">
+          <h3>{currentEvent.title}</h3>
+          {currentEvent.subTitle && (
+            <span className="subtitle">{currentEvent.subTitle}</span>
+          )}
+
+          {/* Move card actions here */}
+          {hasPermission && (
+            <div className="card-actions">
+              <motion.button
+                className="action-button edit"
+                onClick={handleEditClick}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiEditLine />
+              </motion.button>
+              <motion.button
+                className="action-button settings"
+                onClick={handleSettingsClick}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiSettings4Line />
+              </motion.button>
+            </div>
+          )}
+        </div>
+
         {/* Header with image and actions */}
         <div className="event-card-header">
           <div className="event-cover-image glassy-element">
@@ -897,28 +942,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
                 alt={`${currentEvent.title} cover`}
                 className="cover-image"
               />
-            )}
-          </div>
-          <div className="card-actions">
-            {hasPermission && (
-              <>
-                <motion.button
-                  className="action-button edit"
-                  onClick={handleEditClick}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiEditLine />
-                </motion.button>
-                <motion.button
-                  className="action-button settings"
-                  onClick={handleSettingsClick}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiSettings4Line />
-                </motion.button>
-              </>
             )}
           </div>
         </div>
@@ -983,6 +1006,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
         className="card-back"
         style={{
           backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
           transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
           zIndex: isFlipped ? 1 : 0,
           position: "absolute",

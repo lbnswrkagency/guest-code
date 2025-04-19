@@ -552,6 +552,11 @@ const UpcomingEvent = ({
 
       // Filter for active and upcoming events (not past)
       const relevantEvents = processedEvents.filter((event) => {
+        // First, check if event is live - only show events that are set to live
+        if (!event.isLive) {
+          return false;
+        }
+
         // For weekly events, handle them differently
         if (event.isWeekly) {
           if (event.weekNumber === 0 || !event.weekNumber) {

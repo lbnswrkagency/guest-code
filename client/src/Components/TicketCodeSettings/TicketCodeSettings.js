@@ -25,6 +25,7 @@ import {
   RiAlarmLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
+  RiDragMove2Line,
 } from "react-icons/ri";
 import "./TicketCodeSettings.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -33,6 +34,26 @@ import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import CreateTicketDialog from "../CreateTicketDialog/CreateTicketDialog";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
+// Fix StrictMode issue with react-beautiful-dnd
+const StrictModeDroppable = ({ children, ...props }) => {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const animation = requestAnimationFrame(() => setEnabled(true));
+    return () => {
+      cancelAnimationFrame(animation);
+      setEnabled(false);
+    };
+  }, []);
+
+  if (!enabled) {
+    return null;
+  }
+
+  return <Droppable {...props}>{children}</Droppable>;
+};
 
 const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const toast = useToast();
@@ -52,7 +73,16 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       const response = await axiosInstance.get(
         `/ticket-settings/events/${event._id}`
       );
-      setTickets(response.data.ticketSettings || []);
+      let fetchedTickets = response.data.ticketSettings || [];
+
+      // Sort tickets by sortOrder if available, otherwise use the order from the API
+      fetchedTickets = fetchedTickets.sort((a, b) =>
+        a.sortOrder !== undefined && b.sortOrder !== undefined
+          ? a.sortOrder - b.sortOrder
+          : 0
+      );
+
+      setTickets(fetchedTickets);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.showError("Failed to load tickets");
@@ -115,6 +145,16 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       // Remove endTime as it's not in the backend model
       const { endTime, ...dataToSend } = ticketData;
 
+      // Set sortOrder for new tickets
+      if (!ticketToEdit) {
+        // Find the highest sortOrder and add 1
+        const maxSortOrder = Math.max(
+          0,
+          ...tickets.map((t) => t.sortOrder || 0)
+        );
+        dataToSend.sortOrder = maxSortOrder + 1;
+      }
+
       if (ticketToEdit) {
         // Update existing ticket
         response = await axiosInstance.put(
@@ -146,6 +186,46 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     }
   };
 
+  // Handle drag end for reordering tickets
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(tickets);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update the sortOrder of all items
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      sortOrder: index,
+    }));
+
+    // Update state optimistically
+    setTickets(updatedItems);
+
+    // Save the new order to the backend
+    try {
+      const response = await axiosInstance.put(
+        `/ticket-settings/events/${event._id}/reorder`,
+        {
+          tickets: updatedItems.map((item) => ({
+            _id: item._id,
+            sortOrder: item.sortOrder,
+          })),
+        }
+      );
+
+      if (!response.data.success) {
+        toast.showError("Failed to save ticket order");
+        fetchTickets(); // Refresh if failed
+      }
+    } catch (error) {
+      console.error("Error saving ticket order:", error);
+      toast.showError("Failed to save ticket order");
+      fetchTickets(); // Refresh from server on error
+    }
+  };
+
   const toggleTicketDetails = (ticketId) => {
     setExpandedTickets((prev) => ({
       ...prev,
@@ -155,139 +235,213 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
 
   const renderTicketList = () => {
     return (
-      <div className="ticket-list">
-        <div className="tickets-container">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket._id}
-              className="ticket-item"
-              style={{
-                borderLeft: `4px solid ${ticket.color || "#2196F3"}`,
-                boxShadow: `0 4px 15px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 4px ${
-                  ticket.color || "#2196F3"
-                }10`,
-              }}
-            >
-              <div className="ticket-header">
-                <div className="ticket-title">
-                  <h4>{ticket.name}</h4>
-                  <div className="ticket-price">
-                    <span
-                      className="current-price"
-                      style={{ color: ticket.color || "#2196F3" }}
-                    >
-                      {typeof ticket.price === "number"
-                        ? ticket.price.toFixed(2)
-                        : parseFloat(ticket.price).toFixed(2)}
-                      €
-                    </span>
-                    {ticket.originalPrice && (
-                      <span className="original-price">
-                        {typeof ticket.originalPrice === "number"
-                          ? ticket.originalPrice.toFixed(2)
-                          : parseFloat(ticket.originalPrice).toFixed(2)}
-                        €
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="ticket-actions">
-                  <button
-                    onClick={() => handleEditTicket(ticket)}
-                    title="Edit Ticket"
-                  >
-                    <RiEditLine />
-                  </button>
-                  <button
-                    className="delete-button"
-                    onClick={() => handleDeleteTicket(ticket)}
-                    title="Delete Ticket"
-                  >
-                    <RiDeleteBinLine />
-                  </button>
-                </div>
-              </div>
-
-              <AnimatePresence>
-                {expandedTickets[ticket._id] && (
-                  <motion.div
-                    className="ticket-details"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {ticket.description && (
-                      <div className="detail-item">
-                        <RiInformationLine />
-                        <div className="detail-content">
-                          <div className="label">Description</div>
-                          <div
-                            className="value"
-                            style={{ whiteSpace: "pre-wrap" }}
-                          >
-                            {ticket.description}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {ticket.hasCountdown && ticket.endDate && (
-                      <div className="detail-item">
-                        <RiTimeLine />
-                        <div className="detail-content">
-                          <div className="label">Ends</div>
-                          <div className="value">
-                            {new Date(ticket.endDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {ticket.isLimited && (
-                      <div className="detail-item">
-                        <RiGroupLine />
-                        <div className="detail-content">
-                          <div className="label">Availability</div>
-                          <div className="value">
-                            {ticket.soldCount}/{ticket.maxTickets} sold
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="detail-item">
-                      <RiUserLine />
-                      <div className="detail-content">
-                        <div className="label">Purchase Limits</div>
-                        <div className="value">
-                          {ticket.minPurchase} - {ticket.maxPurchase} per order
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* <motion.button
-                className="toggle-details-button"
-                onClick={() => toggleTicketDetails(ticket._id)}
-                whileHover={{ y: expandedTickets[ticket._id] ? -2 : 2 }}
-                whileTap={{ scale: 0.95 }}
+      <div className="ticketCodeSettings-list">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <StrictModeDroppable droppableId="tickets">
+            {(provided) => (
+              <div
+                className="ticketCodeSettings-container"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
               >
-                {expandedTickets[ticket._id] ? (
-                  <RiArrowUpLine />
-                ) : (
-                  <RiArrowDownLine />
-                )}
-              </motion.button> */}
-            </div>
-          ))}
-        </div>
-        <div className="add-ticket-container">
+                {tickets.map((ticket, index) => (
+                  <Draggable
+                    key={ticket._id.toString()}
+                    draggableId={ticket._id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`ticketCodeSettings-item ${
+                          snapshot.isDragging ? "is-dragging" : ""
+                        }`}
+                        style={{
+                          ...provided.draggableProps.style,
+                          "--ticket-color": ticket.color || "#2196F3",
+                        }}
+                      >
+                        <div className="ticketCodeSettings-header">
+                          <div
+                            className="ticketCodeSettings-drag-handle"
+                            {...provided.dragHandleProps}
+                            title="Drag to reorder"
+                          >
+                            <RiDragMove2Line />
+                          </div>
+
+                          <div
+                            className="ticketCodeSettings-icon"
+                            style={{
+                              backgroundColor: `${ticket.color}15`,
+                            }}
+                            onClick={() => toggleTicketDetails(ticket._id)}
+                          >
+                            <RiTicketLine />
+                          </div>
+
+                          <div
+                            className="ticketCodeSettings-content"
+                            onClick={() => toggleTicketDetails(ticket._id)}
+                          >
+                            <div className="ticketCodeSettings-title-container">
+                              <div className="ticketCodeSettings-title">
+                                <h4>{ticket.name}</h4>
+                                {ticket.paxPerTicket > 1 && (
+                                  <div className="ticketCodeSettings-group-badge">
+                                    <RiGroupLine /> {ticket.paxPerTicket} people
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="ticketCodeSettings-price">
+                              <span
+                                className="ticketCodeSettings-current-price"
+                                style={{ color: ticket.color || "#2196F3" }}
+                              >
+                                {typeof ticket.price === "number"
+                                  ? ticket.price.toFixed(2)
+                                  : parseFloat(ticket.price).toFixed(2)}
+                                €
+                              </span>
+                              {ticket.originalPrice && (
+                                <span className="ticketCodeSettings-original-price">
+                                  {typeof ticket.originalPrice === "number"
+                                    ? ticket.originalPrice.toFixed(2)
+                                    : parseFloat(ticket.originalPrice).toFixed(
+                                        2
+                                      )}
+                                  €
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="ticketCodeSettings-actions">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTicket(ticket);
+                              }}
+                              title="Edit Ticket"
+                            >
+                              <RiEditLine />
+                            </button>
+                            <button
+                              className="ticketCodeSettings-delete-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTicket(ticket);
+                              }}
+                              title="Delete Ticket"
+                            >
+                              <RiDeleteBinLine />
+                            </button>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {expandedTickets[ticket._id] && (
+                            <motion.div
+                              className="ticketCodeSettings-details"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {ticket.description && (
+                                <div className="ticketCodeSettings-detail-item">
+                                  <RiInformationLine />
+                                  <div className="ticketCodeSettings-detail-content">
+                                    <div className="ticketCodeSettings-label">
+                                      Description
+                                    </div>
+                                    <div
+                                      className="ticketCodeSettings-value"
+                                      style={{ whiteSpace: "pre-wrap" }}
+                                    >
+                                      {ticket.description}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {ticket.hasCountdown && ticket.endDate && (
+                                <div className="ticketCodeSettings-detail-item">
+                                  <RiTimeLine />
+                                  <div className="ticketCodeSettings-detail-content">
+                                    <div className="ticketCodeSettings-label">
+                                      Ends
+                                    </div>
+                                    <div className="ticketCodeSettings-value">
+                                      {new Date(
+                                        ticket.endDate
+                                      ).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {ticket.isLimited && (
+                                <div className="ticketCodeSettings-detail-item">
+                                  <RiGroupLine />
+                                  <div className="ticketCodeSettings-detail-content">
+                                    <div className="ticketCodeSettings-label">
+                                      Availability
+                                    </div>
+                                    <div className="ticketCodeSettings-value">
+                                      {ticket.soldCount}/{ticket.maxTickets}{" "}
+                                      sold
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="ticketCodeSettings-detail-item">
+                                <RiUserLine />
+                                <div className="ticketCodeSettings-detail-content">
+                                  <div className="ticketCodeSettings-label">
+                                    Purchase Limits
+                                  </div>
+                                  <div className="ticketCodeSettings-value">
+                                    {ticket.minPurchase} - {ticket.maxPurchase}{" "}
+                                    per order
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ticketCodeSettings-detail-item">
+                                <RiGroupLine />
+                                <div className="ticketCodeSettings-detail-content">
+                                  <div className="ticketCodeSettings-label">
+                                    Group Ticket
+                                  </div>
+                                  <div className="ticketCodeSettings-value">
+                                    {ticket.paxPerTicket || 1}{" "}
+                                    {ticket.paxPerTicket > 1
+                                      ? "people"
+                                      : "person"}{" "}
+                                    per ticket
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </StrictModeDroppable>
+        </DragDropContext>
+
+        <div className="ticketCodeSettings-btn-container">
           <button
-            className="add-ticket-button"
+            className="ticketCodeSettings-add-btn"
             onClick={handleAddTicket}
-            title="Add Ticket"
           >
-            <RiAddLine />
+            <RiAddLine /> Add Ticket
           </button>
         </div>
       </div>

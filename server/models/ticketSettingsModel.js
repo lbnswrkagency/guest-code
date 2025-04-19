@@ -89,6 +89,12 @@ const TicketSettingsSchema = new Schema(
       default: 0,
       min: 0,
     },
+    paxPerTicket: {
+      type: Number,
+      default: 1,
+      min: 1,
+      description: "Number of people allowed per ticket (for group tickets)",
+    },
   },
   {
     timestamps: true,

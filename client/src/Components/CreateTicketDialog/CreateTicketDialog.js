@@ -7,6 +7,7 @@ import {
   RiErrorWarningLine,
   RiPaletteLine,
   RiTimeLine,
+  RiGroupLine,
 } from "react-icons/ri";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import "./CreateTicketDialog.scss";
@@ -27,6 +28,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
       maxTickets: 100,
       minPurchase: 1,
       maxPurchase: 10,
+      paxPerTicket: 1, // Add default value for paxPerTicket
       ...initialData,
     };
 
@@ -104,6 +106,14 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
         "Minimum purchase cannot be greater than maximum purchase";
     }
 
+    // Validate paxPerTicket
+    if (
+      !Number.isInteger(+ticketData.paxPerTicket) ||
+      +ticketData.paxPerTicket < 1
+    ) {
+      newErrors.paxPerTicket = "People per ticket must be at least 1";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -123,6 +133,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
           : null,
         minPurchase: parseInt(ticketData.minPurchase, 10),
         maxPurchase: parseInt(ticketData.maxPurchase, 10),
+        paxPerTicket: parseInt(ticketData.paxPerTicket, 10), // Add paxPerTicket conversion
       };
 
       onSave(processedData);
@@ -360,6 +371,28 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
                 <span className="error-message">{errors.maxPurchase}</span>
               )}
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>People per Ticket (Group Ticket)</label>
+            <div className="input-with-icon">
+              <RiGroupLine />
+              <input
+                type="number"
+                value={ticketData.paxPerTicket}
+                onChange={(e) => handleChange("paxPerTicket", e.target.value)}
+                min="1"
+                className={errors.paxPerTicket ? "error" : ""}
+                placeholder="1"
+              />
+            </div>
+            <small className="help-text">
+              Set how many people can enter with a single ticket. Use values
+              greater than 1 for group tickets.
+            </small>
+            {errors.paxPerTicket && (
+              <span className="error-message">{errors.paxPerTicket}</span>
+            )}
           </div>
 
           <div className="dialog-actions">

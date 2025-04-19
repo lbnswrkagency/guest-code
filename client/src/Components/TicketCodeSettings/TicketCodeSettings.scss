@@ -98,236 +98,268 @@
   color: #fff;
 }
 
-// Ticket List Styles
-.ticket-list {
-  padding: 0.5rem 0;
+/* Improved ticket list container */
+.ticketCodeSettings-list {
+  padding: 15px;
+  margin-top: 15px;
+}
 
-  .no-tickets-message {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    margin: 1rem 0;
+.ticketCodeSettings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
 
-    .icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      color: rgba(255, 255, 255, 0.3);
-    }
+/* Enhanced ticket item styling */
+.ticketCodeSettings-item {
+  position: relative;
+  background-color: rgba(25, 25, 25, 0.65);
+  border-radius: 12px;
+  border-left: 4px solid var(--ticket-color, #2196f3);
+  margin-bottom: 5px;
+  min-height: 80px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  overflow: hidden;
 
-    p {
-      margin-bottom: 1.5rem;
-      color: rgba(255, 255, 255, 0.6);
-    }
+  &:hover {
+    background-color: rgba(30, 30, 30, 0.8);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
   }
 
-  .tickets-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+  &.is-dragging {
+    background-color: rgba(35, 35, 35, 0.9);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    transform: scale(1.03);
+    z-index: 10;
+    border-left-width: 6px;
+  }
+}
 
-    h4 {
-      font-size: 1rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.9);
-    }
+/* Improved header layout */
+.ticketCodeSettings-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 12px;
+  cursor: pointer;
+  position: relative;
+  min-height: 60px;
+}
+
+/* Enhanced drag handle */
+.ticketCodeSettings-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+  padding: 6px;
+  margin-right: 6px;
+  cursor: grab;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.05);
+  width: 28px;
+  height: 28px;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
-  .add-ticket-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+  &:active {
+    cursor: grabbing;
+    background-color: rgba(255, 255, 255, 0.15);
   }
+}
 
-  .add-ticket-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 1.5rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+/* Improved icon styling */
+.ticketCodeSettings-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 14px;
+  font-size: 20px;
+  color: var(--ticket-color, #2196f3);
+  flex-shrink: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease;
 
-    &:hover {
-      background-color: var(--primary-color-dark);
-      transform: scale(1.05);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    svg {
-      font-size: 1.2rem;
-    }
+  &:hover {
+    transform: scale(1.05);
   }
+}
 
-  .tickets-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 20px;
-  }
+/* Better content layout */
+.ticketCodeSettings-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  min-height: 45px;
+}
 
-  .ticket-item {
-    background: rgba(30, 30, 30, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
+/* New container for title section to improve layout */
+.ticketCodeSettings-title-container {
+  flex: 1;
+  min-width: 0; // Important for text overflow handling
+  margin-right: 15px;
+  overflow: hidden;
+}
+
+/* Improved title display */
+.ticketCodeSettings-title {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
     overflow: hidden;
-    position: relative;
-    transition: all 0.3s ease;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+    color: #ffffff;
+  }
+}
 
-    margin-bottom: 15px;
+/* Better spacing for price section */
+.ticketCodeSettings-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  margin-right: 16px;
+  min-width: 70px;
+}
+
+.ticketCodeSettings-current-price {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ticketCodeSettings-original-price {
+  font-size: 14px;
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+/* Improved people badge */
+.ticketCodeSettings-group-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ticket-color, #2196f3);
+  white-space: nowrap;
+  max-width: fit-content;
+
+  svg {
+    margin-right: 5px;
+    font-size: 14px;
+  }
+}
+
+/* Enhanced action buttons */
+.ticketCodeSettings-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+
+  button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 19px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
 
     &:hover {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.1);
       transform: translateY(-2px);
     }
 
-    .ticket-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
-      .ticket-title {
-        h4 {
-          font-size: 1.1rem;
-          margin: 0;
-          color: #fff;
-        }
-
-        .ticket-price {
-          display: flex;
-          align-items: baseline;
-          gap: 0.5rem;
-          margin-top: 0.25rem;
-
-          .current-price {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #2196f3;
-            order: 1;
-          }
-
-          .original-price {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.5);
-            text-decoration: line-through;
-            order: 2;
-          }
-        }
-      }
-
-      .ticket-actions {
-        display: flex;
-        gap: 0.5rem;
-
-        button {
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.7);
-          padding: 0.5rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          &:hover {
-            color: #fff;
-            transform: translateY(-2px);
-          }
-
-          &.delete-button {
-            color: rgba(255, 59, 48, 0.7);
-            &:hover {
-              color: #ff3b30;
-            }
-          }
-
-          svg {
-            font-size: 1.25rem;
-          }
-        }
-      }
+    &.ticketCodeSettings-delete-button:hover {
+      color: #ff5252;
     }
+  }
+}
 
-    .ticket-details {
-      padding: 1rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      overflow: hidden;
+.ticketCodeSettings-details {
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-      .detail-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+.ticketCodeSettings-detail-item {
+  display: flex;
+  padding: 6px 0;
 
-        svg {
-          font-size: 1.25rem;
-          color: rgba(255, 255, 255, 0.5);
-        }
+  svg {
+    margin-right: 10px;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
 
-        .detail-content {
-          .label {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 0.25rem;
-          }
+.ticketCodeSettings-detail-content {
+  flex: 1;
+}
 
-          .value {
-            font-size: 0.95rem;
-            color: #fff;
-            font-weight: 500;
-          }
-        }
-      }
-    }
+.ticketCodeSettings-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
 
-    .toggle-details-button {
-      position: absolute;
-      bottom: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 2;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+.ticketCodeSettings-value {
+  font-size: 13px;
+}
 
-      &:hover {
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      }
+.ticketCodeSettings-btn-container {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+}
 
-      svg {
-        font-size: 1rem;
-      }
-    }
+.ticketCodeSettings-add-btn {
+  background-color: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: white;
+  }
+
+  svg {
+    font-size: 16px;
   }
 }
 
@@ -682,5 +714,44 @@
         height: 36px;
       }
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .ticketCodeSettings-header {
+    padding: 12px 10px;
+  }
+
+  .ticketCodeSettings-drag-handle {
+    font-size: 16px;
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .ticketCodeSettings-icon {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+  }
+
+  .ticketCodeSettings-title h4 {
+    font-size: 14px;
+  }
+
+  .ticketCodeSettings-price {
+    min-width: 60px;
+    margin-right: 10px;
+  }
+
+  .ticketCodeSettings-current-price {
+    font-size: 16px;
+  }
+
+  .ticketCodeSettings-actions button {
+    font-size: 16px;
+    padding: 6px;
+    width: 28px;
+    height: 28px;
   }
 }

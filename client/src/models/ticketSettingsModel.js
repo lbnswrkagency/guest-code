@@ -26,6 +26,8 @@ class TicketSettingsModel {
     this.minPurchase = data.minPurchase || 1;
     this.maxPurchase = data.maxPurchase || 10;
     this.soldCount = data.soldCount || 0;
+    this.sortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
+    this.paxPerTicket = data.paxPerTicket || 1;
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
     this.updatedAt = data.updatedAt ? new Date(data.updatedAt) : new Date();
   }
@@ -122,6 +124,8 @@ class TicketSettingsModel {
       minPurchase: this.minPurchase,
       maxPurchase: this.maxPurchase,
       soldCount: this.soldCount,
+      sortOrder: this.sortOrder,
+      paxPerTicket: this.paxPerTicket,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

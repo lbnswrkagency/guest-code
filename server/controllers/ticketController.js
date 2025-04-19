@@ -19,33 +19,60 @@ const createTicket = async (ticketData) => {
 };
 
 // Create multiple tickets for an order
-const createTicketsForOrder = async (order, userId) => {
+const createTicketsForOrder = async (order) => {
   try {
     const tickets = [];
 
-    // Create a ticket for each item in the order
+    // Generate tickets for each ticket type in the order
     for (const item of order.tickets) {
+      // Get ticket settings if available
+      let paxValue = item.pax || 1; // Default to item.pax or 1
+
+      if (item.ticketSettingId) {
+        try {
+          const ticketSetting = await mongoose
+            .model("TicketSettings")
+            .findById(item.ticketSettingId);
+          if (ticketSetting && ticketSetting.paxPerTicket) {
+            paxValue = ticketSetting.paxPerTicket;
+          }
+        } catch (err) {
+          console.error(
+            `Error fetching ticket settings for ${item.ticketSettingId}:`,
+            err
+          );
+          // Continue with default pax value
+        }
+      }
+
+      // Create the specified quantity of tickets
       for (let i = 0; i < item.quantity; i++) {
+        // Generate a unique code for the ticket
+        const ticketCode = generateRandomString(8);
+
+        // Create the ticket data
         const ticketData = {
-          eventId: order.eventId,
-          userId:
-            userId || new mongoose.Types.ObjectId("000000000000000000000000"), // Use a default guest user ID if userId is not provided
           orderId: order._id,
-          ticketType: item.type || "standard",
-          ticketName: item.name,
+          eventId: order.eventId,
+          userId: order.userId,
+          ticketSettingId: item.ticketSettingId,
+          code: ticketCode,
+          name: item.name,
           price: item.pricePerUnit,
-          pax: item.pax || 1, // Set pax from the item or default to 1
-          // Additional fields can be added here if needed
+          status: "active",
+          pax: paxValue, // Use the determined pax value
+          redeemedAt: null,
         };
 
-        const ticket = await createTicket(ticketData);
+        // Create the ticket
+        const ticket = await Ticket.create(ticketData);
         tickets.push(ticket);
       }
     }
 
     return tickets;
   } catch (error) {
-    console.error("Error creating tickets for order:", error);
+    console.error("Error creating tickets:", error);
     throw error;
   }
 };
