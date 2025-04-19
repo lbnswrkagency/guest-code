@@ -53,10 +53,10 @@ const getTicketSettings = async (req, res) => {
       }
     }
 
-    // Get all ticket settings for this event
+    // Get all ticket settings for this event, sorted by sortOrder
     const ticketSettings = await TicketSettings.find({
       eventId: parentEventId,
-    });
+    }).sort({ sortOrder: 1 });
 
     return res.status(200).json({ ticketSettings });
   } catch (error) {
@@ -259,11 +259,14 @@ const reorderTickets = async (req, res) => {
       return res.status(400).json({ message: "No ticket order provided" });
     }
 
+    // Get the parent event ID if this is a child event
+    const parentEventId = await getParentEventId(eventId);
+
     // Verify all tickets belong to this event
     const ticketIds = tickets.map((t) => t._id);
     const existingTickets = await TicketSettings.find({
       _id: { $in: ticketIds },
-      eventId,
+      eventId: parentEventId,
     });
 
     if (existingTickets.length !== tickets.length) {
@@ -283,7 +286,9 @@ const reorderTickets = async (req, res) => {
     await TicketSettings.bulkWrite(updateOperations);
 
     // Return the updated list of tickets
-    const updatedTickets = await TicketSettings.find({ eventId }).sort({
+    const updatedTickets = await TicketSettings.find({
+      eventId: parentEventId,
+    }).sort({
       sortOrder: 1,
     });
 
@@ -294,7 +299,10 @@ const reorderTickets = async (req, res) => {
     });
   } catch (error) {
     console.error("Error reordering tickets:", error);
-    res.status(500).json({ message: "Error reordering tickets" });
+    res.status(500).json({
+      success: false,
+      message: "Error reordering tickets",
+    });
   }
 };
 

@@ -23,13 +23,15 @@ router.post(
   ticketSettingsController.createTicketSetting
 );
 
-// Add the reorder endpoint to update ticket order
-// This route MUST come before the /:ticketId routes to avoid conflicts
-router.put(
-  "/events/:eventId/reorder",
-  authMiddleware,
-  ticketSettingsController.reorderTickets
-);
+// Combine update routes - use query param ?action=reorder for reordering
+router.put("/events/:eventId", authMiddleware, (req, res, next) => {
+  // If action is reorder, use reorderTickets controller
+  if (req.query.action === "reorder") {
+    return ticketSettingsController.reorderTickets(req, res, next);
+  }
+  // Otherwise pass to next handler
+  next();
+});
 
 // Update a ticket setting
 router.put(

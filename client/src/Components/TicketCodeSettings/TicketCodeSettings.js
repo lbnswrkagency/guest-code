@@ -36,11 +36,13 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-// Fix StrictMode issue with react-beautiful-dnd
-const StrictModeDroppable = ({ children, ...props }) => {
+// A better implementation of StrictModeDroppable that avoids React warnings
+const StrictModeDroppable = ({ children, droppableId }) => {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    // Use requestAnimationFrame to delay enabling the droppable
+    // This works around the issue with React.StrictMode
     const animation = requestAnimationFrame(() => setEnabled(true));
     return () => {
       cancelAnimationFrame(animation);
@@ -48,11 +50,17 @@ const StrictModeDroppable = ({ children, ...props }) => {
     };
   }, []);
 
+  // Don't render anything until after the first animation frame
   if (!enabled) {
     return null;
   }
 
-  return <Droppable {...props}>{children}</Droppable>;
+  // Only pass the required props to Droppable to avoid issues with defaultProps
+  return (
+    <Droppable droppableId={droppableId}>
+      {(provided, snapshot) => children(provided, snapshot)}
+    </Droppable>
+  );
 };
 
 const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
@@ -205,24 +213,25 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
 
     // Save the new order to the backend
     try {
+      // Use query parameter ?action=reorder instead of a path parameter
       const response = await axiosInstance.put(
-        `/ticket-settings/events/${event._id}/reorder`,
+        `/ticket-settings/events/${event._id}?action=reorder`,
         {
-          tickets: updatedItems.map((item) => ({
-            _id: item._id,
-            sortOrder: item.sortOrder,
+          tickets: updatedItems.map((ticket) => ({
+            _id: ticket._id,
+            sortOrder: ticket.sortOrder,
           })),
         }
       );
 
-      if (!response.data.success) {
+      if (!response.data.success && response.status !== 200) {
         toast.showError("Failed to save ticket order");
         fetchTickets(); // Refresh if failed
       }
     } catch (error) {
       console.error("Error saving ticket order:", error);
       toast.showError("Failed to save ticket order");
-      fetchTickets(); // Refresh from server on error
+      // Don't refetch immediately to avoid UI disruption
     }
   };
 
@@ -238,11 +247,16 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       <div className="ticketCodeSettings-list">
         <DragDropContext onDragEnd={handleDragEnd}>
           <StrictModeDroppable droppableId="tickets">
-            {(provided) => (
+            {(provided, snapshot) => (
               <div
                 className="ticketCodeSettings-container"
                 {...provided.droppableProps}
                 ref={provided.innerRef}
+                style={{
+                  overflow: "visible",
+                  // Prevent any parent elements from scrolling during drag
+                  height: "100%",
+                }}
               >
                 {tickets.map((ticket, index) => (
                   <Draggable
@@ -288,12 +302,15 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                             <div className="ticketCodeSettings-title-container">
                               <div className="ticketCodeSettings-title">
                                 <h4>{ticket.name}</h4>
-                                {ticket.paxPerTicket > 1 && (
-                                  <div className="ticketCodeSettings-group-badge">
-                                    <RiGroupLine /> {ticket.paxPerTicket} people
-                                  </div>
-                                )}
                               </div>
+                              {ticket.paxPerTicket > 1 && (
+                                <span className="ticketCodeSettings-group-badge">
+                                  <RiGroupLine /> {ticket.paxPerTicket}{" "}
+                                  {ticket.paxPerTicket > 1
+                                    ? "people"
+                                    : "person"}
+                                </span>
+                              )}
                             </div>
 
                             <div className="ticketCodeSettings-price">

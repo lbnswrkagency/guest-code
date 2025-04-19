@@ -23,6 +23,16 @@ router.post(
   ticketSettingsController.createTicketSetting
 );
 
+// Combine update routes - use query param ?action=reorder for reordering
+router.put("/events/:eventId", authenticate, (req, res, next) => {
+  // If action is reorder, use reorderTickets controller
+  if (req.query.action === "reorder") {
+    return ticketSettingsController.reorderTickets(req, res, next);
+  }
+  // Otherwise pass to next handler
+  next();
+});
+
 // Update a ticket setting
 router.put(
   "/events/:eventId/:ticketId",

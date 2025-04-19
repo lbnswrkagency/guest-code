@@ -95,6 +95,11 @@ const TicketSettingsSchema = new Schema(
       min: 1,
       description: "Number of people allowed per ticket (for group tickets)",
     },
+    sortOrder: {
+      type: Number,
+      default: 0,
+      description: "Order for displaying tickets",
+    },
   },
   {
     timestamps: true,
