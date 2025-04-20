@@ -6,6 +6,25 @@ const puppeteer = require("puppeteer");
 const { format } = require("date-fns");
 const mongoose = require("mongoose");
 
+// Function to generate random string for ticket codes
+const generateRandomString = (length = 8) => {
+  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed confusing chars like 0,O,1,I
+  let result = "";
+
+  // Get current timestamp and add 3 chars from it for uniqueness
+  const timestamp = Date.now().toString(36).slice(-3).toUpperCase();
+  result += timestamp;
+
+  // Fill the rest with random characters
+  const remainingLength = length - timestamp.length;
+  for (let i = 0; i < remainingLength; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomIndex);
+  }
+
+  return result;
+};
+
 // Generate a ticket in the database
 const createTicket = async (ticketData) => {
   try {
@@ -19,60 +38,33 @@ const createTicket = async (ticketData) => {
 };
 
 // Create multiple tickets for an order
-const createTicketsForOrder = async (order) => {
+const createTicketsForOrder = async (order, userId) => {
   try {
     const tickets = [];
 
-    // Generate tickets for each ticket type in the order
+    // Create a ticket for each item in the order
     for (const item of order.tickets) {
-      // Get ticket settings if available
-      let paxValue = item.pax || 1; // Default to item.pax or 1
-
-      if (item.ticketSettingId) {
-        try {
-          const ticketSetting = await mongoose
-            .model("TicketSettings")
-            .findById(item.ticketSettingId);
-          if (ticketSetting && ticketSetting.paxPerTicket) {
-            paxValue = ticketSetting.paxPerTicket;
-          }
-        } catch (err) {
-          console.error(
-            `Error fetching ticket settings for ${item.ticketSettingId}:`,
-            err
-          );
-          // Continue with default pax value
-        }
-      }
-
-      // Create the specified quantity of tickets
       for (let i = 0; i < item.quantity; i++) {
-        // Generate a unique code for the ticket
-        const ticketCode = generateRandomString(8);
-
-        // Create the ticket data
         const ticketData = {
-          orderId: order._id,
           eventId: order.eventId,
-          userId: order.userId,
-          ticketSettingId: item.ticketSettingId,
-          code: ticketCode,
-          name: item.name,
+          userId:
+            userId || new mongoose.Types.ObjectId("000000000000000000000000"), // Use a default guest user ID if userId is not provided
+          orderId: order._id,
+          ticketType: item.type || "standard",
+          ticketName: item.name,
           price: item.pricePerUnit,
-          status: "active",
-          pax: paxValue, // Use the determined pax value
-          redeemedAt: null,
+          pax: item.pax || 1, // Set pax from the item or default to 1
+          // Additional fields can be added here if needed
         };
 
-        // Create the ticket
-        const ticket = await Ticket.create(ticketData);
+        const ticket = await createTicket(ticketData);
         tickets.push(ticket);
       }
     }
 
     return tickets;
   } catch (error) {
-    console.error("Error creating tickets:", error);
+    console.error("Error creating tickets for order:", error);
     throw error;
   }
 };

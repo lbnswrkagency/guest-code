@@ -127,12 +127,22 @@ const BrandProfile = () => {
         setIsFavorited(response.data.userStatus?.isFavorited || false);
       }
     } catch (error) {
-      // Only redirect to home if it's not a 404 error
+      // Check for authentication error - redirect to login instead of showing toast
+      if (error.response?.status === 401) {
+        // Redirect to login page without showing error toast
+        navigate("/login", {
+          state: {
+            from: location.pathname,
+          },
+        });
+        return; // Exit early to prevent further error handling
+      }
+
+      // Handle 404 "Brand not found" error
       if (error.response?.status === 404) {
-        toast.showError(`Brand "${cleanUsername}" not found`);
-        // Stay on the page but show a not found message
-        setBrand(null);
-        setLoading(false);
+        // Redirect to login instead of showing toast
+        navigate("/login");
+        return;
       } else {
         toast.showError("Failed to load brand profile");
         // Don't redirect - just show error state
@@ -485,7 +495,25 @@ const BrandProfile = () => {
             animate={{ opacity: 1 }}
             className="error-content"
           >
-            Brand not found
+            <div>Session expired or invalid brand profile</div>
+            <motion.button
+              onClick={() => navigate("/login")}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="login-button"
+              style={{
+                marginTop: "20px",
+                padding: "10px 20px",
+                borderRadius: "8px",
+                background: "#2196f3",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "16px",
+              }}
+            >
+              Go to Login
+            </motion.button>
           </motion.div>
         </div>
       </div>

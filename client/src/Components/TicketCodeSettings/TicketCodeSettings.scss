@@ -4,13 +4,10 @@
 // Fix for drag-and-drop nested scrollable container warning
 .ticket-code-settings,
 .ticketCodeSettings-list {
-  /* Important to prevent nested scrollable containers */
   overflow: visible !important;
 }
 
 // Also make sure parent containers don't have overflow: auto or overflow: scroll
-// You might need to inspect your parent containers to find exactly which ones
-// are causing the issue, but these are common container classes in the app
 .code-settings-section,
 .settings-panel-content,
 .settings-panel,
@@ -21,100 +18,9 @@
 
 // Make the draggable container itself the only scrollable one if needed
 .ticketCodeSettings-container {
-  /* This can be the only container with scroll if needed */
-  max-height: calc(100vh - 200px); /* Adjust as needed */
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-.guest-code-settings {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  background-color: $background-color;
-  gap: 2rem;
-
-  h2 {
-    color: $primary-color;
-    margin-bottom: 2rem;
-  }
-
-  .input-section,
-  .output-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    grid-gap: 1rem;
-    justify-items: center;
-    align-items: center;
-    width: 100%;
-    max-width: $container-width;
-    animation: fadeIn 0.5s ease-in-out forwards;
-  }
-
-  input,
-  select {
-    width: 100%;
-    padding: 0.5rem;
-    font-family: $font-family;
-    font-size: $font-size;
-    border: 2px solid $border-color;
-    border-radius: 4px;
-    background-color: $light-color;
-    color: $text-color;
-    transition: border-color 0.3s;
-
-    &:focus {
-      border-color: $primary-color;
-      outline: none;
-    }
-  }
-
-  .input-section {
-    margin-bottom: 2rem;
-  }
-
-  .output-section {
-    margin-bottom: 2rem;
-  }
-
-  button {
-    @include button;
-    margin-top: 1rem;
-    animation: scaleIn 0.3s ease-in-out forwards;
-  }
-
-  .constructed-sentence {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    grid-gap: 0.5rem;
-    justify-items: center;
-    align-items: center;
-    font-family: $font-family;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: $primary-color;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: $container-width;
-    padding: 0 1rem;
-    text-align: center;
-
-    span {
-      padding: 0 0.25rem;
-    }
-  }
-
-  // Add your media queries for responsive design
-  @media (max-width: 768px) {
-    .input-section,
-    .output-section {
-      grid-template-columns: repeat(1, 1fr);
-    }
-  }
 }
 
 .ticket-code-settings {
@@ -125,11 +31,11 @@
   position: relative;
 }
 
-/* Improved ticket list container */
+/* Basic list container */
 .ticketCodeSettings-list {
   padding: 15px;
   margin-top: 15px;
-  overflow: visible; /* Prevent this from being a scrollable container */
+  overflow: visible;
 }
 
 .ticketCodeSettings-container {
@@ -137,662 +43,82 @@
   flex-direction: column;
   gap: 15px;
   margin-top: 10px;
-  overflow: visible; /* Prevent this from being a scrollable container */
+  overflow: visible;
 }
 
-/* Enhanced ticket item styling */
+/* Simple ticket item */
 .ticketCodeSettings-item {
   position: relative;
   background-color: rgba(25, 25, 25, 0.65);
   border-radius: 12px;
   border-left: 4px solid var(--ticket-color, #2196f3);
   margin-bottom: 5px;
-  min-height: 68px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  min-height: 50px;
   overflow: hidden;
-
-  &:hover {
-    background-color: rgba(30, 30, 30, 0.8);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-  }
-
-  &.is-dragging {
-    background-color: rgba(35, 35, 35, 0.9);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-    transform: scale(1.03);
-    z-index: 10;
-    border-left-width: 6px;
-  }
 }
 
-/* Improved header layout */
+.ticketCodeSettings-item.is-dragging {
+  background-color: rgba(35, 35, 35, 0.9);
+  z-index: 10;
+}
+
+/* Basic header */
 .ticketCodeSettings-header {
   display: flex;
-  align-items: center;
-  padding: 12px;
-  cursor: pointer;
-  position: relative;
-  min-height: 65px;
-}
-
-/* Enhanced drag handle */
-.ticketCodeSettings-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 18px;
-  padding: 6px;
-  margin-right: 6px;
-  cursor: grab;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.05);
-  width: 28px;
-  height: 28px;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.9);
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  &:active {
-    cursor: grabbing;
-    background-color: rgba(255, 255, 255, 0.15);
-  }
-}
-
-/* Improved icon styling */
-.ticketCodeSettings-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-right: 14px;
-  font-size: 20px;
-  color: var(--ticket-color, #2196f3);
-  flex-shrink: 0;
-  background-color: rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-}
-
-/* Better content layout */
-.ticketCodeSettings-content {
-  flex: 1;
-  display: flex;
   flex-direction: row;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Simple drag handle */
+.ticketCodeSettings-drag-handle {
+  cursor: grab;
+}
+
+.ticketCodeSettings-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Basic content area */
+.ticketCodeSettings-content {
+  display: flex;
+  flex: 1;
   justify-content: space-between;
   align-items: center;
-  overflow: visible;
-  min-height: 45px;
-  position: relative;
-  padding-right: 90px; /* More room for actions */
+  margin: 0 10px;
 }
 
-/* New container for title section to improve layout */
-.ticketCodeSettings-title-container {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* Important for text overflow handling */
-  overflow: visible;
-  margin-right: 10px;
-  max-width: 70%;
-}
-
-/* Improved title display */
-.ticketCodeSettings-title {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-
-  h4 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
-    color: #ffffff;
-    white-space: normal;
-    overflow: visible;
-    word-wrap: break-word;
-    display: block;
-  }
-}
-
-/* Better spacing for price section */
-.ticketCodeSettings-price {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-left: auto;
-  flex-shrink: 0;
-  min-width: 70px;
-  position: relative;
-}
-
-.ticketCodeSettings-current-price {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.ticketCodeSettings-original-price {
-  font-size: 14px;
-  text-decoration: line-through;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 2px;
-}
-
-/* Improved group badge */
-.ticketCodeSettings-group-badge {
-  display: inline-flex;
-  align-items: center;
-  background-color: rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  padding: 3px 8px;
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ticket-color, #2196f3);
-  white-space: nowrap;
-  border-left: 2px solid var(--ticket-color, #2196f3);
-
-  svg {
-    margin-right: 5px;
-    font-size: 14px;
-  }
-}
-
-/* Enhanced action buttons */
-.ticketCodeSettings-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-shrink: 0;
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-
-  button {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 19px;
-    padding: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    width: 36px;
-    height: 36px;
-
-    &:hover {
-      color: white;
-      background-color: rgba(255, 255, 255, 0.1);
-      transform: translateY(-2px);
-    }
-
-    &.ticketCodeSettings-delete-button:hover {
-      color: #ff5252;
-    }
-  }
-}
-
-.ticketCodeSettings-details {
-  padding: 10px 15px;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.ticketCodeSettings-detail-item {
-  display: flex;
-  padding: 6px 0;
-
-  svg {
-    margin-right: 10px;
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.5);
-  }
-}
-
-.ticketCodeSettings-detail-content {
-  flex: 1;
-}
-
-.ticketCodeSettings-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 2px;
-}
-
-.ticketCodeSettings-value {
-  font-size: 13px;
-}
-
+/* Button container */
 .ticketCodeSettings-btn-container {
   margin-top: 15px;
   display: flex;
   justify-content: center;
 }
 
+/* Add button */
 .ticketCodeSettings-add-btn {
-  background-color: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: white;
-  }
-
-  svg {
-    font-size: 16px;
-  }
+  cursor: pointer;
+  padding: 8px 16px;
 }
 
-// Ticket Form Styles
-.ticket-form {
-  .form-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    position: relative;
-
-    .back-button {
-      position: absolute;
-      left: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      padding: 0.5rem;
-
-      &:hover {
-        color: #fff;
-      }
-    }
-
-    h4 {
-      width: 100%;
-      text-align: center;
-      font-size: 1.1rem;
-      font-weight: 500;
-      margin: 0;
-    }
-  }
-
-  .form-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-
-    label {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-      font-weight: 500;
-
-      .optional {
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.4);
-        font-weight: normal;
-      }
-    }
-
-    input,
-    textarea,
-    select,
-    .date-picker-input {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      color: #fff;
-      font-size: 0.95rem;
-      width: 100%;
-      transition: all 0.2s ease;
-
-      &:focus {
-        outline: none;
-        border-color: rgba(33, 150, 243, 0.5);
-        background: rgba(255, 255, 255, 0.07);
-        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-      }
-
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.3);
-      }
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    .input-with-icon {
-      position: relative;
-
-      .input-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 1.1rem;
-      }
-
-      input,
-      .date-picker-input {
-        padding-left: 2.5rem;
-      }
-    }
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .checkbox-group {
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      cursor: pointer;
-      user-select: none;
-
-      input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        margin: 0;
-      }
-
-      span {
-        font-size: 0.95rem;
-        color: rgba(255, 255, 255, 0.9);
-      }
-    }
-
-    .help-text {
-      margin: 0.25rem 0 0 1.75rem;
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-
-  .color-selector {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.07);
-    }
-
-    .color-preview {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    span {
-      flex: 1;
-      color: #fff;
-    }
-
-    .color-icon {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 1.1rem;
-    }
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-    button {
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &.cancel-button {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.7);
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
-        }
-      }
-
-      &.save-button {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #2196f3;
-        border: none;
-        color: #fff;
-        font-weight: 500;
-
-        &:hover {
-          background: #1e88e5;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-      }
-    }
-  }
-}
-
-// Color Picker Styles
-.color-picker-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
+/* Minimal action buttons */
+.ticketCodeSettings-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  gap: 5px;
 }
 
-.color-picker-dialog {
-  background: #1a1a1a;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  h3 {
-    margin: 0 0 1.25rem;
-    font-size: 1.2rem;
-    color: #fff;
-    text-align: center;
-    font-weight: 600;
-  }
-
-  .color-options {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 12px;
-    margin-bottom: 1rem;
-
-    .color-option {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 2px solid transparent;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-      &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-    }
-  }
+.ticketCodeSettings-details {
+  padding: 10px;
 }
 
-// React DatePicker Overrides
-.react-datepicker-wrapper {
-  width: 100%;
+.ticketCodeSettings-detail-item {
+  display: flex;
+  margin-bottom: 5px;
 }
 
-.react-datepicker {
-  font-family: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-
-  &__header {
-    background-color: #222;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  &__current-month,
-  &__day-name,
-  &__day,
-  &__time-name {
-    color: #fff;
-  }
-
-  &__day:hover,
-  &__month-text:hover,
-  &__quarter-text:hover,
-  &__year-text:hover {
-    background-color: rgba(33, 150, 243, 0.2);
-  }
-
-  &__day--selected,
-  &__day--keyboard-selected,
-  &__month-text--selected,
-  &__month-text--keyboard-selected,
-  &__quarter-text--selected,
-  &__quarter-text--keyboard-selected,
-  &__year-text--selected,
-  &__year-text--keyboard-selected {
-    background-color: #2196f3;
-    color: #fff;
-  }
-
-  &__day--disabled,
-  &__month-text--disabled,
-  &__quarter-text--disabled,
-  &__year-text--disabled {
-    color: #666;
-  }
-
-  &__triangle {
-    border-bottom-color: #1a1a1a !important;
-  }
-}
-
-// Responsive Adjustments
-@media (max-width: 768px) {
-  .ticket-form {
-    .form-row {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-  }
-
-  .color-picker-dialog {
-    max-width: 320px;
-    padding: 1rem;
-
-    .color-options {
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-
-      .color-option {
-        width: 36px;
-        height: 36px;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .ticketCodeSettings-header {
-    padding: 12px 10px;
-  }
-
-  .ticketCodeSettings-drag-handle {
-    font-size: 16px;
-    padding: 4px;
-    width: 24px;
-    height: 24px;
-  }
-
-  .ticketCodeSettings-icon {
-    width: 32px;
-    height: 32px;
-    margin-right: 10px;
-  }
-
-  .ticketCodeSettings-title h4 {
-    font-size: 14px;
-  }
-
-  .ticketCodeSettings-price {
-    min-width: 60px;
-    margin-right: 10px;
-  }
-
-  .ticketCodeSettings-current-price {
-    font-size: 16px;
-  }
-
-  .ticketCodeSettings-actions button {
-    font-size: 16px;
-    padding: 6px;
-    width: 28px;
-    height: 28px;
-  }
+.ticketCodeSettings-detail-content {
+  margin-left: 10px;
 }

@@ -252,11 +252,6 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                 className="ticketCodeSettings-container"
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                style={{
-                  overflow: "visible",
-                  // Prevent any parent elements from scrolling during drag
-                  height: "100%",
-                }}
               >
                 {tickets.map((ticket, index) => (
                   <Draggable
@@ -280,58 +275,32 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                           <div
                             className="ticketCodeSettings-drag-handle"
                             {...provided.dragHandleProps}
-                            title="Drag to reorder"
                           >
                             <RiDragMove2Line />
-                          </div>
-
-                          <div
-                            className="ticketCodeSettings-icon"
-                            style={{
-                              backgroundColor: `${ticket.color}15`,
-                            }}
-                            onClick={() => toggleTicketDetails(ticket._id)}
-                          >
-                            <RiTicketLine />
                           </div>
 
                           <div
                             className="ticketCodeSettings-content"
                             onClick={() => toggleTicketDetails(ticket._id)}
                           >
-                            <div className="ticketCodeSettings-title-container">
-                              <div className="ticketCodeSettings-title">
-                                <h4>{ticket.name}</h4>
-                              </div>
+                            <div>
+                              <h4>{ticket.name}</h4>
                               {ticket.paxPerTicket > 1 && (
-                                <span className="ticketCodeSettings-group-badge">
+                                <div>
                                   <RiGroupLine /> {ticket.paxPerTicket}{" "}
                                   {ticket.paxPerTicket > 1
                                     ? "people"
                                     : "person"}
-                                </span>
+                                </div>
                               )}
                             </div>
 
-                            <div className="ticketCodeSettings-price">
-                              <span
-                                className="ticketCodeSettings-current-price"
-                                style={{ color: ticket.color || "#2196F3" }}
-                              >
-                                {typeof ticket.price === "number"
-                                  ? ticket.price.toFixed(2)
-                                  : parseFloat(ticket.price).toFixed(2)}
-                                €
-                              </span>
+                            <div>
+                              <div>{parseFloat(ticket.price).toFixed(2)}€</div>
                               {ticket.originalPrice && (
-                                <span className="ticketCodeSettings-original-price">
-                                  {typeof ticket.originalPrice === "number"
-                                    ? ticket.originalPrice.toFixed(2)
-                                    : parseFloat(ticket.originalPrice).toFixed(
-                                        2
-                                      )}
-                                  €
-                                </span>
+                                <div>
+                                  {parseFloat(ticket.originalPrice).toFixed(2)}€
+                                </div>
                               )}
                             </div>
                           </div>
@@ -342,17 +311,14 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                                 e.stopPropagation();
                                 handleEditTicket(ticket);
                               }}
-                              title="Edit Ticket"
                             >
                               <RiEditLine />
                             </button>
                             <button
-                              className="ticketCodeSettings-delete-button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteTicket(ticket);
                               }}
-                              title="Delete Ticket"
                             >
                               <RiDeleteBinLine />
                             </button>
@@ -372,15 +338,8 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                                 <div className="ticketCodeSettings-detail-item">
                                   <RiInformationLine />
                                   <div className="ticketCodeSettings-detail-content">
-                                    <div className="ticketCodeSettings-label">
-                                      Description
-                                    </div>
-                                    <div
-                                      className="ticketCodeSettings-value"
-                                      style={{ whiteSpace: "pre-wrap" }}
-                                    >
-                                      {ticket.description}
-                                    </div>
+                                    <div>Description</div>
+                                    <div>{ticket.description}</div>
                                   </div>
                                 </div>
                               )}
@@ -388,10 +347,8 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                                 <div className="ticketCodeSettings-detail-item">
                                   <RiTimeLine />
                                   <div className="ticketCodeSettings-detail-content">
-                                    <div className="ticketCodeSettings-label">
-                                      Ends
-                                    </div>
-                                    <div className="ticketCodeSettings-value">
+                                    <div>Ends</div>
+                                    <div>
                                       {new Date(
                                         ticket.endDate
                                       ).toLocaleDateString()}
@@ -403,10 +360,8 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                                 <div className="ticketCodeSettings-detail-item">
                                   <RiGroupLine />
                                   <div className="ticketCodeSettings-detail-content">
-                                    <div className="ticketCodeSettings-label">
-                                      Availability
-                                    </div>
-                                    <div className="ticketCodeSettings-value">
+                                    <div>Availability</div>
+                                    <div>
                                       {ticket.soldCount}/{ticket.maxTickets}{" "}
                                       sold
                                     </div>
@@ -416,10 +371,8 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                               <div className="ticketCodeSettings-detail-item">
                                 <RiUserLine />
                                 <div className="ticketCodeSettings-detail-content">
-                                  <div className="ticketCodeSettings-label">
-                                    Purchase Limits
-                                  </div>
-                                  <div className="ticketCodeSettings-value">
+                                  <div>Purchase Limits</div>
+                                  <div>
                                     {ticket.minPurchase} - {ticket.maxPurchase}{" "}
                                     per order
                                   </div>
@@ -428,10 +381,8 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                               <div className="ticketCodeSettings-detail-item">
                                 <RiGroupLine />
                                 <div className="ticketCodeSettings-detail-content">
-                                  <div className="ticketCodeSettings-label">
-                                    Group Ticket
-                                  </div>
-                                  <div className="ticketCodeSettings-value">
+                                  <div>Group Ticket</div>
+                                  <div>
                                     {ticket.paxPerTicket || 1}{" "}
                                     {ticket.paxPerTicket > 1
                                       ? "people"
