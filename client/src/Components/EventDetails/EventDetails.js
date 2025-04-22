@@ -207,7 +207,7 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
           {/* Tickets & Guest Code Section */}
           <div className="eventDetails-section eventDetails-availability-section">
             <div className="eventDetails-availability-items">
-              {(event.ticketsAvailable || event.ticketSettings?.length > 0) && (
+              {event.ticketsAvailable && event.ticketSettings?.length > 0 && (
                 <motion.div
                   className="eventDetails-availability-item eventDetails-tickets-available"
                   whileHover={{ scale: 1.03 }}

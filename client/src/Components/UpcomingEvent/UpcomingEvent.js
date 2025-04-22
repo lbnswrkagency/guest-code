@@ -1176,13 +1176,14 @@ const UpcomingEvent = ({
                 className="upcomingEvent-ticket-section full-width"
               >
                 {currentEvent &&
-                  (currentEvent.ticketsAvailable ||
-                    ticketSettings.length > 0) && (
+                  currentEvent.ticketsAvailable &&
+                  ticketSettings.length > 0 && (
                     <Tickets
                       eventId={currentEvent._id}
                       eventTitle={currentEvent.title}
                       eventDate={currentEvent.date}
                       seamless={seamless}
+                      event={currentEvent}
                       fetchTicketSettings={async (eventId) => {
                         try {
                           const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
