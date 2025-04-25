@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import "./Tickets.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -11,10 +11,12 @@ import {
   RiCoupon3Line,
   RiMapPinLine,
 } from "react-icons/ri";
+import { FaUserFriends, FaRegClock } from "react-icons/fa";
 import axiosInstance from "../../utils/axiosConfig";
 import axios from "axios";
 
-const LoadingSpinner = ({ size = "default", color = "#d4af37" }) => {
+// Memoize the LoadingSpinner component to prevent unnecessary renders
+const LoadingSpinner = React.memo(({ size = "default", color = "#d4af37" }) => {
   const spinnerSize = size === "small" ? "16px" : "24px";
   return (
     <div
@@ -27,7 +29,7 @@ const LoadingSpinner = ({ size = "default", color = "#d4af37" }) => {
       }}
     ></div>
   );
-};
+});
 
 /**
  * Tickets component for displaying and purchasing event tickets
@@ -103,17 +105,11 @@ const Tickets = ({
     }
   }, [event, ticketSettings]);
 
-  useEffect(() => {
-    if (eventId) {
-      loadTicketSettings();
-    }
-  }, [eventId]);
-
-  const loadTicketSettings = async () => {
+  // Memoize loadTickets function to prevent recreation on each render
+  const loadTickets = useCallback(async () => {
     if (!eventId) return;
 
     setLoadingTickets(true);
-
     try {
       if (fetchTicketSettings) {
         const settings = await fetchTicketSettings(eventId);
@@ -131,20 +127,70 @@ const Tickets = ({
         setTicketSettings([]);
       }
     } catch (error) {
+      console.error("Error loading tickets:", error);
       setTicketSettings([]);
     } finally {
       setLoadingTickets(false);
     }
-  };
+  }, [eventId, fetchTicketSettings]);
 
-  const formatDate = (dateString) => {
+  // Load ticket settings only once when component mounts or when dependencies change
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
+
+  // Memoize the validated tickets to prevent unnecessary re-renders
+  const validatedTickets = useMemo(() => {
+    return (
+      ticketSettings
+        .map((ticket) => {
+          if (!ticket || typeof ticket !== "object") {
+            return null;
+          }
+
+          // Ensure ticket has required properties
+          const normalizedTicket = {
+            _id:
+              ticket._id ||
+              `ticket-${Math.random().toString(36).substring(2, 9)}`,
+            name: ticket.name || "Unnamed Ticket",
+            description: ticket.description || "",
+            price: parseFloat(ticket.price) || 0,
+            quantity: ticket.quantity || 0,
+            available: ticket.available !== undefined ? ticket.available : true,
+            hasCountdown: !!ticket.endDate,
+            endDate: ticket.endDate || null,
+            ...ticket,
+          };
+
+          return normalizedTicket;
+        })
+        .filter(Boolean)
+        // Filter out expired Early Bird tickets
+        .filter((ticket) => {
+          // If it's an early bird ticket with an end date
+          if (ticket.name.toLowerCase().includes("early") && ticket.endDate) {
+            // Check if the end date has passed
+            const now = new Date();
+            const endDate = new Date(ticket.endDate);
+            return endDate > now; // Only include if the end date is in the future
+          }
+
+          // Keep all non-early bird tickets
+          return true;
+        })
+    );
+  }, [ticketSettings]);
+
+  // Memoize these functions to prevent recreation on each render
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     const options = { weekday: "short", month: "short", day: "numeric" };
     return date.toLocaleDateString("en-US", options);
-  };
+  }, []);
 
-  const formatCountdown = (endDate) => {
+  const formatCountdown = useCallback((endDate) => {
     if (!endDate) return null;
 
     const now = new Date();
@@ -164,24 +210,27 @@ const Tickets = ({
     } else {
       return `${minutes}m left`;
     }
-  };
+  }, []);
 
-  // Render countdown badge if ticket has a countdown
-  const renderCountdown = (ticket) => {
-    if (!ticket.hasCountdown || !ticket.endDate) return null;
+  // Memoize renderCountdown to prevent unnecessary recreations
+  const renderCountdown = useCallback(
+    (ticket) => {
+      if (!ticket.hasCountdown || !ticket.endDate) return null;
 
-    const countdownText = formatCountdown(ticket.endDate);
-    if (!countdownText) return null;
+      const countdownText = formatCountdown(ticket.endDate);
+      if (!countdownText) return null;
 
-    return (
-      <div className="ticket-countdown" style={{ color: primaryColor }}>
-        <RiAlarmLine /> {countdownText}
-      </div>
-    );
-  };
+      return (
+        <div className="ticket-countdown" style={{ color: primaryColor }}>
+          <RiAlarmLine /> {countdownText}
+        </div>
+      );
+    },
+    [formatCountdown, primaryColor]
+  );
 
-  // Calculate remaining time for countdown
-  const calculateRemainingTime = (endDate) => {
+  // Memoize calculateRemainingTime
+  const calculateRemainingTime = useCallback((endDate) => {
     if (!endDate) return null;
 
     const now = new Date();
@@ -195,79 +244,71 @@ const Tickets = ({
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return { days, hours, minutes };
-  };
+  }, []);
 
-  // Initialize and update countdowns
+  // Initialize and update countdowns - optimize interval handling
   useEffect(() => {
     if (!ticketSettings || ticketSettings.length === 0) return;
 
-    // Initialize countdowns
-    const initialCountdowns = {};
-    ticketSettings.forEach((ticket) => {
-      if (
-        ticket.hasCountdown &&
-        ticket.endDate &&
-        ticket.name.toLowerCase().includes("early")
-      ) {
-        const remaining = calculateRemainingTime(ticket.endDate);
-        if (remaining) {
-          initialCountdowns[ticket._id] = remaining;
-        }
-      }
-    });
-    setCountdowns(initialCountdowns);
+    // Create a function to update countdowns that doesn't rely on closure over ticketSettings
+    const updateCountdowns = () => {
+      setCountdowns((prevCountdowns) => {
+        const updatedCountdowns = {};
+        ticketSettings.forEach((ticket) => {
+          if (
+            ticket.hasCountdown &&
+            ticket.endDate &&
+            ticket.name.toLowerCase().includes("early")
+          ) {
+            const remaining = calculateRemainingTime(ticket.endDate);
+            if (remaining) {
+              updatedCountdowns[ticket._id] = remaining;
+            }
+          }
+        });
+        return updatedCountdowns;
+      });
+    };
+
+    // Initialize countdowns immediately
+    updateCountdowns();
 
     // Update countdowns every minute
-    const interval = setInterval(() => {
-      const updatedCountdowns = {};
-      ticketSettings.forEach((ticket) => {
-        if (
-          ticket.hasCountdown &&
-          ticket.endDate &&
-          ticket.name.toLowerCase().includes("early")
-        ) {
-          const remaining = calculateRemainingTime(ticket.endDate);
-          if (remaining) {
-            updatedCountdowns[ticket._id] = remaining;
-          }
-        }
-      });
-      setCountdowns(updatedCountdowns);
-    }, 60000);
+    const interval = setInterval(updateCountdowns, 60000);
 
     return () => clearInterval(interval);
-  }, [ticketSettings]);
+  }, [ticketSettings, calculateRemainingTime]);
 
-  // Handle ticket quantity changes
-  const handleQuantityChange = (ticketId, change) => {
+  // Memoize handleQuantityChange to prevent recreation on each render
+  const handleQuantityChange = useCallback((ticketId, change) => {
     setTicketQuantities((prev) => ({
       ...prev,
       [ticketId]: Math.max(0, (prev[ticketId] || 0) + change),
     }));
-  };
+  }, []);
 
-  // Calculate total price
-  const calculateTotal = () => {
+  // Calculate total price - memoized to prevent recalculation on each render
+  const calculateTotal = useMemo(() => {
     return ticketSettings
       .reduce((total, ticket) => {
         return total + ticket.price * (ticketQuantities[ticket._id] || 0);
       }, 0)
       .toFixed(2);
-  };
+  }, [ticketSettings, ticketQuantities]);
 
-  // Check if any tickets are selected
-  const hasSelectedTickets = Object.values(ticketQuantities).some(
-    (quantity) => quantity > 0
-  );
+  // Check if any tickets are selected - memoized
+  const hasSelectedTickets = useMemo(() => {
+    return Object.values(ticketQuantities).some((quantity) => quantity > 0);
+  }, [ticketQuantities]);
 
-  // Validate email format
-  const isValidEmail = (email) => {
+  // Validate email format - memoized
+  const isValidEmail = useCallback((email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-  };
+  }, []);
 
-  // Validate form
-  const isFormValid = () => {
+  // Validate form - memoized
+  const isFormValid = useCallback(() => {
     const errors = {};
 
     if (!firstName.trim()) {
@@ -290,10 +331,10 @@ const Tickets = ({
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [firstName, lastName, email, hasSelectedTickets, isValidEmail]);
 
-  // Handle field change
-  const handleFieldChange = (field, value) => {
+  // Handle field change - memoized
+  const handleFieldChange = useCallback((field, value) => {
     // Update form touched state
     setFormTouched((prev) => ({
       ...prev,
@@ -316,16 +357,14 @@ const Tickets = ({
     }
 
     // Clear error for this field if it exists
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [field]: null,
-      }));
-    }
-  };
+    setFormErrors((prev) => ({
+      ...prev,
+      [field]: null,
+    }));
+  }, []);
 
-  // Handle checkout
-  const handleCheckout = async () => {
+  // Handle checkout - memoized
+  const handleCheckout = useCallback(async () => {
     // Validate form before proceeding
     if (!isFormValid()) {
       // Show toast for validation errors
@@ -356,6 +395,7 @@ const Tickets = ({
           description: ticket.description,
           price: ticket.price,
           quantity: ticketQuantities[ticket._id],
+          paxPerTicket: ticket.paxPerTicket || 1,
         }));
 
       if (selectedTickets.length === 0) {
@@ -364,42 +404,98 @@ const Tickets = ({
         return;
       }
 
-      // Show loading state with the loading toast
-      loadingToast = toast.showLoading("Preparing checkout...");
+      // Determine payment method from the first ticket (they should all have the same payment method)
+      const paymentMethod =
+        ticketSettings.length > 0 ? ticketSettings[0].paymentMethod : "online";
 
-      const response = await axiosInstance.post(
-        `/stripe/create-checkout-session`,
-        {
+      // Show loading state with the loading toast
+      loadingToast = toast.showLoading(
+        paymentMethod === "online"
+          ? "Preparing checkout..."
+          : "Generating tickets..."
+      );
+
+      if (paymentMethod === "online") {
+        // Original online payment flow with Stripe
+        const response = await axiosInstance.post(
+          `/stripe/create-checkout-session`,
+          {
+            firstName,
+            lastName,
+            email,
+            eventId,
+            tickets: selectedTickets,
+          }
+        );
+
+        if (response.data.url) {
+          // Update the loading toast to show success
+          if (loadingToast) {
+            loadingToast.update({
+              message: "Redirecting to checkout...",
+              type: "success",
+            });
+          }
+
+          // Short delay to ensure the toast is visible before redirect
+          setTimeout(() => {
+            // Redirect to Stripe checkout
+            window.location = response.data.url;
+          }, 500);
+        } else {
+          // Dismiss the loading toast
+          if (loadingToast) {
+            loadingToast.dismiss();
+          }
+
+          toast.showError("Invalid checkout response. Please try again.");
+          setIsCheckoutLoading(false);
+        }
+      } else {
+        // Pay at entrance flow - direct ticket creation
+        const response = await axiosInstance.post(`/tickets/create-direct`, {
           firstName,
           lastName,
           email,
           eventId,
           tickets: selectedTickets,
-        }
-      );
+        });
 
-      if (response.data.url) {
-        // Update the loading toast to show success
-        if (loadingToast) {
-          loadingToast.update({
-            message: "Redirecting to checkout...",
-            type: "success",
-          });
-        }
+        if (response.data.success) {
+          // Update the loading toast to show success
+          if (loadingToast) {
+            loadingToast.update({
+              message: "Tickets created! Check your email.",
+              type: "success",
+            });
+          }
 
-        // Short delay to ensure the toast is visible before redirect
-        setTimeout(() => {
-          // Redirect to Stripe checkout
-          window.location = response.data.url;
-        }, 500);
-      } else {
-        // Dismiss the loading toast
-        if (loadingToast) {
-          loadingToast.dismiss();
-        }
+          // Clear the form and selected tickets
+          setFirstName("");
+          setLastName("");
+          setEmail("");
+          setTicketQuantities({});
 
-        toast.showError("Invalid checkout response. Please try again.");
-        setIsCheckoutLoading(false);
+          // Short delay to ensure the toast is visible
+          setTimeout(() => {
+            if (loadingToast) {
+              loadingToast.dismiss();
+            }
+            toast.showSuccess(
+              "Tickets have been created and sent to your email. Please pay at the entrance."
+            );
+          }, 2000);
+
+          setIsCheckoutLoading(false);
+        } else {
+          // Dismiss the loading toast
+          if (loadingToast) {
+            loadingToast.dismiss();
+          }
+
+          toast.showError("Failed to create tickets. Please try again.");
+          setIsCheckoutLoading(false);
+        }
       }
     } catch (error) {
       // Dismiss the loading toast
@@ -418,234 +514,240 @@ const Tickets = ({
       toast.showError(errorMessage);
       setIsCheckoutLoading(false);
     }
-  };
+  }, [
+    isFormValid,
+    formErrors,
+    toast,
+    isCheckoutLoading,
+    ticketSettings,
+    ticketQuantities,
+    firstName,
+    lastName,
+    email,
+    eventId,
+  ]);
 
-  // Normalize and validate ticket data to ensure it has required properties
-  const validatedTickets = ticketSettings
-    .map((ticket) => {
-      if (!ticket || typeof ticket !== "object") {
-        return null;
-      }
+  // Memoize the retry function to prevent recreation on each render
+  const handleRetry = useCallback(() => {
+    if (fetchTicketSettings) {
+      setLoadingTickets(true);
+      fetchTicketSettings(eventId)
+        .then((settings) => {
+          setTicketSettings(settings || []);
+        })
+        .catch((err) => {
+          console.error("Error in manual reload:", err);
+          setTicketSettings([]);
+        })
+        .finally(() => {
+          setLoadingTickets(false);
+        });
+    }
+  }, [fetchTicketSettings, eventId]);
 
-      // Ensure ticket has required properties
-      const normalizedTicket = {
-        _id: ticket._id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
-        name: ticket.name || "Unnamed Ticket",
-        description: ticket.description || "",
-        price: parseFloat(ticket.price) || 0,
-        quantity: ticket.quantity || 0,
-        available: ticket.available !== undefined ? ticket.available : true,
-        hasCountdown: !!ticket.endDate,
-        endDate: ticket.endDate || null,
-        ...ticket,
-      };
+  // Memoize the ticket item rendering to prevent unnecessary re-renders
+  const renderTicketItem = useCallback(
+    (ticket) => (
+      <div
+        key={ticket._id}
+        className={`ticket-item ${
+          (ticketQuantities[ticket._id] || 0) > 0 ? "active" : ""
+        }`}
+        style={{
+          "--ticket-accent-color": ticket.color || primaryColor,
+        }}
+      >
+        {renderCountdown(ticket)}
+        {ticket.paxPerTicket > 1 && (
+          <div className="ticket-group-badge">
+            <FaUserFriends />
+            <span>{ticket.paxPerTicket} people per ticket</span>
+          </div>
+        )}
+        {ticket.originalPrice && ticket.originalPrice > ticket.price && (
+          <div
+            className="ticket-discount"
+            style={{
+              backgroundColor: ticket.color || primaryColor,
+            }}
+          >
+            {Math.round(
+              ((ticket.originalPrice - ticket.price) / ticket.originalPrice) *
+                100
+            )}
+            % OFF
+          </div>
+        )}
 
-      return normalizedTicket;
-    })
-    .filter(Boolean)
-    // Filter out expired Early Bird tickets
-    .filter((ticket) => {
-      // If it's an early bird ticket with an end date
-      if (ticket.name.toLowerCase().includes("early") && ticket.endDate) {
-        // Check if the end date has passed
-        const now = new Date();
-        const endDate = new Date(ticket.endDate);
-        return endDate > now; // Only include if the end date is in the future
-      }
+        <div className="ticket-header">
+          <RiTicket2Line style={{ color: ticket.color || primaryColor }} />
+          <h4>{ticket.name}</h4>
+        </div>
 
-      // Keep all non-early bird tickets
-      return true;
-    });
-
-  // If loading or no tickets, show appropriate message
-  if (loadingTickets) {
-    return (
-      <div className="tickets-loading">
-        <LoadingSpinner color={primaryColor} />
-        <p>Loading tickets...</p>
-      </div>
-    );
-  }
-
-  if (!ticketSettings || ticketSettings.length === 0) {
-    return (
-      <div className="no-tickets">
-        <p>No tickets available for this event.</p>
-        <button
-          className="retry-button"
-          onClick={loadTicketSettings}
-          style={{ color: primaryColor }}
+        <div
+          className="ticket-price"
+          style={{ color: ticket.color || primaryColor }}
         >
-          <RiRefreshLine /> Retry
-        </button>
+          {ticket.originalPrice && ticket.originalPrice > ticket.price && (
+            <span className="original-price">
+              €{ticket.originalPrice.toFixed(2)}
+            </span>
+          )}
+          €{ticket.price.toFixed(2)}
+        </div>
+
+        {ticket.description && (
+          <p className="ticket-description" style={{ whiteSpace: "pre-wrap" }}>
+            {ticket.description}
+          </p>
+        )}
+
+        <div className="ticket-quantity">
+          <button
+            className="quantity-btn"
+            onClick={() => handleQuantityChange(ticket._id, -1)}
+            disabled={(ticketQuantities[ticket._id] || 0) === 0}
+          >
+            -
+          </button>
+          <span>{ticketQuantities[ticket._id] || 0}</span>
+          <button
+            className="quantity-btn"
+            onClick={() => handleQuantityChange(ticket._id, 1)}
+          >
+            +
+          </button>
+        </div>
       </div>
-    );
-  }
+    ),
+    [ticketQuantities, primaryColor, renderCountdown, handleQuantityChange]
+  );
 
   // Render tickets directly without nested containers
   return (
     <div className={`tickets-wrapper ${seamless ? "seamless" : ""}`}>
       <div className="tickets-container">
         <h3 className="tickets-title">Tickets</h3>
-        <div className="tickets-list">
-          {validatedTickets.map((ticket, index) => (
-            <div
-              key={ticket._id}
-              className={`ticket-item ${
-                (ticketQuantities[ticket._id] || 0) > 0 ? "active" : ""
-              }`}
-              style={{
-                "--ticket-accent-color": ticket.color || primaryColor,
-              }}
-            >
-              {renderCountdown(ticket)}
-              {ticket.originalPrice && ticket.originalPrice > ticket.price && (
-                <div
-                  className="ticket-discount"
-                  style={{ backgroundColor: ticket.color || primaryColor }}
-                >
-                  {Math.round(
-                    ((ticket.originalPrice - ticket.price) /
-                      ticket.originalPrice) *
-                      100
-                  )}
-                  % OFF
+
+        {loadingTickets ? (
+          <div className="tickets-loading">
+            <LoadingSpinner color={primaryColor} />
+            <p>Loading tickets...</p>
+          </div>
+        ) : validatedTickets.length > 0 ? (
+          <>
+            <div className="tickets-list">
+              {validatedTickets.map(renderTicketItem)}
+            </div>
+
+            {/* Checkout Summary - Only show if tickets are selected */}
+            {hasSelectedTickets && (
+              <div className="checkout-area">
+                <div className="checkout-form">
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      placeholder="First Name"
+                      value={firstName}
+                      onChange={(e) =>
+                        handleFieldChange("firstName", e.target.value)
+                      }
+                      className={
+                        formTouched.firstName && formErrors.firstName
+                          ? "error"
+                          : ""
+                      }
+                    />
+                    {formTouched.firstName && formErrors.firstName && (
+                      <div className="error-message">
+                        {formErrors.firstName}
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      placeholder="Last Name"
+                      value={lastName}
+                      onChange={(e) =>
+                        handleFieldChange("lastName", e.target.value)
+                      }
+                      className={
+                        formTouched.lastName && formErrors.lastName
+                          ? "error"
+                          : ""
+                      }
+                    />
+                    {formTouched.lastName && formErrors.lastName && (
+                      <div className="error-message">{formErrors.lastName}</div>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) =>
+                        handleFieldChange("email", e.target.value)
+                      }
+                      className={
+                        formTouched.email && formErrors.email ? "error" : ""
+                      }
+                      onBlur={() => {
+                        if (email && !isValidEmail(email)) {
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            email: "Please enter a valid email address",
+                          }));
+                        }
+                      }}
+                    />
+                    {formTouched.email && formErrors.email && (
+                      <div className="error-message">{formErrors.email}</div>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div className="ticket-header">
-                <RiTicket2Line
-                  style={{ color: ticket.color || primaryColor }}
-                />
-                <h4>{ticket.name}</h4>
-              </div>
+                <div className="checkout-total">
+                  <span>Total:</span>
+                  <span
+                    className="total-amount"
+                    style={{ color: checkoutColor }}
+                  >
+                    €{calculateTotal}
+                  </span>
+                </div>
 
-              <div
-                className="ticket-price"
-                style={{ color: ticket.color || primaryColor }}
-              >
-                {ticket.originalPrice &&
-                  ticket.originalPrice > ticket.price && (
-                    <span className="original-price">
-                      €{ticket.originalPrice.toFixed(2)}
-                    </span>
-                  )}
-                €{ticket.price.toFixed(2)}
-              </div>
-
-              {ticket.description && (
-                <p
-                  className="ticket-description"
-                  style={{ whiteSpace: "pre-wrap" }}
-                >
-                  {ticket.description}
-                </p>
-              )}
-
-              <div className="ticket-quantity">
                 <button
-                  className="quantity-btn"
-                  onClick={() => handleQuantityChange(ticket._id, -1)}
-                  disabled={(ticketQuantities[ticket._id] || 0) === 0}
-                >
-                  -
-                </button>
-                <span>{ticketQuantities[ticket._id] || 0}</span>
-                <button
-                  className="quantity-btn"
-                  onClick={() => handleQuantityChange(ticket._id, 1)}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Checkout Summary - Only show if tickets are selected */}
-        {hasSelectedTickets && (
-          <div className="checkout-area">
-            <div className="checkout-form">
-              <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  value={firstName}
-                  onChange={(e) =>
-                    handleFieldChange("firstName", e.target.value)
-                  }
-                  className={
-                    formTouched.firstName && formErrors.firstName ? "error" : ""
-                  }
-                />
-                {formTouched.firstName && formErrors.firstName && (
-                  <div className="error-message">{formErrors.firstName}</div>
-                )}
-              </div>
-              <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChange={(e) =>
-                    handleFieldChange("lastName", e.target.value)
-                  }
-                  className={
-                    formTouched.lastName && formErrors.lastName ? "error" : ""
-                  }
-                />
-                {formTouched.lastName && formErrors.lastName && (
-                  <div className="error-message">{formErrors.lastName}</div>
-                )}
-              </div>
-              <div className="form-group">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className={
-                    formTouched.email && formErrors.email ? "error" : ""
-                  }
-                  onBlur={() => {
-                    if (email && !isValidEmail(email)) {
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        email: "Please enter a valid email address",
-                      }));
-                    }
+                  className="checkout-button"
+                  onClick={handleCheckout}
+                  disabled={isCheckoutLoading}
+                  style={{
+                    background: checkoutColor,
+                    backgroundImage: `linear-gradient(to bottom, ${checkoutColor}DD, ${checkoutColor})`,
                   }}
-                />
-                {formTouched.email && formErrors.email && (
-                  <div className="error-message">{formErrors.email}</div>
-                )}
+                >
+                  {isCheckoutLoading ? (
+                    <>
+                      <LoadingSpinner size="small" color="#000" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    "Buy Tickets"
+                  )}
+                </button>
               </div>
-            </div>
-
-            <div className="checkout-total">
-              <span>Total:</span>
-              <span className="total-amount" style={{ color: checkoutColor }}>
-                €{calculateTotal()}
-              </span>
-            </div>
-
+            )}
+          </>
+        ) : (
+          <div className="no-tickets">
+            <p>No tickets available for this event.</p>
             <button
-              className="checkout-button"
-              onClick={handleCheckout}
-              disabled={isCheckoutLoading}
-              style={{
-                background: checkoutColor,
-                backgroundImage: `linear-gradient(to bottom, ${checkoutColor}DD, ${checkoutColor})`,
-              }}
+              className="retry-button"
+              onClick={handleRetry}
+              style={{ color: primaryColor }}
             >
-              {isCheckoutLoading ? (
-                <>
-                  <LoadingSpinner size="small" color="#000" />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                "Buy Tickets"
-              )}
+              <RiRefreshLine /> Retry
             </button>
           </div>
         )}
@@ -654,4 +756,5 @@ const Tickets = ({
   );
 };
 
-export default Tickets;
+// Memoize the entire component to prevent unnecessary re-renders from parent
+export default React.memo(Tickets);

@@ -1,20 +1,39 @@
 @import "../../_variables";
 
+// Add CSS variable for nav height if it doesn't exist elsewhere
+:root {
+  --nav-height: 56px;
+  --button-height: 70px;
+  --button-icon-size: 40px;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .eventDetails-container {
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   margin: 1rem 0;
+  position: relative;
+}
+
+// Add a marker element to prevent jumps
+.sticky-position-marker {
+  height: 0;
+  width: 100%;
+  position: relative;
+  pointer-events: none;
+  transform: translateZ(0); // Force hardware acceleration
+  visibility: hidden;
+  opacity: 0;
 }
 
 .eventDetails-card {
-  background: linear-gradient(
-    135deg,
-    rgba(28, 28, 28, 0.97),
-    rgba(18, 18, 18, 0.99)
-  );
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
   position: relative;
+  width: 100%;
+  max-width: 100%;
 
   // Paper texture overlay
   &::before {
@@ -43,15 +62,17 @@
 }
 
 .eventDetails-content {
-  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .eventDetails-section {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  // background: rgba(0, 0, 0, 0.2);
+  // border-radius: 10px;
   overflow: hidden;
 
   .eventDetails-section-header {
@@ -279,6 +300,202 @@
   }
 }
 
+.eventDetails-description {
+  margin-bottom: 1.5rem;
+  p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+  }
+}
+
+.eventDetails-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  z-index: 9000; // High z-index even when not sticky
+  will-change: transform; // Improves performance during transitions
+
+  // Sticky behavior
+  &.sticky {
+    position: fixed;
+    top: var(--nav-height, 56px); // Use CSS variable or fallback
+    left: 0;
+    right: 0;
+    padding: 8px 15px;
+
+    -webkit-backdrop-filter: blur(8px);
+    margin-bottom: 0;
+    animation: none; // Remove animation for smoother transition
+    transition: all 0.25s var(--transition-timing);
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    transform: translateZ(0); // Force GPU acceleration
+
+    .eventDetails-action-button {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 200px;
+      transform: none;
+      margin: 0 5px;
+      transition: all 0.25s var(--transition-timing);
+
+      .button-content {
+        padding: 6px 12px;
+        height: 40px;
+        transition: all 0.25s var(--transition-timing);
+
+        .button-icon {
+          width: 28px;
+          height: 28px;
+          flex-shrink: 0;
+          font-size: 0.9rem;
+          transition: all 0.25s var(--transition-timing);
+        }
+
+        .button-text {
+          h5 {
+            font-size: 0.85rem;
+            white-space: nowrap;
+            margin: 0;
+            transition: all 0.25s var(--transition-timing);
+          }
+
+          p {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            font-size: 0;
+            transition: all 0.25s var(--transition-timing);
+          }
+        }
+
+        .button-arrow {
+          display: none;
+        }
+      }
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .eventDetails-action-button {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    display: block;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    &.tickets-button {
+      background: linear-gradient(135deg, #3a7bd5, #3a6073);
+      box-shadow: 0 4px 10px rgba(58, 123, 213, 0.2);
+    }
+
+    &.guestcode-button {
+      background: linear-gradient(135deg, #8e2de2, #4a00e0);
+      box-shadow: 0 4px 10px rgba(142, 45, 226, 0.2);
+    }
+
+    &.table-button {
+      background: linear-gradient(135deg, #232526, #414345);
+      box-shadow: 0 4px 10px rgba(65, 67, 69, 0.2);
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-content {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      position: relative;
+      gap: 3px;
+      transition: all 0.3s ease;
+    }
+
+    .button-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      margin-right: 4px;
+      color: white;
+      font-size: 1.2rem;
+      transition: all 0.3s ease;
+    }
+
+    .button-text {
+      flex: 1;
+      transition: all 0.3s ease;
+
+      h5 {
+        margin: 0;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      p {
+        margin: 4px 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+      }
+    }
+
+    .button-arrow {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2rem;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.action-buttons-spacer {
+  width: 100%;
+  height: 0;
+  transition: height 0.3s var(--transition-timing);
+  will-change: height;
+  display: block;
+  position: relative;
+  pointer-events: none;
+}
+
 // Responsive adjustments
 @media (max-width: 768px) {
   .eventDetails-section-content.eventDetails-time-grid {
@@ -287,6 +504,46 @@
 
   .eventDetails-availability-section .eventDetails-availability-items {
     grid-template-columns: 1fr;
+  }
+
+  .eventDetails-action-buttons.sticky {
+    .eventDetails-action-button {
+      flex: 1 1 auto;
+      max-width: none;
+
+      .button-text h5 {
+        font-size: 0.8rem;
+      }
+    }
+  }
+}
+
+// Fix for mobile devices
+@media (max-width: 480px) {
+  .eventDetails-action-buttons {
+    padding: 0 5px;
+
+    &.sticky {
+      padding: 5px;
+
+      .eventDetails-action-button {
+        margin: 0 2px;
+
+        .button-content {
+          padding: 6px;
+
+          .button-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+          }
+
+          .button-text h5 {
+            font-size: 0.7rem;
+          }
+        }
+      }
+    }
   }
 }
 

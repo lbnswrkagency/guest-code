@@ -40,9 +40,13 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   const showSuccess = useCallback(
-    (message) => {
+    (message, options = {}) => {
       clearLoadingToasts(); // Clear any loading toasts first
-      return addToast({ message, type: "success", duration: 2000 });
+      return addToast({
+        message,
+        type: "success",
+        duration: options.autoClose || options.duration || 2000,
+      });
     },
     [addToast, clearLoadingToasts]
   );

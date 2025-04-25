@@ -264,7 +264,7 @@ exports.createEvent = async (req, res) => {
       try {
         genres = JSON.parse(req.body.genres);
       } catch (e) {
-        console.error("Error parsing genres:", e);
+        // Error parsing genres
       }
     }
 
@@ -448,7 +448,6 @@ exports.getAllEvents = async (req, res) => {
 
     res.status(200).json(events);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Error fetching events" });
   }
 };
@@ -574,7 +573,7 @@ exports.editEvent = async (req, res) => {
             try {
               event[key] = JSON.parse(updatedChildData[key]);
             } catch (e) {
-              console.error("Error parsing genres for child event:", e);
+              // Error parsing genres for child event
             }
           } else {
             event[key] = updatedChildData[key];
@@ -693,7 +692,7 @@ exports.editEvent = async (req, res) => {
               try {
                 childEvent[key] = JSON.parse(updatedChildData[key]);
               } catch (e) {
-                console.error("Error parsing genres for child event:", e);
+                // Error parsing genres for child event
               }
             } else {
               childEvent[key] = updatedChildData[key];
@@ -790,7 +789,6 @@ exports.editEvent = async (req, res) => {
       { $set: req.body },
       { new: true, runValidators: true }
     ).catch((err) => {
-      console.error("Event update error details:", err);
       if (err.name === "CastError" && err.path.includes("genres")) {
         throw new Error(
           "Invalid genre format. Please ensure genres are valid IDs."
@@ -1232,26 +1230,11 @@ exports.getEventProfile = async (req, res) => {
         eventNumber = parseInt(dateSlugParts[1]) || 1;
       }
 
-      // Create date range for the day (start and end of the day)
-      // Use UTC to avoid timezone issues
-      console.log(
-        `[Events] Parsed date components: month=${
-          month + 1
-        }, day=${day}, year=${year}`
-      );
-
       // Create date range with timezone consideration - use UTC
       const startDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
       const endDate = new Date(Date.UTC(year, month, day, 23, 59, 59));
 
-      console.log(
-        `[Events] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`
-      );
-
       // For dateSlug queries, we need to search both date and startDate fields
-      console.log(
-        `[Events] Searching for events with brand=${brand._id} on either date or startDate fields`
-      );
 
       // Create a query that searches in both date and startDate fields
       // We'll try to be more flexible with the date matching to catch timezone edge cases
@@ -1279,8 +1262,6 @@ exports.getEventProfile = async (req, res) => {
         ],
       };
 
-      console.log(`[Events] MongoDB query:`, JSON.stringify(query, null, 2));
-
       // Find events matching our query
       let eventsOnDate = await Event.find(query)
         .populate({
@@ -1294,21 +1275,10 @@ exports.getEventProfile = async (req, res) => {
         .populate("genres")
         .populate("lineups");
 
-      console.log(
-        `[Events] Found ${eventsOnDate.length} events for brand ${
-          brand.username
-        } on date ${startDate.toISOString().split("T")[0]}`
-      );
-
       // If no events found, try a broader query without the date expressions
       if (eventsOnDate.length === 0) {
-        console.log(
-          "[Events] No events found with strict date match, trying broader match"
-        );
-
         // Create a broader query that looks for events in a wider date range
         const dateStr = startDate.toISOString().split("T")[0]; // YYYY-MM-DD
-        console.log(`[Events] Looking for date ${dateStr} as string match`);
 
         const broadQuery = {
           brand: brand._id,
@@ -1330,18 +1300,10 @@ exports.getEventProfile = async (req, res) => {
           })
           .populate("genres")
           .populate("lineups");
-
-        console.log(
-          `[Events] Found ${eventsOnDate.length} events with broader date match`
-        );
       }
 
       // If still no events found, try one final approach - querying by day number
       if (eventsOnDate.length === 0) {
-        console.log(
-          "[Events] No events found with regex match, trying day number match"
-        );
-
         // Final fallback: query directly looking for the day number
         const monthQuery = {
           brand: brand._id,
@@ -1366,16 +1328,8 @@ exports.getEventProfile = async (req, res) => {
           .populate("genres")
           .populate("lineups");
 
-        console.log(
-          `[Events] Found ${eventsOnDate.length} events with day/month match`
-        );
-
         // Filter the results to keep only events that match our specific date
         if (eventsOnDate.length > 0) {
-          console.log(
-            "[Events] Filtering results to match the requested date more closely"
-          );
-
           const dateStr = `${year}-${String(month + 1).padStart(
             2,
             "0"
@@ -1390,25 +1344,12 @@ exports.getEventProfile = async (req, res) => {
               ? new Date(event.startDate).toISOString().substring(0, 10)
               : null;
 
-            console.log(
-              `[Events] Comparing date: want=${dateStr}, event date=${eventDateStr}, event startDate=${eventStartDateStr}`
-            );
-
             return eventDateStr === dateStr || eventStartDateStr === dateStr;
           });
-
-          console.log(
-            `[Events] After filtering, found ${eventsOnDate.length} matching events`
-          );
         }
       }
 
       if (eventsOnDate.length === 0) {
-        console.log(
-          `[Events] No events found for ${brand.username} on ${
-            startDate.toISOString().split("T")[0]
-          } after all attempts`
-        );
         return res.status(404).json({
           success: false,
           message: "No events found on this date.",
@@ -1417,18 +1358,6 @@ exports.getEventProfile = async (req, res) => {
 
       // Function to process events once we've found them (by either date or startDate)
       function processEventsForResponse(events) {
-        console.log(
-          `[Events] Processing ${events.length} events for brand ${brand.username}`
-        );
-
-        // Log first event details for debugging
-        if (events.length > 0) {
-          const firstEvent = events[0];
-          console.log(
-            `[Events] First event details: ID=${firstEvent._id}, Title=${firstEvent.title}, Date=${firstEvent.date}, StartDate=${firstEvent.startDate}`
-          );
-        }
-
         // For the original format with eventSlug
         if (hasEventSlug) {
           // Try to find the event with the closest matching title
@@ -1528,16 +1457,7 @@ exports.getEventProfile = async (req, res) => {
           }
         }
 
-        // Log the selected event for debugging
-        if (event) {
-          console.log(
-            `[Events] Selected event: ID=${event._id}, Title=${event.title}`
-          );
-          return true; // Successfully set the event
-        } else {
-          console.log(`[Events] No event selected after processing`);
-          return false; // Failed to set event
-        }
+        return !!event; // Return true if event was set, false otherwise
       }
 
       // Process events found with our query
@@ -1619,10 +1539,6 @@ exports.getEventProfile = async (req, res) => {
           joinRequestStatus: null, // You may need to fetch this from JoinRequest model if needed
         };
       }
-
-      console.log(
-        `[Events] Successfully returning event profile for event ID ${event._id}`
-      );
 
       // Return the full response
       return res.status(200).json({
@@ -1903,9 +1819,9 @@ const filterFilesByFieldnamePrefix = (files, prefix) => {
 const deleteFile = (filePath) => {
   fs.unlink(filePath, (err) => {
     if (err) {
-      console.error(`Error deleting file: ${filePath}`, err);
+      // Error deleting file
     } else {
-      console.log(`File deleted: ${filePath}`);
+      // File deleted
     }
   });
 };

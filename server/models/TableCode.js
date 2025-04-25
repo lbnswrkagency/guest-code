@@ -6,6 +6,10 @@ const TableCodeSchema = new Schema(
   {
     event: { type: Schema.Types.ObjectId, ref: "Event" },
     name: { type: String, required: true },
+    firstName: { type: String },
+    lastName: { type: String },
+    email: { type: String },
+    phone: { type: String },
     host: { type: String, required: true },
     pax: { type: Number, required: true },
     paxChecked: { type: Number, required: true },
@@ -27,6 +31,7 @@ const TableCodeSchema = new Schema(
         sentAt: { type: Date, default: Date.now },
       },
     ],
+    isPublic: { type: Boolean, default: false },
   },
   {
     timestamps: true,

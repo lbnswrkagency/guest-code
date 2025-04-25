@@ -74,7 +74,7 @@ const createEventEmailTemplate = (options) => {
     primaryColor = "#ffc807",
     additionalContent = "",
     footerText = "This is an automated email. Please do not reply to this message.",
-    showEventDetails = true, // New option to control event details visibility
+    showEventDetails = true, // New option to control event details visibility in main section
   } = options;
 
   // Format date for display
@@ -115,11 +115,15 @@ const createEventEmailTemplate = (options) => {
                       ? `<img src="${
                           artist.avatar.thumbnail || artist.avatar
                         }" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 8px;">`
-                      : `<div style="width: 30px; height: 30px; border-radius: 50%; background-color: ${primaryColor}; color: #fff; display: flex; align-items: center; justify-content: center; margin-right: 8px; font-weight: bold;">${artist.name
+                      : `<div style="width: 30px; height: 30px; border-radius: 50%; background-color: ${primaryColor}; color: #fff; display: flex; align-items: center; justify-content: center; margin-right: 8px; font-weight: bold;">${(
+                          artist.name || "A"
+                        )
                           .charAt(0)
                           .toUpperCase()}</div>`
                   }
-                  <span style="font-weight: 500;">${artist.name}</span>
+                  <span style="font-weight: 500;">${
+                    artist.name || "Artist"
+                  }</span>
                 </div>
               `
                 )

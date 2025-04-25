@@ -1,5 +1,186 @@
 @import "../../_variables";
 
+// Define keyframes for animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtle-float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 200, 7, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 200, 7, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(255, 200, 7, 0.3);
+  }
+}
+
+// Add new keyframes for decorative elements
+@keyframes pulse-border {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// Add table booking styling for public view
+.table-booking-header {
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.table-booking-title-wrapper {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 30, 30, 0.9),
+    rgba(20, 20, 20, 0.95)
+  );
+  border-radius: 12px;
+  padding: 1.75rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 15px 45px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  animation: subtle-float 6s ease-in-out infinite;
+
+  // Paper texture overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E"),
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 200px 200px, 15px 15px, 15px 15px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    border-radius: 12px;
+    mix-blend-mode: overlay;
+  }
+
+  // Light effect at the top
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    z-index: 2;
+  }
+}
+
+.table-booking-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0.5rem 0;
+  text-align: center;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  letter-spacing: 1.5px;
+  position: relative;
+  z-index: 2;
+
+  .title-icon {
+    font-size: 1.75rem;
+    color: #ffc807;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+    animation: glow 3s infinite ease-in-out;
+  }
+
+  .title-text {
+    position: relative;
+
+    // Optional underline effect
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 200, 7, 0.5),
+        transparent
+      );
+      opacity: 0.6;
+    }
+  }
+}
+
+.title-decoration {
+  width: 120px;
+  height: 3px;
+  background: linear-gradient(to right, transparent, #ffc807, transparent);
+  border-radius: 3px;
+  margin: 0.75rem auto 0.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+}
+
 .table-system {
   min-height: 100vh;
   background: #000;
@@ -19,7 +200,6 @@
   &-content {
     padding-top: 15px; // Add space to prevent navigation overlap
     display: grid;
-    gap: 1.5rem;
   }
 
   &-logo {
@@ -225,37 +405,97 @@
       opacity: 0.8;
     }
   }
-}
 
-.refresh-button {
-  display: flex;
-  justify-content: flex-end;
-  margin: 10px 0;
-  justify-self: center;
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+  }
 
-  button {
+  .table-count-summary {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 0 auto;
+    max-width: 500px;
+
+    .table-count-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 10px;
+
+      .count-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        margin-bottom: 5px;
+      }
+
+      .count-value {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .refresh-button {
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 0;
+    justify-self: center;
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      transition: opacity 0.2s ease;
+
+      &:disabled {
+        cursor: default;
+      }
+
+      img {
+        width: 36px;
+        height: 36px;
+        transition: transform 0.1s ease;
+      }
+
+      &:hover:not(:disabled) img {
+        opacity: 0.8;
+      }
+
+      &.spinning img {
+        animation: doubleSpinRefresh 1s ease-in-out;
+      }
+    }
+  }
+
+  button.refresh-button {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
-    transition: opacity 0.2s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 50%;
+    transition: all 0.2s ease;
 
-    &:disabled {
-      cursor: default;
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    img {
-      width: 36px;
-      height: 36px;
-      transition: transform 0.1s ease;
-    }
-
-    &:hover:not(:disabled) img {
-      opacity: 0.8;
-    }
-
-    &.spinning img {
-      animation: doubleSpinRefresh 1s ease-in-out;
+    &.spinning {
+      animation: spin 1s ease-in-out;
     }
   }
 }
@@ -266,6 +506,15 @@
   }
   100% {
     transform: rotate(720deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -300,4 +549,197 @@
 .table-code-management {
   margin-top: 20px;
   padding-bottom: 20px;
+}
+
+.venue-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+
+  button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      background-color: rgba(138, 43, 226, 0.6);
+      color: white;
+      border-color: rgba(138, 43, 226, 0.8);
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.4);
+    }
+  }
+}
+
+// Table layout frame styling for the public view
+.table-layout-frame {
+  position: relative;
+
+  margin: 2rem auto;
+  background: linear-gradient(
+    145deg,
+    rgba(20, 20, 20, 0.9),
+    rgba(10, 10, 10, 0.95)
+  );
+  border-radius: 12px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+
+  // Paper texture overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+
+  // Ensure content is above texture
+  & > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  // Instruction text
+  .table-layout-instruction {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+
+    .instruction-text {
+      display: inline-block;
+      background: rgba(0, 0, 0, 0.3);
+      color: #ffc807;
+      padding: 0.75rem 1.25rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 200, 7, 0.3);
+      position: relative;
+      margin-top: 1rem;
+      // Shimmering effect
+      background-image: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(255, 200, 7, 0.1) 25%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(255, 200, 7, 0.1) 75%,
+        rgba(0, 0, 0, 0.3) 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite linear;
+    }
+  }
+
+  // Decorative corners
+  .table-layout-decoration {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    z-index: 3;
+    animation: pulse-border 3s infinite ease-in-out;
+
+    &.top-left {
+      top: 0;
+      left: 0;
+      border-top: 2px solid #ffc807;
+      border-left: 2px solid #ffc807;
+      border-top-left-radius: 8px;
+    }
+
+    &.top-right {
+      top: 0;
+      right: 0;
+      border-top: 2px solid #ffc807;
+      border-right: 2px solid #ffc807;
+      border-top-right-radius: 8px;
+    }
+
+    &.bottom-left {
+      bottom: 0;
+      left: 0;
+      border-bottom: 2px solid #ffc807;
+      border-left: 2px solid #ffc807;
+      border-bottom-left-radius: 8px;
+    }
+
+    &.bottom-right {
+      bottom: 0;
+      right: 0;
+      border-bottom: 2px solid #ffc807;
+      border-right: 2px solid #ffc807;
+      border-bottom-right-radius: 8px;
+    }
+  }
+
+  // Light overlay for depth
+  .table-layout-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  // Container styling
+  .table-layout-container {
+    position: relative;
+    z-index: 3;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    // Gold glow on hover
+    &:hover {
+      box-shadow: 0 0 20px rgba(255, 200, 7, 0.15);
+    }
+  }
+}
+
+.table-layout-container {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
 }

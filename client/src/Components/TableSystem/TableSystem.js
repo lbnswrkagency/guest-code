@@ -1,13 +1,15 @@
 // TableSystem.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useToast } from "../Toast/ToastContext";
 import "./TableSystem.scss";
 import TableLayout from "../TableLayout/TableLayout";
+import TableLayoutBolivar from "../TableLayoutBolivar/TableLayoutBolivar";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 import TableBookingPopup from "../TableBookingPopup/TableBookingPopup";
+import { RiTableLine, RiRefreshLine } from "react-icons/ri";
 
 function TableSystem({
   user,
@@ -15,6 +17,7 @@ function TableSystem({
   refreshCounts,
   selectedEvent,
   selectedBrand,
+  isPublic = false,
 }) {
   const toast = useToast();
   const [name, setName] = useState("");
@@ -31,14 +34,45 @@ function TableSystem({
     totalCount: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState("default");
 
-  // Updated table categories
-  const tableCategories = {
+  // Dynamic table configuration
+  const [layoutConfig, setLayoutConfig] = useState(null);
+  // Use ref to track if config was loaded to prevent multiple loads
+  const configLoadedRef = useRef(false);
+
+  // Always use Bolivar layout (no longer checking event ID)
+  const useBolivarLayout = true;
+
+  // Default table categories as fallback
+  const defaultTableCategories = {
     djarea: ["B1", "B2", "B3", "B4", "B5"],
-    backstage: ["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"],
+    backstage: useBolivarLayout
+      ? ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "E1", "E2"]
+      : ["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"],
     vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"],
     premium: ["K1", "K2", "K3", "K4"],
   };
+
+  // Use dynamic table categories from layout if available
+  const tableCategories =
+    layoutConfig?.tableCategories || defaultTableCategories;
+
+  // Handler for receiving configuration from layout components - memoize to prevent infinite loop
+  const handleConfigurationLoaded = useCallback(
+    (config) => {
+      // Only update if the config is different to prevent render loops
+      if (JSON.stringify(layoutConfig) !== JSON.stringify(config)) {
+        setLayoutConfig(config);
+      }
+    },
+    [layoutConfig]
+  );
+
+  // Reset config loaded flag when event changes
+  useEffect(() => {
+    configLoadedRef.current = false;
+  }, [selectedEvent]);
 
   // Fetch table counts when selectedEvent changes or refresh is triggered
   useEffect(() => {
@@ -50,10 +84,6 @@ function TableSystem({
   // Set up event listener for table count updates triggered by children
   useEffect(() => {
     const handleTableCountUpdate = (event) => {
-      console.log(
-        "Table count update event received in TableSystem:",
-        event.detail
-      );
       // Force a refresh when a child component modifies data
       setRefreshTrigger((prev) => prev + 1);
       // Optionally notify parent if needed
@@ -72,44 +102,34 @@ function TableSystem({
   const fetchTableCounts = async (eventId) => {
     setIsLoading(true);
     try {
-      console.log(
-        `Fetching table counts for event: ${eventId} using /table/counts`
-      );
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/table/counts/${eventId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use different endpoint for public vs. authenticated requests
+      const endpoint = isPublic
+        ? `${process.env.REACT_APP_API_BASE_URL}/table/public/counts/${eventId}`
+        : `${process.env.REACT_APP_API_BASE_URL}/table/counts/${eventId}`;
+
+      const response = await axios.get(endpoint, {
+        headers: isPublic
+          ? {}
+          : {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+      });
 
       // Expecting response format { tableCounts: [], totalCount: 0 }
       if (response.data && Array.isArray(response.data.tableCounts)) {
         const { tableCounts, totalCount } = response.data;
-        console.log(
-          `Successfully fetched ${tableCounts.length} table counts (Total: ${totalCount})`
-        );
         setTableData({ tableCounts, totalCount });
       } else {
-        console.log(
-          "No table counts found in the response or unexpected format from /table/counts"
-        );
         setTableData({ tableCounts: [], totalCount: 0 });
       }
     } catch (error) {
-      console.error("Error fetching table counts from /table/counts:", error);
       // Detailed error logging
       if (error.response) {
-        console.error(
-          "Response error:",
-          error.response.status,
-          error.response.data
-        );
+        // Response error
       } else if (error.request) {
-        console.error("Request error:", error.request);
+        // Request error
       } else {
-        console.error("Error message:", error.message);
+        // Error message
       }
       toast.showError("Failed to load table reservations.");
       setTableData({ tableCounts: [], totalCount: 0 });
@@ -118,11 +138,13 @@ function TableSystem({
     }
   };
 
-  // Compute total tables
-  const totalTables = Object.values(tableCategories).reduce(
-    (sum, tables) => sum + tables.length,
-    0
-  );
+  // Compute total tables - use dynamic config if available
+  const totalTables =
+    layoutConfig?.totalTables ||
+    Object.values(tableCategories).reduce(
+      (sum, tables) => sum + tables.length,
+      0
+    );
 
   // Use the centralized tableData state
   const allTableCounts = tableData.tableCounts || [];
@@ -140,8 +162,23 @@ function TableSystem({
   // Calculate remaining tables
   const remainingTables = totalTables - uniqueBookedTableNumbers.length;
 
+  // Dynamic function to get table type based on active layout
   const getTableType = (table) => {
     if (!table) return "";
+
+    // First check if we have layout configuration
+    if (
+      layoutConfig &&
+      layoutConfig.tableConfig &&
+      layoutConfig.categoryAreaNames
+    ) {
+      const tableInfo = layoutConfig.tableConfig[table];
+      if (tableInfo) {
+        return layoutConfig.categoryAreaNames[tableInfo.category] || "";
+      }
+    }
+
+    // Fallback to category-based mapping
     if (tableCategories.backstage.includes(table)) return "Backstage";
     if (tableCategories.vip.includes(table)) return "VIP";
     if (tableCategories.premium.includes(table)) return "Premium";
@@ -152,19 +189,78 @@ function TableSystem({
   const handleTableSelection = (table, position) => {
     setSelectedTable(table);
     setTableNumber(table);
-    setPopupPosition(position);
+
+    // Determine if this is public-facing (showing advanced form)
+    const isPublicFacing = isPublic;
+
+    // Add showAdvancedForm flag to position
+    const positionWithFormType = {
+      ...position,
+      showAdvancedForm: isPublicFacing,
+    };
+
+    setPopupPosition(positionWithFormType);
     setIsPopupOpen(true);
   };
 
-  const handleBookingSubmit = async ({ name, pax }) => {
+  const handleBookingSubmit = async ({
+    name,
+    firstName,
+    lastName,
+    email,
+    phone,
+    pax,
+    tableNumber: submittedTableNumber, // Rename to avoid confusion
+  }) => {
     if (!selectedEvent) {
       toast.showError("Please select an event first.");
       return;
     }
 
-    if (!name || !pax || !selectedTable) {
-      toast.showError("Please fill in all required fields.");
+    // Determine which table to use - prioritize the submitted one
+    const tableToBook = submittedTableNumber || selectedTable || tableNumber;
+
+    // Validate form data is present
+    if (!tableToBook) {
+      toast.showError("Please select a table first.");
       return;
+    }
+
+    if (!pax) {
+      toast.showError("Please specify number of people.");
+      return;
+    }
+
+    // Check if using simplified form based on presence of name but not firstName/lastName
+    const isSimplifiedForm = Boolean(name && (!firstName || !lastName));
+
+    if (isSimplifiedForm) {
+      if (!name || name.trim() === "") {
+        toast.showError("Please enter a guest name.");
+        return;
+      }
+    } else {
+      if (
+        !firstName ||
+        !lastName ||
+        firstName.trim() === "" ||
+        lastName.trim() === ""
+      ) {
+        toast.showError("Please enter first and last name.");
+        return;
+      }
+    }
+
+    // Validate email and phone if in public mode
+    if (isPublic) {
+      if (!email || !email.trim()) {
+        toast.showError("Please enter your email address.");
+        return;
+      }
+      if (!phone || !phone.trim()) {
+        toast.showError("Please enter your phone number.");
+        return;
+      }
     }
 
     if (remainingTables <= 0) {
@@ -172,46 +268,82 @@ function TableSystem({
       return;
     }
 
-    const isBackstageTable = tableCategories.backstage.includes(selectedTable);
+    // Determine if this is a backstage table based on dynamic config
+    let isBackstageTable = false;
+    if (layoutConfig && layoutConfig.tableConfig && selectedTable) {
+      const tableInfo = layoutConfig.tableConfig[selectedTable];
+      if (tableInfo && tableInfo.category === "D") {
+        isBackstageTable = true;
+      }
+    } else {
+      // Fallback to static check
+      isBackstageTable = tableCategories.backstage.includes(selectedTable);
+    }
 
     setIsSubmitting(true);
     const loadingToast = toast.showLoading(
-      user.isAdmin
+      isPublic
+        ? "Submitting table reservation request..."
+        : user.isAdmin
         ? "Booking table reservation..."
         : "Submitting table reservation request..."
     );
 
     try {
       const bookingData = {
-        name,
+        name, // Keep for backward compatibility
+        firstName,
+        lastName,
+        email,
+        phone,
         event: selectedEvent._id,
-        host: user.firstName || user.userName,
+        host: isPublic ? firstName : user?.firstName || user?.userName,
         condition: "TABLE RESERVATION",
-        hostId: user._id,
+        hostId: isPublic ? null : user?._id,
         pax,
         tableNumber: selectedTable,
         backstagePass: isBackstageTable,
         paxChecked: 0,
-        status: user.isAdmin ? "confirmed" : "pending",
-        isAdmin: user.isAdmin,
+        status: user && user.isAdmin ? "confirmed" : "pending",
+        isAdmin: user && user.isAdmin,
+        isPublic: isPublic, // Flag to identify public requests
       };
 
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/table/add`,
-        bookingData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use different endpoint for public vs. authenticated requests
+      const endpoint = isPublic
+        ? `${process.env.REACT_APP_API_BASE_URL}/table/public/add`
+        : `${process.env.REACT_APP_API_BASE_URL}/table/add`;
+
+      await axios.post(endpoint, bookingData, {
+        headers: isPublic
+          ? {}
+          : {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+      });
 
       loadingToast.dismiss();
-      toast.showSuccess(
-        user.isAdmin
-          ? "Table reservation booked successfully!"
-          : "Table reservation request submitted!"
-      );
+
+      // Show a more informative toast for public users
+      if (isPublic) {
+        toast.showSuccess(
+          <div className="custom-toast-content">
+            <h4>Thank you for your request!</h4>
+            <p>
+              We'll review your table reservation and send you a confirmation
+              email soon.
+            </p>
+            <p>
+              Please check your inbox at <strong>{email}</strong>
+            </p>
+          </div>,
+          { autoClose: 15000 } // Increased from 10000 to 15000 (15 seconds)
+        );
+      } else if (user && user.isAdmin) {
+        toast.showSuccess("Table reservation booked successfully!");
+      } else {
+        toast.showSuccess("Table reservation request submitted!");
+      }
 
       setIsSubmitting(false);
       setIsPopupOpen(false);
@@ -243,13 +375,64 @@ function TableSystem({
   };
 
   const handleRefresh = () => {
-    console.log("Manual refresh triggered");
     setIsSpinning(true);
     setRefreshTrigger((prev) => prev + 1);
 
     setTimeout(() => {
       setIsSpinning(false);
     }, 1000);
+  };
+
+  // Function to toggle between venues/layouts
+  const toggleVenue = (venue) => {
+    setSelectedVenue(venue);
+  };
+
+  // Add effect to ensure navigation menu works properly from this component
+  useEffect(() => {
+    // Function to handle navigation events from Dashboard
+    const handleNavigationStateChange = (event) => {
+      console.log(
+        "TableSystem: Received navigation state change:",
+        event.detail
+      );
+      // Any special handling for navigation state changes if needed
+    };
+
+    // Register for navigation events
+    window.addEventListener(
+      "navigationStateChanged",
+      handleNavigationStateChange
+    );
+
+    // Signal that this component is using Navigation
+    window.dispatchEvent(
+      new CustomEvent("subComponentMounted", {
+        detail: { component: "TableSystem", usesNavigation: true },
+      })
+    );
+
+    return () => {
+      window.removeEventListener(
+        "navigationStateChanged",
+        handleNavigationStateChange
+      );
+    };
+  }, []);
+
+  // Enhance the back button to ensure it communicates with Dashboard
+  const handleBack = () => {
+    console.log("TableSystem: Back button clicked");
+
+    // Notify any listeners that we're going back
+    window.dispatchEvent(
+      new CustomEvent("navigationBack", {
+        detail: { source: "TableSystem" },
+      })
+    );
+
+    // Call the provided onClose handler
+    if (onClose) onClose();
   };
 
   if (!selectedEvent) {
@@ -270,19 +453,48 @@ function TableSystem({
   }
 
   return (
-    <div className="table-system">
+    <div
+      className="table-system"
+      style={
+        isPublic ? { background: "none", paddingTop: 0, minHeight: "auto" } : {}
+      }
+    >
       <div className="table-system-wrapper">
-        <Navigation onBack={onClose} />
+        <Navigation
+          onBack={handleBack}
+          // Menu click is handled through global events - we don't need a local handler
+          onMenuClick={() => {
+            console.log("TableSystem: Menu clicked in TableSystem navigation");
+            // The global event is dispatched in Navigation component
+          }}
+        />
 
         <div className="table-system-content">
-          <h1 className="table-system-title">Table Booking</h1>
-
-          <div className="table-system-count">
-            <h4>Remaining Tables</h4>
-            <div className="table-system-count-number">
-              <p>{isLoading ? "..." : remainingTables}</p>
+          {isPublic ? (
+            <div className="table-booking-header">
+              <div className="table-booking-title-wrapper">
+                <h1 className="table-booking-title">
+                  <span className="title-icon">
+                    <RiTableLine />
+                  </span>
+                  <span className="title-text">TABLE BOOKING</span>
+                </h1>
+                <div className="title-decoration"></div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <h1 className="table-system-title">Table Booking</h1>
+          )}
+
+          {/* Show refresh button and table count summary only in non-public mode */}
+          {!isPublic && (
+            <div className="table-system-count">
+              <h4>Remaining Tables</h4>
+              <div className="table-system-count-number">
+                <p>{isLoading ? "..." : remainingTables}</p>
+              </div>
+            </div>
+          )}
 
           <div className="table-system-form">
             <TableBookingPopup
@@ -295,40 +507,75 @@ function TableSystem({
               tableNumber={selectedTable}
               onSubmit={handleBookingSubmit}
               position={popupPosition}
-              isAdmin={user.isAdmin}
+              isAdmin={user && user.isAdmin}
               isSubmitting={isSubmitting}
+              isPublic={isPublic}
             />
-            <TableLayout
-              counts={tableData}
-              tableNumber={tableNumber}
-              setTableNumber={handleTableSelection}
+
+            {isPublic ? (
+              <div className="table-layout-frame">
+                <div className="table-layout-decoration top-left"></div>
+                <div className="table-layout-decoration top-right"></div>
+                <div className="table-layout-decoration bottom-left"></div>
+                <div className="table-layout-decoration bottom-right"></div>
+                <div className="table-layout-overlay"></div>
+                <div className="table-layout-instruction">
+                  <span className="instruction-text">Click a Table </span>
+                </div>
+                <div className="table-layout-container">
+                  <TableLayoutBolivar
+                    counts={tableData}
+                    tableNumber={tableNumber}
+                    setTableNumber={handleTableSelection}
+                    refreshTrigger={refreshTrigger}
+                    onConfigurationLoaded={handleConfigurationLoaded}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="table-layout-container">
+                <TableLayoutBolivar
+                  counts={tableData}
+                  tableNumber={tableNumber}
+                  setTableNumber={handleTableSelection}
+                  refreshTrigger={refreshTrigger}
+                  onConfigurationLoaded={handleConfigurationLoaded}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Only show TableCodeManagement in non-public mode */}
+          {!isPublic && (
+            <div className="refresh-button">
+              <button
+                onClick={handleRefresh}
+                title="Refresh Data"
+                className={isSpinning ? "spinning" : ""}
+                disabled={isSpinning || isLoading}
+              >
+                <img src="/image/reload-icon.svg" alt="Refresh" />
+              </button>
+            </div>
+          )}
+
+          {/* Only show TableCodeManagement in non-public mode */}
+          {!isPublic && (
+            <TableCodeManagement
+              user={user}
+              triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
+              tableCategories={tableCategories}
+              layoutConfig={layoutConfig}
               refreshTrigger={refreshTrigger}
+              selectedEvent={selectedEvent}
+              counts={tableData}
+              isLoading={isLoading}
             />
-          </div>
-
-          <div className="refresh-button">
-            <button
-              onClick={handleRefresh}
-              title="Refresh Data"
-              className={isSpinning ? "spinning" : ""}
-              disabled={isSpinning || isLoading}
-            >
-              <img src="/image/reload-icon.svg" alt="Refresh" />
-            </button>
-          </div>
-
-          <TableCodeManagement
-            user={user}
-            triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
-            tableCategories={tableCategories}
-            refreshTrigger={refreshTrigger}
-            selectedEvent={selectedEvent}
-            counts={tableData}
-            isLoading={isLoading}
-          />
+          )}
         </div>
       </div>
-      <Footer />
+      {/* Only show Footer in non-public mode */}
+      {!isPublic && <Footer />}
     </div>
   );
 }

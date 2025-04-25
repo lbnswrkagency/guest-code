@@ -379,13 +379,21 @@ const configureCodeSettings = async (req, res) => {
           });
 
           if (founderRole) {
-            // Create permission key for the new code setting
-            const permissionKey = `codeSetting:${codeSetting._id}`;
+            // Update founder role with proper permissions format for the code generator
+            // Make sure the codes object exists in permissions
+            if (!founderRole.permissions) {
+              founderRole.permissions = {};
+            }
 
-            // Update founder role with maximum access to this code setting
-            founderRole.permissions = {
-              ...founderRole.permissions,
-              [permissionKey]: "write", // Maximum permission level
+            if (!founderRole.permissions.codes) {
+              founderRole.permissions.codes = {};
+            }
+
+            // Set permissions for this specific code type by name
+            founderRole.permissions.codes[codeSetting.name] = {
+              generate: true,
+              limit: 0,
+              unlimited: true,
             };
 
             await founderRole.save();

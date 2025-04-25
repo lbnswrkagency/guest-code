@@ -95,6 +95,13 @@ const TicketSettingsSchema = new Schema(
       min: 1,
       description: "Number of people allowed per ticket (for group tickets)",
     },
+    paymentMethod: {
+      type: String,
+      enum: ["online", "atEntrance"],
+      default: "online",
+      description:
+        "Payment method for tickets - online payment or payment at entrance",
+    },
     sortOrder: {
       type: Number,
       default: 0,

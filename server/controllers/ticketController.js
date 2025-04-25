@@ -5,6 +5,247 @@ const QRCode = require("qrcode");
 const puppeteer = require("puppeteer");
 const { format } = require("date-fns");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs").promises;
+const nodemailer = require("nodemailer");
+const TicketSettings = require("../models/ticketSettingsModel");
+const { sendEmail } = require("../utils/sendEmail");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+const { createEventEmailTemplate } = require("../utils/emailLayout");
+
+// Create a direct ticket order for pay-at-entrance option
+const createDirectTickets = async (req, res) => {
+  try {
+    const { firstName, lastName, email, eventId, tickets } = req.body;
+
+    if (!email || !eventId || !tickets || tickets.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Fetch the event details
+    const event = await Event.findById(eventId).populate("brand").populate({
+      path: "lineups",
+      select: "name category avatar",
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Verify that the event uses 'atEntrance' payment method for its tickets
+    const ticketSetting = await TicketSettings.findOne({
+      eventId: eventId,
+    });
+
+    if (!ticketSetting || ticketSetting.paymentMethod !== "atEntrance") {
+      return res.status(400).json({
+        success: false,
+        message: "This event doesn't support pay-at-entrance tickets",
+      });
+    }
+
+    // Create a mock order object (without Stripe integration)
+    const order = {
+      eventId,
+      email,
+      firstName,
+      lastName,
+      status: "pending-payment", // Special status for pay-at-entrance
+      tickets: tickets.map((ticket) => ({
+        ticketId: ticket.ticketId,
+        name: ticket.name,
+        quantity: ticket.quantity,
+        pricePerUnit: ticket.price,
+        pax: ticket.paxPerTicket || 1, // Map paxPerTicket from frontend to pax in our model
+      })),
+      paymentMethod: "atEntrance",
+      createdAt: new Date(),
+      _id: new mongoose.Types.ObjectId(), // Generate a new ID for the order
+    };
+
+    // Create tickets for the order
+    const createdTickets = [];
+    for (const item of order.tickets) {
+      for (let i = 0; i < item.quantity; i++) {
+        // Create ticket data
+        const ticketData = {
+          eventId: order.eventId,
+          userId:
+            req.user?._id ||
+            new mongoose.Types.ObjectId("000000000000000000000000"), // Use a default guest user ID if not logged in
+          orderId: order._id,
+          ticketType: "standard",
+          ticketName: item.name,
+          price: item.pricePerUnit,
+          pax: item.pax || 1, // Use the pax field from our order tickets
+          status: "pending-payment", // Special status for pay-at-entrance
+          paymentMethod: "atEntrance",
+          securityToken: generateRandomString(12), // Generate security token
+          // Add customer details separately
+          firstName: firstName,
+          lastName: lastName,
+          customerEmail: email,
+        };
+
+        // Create the ticket
+        const ticket = new Ticket(ticketData);
+        await ticket.save();
+        createdTickets.push(ticket);
+      }
+    }
+
+    // Send email with tickets attached as PDFs
+    try {
+      await sendPayAtEntranceEmail(order, createdTickets, event);
+    } catch (emailError) {
+      console.error("Error sending ticket email:", emailError);
+      // Continue even if email fails, we still created the tickets
+    }
+
+    // Update ticket settings with the number of tickets sold
+    for (const item of order.tickets) {
+      await TicketSettings.findByIdAndUpdate(
+        item.ticketId,
+        { $inc: { soldCount: item.quantity } },
+        { new: true }
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Tickets created successfully",
+      tickets: createdTickets.map((t) => ({
+        id: t._id,
+        securityToken: t.securityToken,
+      })),
+    });
+  } catch (error) {
+    console.error("Error creating direct tickets:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create tickets",
+      error: error.message,
+    });
+  }
+};
+
+// Function to send email for pay-at-entrance tickets
+const sendPayAtEntranceEmail = async (order, tickets, event) => {
+  try {
+    // Configure Brevo API client
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // If the event lineups aren't populated, fetch them now
+    let eventWithLineups = event;
+    if (event && (!event.lineups || !Array.isArray(event.lineups))) {
+      eventWithLineups = await Event.findById(event._id)
+        .populate("brand")
+        .populate({
+          path: "lineups",
+          select: "name category avatar",
+        });
+    }
+
+    // Generate PDF for each ticket
+    const ticketPDFs = [];
+    for (const ticket of tickets) {
+      const pdfBuffer = await generateTicketPDF(ticket);
+      ticketPDFs.push({
+        content: pdfBuffer.toString("base64"),
+        name: `ticket_${ticket.securityToken}.pdf`,
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = calcTotalAmount(order);
+
+    // Create additional content specific to pay-at-entrance tickets
+    const additionalContent = `
+      <div style="background-color: #f8f8f8; border-left: 4px solid #ff9800; padding: 15px; margin: 25px 0;">
+        <p style="margin: 0; font-weight: 600; font-size: 18px; color: #ff9800;">Important: Payment at Entrance</p>
+        <p style="margin: 8px 0 0; font-size: 15px;">These tickets are only valid when paid at the venue entrance.</p>
+        <p style="margin: 8px 0 0;">Total Amount Due: <strong>€${totalAmount}</strong></p>
+        <p style="margin: 8px 0 0;">Payment Method: <strong>Pay at Entrance</strong></p>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your tickets are attached to this email. Please bring them with you to the event and be prepared to pay the above amount before entry.</p>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; color: #666;">Please note that this is not an invoice, but a ticket reservation. Your reservation will be held for the event, but payment must be completed at the venue entrance.</p>
+      </div>
+    `;
+
+    // Use the common email template
+    const htmlContent = createEventEmailTemplate({
+      recipientName: `${order.firstName} ${order.lastName}`,
+      eventTitle: eventWithLineups?.title || "Event",
+      eventDate: eventWithLineups?.startDate || eventWithLineups?.date,
+      eventLocation:
+        eventWithLineups?.location || eventWithLineups?.venue || "",
+      eventAddress: eventWithLineups?.street || "",
+      eventCity: eventWithLineups?.city || "",
+      eventPostalCode: eventWithLineups?.postalCode || "",
+      startTime: eventWithLineups?.startTime || "",
+      endTime: eventWithLineups?.endTime || "",
+      description:
+        "Thank you for reserving tickets for this event. Please see important payment information below.",
+      lineups: eventWithLineups?.lineups || [],
+      primaryColor: eventWithLineups?.brand?.colors?.primary || "#ff9800",
+      additionalContent: additionalContent,
+      footerText:
+        "This is an automated email. For any questions, please contact the event organizer.",
+    });
+
+    // Build email parameters
+    const emailParams = {
+      sender: {
+        name: eventWithLineups?.brand?.name || "GuestCode",
+        email: process.env.SENDER_EMAIL || "noreply@guest-code.com",
+      },
+      to: [
+        {
+          email: order.email,
+          name: `${order.firstName} ${order.lastName}`,
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guest-code.com",
+        name: "GuestCode Support",
+      },
+      subject: `Your Tickets for ${eventWithLineups?.title} - Payment at Entrance`,
+      htmlContent: htmlContent,
+      attachment: ticketPDFs,
+    };
+
+    // Send email using Brevo API
+    const result = await apiInstance.sendTransacEmail(emailParams);
+    console.log(
+      `Email sent to ${order.email} with ${tickets.length} tickets for pay-at-entrance`
+    );
+    return result;
+  } catch (error) {
+    console.error("Error sending pay-at-entrance email:", error);
+    throw error;
+  }
+};
+
+// Helper function to calculate total amount from order
+const calcTotalAmount = (order) => {
+  return order.tickets
+    .reduce((total, item) => total + item.pricePerUnit * item.quantity, 0)
+    .toFixed(2);
+};
 
 // Function to generate random string for ticket codes
 const generateRandomString = (length = 8) => {
@@ -54,7 +295,12 @@ const createTicketsForOrder = async (order, userId) => {
           ticketName: item.name,
           price: item.pricePerUnit,
           pax: item.pax || 1, // Set pax from the item or default to 1
-          // Additional fields can be added here if needed
+          // Add customer details if available in the order (separate first and last name)
+          firstName: order.firstName || null,
+          lastName: order.lastName || null,
+          customerEmail: order.email || null,
+          // Add billing address if available
+          billingAddress: order.billingAddress || order.address || null,
         };
 
         const ticket = await createTicket(ticketData);
@@ -122,7 +368,10 @@ const generateTicketPDF = async (ticket) => {
     // Fetch related data
     const event = await Event.findById(ticket.eventId)
       .populate("brand")
-      .populate("lineups");
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      });
     const brand = event ? await Brand.findById(event.brand) : null;
 
     // Get ticket settings to check for countdown
@@ -156,6 +405,14 @@ const generateTicketPDF = async (ticket) => {
     // Create a short ticket code for display - shorter version (6 characters)
     const ticketCode = ticket.securityToken.substring(0, 6).toUpperCase();
 
+    // Special heading for pay-at-entrance tickets
+    const payAtEntranceHeader =
+      ticket.paymentMethod === "atEntrance"
+        ? `<div style="position: absolute; top: 0.5rem; left: 0; right: 0; text-align: center; background-color: ${primaryColor}; padding: 5px; color: ${accentColor}; font-weight: bold; font-size: 0.8rem;">
+        Payment at Entrance
+      </div>`
+        : "";
+
     // Create HTML template for the ticket
     const htmlTemplate = `
     <html>
@@ -173,6 +430,8 @@ const generateTicketPDF = async (ticket) => {
       </head>
       <body
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: 'Manrope', sans-serif;">
+        ${payAtEntranceHeader}
+        
         <!-- Center the header elements -->
         <div style="position: absolute; top: 3.25rem; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 2.313rem;">
           <h1 style="margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>
@@ -270,6 +529,8 @@ const generateTicketPDF = async (ticket) => {
               }      
             </div>
           </div>
+          
+          ${ticket.paymentMethod === "atEntrance" ? `` : ""}
         </div>
 
         <!-- QR Code section with centered QR and floating code -->
@@ -334,7 +595,34 @@ const validateTicket = async (req, res) => {
         .json({ valid: false, message: "Ticket not found" });
     }
 
-    if (ticket.status !== "valid") {
+    // For pay-at-entrance tickets, we need special handling
+    if (ticket.paymentMethod === "atEntrance") {
+      if (ticket.status === "pending-payment") {
+        return res.status(200).json({
+          valid: true,
+          requiresPayment: true,
+          message: "Ticket requires payment at entrance",
+          ticket: {
+            id: ticket._id,
+            type: ticket.ticketType,
+            name: ticket.ticketName,
+            price: ticket.price,
+            event:
+              (await Event.findById(ticket.eventId))?.title || "Unknown Event",
+          },
+        });
+      } else if (ticket.status === "paid") {
+        // If already paid, handle it like a normal valid ticket
+        if (ticket.usedAt) {
+          return res.status(400).json({
+            valid: false,
+            message: `Ticket has already been used at ${ticket.usedAt.toLocaleString()}`,
+            status: "used",
+            usedAt: ticket.usedAt,
+          });
+        }
+      }
+    } else if (ticket.status !== "valid") {
       return res.status(400).json({
         valid: false,
         message: `Ticket is ${ticket.status}`,
@@ -344,7 +632,7 @@ const validateTicket = async (req, res) => {
     }
 
     // Mark ticket as used
-    ticket.status = "used";
+    ticket.status = ticket.paymentMethod === "atEntrance" ? "paid" : "used";
     ticket.usedAt = new Date();
     await ticket.save();
 
@@ -353,13 +641,17 @@ const validateTicket = async (req, res) => {
 
     return res.json({
       valid: true,
-      message: "Ticket validated successfully",
+      message:
+        ticket.paymentMethod === "atEntrance"
+          ? "Ticket marked as paid and validated"
+          : "Ticket validated successfully",
       ticket: {
         id: ticket._id,
         type: ticket.ticketType,
         name: ticket.ticketName,
-        event: event?.title || "Unknown Event",
         price: ticket.price,
+        event: event?.title || "Unknown Event",
+        paymentMethod: ticket.paymentMethod,
       },
     });
   } catch (error) {
@@ -397,4 +689,5 @@ module.exports = {
   generateTicketPDF,
   validateTicket,
   getUserTickets,
+  createDirectTickets,
 };

@@ -1,9 +1,10 @@
 @import "../../_variables";
 
 .table-code-management {
-  padding: 1rem;
   color: #fff;
-  margin-top: 1rem;
+  padding-right: 1rem;
+  padding-left: 1rem;
+  padding-bottom: 1rem;
   width: 100%;
   position: relative;
 
@@ -189,6 +190,71 @@
         );
       }
 
+      // Public request specific styling
+      &.public-request {
+        background: rgba(21, 21, 21, 0.85); // Slightly different background
+        border-left: 3px solid #1e88e5; // Blue left border for public requests
+
+        &::after {
+          content: "Public";
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          font-size: 0.7rem;
+          background: rgba(30, 136, 229, 0.2);
+          color: #1e88e5;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+        }
+
+        .reservation-info {
+          .guest-details {
+            .contact-details {
+              margin-top: 0.25rem;
+              margin-bottom: 0.25rem;
+              display: grid;
+              gap: 0.25rem;
+              font-size: 0.8rem;
+
+              .guest-email,
+              .guest-phone {
+                color: rgba(255, 255, 255, 0.7);
+                display: flex;
+                align-items: center;
+
+                &:before {
+                  margin-right: 0.35rem;
+                  font-size: 0.7rem;
+                }
+              }
+
+              .guest-email:before {
+                content: "📧";
+              }
+
+              .guest-phone:before {
+                content: "📱";
+              }
+            }
+          }
+        }
+
+        // Override colors for status badges in public requests
+        .status-badge {
+          &.pending {
+            background-color: rgba(30, 136, 229, 0.15);
+            color: #42a5f5;
+          }
+
+          &.confirmed {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #66bb6a;
+          }
+        }
+      }
+
       .reservation-details {
         display: flex;
         justify-content: space-between;
@@ -221,7 +287,7 @@
             font-weight: bold;
             font-size: 1.2rem;
             color: white;
-            overflow: hidden;
+            overflow: visible;
             position: relative;
 
             @media (max-width: 768px) {
@@ -234,6 +300,53 @@
             &:hover {
               transform: scale(1.05);
               box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            }
+
+            &.editing-dropdown {
+              animation: pulse-highlight 1.5s infinite;
+              box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7),
+                0 6px 15px rgba(0, 0, 0, 0.4);
+              transform: scale(1.05);
+              &:hover {
+                transform: scale(1.1);
+              }
+
+              // Add a glowing border
+              &:before {
+                content: "";
+                position: absolute;
+                top: -3px;
+                left: -3px;
+                right: -3px;
+                bottom: -3px;
+                border-radius: 0.6rem;
+                background: linear-gradient(
+                  45deg,
+                  rgba(255, 255, 255, 0.8),
+                  rgba(255, 255, 255, 0.2),
+                  rgba(255, 255, 255, 0.8)
+                );
+                z-index: -1;
+                animation: rotate-gradient 2s linear infinite;
+              }
+
+              // Add an arrow icon to indicate it's a dropdown
+              &:after {
+                content: "▼";
+                position: absolute;
+                bottom: -22px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 14px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 2px 8px;
+                border-radius: 4px;
+                color: white;
+                opacity: 1;
+                z-index: 10;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.4);
+              }
             }
 
             .table-select-inline {
@@ -273,7 +386,7 @@
               cursor: pointer;
 
               &:after {
-                content: "▼";
+                content: none;
                 position: absolute;
                 bottom: 0.25rem;
                 right: 0.25rem;
@@ -305,16 +418,28 @@
               position: relative;
               width: 100%;
               height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: rgba(0, 0, 0, 0.15);
 
+              /* Only keep the bottom arrow, remove any other indicators within the wrapper */
               &:after {
                 content: "▼";
                 position: absolute;
-                bottom: 0.25rem;
-                right: 0.25rem;
-                font-size: 0.6rem;
-                opacity: 0.8;
+                bottom: -22px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 14px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 2px 8px;
+                border-radius: 4px;
+                color: white;
+                opacity: 1;
                 pointer-events: none;
-                z-index: 1;
+                z-index: 10;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.4);
               }
 
               &:hover:before {
@@ -325,8 +450,8 @@
                 content: "";
                 position: absolute;
                 inset: 0;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                opacity: 0;
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                opacity: 1;
                 transition: opacity 0.2s ease;
                 pointer-events: none;
                 border-radius: 0.4rem;
@@ -782,54 +907,6 @@
     }
   }
 
-  .load-more-btn {
-    display: block;
-    width: 100%;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.75rem;
-    color: white;
-    cursor: pointer;
-    margin-top: 1.5rem;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.05) 50%,
-        rgba(255, 255, 255, 0) 100%
-      );
-      transform: translateX(-100%);
-      transition: transform 0.6s ease;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-
-      &::before {
-        transform: translateX(100%);
-      }
-    }
-
-    &:active {
-      transform: translateY(-1px);
-    }
-  }
-
   .delete-modal-overlay {
     position: fixed;
     top: 0;
@@ -1179,6 +1256,30 @@
     }
     100% {
       transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-highlight {
+    0% {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7),
+        0 6px 15px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9),
+        0 6px 20px rgba(0, 0, 0, 0.6);
+    }
+    100% {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7),
+        0 6px 15px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  @keyframes rotate-gradient {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
     }
   }
 }

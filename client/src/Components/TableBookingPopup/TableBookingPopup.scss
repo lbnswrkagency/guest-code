@@ -14,6 +14,7 @@
   border-radius: 16px;
   padding: 1.5rem;
   width: 340px; // Slightly wider than before
+  max-width: 95vw; // Ensure it doesn't overflow on mobile
   box-shadow: 0 4px 20px -1px rgba(0, 0, 0, 0.3),
     0 2px 8px -1px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -24,6 +25,13 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  max-height: 90vh;
+  overflow-y: auto;
+
+  // Styles for public form
+  &.public-form {
+    width: 380px; // Make public form a bit wider
+  }
 
   // Gradient overlay
   &::before {
@@ -108,6 +116,18 @@
   }
 }
 
+.popup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+  }
+}
+
 .popup-input {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -116,15 +136,35 @@
   color: white;
   font-size: 1rem;
   transition: all 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
 
   &:focus {
     outline: none;
     border-color: rgba(255, 215, 0, 0.5);
     box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.2);
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
+  }
+
+  &:not(:placeholder-shown) {
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
   }
 
   &::placeholder {
     color: rgba(255, 255, 255, 0.4);
+  }
+
+  // Override any browser auto-fill styles
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus,
+  &:-webkit-autofill:active {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0 30px #121212 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.2);
   }
 }
 
@@ -136,27 +176,86 @@
   background-position: right 1rem center;
   background-size: 0.65rem auto;
   padding-right: 2.5rem;
+
+  color: white;
+
+  option {
+    background-color: #121212;
+    color: white;
+  }
+}
+
+.popup-notice {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 8px;
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+  }
 }
 
 .popup-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.5),
+    rgba(255, 165, 0, 0.5)
+  );
+  color: white;
+  font-weight: 600;
   padding: 0.875rem;
   border-radius: 8px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 1rem;
+  margin-top: 0.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 215, 0, 0.6),
+      rgba(255, 165, 0, 0.6)
+    );
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   &:disabled {
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
+    box-shadow: none;
+    text-shadow: none;
+  }
+}
+
+.custom-toast-content {
+  h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 }
 

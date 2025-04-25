@@ -84,7 +84,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
-
+  z-index: 0;
   // Paper texture overlay
   &::before {
     content: "";
@@ -268,6 +268,53 @@
   & > * {
     position: relative;
     z-index: 2;
+  }
+
+  // Group ticket badge
+  .ticket-group-badge {
+    position: absolute;
+    bottom: 5rem;
+    right: 1rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
+    color: var(--ticket-accent-color);
+    padding: 0.4rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+    // Position below countdown if both are present
+    &:has(.ticket-countdown) {
+      top: 3.5rem;
+    }
+
+    // Metallic effect with a slightly different gradient than countdown
+    background-image: linear-gradient(
+      135deg,
+      rgba(10, 10, 10, 0.8) 0%,
+      rgba(40, 40, 40, 0.9) 50%,
+      rgba(10, 10, 10, 0.8) 100%
+    );
+
+    svg {
+      font-size: 1rem;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+    }
+
+    span {
+      white-space: nowrap;
+    }
+  }
+
+  // Add a new rule after the ticket-countdown class
+  .ticket-countdown + .ticket-group-badge {
+    top: 3.5rem;
   }
 
   // Countdown badge

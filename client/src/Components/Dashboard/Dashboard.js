@@ -54,121 +54,16 @@ const Dashboard = () => {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [shouldRefreshNav, setShouldRefreshNav] = useState(false);
 
-  // Single comprehensive log function
-  const logAppData = () => {
-    // Get persisted data
-    let persistedData = null;
-    try {
-      const persistedDataString = localStorage.getItem("persist:root");
-      if (persistedDataString) {
-        const parsedData = JSON.parse(persistedDataString);
+  // Add debug logger for navigation state
+  const toggleNavigation = (isOpen) => {
+    // Broadcast navigation state change to other components
+    window.dispatchEvent(
+      new CustomEvent("navigationStateChanged", {
+        detail: { isOpen },
+      })
+    );
 
-        persistedData = {
-          brands: parsedData.brand
-            ? JSON.parse(parsedData.brand).allBrands?.length || 0
-            : 0,
-          events: parsedData.events
-            ? JSON.parse(parsedData.events).allEvents?.length || 0
-            : 0,
-          roles: parsedData.roles
-            ? JSON.parse(parsedData.roles).allRoles?.length || 0
-            : 0,
-          codeSettings: parsedData.codeSettings
-            ? JSON.parse(parsedData.codeSettings).allCodeSettings?.length || 0
-            : 0,
-          lineups: parsedData.lineup
-            ? JSON.parse(parsedData.lineup).allLineups?.length || 0
-            : 0,
-        };
-      }
-    } catch (error) {
-      persistedData = { error: error.message };
-    }
-
-    // Prepare brand data with events and roles
-    const brandsData = brands.map((brand) => {
-      const brandEvents = events.filter((event) => event.brand === brand._id);
-      const userRoleId = userRoles[brand._id];
-      const userRole = roles.find((role) => role._id === userRoleId);
-      const brandLineups = lineups.filter(
-        (lineup) => lineup.brandId === brand._id
-      );
-
-      return {
-        id: brand._id,
-        name: brand.name,
-        logo: brand.logo ? true : false,
-        eventsCount: brandEvents.length,
-        lineupsCount: brandLineups.length,
-        role: userRole
-          ? {
-              id: userRole._id,
-              name: userRole.name,
-              isFounder: userRole.isFounder,
-              permissions: userRole.permissions || null,
-            }
-          : null,
-      };
-    });
-
-    // Log all data in one comprehensive object
-    console.log("🔄 [GuestCode] Application Data:", {
-      user: {
-        id: user?._id,
-        username: user?.username,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        email: user?.email,
-        hasAvatar: user?.avatar ? true : false,
-        isAdmin: user?.isAdmin,
-        isVerified: user?.isVerified,
-      },
-      counts: {
-        brands: brands.length,
-        events: events.length,
-        roles: roles.length,
-        codeSettings: codeSettings.length,
-        lineups: lineups.length,
-      },
-      brands: brandsData,
-      lineupData: {
-        total: lineups.length,
-        byBrand: brands
-          .map((brand) => {
-            const brandLineups = lineups.filter(
-              (lineup) => lineup.brandId === brand._id
-            );
-            return {
-              brandId: brand._id,
-              brandName: brand.name,
-              lineupCount: brandLineups.length,
-              lineupCategories: [
-                ...new Set(brandLineups.map((l) => l.category)),
-              ],
-              lineupSample: brandLineups.slice(0, 2).map((l) => ({
-                id: l._id,
-                name: l.name,
-                category: l.category,
-                hasAvatar: l.avatar ? true : false,
-              })),
-            };
-          })
-          .filter((b) => b.lineupCount > 0),
-      },
-      roles: {
-        count: roles.length,
-        sample: roles.slice(0, 3).map((role) => ({
-          id: role._id,
-          name: role.name,
-          brandId: role.brandId,
-          isFounder: role.isFounder,
-          hasPermissions: !!role.permissions,
-          permissions: role.permissions || null,
-        })),
-      },
-      persistence: persistedData,
-      timestamp: new Date().toISOString(),
-    });
+    setIsNavigationOpen(isOpen);
   };
 
   useEffect(() => {
@@ -178,9 +73,8 @@ const Dashboard = () => {
       return;
     }
 
-    // Log data once
+    // Mark data as loaded
     if (!hasLoggedStore.current) {
-      logAppData();
       hasLoggedStore.current = true;
     }
   }, [user, brands, events, roles, codeSettings, navigate]);
@@ -192,16 +86,11 @@ const Dashboard = () => {
         event.detail.userId === user?._id ||
         event.detail.userId === user?.id
       ) {
-        console.log("[Dashboard] Alpha access granted event received");
-
         // Get the latest user from Redux store
         const latestUser = store.getState().user;
 
         // Double-check that the Redux store has the updated isAlpha status
         if (!latestUser.isAlpha) {
-          console.log(
-            "[Dashboard] Forcing Redux store update as isAlpha is still false"
-          );
           // Force the Redux store update if somehow it wasn't updated
           store.dispatch({
             type: "user/updateUser",
@@ -568,6 +457,16 @@ const Dashboard = () => {
     return brandCodeSettings;
   };
 
+  // Get code settings for the selected event
+  const getCodeSettingsForSelectedEvent = () => {
+    if (!selectedEvent) return [];
+
+    // Filter code settings for the selected event
+    return codeSettings.filter(
+      (setting) => setting.eventId === selectedEvent._id
+    );
+  };
+
   // Get user's role permissions for the selected brand
   const getUserRolePermissions = () => {
     if (!selectedBrand || !selectedBrand.role) return null;
@@ -639,6 +538,49 @@ const Dashboard = () => {
     setSelectedDate(date);
   };
 
+  // Add a helper function to force the navigation to render properly
+  const forceNavigationRender = () => {
+    // Force a re-render cycle for the navigation
+    setIsNavigationOpen(false);
+    setTimeout(() => setIsNavigationOpen(true), 50);
+  };
+
+  // Add effect to handle component transitions
+  useEffect(() => {
+    // When any of these states change, it means we're switching views
+    if (codeType || showScanner || showStatistic || showTableSystem) {
+      // If a new component is shown and navigation was open, ensure it stays open
+      if (isNavigationOpen) {
+        // Short delay to ensure state propagation
+        setTimeout(() => {
+          setIsNavigationOpen(true);
+        }, 100);
+      }
+    }
+  }, [codeType, showScanner, showStatistic, showTableSystem, isNavigationOpen]);
+
+  // Add global navigation event handlers
+  useEffect(() => {
+    // Handle menu button clicks from any Navigation component
+    const handleGlobalMenuClick = (event) => {
+      toggleNavigation(true);
+    };
+
+    // Listen for the custom navigation events
+    window.addEventListener("navigationMenuClick", handleGlobalMenuClick);
+
+    // Broadcast that Dashboard is the active controller
+    window.dispatchEvent(
+      new CustomEvent("dashboardMounted", {
+        detail: { navigationController: true },
+      })
+    );
+
+    return () => {
+      window.removeEventListener("navigationMenuClick", handleGlobalMenuClick);
+    };
+  }, []);
+
   if (!user) return null;
 
   // Get the user's role for the selected brand
@@ -652,64 +594,90 @@ const Dashboard = () => {
   // Check if user has no brands
   const hasNoBrands = brands.length === 0;
 
+  // Debug log for selected data
+  console.log("Current selection:", {
+    selectedEventId: selectedEvent?._id || null,
+    selectedBrandId: selectedBrand?._id || null,
+    eventCodeSettings: selectedEvent
+      ? getCodeSettingsForSelectedEvent().map((cs) => cs._id)
+      : [],
+  });
+
   return (
     <div className="dashboard">
       <Navigation
         onBack={handleBack}
-        onMenuClick={() => setIsNavigationOpen(true)}
+        onMenuClick={() => {
+          toggleNavigation(true);
+
+          // Dispatch a global event to ensure all components are notified
+          window.dispatchEvent(
+            new CustomEvent("navigationMenuClick", {
+              detail: { source: "dashboard" },
+            })
+          );
+        }}
         onLogout={handleLogout}
       />
       <div className="dashboard-content">
         {codeType ? (
           <CodeGenerator
             user={user}
-            onClose={() => setCodeType("")}
+            onClose={() => {
+              setCodeType("");
+              // Preserve navigation state when closing
+              if (isNavigationOpen)
+                setTimeout(() => setIsNavigationOpen(true), 50);
+            }}
             type={codeType}
-            codeSettings={brandCodeSettings}
+            codeSettings={getCodeSettingsForSelectedEvent()}
             codePermissions={codePermissions}
             accessSummary={accessSummary}
             selectedBrand={selectedBrand}
             selectedEvent={selectedEvent}
             refreshCounts={() => {
-              console.log("Refreshing code counts");
               // Force a refresh of the dashboard data if needed
               store.dispatch({ type: "FORCE_REFRESH" });
             }}
             onEventDataUpdate={(updatedEvent) => {
-              console.log("Brand-specific CodeSettings for Dashboard:", {
-                brand: selectedBrand?.name,
-                brandId: selectedBrand?._id,
-                codeSettingsCount: brandCodeSettings.length,
-                eventId: selectedEvent?._id,
-                user: user
-                  ? {
-                      id: user._id || user.id,
-                      username: user.username,
-                    }
-                  : "No user",
-              });
+              // Event data updated handler
             }}
           />
         ) : showScanner ? (
           <Scanner
             user={user}
-            onClose={() => setShowScanner(false)}
+            onClose={() => {
+              setShowScanner(false);
+              // Preserve navigation state when closing
+              if (isNavigationOpen)
+                setTimeout(() => setIsNavigationOpen(true), 50);
+            }}
             selectedEvent={selectedEvent}
             selectedBrand={selectedBrand}
           />
         ) : showStatistic ? (
           <Analytics
             user={user}
-            onClose={() => setShowStatistic(false)}
+            onClose={() => {
+              setShowStatistic(false);
+              // Preserve navigation state when closing
+              if (isNavigationOpen)
+                setTimeout(() => setIsNavigationOpen(true), 50);
+            }}
             selectedBrand={selectedBrand}
             selectedEvent={selectedEvent}
           />
         ) : showTableSystem ? (
           <TableSystem
             user={user}
-            onClose={() => setShowTableSystem(false)}
+            onClose={() => {
+              setShowTableSystem(false);
+              // Preserve navigation state when closing
+              if (isNavigationOpen)
+                setTimeout(() => setIsNavigationOpen(true), 50);
+            }}
             refreshCounts={() => {
-              console.log("Refreshing table counts");
+              // Force refresh
               store.dispatch({ type: "FORCE_REFRESH" });
             }}
             selectedEvent={selectedEvent}
@@ -775,7 +743,9 @@ const Dashboard = () => {
 
       <DashboardNavigation
         isOpen={isNavigationOpen}
-        onClose={() => setIsNavigationOpen(false)}
+        onClose={() => {
+          toggleNavigation(false);
+        }}
         currentUser={user}
         setUser={(updatedUser) => {
           store.dispatch({
@@ -783,7 +753,6 @@ const Dashboard = () => {
             payload: updatedUser,
           });
         }}
-        key={`nav-${shouldRefreshNav}-${user?.isAlpha}`}
       />
     </div>
   );

@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "./GuestCode.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
-import { RiUserLine, RiMailLine, RiCodeSSlashLine } from "react-icons/ri";
+import {
+  RiUserLine,
+  RiMailLine,
+  RiCodeSSlashLine,
+  RiTicket2Line,
+  RiVipCrownLine,
+  RiGroupLine,
+  RiShieldCheckLine,
+  RiMailSendLine,
+} from "react-icons/ri";
 
 /**
  * GuestCode component for requesting guest codes for events
@@ -23,6 +32,7 @@ const GuestCode = ({ event }) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const [existingCodeWarning, setExistingCodeWarning] = useState("");
+  const [formTouched, setFormTouched] = useState({});
 
   // Validate email format
   const isValidEmail = (email) => {
@@ -72,6 +82,38 @@ const GuestCode = ({ event }) => {
     }
 
     return "Please fill in your details to request a guest code for this event.";
+  };
+
+  // Handle field change
+  const handleFieldChange = (field, value) => {
+    // Update form touched state
+    setFormTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+
+    // Update field value
+    switch (field) {
+      case "name":
+        setGuestName(value);
+        break;
+      case "email":
+        setGuestEmail(value);
+        break;
+      case "pax":
+        setGuestPax(parseInt(value));
+        break;
+      default:
+        break;
+    }
+
+    // Clear error for this field if it exists
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [field]: null,
+      }));
+    }
   };
 
   const handleGenerateGuestCode = async () => {
@@ -142,6 +184,7 @@ const GuestCode = ({ event }) => {
         setGuestName("");
         setGuestEmail("");
         setGuestPax(1);
+        setFormTouched({});
 
         // Show success message
         setSuccessMessage(
@@ -181,88 +224,185 @@ const GuestCode = ({ event }) => {
 
   return (
     <div className="guest-code-container">
-      <div
+      <motion.div
         className="guest-code-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
         style={{
-          background: `linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95)), 
-                    linear-gradient(to right, rgba(0, 0, 0, 0), ${primaryColor}40, rgba(0, 0, 0, 0))`,
+          background: `linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95))`,
+          borderLeft: `4px solid ${primaryColor}`,
         }}
       >
-        <h3 className="guest-code-title">Request Guest Code</h3>
+        <div className="card-header">
+          <div className="title-area">
+            <RiVipCrownLine
+              className="title-icon"
+              style={{ color: primaryColor }}
+            />
+            <h3 className="guest-code-title">Request Guest Code</h3>
+          </div>
+        </div>
 
         {/* Condition text from code settings */}
-        <p className="condition-text">{getConditionText()}</p>
+        <div className="condition-wrapper">
+          <RiShieldCheckLine
+            className="condition-icon"
+            style={{ color: primaryColor }}
+          />
+          <p className="condition-text">{getConditionText()}</p>
+        </div>
 
         {/* Success message */}
-        {successMessage && (
-          <div className="success-message">
+        <AnimatePresence>
+          {successMessage && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="success-content"
+              className="success-message"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
             >
-              {successMessage}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="success-content"
+              >
+                <RiMailSendLine className="success-icon" />
+                {successMessage}
+              </motion.div>
             </motion.div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
 
         {/* Existing code warning message */}
-        {existingCodeWarning && (
-          <div className="warning-message">
+        <AnimatePresence>
+          {existingCodeWarning && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="warning-content"
+              className="warning-message"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
             >
-              <RiCodeSSlashLine className="warning-icon" />
-              {existingCodeWarning}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="warning-content"
+              >
+                <RiCodeSSlashLine className="warning-icon" />
+                {existingCodeWarning}
+              </motion.div>
             </motion.div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
 
         <div className="guest-code-form">
           <div className="form-group">
-            <div className="input-icon">
+            <div
+              className="input-icon"
+              style={{ color: formTouched.name ? primaryColor : undefined }}
+            >
               <RiUserLine />
             </div>
             <input
               type="text"
               placeholder="Your Name"
               value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              className={formErrors.name ? "error" : ""}
+              onChange={(e) => handleFieldChange("name", e.target.value)}
+              onBlur={() => setFormTouched((prev) => ({ ...prev, name: true }))}
+              className={
+                formErrors.name
+                  ? "error"
+                  : formTouched.name && guestName
+                  ? "valid"
+                  : ""
+              }
+              style={{
+                borderColor:
+                  formTouched.name && !formErrors.name && guestName
+                    ? `${primaryColor}40`
+                    : undefined,
+              }}
             />
             {formErrors.name && (
               <div className="error-message">{formErrors.name}</div>
             )}
+            {formTouched.name && guestName && !formErrors.name && (
+              <div
+                className="valid-indicator"
+                style={{ backgroundColor: primaryColor }}
+              ></div>
+            )}
           </div>
 
           <div className="form-group">
-            <div className="input-icon">
+            <div
+              className="input-icon"
+              style={{ color: formTouched.email ? primaryColor : undefined }}
+            >
               <RiMailLine />
             </div>
             <input
               type="email"
               placeholder="Your Email"
               value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-              className={formErrors.email ? "error" : ""}
+              onChange={(e) => handleFieldChange("email", e.target.value)}
+              onBlur={() => {
+                setFormTouched((prev) => ({ ...prev, email: true }));
+                if (guestEmail && !isValidEmail(guestEmail)) {
+                  setFormErrors((prev) => ({
+                    ...prev,
+                    email: "Please enter a valid email address",
+                  }));
+                }
+              }}
+              className={
+                formErrors.email
+                  ? "error"
+                  : formTouched.email && isValidEmail(guestEmail)
+                  ? "valid"
+                  : ""
+              }
+              style={{
+                borderColor:
+                  formTouched.email &&
+                  !formErrors.email &&
+                  isValidEmail(guestEmail)
+                    ? `${primaryColor}40`
+                    : undefined,
+              }}
             />
             {formErrors.email && (
               <div className="error-message">{formErrors.email}</div>
             )}
+            {formTouched.email &&
+              isValidEmail(guestEmail) &&
+              !formErrors.email && (
+                <div
+                  className="valid-indicator"
+                  style={{ backgroundColor: primaryColor }}
+                ></div>
+              )}
           </div>
 
           <div className="form-group">
-            <div className="input-icon">
-              <RiCodeSSlashLine />
+            <div
+              className="input-icon"
+              style={{ color: formTouched.pax ? primaryColor : undefined }}
+            >
+              <RiGroupLine />
             </div>
             <select
               value={guestPax}
-              onChange={(e) => setGuestPax(parseInt(e.target.value))}
-              className={formErrors.pax ? "error" : ""}
+              onChange={(e) => handleFieldChange("pax", e.target.value)}
+              onBlur={() => setFormTouched((prev) => ({ ...prev, pax: true }))}
+              className={
+                formErrors.pax ? "error" : formTouched.pax ? "valid" : ""
+              }
+              style={{
+                borderColor: formTouched.pax ? `${primaryColor}40` : undefined,
+              }}
             >
               {[...Array(maxPax)].map((_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -273,25 +413,48 @@ const GuestCode = ({ event }) => {
             {formErrors.pax && (
               <div className="error-message">{formErrors.pax}</div>
             )}
+            {formTouched.pax && !formErrors.pax && (
+              <div
+                className="valid-indicator"
+                style={{ backgroundColor: primaryColor }}
+              ></div>
+            )}
           </div>
 
-          <button
+          <motion.button
             className="guest-code-button"
             onClick={handleGenerateGuestCode}
             disabled={generatingCode}
-            style={{ backgroundColor: primaryColor }}
+            whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(0,0,0,0.3)" }}
+            whileTap={{ y: 0, boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}
+            style={{
+              background: primaryColor,
+              backgroundImage: generatingCode
+                ? "none"
+                : `linear-gradient(to bottom, ${primaryColor}DD, ${primaryColor})`,
+            }}
           >
             {generatingCode ? (
               <>
                 <div className="loading-spinner"></div>
-                Generating...
+                <span>Generating...</span>
               </>
             ) : (
-              "Generate Guest Code"
+              <>
+                <RiCodeSSlashLine className="button-icon" />
+                <span>Generate Guest Code</span>
+              </>
             )}
-          </button>
+          </motion.button>
         </div>
-      </div>
+
+        <div className="guest-code-footer">
+          <RiShieldCheckLine style={{ color: primaryColor }} />
+          <span>
+            Your information is secure and will only be used for this event
+          </span>
+        </div>
+      </motion.div>
     </div>
   );
 };

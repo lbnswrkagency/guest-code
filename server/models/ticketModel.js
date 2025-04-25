@@ -44,6 +44,36 @@ const ticketSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // Customer details
+    firstName: {
+      type: String,
+      required: false,
+    },
+    lastName: {
+      type: String,
+      required: false,
+    },
+    customerEmail: {
+      type: String,
+      required: false,
+    },
+    // Billing/shipping address details
+    billingAddress: {
+      street: String,
+      additionalInfo: String, // For address line 2, apartment numbers, etc.
+      city: String,
+      state: String,
+      postalCode: String,
+      country: String,
+    },
+
+    // Payment information
+    paymentMethod: {
+      type: String,
+      enum: ["online", "atEntrance"],
+      default: "online",
+    },
+
     // Security and validation
     securityToken: {
       type: String,
@@ -53,7 +83,14 @@ const ticketSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["valid", "used", "cancelled", "expired"],
+      enum: [
+        "valid",
+        "used",
+        "cancelled",
+        "expired",
+        "pending-payment",
+        "paid",
+      ],
       default: "valid",
     },
 

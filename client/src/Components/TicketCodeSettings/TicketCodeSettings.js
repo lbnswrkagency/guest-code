@@ -26,6 +26,9 @@ import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiDragMove2Line,
+  RiWalletLine,
+  RiDoorLine,
+  RiSettings4Line,
 } from "react-icons/ri";
 import "./TicketCodeSettings.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -35,6 +38,7 @@ import CreateTicketDialog from "../CreateTicketDialog/CreateTicketDialog";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { FaUserFriends } from "react-icons/fa";
 
 // A better implementation of StrictModeDroppable that avoids React warnings
 const StrictModeDroppable = ({ children, droppableId }) => {
@@ -71,6 +75,7 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const [activeTicket, setActiveTicket] = useState(null);
   const [ticketToEdit, setTicketToEdit] = useState(null);
   const [expandedTickets, setExpandedTickets] = useState({});
+  const [globalPaymentMethod, setGlobalPaymentMethod] = useState("online"); // Default to online
 
   useEffect(() => {
     fetchTickets();
@@ -91,6 +96,12 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       );
 
       setTickets(fetchedTickets);
+
+      // If any tickets exist, get the payment method from the first ticket
+      // as it should be the same for all tickets
+      if (fetchedTickets.length > 0 && fetchedTickets[0].paymentMethod) {
+        setGlobalPaymentMethod(fetchedTickets[0].paymentMethod);
+      }
     } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.showError("Failed to load tickets");
@@ -163,6 +174,9 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
         dataToSend.sortOrder = maxSortOrder + 1;
       }
 
+      // Always use the global payment method
+      dataToSend.paymentMethod = globalPaymentMethod;
+
       if (ticketToEdit) {
         // Update existing ticket
         response = await axiosInstance.put(
@@ -191,6 +205,36 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     } catch (error) {
       console.error("Error saving ticket:", error);
       toast.showError(error.response?.data?.message || "Failed to save ticket");
+    }
+  };
+
+  // Update payment method for all tickets
+  const updateAllTicketsPaymentMethod = async (method) => {
+    try {
+      setGlobalPaymentMethod(method);
+
+      // If no tickets exist yet, no need to update
+      if (tickets.length === 0) return;
+
+      // Update each ticket with the new payment method
+      const updatePromises = tickets.map((ticket) =>
+        axiosInstance.put(
+          `/ticket-settings/events/${event._id}/${ticket._id}`,
+          {
+            paymentMethod: method,
+          }
+        )
+      );
+
+      await Promise.all(updatePromises);
+
+      // Refresh tickets
+      fetchTickets();
+
+      toast.showSuccess("Payment method updated for all tickets");
+    } catch (error) {
+      console.error("Error updating payment method:", error);
+      toast.showError("Failed to update payment method");
     }
   };
 
@@ -242,6 +286,44 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     }));
   };
 
+  const renderGlobalSettings = () => {
+    return (
+      <div className="global-settings-section">
+        <div className="global-settings-title">
+          <RiSettings4Line />
+          <span>Payment Methods</span>
+        </div>
+
+        <div>
+          <label>Available payment options for this event:</label>
+          <div className="payment-method-selector">
+            <div
+              className={`payment-option ${
+                globalPaymentMethod === "online" ? "selected" : ""
+              }`}
+              onClick={() => updateAllTicketsPaymentMethod("online")}
+            >
+              <RiWalletLine />
+              <span>Online Payment</span>
+            </div>
+            <div
+              className={`payment-option ${
+                globalPaymentMethod === "atEntrance" ? "selected" : ""
+              }`}
+              onClick={() => updateAllTicketsPaymentMethod("atEntrance")}
+            >
+              <RiDoorLine />
+              <span>Pay at Entrance</span>
+            </div>
+          </div>
+          <small className="help-text">
+            Select the payment method for all tickets in this event.
+          </small>
+        </div>
+      </div>
+    );
+  };
+
   const renderTicketList = () => {
     return (
       <div className="ticketCodeSettings-list">
@@ -271,164 +353,94 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                           "--ticket-color": ticket.color || "#2196F3",
                         }}
                       >
-                        <div className="ticketCodeSettings-header">
-                          <div
-                            className="ticketCodeSettings-drag-handle"
-                            {...provided.dragHandleProps}
-                          >
-                            <RiDragMove2Line />
-                          </div>
+                        <div
+                          className="ticketCodeSettings-drag-handle"
+                          {...provided.dragHandleProps}
+                        >
+                          <RiDragMove2Line />
+                        </div>
 
-                          <div
-                            className="ticketCodeSettings-content"
-                            onClick={() => toggleTicketDetails(ticket._id)}
-                          >
-                            <div>
+                        <div className="ticketCodeSettings-content">
+                          <div className="ticket-main-info">
+                            <div className="ticket-title-section">
                               <h4>{ticket.name}</h4>
+
                               {ticket.paxPerTicket > 1 && (
-                                <div>
-                                  <RiGroupLine /> {ticket.paxPerTicket}{" "}
-                                  {ticket.paxPerTicket > 1
-                                    ? "people"
-                                    : "person"}
+                                <div className="ticket-group-badge">
+                                  <FaUserFriends />
+                                  <span>{ticket.paxPerTicket} people</span>
                                 </div>
                               )}
                             </div>
 
-                            <div>
-                              <div>{parseFloat(ticket.price).toFixed(2)}€</div>
-                              {ticket.originalPrice && (
-                                <div>
-                                  {parseFloat(ticket.originalPrice).toFixed(2)}€
-                                </div>
-                              )}
+                            <div className="ticket-price-section">
+                              <div className="current-price">
+                                {parseFloat(ticket.price).toFixed(2)}€
+                              </div>
+                              {ticket.originalPrice &&
+                                ticket.originalPrice > ticket.price && (
+                                  <div className="original-price">
+                                    {parseFloat(ticket.originalPrice).toFixed(
+                                      2
+                                    )}
+                                    €
+                                  </div>
+                                )}
                             </div>
                           </div>
 
                           <div className="ticketCodeSettings-actions">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditTicket(ticket);
-                              }}
+                              className="edit-button"
+                              onClick={() => handleEditTicket(ticket)}
+                              aria-label="Edit ticket"
                             >
                               <RiEditLine />
                             </button>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTicket(ticket);
-                              }}
+                              className="delete-button"
+                              onClick={() => handleDeleteTicket(ticket)}
+                              aria-label="Delete ticket"
                             >
                               <RiDeleteBinLine />
                             </button>
                           </div>
                         </div>
-
-                        <AnimatePresence>
-                          {expandedTickets[ticket._id] && (
-                            <motion.div
-                              className="ticketCodeSettings-details"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              {ticket.description && (
-                                <div className="ticketCodeSettings-detail-item">
-                                  <RiInformationLine />
-                                  <div className="ticketCodeSettings-detail-content">
-                                    <div>Description</div>
-                                    <div>{ticket.description}</div>
-                                  </div>
-                                </div>
-                              )}
-                              {ticket.hasCountdown && ticket.endDate && (
-                                <div className="ticketCodeSettings-detail-item">
-                                  <RiTimeLine />
-                                  <div className="ticketCodeSettings-detail-content">
-                                    <div>Ends</div>
-                                    <div>
-                                      {new Date(
-                                        ticket.endDate
-                                      ).toLocaleDateString()}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              {ticket.isLimited && (
-                                <div className="ticketCodeSettings-detail-item">
-                                  <RiGroupLine />
-                                  <div className="ticketCodeSettings-detail-content">
-                                    <div>Availability</div>
-                                    <div>
-                                      {ticket.soldCount}/{ticket.maxTickets}{" "}
-                                      sold
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="ticketCodeSettings-detail-item">
-                                <RiUserLine />
-                                <div className="ticketCodeSettings-detail-content">
-                                  <div>Purchase Limits</div>
-                                  <div>
-                                    {ticket.minPurchase} - {ticket.maxPurchase}{" "}
-                                    per order
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="ticketCodeSettings-detail-item">
-                                <RiGroupLine />
-                                <div className="ticketCodeSettings-detail-content">
-                                  <div>Group Ticket</div>
-                                  <div>
-                                    {ticket.paxPerTicket || 1}{" "}
-                                    {ticket.paxPerTicket > 1
-                                      ? "people"
-                                      : "person"}{" "}
-                                    per ticket
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
                     )}
                   </Draggable>
                 ))}
                 {provided.placeholder}
+
+                <div className="add-ticket-button-container">
+                  <button
+                    className="add-ticket-button"
+                    onClick={handleAddTicket}
+                  >
+                    <RiAddLine />
+                    <span>Add Ticket</span>
+                  </button>
+                </div>
               </div>
             )}
           </StrictModeDroppable>
         </DragDropContext>
-
-        <div className="ticketCodeSettings-btn-container">
-          <button
-            className="ticketCodeSettings-add-btn"
-            onClick={handleAddTicket}
-          >
-            <RiAddLine /> Add Ticket
-          </button>
-        </div>
       </div>
     );
   };
 
   return (
     <div className="ticket-code-settings">
+      {renderGlobalSettings()}
       {renderTicketList()}
 
-      <AnimatePresence>
-        {showCreateDialog && (
-          <CreateTicketDialog
-            onClose={() => setShowCreateDialog(false)}
-            onSave={handleSaveTicket}
-            initialData={ticketToEdit || {}}
-          />
-        )}
-      </AnimatePresence>
+      {showCreateDialog && (
+        <CreateTicketDialog
+          onClose={() => setShowCreateDialog(false)}
+          onSave={handleSaveTicket}
+          initialData={ticketToEdit || {}}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (

@@ -133,7 +133,7 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
           : null,
         minPurchase: parseInt(ticketData.minPurchase, 10),
         maxPurchase: parseInt(ticketData.maxPurchase, 10),
-        paxPerTicket: parseInt(ticketData.paxPerTicket, 10), // Add paxPerTicket conversion
+        paxPerTicket: parseInt(ticketData.paxPerTicket, 10),
       };
 
       onSave(processedData);

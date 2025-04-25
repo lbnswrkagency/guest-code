@@ -1,7 +1,7 @@
 @import "../../_variables";
 @import "../../_animations";
 
-// Fix for drag-and-drop nested scrollable container warning
+// Fix for drag-and-drop nested scrollable container warnings
 .ticket-code-settings,
 .ticketCodeSettings-list {
   overflow: visible !important;
@@ -18,107 +18,304 @@
 
 // Make the draggable container itself the only scrollable one if needed
 .ticketCodeSettings-container {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 240px);
   overflow-y: auto;
   overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .ticket-code-settings {
   width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  color: #fff;
-  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 12px;
 }
 
-/* Basic list container */
+/* Global settings section styling */
+.global-settings-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 8px;
+
+  .global-settings-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+
+    svg {
+      color: var(--primary-color);
+      font-size: 20px;
+    }
+  }
+
+  label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .help-text {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+  }
+}
+
+/* Payment method selector */
+.payment-method-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+  }
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+
+  svg {
+    font-size: 18px;
+    margin-right: 10px;
+    color: var(--text-secondary);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: var(--primary-color);
+
+    svg {
+      color: var(--primary-color);
+    }
+  }
+}
+
+/* Ticket list container */
 .ticketCodeSettings-list {
-  padding: 15px;
-  margin-top: 15px;
-  overflow: visible;
+  padding: 4px;
+  margin-top: 8px;
 }
 
 .ticketCodeSettings-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 10px;
-  overflow: visible;
+  gap: 16px;
+  width: 100%;
 }
 
-/* Simple ticket item */
+/* Ticket item styling */
 .ticketCodeSettings-item {
-  position: relative;
-  background-color: rgba(25, 25, 25, 0.65);
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
-  border-left: 4px solid var(--ticket-color, #2196f3);
-  margin-bottom: 5px;
-  min-height: 50px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  border-left: 4px solid var(--ticket-color, var(--primary-color));
+  min-height: 135px;
+  position: relative;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  &.is-dragging {
+    background: rgba(var(--primary-rgb), 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
 }
 
-.ticketCodeSettings-item.is-dragging {
-  background-color: rgba(35, 35, 35, 0.9);
-  z-index: 10;
-}
-
-/* Basic header */
-.ticketCodeSettings-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 10px;
-}
-
-/* Simple drag handle */
 .ticketCodeSettings-drag-handle {
-  cursor: grab;
-}
-
-.ticketCodeSettings-drag-handle:active {
-  cursor: grabbing;
-}
-
-/* Basic content area */
-.ticketCodeSettings-content {
+  padding: 0 12px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-tertiary);
+  background: rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    color: var(--text-secondary);
+  }
+
+  svg {
+    font-size: 20px;
+  }
+}
+
+/* Ticket content area */
+.ticketCodeSettings-content {
   flex: 1;
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 10px;
+  padding: 16px 20px;
 }
 
-/* Button container */
-.ticketCodeSettings-btn-container {
-  margin-top: 15px;
+.ticket-main-info {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
 }
 
-/* Add button */
-.ticketCodeSettings-add-btn {
+.ticket-title-section {
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 8px 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
 }
 
-/* Minimal action buttons */
+.ticket-group-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--primary-color);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  svg {
+    margin-right: 5px;
+    font-size: 14px;
+  }
+}
+
+.ticket-price-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+
+  .current-price {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .original-price {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: line-through;
+  }
+}
+
+/* Action buttons */
 .ticketCodeSettings-actions {
   display: flex;
-  gap: 5px;
+  gap: 8px;
+
+  button {
+    background: rgba(255, 255, 255, 0.07);
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-color);
+    }
+
+    &.edit-button:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    &.delete-button:hover {
+      background: var(--error-color);
+      color: white;
+    }
+
+    svg {
+      font-size: 16px;
+    }
+  }
 }
 
-.ticketCodeSettings-details {
-  padding: 10px;
-}
-
-.ticketCodeSettings-detail-item {
+/* Add ticket button */
+.add-ticket-button-container {
   display: flex;
-  margin-bottom: 5px;
+  justify-content: center;
+  margin-top: 8px;
+  margin-bottom: 16px;
 }
 
-.ticketCodeSettings-detail-content {
-  margin-left: 10px;
+.add-ticket-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+  border: 1px dashed var(--primary-color);
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+
+  &:hover {
+    background: rgba(var(--primary-rgb), 0.2);
+    transform: translateY(-2px);
+  }
+
+  svg {
+    font-size: 18px;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .ticketCodeSettings-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ticketCodeSettings-actions {
+    align-self: flex-end;
+  }
 }

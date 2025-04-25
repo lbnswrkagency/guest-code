@@ -13,4 +13,7 @@ router.post(
   ticketController.validateTicket
 );
 
+// Create tickets directly (for pay-at-entrance option) - no auth required for public access
+router.post("/create-direct", ticketController.createDirectTickets);
+
 module.exports = router;

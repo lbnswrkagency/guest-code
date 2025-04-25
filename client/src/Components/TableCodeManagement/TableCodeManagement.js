@@ -8,6 +8,7 @@ function TableCodeManagement({
   user,
   triggerRefresh,
   tableCategories,
+  layoutConfig,
   refreshTrigger,
   selectedEvent,
   counts,
@@ -31,30 +32,79 @@ function TableCodeManagement({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [cancelCodeId, setCancelCodeId] = useState(null);
-  const [visibleCodes, setVisibleCodes] = useState(10);
 
+  // Default color mapping for categories
   const tableColors = {
     djarea: "#ffd700", // Gold for DJ Area tables
-    backstage: "#80221c", // Rich red for backstage
-    vip: "#1b5e20", // Your new green for VIP
-    premium: "#4a90e2", // Blue for premium
+    backstage: "#80221c", // Rich red for backstage/dancefloor
+    vip: "#1b5e20", // Green for VIP
+    premium: "#4a90e2", // Blue for premium/front row
   };
 
+  // Default category order for display
   const categoryOrder = ["djarea", "backstage", "vip", "premium"];
 
+  // Dynamic category mapping function
   const getCategoryForTable = (tableNumber) => {
     if (!tableNumber) return "unknown";
-    if (tableNumber.startsWith("B")) return "djarea";
-    if (tableNumber.startsWith("P") || tableNumber.startsWith("E"))
-      return "backstage";
-    if (
-      tableNumber.startsWith("A") ||
-      tableNumber.startsWith("F") ||
-      tableNumber.startsWith("R")
-    )
-      return "vip";
-    if (tableNumber.startsWith("K")) return "premium";
+
+    // If we have layout configuration, use it for categorization
+    if (layoutConfig && layoutConfig.tableConfig) {
+      const tableInfo = layoutConfig.tableConfig[tableNumber];
+
+      if (tableInfo) {
+        // Map the table category to our system categories
+        switch (tableInfo.category) {
+          case "D":
+            return "backstage"; // Dancefloor tables (red)
+          case "V":
+            return "vip"; // VIP Booth tables (green)
+          case "F":
+            return "premium"; // Front Row tables (gold)
+          default:
+            break;
+        }
+      }
+    }
+
+    // Fallback to checking first character of table number
+    const prefix = tableNumber.charAt(0);
+
+    // Handle Bolivar layout
+    if (prefix === "D") return "backstage"; // Dancefloor tables
+    if (prefix === "V") return "vip"; // VIP Booth tables
+    if (prefix === "F") return "premium"; // Front Row tables
+
+    // Handle default layout
+    if (prefix === "B") return "djarea";
+    if (prefix === "P" || prefix === "E") return "backstage";
+    if (prefix === "A" || prefix === "R") return "vip";
+    if (prefix === "K") return "premium";
+
     return "unknown";
+  };
+
+  // Get display name for category
+  const getCategoryDisplayName = (category) => {
+    if (layoutConfig && category) {
+      // Map category code to display name based on dynamic configuration
+      switch (category) {
+        case "backstage":
+          return "Dancefloor"; // D tables
+        case "vip":
+          return "VIP Booth"; // V tables
+        case "premium":
+          return "Front Row"; // F tables
+        case "djarea":
+          return "DJ Area"; // B tables
+        default:
+          break;
+      }
+    }
+
+    // Default fallback names
+    if (category === "djarea") return "DJ Area";
+    return category.charAt(0).toUpperCase() + category.slice(1);
   };
 
   useEffect(() => {
@@ -69,10 +119,7 @@ function TableCodeManagement({
     }, {});
 
     setCodesByCategory(groupedCodes);
-
-    // Reset visible codes count when data changes significantly
-    setVisibleCodes(10);
-  }, [counts, refreshTrigger]);
+  }, [counts, refreshTrigger, layoutConfig]);
 
   const allCodes = counts?.tableCounts || [];
   const activeTableCodes = allCodes.filter(
@@ -134,6 +181,12 @@ function TableCodeManagement({
       setIsLoading(true);
       try {
         const loadingToast = toast.showLoading("Cancelling reservation...");
+
+        // Get the code details to check if it's a public request
+        const code = allCodes.find((c) => c._id === cancelCodeId);
+        const isPublicRequest = code?.isPublic === true;
+
+        // Update the status to cancelled
         await axios.put(
           `${process.env.REACT_APP_API_BASE_URL}/code/table/status/${cancelCodeId}`,
           { status: "cancelled" },
@@ -143,8 +196,39 @@ function TableCodeManagement({
             },
           }
         );
-        loadingToast.dismiss();
-        toast.showSuccess("Reservation cancelled successfully");
+
+        // If this is a public request with email, also send cancellation email
+        if (isPublicRequest && code.email) {
+          try {
+            await axios.post(
+              `${process.env.REACT_APP_API_BASE_URL}/table/code/${cancelCodeId}/cancel`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+            loadingToast.dismiss();
+            toast.showSuccess(
+              "Reservation cancelled and notification email sent!",
+              { duration: 4000 }
+            );
+          } catch (emailError) {
+            console.error("Error sending cancellation email:", emailError);
+            loadingToast.dismiss();
+            toast.showSuccess(
+              "Reservation cancelled, but email failed to send."
+            );
+            toast.showError(
+              "Failed to send cancellation email. Please contact the guest manually."
+            );
+          }
+        } else {
+          loadingToast.dismiss();
+          toast.showSuccess("Reservation cancelled successfully");
+        }
+
         triggerRefresh();
 
         const event = new CustomEvent("tableCountUpdated", {
@@ -175,6 +259,12 @@ function TableCodeManagement({
           newStatus === "confirmed" ? "Confirming" : "Updating"
         } reservation...`
       );
+
+      // Get the code details to check if it's a public request
+      const code = allCodes.find((c) => c._id === codeId);
+      const isPublicRequest = code?.isPublic === true;
+
+      // Update the status
       await axios.put(
         `${process.env.REACT_APP_API_BASE_URL}/code/table/status/${codeId}`,
         { status: newStatus },
@@ -184,10 +274,65 @@ function TableCodeManagement({
           },
         }
       );
-      loadingToast.dismiss();
-      toast.showSuccess(
-        `Reservation ${newStatus === "confirmed" ? "confirmed" : "updated"}`
-      );
+
+      // If this is confirming a public request that has an email, also send confirmation email
+      if (newStatus === "confirmed" && isPublicRequest && code.email) {
+        try {
+          await axios.post(
+            `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/confirm`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          loadingToast.dismiss();
+          toast.showSuccess(
+            "Reservation confirmed and confirmation email sent!",
+            { duration: 4000 }
+          );
+        } catch (emailError) {
+          console.error("Error sending confirmation email:", emailError);
+          loadingToast.dismiss();
+          toast.showSuccess("Reservation confirmed, but email failed to send.");
+          toast.showError(
+            "Failed to send confirmation email. Please try sending it manually."
+          );
+        }
+      }
+      // If this is declining a public request that has an email, send decline email
+      else if (newStatus === "declined" && isPublicRequest && code.email) {
+        try {
+          await axios.post(
+            `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/decline`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          loadingToast.dismiss();
+          toast.showSuccess(
+            "Reservation declined and notification email sent!",
+            { duration: 4000 }
+          );
+        } catch (emailError) {
+          console.error("Error sending decline email:", emailError);
+          loadingToast.dismiss();
+          toast.showSuccess("Reservation declined, but email failed to send.");
+          toast.showError(
+            "Failed to send decline email. Please contact the guest manually."
+          );
+        }
+      } else {
+        loadingToast.dismiss();
+        toast.showSuccess(
+          `Reservation ${newStatus === "confirmed" ? "confirmed" : "updated"}`
+        );
+      }
+
       triggerRefresh();
 
       const event = new CustomEvent("tableCountUpdated", {
@@ -338,6 +483,24 @@ function TableCodeManagement({
     setIsLoading(true);
     try {
       const loadingToast = toast.showLoading("Updating reservation...");
+
+      // Get the original code before updating
+      const originalCode = allCodes.find((c) => c._id === editCodeId);
+      const hasChanges =
+        originalCode.name !== editName ||
+        originalCode.pax != editPax ||
+        originalCode.tableNumber !== editTableNumber;
+
+      // Only process if there are actual changes
+      if (!hasChanges) {
+        loadingToast.dismiss();
+        toast.showInfo("No changes detected");
+        setEditCodeId(null);
+        resetEditFields();
+        return;
+      }
+
+      // Update the table code
       await axios.put(
         `${process.env.REACT_APP_API_BASE_URL}/code/table/edit/${editCodeId}`,
         {
@@ -351,8 +514,47 @@ function TableCodeManagement({
           },
         }
       );
-      loadingToast.dismiss();
-      toast.showSuccess("Reservation updated successfully");
+
+      // Send update notification if this is a public request or has an email
+      if (originalCode?.isPublic && originalCode.email) {
+        try {
+          await axios.post(
+            `${process.env.REACT_APP_API_BASE_URL}/table/code/${editCodeId}/update`,
+            { email: originalCode.email },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          loadingToast.dismiss();
+          toast.showSuccess(
+            "Reservation updated and notification email sent!",
+            { duration: 4000 }
+          );
+        } catch (emailError) {
+          console.error("Error sending update email:", emailError);
+          loadingToast.dismiss();
+          toast.showSuccess("Reservation updated, but email failed to send.");
+        }
+      } else {
+        loadingToast.dismiss();
+        toast.showSuccess("Reservation updated successfully");
+
+        // Ask if user wants to send an update email
+        if (originalCode?.email) {
+          setTimeout(() => {
+            if (
+              window.confirm(
+                "Do you want to send an update email to the guest?"
+              )
+            ) {
+              handleSendEmail(editCodeId);
+            }
+          }, 500);
+        }
+      }
+
       triggerRefresh();
       setEditCodeId(null);
       resetEditFields();
@@ -413,10 +615,7 @@ function TableCodeManagement({
 
   const renderCategoryTitle = (category) => {
     const counts = getCategoryCounts(category);
-    const displayName =
-      category === "djarea"
-        ? "DJ Area"
-        : category.charAt(0).toUpperCase() + category.slice(1);
+    const displayName = getCategoryDisplayName(category);
 
     return (
       <div className="category-header">
@@ -449,19 +648,36 @@ function TableCodeManagement({
     const category = getCategoryForTable(code.tableNumber);
     const borderColor = tableColors[category] || "#ccc";
     const isEditing = editCodeId === code._id;
+    const isPublicRequest = code.isPublic === true; // Check if this is a public request
+
+    // Get table config for maximum persons setting
+    let maxPersons = 10; // default fallback
+    if (layoutConfig && layoutConfig.tableConfig) {
+      const tableInfo =
+        layoutConfig.tableConfig[
+          isEditing ? editTableNumber : code.tableNumber
+        ];
+      if (tableInfo && tableInfo.maxPersons) {
+        maxPersons = tableInfo.maxPersons;
+      }
+    }
 
     return (
       <div
         key={code._id}
         className={`reservation-item ${code.status} ${
           code.paxChecked > 0 ? "checked-in" : ""
-        } ${isEditing ? "editing" : ""}`}
+        } ${isEditing ? "editing" : ""} ${
+          isPublicRequest ? "public-request" : ""
+        }`}
         style={{ borderLeft: `4px solid ${borderColor}` }}
       >
         <div className="reservation-details">
           <div className="reservation-info">
             <div
-              className="table-number-badge"
+              className={`table-number-badge ${
+                isEditing ? "editing-dropdown" : ""
+              }`}
               style={{
                 background: `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
               }}
@@ -472,16 +688,12 @@ function TableCodeManagement({
                     value={editTableNumber}
                     onChange={(e) => setEditTableNumber(e.target.value)}
                     className="table-select-inline"
+                    aria-label="Change table number"
                   >
                     {categoryOrder.map((category) => (
                       <optgroup
                         key={category}
-                        label={
-                          category === "djarea"
-                            ? "DJ Area"
-                            : category.charAt(0).toUpperCase() +
-                              category.slice(1)
-                        }
+                        label={getCategoryDisplayName(category)}
                       >
                         {tableCategories[category]?.map((table) => (
                           <option
@@ -513,7 +725,20 @@ function TableCodeManagement({
               ) : (
                 <div className="guest-name">{code.name}</div>
               )}
-              <div className="host-name">Host: {code.host}</div>
+              {/* Show contact information for public requests */}
+              {isPublicRequest && (
+                <div className="contact-details">
+                  {code.email && (
+                    <div className="guest-email">{code.email}</div>
+                  )}
+                  {code.phone && (
+                    <div className="guest-phone">{code.phone}</div>
+                  )}
+                </div>
+              )}
+              <div className="host-name">
+                {isPublicRequest ? "Public Request" : `Host: ${code.host}`}
+              </div>
               <span className={`status-badge ${code.status}`}>
                 {code.status}
               </span>
@@ -532,7 +757,7 @@ function TableCodeManagement({
                 value={editPax}
                 onChange={(e) => setEditPax(e.target.value)}
               >
-                {[...Array(10)].map((_, index) => (
+                {[...Array(maxPersons)].map((_, index) => (
                   <option key={index + 1} value={index + 1}>
                     {index + 1}
                   </option>
@@ -754,14 +979,6 @@ function TableCodeManagement({
     );
   };
 
-  const loadMore = () => {
-    setVisibleCodes((prev) => prev + 10);
-  };
-
-  const totalVisibleCodes = allCodes.filter(
-    (code) => user.isAdmin || code.hostId === user._id
-  ).length;
-
   return (
     <div className="table-code-management">
       {showPngModal && (
@@ -877,31 +1094,14 @@ function TableCodeManagement({
             const categoryItems = codesByCategory[category]?.filter(
               (code) => user.isAdmin || code.hostId === user._id
             );
-            const visibleItems = categoryItems?.slice(0, visibleCodes);
 
-            return visibleItems?.length > 0 ? (
+            return categoryItems?.length > 0 ? (
               <div key={category} className="table-category">
                 {renderCategoryTitle(category)}
-                {visibleItems.map((code) => renderCodeItem(code))}
+                {categoryItems.map((code) => renderCodeItem(code))}
               </div>
             ) : null;
           })}
-
-          {totalVisibleCodes > visibleCodes && (
-            <button
-              className="load-more-btn"
-              onClick={loadMore}
-              style={{
-                backgroundColor: `${
-                  selectedEvent?.primaryColor || "#FFC807"
-                }20`,
-                borderColor: `${selectedEvent?.primaryColor || "#FFC807"}40`,
-              }}
-              disabled={isLoading}
-            >
-              Load More Reservations
-            </button>
-          )}
         </div>
       )}
     </div>

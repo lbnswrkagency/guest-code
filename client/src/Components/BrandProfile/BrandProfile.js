@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./BrandProfile.scss";
 import Navigation from "../Navigation/Navigation";
-import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import BrandProfileHeader from "./BrandProfileHeader";
 import BrandProfileFeed from "./BrandProfileFeed";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -47,7 +46,6 @@ const BrandProfile = () => {
   const [joinStatus, setJoinStatus] = useState(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showCancelJoinConfirm, setShowCancelJoinConfirm] = useState(false);
-  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [userStatus, setUserStatus] = useState({
     isFollowing: false,
     isMember: false,
@@ -471,10 +469,7 @@ const BrandProfile = () => {
   if (loading) {
     return (
       <div className="page-wrapper">
-        <Navigation
-          onBack={handleBack}
-          onMenuClick={() => setIsNavigationOpen(true)}
-        />
+        <Navigation onBack={handleBack} />
         <div className="brand-profile loading">
           <div className="loading-spinner" />
         </div>
@@ -485,10 +480,7 @@ const BrandProfile = () => {
   if (!brand) {
     return (
       <div className="page-wrapper">
-        <Navigation
-          onBack={handleBack}
-          onMenuClick={() => setIsNavigationOpen(true)}
-        />
+        <Navigation onBack={handleBack} />
         <div className="brand-profile error">
           <motion.div
             initial={{ opacity: 0 }}
@@ -522,10 +514,7 @@ const BrandProfile = () => {
 
   return (
     <div className="page-wrapper">
-      <Navigation
-        onBack={handleBack}
-        onMenuClick={() => setIsNavigationOpen(true)}
-      />
+      <Navigation onBack={handleBack} />
       <div className="brand-profile">
         <div className="brand-header">
           <div className="brand-cover">
@@ -723,16 +712,6 @@ const BrandProfile = () => {
           />
         )}
       </AnimatePresence>
-
-      {/* Only render DashboardNavigation for authenticated users */}
-      {user && (
-        <DashboardNavigation
-          isOpen={isNavigationOpen}
-          onClose={() => setIsNavigationOpen(false)}
-          currentUser={user}
-          setUser={setUser}
-        />
-      )}
     </div>
   );
 };

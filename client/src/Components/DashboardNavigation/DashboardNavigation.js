@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./DashboardNavigation.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,6 +8,7 @@ import {
   RiBuildingLine,
   RiSettings4Line,
   RiKeyLine,
+  RiArrowRightLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../contexts/SocketContext";
@@ -20,62 +21,75 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   const { isConnected } = useSocket();
   const [isCropMode, setIsCropMode] = useState(false);
   const [showAlphaAccess, setShowAlphaAccess] = useState(false);
-  const [newlyUnlocked, setNewlyUnlocked] = useState(false);
-  const [animateItems, setAnimateItems] = useState(false);
+  const navRef = useRef(null);
 
-  // Explicitly calculate hasAlphaAccess from current user props
-  const hasAlphaAccess = useMemo(
-    () => Boolean(currentUser?.isAlpha),
-    [currentUser?.isAlpha]
-  );
+  // Simplified alpha animation state
+  const [animateAlpha, setAnimateAlpha] = useState(false);
 
+  // Track if component has been mounted
+  const hasMounted = useRef(false);
+
+  // Force an update after mount to ensure proper rendering
   useEffect(() => {
-    console.log("[DashboardNavigation] Render with currentUser:", {
-      isAlpha: currentUser?.isAlpha,
-      hasAlphaAccess,
-    });
-  }, [currentUser, hasAlphaAccess]);
+    if (!hasMounted.current) {
+      hasMounted.current = true;
 
-  // Reset states when navigation is opened
-  useEffect(() => {
-    if (isOpen) {
-      console.log(
-        "[DashboardNavigation] Menu opened, checking alpha status:",
-        hasAlphaAccess ? "ALPHA" : "NON-ALPHA"
-      );
+      // Force a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        // Force a reflow/repaint
+        const element = document.querySelector(".dashNav");
+        if (element) {
+          element.style.display = "none";
+          // This forces a reflow
+          void element.offsetHeight;
+          element.style.display = "flex";
+        }
+      }, 50);
 
-      // If user has alpha access but animation hasn't played yet,
-      // set animation states for newly unlocked items
-      if (hasAlphaAccess && !newlyUnlocked && !animateItems) {
-        setNewlyUnlocked(true);
-        setTimeout(() => {
-          setAnimateItems(true);
-        }, 300);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, hasAlphaAccess, newlyUnlocked, animateItems]);
+  }, []);
+
+  // Handle click outside to close the menu
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target) && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  // Calculate hasAlphaAccess directly from user props
+  const hasAlphaAccess = Boolean(currentUser?.isAlpha);
+
+  // Simple animation reset when menu is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setAnimateAlpha(false);
+    } else if (hasAlphaAccess) {
+      setAnimateAlpha(true);
+    }
+  }, [isOpen, hasAlphaAccess]);
 
   // Listen for alpha access granted event
   useEffect(() => {
     const handleAlphaAccessGranted = (event) => {
-      // Check if this event is for the current user
       if (
         event.detail.userId === currentUser?._id ||
         event.detail.userId === currentUser?.id
       ) {
-        console.log(
-          "[DashboardNavigation] Alpha access granted event received, current isAlpha:",
-          currentUser?.isAlpha
-        );
-
-        // Force animation states
-        setNewlyUnlocked(true);
-        setAnimateItems(true);
+        setAnimateAlpha(true);
       }
     };
 
     window.addEventListener("alphaAccessGranted", handleAlphaAccessGranted);
-
     return () => {
       window.removeEventListener(
         "alphaAccessGranted",
@@ -84,30 +98,12 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
     };
   }, [currentUser]);
 
-  // Reset animation state when menu is closed
-  useEffect(() => {
-    if (!isOpen) {
-      setAnimateItems(false);
-
-      // Reset newly unlocked state after a delay to ensure it's ready for next open
-      setTimeout(() => {
-        setNewlyUnlocked(false);
-      }, 300);
-    }
-  }, [isOpen]);
-
   if (!currentUser) return null;
 
-  // Generate menu items each render using the current hasAlphaAccess value
-  const menuItems = () => {
-    console.log(
-      "[DashboardNavigation] Generating menu items, hasAlphaAccess:",
-      hasAlphaAccess
-    );
-    const items = [];
-
+  // Generate menu items based on alpha access
+  const menuItems = [
     // Always add Profile
-    items.push({
+    {
       title: "Profile",
       icon: <RiHome5Line />,
       path: `/@${currentUser.username}`,
@@ -115,73 +111,63 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
         navigate(`/@${currentUser.username}`);
         onClose();
       },
+    },
+  ];
+
+  // Alpha-only menu items
+  if (hasAlphaAccess) {
+    // Add Brands
+    menuItems.push({
+      title: "Brands",
+      icon: <RiBuildingLine />,
+      path: `/@${currentUser.username}/brands`,
+      action: () => {
+        navigate(`/@${currentUser.username}/brands`);
+        onClose();
+      },
     });
 
-    // Check Brands condition
-    if (hasAlphaAccess) {
-      items.push({
-        title: "Brands",
-        icon: <RiBuildingLine />,
-        path: `/@${currentUser.username}/brands`,
-        action: () => {
-          navigate(`/@${currentUser.username}/brands`);
-          onClose();
-        },
-      });
-    }
+    // Add Events
+    menuItems.push({
+      title: "Events",
+      icon: <RiCalendarEventLine />,
+      path: `/@${currentUser.username}/events`,
+      action: () => {
+        navigate(`/@${currentUser.username}/events`);
+        onClose();
+      },
+    });
 
-    // Check Events condition
-    if (hasAlphaAccess) {
-      items.push({
-        title: "Events",
-        icon: <RiCalendarEventLine />,
-        path: `/@${currentUser.username}/events`,
-        action: () => {
-          navigate(`/@${currentUser.username}/events`);
-          onClose();
-        },
-      });
-    }
-
-    // Check Settings condition
-    if (hasAlphaAccess) {
-      items.push({
-        title: "Settings",
-        icon: <RiSettings4Line />,
-        path: "/settings",
-        action: () => {
-          navigate("/settings");
-          onClose();
-        },
-      });
-    }
-
+    // Add Settings
+    menuItems.push({
+      title: "Settings",
+      icon: <RiSettings4Line />,
+      path: "/settings",
+      action: () => {
+        navigate("/settings");
+        onClose();
+      },
+    });
+  } else {
     // Only show Alpha Access option if user doesn't have alpha access
-    if (!hasAlphaAccess) {
-      items.push({
-        title: "Alpha Access",
-        icon: <RiKeyLine />,
-        action: () => {
-          setShowAlphaAccess(true);
-        },
-      });
-    }
+    menuItems.push({
+      title: "Alpha Access",
+      icon: <RiKeyLine />,
+      action: () => {
+        setShowAlphaAccess(true);
+      },
+    });
+  }
 
-    return items;
-  };
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-  };
-
+  // Modified navigation variants to open only 3/4 of the way
   const navigationVariants = {
     hidden: { x: "100%" },
     visible: {
-      x: 0,
+      x: "25%", // This makes it open only 3/4 of the way (100% - 25% = 75%)
       transition: {
-        type: "tween",
-        duration: 0.3,
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
         when: "beforeChildren",
       },
     },
@@ -193,26 +179,13 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       opacity: 1,
       x: 0,
       transition: {
-        delay: i * 0.1,
-        duration: 0.2,
-      },
-    }),
-  };
-
-  // Enhanced animation for newly unlocked items
-  const newItemVariants = {
-    hidden: { opacity: 0, x: 40, scale: 0.8 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      scale: 1,
-      transition: {
+        delay: i * 0.08,
+        duration: 0.3,
         type: "spring",
         stiffness: 300,
-        damping: 15,
-        duration: 0.5,
+        damping: 25,
       },
-    },
+    }),
   };
 
   const handleCloseAlphaAccess = () => {
@@ -222,34 +195,37 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className="dashNav-wrapper">
+          {/* Backdrop with blur effect */}
           <motion.div
-            className="dashboard-navigation-overlay"
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={overlayVariants}
-            onClick={onClose}
+            className="dashNav-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           />
+
+          {/* Main navigation panel */}
           <motion.div
-            className="dashboard-navigation"
+            ref={navRef}
+            className="dashNav"
             initial="hidden"
             animate="visible"
             exit="hidden"
             variants={navigationVariants}
           >
-            <div className="dashboard-navigation-header">
+            <div className="dashNav-header">
               <motion.button
-                className="close-button"
+                className="dashNav-closeButton"
                 onClick={onClose}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
                 <RiCloseLine />
               </motion.button>
-              <div className="user-info">
-                <div className="avatar-section">
-                  <div className="avatar-container">
+              <div className="dashNav-userInfo">
+                <div className="dashNav-avatarSection">
+                  <div className="dashNav-avatarContainer">
                     <AvatarUpload
                       user={currentUser}
                       setUser={setUser}
@@ -260,20 +236,22 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                       <OnlineIndicator
                         userId={currentUser._id}
                         size="medium"
-                        className="nav-online-indicator"
+                        className="dashNav-onlineIndicator"
                       />
                     )}
                   </div>
-                  <div className="user-details">
-                    <span className="display-name">
+                  <div className="dashNav-userDetails">
+                    <span className="dashNav-displayName">
                       {currentUser.firstName}
                     </span>
-                    <span className="username">@{currentUser.username}</span>
+                    <span className="dashNav-username">
+                      @{currentUser.username}
+                    </span>
                     {currentUser.isAlpha && (
                       <motion.span
-                        className="alpha-badge"
+                        className="dashNav-alphaBadge"
                         initial={
-                          newlyUnlocked
+                          animateAlpha
                             ? { scale: 0.5, opacity: 0 }
                             : { scale: 1 }
                         }
@@ -292,35 +270,52 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
               </div>
             </div>
 
-            <div className="dashboard-navigation-content">
-              <AnimatePresence>
-                {menuItems().map((item, index) => (
-                  <motion.div
-                    key={item.title}
-                    className="menu-item"
-                    variants={menuItemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    custom={index}
-                    onClick={item.action}
-                    whileHover={{ x: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="menu-item-icon">{item.icon}</div>
-                    <div className="menu-item-text">
-                      <h4>{item.title}</h4>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className="dashNav-content">
+              {menuItems.map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  className="dashNav-menuItem"
+                  variants={menuItemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  custom={index}
+                  onClick={item.action}
+                  whileHover={{
+                    x: -4,
+                    backgroundColor: "rgba(50, 50, 50, 0.3)",
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="dashNav-menuItem-icon">{item.icon}</div>
+                  <div className="dashNav-menuItem-text">
+                    <h4>{item.title}</h4>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Minimalistic close button at bottom */}
+            <div className="dashNav-footer">
+              <motion.button
+                className="dashNav-bottomCloseButton"
+                onClick={onClose}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <span>Close</span>
+                <RiArrowRightLine />
+              </motion.button>
             </div>
 
             {/* Alpha Access Modal */}
             {showAlphaAccess && (
-              <div className="alpha-access-modal">
-                <div className="alpha-access-modal-content">
+              <div className="dashNav-alphaModal">
+                <div className="dashNav-alphaModal-content">
                   <button
-                    className="close-alpha-modal"
+                    className="dashNav-alphaModal-close"
                     onClick={handleCloseAlphaAccess}
                   >
                     <RiCloseLine />
@@ -334,7 +329,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
               </div>
             )}
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

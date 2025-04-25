@@ -51,11 +51,7 @@ class TokenService {
       // Only ping if document is visible (active tab)
       if (document.visibilityState === "visible") {
         this.pingSession().catch((err) => {
-          // Silently catch errors - we don't want to trigger state changes
-          console.log(
-            "[TokenService] Session ping failed (handled):",
-            err.message
-          );
+          // Silent catch
         });
       }
     }, this.PING_INTERVAL);
@@ -68,18 +64,15 @@ class TokenService {
   async pingSession() {
     // Skip ping if no token available - don't throw error to avoid state changes
     if (!this.getToken()) {
-      console.log("[TokenService] Skipping session ping - no token");
       return { status: "no-token" };
     }
 
     try {
       // Log the exact URL being used
       const pingUrl = "/auth/ping";
-      console.log(`[TokenService] Pinging session at: ${pingUrl}`);
 
       // Use the configured axiosInstance instead of axios global
       if (!this.axiosInstance) {
-        console.log("[TokenService] Warning: axiosInstance not initialized");
         return { status: "error", message: "axiosInstance not initialized" };
       }
 
@@ -90,8 +83,6 @@ class TokenService {
           _t: new Date().getTime(),
         },
       });
-
-      console.log("[TokenService] Ping successful:", response.status);
 
       // If we got a new token from the ping, update it without triggering state changes
       if (response.data && response.data.tokenRefreshed) {
@@ -116,7 +107,6 @@ class TokenService {
       return response.data;
     } catch (error) {
       // Don't throw error to avoid propagating to AuthContext unnecessarily
-      console.log("[TokenService] Ping session failed:", error.message);
       return { status: "error", message: error.message };
     }
   }
@@ -132,7 +122,7 @@ class TokenService {
           await this.refreshToken();
         }
       } catch (error) {
-        console.error("Token refresh check failed:", error);
+        // Silent error
       }
     }
   }
@@ -150,7 +140,7 @@ class TokenService {
         await this.refreshToken();
         return true;
       } catch (error) {
-        console.error("Token refresh failed:", error);
+        // Silent error
         return false;
       }
     }
@@ -179,7 +169,7 @@ class TokenService {
       // Return true if less than threshold of lifetime remains
       return timeUntilExpiry < tokenLifetime * this.REFRESH_THRESHOLD;
     } catch (error) {
-      console.error("Token decode failed:", error);
+      // Silent error
       return true; // If we can't decode, assume it needs refresh
     }
   }
@@ -276,7 +266,7 @@ class TokenService {
       try {
         listener(token);
       } catch (error) {
-        console.error("Error in token refresh listener:", error);
+        // Silent error
       }
     });
   }

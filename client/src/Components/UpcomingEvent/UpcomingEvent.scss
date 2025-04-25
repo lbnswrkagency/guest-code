@@ -10,7 +10,7 @@
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 100%;
-
+  padding: 0.5rem;
   // Seamless mode - removes container styling
   &.upcomingEvent-seamless {
     border: none;
@@ -33,10 +33,6 @@
         border-radius: 8px;
         overflow: hidden;
       }
-    }
-
-    .upcomingEvent-details {
-      padding: 1rem 0;
     }
 
     .upcomingEvent-ticket-section {
@@ -460,7 +456,7 @@
     }
 
     .upcomingEvent-details {
-      padding: 1.25rem;
+      // padding: 1.25rem;
       background-color: #151515;
       flex: 1;
 
@@ -1264,6 +1260,7 @@
 
 .upcomingEvent-action-buttons {
   display: flex;
+  justify-content: center;
   gap: 1rem;
   margin: 1.25rem 0;
   width: 100%;
@@ -1272,11 +1269,10 @@
   border-radius: 0;
   box-shadow: none;
 
-  .upcomingEvent-action-button {
-    flex: 1;
-    padding: 0.75rem 1rem;
+  .upcomingEvent-action-btn {
+    padding: 0.75rem 1.5rem;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1284,75 +1280,70 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
     letter-spacing: 0.5px;
+    width: auto;
+    min-width: 160px;
 
-    &.buy-ticket-button {
-      background: #ffc807;
+    &.ticket {
+      background: linear-gradient(135deg, #ffc807, #ffaa00);
       color: #000;
+      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
 
       &:hover {
-        background: #e6b400;
+        background: linear-gradient(135deg, #ffaa00, #ff9500);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
+        box-shadow: 0 6px 16px rgba(255, 200, 7, 0.4);
       }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    &.table {
+      background: linear-gradient(135deg, #9c27b0, #673ab7);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+
+      &:hover {
+        background: linear-gradient(135deg, #8e24aa, #5e35b1);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(156, 39, 176, 0.4);
+      }
+    }
+
+    .upcomingEvent-action-icon {
+      font-size: 1.2rem;
     }
   }
 
   @media (max-width: 480px) {
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0;
+    align-items: center;
+    gap: 0.75rem;
+
+    .upcomingEvent-action-btn {
+      width: 100%;
+      max-width: 280px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    justify-content: center;
+
+    .upcomingEvent-action-btn {
+      min-width: 180px;
+    }
   }
 
   @media (min-width: 1024px) {
     margin: 2rem 0;
-    gap: 1.5rem;
 
-    .upcomingEvent-action-button {
-      padding: 1rem 1.5rem;
-      font-size: 1rem;
-      letter-spacing: 1px;
-      border-radius: 10px;
-
-      &.buy-ticket-button {
-        &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 15px rgba(255, 200, 7, 0.4);
-        }
-      }
-    }
-  }
-
-  @media (min-width: 1440px) {
-    max-width: 80%;
-    margin: 2.5rem auto;
-
-    .upcomingEvent-action-button {
-      padding: 1.25rem 2rem;
-      font-size: 1.1rem;
-      border-radius: 12px;
-
-      &:before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 12px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        z-index: -1;
-      }
-
-      &.buy-ticket-button {
-        position: relative;
-        overflow: hidden;
-
-        &:hover:before {
-          opacity: 1;
-        }
-      }
+    .upcomingEvent-action-btn {
+      padding: 1rem 2rem;
+      font-size: 1.05rem;
     }
   }
 }
@@ -1512,6 +1503,397 @@
           -webkit-backdrop-filter: blur(8px);
         }
       }
+    }
+  }
+}
+
+// Add these styles to handle the table booking section properly
+
+.upcomingEvent-table-booking-section {
+  width: 100%;
+  max-width: 100%;
+  margin: 1rem 0;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  scroll-margin-top: 80px;
+
+  &.highlight-section {
+    animation: highlight-pulse 1.5s ease;
+  }
+
+  .upcomingEvent-table-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 200, 7, 0.4);
+    transform: translateY(0);
+  }
+  25% {
+    box-shadow: 0 0 0 10px rgba(255, 200, 7, 0.2);
+    transform: translateY(-5px);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 200, 7, 0.3);
+    transform: translateY(0);
+  }
+  75% {
+    box-shadow: 0 0 0 10px rgba(255, 200, 7, 0.2);
+    transform: translateY(-2px);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 200, 7, 0);
+    transform: translateY(0);
+  }
+}
+
+// Mobile-specific adjustments
+@media (max-width: 767px) {
+  .upcomingEvent-table-booking-section {
+    margin: 0.5rem 0;
+    padding: 0;
+
+    .upcomingEvent-table-container {
+      padding: 0;
+    }
+  }
+}
+
+// Add footer styling
+.upcomingEvent-footer {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(
+    145deg,
+    rgba(25, 25, 25, 0.9),
+    rgba(15, 15, 15, 0.95)
+  );
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+
+  // Paper texture overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.3;
+    mix-blend-mode: overlay;
+  }
+
+  // Top light edge
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+  }
+
+  &-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  &-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .logo-icon {
+      font-size: 1.5rem;
+      color: #ffc807;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+
+    .logo-text {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  &-event-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 75%;
+
+    .event-title {
+      font-size: 1.1rem;
+      color: #fff;
+      margin: 0;
+      font-weight: 600;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.8);
+
+      .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+
+        .detail-icon {
+          color: #ffc807;
+          font-size: 1rem;
+        }
+      }
+    }
+
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+
+      .meta-tag {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        svg {
+          font-size: 0.9rem;
+        }
+
+        &.tickets {
+          color: #ffc807;
+          border-color: rgba(255, 200, 7, 0.3);
+        }
+
+        &.guest-code {
+          color: #9c27b0;
+          border-color: rgba(156, 39, 176, 0.3);
+        }
+
+        &.lineup {
+          color: #2196f3;
+          border-color: rgba(33, 150, 243, 0.3);
+        }
+
+        &.tables {
+          color: #4caf50;
+          border-color: rgba(76, 175, 80, 0.3);
+        }
+      }
+    }
+  }
+
+  .upcomingEvent-divider {
+    flex: 1;
+    height: 1px;
+    margin: 0 1.5rem;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+  }
+
+  .upcomingEvent-back-to-top {
+    background: rgba(255, 200, 7, 0.9);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1a1a;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      background: #ffc807;
+
+      .arrow-animation {
+        animation: arrow-bounce 1.5s ease infinite;
+      }
+
+      .tooltip {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+
+    &:active {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .arrow-animation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    // Tooltip
+    .tooltip {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translate(-50%, 10px);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+  }
+}
+
+// Define arrow bounce animation
+@keyframes arrow-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  75% {
+    transform: translateY(-3px);
+  }
+}
+
+// Responsive adjustments for the footer
+@media (max-width: 768px) {
+  .upcomingEvent-footer {
+    padding: 1.25rem;
+
+    &-content {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    &-info {
+      width: 100%;
+    }
+
+    &-event-info {
+      max-width: 100%;
+    }
+
+    &-logo {
+      margin-bottom: 0.5rem;
+
+      .logo-text {
+        font-size: 0.9rem;
+      }
+    }
+
+    .upcomingEvent-divider {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+
+    .upcomingEvent-back-to-top {
+      width: 36px;
+      height: 36px;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .upcomingEvent-footer {
+    padding: 1.25rem 1rem;
+
+    &-logo {
+      .logo-icon {
+        font-size: 1.25rem;
+      }
+
+      .logo-text {
+        font-size: 0.8rem;
+      }
+    }
+
+    &-event-info {
+      .event-title {
+        font-size: 1rem;
+      }
+
+      .event-details {
+        font-size: 0.8rem;
+
+        .detail-item {
+          .detail-icon {
+            font-size: 0.9rem;
+          }
+        }
+      }
+
+      .event-meta {
+        .meta-tag {
+          font-size: 0.7rem;
+
+          svg {
+            font-size: 0.8rem;
+          }
+        }
+      }
+    }
+
+    .upcomingEvent-back-to-top {
+      width: 32px;
+      height: 32px;
+      font-size: 1rem;
     }
   }
 }

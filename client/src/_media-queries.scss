@@ -1,0 +1,22 @@
+// Breakpoints for responsive design
+$breakpoints: (
+  tablet: 768px,
+  tablet-landscape: 992px,
+  laptop: 1200px,
+  desktop: 1500px,
+  desktop-large: 1920px,
+  desktop-extra-large: 2560px,
+);
+
+// Media query mixin
+@mixin mq($key) {
+  $size: map-get($breakpoints, $key);
+  @media (min-width: $size) {
+    @content;
+  }
+}
+
+// Usage example:
+// @include mq(tablet) {
+//   // Styles for tablet and above
+// }

@@ -18,6 +18,7 @@ import { getEventUrl } from "../../utils/urlUtils";
 
 const Search = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Default to brands since that's all we're showing
   const [activeTab, setActiveTab] = useState("brands");
   const [results, setResults] = useState([]);
   const [resultCounts, setResultCounts] = useState({ brands: 0, events: 0 });
@@ -26,6 +27,9 @@ const Search = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+
+  // Feature flag to enable/disable events search
+  const ENABLE_EVENTS_SEARCH = false; // Set to false to disable events
 
   const performSearch = useCallback(
     debounce(async (query, type) => {
@@ -46,12 +50,20 @@ const Search = ({ isOpen, onClose }) => {
           },
         });
 
-        setResults(response.data);
+        // Filter out events if the feature is disabled
+        const filteredResults = ENABLE_EVENTS_SEARCH
+          ? response.data
+          : response.data.filter((item) => item.type !== "event");
+
+        setResults(filteredResults);
 
         // Calculate counts for each category
         const counts = {
-          brands: response.data.filter((item) => item.type === "brand").length,
-          events: response.data.filter((item) => item.type === "event").length,
+          brands: filteredResults.filter((item) => item.type === "brand")
+            .length,
+          events: ENABLE_EVENTS_SEARCH
+            ? filteredResults.filter((item) => item.type === "event").length
+            : 0,
         };
         setResultCounts(counts);
       } catch (err) {
@@ -61,7 +73,7 @@ const Search = ({ isOpen, onClose }) => {
         setLoading(false);
       }
     }, 300),
-    []
+    [ENABLE_EVENTS_SEARCH]
   );
 
   useEffect(() => {
@@ -126,6 +138,7 @@ const Search = ({ isOpen, onClose }) => {
           navigate(brandPath);
         }
         break;
+      /* Event case is kept for future implementation
       case "event":
         // Navigate to the event with a pretty URL
         console.log("[Search] Full event data:", JSON.stringify(item, null, 2));
@@ -210,17 +223,20 @@ const Search = ({ isOpen, onClose }) => {
           navigate(`/events/${item._id}`);
         }
         break;
+      */
       default:
         console.log("[Search] Unhandled item type:", item.type);
     }
   };
 
+  // Define tabs - only include brands (events is commented out for future use)
   const tabs = [
     { id: "brands", label: "Brands", icon: RiBuildingLine },
-    { id: "events", label: "Events", icon: RiCalendarEventLine },
+    // Commented out until event search is implemented
+    // { id: "events", label: "Events", icon: RiCalendarEventLine },
   ];
 
-  // Render an event date in the proper format
+  // Render an event date in the proper format - kept for future implementation
   const formatEventDate = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -276,12 +292,14 @@ const Search = ({ isOpen, onClose }) => {
         <div className="result-info">
           <h3>{item.name}</h3>
           {/* {item.type === "user" && <p>{item.email}</p>} */}
+          {/* Event rendering kept but not visible until feature is enabled
           {item.type === "event" && (
             <p>
               {formatEventDate(item.date || item.startDate)} •{" "}
               {item.location || "TBD"}
             </p>
           )}
+          */}
           {item.type === "brand" && (
             <p>
               {item.members} team member{item.members !== 1 ? "s" : ""}
@@ -303,7 +321,7 @@ const Search = ({ isOpen, onClose }) => {
             <RiSearchLine className="search-icon" />
             <input
               type="text"
-              placeholder="Search events or brands..."
+              placeholder="Search brands..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
@@ -323,12 +341,7 @@ const Search = ({ isOpen, onClose }) => {
               onClick={() => handleTabClick(id)}
             >
               <Icon />
-              {label}{" "}
-              {id === "events"
-                ? `(${resultCounts.events})`
-                : id === "brands"
-                ? `(${resultCounts.brands})`
-                : ""}
+              {label} {id === "brands" ? `(${resultCounts.brands})` : ""}
             </button>
           ))}
         </div>
@@ -343,11 +356,7 @@ const Search = ({ isOpen, onClose }) => {
             {!loading &&
               !error &&
               results
-                .filter((item) =>
-                  item.type === "brand"
-                    ? activeTab === "brands"
-                    : activeTab === "events"
-                )
+                .filter((item) => item.type === "brand")
                 .map((item) => renderResultItem(item))}
           </AnimatePresence>
         </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import "./TableLayout.scss"; // Ensure the CSS file exists and is correctly linked
 
 const TableLayout = ({
@@ -7,9 +7,83 @@ const TableLayout = ({
   setTableNumber,
   counts,
   refreshTrigger,
+  onConfigurationLoaded,
 }) => {
+  // Ref to track if config was sent to prevent multiple sends
+  const configSentRef = useRef(false);
+
+  // Table configuration - default layout tables with configuration
+  const tableConfig = {
+    // B tables (DJ Area)
+    B1: { minSpend: 300, maxPersons: 8, category: "B" },
+    B2: { minSpend: 300, maxPersons: 8, category: "B" },
+    B3: { minSpend: 300, maxPersons: 8, category: "B" },
+    B4: { minSpend: 300, maxPersons: 8, category: "B" },
+    B5: { minSpend: 300, maxPersons: 8, category: "B" },
+
+    // P and E tables (Backstage)
+    P1: { minSpend: 200, maxPersons: 6, category: "P" },
+    P2: { minSpend: 200, maxPersons: 6, category: "P" },
+    P3: { minSpend: 200, maxPersons: 6, category: "P" },
+    P4: { minSpend: 200, maxPersons: 6, category: "P" },
+    P5: { minSpend: 200, maxPersons: 6, category: "P" },
+    P6: { minSpend: 200, maxPersons: 6, category: "P" },
+    E1: { minSpend: 200, maxPersons: 6, category: "E" },
+    E2: { minSpend: 200, maxPersons: 6, category: "E" },
+
+    // A, F, R tables (VIP)
+    A1: { minSpend: 250, maxPersons: 6, category: "A" },
+    A2: { minSpend: 250, maxPersons: 6, category: "A" },
+    A3: { minSpend: 250, maxPersons: 6, category: "A" },
+    F1: { minSpend: 250, maxPersons: 6, category: "F" },
+    F2: { minSpend: 250, maxPersons: 6, category: "F" },
+    F3: { minSpend: 250, maxPersons: 6, category: "F" },
+    F4: { minSpend: 250, maxPersons: 6, category: "F" },
+    R1: { minSpend: 250, maxPersons: 6, category: "R" },
+
+    // K tables (Premium)
+    K1: { minSpend: 350, maxPersons: 8, category: "K" },
+    K2: { minSpend: 350, maxPersons: 8, category: "K" },
+    K3: { minSpend: 350, maxPersons: 8, category: "K" },
+    K4: { minSpend: 350, maxPersons: 8, category: "K" },
+  };
+
+  // Categorize tables for the parent components to use
+  const tableCategories = {
+    djarea: ["B1", "B2", "B3", "B4", "B5"],
+    backstage: ["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"],
+    vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"],
+    premium: ["K1", "K2", "K3", "K4"],
+  };
+
+  // Category to area name mapping
+  const categoryAreaNames = {
+    B: "DJ Area",
+    P: "Backstage",
+    E: "Backstage",
+    A: "VIP",
+    F: "VIP",
+    R: "VIP",
+    K: "Premium",
+  };
+
   // Extract tableCounts from the counts object
   const tableCounts = counts?.tableCounts || [];
+
+  // Pass configuration to parent component only once
+  useEffect(() => {
+    if (onConfigurationLoaded && !configSentRef.current) {
+      const config = {
+        tableConfig,
+        tableCategories,
+        categoryAreaNames,
+        totalTables: Object.values(tableCategories).flat().length,
+      };
+      onConfigurationLoaded(config);
+      configSentRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount, config is static
 
   // This function checks if a specific table is booked using the correct data
   const isBooked = (table) =>
@@ -36,10 +110,29 @@ const TableLayout = ({
   const handleTableClick = (table, event) => {
     if (!isBooked(table)) {
       const rect = event.target.getBoundingClientRect();
-      // Pass the table identifier and position to the parent
+
+      // Get table configuration data
+      const tableData = tableConfig[table] || {
+        minSpend: 0,
+        maxPersons: 0,
+        category: "",
+      };
+
+      // Determine area name based on table category
+      const areaName = categoryAreaNames[tableData.category] || "";
+
+      // Format display name with area
+      const displayName = `${areaName} ${table}`;
+
+      // Pass the table identifier, position, and configuration to the parent
       setTableNumber(table, {
         x: rect.left + rect.width / 2,
         y: rect.bottom,
+        minSpend: tableData.minSpend,
+        maxPersons: tableData.maxPersons,
+        category: tableData.category,
+        displayName: displayName,
+        areaName: areaName,
       });
     }
   };

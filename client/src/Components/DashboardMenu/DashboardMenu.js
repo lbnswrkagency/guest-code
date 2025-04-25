@@ -7,6 +7,9 @@ import {
   RiQrCodeFill,
   RiCodeBoxFill,
   RiTableLine,
+  RiSettings4Fill,
+  RiFlashlightFill,
+  RiSparklingFill,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
 
@@ -48,8 +51,12 @@ const DashboardMenu = ({
 
   // Function to check if the user should see the table system option
   const shouldShowTableSystem = () => {
-    // Show for any user who is part of the specified brand (67ba051873bd89352d3ab6db)
-    if (selectedBrand && selectedBrand._id === "67ba051873bd89352d3ab6db") {
+    // Show for any user who is part of the specified brands
+    if (
+      selectedBrand &&
+      (selectedBrand._id === "67ba051873bd89352d3ab6db" ||
+        selectedBrand._id === "67d737d6e1299b18afabf4f4")
+    ) {
       return true;
     }
 
@@ -175,52 +182,46 @@ const DashboardMenu = ({
           scale: 1,
           opacity: 1,
           x: 0,
-          y: [0, -3, 0, 3, 0],
-          boxShadow: [
-            "0 4px 15px rgba(255, 200, 7, 0.25)",
-            "0 6px 20px rgba(255, 200, 7, 0.5)",
-            "0 4px 15px rgba(255, 200, 7, 0.25)",
-          ],
         }}
         transition={{
-          duration: 0.4,
+          duration: 0.5,
           ease: "easeOut",
-          y: {
-            repeat: Infinity,
-            repeatType: "loop",
-            duration: 2,
-            ease: "easeInOut",
-          },
-          boxShadow: {
-            repeat: Infinity,
-            repeatType: "reverse",
-            duration: 1,
-            ease: "easeInOut",
-          },
         }}
         whileHover={{
-          scale: 1.1,
-          x: 10,
-          transition: { duration: 0.2, ease: "easeOut" },
+          scale: 1.05,
+          boxShadow: "0 0 25px rgba(255, 200, 7, 0.6)",
         }}
-        whileTap={{ scale: 0.9 }}
-        style={{
-          position: "fixed",
-          top: "50%",
-          transform: "translateY(-50%)",
-        }}
+        whileTap={{ scale: 0.98 }}
       >
-        <RiToolsFill className="trigger-icon" />
+        {/* Create a more sophisticated button with multiple elements */}
+        <div className="menu-trigger-content">
+          <div className="trigger-icon-wrapper">
+            <RiSparklingFill className="sparkle-icon top-left" />
+            <RiSparklingFill className="sparkle-icon top-right" />
+            <RiSparklingFill className="sparkle-icon bottom-left" />
+            <RiSparklingFill className="sparkle-icon bottom-right" />
+            <div className="icon-background"></div>
+            <RiToolsFill className="trigger-icon" />
+          </div>
+          <div className="trigger-text">
+            <span>Tools</span>
+          </div>
+        </div>
       </motion.button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
             className="menu-items"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, scale: 0.8, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: -20 }}
+            transition={{
+              duration: 0.3,
+              type: "spring",
+              stiffness: 300,
+              damping: 25,
+            }}
           >
             {isMenuDisabled && (
               <div className="menu-disabled-message">
@@ -230,7 +231,7 @@ const DashboardMenu = ({
 
             <div className={`menu-grid ${isMenuDisabled ? "disabled" : ""}`}>
               {permissions.analytics.view && (
-                <div
+                <motion.div
                   className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
                     if (!isMenuDisabled) {
@@ -238,14 +239,29 @@ const DashboardMenu = ({
                       setIsOpen(false);
                     }
                   }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
                 >
-                  <RiBarChartFill />
+                  <div className="menu-item-icon-wrapper">
+                    <RiBarChartFill />
+                  </div>
                   <span>Analytics</span>
-                </div>
+                </motion.div>
               )}
 
               {permissions.scanner.use && (
-                <div
+                <motion.div
                   className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
                     if (!isMenuDisabled) {
@@ -253,15 +269,30 @@ const DashboardMenu = ({
                       setIsOpen(false);
                     }
                   }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  <RiQrCodeFill />
+                  <div className="menu-item-icon-wrapper">
+                    <RiQrCodeFill />
+                  </div>
                   <span>Scanner</span>
-                </div>
+                </motion.div>
               )}
 
               {/* Show Codes option if user can generate codes and there are code settings */}
               {permissions.codes.canGenerateAny && codeSettings.length > 0 && (
-                <div
+                <motion.div
                   className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
                     if (!isMenuDisabled) {
@@ -269,15 +300,30 @@ const DashboardMenu = ({
                       setIsOpen(false);
                     }
                   }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
                 >
-                  <RiCodeBoxFill />
+                  <div className="menu-item-icon-wrapper">
+                    <RiCodeBoxFill />
+                  </div>
                   <span>Codes</span>
-                </div>
+                </motion.div>
               )}
 
               {/* Table System menu item only for specific events/users */}
               {shouldShowTableSystem() && (
-                <div
+                <motion.div
                   className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
                   onClick={() => {
                     if (!isMenuDisabled) {
@@ -285,10 +331,25 @@ const DashboardMenu = ({
                       setIsOpen(false);
                     }
                   }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
                 >
-                  <RiTableLine />
+                  <div className="menu-item-icon-wrapper">
+                    <RiTableLine />
+                  </div>
                   <span>Tables</span>
-                </div>
+                </motion.div>
               )}
             </div>
           </motion.div>

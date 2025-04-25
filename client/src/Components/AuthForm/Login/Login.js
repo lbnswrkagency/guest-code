@@ -47,13 +47,6 @@ function Login() {
       delete newState.message;
       window.history.replaceState(newState, document.title);
     }
-
-    // Add a log to check if Login is being mounted unexpectedly
-    console.log("[Login] Component mounted with location:", {
-      pathname: location.pathname,
-      search: location.search,
-      state: location.state,
-    });
   }, [location.state, toast]);
 
   const handleChange = (e) => {

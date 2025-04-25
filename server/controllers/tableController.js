@@ -119,6 +119,10 @@ const generateSecurityToken = () => {
 const addTableCode = async (req, res) => {
   const {
     name,
+    firstName,
+    lastName,
+    email,
+    phone,
     pax,
     tableNumber,
     event,
@@ -128,14 +132,26 @@ const addTableCode = async (req, res) => {
     backstagePass,
     paxChecked,
     isAdmin,
+    isPublic,
   } = req.body;
 
-  // Ensure that the user is authenticated
-  if (!req.user) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
   try {
+    // Validate auth if not a public request
+    if (!isPublic && !req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Fetch the event details for the email
+    const eventDetails = await Event.findById(event)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+    if (!eventDetails) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
     // Generate unique code and security token
     const code = await generateUniqueTableCode();
     const securityToken = generateSecurityToken();
@@ -144,8 +160,13 @@ const addTableCode = async (req, res) => {
     const qrData = securityToken;
     const qrCodeDataUrl = await generateQR(qrData);
 
+    // Build the table code data
     const tableCodeData = {
-      name,
+      name: name || `${firstName} ${lastName}`,
+      firstName,
+      lastName,
+      email,
+      phone,
       pax,
       tableNumber,
       event,
@@ -154,14 +175,167 @@ const addTableCode = async (req, res) => {
       condition: condition || "TABLE RESERVATION", // Default value
       paxChecked: paxChecked || 0, // Default value
       backstagePass: backstagePass || false,
-      status: req.body.isAdmin ? "confirmed" : "pending",
+      status: isAdmin ? "confirmed" : "pending",
       code,
       qrCodeData: qrCodeDataUrl,
       securityToken,
+      isPublic: isPublic || false, // Flag to identify public requests
       createdAt: new Date(),
     };
 
     const createdTableCode = await TableCode.create(tableCodeData);
+
+    // If this is a public request, send a confirmation email
+    if (isPublic && email) {
+      try {
+        // Get brand colors or use defaults
+        const primaryColor = eventDetails?.brand?.colors?.primary || "#3a1a5a";
+
+        // Set up the email sender using Brevo
+        const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+        // Prioritize startDate over date
+        const eventDate = eventDetails?.startDate || eventDetails?.date;
+        const formattedDate = formatCodeDate(eventDate);
+        const formattedDateDE = formatDateDE(eventDate);
+        const dayOfWeek = getDayOfWeek(eventDate);
+
+        // Table type/category display name
+        let tableType = "Table";
+        if (backstagePass) {
+          tableType = "Dancefloor Table";
+        } else if (tableNumber && tableNumber.startsWith("V")) {
+          tableType = "VIP Booth";
+        } else if (tableNumber && tableNumber.startsWith("F")) {
+          tableType = "Front Row Table";
+        }
+
+        // Process lineups with safety check
+        let safeLineups = [];
+        if (eventDetails.lineups && Array.isArray(eventDetails.lineups)) {
+          safeLineups = eventDetails.lineups
+            .filter((artist) => artist !== null && artist !== undefined)
+            .map((artist) => {
+              // Create a safe copy with all required properties
+              return {
+                ...artist,
+                name: artist?.name || "Artist",
+                category: artist?.category || "Performer",
+                avatar: artist.avatar || null,
+              };
+            });
+        }
+
+        // Generate custom content section with table request details - Enhanced for better visual status
+        const tableDetailsHtml = `
+          <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <h3 style="color: ${primaryColor}; margin-top: 0;">Your Table Reservation Request</h3>
+            <p style="font-size: 16px; margin: 0 0 10px;">Thank you for your table reservation request. Our team will review it and get back to you shortly.</p>
+            
+            <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+              <div style="background-color: #FFF7E6; border-left: 4px solid #f39c12; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+                <p style="margin: 0; color: #000; font-size: 14px;">
+                  <strong style="color: #f39c12;">⚠️ Status: PENDING REVIEW</strong><br>
+                  Your request is currently being reviewed by our team. We may contact you via email or phone to finalize your reservation.
+                </p>
+              </div>
+              
+              <p style="margin: 0 0 5px;"><strong>Event:</strong> ${
+                eventDetails.title
+              }</p>
+              <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
+              <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${firstName} ${lastName}</p>
+              <p style="margin: 0 0 5px;"><strong>Table Number:</strong> ${tableNumber} (${tableType})</p>
+              <p style="margin: 0 0 5px;"><strong>Number of People:</strong> ${
+                pax || 1
+              }</p>
+              ${
+                condition
+                  ? `<p style="margin: 0;"><strong>Notes:</strong> ${condition}</p>`
+                  : ""
+              }
+            </div>
+            
+            <div style="background-color: #FFF7E6; border-left: 4px solid #f39c12; padding: 10px; margin-top: 15px; border-radius: 4px;">
+              <p style="margin: 0; color: #000; font-size: 14px;">
+                <strong style="color: #f39c12;">⚠️ Important:</strong> Please note that if your reservation is confirmed, you must arrive at the venue by 1:00 AM at the latest. Tables not claimed by this time may be given to other guests.
+              </p>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; margin-top: 15px;">
+              <em>Please note:</em>
+            </p>
+            <ul style="font-size: 14px; color: #666; margin-top: 5px;">
+              <li>Our team will contact you shortly to confirm your reservation.</li>
+              <li>If approved, you will receive a confirmation email with your table code.</li>
+              <li>Please be prepared to show your table code at the entrance.</li>
+              <li>Arrive by 1:00 AM at the latest to secure your table.</li>
+            </ul>
+          </div>
+        `;
+
+        // Build the email using our template
+        const emailHtml = createEventEmailTemplate({
+          recipientName: `${firstName} ${lastName}`,
+          eventTitle: eventDetails.title,
+          eventDate: eventDate,
+          eventLocation: eventDetails.location || eventDetails.venue || "",
+          eventAddress: eventDetails.street || eventDetails.address || "",
+          eventCity: eventDetails.city || "",
+          eventPostalCode: eventDetails.postalCode || "",
+          startTime: eventDetails.startTime,
+          endTime: eventDetails.endTime,
+          description: eventDetails.description,
+          lineups: safeLineups, // Use the sanitized lineups
+          primaryColor,
+          additionalContent: tableDetailsHtml,
+          footerText:
+            "This is an automated email from GuestCode. Please do not reply to this message.",
+          showEventDetails: true, // Always show event details
+        });
+
+        // Set up email parameters
+        const sendParams = {
+          sender: {
+            name: "GuestCode",
+            email: "no-reply@guestcode.io",
+          },
+          to: [
+            {
+              email: email.trim(),
+              name: `${firstName} ${lastName}`.trim(),
+            },
+          ],
+          bcc: [
+            {
+              email: "contact@guest-code.com",
+            },
+          ],
+          replyTo: {
+            email: "contact@guestcode.com",
+            name: "GuestCode",
+          },
+          subject: `Table Reservation Request for ${
+            eventDetails?.title || "Event"
+          }`,
+          htmlContent: emailHtml,
+        };
+
+        // Send the email
+        await apiInstance.sendTransacEmail(sendParams);
+
+        // Update the code to record that it was sent by email
+        createdTableCode.emailedTo = createdTableCode.emailedTo || [];
+        createdTableCode.emailedTo.push({
+          email: email,
+          sentAt: new Date(),
+        });
+        await createdTableCode.save();
+      } catch (emailError) {
+        console.error("Error sending confirmation email:", emailError);
+        // Don't return an error as the table code was still created successfully
+      }
+    }
 
     res.status(201).json({
       message: "Table Code created successfully",
@@ -466,6 +640,7 @@ const sendTableCodeEmail = async (req, res) => {
       additionalContent: codeDetailsHtml,
       footerText:
         "This is an automated email from GuestCode. Please do not reply to this message.",
+      showEventDetails: true, // Always show event details
     });
 
     // Set up email parameters
@@ -518,6 +693,560 @@ const sendTableCodeEmail = async (req, res) => {
     console.error("Error sending table code email:", error);
     res.status(500).json({
       message: "Error sending table code email",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Send a confirmation email when a public table reservation is accepted
+ */
+const sendTableConfirmationEmail = async (req, res) => {
+  try {
+    const { codeId } = req.params;
+
+    // Find the table code
+    const tableCode = await TableCode.findById(codeId);
+    if (!tableCode) {
+      return res.status(404).json({ message: "Table code not found" });
+    }
+
+    // Check if this was a public request and has an email address
+    if (!tableCode.isPublic || !tableCode.email) {
+      return res.status(400).json({
+        message:
+          "Cannot send confirmation - not a public request or missing email",
+      });
+    }
+
+    // Find the event
+    const event = await Event.findById(tableCode.event)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Generate PDF version of the code for email
+    const pdfResult = await generateTablePDF(tableCode, event);
+    const pdfBuffer = pdfResult.buffer;
+
+    // Process lineups with safety check
+    let safeLineups = [];
+    if (event.lineups && Array.isArray(event.lineups)) {
+      safeLineups = event.lineups
+        .filter((artist) => artist !== null && artist !== undefined)
+        .map((artist) => {
+          return {
+            ...artist,
+            name: artist?.name || "Artist",
+            category: artist?.category || "Performer",
+            avatar: artist.avatar || null,
+          };
+        });
+    }
+
+    // Get brand colors or use defaults
+    const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
+
+    // Set up the email sender using Brevo
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Format attachment
+    const attachments = [
+      {
+        content: pdfBuffer.toString("base64"),
+        name: `Table_${tableCode.tableNumber}_${tableCode.name.replace(
+          /\s+/g,
+          "_"
+        )}.pdf`,
+      },
+    ];
+
+    // Prioritize startDate over date
+    const eventDate = event?.startDate || event?.date;
+    const formattedDate = formatCodeDate(eventDate);
+    const formattedDateDE = formatDateDE(eventDate);
+    const dayOfWeek = getDayOfWeek(eventDate);
+
+    // Determine table type
+    let tableType = "Table";
+    if (tableCode.backstagePass) {
+      tableType = "Dancefloor Table";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("V")) {
+      tableType = "VIP Booth";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("F")) {
+      tableType = "Front Row Table";
+    }
+
+    // Generate custom content section with confirmed reservation details
+    const confirmationDetailsHtml = `
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <h3 style="color: ${primaryColor}; margin-top: 0;">Your Table Reservation is Confirmed!</h3>
+        <p style="font-size: 16px; margin: 0 0 10px;">Great news! Your table reservation has been confirmed. We've attached your table code as a PDF to this email.</p>
+        
+        <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+          <div style="background-color: #E6F7E9; border-left: 4px solid #27ae60; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            <p style="margin: 0; color: #000; font-size: 14px;">
+              <strong style="color: #27ae60;">✅ Status: CONFIRMED</strong><br>
+              Your table reservation has been approved and confirmed!
+            </p>
+          </div>
+          
+          <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${
+            tableCode.name
+          }</p>
+          <p style="margin: 0 0 5px;"><strong>Table Number:</strong> ${
+            tableCode.tableNumber
+          } (${tableType})</p>
+          <p style="margin: 0 0 5px;"><strong>Unique Code:</strong> <span style="color: ${primaryColor}; font-weight: bold;">${
+      tableCode.code || "N/A"
+    }</span></p>
+          <p style="margin: 0 0 5px;"><strong>People:</strong> ${
+            tableCode.pax || 1
+          }</p>
+          ${
+            tableCode.condition
+              ? `<p style="margin: 0;"><strong>Notes:</strong> ${tableCode.condition}</p>`
+              : ""
+          }
+        </div>
+        
+        <div style="background-color: #FFF7E6; border-left: 4px solid #f39c12; padding: 10px; margin-top: 15px; border-radius: 4px;">
+          <p style="margin: 0; color: #000; font-size: 14px;">
+            <strong style="color: #f39c12;">⚠️ Important:</strong> Please arrive at the venue by 1:00 AM at the latest. Tables not claimed by this time may be given to other guests.
+          </p>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          <strong>Important information:</strong>
+        </p>
+        <ul style="font-size: 14px; color: #666; margin-top: 5px;">
+          <li>Please arrive with your table code (attached to this email) by 1:00 AM.</li>
+          <li>You can show the PDF on your phone or print it out.</li>
+          <li>The table will be held for 30 minutes after the event start time.</li>
+        </ul>
+      </div>
+    `;
+
+    // Build the email using our template
+    const emailHtml = createEventEmailTemplate({
+      recipientName: tableCode.name,
+      eventTitle: event.title,
+      eventDate: eventDate,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime,
+      endTime: event.endTime,
+      description: event.description,
+      lineups: safeLineups,
+      primaryColor,
+      additionalContent: confirmationDetailsHtml,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+      showEventDetails: true, // Always show event details
+    });
+
+    // Set up email parameters
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: tableCode.email.trim(),
+          name: tableCode.name.trim(),
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guestcode.com",
+        name: "GuestCode",
+      },
+      subject: `Your Table Reservation is Confirmed for ${
+        event?.title || "Event"
+      }`,
+      htmlContent: emailHtml,
+      attachment: attachments,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+
+    // Update the code to record that it was sent by email
+    tableCode.emailedTo = tableCode.emailedTo || [];
+    tableCode.emailedTo.push({
+      email: tableCode.email,
+      sentAt: new Date(),
+      type: "confirmation",
+    });
+    await tableCode.save();
+
+    return res.status(200).json({
+      message: "Confirmation email sent successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error sending confirmation email:", error);
+    res.status(500).json({
+      message: "Error sending confirmation email",
+      error: error.message,
+    });
+  }
+};
+
+// Add a new function to send cancellation emails
+/**
+ * Send a cancellation email when a public table reservation is cancelled
+ */
+const sendTableCancellationEmail = async (req, res) => {
+  try {
+    const { codeId } = req.params;
+
+    // Find the table code
+    const tableCode = await TableCode.findById(codeId);
+    if (!tableCode) {
+      return res.status(404).json({ message: "Table code not found" });
+    }
+
+    // Check if this was a public request and has an email address
+    if (!tableCode.isPublic || !tableCode.email) {
+      return res.status(400).json({
+        message:
+          "Cannot send cancellation - not a public request or missing email",
+      });
+    }
+
+    // Find the event
+    const event = await Event.findById(tableCode.event)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Process lineups with safety check including avatar
+    let safeLineups = [];
+    if (event.lineups && Array.isArray(event.lineups)) {
+      safeLineups = event.lineups
+        .filter((artist) => artist !== null && artist !== undefined)
+        .map((artist) => {
+          return {
+            ...artist,
+            name: artist?.name || "Artist",
+            category: artist?.category || "Performer",
+            avatar: artist.avatar || null,
+          };
+        });
+    }
+
+    // Get brand colors or use defaults
+    const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
+
+    // Set up the email sender using Brevo
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Prioritize startDate over date
+    const eventDate = event?.startDate || event?.date;
+    const formattedDate = formatCodeDate(eventDate);
+
+    // Determine table type
+    let tableType = "Table";
+    if (tableCode.backstagePass) {
+      tableType = "Dancefloor Table";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("V")) {
+      tableType = "VIP Booth";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("F")) {
+      tableType = "Front Row Table";
+    }
+
+    // Generate custom content section with cancellation details
+    const cancellationDetailsHtml = `
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <h3 style="color: ${primaryColor}; margin-top: 0;">Your Table Reservation has been Cancelled</h3>
+        <p style="font-size: 16px; margin: 0 0 10px;">We're sorry to inform you that your table reservation has been cancelled.</p>
+        
+        <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+          <div style="background-color: #FFEBEE; border-left: 4px solid #f44336; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            <p style="margin: 0; color: #000; font-size: 14px;">
+              <strong style="color: #f44336;">❌ Status: CANCELLED</strong><br>
+              Your table reservation is no longer valid.
+            </p>
+          </div>
+          
+          <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${
+            tableCode.name
+          }</p>
+          <p style="margin: 0 0 5px;"><strong>Table Number:</strong> ${
+            tableCode.tableNumber
+          } (${tableType})</p>
+          <p style="margin: 0 0 5px;"><strong>People:</strong> ${
+            tableCode.pax || 1
+          }</p>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          If you have any questions or would like to make a new reservation, please contact us directly.
+        </p>
+      </div>
+    `;
+
+    // Build the email using our template
+    const emailHtml = createEventEmailTemplate({
+      recipientName: tableCode.name,
+      eventTitle: event.title,
+      eventDate: eventDate,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime,
+      endTime: event.endTime,
+      description: event.description,
+      lineups: safeLineups,
+      primaryColor,
+      additionalContent: cancellationDetailsHtml,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+      showEventDetails: true,
+    });
+
+    // Set up email parameters
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: tableCode.email.trim(),
+          name: tableCode.name.trim(),
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guestcode.com",
+        name: "GuestCode",
+      },
+      subject: `Your Table Reservation has been Cancelled for ${
+        event?.title || "Event"
+      }`,
+      htmlContent: emailHtml,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+
+    // Update the code to record that it was sent by email
+    tableCode.emailedTo = tableCode.emailedTo || [];
+    tableCode.emailedTo.push({
+      email: tableCode.email,
+      sentAt: new Date(),
+      type: "cancellation",
+    });
+    await tableCode.save();
+
+    return res.status(200).json({
+      message: "Cancellation email sent successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error sending cancellation email:", error);
+    res.status(500).json({
+      message: "Error sending cancellation email",
+      error: error.message,
+    });
+  }
+};
+
+// Add a new function to send declined emails
+/**
+ * Send a decline email when a public table reservation is declined
+ */
+const sendTableDeclinedEmail = async (req, res) => {
+  try {
+    const { codeId } = req.params;
+
+    // Find the table code
+    const tableCode = await TableCode.findById(codeId);
+    if (!tableCode) {
+      return res.status(404).json({ message: "Table code not found" });
+    }
+
+    // Check if this was a public request and has an email address
+    if (!tableCode.isPublic || !tableCode.email) {
+      return res.status(400).json({
+        message:
+          "Cannot send decline email - not a public request or missing email",
+      });
+    }
+
+    // Find the event
+    const event = await Event.findById(tableCode.event)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Process lineups with safety check including avatar
+    let safeLineups = [];
+    if (event.lineups && Array.isArray(event.lineups)) {
+      safeLineups = event.lineups
+        .filter((artist) => artist !== null && artist !== undefined)
+        .map((artist) => {
+          return {
+            ...artist,
+            name: artist?.name || "Artist",
+            category: artist?.category || "Performer",
+            avatar: artist.avatar || null,
+          };
+        });
+    }
+
+    // Get brand colors or use defaults
+    const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
+
+    // Set up the email sender using Brevo
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Prioritize startDate over date
+    const eventDate = event?.startDate || event?.date;
+    const formattedDate = formatCodeDate(eventDate);
+
+    // Determine table type
+    let tableType = "Table";
+    if (tableCode.backstagePass) {
+      tableType = "Dancefloor Table";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("V")) {
+      tableType = "VIP Booth";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("F")) {
+      tableType = "Front Row Table";
+    }
+
+    // Generate custom content section with declined reservation details
+    const declineDetailsHtml = `
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <h3 style="color: ${primaryColor}; margin-top: 0;">Your Table Reservation Request has been Declined</h3>
+        <p style="font-size: 16px; margin: 0 0 10px;">We regret to inform you that we are unable to accommodate your table reservation request for this event.</p>
+        
+        <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+          <div style="background-color: #FFEBEE; border-left: 4px solid #f44336; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            <p style="margin: 0; color: #000; font-size: 14px;">
+              <strong style="color: #f44336;">❌ Status: DECLINED</strong><br>
+              Unfortunately, we could not approve your table reservation request.
+            </p>
+          </div>
+          
+          <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${
+            tableCode.name
+          }</p>
+          <p style="margin: 0 0 5px;"><strong>Table Type:</strong> ${tableType}</p>
+          <p style="margin: 0 0 5px;"><strong>People:</strong> ${
+            tableCode.pax || 1
+          }</p>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          This could be due to capacity limitations or other constraints. We appreciate your interest and hope you will still join us for the event.
+          If you have any questions, please feel free to contact us.
+        </p>
+      </div>
+    `;
+
+    // Build the email using our template
+    const emailHtml = createEventEmailTemplate({
+      recipientName: tableCode.name,
+      eventTitle: event.title,
+      eventDate: eventDate,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime,
+      endTime: event.endTime,
+      description: event.description,
+      lineups: safeLineups,
+      primaryColor,
+      additionalContent: declineDetailsHtml,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+      showEventDetails: true,
+    });
+
+    // Set up email parameters
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: tableCode.email.trim(),
+          name: tableCode.name.trim(),
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guestcode.com",
+        name: "GuestCode",
+      },
+      subject: `Your Table Reservation Request for ${
+        event?.title || "Event"
+      } has been Declined`,
+      htmlContent: emailHtml,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+
+    // Update the code to record that it was sent by email
+    tableCode.emailedTo = tableCode.emailedTo || [];
+    tableCode.emailedTo.push({
+      email: tableCode.email,
+      sentAt: new Date(),
+      type: "declined",
+    });
+    await tableCode.save();
+
+    return res.status(200).json({
+      message: "Decline email sent successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error sending decline email:", error);
+    res.status(500).json({
+      message: "Error sending decline email",
       error: error.message,
     });
   }
@@ -1327,6 +2056,191 @@ const generateTablePDF = async (tableCode, event) => {
   }
 };
 
+// Add a function to send email notifications about table updates
+/**
+ * Send an update email when a table reservation details are changed
+ */
+const sendTableUpdateEmail = async (req, res) => {
+  try {
+    const { codeId } = req.params;
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        message: "Invalid email format",
+      });
+    }
+
+    // Find the table code
+    const tableCode = await TableCode.findById(codeId);
+    if (!tableCode) {
+      return res.status(404).json({ message: "Table code not found" });
+    }
+
+    // Find the event
+    const event = await Event.findById(tableCode.event)
+      .populate({
+        path: "lineups",
+        select: "name category avatar",
+      })
+      .populate("brand");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Generate PDF version of the updated code for email
+    const pdfResult = await generateTablePDF(tableCode, event);
+    const pdfBuffer = pdfResult.buffer;
+
+    // Get brand colors or use defaults
+    const primaryColor = event?.brand?.colors?.primary || "#3a1a5a";
+
+    // Set up the email sender using Brevo
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Format attachment
+    const attachments = [
+      {
+        content: pdfBuffer.toString("base64"),
+        name: `Table_${tableCode.tableNumber}_${tableCode.name.replace(
+          /\s+/g,
+          "_"
+        )}.pdf`,
+      },
+    ];
+
+    // Prioritize startDate over date
+    const eventDate = event?.startDate || event?.date;
+    const formattedDate = formatCodeDate(eventDate);
+
+    // Determine table type
+    let tableType = "Table";
+    if (tableCode.backstagePass) {
+      tableType = "Dancefloor Table";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("V")) {
+      tableType = "VIP Booth";
+    } else if (tableCode.tableNumber && tableCode.tableNumber.startsWith("F")) {
+      tableType = "Front Row Table";
+    }
+
+    // Generate custom content section with updated reservation details
+    const updateDetailsHtml = `
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <h3 style="color: ${primaryColor}; margin-top: 0;">Your Table Reservation has been Updated</h3>
+        <p style="font-size: 16px; margin: 0 0 10px;">We've attached your updated table code as a PDF to this email. Details of your reservation have been changed as shown below.</p>
+        
+        <div style="background-color: white; border-radius: 5px; padding: 15px; margin-top: 15px; border: 1px solid #eee;">
+          <div style="background-color: #E6F7FF; border-left: 4px solid #1890ff; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            <p style="margin: 0; color: #000; font-size: 14px;">
+              <strong style="color: #1890ff;">🔄 Status: UPDATED</strong><br>
+              Your table reservation details have been updated. Please refer to the information below.
+            </p>
+          </div>
+          
+          <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${
+            tableCode.name
+          }</p>
+          <p style="margin: 0 0 5px;"><strong>Table Number:</strong> ${
+            tableCode.tableNumber
+          } (${tableType})</p>
+          <p style="margin: 0 0 5px;"><strong>Unique Code:</strong> <span style="color: ${primaryColor}; font-weight: bold;">${
+      tableCode.code || "N/A"
+    }</span></p>
+          <p style="margin: 0 0 5px;"><strong>People:</strong> ${
+            tableCode.pax || 1
+          }</p>
+          ${
+            tableCode.condition
+              ? `<p style="margin: 0;"><strong>Notes:</strong> ${tableCode.condition}</p>`
+              : ""
+          }
+        </div>
+        
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          Please use this updated table code on the day of the event. The previous code is no longer valid.
+        </p>
+      </div>
+    `;
+
+    // Build the email using our template
+    const emailHtml = createEventEmailTemplate({
+      recipientName: tableCode.name,
+      eventTitle: event.title,
+      eventDate: eventDate,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime,
+      endTime: event.endTime,
+      description: event.description,
+      lineups: event.lineups,
+      primaryColor,
+      additionalContent: updateDetailsHtml,
+      footerText:
+        "This is an automated email from GuestCode. Please do not reply to this message.",
+      showEventDetails: true,
+    });
+
+    // Set up email parameters
+    const params = {
+      sender: {
+        name: "GuestCode",
+        email: "no-reply@guestcode.io",
+      },
+      to: [
+        {
+          email: email.trim(),
+          name: tableCode.name.trim(),
+        },
+      ],
+      bcc: [
+        {
+          email: "contact@guest-code.com",
+        },
+      ],
+      replyTo: {
+        email: "contact@guestcode.com",
+        name: "GuestCode",
+      },
+      subject: `Your Updated Table Reservation for ${event?.title || "Event"}`,
+      htmlContent: emailHtml,
+      attachment: attachments,
+    };
+
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(params);
+
+    // Update the code to record that it was sent by email
+    tableCode.emailedTo = tableCode.emailedTo || [];
+    tableCode.emailedTo.push({
+      email: email,
+      sentAt: new Date(),
+      type: "update",
+    });
+    await tableCode.save();
+
+    return res.status(200).json({
+      message: "Table update notification sent successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error sending table update email:", error);
+    res.status(500).json({
+      message: "Error sending table update email",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addTableCode,
   getTableCounts,
@@ -1334,4 +2248,8 @@ module.exports = {
   generateCodePNGDownload,
   generateCodePDF,
   sendTableCodeEmail,
+  sendTableConfirmationEmail,
+  sendTableCancellationEmail,
+  sendTableDeclinedEmail,
+  sendTableUpdateEmail,
 };

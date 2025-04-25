@@ -1,5 +1,5 @@
 // Navigation.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Navigation.scss";
 import {
   RiArrowLeftSLine,
@@ -18,18 +18,11 @@ import { useChat } from "../../contexts/ChatContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
+import { useNavigation } from "../../contexts/NavigationContext";
 import axiosInstance from "../../utils/axiosConfig";
 import Search from "../Search/Search";
 
-const Navigation = ({
-  onBack,
-  onMenuClick = () => {
-    console.warn(
-      "[Navigation] onMenuClick prop is not provided. DashboardNavigation won't open."
-    );
-  },
-  onLogout,
-}) => {
+const Navigation = ({ onBack, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const hasMessages = useNotificationDot("message");
@@ -38,10 +31,35 @@ const Navigation = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
   const { socket } = useSocket();
+  const { openNavigation } = useNavigation();
   const [showSearch, setShowSearch] = useState(false);
+  const [isDashboardController, setIsDashboardController] = useState(false);
 
   // Check if user is authenticated
   const isAuthenticated = !!user;
+
+  // Listen for dashboard controller status
+  useEffect(() => {
+    const handleDashboardMounted = (event) => {
+      if (event.detail.navigationController) {
+        console.log("Navigation: Recognized Dashboard as controller");
+        setIsDashboardController(true);
+      }
+    };
+
+    window.addEventListener("dashboardMounted", handleDashboardMounted);
+
+    // Check if dashboard is already mounted
+    const checkExistingDashboard = setTimeout(() => {
+      // Dispatch a query event to check if Dashboard is listening
+      window.dispatchEvent(new CustomEvent("navigationQueryController"));
+    }, 100);
+
+    return () => {
+      window.removeEventListener("dashboardMounted", handleDashboardMounted);
+      clearTimeout(checkExistingDashboard);
+    };
+  }, []);
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -57,11 +75,7 @@ const Navigation = ({
       // Call AuthContext logout
       await logout();
     } catch (error) {
-      console.error("[Navigation] Logout failed:", {
-        error: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString(),
-      });
+      // Error handling removed
     }
   };
 
@@ -87,24 +101,21 @@ const Navigation = ({
     navigate("/login");
   };
 
-  const createTestNotification = async () => {
-    try {
-      const response = await axiosInstance.post("/notifications/create", {
-        userId: user._id,
-        type: "info",
-        title: "Test Notification",
-        message: "This is a test notification. Click to mark as read!",
-        metadata: {
-          timestamp: new Date().toISOString(),
-          testData: "This is some test metadata",
-        },
-      });
-    } catch (error) {
-      console.error(
-        "[Navigation] Error creating test notification:",
-        error.message
-      );
-    }
+  const handleMenuIconClick = (e) => {
+    e.preventDefault(); // Prevent default behavior
+    e.stopPropagation(); // Prevent event propagation
+
+    console.log("Menu icon clicked in Navigation component");
+
+    // Dispatch global event
+    window.dispatchEvent(
+      new CustomEvent("navigationMenuClick", {
+        detail: { source: location.pathname },
+      })
+    );
+
+    // Use the centralized navigation context
+    openNavigation();
   };
 
   const handleSearchClick = () => {
@@ -171,7 +182,7 @@ const Navigation = ({
               {/* Menu */}
               <motion.div
                 className="nav-icon-wrapper"
-                onClick={onMenuClick}
+                onClick={handleMenuIconClick}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 role="button"

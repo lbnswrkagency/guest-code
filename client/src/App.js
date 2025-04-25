@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import {
   Routes,
   Route,
@@ -17,7 +17,12 @@ import { BrandProvider } from "./contexts/BrandContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ChatProvider } from "./contexts/ChatContext";
+import {
+  NavigationProvider,
+  useNavigation,
+} from "./contexts/NavigationContext";
 import RouteGuard from "./Components/RouteGuard/RouteGuard";
+import DashboardNavigation from "./Components/DashboardNavigation/DashboardNavigation";
 
 import Dashboard from "./Components/Dashboard/Dashboard";
 import Home from "./Components/Home/Home";
@@ -573,7 +578,26 @@ const ClearNotificationsOnMount = ({ children }) => {
   return children;
 };
 
-// Main App component - we don't need BrowserRouter anymore since it's provided by index.js
+// Centralized Dashboard Navigation
+const CentralizedNavigation = () => {
+  const { user, setUser } = useAuth();
+  const location = useLocation();
+  const { isNavigationOpen, closeNavigation } = useNavigation();
+
+  // If no user or closed navigation, don't render
+  if (!user || !isNavigationOpen) return null;
+
+  return (
+    <DashboardNavigation
+      isOpen={isNavigationOpen}
+      onClose={closeNavigation}
+      currentUser={user}
+      setUser={setUser}
+    />
+  );
+};
+
+// Main App component
 function App() {
   return (
     <AuthProvider>
@@ -581,14 +605,17 @@ function App() {
         <SocketProvider>
           <ChatProvider>
             <NotificationProvider>
-              <Toaster position="top-center" />
-              <ToastProvider>
-                <DeviceRestriction>
-                  <div className="app">
-                    <AppRoutes />
-                  </div>
-                </DeviceRestriction>
-              </ToastProvider>
+              <NavigationProvider>
+                <Toaster position="top-center" />
+                <ToastProvider>
+                  <DeviceRestriction>
+                    <div className="app">
+                      <AppRoutes />
+                      <CentralizedNavigation />
+                    </div>
+                  </DeviceRestriction>
+                </ToastProvider>
+              </NavigationProvider>
             </NotificationProvider>
           </ChatProvider>
         </SocketProvider>

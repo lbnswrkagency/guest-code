@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./UpcomingEvent.scss";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import Stripe from "../Stripe/Stripe";
 import Tickets from "../Tickets/Tickets";
 import EventDetails from "../EventDetails/EventDetails";
 import GuestCode from "../GuestCode/GuestCode";
+import TableSystem from "../TableSystem/TableSystem";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -26,6 +27,9 @@ import {
   RiVipCrownLine,
   RiRefreshLine,
   RiTestTubeLine,
+  RiTableLine,
+  RiArrowUpLine,
+  RiStarLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -51,6 +55,7 @@ const UpcomingEvent = ({
   events: providedEvents,
   initialEventIndex = 0,
   hideNavigation = false,
+  hideTableBooking = false,
   onEventsLoaded = () => {},
 }) => {
   const [events, setEvents] = useState(
@@ -69,6 +74,9 @@ const UpcomingEvent = ({
   // Only keep the showGuestCodeForm state for toggling visibility
   const [showGuestCodeForm, setShowGuestCodeForm] = useState(false);
 
+  // Add state for table bookings
+  const [showTableBooking, setShowTableBooking] = useState(false);
+
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -77,6 +85,10 @@ const UpcomingEvent = ({
   // Action buttons refs for scrolling
   const guestCodeSectionRef = useRef(null);
   const ticketSectionRef = useRef(null);
+  const tableBookingSectionRef = useRef(null);
+
+  // Add a ticket settings cache
+  const [ticketSettingsCache, setTicketSettingsCache] = useState({});
 
   useEffect(() => {
     // If events are provided directly, use them
@@ -85,6 +97,11 @@ const UpcomingEvent = ({
       const processedEvents = providedEvents.map((event) => {
         // Create a copy of the event
         const eventCopy = { ...event };
+
+        // Make sure ticketsAvailable is set - set to true by default
+        if (eventCopy.ticketsAvailable === undefined) {
+          eventCopy.ticketsAvailable = true;
+        }
 
         // If the event has lineups, validate them
         if (eventCopy.lineups && Array.isArray(eventCopy.lineups)) {
@@ -131,6 +148,17 @@ const UpcomingEvent = ({
       if (processedEvents[currentIndex]?.flyer) {
         preloadEventImage(processedEvents[currentIndex]);
       }
+
+      // OPTIMIZATION: Preload ticket settings for ALL events at once
+      processedEvents.forEach((event) => {
+        if (event._id && event.ticketsAvailable !== false) {
+          // Queue the ticket fetch with a slight delay to avoid overwhelming the server
+          setTimeout(() => {
+            fetchTicketSettings(event._id);
+          }, 100);
+        }
+      });
+
       return;
     }
 
@@ -219,58 +247,6 @@ const UpcomingEvent = ({
     }
   };
 
-  // Fetch ticket settings when the current event changes
-  useEffect(() => {
-    if (events.length > 0) {
-      const currentEvent = events[currentIndex];
-
-      // Ensure ticketsAvailable property exists
-      if (currentEvent.ticketsAvailable === undefined) {
-        // Create a copy of the events array to avoid modifying the original
-        const updatedEvents = [...events];
-        const updatedEvent = {
-          ...updatedEvents[currentIndex],
-          ticketsAvailable: true,
-        };
-        updatedEvents[currentIndex] = updatedEvent;
-
-        // Update the state with the new array
-        setEvents(updatedEvents);
-
-        // If this is a child event, check if parent event has tickets available
-        if (currentEvent.parentEventId && currentEvent.isWeekly === false) {
-          // Find the parent event in the events array
-          const parentEvent = events.find(
-            (event) =>
-              event._id === currentEvent.parentEventId ||
-              (event.isWeekly && event.weekNumber === 0)
-          );
-
-          if (parentEvent && parentEvent.ticketsAvailable !== undefined) {
-            // Update the copy again with the parent's value
-            const updatedEventsWithParent = [...updatedEvents];
-            updatedEventsWithParent[currentIndex] = {
-              ...updatedEventsWithParent[currentIndex],
-              ticketsAvailable: parentEvent.ticketsAvailable,
-            };
-            setEvents(updatedEventsWithParent);
-          }
-        }
-
-        // Skip the rest of this effect run since we've updated the state
-        // The effect will run again with the updated events array
-        return;
-      }
-
-      // Only fetch ticket settings if the event has tickets available
-      if (currentEvent.ticketsAvailable) {
-        fetchTicketSettings(currentEvent._id);
-      } else {
-        setTicketSettings([]);
-      }
-    }
-  }, [currentIndex, events]);
-
   // Function to create a sample ticket for testing if no tickets are found
   const createSampleTicket = (eventId) => {
     // Create a sample ticket for testing
@@ -301,61 +277,94 @@ const UpcomingEvent = ({
     ];
   };
 
-  // Function to fetch ticket settings for the current event
-  const fetchTicketSettings = async (eventId) => {
-    setLoadingTickets(true);
-    try {
-      const currentEvent = events[currentIndex];
-
-      // Try the event profile endpoint which has optional authentication
-      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-
-      const response = await axiosInstance.get(endpoint);
-      let ticketSettings = [];
-
-      if (
-        response.data &&
-        response.data.ticketSettings &&
-        response.data.ticketSettings.length > 0
-      ) {
-        ticketSettings = response.data.ticketSettings;
-      } else {
-        // If this is a child event (has parentEventId) and no ticket settings were found,
-        // try to get ticket settings from the parent event
-        if (currentEvent?.parentEventId) {
-          try {
-            const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
-            const parentResponse = await axiosInstance.get(parentEndpoint);
-
-            if (
-              parentResponse.data &&
-              parentResponse.data.ticketSettings &&
-              parentResponse.data.ticketSettings.length > 0
-            ) {
-              ticketSettings = parentResponse.data.ticketSettings;
-            } else {
-              ticketSettings = [];
-            }
-          } catch (parentError) {
-            console.error(
-              "[UpcomingEvent] Error fetching parent event ticket settings:",
-              parentError
-            );
-            ticketSettings = [];
-          }
-        } else {
-          ticketSettings = [];
-        }
+  // Function to fetch ticket settings for the current event - wrap in useCallback to prevent issues
+  const fetchTicketSettings = useCallback(
+    async (eventId) => {
+      if (!eventId) {
+        return;
       }
 
-      setTicketSettings(ticketSettings);
-    } catch (error) {
-      console.error("[UpcomingEvent] Error fetching ticket settings:", error);
-      setTicketSettings([]);
-    } finally {
-      setLoadingTickets(false);
-    }
-  };
+      setLoadingTickets(true);
+
+      try {
+        // Check if we already have this event's ticket settings in cache
+        if (ticketSettingsCache[eventId]) {
+          setTicketSettings(ticketSettingsCache[eventId]);
+          setLoadingTickets(false);
+          return;
+        }
+
+        // Find current event by ID in case currentIndex has changed
+        const currentEvent = events.find((e) => e._id === eventId);
+        if (!currentEvent) {
+          setLoadingTickets(false);
+          return;
+        }
+
+        // Try the event profile endpoint which has optional authentication
+        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+
+        const response = await axiosInstance.get(endpoint);
+
+        let ticketSettings = [];
+
+        if (
+          response.data &&
+          response.data.ticketSettings &&
+          response.data.ticketSettings.length > 0
+        ) {
+          ticketSettings = response.data.ticketSettings;
+        } else {
+          // If this is a child event (has parentEventId) and no ticket settings were found,
+          // try to get ticket settings from the parent event
+          if (currentEvent?.parentEventId) {
+            // Check if parent event ticket settings are in cache
+            if (ticketSettingsCache[currentEvent.parentEventId]) {
+              ticketSettings = ticketSettingsCache[currentEvent.parentEventId];
+            } else {
+              try {
+                const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
+                const parentResponse = await axiosInstance.get(parentEndpoint);
+
+                if (
+                  parentResponse.data &&
+                  parentResponse.data.ticketSettings &&
+                  parentResponse.data.ticketSettings.length > 0
+                ) {
+                  ticketSettings = parentResponse.data.ticketSettings;
+
+                  // Cache the parent's ticket settings too
+                  setTicketSettingsCache((prev) => ({
+                    ...prev,
+                    [currentEvent.parentEventId]: ticketSettings,
+                  }));
+                } else {
+                  ticketSettings = [];
+                }
+              } catch (parentError) {
+                ticketSettings = [];
+              }
+            }
+          } else {
+            ticketSettings = [];
+          }
+        }
+
+        // Cache the ticket settings for this event
+        setTicketSettingsCache((prev) => ({
+          ...prev,
+          [eventId]: ticketSettings,
+        }));
+
+        setTicketSettings(ticketSettings);
+      } catch (error) {
+        setTicketSettings([]);
+      } finally {
+        setLoadingTickets(false);
+      }
+    },
+    [events, ticketSettingsCache]
+  );
 
   const fetchUpcomingEvents = async () => {
     setLoading(true);
@@ -392,17 +401,11 @@ const UpcomingEvent = ({
                 events = [...events, ...childrenResponse.data];
               }
             } catch (childError) {
-              console.warn(
-                `[UpcomingEvent] Error fetching child events:`,
-                childError.message
-              );
+              // Warning removed
             }
           }
         } catch (error) {
-          console.warn(
-            `[UpcomingEvent] Error fetching events by brandId:`,
-            error.message
-          );
+          // Warning removed
 
           // Fall back to using brandUsername for any error, not just 401/403
           if (brandUsername) {
@@ -417,10 +420,7 @@ const UpcomingEvent = ({
                 events = [];
               }
             } catch (usernameError) {
-              console.warn(
-                `[UpcomingEvent] Error fetching events by username:`,
-                usernameError.message
-              );
+              // Warning removed
               events = [];
             }
           }
@@ -453,20 +453,14 @@ const UpcomingEvent = ({
                   events = [...events, ...childrenResponse.data];
                 }
               } catch (childError) {
-                console.warn(
-                  `[UpcomingEvent] Error fetching child events:`,
-                  childError.message
-                );
+                // Warning removed
               }
             }
           } else {
             events = [];
           }
         } catch (err) {
-          console.warn(
-            `[UpcomingEvent] Error fetching events by username:`,
-            err.message
-          );
+          // Warning removed
           events = [];
         }
       }
@@ -581,15 +575,6 @@ const UpcomingEvent = ({
         return a.calculatedStartDate - b.calculatedStartDate;
       });
 
-      console.log("[UpcomingEvent] Filtered upcoming events:", {
-        totalEvents: events.length,
-        processedEvents: processedEvents.length,
-        upcomingEvents: upcomingEvents.length,
-        firstEventStatus: upcomingEvents[0]?.status,
-        firstEventDate: upcomingEvents[0]?.startDate || upcomingEvents[0]?.date,
-        now: new Date().toISOString(),
-      });
-
       setEvents(upcomingEvents);
       setTotalEvents(upcomingEvents.length);
 
@@ -608,7 +593,7 @@ const UpcomingEvent = ({
         setCurrentIndex(-1);
       }
     } catch (error) {
-      console.error("[UpcomingEvent] Error fetching events:", error);
+      // Error handling removed
       setError("Failed to load events");
       setEvents([]);
       setCurrentIndex(-1);
@@ -983,6 +968,120 @@ const UpcomingEvent = ({
     handleViewEvent(eventWithSection);
   };
 
+  // Add function to toggle table booking system
+  const toggleTableBooking = () => {
+    setShowTableBooking(!showTableBooking);
+    setShowGuestCodeForm(false); // Close guest code form if open
+  };
+
+  // Utility function to check if event supports table booking
+  const supportsTableBooking = (event) => {
+    // Check all possible formats
+    return (
+      // Special event ID
+      event._id === "6807c197d4455638731dbda6" ||
+      // Brand as object with _id property
+      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+      (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
+      // Brand as string ID directly
+      event.brand === "67d737d6e1299b18afabf4f4" ||
+      event.brand === "67ba051873bd89352d3ab6db" ||
+      // Brand ID in other properties
+      event.brandId === "67d737d6e1299b18afabf4f4" ||
+      event.brandId === "67ba051873bd89352d3ab6db"
+    );
+  };
+
+  // Modify the handleTableBookingClick to toggle the view without scrolling
+  const handleTableBookingClick = (event, e) => {
+    e.stopPropagation(); // Prevent the main event click handler from firing
+
+    // Force the table section to be rendered
+    setShowTableBooking(true);
+
+    // Short delay to ensure the component renders before scrolling
+    setTimeout(() => {
+      // Scroll to the table booking section using ID for more reliability
+      const tableSectionElement = document.getElementById(
+        "table-booking-section"
+      );
+
+      if (tableSectionElement) {
+        // Use classic scrolling as fallback
+        tableSectionElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+
+        // Add highlight effect
+        tableSectionElement.classList.add("highlight-section");
+        setTimeout(() => {
+          if (tableSectionElement) {
+            tableSectionElement.classList.remove("highlight-section");
+          }
+        }, 1500);
+      } else if (tableBookingSectionRef.current) {
+        // Use ref scrolling as backup
+        tableBookingSectionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+
+        tableBookingSectionRef.current.classList.add("highlight-section");
+        setTimeout(() => {
+          if (tableBookingSectionRef.current) {
+            tableBookingSectionRef.current.classList.remove(
+              "highlight-section"
+            );
+          }
+        }, 1500);
+      }
+    }, 300);
+  };
+
+  // Initialize ticketsAvailable property and fetch ticket settings immediately
+  useEffect(() => {
+    if (events.length > 0 && currentIndex >= 0) {
+      const currentEvent = events[currentIndex];
+
+      // Set ticketsAvailable to true by default if not explicitly false
+      if (currentEvent.ticketsAvailable === undefined) {
+        const updatedEvents = [...events];
+        updatedEvents[currentIndex] = {
+          ...updatedEvents[currentIndex],
+          ticketsAvailable: true,
+        };
+        setEvents(updatedEvents);
+      }
+
+      // IMPORTANT: Directly call fetchTicketSettings here to ensure it runs
+      if (currentEvent._id) {
+        fetchTicketSettings(currentEvent._id);
+      }
+    }
+  }, [currentIndex, fetchTicketSettings, events]);
+
+  // Initialize the component state on mount and when events or current event changes
+  useEffect(() => {
+    if (events.length > 0 && currentIndex >= 0) {
+      const currentEvent = events[currentIndex];
+
+      // If this is an event that supports table booking, make sure the DOM element exists
+      if (supportsTableBooking(currentEvent)) {
+        // Force the table section to be rendered by setting this state
+        setShowTableBooking(true);
+      }
+    }
+  }, [events, currentIndex]);
+
+  // Add a function to scroll to top
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   // Check if we have a current event to display
   if (loading) {
     return (
@@ -1152,110 +1251,243 @@ const UpcomingEvent = ({
                 event={currentEvent}
                 scrollToTickets={(e) => {
                   e.stopPropagation();
-                  // Use the new handler with navigation integration
+                  // Use the handler with navigation integration
                   handleTicketsClick(currentEvent, e);
                 }}
                 scrollToGuestCode={(e) => {
                   e.stopPropagation();
-                  // Use the new handler with navigation integration
+                  // Use the handler with navigation integration
                   handleGuestCodeClick(currentEvent, e);
                 }}
+                scrollToTableBooking={(e) => {
+                  e.stopPropagation();
+                  // Use the new handler for table booking
+                  handleTableBookingClick(currentEvent, e);
+                }}
+                hasTickets={ticketSettings.length > 0}
+                ticketPaymentMethod={
+                  ticketSettings.length > 0
+                    ? ticketSettings[0].paymentMethod
+                    : "online"
+                }
               />
             </div>
 
-            {/* Lineup section */}
+            {/* Lineup section - MOVED UP BEFORE TICKETS */}
             {currentEvent.lineups && currentEvent.lineups.length > 0 && (
               <>{renderLineups(currentEvent.lineups)}</>
             )}
 
             {/* Content sections wrapper for responsive layout */}
             <div className="upcomingEvent-content-sections">
-              {/* Ticket Purchase Section */}
+              {/* Ticket Purchase Section - MOVED UP BEFORE GUEST CODE */}
               <div
                 ref={ticketSectionRef}
                 className="upcomingEvent-ticket-section full-width"
               >
-                {currentEvent &&
-                  currentEvent.ticketsAvailable &&
-                  ticketSettings.length > 0 && (
-                    <Tickets
-                      eventId={currentEvent._id}
-                      eventTitle={currentEvent.title}
-                      eventDate={currentEvent.date}
-                      seamless={seamless}
-                      event={currentEvent}
-                      fetchTicketSettings={async (eventId) => {
-                        try {
-                          const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-
-                          const response = await axiosInstance.get(endpoint);
-                          let ticketSettings = [];
-
-                          if (
-                            response.data &&
-                            response.data.ticketSettings &&
-                            response.data.ticketSettings.length > 0
-                          ) {
-                            ticketSettings = response.data.ticketSettings;
-                          } else if (currentEvent.parentEventId) {
-                            // If this is a child event and no ticket settings were found, check parent event
+                {currentEvent && currentEvent.ticketsAvailable !== false && (
+                  <>
+                    {
+                      loadingTickets ? (
+                        <div className="upcomingEvent-ticket-loading">
+                          <LoadingSpinner color="#ffc807" />
+                          <p>Loading tickets...</p>
+                        </div>
+                      ) : ticketSettings.length > 0 ? (
+                        <Tickets
+                          eventId={currentEvent._id}
+                          eventTitle={currentEvent.title}
+                          eventDate={currentEvent.date}
+                          seamless={seamless}
+                          event={currentEvent}
+                          fetchTicketSettings={async (eventId) => {
                             try {
-                              const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
-                              const parentResponse = await axiosInstance.get(
-                                parentEndpoint
+                              const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+
+                              const response = await axiosInstance.get(
+                                endpoint
                               );
+                              let ticketSettings = [];
 
                               if (
-                                parentResponse.data &&
-                                parentResponse.data.ticketSettings &&
-                                parentResponse.data.ticketSettings.length > 0
+                                response.data &&
+                                response.data.ticketSettings &&
+                                response.data.ticketSettings.length > 0
                               ) {
-                                ticketSettings =
-                                  parentResponse.data.ticketSettings;
-                              }
-                            } catch (parentError) {
-                              console.error(
-                                "[UpcomingEvent] Error fetching parent ticket settings:",
-                                parentError
-                              );
-                            }
-                          }
+                                ticketSettings = response.data.ticketSettings;
+                              } else if (currentEvent.parentEventId) {
+                                // If this is a child event and no ticket settings were found, check parent event
+                                try {
+                                  const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
+                                  const parentResponse =
+                                    await axiosInstance.get(parentEndpoint);
 
-                          return ticketSettings;
-                        } catch (error) {
-                          console.error(
-                            "[UpcomingEvent] Error fetching ticket settings:",
-                            error
-                          );
-                          return [];
-                        }
-                      }}
-                    />
-                  )}
+                                  if (
+                                    parentResponse.data &&
+                                    parentResponse.data.ticketSettings &&
+                                    parentResponse.data.ticketSettings.length >
+                                      0
+                                  ) {
+                                    ticketSettings =
+                                      parentResponse.data.ticketSettings;
+                                  }
+                                } catch (parentError) {
+                                  return [];
+                                }
+                              }
+
+                              return ticketSettings;
+                            } catch (error) {
+                              return [];
+                            }
+                          }}
+                        />
+                      ) : null /* Hide "No tickets" message completely */
+                    }
+                  </>
+                )}
               </div>
 
-              {/* GuestCode component section */}
+              {/* GuestCode component section - MOVED AFTER TICKETS */}
               <div
                 ref={guestCodeSectionRef}
                 className="upcomingEvent-guest-code-section"
               >
                 {currentEvent && <GuestCode event={currentEvent} />}
               </div>
+
+              {/* Table booking section - KEPT AS LAST SECTION */}
+              {currentEvent && !hideTableBooking && (
+                <>
+                  {supportsTableBooking(currentEvent) && showTableBooking && (
+                    <div
+                      ref={tableBookingSectionRef}
+                      className="upcomingEvent-table-booking-section"
+                      id="table-booking-section"
+                    >
+                      {/* <h3 className="section-title">Table Booking</h3> */}
+                      <div className="upcomingEvent-table-container">
+                        <TableSystem
+                          selectedEvent={currentEvent}
+                          selectedBrand={currentEvent.brand}
+                          isPublic={true} // Mark as public
+                          onClose={toggleTableBooking}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback check for specific brand IDs - in case brand is stored differently */}
+                  {!supportsTableBooking(currentEvent) &&
+                    currentEvent.brand &&
+                    (currentEvent.brand === "67d737d6e1299b18afabf4f4" ||
+                      currentEvent.brand === "67ba051873bd89352d3ab6db") &&
+                    showTableBooking && (
+                      <div
+                        ref={tableBookingSectionRef}
+                        className="upcomingEvent-table-booking-section"
+                        id="table-booking-section"
+                      >
+                        {/* <h3 className="section-title">Table Booking</h3> */}
+                        <div className="upcomingEvent-table-container">
+                          <TableSystem
+                            selectedEvent={currentEvent}
+                            selectedBrand={currentEvent.brand}
+                            isPublic={true} // Mark as public
+                            onClose={toggleTableBooking}
+                          />
+                        </div>
+                      </div>
+                    )}
+                </>
+              )}
             </div>
           </div>
-
-          {/* Add See Full Event button */}
-          <button
-            className="upcomingEvent-see-full-event-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewEvent(currentEvent);
-            }}
-          >
-            See Full Event <RiArrowRightLine />
-          </button>
         </motion.div>
       </AnimatePresence>
+
+      {/* New Footer Section */}
+      <motion.div
+        className="upcomingEvent-footer"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+      >
+        <div className="upcomingEvent-footer-content">
+          <div className="upcomingEvent-footer-info">
+            <div className="upcomingEvent-footer-logo">
+              <RiStarLine className="logo-icon" />
+              <span className="logo-text">GUESTCODE</span>
+            </div>
+
+            {currentEvent && (
+              <div className="upcomingEvent-footer-event-info">
+                <h4 className="event-title">{currentEvent.title}</h4>
+                <div className="event-details">
+                  <div className="detail-item">
+                    <RiCalendarEventLine className="detail-icon" />
+                    <span>{formatDate(getEventDate(currentEvent))}</span>
+                  </div>
+                  {currentEvent.location && (
+                    <div className="detail-item">
+                      <RiMapPinLine className="detail-icon" />
+                      <span>{currentEvent.location}</span>
+                    </div>
+                  )}
+                  {currentEvent.startTime && (
+                    <div className="detail-item">
+                      <RiTimeLine className="detail-icon" />
+                      <span>{currentEvent.startTime}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="event-meta">
+                  {ticketSettings && ticketSettings.length > 0 && (
+                    <div className="meta-tag tickets">
+                      <RiTicketLine />
+                      <span>Tickets Available</span>
+                    </div>
+                  )}
+                  {currentEvent.codeSettings?.find(
+                    (cs) => cs.type === "guest"
+                  ) && (
+                    <div className="meta-tag guest-code">
+                      <RiVipCrownLine />
+                      <span>Guest Code</span>
+                    </div>
+                  )}
+                  {currentEvent.lineups && currentEvent.lineups.length > 0 && (
+                    <div className="meta-tag lineup">
+                      <RiMusic2Line />
+                      <span>{currentEvent.lineups.length} Artists</span>
+                    </div>
+                  )}
+                  {supportsTableBooking(currentEvent) && (
+                    <div className="meta-tag tables">
+                      <RiTableLine />
+                      <span>Table Booking</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="upcomingEvent-divider"></div>
+
+          <button
+            className="upcomingEvent-back-to-top"
+            onClick={scrollToTop}
+            aria-label="Back to top"
+          >
+            <div className="arrow-animation">
+              <RiArrowUpLine />
+            </div>
+            <span className="tooltip">Back to top</span>
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };

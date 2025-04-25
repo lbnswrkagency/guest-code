@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import "./EventDetails.scss";
 import {
@@ -12,6 +12,7 @@ import {
   RiMapPin2Line,
   RiInformationLine,
   RiArrowRightSLine,
+  RiTableLine,
 } from "react-icons/ri";
 
 /**
@@ -20,8 +21,104 @@ import {
  * @param {Object} props.event - The event object containing all event details
  * @param {Function} props.scrollToTickets - Function to scroll to tickets section
  * @param {Function} props.scrollToGuestCode - Function to scroll to guest code section
+ * @param {Function} props.scrollToTableBooking - Function to scroll to table booking section
+ * @param {Boolean} props.hasTickets - Whether the event has actual ticket settings available
+ * @param {String} props.ticketPaymentMethod - The payment method for tickets (online/atEntrance)
  */
-const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
+const EventDetails = ({
+  event,
+  scrollToTickets,
+  scrollToGuestCode,
+  scrollToTableBooking,
+  hasTickets = false,
+  ticketPaymentMethod = "online",
+}) => {
+  const [isSticky, setIsSticky] = useState(false);
+  const actionsRef = useRef(null);
+  const stickyPosRef = useRef(null);
+  const spacerRef = useRef(null);
+  const lastScrollY = useRef(0); // Track last scroll position to determine direction
+  const scrollTimer = useRef(null); // For debouncing
+
+  // Update the handleScroll function to be smoother with better threshold management
+  const handleScroll = useCallback(() => {
+    if (!actionsRef.current || !stickyPosRef.current) return;
+
+    const currentScrollY = window.scrollY;
+    const actionsElement = actionsRef.current;
+
+    // Get the original position relative to document
+    const stickyPos =
+      stickyPosRef.current.getBoundingClientRect().top + window.scrollY;
+
+    // Get navigation height for offset
+    const navHeight = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--nav-height"
+      ) || "56"
+    );
+
+    // Determine scroll direction
+    const isScrollingDown = currentScrollY > lastScrollY.current;
+
+    // Add a significant threshold to prevent flickering (10px)
+    const threshold = isScrollingDown ? 10 : 20;
+
+    // Calculate if we should show sticky buttons
+    const shouldBeSticky = currentScrollY > stickyPos - navHeight - threshold;
+
+    // Only update DOM if state actually changes
+    if (shouldBeSticky && !isSticky) {
+      setIsSticky(true);
+      actionsElement.classList.add("sticky");
+
+      // Add spacer height to prevent content jump
+      if (spacerRef.current) {
+        const height = actionsElement.offsetHeight;
+        spacerRef.current.style.height = `${height}px`;
+      }
+    } else if (!shouldBeSticky && isSticky) {
+      setIsSticky(false);
+      actionsElement.classList.remove("sticky");
+
+      // Reset spacer height
+      if (spacerRef.current) {
+        spacerRef.current.style.height = "0px";
+      }
+    }
+
+    // Update last scroll position
+    lastScrollY.current = currentScrollY;
+  }, [isSticky]);
+
+  // Update the scroll event listener with a more efficient approach
+  useEffect(() => {
+    // Use requestAnimationFrame for smoother performance
+    let ticking = false;
+
+    const handleScrollEvent = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollEvent, { passive: true });
+
+    // Initial check with slight delay to ensure all elements are properly sized
+    setTimeout(handleScroll, 100);
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollEvent);
+      if (scrollTimer.current) {
+        window.cancelAnimationFrame(scrollTimer.current);
+      }
+    };
+  }, [handleScroll]);
+
   if (!event) return null;
 
   // Helper function to get most appropriate date
@@ -36,6 +133,17 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
     const options = { weekday: "short", month: "short", day: "numeric" };
     return date.toLocaleDateString("en-US", options);
   };
+
+  // Check if this is an event that supports table booking
+  const isBolivarEvent =
+    // Check event ID
+    event._id === "6807c197d4455638731dbda6" ||
+    // Check brand as object with _id
+    (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+    (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
+    // Fallback check for brand as string ID
+    event.brand === "67d737d6e1299b18afabf4f4" ||
+    event.brand === "67ba051873bd89352d3ab6db";
 
   // Format time for display
   const formatTime = (timeString) => {
@@ -65,10 +173,6 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
       // Return the original if it doesn't match known formats
       return timeString;
     } catch (error) {
-      console.error(
-        `[EventDetails] Error formatting time: ${timeString}`,
-        error
-      );
       return timeString || "TBA";
     }
   };
@@ -82,7 +186,97 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
   return (
     <div className="eventDetails-container">
       <div className="eventDetails-card">
+        {/* Add spacer before the buttons for better content flow */}
+        <div ref={spacerRef} className="action-buttons-spacer"></div>
+
+        {/* Add position marker right at the trigger point */}
+        <div ref={stickyPosRef} className="sticky-position-marker"></div>
+
         <div className="eventDetails-content">
+          {/* Action Buttons Section */}
+          <div ref={actionsRef} className="eventDetails-action-buttons">
+            {/* Only show tickets button if tickets are available AND there are actual ticket settings */}
+            {event.ticketsAvailable !== false && hasTickets && (
+              <motion.button
+                className="eventDetails-action-button tickets-button"
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  scrollToTickets(e);
+                }}
+              >
+                <div className="button-content">
+                  <div className="button-icon">
+                    <RiTicketLine />
+                  </div>
+                  <div className="button-text">
+                    <h5>Tickets</h5>
+                    <p>
+                      {ticketPaymentMethod === "atEntrance"
+                        ? "Pay at entrance"
+                        : "Buy tickets online"}
+                    </p>
+                  </div>
+                  <div className="button-arrow">
+                    <RiArrowRightSLine />
+                  </div>
+                </div>
+              </motion.button>
+            )}
+
+            {guestCodeSetting && (
+              <motion.button
+                className="eventDetails-action-button guestcode-button"
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  scrollToGuestCode(e);
+                }}
+              >
+                <div className="button-content">
+                  <div className="button-icon">
+                    <RiVipCrownLine />
+                  </div>
+                  <div className="button-text">
+                    <h5>Guest Code</h5>
+                    <p>{guestCodeCondition || "Free entry with code"}</p>
+                  </div>
+                  <div className="button-arrow">
+                    <RiArrowRightSLine />
+                  </div>
+                </div>
+              </motion.button>
+            )}
+
+            {/* Add Table Booking button for supported events */}
+            {isBolivarEvent && scrollToTableBooking && (
+              <motion.button
+                className="eventDetails-action-button table-button"
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  scrollToTableBooking(e);
+                }}
+              >
+                <div className="button-content">
+                  <div className="button-icon">
+                    <RiTableLine />
+                  </div>
+                  <div className="button-text">
+                    <h5>Book Table</h5>
+                    <p>Reserve your table now</p>
+                  </div>
+                  <div className="button-arrow">
+                    <RiArrowRightSLine />
+                  </div>
+                </div>
+              </motion.button>
+            )}
+          </div>
+
           {/* Date and Time Section */}
           <div className="eventDetails-section">
             <div className="eventDetails-section-header">
@@ -203,50 +397,6 @@ const EventDetails = ({ event, scrollToTickets, scrollToGuestCode }) => {
               </div>
             </div>
           )}
-
-          {/* Tickets & Guest Code Section */}
-          <div className="eventDetails-section eventDetails-availability-section">
-            <div className="eventDetails-availability-items">
-              {event.ticketsAvailable && event.ticketSettings?.length > 0 && (
-                <motion.div
-                  className="eventDetails-availability-item eventDetails-tickets-available"
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  onClick={scrollToTickets}
-                >
-                  <div className="eventDetails-availability-icon">
-                    <RiTicketLine />
-                  </div>
-                  <div className="eventDetails-availability-text">
-                    <h5>Tickets</h5>
-                  </div>
-                  <div className="eventDetails-availability-action">
-                    <RiArrowRightSLine />
-                  </div>
-                </motion.div>
-              )}
-
-              {guestCodeSetting && (
-                <motion.div
-                  className="eventDetails-availability-item eventDetails-guest-code-available"
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  onClick={scrollToGuestCode}
-                >
-                  <div className="eventDetails-availability-icon">
-                    <RiVipCrownLine />
-                  </div>
-                  <div className="eventDetails-availability-text">
-                    <h5>Guest Code</h5>
-                    {guestCodeCondition && <p>{guestCodeCondition}</p>}
-                  </div>
-                  <div className="eventDetails-availability-action">
-                    <RiArrowRightSLine />
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

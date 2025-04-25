@@ -354,9 +354,9 @@ const RoleSetting = ({ brand, onClose }) => {
       );
       setShowCreateForm(false);
       setEditingRole(null);
-      toast.showSuccess("Role updated successfully");
+      toast.success("Role updated successfully");
     } catch (error) {
-      toast.showError(error.response?.data?.message || "Failed to update role");
+      toast.error(error.response?.data?.message || "Failed to update role");
       console.error("Error updating role:", error);
     }
   };

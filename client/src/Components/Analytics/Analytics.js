@@ -5,15 +5,53 @@ import {
   RiRefreshLine,
   RiFileChartLine,
   RiUserLine,
+  RiTicket2Line,
 } from "react-icons/ri";
 import "./Analytics.scss";
 import axiosInstance from "../../utils/axiosConfig";
+import Navigation from "../Navigation/Navigation";
 
 const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("subComponentMounted", {
+        detail: { component: "Analytics", usesNavigation: true },
+      })
+    );
+
+    const handleNavigationStateChange = (event) => {
+      console.log("Analytics: Received navigation state change:", event.detail);
+    };
+
+    window.addEventListener(
+      "navigationStateChanged",
+      handleNavigationStateChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "navigationStateChanged",
+        handleNavigationStateChange
+      );
+    };
+  }, []);
+
+  const handleBack = () => {
+    console.log("Analytics: Back button clicked");
+
+    window.dispatchEvent(
+      new CustomEvent("navigationBack", {
+        detail: { source: "Analytics" },
+      })
+    );
+
+    if (onClose) onClose();
+  };
 
   useEffect(() => {
     if (selectedBrand && selectedEvent) {
@@ -121,7 +159,18 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
             }
           }}
         >
-          <h3>{title}</h3>
+          <div className="card-header-content">
+            <div className="card-icon-wrapper">
+              <RiFileChartLine className="card-icon" />
+            </div>
+            <h3>{title}</h3>
+            {isCustomCode && (
+              <div className="card-toggle">
+                <span className="toggle-icon">⌵</span>
+              </div>
+            )}
+          </div>
+
           <div className="stat-values">
             <div className="stat-total">
               <span className="value">{generated}</span>
@@ -132,13 +181,18 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
               <span className="label">Checked In</span>
             </div>
           </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{
-                width: `${getPercentage(checkedIn, generated)}%`,
-              }}
-            ></div>
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${getPercentage(checkedIn, generated)}%`,
+                }}
+              ></div>
+            </div>
+            <div className="progress-percentage">
+              {getPercentage(checkedIn, generated).toFixed(0)}%
+            </div>
           </div>
         </div>
 
@@ -173,6 +227,12 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
       style={{ borderLeft: `4px solid ${category.color}` }}
     >
       <div className="category-header">
+        <div className="category-icon-wrapper">
+          <RiTicket2Line
+            className="category-icon"
+            style={{ color: category.color }}
+          />
+        </div>
         <h4>{category.name}</h4>
         <span className="price">{category.price}€</span>
       </div>
@@ -190,17 +250,25 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
           <span className="label">Revenue</span>
         </div>
       </div>
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{
-            width: `${getPercentage(
-              category.stats.checkedIn,
-              category.stats.sold
-            )}%`,
-            backgroundColor: category.color,
-          }}
-        ></div>
+      <div className="progress-container">
+        <div className="progress-bar">
+          <div
+            className="progress-fill"
+            style={{
+              width: `${getPercentage(
+                category.stats.checkedIn,
+                category.stats.sold
+              )}%`,
+              backgroundColor: category.color,
+            }}
+          ></div>
+        </div>
+        <div className="progress-percentage">
+          {getPercentage(category.stats.checkedIn, category.stats.sold).toFixed(
+            0
+          )}
+          %
+        </div>
       </div>
     </div>
   );
@@ -218,7 +286,16 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
           setExpandedCard(expandedCard === "tickets" ? null : "tickets")
         }
       >
-        <h3>Tickets</h3>
+        <div className="card-header-content">
+          <div className="card-icon-wrapper">
+            <RiTicket2Line className="card-icon" />
+          </div>
+          <h3>Tickets</h3>
+          <div className="card-toggle">
+            <span className="toggle-icon">⌵</span>
+          </div>
+        </div>
+
         <div className="stat-values">
           <div className="stat-total">
             <span className="value">{tickets.totalSold}</span>
@@ -228,21 +305,29 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
             <span className="value">{tickets.totalCheckedIn}</span>
             <span className="label">Checked In</span>
           </div>
-          <div className="stat-total">
+          <div className="stat-revenue">
             <span className="value">{tickets.totalRevenue}€</span>
             <span className="label">Revenue</span>
           </div>
         </div>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${getPercentage(
-                tickets.totalCheckedIn,
-                tickets.totalSold
-              )}%`,
-            }}
-          ></div>
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${getPercentage(
+                  tickets.totalCheckedIn,
+                  tickets.totalSold
+                )}%`,
+              }}
+            ></div>
+          </div>
+          <div className="progress-percentage">
+            {getPercentage(tickets.totalCheckedIn, tickets.totalSold).toFixed(
+              0
+            )}
+            %
+          </div>
         </div>
       </div>
 
@@ -286,7 +371,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
           >
             <RiRefreshLine className={loading ? "spinning" : ""} />
           </button>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={handleBack}>
             <RiCloseLine />
           </button>
         </div>
@@ -309,16 +394,17 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
         ) : (
           <div className="stats-grid">
             {/* Guest Codes */}
-            {renderStatCard(
-              "Guest Codes",
-              stats.guestCodes.generated,
-              stats.guestCodes.checkedIn,
-              "",
-              "guest-codes"
-            )}
+            {stats.guestCodes &&
+              renderStatCard(
+                "Guest Codes",
+                stats.guestCodes.generated,
+                stats.guestCodes.checkedIn,
+                "guest-card",
+                "guest-codes"
+              )}
 
             {/* Tickets with categories */}
-            {renderTicketsSection(stats.tickets)}
+            {stats.tickets && renderTicketsSection(stats.tickets)}
 
             {/* Dynamically render custom code types */}
             {stats.customCodeTypes &&
@@ -327,7 +413,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
                   codeType.name,
                   codeType.stats.generated,
                   codeType.stats.checkedIn,
-                  "",
+                  `custom-code-card custom-code-${index % 5}`,
                   `custom-code-${index}`,
                   codeType.hostSummaries
                 )
@@ -335,27 +421,44 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
             {/* Totals - Always present at the bottom */}
             <div className="stat-card total-card">
-              <h3>Total Attendance</h3>
-              <div className="stat-values">
-                <div className="stat-total">
-                  <span className="value">{stats.totals.capacity}</span>
-                  <span className="label">Capacity</span>
+              <div className="card-header">
+                <div className="card-header-content">
+                  <div className="card-icon-wrapper">
+                    <RiUserLine className="card-icon" />
+                  </div>
+                  <h3>Total Attendance</h3>
                 </div>
-                <div className="stat-checked">
-                  <span className="value">{stats.totals.checkedIn}</span>
-                  <span className="label">Checked In</span>
+
+                <div className="stat-values">
+                  <div className="stat-total">
+                    <span className="value">{stats.totals.capacity}</span>
+                    <span className="label">Capacity</span>
+                  </div>
+                  <div className="stat-checked">
+                    <span className="value">{stats.totals.checkedIn}</span>
+                    <span className="label">Checked In</span>
+                  </div>
                 </div>
-              </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${getPercentage(
+                <div className="progress-container">
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${getPercentage(
+                          stats.totals.checkedIn,
+                          stats.totals.capacity
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <div className="progress-percentage">
+                    {getPercentage(
                       stats.totals.checkedIn,
                       stats.totals.capacity
-                    )}%`,
-                  }}
-                ></div>
+                    ).toFixed(0)}
+                    %
+                  </div>
+                </div>
               </div>
             </div>
           </div>

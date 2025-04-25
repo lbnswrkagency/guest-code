@@ -37,51 +37,20 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
         // Handle case where event.lineups is an array of IDs (strings) instead of objects
         if (selectedEvent.lineups && Array.isArray(selectedEvent.lineups)) {
-          console.log("[DashboardFeed] Debug selectedEvent lineups:", {
-            lineups: selectedEvent.lineups,
-            lineupType: typeof selectedEvent.lineups[0],
-            selectedBrandExists: !!selectedBrand,
-            selectedBrandLineups: selectedBrand?.lineups
-              ? `${selectedBrand.lineups.length} items`
-              : "undefined/null",
-          });
-
           if (
             selectedEvent.lineups.length > 0 &&
             typeof selectedEvent.lineups[0] === "string"
           ) {
-            console.log(
-              "[DashboardFeed] Processing lineup string IDs:",
-              selectedEvent.lineups
-            );
-
             if (!selectedBrand || !selectedBrand.lineups) {
-              console.error(
-                "[DashboardFeed] ERROR: selectedBrand or its lineups is null/undefined",
-                {
-                  selectedBrandExists: !!selectedBrand,
-                  lineups: selectedBrand?.lineups,
-                }
-              );
+              // Handle error condition silently
             }
 
             eventLineups = selectedEvent.lineups
               .map((lineupId) => {
-                // Log each lineup ID we're looking for
-                console.log(
-                  `[DashboardFeed] Looking for lineup ID: ${lineupId}`
-                );
-
                 // Find the full lineup object from selectedBrand.lineups
                 const fullLineup = selectedBrand?.lineups?.find(
                   (l) => l?._id === lineupId || l?.id === lineupId
                 );
-
-                if (!fullLineup) {
-                  console.warn(
-                    `[DashboardFeed] Could not find lineup with ID: ${lineupId}`
-                  );
-                }
 
                 return fullLineup || null;
               })
@@ -187,51 +156,20 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
             // Handle case where event.lineups is an array of IDs (strings) instead of objects
             if (event.lineups && Array.isArray(event.lineups)) {
-              console.log("[DashboardFeed] Debug event lineups:", {
-                lineups: event.lineups,
-                lineupType: typeof event.lineups[0],
-                selectedBrandExists: !!selectedBrand,
-                selectedBrandLineups: selectedBrand?.lineups
-                  ? `${selectedBrand.lineups.length} items`
-                  : "undefined/null",
-              });
-
               if (
                 event.lineups.length > 0 &&
                 typeof event.lineups[0] === "string"
               ) {
-                console.log(
-                  "[DashboardFeed] Processing event lineup string IDs:",
-                  event.lineups
-                );
-
                 if (!selectedBrand || !selectedBrand.lineups) {
-                  console.error(
-                    "[DashboardFeed] ERROR: selectedBrand or its lineups is null/undefined",
-                    {
-                      selectedBrandExists: !!selectedBrand,
-                      lineups: selectedBrand?.lineups,
-                    }
-                  );
+                  // Handle error condition silently
                 }
 
                 eventLineups = event.lineups
                   .map((lineupId) => {
-                    // Log each lineup ID we're looking for
-                    console.log(
-                      `[DashboardFeed] Looking for lineup ID: ${lineupId}`
-                    );
-
                     // Find the full lineup object from selectedBrand.lineups
                     const fullLineup = selectedBrand?.lineups?.find(
                       (l) => l?._id === lineupId || l?.id === lineupId
                     );
-
-                    if (!fullLineup) {
-                      console.warn(
-                        `[DashboardFeed] Could not find lineup with ID: ${lineupId}`
-                      );
-                    }
 
                     return fullLineup || null;
                   })
@@ -280,6 +218,13 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
             setEventData(eventWithLineups);
             preloadEventImage(eventWithLineups);
           } else {
+            // Log final event data before setting it
+            console.log("DashboardFeed - Final Event Data (no lineups):", {
+              eventId: event?._id || null,
+              brandId: selectedBrand?._id || null,
+              eventTitle: event?.title || null,
+            });
+
             setEventData(event);
             preloadEventImage(event);
           }
@@ -287,7 +232,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
           setEventData(null);
         }
       } catch (err) {
-        console.error("Error processing event data:", err);
         setError("Failed to process event data. Please try again.");
       } finally {
         setIsLoading(false);
@@ -446,6 +390,15 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   return (
     <div className="dashboardFeed-container">
       <div className="dashboardFeed-content">
+        {/* Debug log for data being passed to UpcomingEvent */}
+        {console.log("DashboardFeed - Rendering:", {
+          key: `${selectedBrand?._id}-${eventData?._id}`,
+          brandId: selectedBrand?._id || null,
+          brandUsername: selectedBrand?.username || null,
+          eventId: eventData?._id || null,
+          eventTitle: eventData?.title || null,
+        })}
+
         <UpcomingEvent
           key={`${selectedBrand?._id}-${eventData?._id}`}
           brandId={selectedBrand?._id}
@@ -454,6 +407,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
           events={[eventData]} // Pass as an array with a single event
           initialEventIndex={0}
           hideNavigation={true} // Hide the navigation controls
+          hideTableBooking={true} // Hide the table booking section in Dashboard
         />
       </div>
     </div>
