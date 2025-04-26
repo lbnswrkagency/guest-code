@@ -10,8 +10,33 @@ import {
   RiTicket2Line,
   RiCoupon3Line,
   RiMapPinLine,
+  RiDoorLine,
 } from "react-icons/ri";
-import { FaUserFriends, FaRegClock } from "react-icons/fa";
+import {
+  FaUserFriends,
+  FaRegClock,
+  FaTicketAlt,
+  FaMapMarkerAlt,
+  FaCreditCard,
+  FaPaypal,
+  FaApplePay,
+  FaGooglePay,
+  FaGem,
+  FaShoppingBasket,
+  FaRegCreditCard,
+  FaUsers,
+  FaTimes,
+  FaMinus,
+  FaPlus,
+  FaInfoCircle,
+  FaCcVisa,
+  FaCcMastercard,
+  FaCcAmex,
+  FaShieldAlt,
+  FaLock,
+  FaPercentage,
+} from "react-icons/fa";
+import { FaApple } from "react-icons/fa6";
 import axiosInstance from "../../utils/axiosConfig";
 import axios from "axios";
 
@@ -68,6 +93,9 @@ const Tickets = ({
 
   // Countdown timers for early bird tickets
   const [countdowns, setCountdowns] = useState({});
+
+  // Global door price
+  const [globalDoorPrice, setGlobalDoorPrice] = useState(null);
 
   // Effect to get primary color from event code settings or ticketSettings
   useEffect(() => {
@@ -594,6 +622,7 @@ const Tickets = ({
             </span>
           )}
           €{ticket.price.toFixed(2)}
+          {/* Hide door price on individual tickets since we're showing it globally now */}
         </div>
 
         {ticket.description && (
@@ -623,6 +652,13 @@ const Tickets = ({
     [ticketQuantities, primaryColor, renderCountdown, handleQuantityChange]
   );
 
+  // Helper function to calculate discount percentage
+  const calculateDiscountPercentage = (doorPrice, onlinePrice) => {
+    if (!doorPrice || !onlinePrice || doorPrice <= onlinePrice) return null;
+    const discount = ((doorPrice - onlinePrice) / doorPrice) * 100;
+    return Math.round(discount);
+  };
+
   // Render tickets directly without nested containers
   return (
     <div className={`tickets-wrapper ${seamless ? "seamless" : ""}`}>
@@ -636,6 +672,35 @@ const Tickets = ({
           </div>
         ) : validatedTickets.length > 0 ? (
           <>
+            {/* Global Door Price Banner - Only show if payment method is atEntrance */}
+            {validatedTickets.length > 0 &&
+              validatedTickets[0].paymentMethod === "atEntrance" &&
+              validatedTickets[0].doorPrice && (
+                <div className="global-door-price">
+                  <div className="door-price-icon">
+                    <FaGem />
+                  </div>
+                  <div className="door-price-content">
+                    <div className="door-price-title">Online Special Price</div>
+                    <div className="door-price-value">
+                      Save{" "}
+                      <span>
+                        {calculateDiscountPercentage(
+                          validatedTickets[0].doorPrice,
+                          validatedTickets[0].price
+                        )}
+                        %
+                      </span>{" "}
+                      when buying online!
+                    </div>
+                    <div className="door-price-note">
+                      Get the best price by purchasing your tickets now. Door
+                      price will be {validatedTickets[0].doorPrice.toFixed(2)}€.
+                    </div>
+                  </div>
+                </div>
+              )}
+
             <div className="tickets-list">
               {validatedTickets.map(renderTicketItem)}
             </div>
@@ -718,13 +783,99 @@ const Tickets = ({
                   </span>
                 </div>
 
+                {/* Door price display with animation */}
+                {ticketSettings?.paymentMethod === "online" && (
+                  <motion.div
+                    className="checkout-door-price"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.2 }}
+                  >
+                    <div className="door-price-content">
+                      <div className="door-price-icon">
+                        <FaShieldAlt />
+                      </div>
+                      <div className="door-price-details">
+                        <h3>Exclusive Online Discount</h3>
+                        {validatedTickets.some(
+                          (ticket) => ticket.doorPrice > ticket.price
+                        ) && (
+                          <p>
+                            Save up to{" "}
+                            {Math.max(
+                              ...validatedTickets.map(
+                                (ticket) =>
+                                  calculateDiscountPercentage(
+                                    ticket.doorPrice,
+                                    ticket.price
+                                  ) || 0
+                              )
+                            )}
+                            % compared to door prices
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Checkout payment method with enhanced animations */}
+                {ticketSettings && (
+                  <motion.div
+                    className={`checkout-payment-method ${
+                      ticketSettings.paymentMethod === "online"
+                        ? "online-payment"
+                        : "entrance-payment"
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                  >
+                    <div className="payment-method">
+                      <div className="payment-icon">
+                        {ticketSettings.paymentMethod === "online" ? (
+                          <FaLock />
+                        ) : (
+                          <FaMapMarkerAlt />
+                        )}
+                      </div>
+                      <div className="payment-details">
+                        <h3>
+                          {ticketSettings.paymentMethod === "online"
+                            ? "Secure Online Payment"
+                            : "Pay at Entrance"}
+                        </h3>
+                        <p>
+                          {ticketSettings.paymentMethod === "online"
+                            ? "Your payment is secured with industry-standard encryption"
+                            : "Please have exact change ready or pay with card at the door"}
+                        </p>
+                      </div>
+                    </div>
+                    {ticketSettings.paymentMethod === "online" && (
+                      <motion.div
+                        className="online-payment-icons"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                      >
+                        <FaRegCreditCard />
+                        <FaCreditCard />
+                        <FaPaypal />
+                        <FaApple />
+                        <FaGooglePay />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+
                 <button
                   className="checkout-button"
                   onClick={handleCheckout}
                   disabled={isCheckoutLoading}
                   style={{
-                    background: checkoutColor,
-                    backgroundImage: `linear-gradient(to bottom, ${checkoutColor}DD, ${checkoutColor})`,
+                    background: "#d4af37",
+                    backgroundImage: `linear-gradient(to bottom, #e5c158, #d4af37)`,
                   }}
                 >
                   {isCheckoutLoading ? (
@@ -732,8 +883,10 @@ const Tickets = ({
                       <LoadingSpinner size="small" color="#000" />
                       <span>Processing...</span>
                     </>
-                  ) : (
+                  ) : validatedTickets[0].paymentMethod === "online" ? (
                     "Buy Tickets"
+                  ) : (
+                    "Get Tickets"
                   )}
                 </button>
               </div>

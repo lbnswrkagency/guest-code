@@ -23,6 +23,11 @@ const TicketSettingsSchema = new Schema(
       type: Number,
       min: 0,
     },
+    doorPrice: {
+      type: Number,
+      min: 0,
+      description: "Price when paying at the entrance/door (Abendkasse)",
+    },
     description: {
       type: String,
       trim: true,

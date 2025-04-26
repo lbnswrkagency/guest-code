@@ -3,7 +3,6 @@
 .upcomingEvent-container {
   width: 100%;
   border-radius: 12px;
-  overflow: hidden;
   background-color: #151515;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   margin-bottom: 1.5rem;
@@ -870,7 +869,6 @@
   border: 1px solid rgba(255, 200, 7, 0.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   max-width: 100%;
-  overflow-x: hidden;
 
   h5 {
     color: #fff;

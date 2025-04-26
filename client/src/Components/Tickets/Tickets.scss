@@ -74,6 +74,15 @@
   }
 }
 
+// Gold theme variables
+$gold-gradient: linear-gradient(135deg, #f2d07c 0%, #e6b545 50%, #d4af37 100%);
+$gold-highlight: linear-gradient(135deg, #fff3d6 0%, #f2d07c 50%, #e6b545 100%);
+$gold-light: #f8e9bc;
+$gold-medium: #e6b545;
+$gold-dark: #c39738;
+$gold-shadow: 0 5px 15px rgba(201, 157, 57, 0.25);
+$gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
+
 // Main wrapper - no borders, padding, or margins
 .tickets-wrapper {
   width: 100%;
@@ -127,27 +136,104 @@
 
 .tickets-title {
   font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #fff;
-  position: relative;
-  display: inline-block;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: 1.2rem;
+  margin-top: 0;
+  text-align: center;
+  color: var(--text-color);
+}
 
-  &::after {
+// Global Door Price Banner
+.global-door-price {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background: $gold-gradient;
+  border-radius: 10px;
+  box-shadow: $gold-shadow;
+  color: #333;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:before {
     content: "";
     position: absolute;
-    bottom: -8px;
+    top: 0;
     left: 0;
-    width: 60px;
-    height: 3px;
+    right: 0;
+    bottom: 0;
     background: linear-gradient(
-      to right,
-      var(--ticket-primary-color),
-      transparent
+      135deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0) 100%
     );
-    border-radius: 3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $gold-shadow, $gold-glow;
+
+    .door-price-icon {
+      transform: rotate(15deg) scale(1.1);
+      color: #fff;
+    }
+  }
+
+  .door-price-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gold-dark;
+    color: #fff1d6;
+    border-radius: 50%;
+    margin-right: 15px;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+
+    svg {
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    }
+  }
+
+  .door-price-content {
+    flex: 1;
+
+    .door-price-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 3px;
+      color: #5c4813;
+    }
+
+    .door-price-value {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: #3a2e0c;
+
+      span {
+        background: #fff;
+        color: #c39738;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-block;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        animation: pulse 2s infinite;
+      }
+    }
+
+    .door-price-note {
+      font-size: 13px;
+      opacity: 0.9;
+      color: #5c4813;
+    }
   }
 }
 
@@ -434,6 +520,21 @@
       text-decoration: line-through;
       text-shadow: none;
     }
+
+    // Door price (Abendkasse)
+    .door-price {
+      position: absolute;
+      bottom: -1.2rem;
+      right: -0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: none;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
   }
 
   // Ticket description
@@ -527,7 +628,7 @@
   }
 }
 
-// Checkout area
+// Checkout area - enhance with premium styling
 .checkout-area {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -536,6 +637,7 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 
   // Paper texture
   &::before {
@@ -550,7 +652,7 @@
     z-index: 0;
   }
 
-  // Subtle border
+  // Gold gradient accent border
   &::after {
     content: "";
     position: absolute;
@@ -558,13 +660,8 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      var(--ticket-primary-color) 50%,
-      transparent 100%
-    );
-    opacity: 0.5;
+    background: $gold-gradient;
+    opacity: 0.7;
     z-index: 1;
   }
 
@@ -657,101 +754,251 @@
   }
 }
 
-.checkout-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+// Checkout payment method - enhanced design
+.checkout-payment-method {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 30, 30, 0.8),
+    rgba(20, 20, 20, 0.9)
+  );
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 
-  span {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.9);
+  // Gold pattern for online payments
+  &.online-payment {
+    background: linear-gradient(
+      145deg,
+      rgba(30, 30, 30, 0.8),
+      rgba(20, 20, 20, 0.9)
+    );
+    color: #fff;
+    border: 1px solid rgba(212, 175, 55, 0.3);
 
-    &.total-amount {
-      font-size: 1.5rem;
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: $gold-gradient;
+      opacity: 0.1;
+      z-index: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: $gold-gradient;
+      z-index: 1;
+    }
+
+    &:hover::before {
+      opacity: 0.15;
+    }
+
+    .payment-icon {
+      background: $gold-medium;
+      color: #000;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2),
+        0 0 0 2px rgba(212, 175, 55, 0.2);
+    }
+
+    .payment-details h3 {
+      color: $gold-medium;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .payment-details p {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .online-payment-icons {
+      svg {
+        color: $gold-medium;
+        animation: float 6s ease-in-out infinite;
+        animation-delay: calc(var(--icon-index, 0) * 0.2s);
+
+        &:nth-child(1) {
+          --icon-index: 1;
+        }
+        &:nth-child(2) {
+          --icon-index: 2;
+        }
+        &:nth-child(3) {
+          --icon-index: 3;
+        }
+        &:nth-child(4) {
+          --icon-index: 4;
+        }
+        &:nth-child(5) {
+          --icon-index: 5;
+        }
+        &:nth-child(6) {
+          --icon-index: 6;
+        }
+      }
+    }
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+
+    &.online-payment {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
+        0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .payment-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+  }
+
+  .payment-method {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .payment-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #333;
+    color: #fff;
+    border-radius: 50%;
+    margin-right: 18px;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .payment-details {
+    flex: 1;
+
+    h3 {
+      font-size: 18px;
       font-weight: 700;
-      color: var(--ticket-primary-color);
-      text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+      margin: 0 0 8px;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
 
-      // Glowing effect
-      animation: pulse 2s infinite ease-in-out;
+    p {
+      font-size: 14px;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+  }
+
+  .online-payment-icons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+    gap: 15px;
+    position: relative;
+    z-index: 2;
+
+    svg {
+      font-size: 24px;
+      color: rgba(255, 255, 255, 0.7);
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+
+      &:hover {
+        transform: translateY(-5px) scale(1.15);
+        color: #fff;
+        filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.3)) brightness(1.2);
+      }
     }
   }
 }
 
+// Enhanced checkout button
 .checkout-button {
   width: 100%;
-  padding: 0.9rem;
-  background: var(--ticket-primary-color);
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
   color: #000;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1.1rem;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);
-
-  // Metallic effect
-  background-image: linear-gradient(
-    to bottom,
-    lighten(#d4af37, 5%) 0%,
-    #d4af37 50%,
-    darken(#d4af37, 5%) 100%
-  );
-
-  // Embossed effect
+  transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
+  background: $gold-gradient;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 
   &::before {
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 0.5;
-    border-radius: 8px 8px 0 0;
-  }
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    background-image: linear-gradient(
-      to bottom,
-      lighten(#d4af37, 8%) 0%,
-      lighten(#d4af37, 3%) 50%,
-      #d4af37 100%
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
     );
+    transition: all 0.8s ease;
   }
 
-  &:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  &:hover {
+    transform: translateY(-3px);
+    background: $gold-highlight;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 -4px 0 rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 15px rgba(212, 175, 55, 0.4);
+
+    &::before {
+      left: 100%;
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 -2px 0 rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: $gold-dark;
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: not-allowed;
+    transform: none;
+    background: linear-gradient(to bottom, #b3b3b3, #999) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.05);
   }
 
-  .loading-spinner-small {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(0, 0, 0, 0.3);
-    border-top: 2px solid #000;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  .spinner {
+    margin-right: 10px;
   }
 }
 
@@ -779,5 +1026,42 @@
 
   .ticket-price {
     font-size: 1.5rem;
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes subtle-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
   }
 }

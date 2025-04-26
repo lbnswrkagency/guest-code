@@ -76,6 +76,7 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const [ticketToEdit, setTicketToEdit] = useState(null);
   const [expandedTickets, setExpandedTickets] = useState({});
   const [globalPaymentMethod, setGlobalPaymentMethod] = useState("online"); // Default to online
+  const [globalDoorPrice, setGlobalDoorPrice] = useState(""); // Add global door price state
 
   useEffect(() => {
     fetchTickets();
@@ -101,6 +102,11 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       // as it should be the same for all tickets
       if (fetchedTickets.length > 0 && fetchedTickets[0].paymentMethod) {
         setGlobalPaymentMethod(fetchedTickets[0].paymentMethod);
+      }
+
+      // Get the global door price if any ticket has a doorPrice set
+      if (fetchedTickets.length > 0 && fetchedTickets[0].doorPrice) {
+        setGlobalDoorPrice(fetchedTickets[0].doorPrice.toString());
       }
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -177,6 +183,11 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       // Always use the global payment method
       dataToSend.paymentMethod = globalPaymentMethod;
 
+      // Always use the global door price if it exists
+      if (globalDoorPrice) {
+        dataToSend.doorPrice = parseFloat(globalDoorPrice);
+      }
+
       if (ticketToEdit) {
         // Update existing ticket
         response = await axiosInstance.put(
@@ -235,6 +246,36 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     } catch (error) {
       console.error("Error updating payment method:", error);
       toast.showError("Failed to update payment method");
+    }
+  };
+
+  // New function to update door price for all tickets
+  const updateAllTicketsDoorPrice = async (doorPrice) => {
+    try {
+      setGlobalDoorPrice(doorPrice);
+
+      // If no tickets exist yet, no need to update
+      if (tickets.length === 0) return;
+
+      // Update each ticket with the new door price
+      const updatePromises = tickets.map((ticket) =>
+        axiosInstance.put(
+          `/ticket-settings/events/${event._id}/${ticket._id}`,
+          {
+            doorPrice: doorPrice === "" ? null : parseFloat(doorPrice),
+          }
+        )
+      );
+
+      await Promise.all(updatePromises);
+
+      // Refresh tickets
+      fetchTickets();
+
+      toast.showSuccess("Door price updated for all tickets");
+    } catch (error) {
+      console.error("Error updating door price:", error);
+      toast.showError("Failed to update door price");
     }
   };
 
@@ -319,6 +360,39 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
           <small className="help-text">
             Select the payment method for all tickets in this event.
           </small>
+
+          {globalPaymentMethod === "atEntrance" && (
+            <>
+              <div className="door-price-input">
+                <label>
+                  Door Price (€) <small>(Abendkasse)</small>
+                </label>
+                <div className="input-with-icon">
+                  <RiMoneyDollarCircleLine />
+                  <input
+                    type="number"
+                    value={globalDoorPrice}
+                    onChange={(e) => setGlobalDoorPrice(e.target.value)}
+                    onBlur={() => updateAllTicketsDoorPrice(globalDoorPrice)}
+                    placeholder="35.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <small className="help-text">
+                  Set a higher price for customers who pay at the entrance. This
+                  price will be applied to all tickets.
+                </small>
+              </div>
+              <div className="door-price-note">
+                <RiInformationLine />
+                <span>
+                  This door price will be applied to all tickets and displayed
+                  prominently to customers who pay at the entrance.
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -384,6 +458,13 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                                       2
                                     )}
                                     €
+                                  </div>
+                                )}
+                              {ticket.doorPrice &&
+                                ticket.doorPrice > ticket.price && (
+                                  <div className="door-price">
+                                    At door:{" "}
+                                    {parseFloat(ticket.doorPrice).toFixed(2)}€
                                   </div>
                                 )}
                             </div>

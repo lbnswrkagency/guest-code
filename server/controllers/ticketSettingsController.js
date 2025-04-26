@@ -103,6 +103,12 @@ const createTicketSetting = async (req, res) => {
       }
     }
 
+    // Make sure doorPrice is set if not provided
+    if (ticketData.paymentMethod === "atEntrance" && !ticketData.doorPrice) {
+      // If door price not specified but payment at entrance, use ticket price as door price
+      ticketData.doorPrice = ticketData.price;
+    }
+
     // Create new ticket setting
     const ticketSetting = new TicketSettings({
       ...ticketData,

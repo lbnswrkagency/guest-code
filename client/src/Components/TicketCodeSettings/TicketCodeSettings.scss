@@ -36,23 +36,107 @@
 
 /* Global settings section styling */
 .global-settings-section {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  margin-bottom: 8px;
+  margin-bottom: 2rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem;
 
   .global-settings-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+
+    svg {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+    }
+
+    span {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+
+  .door-price-input {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+
+      small {
+        opacity: 0.7;
+        font-weight: normal;
+      }
+    }
+
+    .input-with-icon {
+      position: relative;
+      margin-bottom: 0.5rem;
+
+      svg {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        font-size: 1.1rem;
+      }
+
+      input {
+        width: 100%;
+        max-width: 200px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        color: #fff;
+        font-size: 1rem;
+        transition: all 0.2s;
+
+        &:focus {
+          outline: none;
+          background: rgba(255, 255, 255, 0.08);
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.15);
+        }
+
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        /* Firefox */
+        -moz-appearance: textfield;
+      }
+    }
+  }
+
+  .door-price-note {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
 
     svg {
       color: var(--primary-color);
-      font-size: 20px;
+      font-size: 1.2rem;
+      margin-top: 0.1rem;
+    }
+
+    span {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.4;
     }
   }
 
@@ -218,21 +302,28 @@
 
 .ticket-price-section {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 5px;
+  flex-direction: column;
+  align-items: flex-end;
 
   .current-price {
-    font-size: 16px;
+    font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text-color);
+    color: var(--ticket-color);
   }
 
   .original-price {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-size: 0.85rem;
     text-decoration: line-through;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .door-price {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    margin-top: 0.3rem;
   }
 }
 
