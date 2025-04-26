@@ -11,7 +11,6 @@
 .eventDetails-container {
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
   margin: 1rem 0;
   position: relative;
 }
@@ -30,7 +29,6 @@
 
 .eventDetails-card {
   border-radius: 12px;
-  overflow: hidden;
 
   position: relative;
   width: 100%;
@@ -68,13 +66,11 @@
   gap: 1.5rem;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
 }
 
 .eventDetails-section {
   // background: rgba(0, 0, 0, 0.2);
   // border-radius: 10px;
-  overflow: hidden;
 
   .eventDetails-section-header {
     display: flex;
@@ -398,7 +394,6 @@
     display: block;
     border-radius: 12px;
     transition: all 0.3s ease;
-    overflow: hidden;
 
     &.tickets-button {
       background: linear-gradient(135deg, #3a7bd5, #3a6073);
