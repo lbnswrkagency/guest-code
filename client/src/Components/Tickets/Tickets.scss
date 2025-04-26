@@ -147,57 +147,42 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   display: flex;
   align-items: center;
   margin-bottom: 20px;
-  padding: 15px 20px;
-  background: $gold-gradient;
-  border-radius: 10px;
-  box-shadow: $gold-shadow;
-  color: #333;
+  padding: 12px 16px;
+  background: rgba(26, 26, 26, 0.9);
+  border-radius: 8px;
+  border-left: 3px solid #d4af37;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  color: #e6e6e6;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.2) 0%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    pointer-events: none;
-  }
+  transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $gold-shadow, $gold-glow;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
 
     .door-price-icon {
-      transform: rotate(15deg) scale(1.1);
-      color: #fff;
+      transform: rotate(10deg);
+      background: #d4af37;
     }
   }
 
   .door-price-icon {
     flex-shrink: 0;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: $gold-dark;
-    color: #fff1d6;
+    background: rgba(212, 175, 55, 0.8);
+    color: #1a1a1a;
     border-radius: 50%;
-    margin-right: 15px;
+    margin-right: 12px;
     font-size: 20px;
     transition: all 0.3s ease;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 
     svg {
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
     }
   }
 
@@ -205,34 +190,15 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     flex: 1;
 
     .door-price-title {
-      font-weight: 700;
-      font-size: 16px;
-      margin-bottom: 3px;
-      color: #5c4813;
-    }
-
-    .door-price-value {
-      font-size: 18px;
       font-weight: 600;
-      margin-bottom: 3px;
-      color: #3a2e0c;
-
-      span {
-        background: #fff;
-        color: #c39738;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: 700;
-        display: inline-block;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        animation: pulse 2s infinite;
-      }
+      font-size: 16px;
+      margin-bottom: 4px;
+      color: #d4af37;
     }
 
     .door-price-note {
-      font-size: 13px;
-      opacity: 0.9;
-      color: #5c4813;
+      font-size: 14px;
+      color: #ccc;
     }
   }
 }

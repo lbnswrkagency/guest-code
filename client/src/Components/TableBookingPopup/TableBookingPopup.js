@@ -153,8 +153,8 @@ const TableBookingPopup = ({
               />
             </div>
           ) : (
-            // Standard form with first/last name
-            <>
+            // Side-by-side first/last name fields
+            <div className="popup-field-row">
               <div className="popup-field">
                 <input
                   type="text"
@@ -176,7 +176,7 @@ const TableBookingPopup = ({
                   required
                 />
               </div>
-            </>
+            </div>
           )}
 
           {showAdvancedForm && (
@@ -228,7 +228,9 @@ const TableBookingPopup = ({
               </p>
             </div>
           )}
+        </div>
 
+        <div className="popup-footer">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !isFormValid()}

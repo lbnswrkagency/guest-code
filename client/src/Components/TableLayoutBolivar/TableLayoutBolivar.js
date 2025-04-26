@@ -25,13 +25,13 @@ const TableLayoutBolivar = ({
   // Table configuration with minimum spend and max persons
   const tableConfig = {
     // D tables (red tables) - €160 minimum, 5 persons max
-    D1: { minSpend: 160, maxPersons: 5, category: "D" },
-    D2: { minSpend: 160, maxPersons: 5, category: "D" },
-    D3: { minSpend: 160, maxPersons: 5, category: "D" },
-    D4: { minSpend: 160, maxPersons: 5, category: "D" },
-    D5: { minSpend: 160, maxPersons: 5, category: "D" },
-    D6: { minSpend: 160, maxPersons: 5, category: "D" },
-    D7: { minSpend: 160, maxPersons: 5, category: "D" },
+    D1: { minSpend: 500, maxPersons: 5, category: "D" },
+    D2: { minSpend: 500, maxPersons: 5, category: "D" },
+    D3: { minSpend: 500, maxPersons: 5, category: "D" },
+    D4: { minSpend: 500, maxPersons: 5, category: "D" },
+    D5: { minSpend: 500, maxPersons: 5, category: "D" },
+    D6: { minSpend: 500, maxPersons: 5, category: "D" },
+    D7: { minSpend: 500, maxPersons: 5, category: "D" },
 
     // V tables (green tables) - €250 minimum, 5 persons max
     V1: { minSpend: 250, maxPersons: 5, category: "V" },
@@ -45,10 +45,10 @@ const TableLayoutBolivar = ({
     V9: { minSpend: 250, maxPersons: 5, category: "V" },
 
     // F tables (gold tables) - €500 minimum, 5 persons max
-    F1: { minSpend: 500, maxPersons: 5, category: "F" },
-    F2: { minSpend: 500, maxPersons: 5, category: "F" },
-    F3: { minSpend: 500, maxPersons: 5, category: "F" },
-    F4: { minSpend: 500, maxPersons: 5, category: "F" },
+    F1: { minSpend: 600, maxPersons: 5, category: "F" },
+    F2: { minSpend: 600, maxPersons: 5, category: "F" },
+    F3: { minSpend: 600, maxPersons: 5, category: "F" },
+    F4: { minSpend: 600, maxPersons: 5, category: "F" },
   };
 
   // Categorize tables for the parent components to use

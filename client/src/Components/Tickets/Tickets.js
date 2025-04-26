@@ -678,24 +678,19 @@ const Tickets = ({
               validatedTickets[0].doorPrice && (
                 <div className="global-door-price">
                   <div className="door-price-icon">
-                    <FaGem />
+                    <RiDoorLine />
                   </div>
                   <div className="door-price-content">
-                    <div className="door-price-title">Online Special Price</div>
-                    <div className="door-price-value">
-                      Save{" "}
-                      <span>
-                        {calculateDiscountPercentage(
-                          validatedTickets[0].doorPrice,
-                          validatedTickets[0].price
-                        )}
-                        %
-                      </span>{" "}
-                      when buying online!
+                    <div className="door-price-title">
+                      Door Price: {validatedTickets[0].doorPrice.toFixed(2)}€
                     </div>
                     <div className="door-price-note">
-                      Get the best price by purchasing your tickets now. Door
-                      price will be {validatedTickets[0].doorPrice.toFixed(2)}€.
+                      When buying online save{" "}
+                      {calculateDiscountPercentage(
+                        validatedTickets[0].doorPrice,
+                        validatedTickets[0].price
+                      )}
+                      %
                     </div>
                   </div>
                 </div>
@@ -848,7 +843,7 @@ const Tickets = ({
                         <p>
                           {ticketSettings.paymentMethod === "online"
                             ? "Your payment is secured with industry-standard encryption"
-                            : "Please have exact change ready or pay with card at the door"}
+                            : "Please be ready to pay at the door"}
                         </p>
                       </div>
                     </div>
