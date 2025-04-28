@@ -74,9 +74,9 @@ const ContactSection = () => {
   };
 
   return (
-    <section className="contact-section">
-      <div className="contact-container">
-        <div className="contact-text">
+    <section className="contactSection">
+      <div className="contactSection-container">
+        <div className="contactSection-text">
           <h2>Get in Touch</h2>
           <p>
             We're still in Alpha testing, pushing boundaries in event
@@ -86,7 +86,7 @@ const ContactSection = () => {
           </p>
         </div>
 
-        <form className="contact-form" onSubmit={handleSubmit}>
+        <form className="contactSection-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <input
               type="text"

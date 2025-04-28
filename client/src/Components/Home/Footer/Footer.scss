@@ -1,7 +1,9 @@
-.home-footer {
+@import "../../../_media-queries.scss";
+
+.appFooter {
   background: rgba(0, 0, 0, 0.6);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 4rem 1.25rem 2rem;
+  padding: 1.5rem 1rem 1rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   position: relative;
@@ -25,21 +27,22 @@
     pointer-events: none;
   }
 
-  .footer-content {
+  .appFooter-content {
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 3rem;
-    margin-bottom: 3rem;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
     position: relative;
+    text-align: center;
   }
 
-  .footer-section {
+  .appFooter-section {
     h4 {
       color: #ffc807;
-      font-size: 1.1rem;
-      margin-bottom: 1.25rem;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
       font-weight: 700;
       letter-spacing: -0.5px;
     }
@@ -47,41 +50,41 @@
     p {
       color: rgba(255, 255, 255, 0.7);
       line-height: 1.6;
-      margin-bottom: 0.75rem;
-      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
     }
 
     a {
       display: block;
       color: rgba(255, 255, 255, 0.7);
       text-decoration: none;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
       transition: all 0.2s ease;
-      font-size: 0.95rem;
-      padding: 0.4rem 0;
+      font-size: 0.85rem;
+      padding: 0.25rem 0;
 
       &:hover {
         color: #ffc807;
-        transform: translateX(4px);
       }
     }
   }
 
-  .footer-bottom {
+  .appFooter-bottom {
     text-align: center;
-    padding-top: 2rem;
+    padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
 
     p {
       color: rgba(255, 255, 255, 0.5);
-      font-size: 0.9rem;
+      font-size: 0.75rem;
       letter-spacing: 0.2px;
       margin-top: 0.8rem;
     }
 
-    .legal-links {
+    .appFooter-legal-links {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       flex-wrap: wrap;
@@ -95,6 +98,7 @@
         cursor: pointer;
         padding: 0.5rem 0.8rem;
         transition: all 0.2s ease;
+        margin: 0.3rem 0;
 
         &:hover {
           color: #ffc807;
@@ -105,105 +109,295 @@
         }
       }
 
-      .divider {
-        color: rgba(255, 255, 255, 0.3);
-        margin: 0 0.2rem;
+      .appFooter-divider {
+        display: none;
       }
     }
   }
 }
 
-@media (max-width: 768px) {
-  .home-footer {
-    padding: 3rem 1rem 1.5rem;
+// Add responsive media queries
+@include mq(smartphone) {
+  .appFooter {
+    padding: 1.25rem 1rem 0.75rem;
 
-    .footer-content {
-      gap: 2rem;
-      text-align: center;
+    .appFooter-bottom {
+      .appFooter-legal-links {
+        flex-direction: column;
+        button {
+          font-size: 0.8rem;
+          padding: 0.4rem 0.6rem;
+        }
+      }
+
+      p {
+        font-size: 0.7rem;
+      }
+    }
+  }
+}
+
+@include mq(tablet) {
+  .appFooter {
+    padding: 1.5rem 1.5rem 1rem;
+
+    .appFooter-content {
+      grid-template-columns: repeat(2, 1fr);
     }
 
-    .footer-section {
-      a {
-        &:hover {
-          transform: none;
+    .appFooter-bottom {
+      .appFooter-legal-links {
+        flex-direction: row;
+
+        button {
+          margin: 0 0.3rem;
+        }
+
+        .appFooter-divider {
+          display: inline-block;
+          color: rgba(255, 255, 255, 0.3);
+          margin: 0 0.2rem;
         }
       }
     }
   }
 }
 
-@media (max-width: 480px) {
-  .home-footer {
-    padding: 2rem 1rem 1.5rem;
+// Enhanced iPad Air/Pro styles
+@include tablet-long {
+  .appFooter {
+    padding: 3rem 2.5rem 2rem;
 
-    .footer-content {
-      gap: 1.5rem;
-      grid-template-columns: 1fr;
+    .appFooter-content {
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 900px;
+      gap: 2.5rem;
+      text-align: left;
     }
 
-    .footer-section {
+    .appFooter-section {
       h4 {
-        font-size: 1rem;
-        margin-bottom: 0.75rem;
+        font-size: 1.3rem;
+        margin-bottom: 1.2rem;
+        letter-spacing: -0.3px;
       }
 
       p,
       a {
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
+        font-size: 1.05rem;
+        line-height: 1.7;
+        margin-bottom: 0.8rem;
       }
     }
 
-    .footer-bottom {
+    .appFooter-bottom {
       padding-top: 1.5rem;
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 900px;
+      margin: 0 auto;
+
+      p {
+        margin-top: 0;
+        font-size: 0.9rem;
+      }
+
+      .appFooter-legal-links {
+        margin-bottom: 0;
+
+        button {
+          font-size: 1rem;
+          padding: 0.6rem 1rem;
+        }
+
+        .appFooter-divider {
+          margin: 0 0.4rem;
+        }
+      }
+    }
+  }
+}
+
+@include mq(laptop) {
+  .appFooter {
+    padding: 2rem 2rem 1.25rem;
+
+    .appFooter-content {
+      grid-template-columns: repeat(3, 1fr);
+      text-align: left;
+      gap: 2rem;
+    }
+
+    .appFooter-section {
+      h4 {
+        font-size: 1.1rem;
+      }
+
+      p,
+      a {
+        font-size: 0.9rem;
+      }
+    }
+
+    .appFooter-bottom {
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: center;
+      justify-content: space-between;
+
+      p {
+        margin-top: 0;
+      }
+
+      .appFooter-legal-links {
+        margin-bottom: 0;
+
+        button {
+          font-size: 0.95rem;
+        }
+      }
+    }
+  }
+}
+
+@include mq(desktop) {
+  .appFooter {
+    padding: 2.5rem 2.5rem 1.5rem;
+
+    .appFooter-content {
+      grid-template-columns: 2fr repeat(2, 1fr);
+      max-width: 1440px;
+      gap: 3rem;
+    }
+
+    .appFooter-section {
+      h4 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      p,
+      a {
+        font-size: 1rem;
+      }
+    }
+
+    .appFooter-bottom {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding-top: 1.5rem;
+
+      .appFooter-legal-links {
+        button {
+          font-size: 1rem;
+          padding: 0.5rem 1rem;
+        }
+
+        .appFooter-divider {
+          margin: 0 0.5rem;
+        }
+      }
 
       p {
         font-size: 0.8rem;
       }
+    }
+  }
+}
 
-      .legal-links {
-        flex-direction: column;
+// Add styles for larger desktop screens
+@include mq(desktop-large) {
+  .appFooter {
+    padding: 4rem 4rem 2.5rem;
 
+    .appFooter-content {
+      max-width: 1800px;
+      gap: 5rem;
+    }
+
+    .appFooter-section {
+      h4 {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+        letter-spacing: -0.5px;
+      }
+
+      p,
+      a {
+        font-size: 1.5rem;
+        line-height: 1.9;
+        margin-bottom: 1.2rem;
+        padding: 0.4rem 0;
+      }
+    }
+
+    .appFooter-bottom {
+      max-width: 1800px;
+      padding-top: 2.5rem;
+
+      .appFooter-legal-links {
         button {
-          margin: 0.3rem 0;
+          font-size: 1.5rem;
+          padding: 0.8rem 1.5rem;
         }
 
-        .divider {
-          display: none;
+        .appFooter-divider {
+          margin: 0 1rem;
+          font-size: 1.5rem;
         }
+      }
+
+      p {
+        font-size: 1.3rem;
       }
     }
   }
 }
 
-@media (max-width: 375px) {
-  .home-footer {
-    padding: 1.5rem 1rem 1rem;
+@include mq(desktop-extra-large) {
+  .appFooter {
+    padding: 5rem 8rem 3rem;
 
-    .footer-content {
-      gap: 1.25rem;
-      margin-bottom: 1.5rem;
+    .appFooter-content {
+      max-width: 2200px;
+      gap: 8rem;
     }
 
-    .footer-section {
+    .appFooter-section {
       h4 {
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+        margin-bottom: 2.5rem;
       }
 
       p,
       a {
-        font-size: 0.85rem;
-        margin-bottom: 0.4rem;
-        padding: 0.25rem 0;
+        font-size: 1.8rem;
+        line-height: 2;
+        margin-bottom: 1.5rem;
+        padding: 0.5rem 0;
       }
     }
 
-    .footer-bottom {
-      padding-top: 1rem;
+    .appFooter-bottom {
+      max-width: 2200px;
+      padding-top: 3rem;
+
+      .appFooter-legal-links {
+        button {
+          font-size: 1.8rem;
+          padding: 1rem 2rem;
+        }
+
+        .appFooter-divider {
+          margin: 0 1.5rem;
+          font-size: 1.8rem;
+        }
+      }
 
       p {
-        font-size: 0.75rem;
+        font-size: 1.5rem;
       }
     }
   }

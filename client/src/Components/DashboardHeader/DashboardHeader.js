@@ -46,10 +46,10 @@ const DashboardHeader = ({
   useEffect(() => {
     // Close dropdowns when clicking outside
     const handleClickOutside = (e) => {
-      if (!e.target.closest(".event-section")) {
+      if (!e.target.closest(".dashboardHeader-event")) {
         setBrandDropdown(false);
       }
-      if (!e.target.closest(".date-section")) {
+      if (!e.target.closest(".dashboardHeader-date")) {
         setDateDropdown(false);
       }
     };
@@ -123,12 +123,14 @@ const DashboardHeader = ({
         <img
           src={brand.logo.medium || brand.logo.thumbnail}
           alt={brand.name}
-          className="brand-logo-image"
+          className="dashboardHeader-event-selector-logo-image"
         />
       );
     }
     return (
-      <div className="brand-initial">{brand ? brand.name.charAt(0) : "B"}</div>
+      <div className="dashboardHeader-event-selector-logo-initial">
+        {brand ? brand.name.charAt(0) : "B"}
+      </div>
     );
   };
 
@@ -136,11 +138,10 @@ const DashboardHeader = ({
   const renderUserAvatar = () => {
     if (user?.avatar?.medium || user?.avatar?.thumbnail) {
       return (
-        <div className="user-avatar">
+        <div className="dashboardHeader-profile-avatar-image">
           <img
             src={user.avatar.medium || user.avatar.thumbnail}
             alt={displayName}
-            className="avatar-image"
           />
         </div>
       );
@@ -167,11 +168,11 @@ const DashboardHeader = ({
   };
 
   return (
-    <div className="dashboard-header">
-      <div className="dashboard-header-content">
+    <div className="dashboardHeader">
+      <div className="dashboardHeader-content">
         {/* Profile Section */}
-        <div className="profile-section">
-          <div className="avatar-wrapper">
+        <div className="dashboardHeader-profile">
+          <div className="dashboardHeader-profile-avatar">
             {renderUserAvatar()}
             <AvatarUpload
               user={currentUser}
@@ -181,47 +182,65 @@ const DashboardHeader = ({
             />
             <OnlineIndicator
               size="medium"
-              className="profile-online-indicator"
+              className="dashboardHeader-profile-avatar-indicator"
             />
           </div>
 
-          <div className="user-info">
-            <div className="user-info-main">
-              <div className="name-group">
-                <h1 className="display-name">{displayName}</h1>
-                <span className="username">@{username}</span>
+          <div className="dashboardHeader-profile-info">
+            <div className="dashboardHeader-profile-info-main">
+              <div className="dashboardHeader-profile-info-main-nameGroup">
+                <h1 className="dashboardHeader-profile-info-main-nameGroup-displayName">
+                  {displayName}
+                </h1>
+                <span className="dashboardHeader-profile-info-main-nameGroup-username">
+                  @{username}
+                </span>
               </div>
-              <div className="user-stats">
-                <div className="stat-item">
-                  <span className="stat-value">{brandsCount}</span> Brands
+              <div className="dashboardHeader-profile-info-main-stats">
+                <div className="dashboardHeader-profile-info-main-stats-item">
+                  <span className="dashboardHeader-profile-info-main-stats-item-value">
+                    {brandsCount}
+                  </span>
+                  <span className="dashboardHeader-profile-info-main-stats-item-label">
+                    Brands
+                  </span>
                 </div>
-                <div className="stat-divider">·</div>
-                <div className="stat-item">
-                  <span className="stat-value">{eventsCount}</span> Events
+                <div className="dashboardHeader-profile-info-main-stats-divider">
+                  ·
+                </div>
+                <div className="dashboardHeader-profile-info-main-stats-item">
+                  <span className="dashboardHeader-profile-info-main-stats-item-value">
+                    {eventsCount}
+                  </span>
+                  <span className="dashboardHeader-profile-info-main-stats-item-label">
+                    Events
+                  </span>
                 </div>
               </div>
-              <div className="user-bio">{userRole}</div>
+              <div className="dashboardHeader-profile-info-main-bio">
+                {userRole}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Event Section (Brand Selector) */}
-        <div className="event-section">
+        <div className="dashboardHeader-event">
           <motion.div
-            className="event-selector"
+            className="dashboardHeader-event-selector"
             whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
             onClick={() => setBrandDropdown(!brandDropdown)}
           >
             {brands && brands.length > 0 ? (
               <>
-                <div className="event-logo">
+                <div className="dashboardHeader-event-selector-logo">
                   {renderBrandLogo(selectedBrand)}
                 </div>
-                <h2 className="event-name">
+                <h2 className="dashboardHeader-event-selector-name">
                   {selectedBrand ? selectedBrand.name : "Select Brand"}
                 </h2>
                 <motion.div
-                  className="dropdown-icon"
+                  className="dashboardHeader-event-selector-dropdown"
                   initial={false}
                   animate={{ rotate: brandDropdown ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -233,31 +252,47 @@ const DashboardHeader = ({
           </motion.div>
 
           {brandDropdown && (
-            <div className="brand-options">
+            <div className="dashboardHeader-event-options">
               {brands && brands.length > 0 ? (
                 brands.map((brand) => (
                   <div
                     key={brand._id}
-                    className="brand-option"
+                    className="dashboardHeader-event-options-option"
                     onClick={() => handleSelectBrand(brand)}
                   >
-                    <div className="brand-option-logo">
-                      {renderBrandLogo(brand)}
+                    <div className="dashboardHeader-event-options-option-logo">
+                      {brand?.logo?.medium || brand?.logo?.thumbnail ? (
+                        <img
+                          src={brand.logo.medium || brand.logo.thumbnail}
+                          alt={brand.name}
+                          className="dashboardHeader-event-options-option-logo-image"
+                        />
+                      ) : (
+                        <div className="dashboardHeader-event-options-option-logo-initial">
+                          {brand.name.charAt(0)}
+                        </div>
+                      )}
                     </div>
-                    <div className="brand-option-name">{brand.name}</div>
+                    <div className="dashboardHeader-event-options-option-name">
+                      {brand.name}
+                    </div>
                   </div>
                 ))
               ) : (
-                <div className="no-brands">No brands available</div>
+                <div className="dashboardHeader-event-options-empty">
+                  No brands available
+                </div>
               )}
             </div>
           )}
         </div>
 
         {/* Date Section */}
-        <div className="date-section">
+        <div className="dashboardHeader-date">
           <motion.div
-            className={`date-display ${selectedDate ? "has-date" : ""}`}
+            className={`dashboardHeader-date-display ${
+              selectedDate ? "dashboardHeader-date-display-hasDate" : ""
+            }`}
             whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
             onClick={() => setDateDropdown(!dateDropdown)}
           >
@@ -265,10 +300,12 @@ const DashboardHeader = ({
             selectedBrand.events &&
             selectedBrand.events.length > 0 ? (
               <>
-                <RiCalendarEventLine className="calendar-icon" />
-                <span>{formatDateForDisplay(selectedDate)}</span>
+                <RiCalendarEventLine className="dashboardHeader-date-display-icon" />
+                <span className="dashboardHeader-date-display-text">
+                  {formatDateForDisplay(selectedDate)}
+                </span>
                 <motion.div
-                  className="dropdown-icon"
+                  className="dashboardHeader-date-display-dropdown"
                   initial={false}
                   animate={{ rotate: dateDropdown ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -280,7 +317,7 @@ const DashboardHeader = ({
           </motion.div>
 
           {dateDropdown && (
-            <div className="date-options">
+            <div className="dashboardHeader-date-options">
               {selectedBrand &&
               selectedBrand.events &&
               selectedBrand.events.length > 0 ? (
@@ -409,8 +446,10 @@ const DashboardHeader = ({
                       return (
                         <div
                           key={item.dateStr}
-                          className={`date-option ${
-                            selectedDate === item.dateStr ? "selected" : ""
+                          className={`dashboardHeader-date-options-option ${
+                            selectedDate === item.dateStr
+                              ? "dashboardHeader-date-options-option-selected"
+                              : ""
                           }`}
                           onClick={() => handleSelectDate(item.dateStr)}
                         >
@@ -425,13 +464,15 @@ const DashboardHeader = ({
                   );
                 })()
               ) : (
-                <div className="no-dates">No events found</div>
+                <div className="dashboardHeader-date-options-empty">
+                  No events found
+                </div>
               )}
               <div
-                className="date-option view-all"
+                className="dashboardHeader-date-options-option dashboardHeader-date-options-option-viewAll"
                 onClick={() => setShowEventsPopup(true)}
               >
-                <RiMoreLine className="more-icon" />
+                <RiMoreLine className="dashboardHeader-date-options-option-viewAll-icon" />
               </div>
             </div>
           )}

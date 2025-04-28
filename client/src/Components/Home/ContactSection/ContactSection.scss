@@ -1,7 +1,8 @@
 @import "../../../_variables";
+@import "../../../_media-queries";
 
-.contact-section {
-  padding: 6rem 1.5rem;
+.contactSection {
+  padding: 4rem 1rem;
   position: relative;
   background-color: #0a0a0a;
   overflow: hidden;
@@ -42,25 +43,20 @@
   }
 }
 
-.contact-container {
+.contactSection-container {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 1fr;
+  gap: 2rem;
   position: relative;
   z-index: 2;
-
-  @media (max-width: 992px) {
-    grid-template-columns: 1fr;
-    gap: 3rem;
-  }
 }
 
-.contact-text {
+.contactSection-text {
   h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
     color: #ffc807;
     font-weight: 700;
     position: relative;
@@ -78,14 +74,14 @@
   }
 
   p {
-    font-size: 1.1rem;
-    line-height: 1.7;
+    font-size: 1rem;
+    line-height: 1.6;
     color: rgba(255, 255, 255, 0.8);
     max-width: 500px;
   }
 }
 
-.contact-form {
+.contactSection-form {
   .form-group {
     margin-bottom: 1.5rem;
   }
@@ -96,9 +92,9 @@
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
-    padding: 1rem 1.25rem;
+    padding: 0.85rem 1rem;
     color: white;
-    font-size: 1rem;
+    font-size: 0.95rem;
     transition: all 0.3s ease;
     outline: none;
 
@@ -128,11 +124,12 @@
     border-radius: 4px;
     color: #111;
     font-weight: 600;
-    padding: 1rem 2rem;
-    font-size: 1rem;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 0.5rem;
+    width: 100%;
 
     &:hover {
       background-color: #ffc807;
@@ -183,53 +180,325 @@
   }
 }
 
-@media (max-width: 768px) {
-  .contact-section {
-    padding: 4rem 1.25rem;
-  }
+// Responsive styles using media query mixins
+@include mq(tablet) {
+  .contactSection {
+    padding: 5rem 1.5rem;
 
-  .contact-text {
-    h2 {
-      font-size: 2rem;
+    &-container {
+      gap: 3rem;
     }
 
-    p {
-      font-size: 1rem;
+    &-text {
+      h2 {
+        font-size: 2rem;
+        margin-bottom: 1.25rem;
+
+        &::after {
+          width: 50px;
+        }
+      }
+
+      p {
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+    }
+
+    &-form {
+      .form-input,
+      .form-textarea {
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        border-radius: 6px;
+      }
+
+      .submit-button {
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 6px;
+        width: auto;
+        min-width: 180px;
+      }
     }
   }
 }
 
-@media (max-width: 480px) {
-  .contact-section {
-    padding: 3rem 1rem;
-  }
+// Special styles for iPad with long screens
+@include tablet-long {
+  .contactSection {
+    padding: 6.5rem 3rem;
 
-  .contact-container {
-    gap: 2rem;
-  }
-
-  .contact-text {
-    h2 {
-      font-size: 1.75rem;
-      margin-bottom: 1rem;
+    &-container {
+      max-width: 900px;
+      gap: 5rem;
+      grid-template-columns: 1fr 1fr;
     }
 
-    p {
-      font-size: 0.95rem;
-      line-height: 1.6;
+    &-text {
+      h2 {
+        font-size: 2.8rem;
+        margin-bottom: 1.8rem;
+
+        &::after {
+          width: 60px;
+          height: 4px;
+          bottom: -15px;
+        }
+      }
+
+      p {
+        font-size: 1.25rem;
+        line-height: 1.9;
+        max-width: 100%;
+      }
+    }
+
+    &-form {
+      .form-group {
+        margin-bottom: 2.2rem;
+      }
+
+      .form-input,
+      .form-textarea {
+        padding: 1.4rem 1.8rem;
+        font-size: 1.2rem;
+        border-radius: 10px;
+      }
+
+      .form-textarea {
+        min-height: 180px;
+      }
+
+      .submit-button {
+        padding: 1.4rem 2.8rem;
+        font-size: 1.25rem;
+        border-radius: 10px;
+        font-weight: 700;
+      }
+
+      .form-success,
+      .form-error {
+        padding: 1.2rem;
+        font-size: 1.1rem;
+        border-radius: 8px;
+      }
+    }
+
+    &::after {
+      background-size: 40px 40px;
     }
   }
+}
 
-  .contact-form {
-    .form-input,
-    .form-textarea {
-      padding: 0.85rem 1rem;
-      font-size: 0.95rem;
+@include mq(laptop) {
+  .contactSection {
+    padding: 7rem 2rem;
+
+    &-container {
+      max-width: 1000px;
+      gap: 5rem;
+      grid-template-columns: 1fr 1fr;
     }
 
-    .submit-button {
-      width: 100%;
-      padding: 0.85rem 1rem;
+    &-text {
+      h2 {
+        font-size: 2.75rem;
+        margin-bottom: 2rem;
+      }
+
+      p {
+        font-size: 1.2rem;
+        line-height: 1.8;
+      }
+    }
+
+    &-form {
+      .form-group {
+        margin-bottom: 2rem;
+      }
+
+      .form-input,
+      .form-textarea {
+        padding: 1.25rem 1.5rem;
+        font-size: 1.15rem;
+      }
+
+      .submit-button {
+        padding: 1.25rem 2.5rem;
+        font-size: 1.15rem;
+      }
+    }
+  }
+}
+
+@include mq(desktop) {
+  .contactSection {
+    padding: 8rem 2rem;
+
+    &-container {
+      max-width: 1200px;
+      gap: 6rem;
+    }
+
+    &-text {
+      h2 {
+        font-size: 3rem;
+      }
+
+      p {
+        font-size: 1.25rem;
+        max-width: 600px;
+      }
+    }
+
+    &-form {
+      .form-input,
+      .form-textarea {
+        padding: 1.5rem 1.75rem;
+        font-size: 1.2rem;
+      }
+
+      .submit-button {
+        padding: 1.4rem 3rem;
+        font-size: 1.2rem;
+        min-width: 220px;
+      }
+    }
+  }
+}
+
+// Styles for larger desktop screens
+@include mq(desktop-large) {
+  .contactSection {
+    padding: 12rem 3rem;
+
+    &-container {
+      max-width: 1700px;
+      gap: 10rem;
+    }
+
+    &-text {
+      h2 {
+        font-size: 4rem;
+        margin-bottom: 3rem;
+
+        &::after {
+          width: 100px;
+          height: 6px;
+          bottom: -25px;
+        }
+      }
+
+      p {
+        font-size: 1.6rem;
+        line-height: 2;
+        max-width: 750px;
+      }
+    }
+
+    &-form {
+      .form-group {
+        margin-bottom: 3rem;
+      }
+
+      .form-input,
+      .form-textarea {
+        padding: 1.9rem 2.2rem;
+        font-size: 1.5rem;
+        border-radius: 14px;
+      }
+
+      .form-textarea {
+        min-height: 220px;
+      }
+
+      .submit-button {
+        padding: 1.8rem 4rem;
+        font-size: 1.5rem;
+        border-radius: 14px;
+        min-width: 280px;
+        letter-spacing: 0.5px;
+      }
+
+      .form-success,
+      .form-error {
+        padding: 1.8rem;
+        font-size: 1.4rem;
+        border-radius: 12px;
+      }
+    }
+
+    &::after {
+      background-size: 60px 60px;
+    }
+  }
+}
+
+@include mq(desktop-extra-large) {
+  .contactSection {
+    padding: 14rem 5rem;
+
+    &-container {
+      max-width: 2000px;
+      gap: 12rem;
+    }
+
+    &-text {
+      h2 {
+        font-size: 5rem;
+        margin-bottom: 4rem;
+
+        &::after {
+          width: 120px;
+          height: 8px;
+          bottom: -30px;
+        }
+      }
+
+      p {
+        font-size: 2rem;
+        line-height: 2.2;
+        max-width: 900px;
+      }
+    }
+
+    &-form {
+      .form-group {
+        margin-bottom: 4rem;
+      }
+
+      .form-input,
+      .form-textarea {
+        padding: 2.4rem 3rem;
+        font-size: 1.8rem;
+        border-radius: 18px;
+        border-width: 2px;
+      }
+
+      .form-textarea {
+        min-height: 300px;
+      }
+
+      .submit-button {
+        padding: 2.2rem 5rem;
+        font-size: 2rem;
+        border-radius: 18px;
+        min-width: 350px;
+        letter-spacing: 1px;
+        font-weight: 700;
+      }
+
+      .form-success,
+      .form-error {
+        padding: 2rem;
+        font-size: 1.8rem;
+        border-radius: 16px;
+      }
+    }
+
+    &::after {
+      background-size: 80px 80px;
     }
   }
 }

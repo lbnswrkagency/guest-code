@@ -7,8 +7,6 @@ import {
   RiQrCodeFill,
   RiCodeBoxFill,
   RiTableLine,
-  RiSettings4Fill,
-  RiFlashlightFill,
   RiSparklingFill,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
@@ -256,7 +254,7 @@ const DashboardMenu = ({
                   <div className="menu-item-icon-wrapper">
                     <RiBarChartFill />
                   </div>
-                  <span>Analytics</span>
+                  <p>Analytics</p>
                 </motion.div>
               )}
 

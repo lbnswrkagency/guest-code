@@ -1,4 +1,5 @@
 @import "../../_variables";
+@import "../../_media-queries";
 
 .upcomingEvent-container {
   width: 100%;
@@ -9,7 +10,28 @@
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 100%;
-  padding: 0.5rem;
+  padding: 0.5rem; // Base padding for mobile
+
+  @include mq(tablet) {
+    padding: 0.75rem !important;
+  }
+
+  @include mq(tablet-landscape) {
+    padding: 0.9rem !important;
+  }
+
+  @include mq(laptop) {
+    padding: 1.1rem !important;
+  }
+
+  @include mq(desktop) {
+    padding: 1.3rem !important;
+  }
+
+  @include mq(desktop-large) {
+    padding: 1.5rem !important;
+  }
+
   // Seamless mode - removes container styling
   &.upcomingEvent-seamless {
     border: none;
@@ -27,6 +49,8 @@
     .upcomingEvent-card {
       border: none;
       background: transparent;
+      display: grid;
+      grid-template-rows: repeat(2, minmax(min-content, max-content));
 
       .upcomingEvent-image-container {
         border-radius: 8px;
@@ -40,19 +64,6 @@
       width: 100%;
       max-width: 100%;
     }
-
-    .upcomingEvent-action-buttons {
-      margin-top: 1rem;
-
-      .upcomingEvent-action-button {
-        background: rgba(255, 200, 7, 0.1);
-        border: 1px solid rgba(255, 200, 7, 0.2);
-
-        &:hover {
-          background: rgba(255, 200, 7, 0.15);
-        }
-      }
-    }
   }
 
   &.upcomingEvent-loading {
@@ -65,21 +76,6 @@
     &.upcomingEvent-seamless {
       min-height: 150px;
       background: transparent;
-    }
-
-    .upcomingEvent-loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255, 200, 7, 0.2);
-      border-radius: 50%;
-      border-top-color: #ffc807;
-      animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
     }
   }
 
@@ -185,6 +181,8 @@
     display: flex;
     flex-direction: column;
     transition: transform 0.2s ease, box-shadow 0.3s ease;
+    position: relative;
+    z-index: 2;
 
     &:hover {
       transform: translateY(-2px);
@@ -197,6 +195,7 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      grid-row: 1/2;
     }
 
     .upcomingEvent-image-container {
@@ -227,8 +226,6 @@
         height: auto;
         display: block;
         transition: transform 0.3s ease;
-
-        // Default object-fit behavior
         object-fit: cover; // Default to cover for most images
       }
 
@@ -260,10 +257,9 @@
       }
     }
 
-    // Additional styles for different aspect ratios
     &.has-landscape-flyer .upcomingEvent-image-container {
       .upcomingEvent-event-image {
-        max-height: 240px; /* Landscape images shouldn't be too tall */
+        max-height: 240px;
         width: 100%;
         object-fit: cover;
       }
@@ -271,7 +267,7 @@
 
     &.has-square-flyer .upcomingEvent-image-container {
       .upcomingEvent-event-image {
-        max-height: 350px; /* Square images can be a bit taller */
+        max-height: 350px;
         width: 100%;
         object-fit: cover;
       }
@@ -302,7 +298,6 @@
 
       .upcomingEvent-image-container {
         background: transparent;
-        display: inline-flex;
         justify-content: center;
         align-items: center;
         width: auto;
@@ -320,142 +315,7 @@
       }
     }
 
-    // Mobile styles for aspect ratios
-    @media (max-width: 767px) {
-      &.has-landscape-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 200px;
-        width: 100%;
-        object-fit: cover;
-      }
-
-      &.has-square-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 300px;
-        width: 100%;
-        object-fit: cover;
-      }
-
-      &.has-portrait-flyer {
-        .upcomingEvent-image-wrapper {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-        }
-
-        .upcomingEvent-image-container {
-          display: inline-flex;
-          width: auto;
-
-          .upcomingEvent-event-image {
-            max-height: 400px;
-            height: auto;
-            max-width: 100%;
-            width: auto;
-            object-fit: contain;
-          }
-        }
-      }
-    }
-
-    // Tablet styles for aspect ratios
-    @media (min-width: 768px) and (max-width: 1023px) {
-      &.has-landscape-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 240px;
-        width: 100%;
-        object-fit: cover;
-      }
-
-      &.has-square-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 350px;
-        width: 100%;
-        object-fit: cover;
-      }
-
-      &.has-portrait-flyer {
-        .upcomingEvent-image-wrapper {
-          display: flex;
-          justify-content: center;
-          width: 100%;
-        }
-
-        .upcomingEvent-image-container {
-          display: inline-flex;
-          width: auto;
-
-          .upcomingEvent-event-image {
-            max-height: 420px;
-            height: auto;
-            max-width: 100%;
-            width: auto;
-            object-fit: contain;
-          }
-        }
-      }
-    }
-
-    // Desktop styles for aspect ratios
-    @media (min-width: 1024px) {
-      &.has-landscape-flyer .upcomingEvent-image-container {
-        max-height: 280px;
-
-        .upcomingEvent-event-image {
-          width: 100%;
-          object-fit: cover;
-        }
-      }
-
-      &.has-square-flyer .upcomingEvent-image-container {
-        max-height: 380px;
-
-        .upcomingEvent-event-image {
-          width: 100%;
-          object-fit: cover;
-        }
-      }
-
-      &.has-portrait-flyer .upcomingEvent-image-container {
-        max-height: 480px;
-        background: linear-gradient(145deg, #111, #1a1a1a);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-          opacity: 0.4;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .upcomingEvent-event-image {
-          max-height: 480px;
-          height: auto;
-          max-width: 100%;
-          width: auto;
-          object-fit: contain;
-          position: relative;
-          z-index: 1;
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
-        }
-      }
-    }
-
     .upcomingEvent-details {
-      // padding: 1.25rem;
       background-color: #151515;
       flex: 1;
 
@@ -570,297 +430,6 @@
   }
 }
 
-@media (min-width: 768px) {
-  .upcomingEvent-container {
-    max-width: 90%;
-    margin: 0 auto 2rem;
-
-    .upcomingEvent-card {
-      flex-direction: row;
-
-      .upcomingEvent-image-container {
-        width: 35%;
-        min-height: 280px;
-        max-height: 450px;
-        display: flex;
-        align-items: center;
-      }
-
-      .upcomingEvent-details {
-        width: 65%;
-
-        .upcomingEvent-header {
-          margin-top: 0.5rem;
-        }
-
-        .upcomingEvent-event-title {
-          text-align: left;
-          margin-top: 0;
-        }
-
-        .upcomingEvent-event-subtitle {
-          text-align: left;
-        }
-      }
-
-      // Adjust the max heights for different flyer types in desktop view
-      &.has-landscape-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 280px;
-      }
-
-      &.has-portrait-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 350px;
-      }
-
-      &.has-vertical-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 420px;
-      }
-    }
-  }
-}
-
-@media (min-width: 1024px) {
-  .upcomingEvent-container {
-    max-width: 85%;
-
-    .upcomingEvent-navigation {
-      padding: 1rem;
-
-      .upcomingEvent-nav-button {
-        font-size: 1.75rem;
-      }
-
-      .upcomingEvent-indicator-dot {
-        width: 10px;
-        height: 10px;
-      }
-    }
-
-    .upcomingEvent-card {
-      .upcomingEvent-image-container {
-        width: 40%;
-        min-height: 320px;
-        max-height: 500px;
-      }
-
-      .upcomingEvent-details {
-        width: 60%;
-        padding: 2.5rem;
-
-        .upcomingEvent-event-title {
-          font-size: 2.4rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.1rem;
-          margin-bottom: 2rem;
-        }
-      }
-
-      // Larger max heights for wider screens
-      &.has-landscape-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 320px;
-      }
-
-      &.has-portrait-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 400px;
-      }
-
-      &.has-vertical-flyer
-        .upcomingEvent-image-container
-        .upcomingEvent-event-image {
-        max-height: 480px;
-      }
-    }
-  }
-}
-
-@media (min-width: 1440px) {
-  .upcomingEvent-container {
-    max-width: 80%;
-    display: grid;
-    grid-template-columns: 1fr;
-
-    .upcomingEvent-navigation {
-      grid-column: 1 / -1;
-    }
-
-    .upcomingEvent-card {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
-
-      .upcomingEvent-image-container {
-        width: 100%;
-        min-height: 200px;
-        max-height: unset;
-        grid-column: 1 / -1;
-        grid-row: 1;
-        position: relative;
-        overflow: hidden;
-
-        &::after {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 70%;
-          background: linear-gradient(
-            to top,
-            rgba(21, 21, 21, 1),
-            rgba(21, 21, 21, 0.8) 30%,
-            rgba(21, 21, 21, 0)
-          );
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .upcomingEvent-event-image {
-          width: 100%;
-          max-width: 100%;
-          margin: 0 auto;
-          object-fit: contain;
-        }
-      }
-
-      &.has-landscape-flyer .upcomingEvent-image-container {
-        height: auto;
-
-        .upcomingEvent-event-image {
-          max-height: 450px;
-        }
-      }
-
-      &.has-portrait-flyer .upcomingEvent-image-container {
-        height: auto;
-        background: linear-gradient(145deg, #111, #1a1a1a);
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-          opacity: 0.4;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .upcomingEvent-event-image {
-          max-height: 500px;
-          position: relative;
-          z-index: 1;
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-        }
-      }
-
-      &.has-vertical-flyer .upcomingEvent-image-container {
-        height: auto;
-
-        .upcomingEvent-event-image {
-          max-height: 550px;
-        }
-      }
-
-      .upcomingEvent-details {
-        width: 100%;
-        grid-column: 1 / -1;
-        grid-row: 2;
-        padding: 0 3rem 3rem;
-
-        .upcomingEvent-header {
-          margin-top: -120px;
-          position: relative;
-          z-index: 2;
-          text-align: center;
-
-          .upcomingEvent-event-title {
-            font-size: 3.5rem;
-            text-align: center;
-            margin-bottom: 1rem;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-          }
-
-          .upcomingEvent-event-subtitle {
-            font-size: 1.3rem;
-            text-align: center;
-            margin-bottom: 3rem;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-          }
-        }
-      }
-    }
-
-    // Add back the content-sections styles
-    .content-sections {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      margin-top: 2rem;
-
-      .upcomingEvent-ticket-section,
-      .upcomingEvent-guest-code-section {
-        margin: 0;
-      }
-    }
-
-    // Add back the event-lineups styles
-    .event-lineups {
-      grid-column: 1 / -1;
-      margin: 2rem 0;
-      padding: 2rem;
-
-      .lineup-artists {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      }
-    }
-  }
-}
-
-// Extra extra large desktop view
-@media (min-width: 1920px) {
-  .upcomingEvent-container {
-    max-width: 75%;
-
-    .upcomingEvent-card {
-      .upcomingEvent-image-container {
-        height: 500px;
-      }
-
-      .upcomingEvent-details {
-        padding: 3rem;
-
-        .upcomingEvent-event-title {
-          font-size: 2.5rem;
-          margin-top: -4.5rem;
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.25rem;
-        }
-      }
-    }
-
-    .content-sections {
-      grid-template-columns: 3fr 2fr;
-    }
-  }
-}
-
 .event-lineups {
   margin: 1rem 0 1.5rem;
   background: rgba(0, 0, 0, 0.15);
@@ -945,12 +514,6 @@
     max-width: 100%;
     overflow: hidden;
 
-    @media (min-width: 768px) {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1rem;
-    }
-
     .artist {
       display: flex;
       align-items: center;
@@ -967,13 +530,6 @@
         background: rgba(255, 200, 7, 0.1);
         transform: translateX(5px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      /* Adjust hover effect for mobile to prevent overflow */
-      @media (max-width: 767px) {
-        &:hover {
-          transform: translateX(3px); /* Smaller transform on mobile */
-        }
       }
 
       .artist-avatar {
@@ -1029,109 +585,12 @@
       }
     }
   }
-
-  @media (min-width: 1024px) {
-    margin: 2rem 0;
-    padding: 2rem;
-    border-radius: 12px;
-
-    h5 {
-      font-size: 1.3rem;
-      margin-bottom: 1.5rem;
-
-      &:after {
-        height: 3px;
-      }
-    }
-
-    .lineup-category-group {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      border-radius: 10px;
-
-      .category-title {
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        padding-left: 1rem;
-        border-left-width: 4px;
-      }
-    }
-
-    .lineup-artists {
-      gap: 1.25rem;
-
-      .artist {
-        padding: 1rem;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          transform: translateX(5px) translateY(-5px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .artist-avatar {
-          width: 70px;
-          height: 70px;
-          border-width: 3px;
-        }
-
-        .artist-info {
-          .artist-name {
-            font-size: 1.1rem;
-          }
-        }
-      }
-    }
-  }
-
-  @media (min-width: 1440px) {
-    .lineup-artists-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .lineup-category-group {
-      margin-bottom: 0;
-      height: 100%;
-    }
-  }
-}
-
-.upcomingEvent-see-full-event-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #ffc807, #ffaa00);
-  color: #000;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  width: fit-content;
-  margin: 1.5rem auto;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 200, 7, 0.4);
-  }
-
-  svg {
-    font-size: 1.2rem;
-  }
 }
 
 /* Ticket Section Styles */
 .upcomingEvent-ticket-section {
   margin: 1.5rem 0;
   padding: 1.5rem;
-
   max-width: 100%;
   overflow-x: hidden;
 
@@ -1153,197 +612,6 @@
       background-color: rgba(255, 200, 7, 0.4);
     }
   }
-
-  .ticket-info {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .no-tickets-message {
-    padding: 2rem;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
-
-    .loading-tickets {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-
-      .spinner {
-        width: 30px;
-        height: 30px;
-      }
-    }
-
-    .ticket-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-top: 1rem;
-      align-items: center;
-
-      @media (min-width: 480px) {
-        flex-direction: row;
-        justify-content: center;
-      }
-    }
-
-    .retry-button {
-      padding: 0.5rem 1rem;
-      background: rgba(255, 200, 7, 0.15);
-      color: #ffc807;
-      border: 1px solid rgba(255, 200, 7, 0.3);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: rgba(255, 200, 7, 0.25);
-        transform: translateY(-2px);
-      }
-    }
-
-    .sample-button {
-      padding: 0.5rem 1rem;
-      background: rgba(33, 150, 243, 0.15);
-      color: #2196f3;
-      border: 1px solid rgba(33, 150, 243, 0.3);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: rgba(33, 150, 243, 0.25);
-        transform: translateY(-2px);
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .event-lineups {
-    padding: 1rem 0.75rem;
-
-    .lineup-category-group {
-      padding: 0.5rem;
-    }
-
-    .lineup-artists {
-      .artist {
-        padding: 0.5rem 0.75rem;
-        gap: 0.75rem;
-
-        .artist-avatar {
-          width: 50px;
-          height: 50px;
-        }
-
-        .artist-info {
-          max-width: calc(100% - 60px);
-
-          .artist-name {
-            font-size: 0.95rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-.upcomingEvent-action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin: 1.25rem 0;
-  width: 100%;
-  padding: 0;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-
-  .upcomingEvent-action-btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    letter-spacing: 0.5px;
-    width: auto;
-    min-width: 160px;
-
-    &.ticket {
-      background: linear-gradient(135deg, #ffc807, #ffaa00);
-      color: #000;
-      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
-
-      &:hover {
-        background: linear-gradient(135deg, #ffaa00, #ff9500);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(255, 200, 7, 0.4);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
-
-    &.table {
-      background: linear-gradient(135deg, #9c27b0, #673ab7);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
-
-      &:hover {
-        background: linear-gradient(135deg, #8e24aa, #5e35b1);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(156, 39, 176, 0.4);
-      }
-    }
-
-    .upcomingEvent-action-icon {
-      font-size: 1.2rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-
-    .upcomingEvent-action-btn {
-      width: 100%;
-      max-width: 280px;
-    }
-  }
-
-  @media (min-width: 768px) {
-    justify-content: center;
-
-    .upcomingEvent-action-btn {
-      min-width: 180px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    margin: 2rem 0;
-
-    .upcomingEvent-action-btn {
-      padding: 1rem 2rem;
-      font-size: 1.05rem;
-    }
-  }
 }
 
 .upcomingEvent-image-wrapper {
@@ -1354,159 +622,7 @@
   overflow: hidden;
 }
 
-/* Media query styles for different viewports */
-@media (max-width: 767px) {
-  .upcomingEvent-card {
-    &.has-portrait-flyer {
-      .upcomingEvent-image-wrapper {
-        background: linear-gradient(145deg, #111, #1a1a1a);
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-          opacity: 0.4;
-          pointer-events: none;
-          z-index: 0;
-        }
-      }
-
-      .upcomingEvent-image-container {
-        width: auto;
-        max-width: 100%;
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .upcomingEvent-container {
-    .upcomingEvent-card {
-      .upcomingEvent-details {
-        .upcomingEvent-header {
-          text-align: center;
-        }
-
-        .upcomingEvent-event-title {
-          font-size: 1.8rem;
-          text-align: center;
-
-          &::after {
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-          }
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1rem;
-          margin-bottom: 1.2rem;
-          text-align: center;
-        }
-
-        .upcomingEvent-description-container {
-          max-width: 100%;
-          padding: 0.8rem 1rem;
-        }
-      }
-    }
-  }
-}
-
-@media (min-width: 768px) {
-  .upcomingEvent-container {
-    .upcomingEvent-card {
-      .upcomingEvent-details {
-        .upcomingEvent-header {
-          margin-top: 0.5rem;
-          text-align: center;
-        }
-
-        .upcomingEvent-event-title {
-          text-align: center !important;
-          margin-top: 0;
-        }
-
-        .upcomingEvent-event-subtitle {
-          text-align: center !important;
-        }
-      }
-    }
-  }
-}
-
-@media (min-width: 1024px) {
-  .upcomingEvent-container {
-    .upcomingEvent-card {
-      .upcomingEvent-details {
-        .upcomingEvent-event-title {
-          font-size: 2.4rem;
-
-          &::after {
-            width: 70px;
-            height: 4px;
-          }
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.2rem;
-        }
-
-        .upcomingEvent-description-container {
-          max-width: 80%;
-          padding: 1.2rem 1.5rem;
-        }
-      }
-    }
-  }
-}
-
-@media (min-width: 1440px) {
-  .upcomingEvent-container {
-    .upcomingEvent-card {
-      .upcomingEvent-details {
-        .upcomingEvent-header {
-          margin-top: -120px;
-          text-align: center;
-        }
-
-        .upcomingEvent-event-title {
-          font-size: 3.5rem;
-          text-align: center;
-          text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-
-          &::after {
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 4px;
-          }
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.3rem;
-          text-align: center;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-        }
-
-        .upcomingEvent-description-container {
-          max-width: 70%;
-          margin: 2rem auto;
-          padding: 1.5rem 2rem;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-        }
-      }
-    }
-  }
-}
-
-// Add these styles to handle the table booking section properly
-
+// Table booking section
 .upcomingEvent-table-booking-section {
   width: 100%;
   max-width: 100%;
@@ -1549,19 +665,7 @@
   }
 }
 
-// Mobile-specific adjustments
-@media (max-width: 767px) {
-  .upcomingEvent-table-booking-section {
-    margin: 0.5rem 0;
-    padding: 0;
-
-    .upcomingEvent-table-container {
-      padding: 0;
-    }
-  }
-}
-
-// Add footer styling
+// Footer styling
 .upcomingEvent-footer {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -1610,20 +714,23 @@
     position: relative;
     z-index: 2;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    gap: 1.5rem;
   }
 
   &-info {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    width: 100%;
   }
 
   &-logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    margin-bottom: 0.5rem;
 
     .logo-icon {
       font-size: 1.5rem;
@@ -1644,7 +751,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-width: 75%;
+    max-width: 100%;
 
     .event-title {
       font-size: 1.1rem;
@@ -1722,9 +829,9 @@
   }
 
   .upcomingEvent-divider {
-    flex: 1;
+    width: 100%;
     height: 1px;
-    margin: 0 1.5rem;
+    margin: 0.5rem 0;
     background: linear-gradient(
       to right,
       transparent,
@@ -1736,14 +843,14 @@
   .upcomingEvent-back-to-top {
     background: rgba(255, 200, 7, 0.9);
     border: none;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #1a1a1a;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
@@ -1806,92 +913,5 @@
   }
   75% {
     transform: translateY(-3px);
-  }
-}
-
-// Responsive adjustments for the footer
-@media (max-width: 768px) {
-  .upcomingEvent-footer {
-    padding: 1.25rem;
-
-    &-content {
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    &-info {
-      width: 100%;
-    }
-
-    &-event-info {
-      max-width: 100%;
-    }
-
-    &-logo {
-      margin-bottom: 0.5rem;
-
-      .logo-text {
-        font-size: 0.9rem;
-      }
-    }
-
-    .upcomingEvent-divider {
-      width: 100%;
-      margin: 0.5rem 0;
-    }
-
-    .upcomingEvent-back-to-top {
-      width: 36px;
-      height: 36px;
-      font-size: 1.1rem;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .upcomingEvent-footer {
-    padding: 1.25rem 1rem;
-
-    &-logo {
-      .logo-icon {
-        font-size: 1.25rem;
-      }
-
-      .logo-text {
-        font-size: 0.8rem;
-      }
-    }
-
-    &-event-info {
-      .event-title {
-        font-size: 1rem;
-      }
-
-      .event-details {
-        font-size: 0.8rem;
-
-        .detail-item {
-          .detail-icon {
-            font-size: 0.9rem;
-          }
-        }
-      }
-
-      .event-meta {
-        .meta-tag {
-          font-size: 0.7rem;
-
-          svg {
-            font-size: 0.8rem;
-          }
-        }
-      }
-    }
-
-    .upcomingEvent-back-to-top {
-      width: 32px;
-      height: 32px;
-      font-size: 1rem;
-    }
   }
 }

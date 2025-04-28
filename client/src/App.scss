@@ -1,14 +1,33 @@
 @import "variables";
+@import "media-queries";
+
+// Root level resets to ensure proper containment
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+
+  // Global scrollbar hiding - apply to ALL elements
+  &::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 body {
   font-family: "Roboto", sans-serif;
-
   background-color: $background-color;
   color: $text-color;
 }
@@ -17,3 +36,70 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+// Mobile container styles to force smartphone dimensions
+.mobile-container-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 0;
+  background-color: #f5f5f5; // Light background to make phone stand out
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999; // Ensure highest level
+}
+
+.mobile-container {
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  background-color: $background-color;
+  // Force containment of all content
+  contain: layout size;
+
+  // Hide scrollbar but allow scrolling
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  // Smartphone dimensions on larger screens
+  @include mq(smartphone) {
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  // Smartphone dimensions on tablet+ screens
+  @include mq(tablet) {
+    width: 375px; // iPhone width
+    height: 812px; // iPhone height
+    max-height: 90vh;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  // Custom styling for the app within the container
+  .app {
+    min-height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    // Force all absolute positioned elements to stay within
+    contain: layout paint style;
+  }
+}
+
+// Remove all decorative smartphone elements
+// but keep basic container styling for larger screens

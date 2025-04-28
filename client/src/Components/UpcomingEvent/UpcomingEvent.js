@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
-import Stripe from "../Stripe/Stripe";
 import Tickets from "../Tickets/Tickets";
 import EventDetails from "../EventDetails/EventDetails";
 import GuestCode from "../GuestCode/GuestCode";
@@ -18,15 +17,10 @@ import {
   RiArrowRightSLine,
   RiTicketLine,
   RiImageLine,
-  RiUserLine,
-  RiMailLine,
-  RiCodeSSlashLine,
   RiInformationLine,
   RiMusic2Line,
-  RiArrowRightLine,
   RiVipCrownLine,
   RiRefreshLine,
-  RiTestTubeLine,
   RiTableLine,
   RiArrowUpLine,
   RiStarLine,
@@ -80,7 +74,6 @@ const UpcomingEvent = ({
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
-  const [ticketQuantities, setTicketQuantities] = useState({});
 
   // Action buttons refs for scrolling
   const guestCodeSectionRef = useRef(null);
@@ -245,36 +238,6 @@ const UpcomingEvent = ({
       // Handle error silently
       return null;
     }
-  };
-
-  // Function to create a sample ticket for testing if no tickets are found
-  const createSampleTicket = (eventId) => {
-    // Create a sample ticket for testing
-    return [
-      {
-        _id: `sample-${Math.random().toString(36).substring(2, 9)}`,
-        name: "Standard Ticket",
-        description: "General admission ticket",
-        price: 25,
-        originalPrice: 30,
-        isLimited: true,
-        maxTickets: 100,
-        soldCount: 45,
-        hasCountdown: true,
-        endDate: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
-        eventId: eventId,
-      },
-      {
-        _id: `sample-${Math.random().toString(36).substring(2, 9)}`,
-        name: "VIP Ticket",
-        description: "VIP access with special perks",
-        price: 50,
-        isLimited: true,
-        maxTickets: 50,
-        soldCount: 15,
-        eventId: eventId,
-      },
-    ];
   };
 
   // Function to fetch ticket settings for the current event - wrap in useCallback to prevent issues
@@ -1144,9 +1107,6 @@ const UpcomingEvent = ({
 
   const currentEvent = events[currentIndex];
   const eventImage = getEventImage();
-  const hasSelectedTickets = Object.values(ticketQuantities).some(
-    (quantity) => quantity > 0
-  );
 
   // Get guest code setting if available
   const guestCodeSetting = currentEvent.codeSettings?.find(

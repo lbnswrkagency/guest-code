@@ -16,7 +16,10 @@ import {
   RiErrorWarningLine,
   RiInformationLine,
   RiCalendarEventLine,
+  RiQrCodeFill,
+  RiRefreshLine,
 } from "react-icons/ri";
+import { componentCleanup } from "../../utils/layoutHelpers";
 
 // Add this debug flag to help with troubleshooting
 const DEBUG_SCANNING = false; // Set to true to enable extended logging
@@ -629,9 +632,74 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
     setErrorMessage(null);
   };
 
+  // Add a new handler for the refresh button
+  const handleRefreshScanner = () => {
+    resetScanner();
+    // Re-initialize the camera
+    initializeCamera().then(() => {
+      startScanning();
+    });
+  };
+
+  // Add event listener to close component when Profile is clicked in Navigation
+  useEffect(() => {
+    const handleCloseFromProfile = (event) => {
+      console.log("Scanner: Closing from Profile click");
+
+      // Use a small timeout to ensure smooth transitions
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        }
+      }, 10);
+    };
+
+    window.addEventListener(
+      "closeComponentFromProfile",
+      handleCloseFromProfile
+    );
+
+    return () => {
+      window.removeEventListener(
+        "closeComponentFromProfile",
+        handleCloseFromProfile
+      );
+    };
+  }, [onClose]);
+
+  // Add a useEffect for proper cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log("Scanner component unmounting - cleaning up");
+      componentCleanup(cleanupCamera);
+    };
+  }, []);
+
   return (
     <div className="scanner-container">
-      <Navigation onBack={onClose} />
+      <Navigation onBack={onClose} title="QR Scanner" />
+
+      {/* Add stylized header similar to Analytics */}
+      <div className="scanner-header">
+        <h2>
+          <RiQrCodeFill /> QR Scanner
+          {selectedEvent && (
+            <span className="event-name"> - {selectedEvent.title}</span>
+          )}
+        </h2>
+        <div className="header-actions">
+          <button
+            className="refresh-btn"
+            onClick={handleRefreshScanner}
+            disabled={isProcessing}
+          >
+            <RiRefreshLine className={isProcessing ? "spinning" : ""} />
+          </button>
+          <button className="close-btn" onClick={onClose}>
+            <RiCloseLine />
+          </button>
+        </div>
+      </div>
 
       <div className="scanner-content">
         <AnimatePresence mode="wait">

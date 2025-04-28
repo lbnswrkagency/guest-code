@@ -23,7 +23,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="home-footer">
+    <footer className="appFooter">
       {/* <div className="footer-content">
         <div className="footer-section">
           <h4>GuestCode</h4>
@@ -41,12 +41,12 @@ const Footer = () => {
           <a href="mailto:info@guest-code.com">info@guest-code.com</a>
         </div>
       </div> */}
-      <div className="footer-bottom">
-        <div className="legal-links">
+      <div className="appFooter-bottom">
+        <div className="appFooter-legal-links">
           <button onClick={() => openModal("imprint")}>Imprint</button>
-          <span className="divider">|</span>
+          <span className="appFooter-divider">|</span>
           <button onClick={() => openModal("privacy")}>Privacy Policy</button>
-          <span className="divider">|</span>
+          <span className="appFooter-divider">|</span>
           <button onClick={() => openModal("terms")}>Terms of Service</button>
         </div>
         <p>&copy; {new Date().getFullYear()} GuestCode</p>

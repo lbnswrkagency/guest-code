@@ -1,0 +1,155 @@
+@import "../../styles/variables.scss";
+
+// Variables
+$overlay-bg: rgba(0, 0, 0, 0.6);
+$primary-color: #4a6cf7;
+$text-color: #333;
+$border-radius: 8px;
+$box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+$transition-duration: 0.3s;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin button-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+// Styles
+.settingspopup {
+  &-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: $overlay-bg;
+    z-index: 1000;
+    @include flex-center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  &-container {
+    background-color: white;
+    border-radius: $border-radius;
+    box-shadow: $box-shadow;
+    width: 100%;
+    max-width: 600px;
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #eee;
+  }
+
+  &-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $text-color;
+  }
+
+  &-close {
+    @include button-reset;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #666;
+    transition: color $transition-duration;
+
+    &:hover {
+      color: $text-color;
+    }
+  }
+
+  &-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  &-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    gap: 12px;
+  }
+
+  &-cancel,
+  &-save {
+    padding: 10px 18px;
+    border-radius: $border-radius;
+    font-weight: 500;
+    transition: all $transition-duration;
+    cursor: pointer;
+  }
+
+  &-cancel {
+    background-color: transparent;
+    border: 1px solid #ddd;
+    color: $text-color;
+
+    &:hover {
+      background-color: #f5f5f5;
+      border-color: #ccc;
+    }
+  }
+
+  &-save {
+    background-color: $primary-color;
+    border: 1px solid $primary-color;
+    color: white;
+
+    &:hover {
+      background-color: darken($primary-color, 10%);
+      border-color: darken($primary-color, 10%);
+    }
+  }
+}
+
+// Mobile adjustments
+@media (max-width: 768px) {
+  .settingspopup {
+    &-overlay {
+      padding: 10px;
+    }
+
+    &-container {
+      max-height: calc(100vh - 20px);
+    }
+
+    &-header,
+    &-content,
+    &-actions {
+      padding: 16px;
+    }
+
+    &-actions {
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+
+    &-cancel,
+    &-save {
+      width: 100%;
+      padding: 12px;
+    }
+  }
+}

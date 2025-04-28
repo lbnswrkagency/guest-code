@@ -6,6 +6,8 @@ import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import CodeManagement from "../CodeManagement/CodeManagement";
 import { BsPeopleFill } from "react-icons/bs";
+import { RiCodeBoxFill, RiCloseLine, RiRefreshLine } from "react-icons/ri";
+import { componentCleanup } from "../../utils/layoutHelpers";
 
 function CodeGenerator({
   user,
@@ -607,6 +609,77 @@ function CodeGenerator({
     }
   };
 
+  // Add a new handler for the refresh button
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      if (selectedEvent && user && availableSettings.length > 0) {
+        // Get the IDs of available code settings
+        const settingIds = availableSettings.map((setting) => setting._id);
+
+        const response = await axiosInstance.post(`/codes/event-user-codes`, {
+          eventId: selectedEvent._id,
+          userId: user._id,
+          codeSettingIds: settingIds,
+        });
+
+        // Store the codes data
+        setUserCodes(response.data.codes || {});
+        setTotalCodesCount(response.data.totalCount || 0);
+
+        // Update options based on refreshed data
+        if (activeSetting) {
+          updateMaxPeopleOptions(activeSetting);
+        }
+
+        // Refresh counts if needed
+        if (refreshCounts) {
+          refreshCounts();
+        }
+      }
+      showSuccess("Data refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      showError("Failed to refresh data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add event listener to close component when Profile is clicked in Navigation
+  useEffect(() => {
+    const handleCloseFromProfile = (event) => {
+      console.log("CodeGenerator: Closing from Profile click");
+
+      // Use a small timeout to ensure smooth transitions
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        }
+      }, 10);
+    };
+
+    window.addEventListener(
+      "closeComponentFromProfile",
+      handleCloseFromProfile
+    );
+
+    return () => {
+      window.removeEventListener(
+        "closeComponentFromProfile",
+        handleCloseFromProfile
+      );
+    };
+  }, [onClose]);
+
+  // Add a useEffect for proper cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log("CodeGenerator component unmounting - cleaning up");
+      componentCleanup();
+    };
+  }, []);
+
   if (!activeSetting) {
     return (
       <div className="code">
@@ -629,6 +702,28 @@ function CodeGenerator({
     <div className="code-generator">
       <Navigation onBack={onClose} title={`${type || "Event"} Codes`} />
       <div className="code-generator-container">
+        {/* Add stylized header similar to Analytics */}
+        <div className="code-header">
+          <h2>
+            <RiCodeBoxFill /> Code Generator
+            {selectedEvent && (
+              <span className="event-name"> - {selectedEvent.title}</span>
+            )}
+          </h2>
+          <div className="header-actions">
+            <button
+              className="refresh-btn"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RiRefreshLine className={isLoading ? "spinning" : ""} />
+            </button>
+            <button className="close-btn" onClick={onClose}>
+              <RiCloseLine />
+            </button>
+          </div>
+        </div>
+
         {/* Event logo container */}
         <div className="brand-logo-container">
           {selectedEvent && (

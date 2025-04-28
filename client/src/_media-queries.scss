@@ -1,7 +1,10 @@
 // Breakpoints for responsive design
 $breakpoints: (
+  smartphone: 480px,
   tablet: 768px,
   tablet-landscape: 992px,
+  tablet-long: 768px,
+  // iPad Air/Pro or similar with longer screens
   laptop: 1200px,
   desktop: 1500px,
   desktop-large: 1920px,
@@ -12,6 +15,13 @@ $breakpoints: (
 @mixin mq($key) {
   $size: map-get($breakpoints, $key);
   @media (min-width: $size) {
+    @content;
+  }
+}
+
+// Special case for iPad Air/Pro with longer screens
+@mixin tablet-long {
+  @media (min-width: 768px) and (max-width: 1199px) and (min-height: 900px) {
     @content;
   }
 }

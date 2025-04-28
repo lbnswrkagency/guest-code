@@ -1,5 +1,6 @@
 @import "../../_variables";
 @import "../../_animations";
+@import "../../_media-queries.scss";
 
 // Enhanced color variables
 $primary-gold: #ffc807;
@@ -312,7 +313,7 @@ $meteor-duration: 3s;
 }
 
 // Add styles for the 3D layer
-.three-d-layer {
+.home-header-three-d-layer {
   position: absolute;
   top: 0;
   left: 0;
@@ -322,7 +323,7 @@ $meteor-duration: 3s;
 }
 
 // Make sure the animated background doesn't block the 3D scene completely
-.animated-background {
+.home-header-animated-background {
   position: absolute;
   top: 0;
   left: 0;
@@ -376,7 +377,7 @@ $meteor-duration: 3s;
 }
 
 // Nebula effect
-.nebula-container {
+.home-header-nebula-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -385,7 +386,7 @@ $meteor-duration: 3s;
   overflow: hidden;
   z-index: 1;
 
-  .nebula {
+  .home-header-nebula {
     position: absolute;
     border-radius: 50%;
     opacity: 0.2;
@@ -442,7 +443,7 @@ $meteor-duration: 3s;
 }
 
 // Star field
-.star-container {
+.home-header-star-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -451,7 +452,7 @@ $meteor-duration: 3s;
   overflow: hidden;
   z-index: 2;
 
-  .star {
+  .home-header-star {
     position: absolute;
     border-radius: 50%;
     background: #fff;
@@ -492,7 +493,7 @@ $meteor-duration: 3s;
 }
 
 // Constellation effect
-.constellation-container {
+.home-header-constellation-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -501,7 +502,7 @@ $meteor-duration: 3s;
   overflow: hidden;
   z-index: 3;
 
-  .constellation {
+  .home-header-constellation {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -549,7 +550,7 @@ $meteor-duration: 3s;
     }
   }
 
-  .constellation-static {
+  .home-header-constellation-static {
     position: absolute;
     stroke: rgba($primary-gold, 0.15);
     stroke-width: 1px;
@@ -582,7 +583,7 @@ $meteor-duration: 3s;
     }
   }
 
-  .constellation-dot {
+  .home-header-constellation-dot {
     position: absolute;
     width: 3px;
     height: 3px;
@@ -616,7 +617,7 @@ $meteor-duration: 3s;
 }
 
 // Enhanced particles container
-.particles-container {
+.home-header-particles-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -627,7 +628,7 @@ $meteor-duration: 3s;
 }
 
 // Enhanced particle styling with more variety
-.particle {
+.home-header-particle {
   position: absolute;
   border-radius: 50%;
   opacity: 0;
@@ -635,7 +636,7 @@ $meteor-duration: 3s;
 
   // Generate different particles with custom properties
   @for $i from 1 through 50 {
-    &.particle-#{$i} {
+    &.home-header-particle-#{$i} {
       --tx: #{random(120) - 60}vw;
       --ty: #{random(120) - 60}vh;
       --r: #{random(360)}deg;
@@ -707,7 +708,7 @@ $meteor-duration: 3s;
 }
 
 // Gold dust effect
-.dust-container {
+.home-header-dust-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -716,7 +717,7 @@ $meteor-duration: 3s;
   overflow: hidden;
   z-index: 5;
 
-  .dust-particle {
+  .home-header-dust-particle {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -741,7 +742,7 @@ $meteor-duration: 3s;
 }
 
 // Lightning effect
-.lightning-container {
+.home-header-lightning-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -751,7 +752,7 @@ $meteor-duration: 3s;
   z-index: 6;
   pointer-events: none;
 
-  .lightning {
+  .home-header-lightning {
     position: absolute;
     opacity: 0;
 
@@ -790,7 +791,7 @@ $meteor-duration: 3s;
 }
 
 // Vortex effect
-.vortex {
+.home-header-vortex {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -818,7 +819,7 @@ $meteor-duration: 3s;
 }
 
 // Enhanced glow overlay
-.glow-overlay {
+.home-header-glow-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -872,7 +873,7 @@ $meteor-duration: 3s;
 }
 
 // Header content
-.header-content {
+.home-header-content {
   position: relative;
   z-index: 10;
   text-align: center;
@@ -921,7 +922,7 @@ $meteor-duration: 3s;
     }
   }
 
-  .subtitle {
+  .home-header-subtitle {
     font-size: clamp(1.2rem, 4vw, 2rem);
     color: rgba(255, 255, 255, 0.9);
     margin-bottom: 1.5rem;
@@ -930,7 +931,7 @@ $meteor-duration: 3s;
     animation: float $float-duration ease-in-out infinite;
   }
 
-  .alpha-badge {
+  .home-header-alpha-badge {
     display: inline-flex;
     align-items: center;
     background: linear-gradient(135deg, $primary-gold 0%, $secondary-gold 100%);
@@ -966,87 +967,8 @@ $meteor-duration: 3s;
   }
 }
 
-// Media queries for responsiveness
-@media (max-width: 768px) {
-  .header-content {
-    padding: 1.5rem;
-
-    h1 {
-      font-size: clamp(2.5rem, 8vw, 4rem);
-
-      &::after {
-        bottom: -8px;
-        height: 2px;
-      }
-    }
-
-    .subtitle {
-      font-size: clamp(1rem, 3vw, 1.5rem);
-      margin-bottom: 1.25rem;
-    }
-
-    .alpha-badge {
-      padding: 0.4rem 1.25rem;
-      font-size: 0.875rem;
-    }
-  }
-
-  // Reduce particle count for better performance
-  .particle {
-    &.particle-#{20},
-    &.particle-#{21},
-    &.particle-#{22},
-    &.particle-#{23},
-    &.particle-#{24},
-    &.particle-#{25} {
-      display: none;
-    }
-  }
-
-  .dust-container {
-    .dust-particle:nth-child(n + 50) {
-      display: none;
-    }
-  }
-}
-
-// Additional effects for high-end devices
-@media (min-width: 1200px) {
-  .animated-background {
-    &::before {
-      background-size: 300% 300%;
-    }
-  }
-
-  .particle {
-    filter: blur(0);
-
-    @for $i from 1 through 40 {
-      &.particle-#{$i} {
-        box-shadow: 0 0 #{random(30) + 15}px rgba($primary-gold, 0.8);
-      }
-    }
-  }
-
-  .glow-overlay {
-    width: 120vmin;
-    height: 120vmin;
-    filter: blur(50px);
-  }
-
-  .nebula {
-    filter: blur(60px) !important;
-  }
-
-  .vortex {
-    width: 120vmin;
-    height: 120vmin;
-    filter: blur(40px);
-  }
-}
-
 // Add meteor container - reduced count and improved appearance
-.meteor-container {
+.home-header-meteor-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -1056,7 +978,7 @@ $meteor-duration: 3s;
   z-index: 3;
   pointer-events: none;
 
-  .meteor {
+  .home-header-meteor {
     position: absolute;
     width: 100px;
     height: 2px;
@@ -1129,7 +1051,7 @@ $meteor-duration: 3s;
 }
 
 // Add shooting stars - improved timing and appearance
-.shooting-star-container {
+.home-header-shooting-star-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -1139,7 +1061,7 @@ $meteor-duration: 3s;
   z-index: 3;
   pointer-events: none;
 
-  .shooting-star {
+  .home-header-shooting-star {
     position: absolute;
     height: 2px;
     background: linear-gradient(
@@ -1179,6 +1101,65 @@ $meteor-duration: 3s;
           animation-delay: 45s;
           animation-duration: 2s;
         }
+      }
+    }
+  }
+}
+
+// iPad Air/Pro-specific adjustments
+@media (min-width: 768px) and (max-width: 1199px) and (min-height: 900px) {
+  .home-header-content {
+    h1 {
+      font-size: clamp(5rem, 14vw, 7.5rem);
+      margin-bottom: 2rem;
+    }
+
+    .home-header-subtitle {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      margin-bottom: 2.5rem;
+    }
+
+    .home-header-alpha-badge {
+      padding: 0.7rem 2rem;
+      font-size: 1.3rem;
+    }
+  }
+
+  // Adjust contact section for iPad Air/Pro
+  .contact-section {
+    padding: 3rem 2rem;
+
+    .contact-container {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .contact-form-container,
+    .contact-info-container {
+      padding: 2rem;
+    }
+
+    .contact-heading {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .contact-form {
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      input,
+      textarea {
+        padding: 1rem;
+        font-size: 1.1rem;
+      }
+
+      button {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
       }
     }
   }

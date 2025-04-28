@@ -6,9 +6,10 @@ import {
   RiMenuLine,
   RiBellLine,
   RiLogoutBoxRLine,
-  RiTestTubeLine,
   RiSearchLine,
   RiLoginBoxLine,
+  RiHomeLine,
+  RiUser3Line,
 } from "react-icons/ri";
 import NotificationPanel from "../NotificationPanel/NotificationPanel";
 import { useNotificationDot } from "../../hooks/useNotificationDot";
@@ -21,6 +22,7 @@ import { useSocket } from "../../contexts/SocketContext";
 import { useNavigation } from "../../contexts/NavigationContext";
 import axiosInstance from "../../utils/axiosConfig";
 import Search from "../Search/Search";
+import { ensureSidebarClass } from "../../utils/layoutHelpers";
 
 const Navigation = ({ onBack, onLogout }) => {
   const navigate = useNavigate();
@@ -34,9 +36,37 @@ const Navigation = ({ onBack, onLogout }) => {
   const { openNavigation } = useNavigation();
   const [showSearch, setShowSearch] = useState(false);
   const [isDashboardController, setIsDashboardController] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // Check if user is authenticated
   const isAuthenticated = !!user;
+
+  // Update the sidebar class management with our utility
+  useEffect(() => {
+    // Apply sidebar class based on current state
+    ensureSidebarClass();
+
+    // Update on resize
+    const handleResize = () => {
+      const newIsMobile = window.innerWidth < 768;
+      if (newIsMobile !== isMobile) {
+        setIsMobile(newIsMobile);
+        ensureSidebarClass();
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Also set up a periodic check to ensure sidebar class consistency
+    const intervalCheck = setInterval(() => {
+      ensureSidebarClass();
+    }, 500);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearInterval(intervalCheck);
+    };
+  }, [isMobile]);
 
   // Listen for dashboard controller status
   useEffect(() => {
@@ -126,39 +156,131 @@ const Navigation = ({ onBack, onLogout }) => {
     setShowSearch(false);
   };
 
-  return (
-    <motion.nav
-      className="app-navigation"
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="nav-content">
-        <div className="nav-left">
+  const handleProfile = () => {
+    if (isAuthenticated && user) {
+      // First check if we need to close any open panels
+      // Dispatch an event that these components can listen for
+      window.dispatchEvent(
+        new CustomEvent("closeComponentFromProfile", {
+          detail: { source: "NavigationProfile" },
+        })
+      );
+
+      // Then navigate to profile
+      navigate(`/@${user.username}`);
+    }
+  };
+
+  // Render sidebar navigation for tablet and larger screens
+  const renderSidebar = () => {
+    return (
+      <div className="appNav-sidebar">
+        <div className="appNav-sidebar-content">
+          <div className="appNav-brand" onClick={handleHome}>
+            <span className="appNav-brand-guest">Guest</span>
+            <span className="appNav-brand-code">Code</span>
+          </div>
+
+          <div className="appNav-sidebar-menu">
+            {/* Profile - Now positioned at the top where Home used to be */}
+            {isAuthenticated && (
+              <div className="appNav-sidebar-item" onClick={handleProfile}>
+                <RiUser3Line className="appNav-icon" />
+                <span className="appNav-label">Profile</span>
+              </div>
+            )}
+
+            {/* Search - Available for all users */}
+            <div className="appNav-sidebar-item" onClick={handleSearchClick}>
+              <RiSearchLine className="appNav-icon" />
+              <span className="appNav-label">Search</span>
+            </div>
+
+            {/* Authenticated-only elements */}
+            {isAuthenticated ? (
+              <>
+                {/* Notifications */}
+                <div
+                  className={`appNav-sidebar-item ${
+                    unreadCount > 0 ? "appNav-has-notification" : ""
+                  }`}
+                  onClick={toggleNotifications}
+                >
+                  <RiBellLine className="appNav-icon" />
+                  {unreadCount > 0 && (
+                    <span className="appNav-notification-count">
+                      {unreadCount}
+                    </span>
+                  )}
+                  <span className="appNav-label">Notifications</span>
+                </div>
+
+                {/* Menu */}
+                <div
+                  className="appNav-sidebar-item"
+                  onClick={handleMenuIconClick}
+                  role="button"
+                  aria-label="Open menu"
+                >
+                  <RiMenuLine className="appNav-icon" />
+                  <span className="appNav-label">Menu</span>
+                </div>
+
+                {/* Logout - at the bottom */}
+                <div
+                  className="appNav-sidebar-item appNav-sidebar-logout"
+                  onClick={handleLogout}
+                >
+                  <RiLogoutBoxRLine className="appNav-icon" />
+                  <span className="appNav-label">Logout</span>
+                </div>
+              </>
+            ) : (
+              /* Login button for non-authenticated users */
+              <div
+                className="appNav-sidebar-item appNav-sidebar-login"
+                onClick={handleLogin}
+              >
+                <RiLoginBoxLine className="appNav-icon" />
+                <span className="appNav-label">Login</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render top navigation for mobile screens
+  const renderTopNav = () => {
+    return (
+      <div className="appNav-content">
+        <div className="appNav-left">
           {location.pathname !== "/" && (
             <motion.div
-              className="nav-icon-wrapper back-button"
+              className="appNav-icon-wrapper appNav-back-button"
               onClick={handleBack}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <RiArrowLeftSLine className="icon" />
+              <RiArrowLeftSLine className="appNav-icon" />
             </motion.div>
           )}
-          <div className="nav-brand" onClick={handleHome}>
-            GuestCode
+          <div className="appNav-brand" onClick={handleHome}>
+            <span className="appNav-brand-guest">Guest</span>
+            <span className="appNav-brand-code">Code</span>
           </div>
         </div>
 
-        <div className="nav-right">
+        <div className="appNav-right">
           {/* Search - Available for all users */}
           <motion.div
-            className="nav-icon-wrapper"
+            className="appNav-icon-wrapper"
             onClick={handleSearchClick}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <RiSearchLine className="icon" />
+            <RiSearchLine className="appNav-icon" />
           </motion.div>
 
           {/* Authenticated-only elements */}
@@ -166,54 +288,67 @@ const Navigation = ({ onBack, onLogout }) => {
             <>
               {/* Notifications */}
               <motion.div
-                className={`nav-icon-wrapper ${
-                  unreadCount > 0 ? "has-notification" : ""
+                className={`appNav-icon-wrapper ${
+                  unreadCount > 0 ? "appNav-has-notification" : ""
                 }`}
                 onClick={toggleNotifications}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <RiBellLine className="icon" />
+                <RiBellLine className="appNav-icon" />
                 {unreadCount > 0 && (
-                  <span className="notification-count">{unreadCount}</span>
+                  <span className="appNav-notification-count">
+                    {unreadCount}
+                  </span>
                 )}
               </motion.div>
 
               {/* Menu */}
               <motion.div
-                className="nav-icon-wrapper"
+                className="appNav-icon-wrapper"
                 onClick={handleMenuIconClick}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 role="button"
                 aria-label="Open menu"
               >
-                <RiMenuLine className="icon" />
+                <RiMenuLine className="appNav-icon" />
               </motion.div>
 
               {/* Logout */}
               <motion.div
-                className="nav-icon-wrapper"
+                className="appNav-icon-wrapper"
                 onClick={handleLogout}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <RiLogoutBoxRLine className="icon" />
+                <RiLogoutBoxRLine className="appNav-icon" />
               </motion.div>
             </>
           ) : (
             /* Login button for non-authenticated users */
             <motion.div
-              className="nav-icon-wrapper"
+              className="appNav-icon-wrapper"
               onClick={handleLogin}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <RiLoginBoxLine className="icon" />
+              <RiLoginBoxLine className="appNav-icon" />
             </motion.div>
           )}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <motion.nav
+      className={`appNav ${!isMobile ? "appNav-sidebar-active" : ""}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {isMobile ? renderTopNav() : renderSidebar()}
 
       <AnimatePresence>
         {showSearch && (

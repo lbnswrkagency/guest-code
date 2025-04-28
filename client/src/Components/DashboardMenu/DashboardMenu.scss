@@ -1,4 +1,5 @@
 @import "../../_variables";
+@import "../../_media-queries";
 
 // Animations
 @keyframes pulse {
@@ -84,9 +85,10 @@
 
 .menuDashboard {
   position: fixed;
-  left: 25px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 1rem;
+  bottom: 6rem;
+  top: auto;
+  transform: none;
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -94,9 +96,8 @@
 
   .menu-trigger {
     position: relative;
-    width: auto;
-    min-width: 120px;
-    height: 50px;
+    width: 3rem;
+    height: 3rem;
     background: rgba(25, 25, 25, 0.9);
     border: none;
     border-radius: 30px;
@@ -105,7 +106,8 @@
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem;
+    width: 7rem;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3),
       0 10px 20px -10px rgba(0, 0, 0, 0.2),
       inset 0 1px 1px rgba(255, 255, 255, 0.1);
@@ -152,7 +154,8 @@
 
     .menu-trigger-content {
       position: relative;
-      display: flex;
+      display: grid !important;
+      grid-template-columns: 0.3fr 0.7fr;
       align-items: center;
       justify-content: center;
       gap: 0.75rem;
@@ -185,7 +188,7 @@
         }
 
         .trigger-icon {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           color: #000;
           z-index: 2;
           position: relative;
@@ -258,8 +261,10 @@
   .menu-items {
     position: absolute;
     left: 0;
-    top: 60px;
+    bottom: calc(100% + 0.5rem);
+    top: auto;
     width: 240px;
+    max-width: 85vw;
     background: rgba(25, 25, 25, 0.95);
     border-radius: 12px;
     overflow: hidden;
@@ -318,10 +323,11 @@
       }
 
       .menu-item {
-        display: flex;
+        display: grid !important;
+        grid-template-columns: 0.3fr 0.7fr;
         align-items: center;
         gap: 1rem;
-        padding: 0.75rem 1rem;
+        padding: 0.75rem;
         background: rgba(0, 0, 0, 0.2);
         border-radius: 8px;
         cursor: pointer;
@@ -348,9 +354,9 @@
         .menu-item-icon-wrapper {
           width: 36px;
           height: 36px;
-          display: flex;
-          align-items: center;
+          display: grid !important;
           justify-content: center;
+          align-content: center;
           background: rgba(255, 200, 7, 0.9);
           border-radius: 8px;
           font-size: 1.2rem;
@@ -365,13 +371,15 @@
           svg {
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
             z-index: 2;
+            font-size: 1.25rem;
           }
         }
 
         span {
+          grid-column: 2/3;
           font-weight: 500;
           color: white;
-          font-size: 1rem;
+          font-size: 0.8rem;
         }
 
         &:hover {
@@ -399,77 +407,101 @@
     }
   }
 
-  // Mobile styles
-  @media (max-width: 768px) {
-    left: 1rem;
-    bottom: 6rem;
-    top: auto;
-    transform: none;
-
-    .menu-trigger {
-      width: 3rem;
-      height: 3rem;
-
-      .trigger-icon {
-        font-size: 1.25rem;
-      }
-    }
-
-    .menu-items {
-      left: 0;
-      bottom: calc(100% + 0.5rem);
-      top: auto;
-      transform: none;
-      max-width: 90vw;
-    }
-
-    .menu-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem;
-    }
-
-    .menu-item {
-      padding: 0.75rem;
-
-      svg {
-        font-size: 1.25rem;
-      }
-
-      span {
-        font-size: 0.8rem;
-      }
-    }
-  }
-
-  // Extra small devices
-  @media (max-width: 480px) {
-    left: 0.75rem;
-    bottom: 5rem;
-
-    .menu-items {
-      max-width: 85vw;
-    }
-  }
-
   // Collapsed state
   &.collapsed {
     transform: translateX(-100%);
     opacity: 0.5;
 
-    @media (min-width: 769px) {
+    &:hover {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  // Tablet styles (iPad mini and up)
+  @include mq(tablet) {
+    left: 120px; // Account for sidebar width
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%);
+
+    .menu-trigger {
+      width: auto;
+      min-width: 120px;
+      height: 50px;
+      padding: 0.5rem 1rem;
+
+      .trigger-icon {
+        font-size: 1.5rem;
+      }
+    }
+
+    .menu-items {
+      left: 0;
+      top: 60px;
+      bottom: auto;
+      max-width: 240px;
+
+      .menu-grid {
+        .menu-item {
+          padding: 0.75rem 1rem;
+
+          span {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+
+    &.collapsed {
       transform: translateX(-100%) translateY(-50%);
 
       &:hover {
         transform: translateX(0) translateY(-50%);
-        opacity: 1;
+      }
+    }
+  }
+
+  // Tablet landscape styles
+  @include mq(tablet-landscape) {
+    left: 140px; // Slightly wider sidebar
+  }
+
+  // Laptop styles
+  @include mq(laptop) {
+    left: 230px; // Wider sidebar for laptop
+
+    .menu-items {
+      width: 280px;
+      max-width: none;
+    }
+  }
+
+  // Desktop styles
+  @include mq(desktop) {
+    left: 280px; // Even wider sidebar for desktop
+
+    .menu-trigger {
+      min-width: 140px;
+      height: 55px;
+
+      .trigger-icon-wrapper {
+        width: 36px;
+        height: 36px;
+      }
+
+      .trigger-text {
+        font-size: 1.1rem;
       }
     }
 
-    @media (max-width: 768px) {
-      &:hover {
-        transform: translateX(0);
-        opacity: 1;
-      }
+    .menu-items {
+      width: 300px;
     }
+  }
+
+  // Desktop large styles
+  @include mq(desktop-large) {
+    left: 320px; // Wider sidebar for large desktop screens
   }
 }

@@ -1,4 +1,5 @@
 @import "../../_variables";
+@import "../../_media-queries";
 
 // Add CSS variable for nav height if it doesn't exist elsewhere
 :root {
@@ -6,6 +7,7 @@
   --button-height: 70px;
   --button-icon-size: 40px;
   --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-width: 120px; // Add sidebar width variable
 }
 
 .eventDetails-container {
@@ -326,14 +328,17 @@
     padding: 8px 15px;
 
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.85); // Make background more opaque
     margin-bottom: 0;
     animation: none; // Remove animation for smoother transition
     transition: all 0.25s var(--transition-timing);
     flex-direction: row;
-    justify-content: center;
+
     align-items: center;
-    z-index: 99999;
+    z-index: 999999; // Ultra high z-index to ensure it's above everything
     transform: translateZ(0); // Force GPU acceleration
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); // Add shadow for better visibility
 
     .eventDetails-action-button {
       flex: 0 1 auto;
@@ -539,6 +544,262 @@
           }
         }
       }
+    }
+  }
+}
+
+// Tablet and above styles
+@include mq(tablet) {
+  // Keep sticky behavior but improve styling for tablets
+  .eventDetails-action-buttons.sticky {
+    position: fixed !important;
+    top: 0;
+    left: auto !important; // Don't start from left edge of screen
+    right: auto !important; // Don't extend to right edge of screen
+    // width: calc(
+    //   100% - var(--sidebar-width, 120px)
+    // ) !important; // Subtract sidebar width
+    // max-width: calc(100% - var(--sidebar-width, 120px)) !important;
+    padding: 8px 15px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    z-index: 999999 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+
+    // Center in available content area, not viewport
+    // margin-left: var(--sidebar-width, 120px) !important;
+
+    // Better styling for sticky on larger screens
+    display: flex !important;
+
+    align-items: center !important;
+
+    .eventDetails-action-button {
+      flex: 0 1 auto !important;
+      min-width: 0 !important;
+      max-width: 200px !important;
+      margin: 0 5px !important;
+
+      .button-content {
+        padding: 8px 15px !important;
+        height: 50px !important;
+
+        .button-icon {
+          width: 34px !important;
+          height: 34px !important;
+          flex-shrink: 0 !important;
+          margin-right: 10px !important;
+        }
+
+        .button-text {
+          h5 {
+            font-size: 0.9rem !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+          }
+
+          p {
+            display: none !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Make buttons horizontal instead of stacked for larger screens
+  .eventDetails-action-buttons:not(.sticky) {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 1rem;
+
+    // Handle different button combinations
+    &:has(.tickets-button):has(.guest-code-button):has(.table-button) {
+      .eventDetails-action-button {
+        max-width: calc(33.33% - 0.67rem);
+      }
+    }
+
+    &:has(.tickets-button):has(.guest-code-button):not(:has(.table-button)),
+    &:has(.tickets-button):has(.table-button):not(:has(.guest-code-button)),
+    &:has(.guest-code-button):has(.table-button):not(:has(.tickets-button)) {
+      .eventDetails-action-button {
+        max-width: calc(50% - 0.5rem);
+      }
+    }
+
+    &:has(.tickets-button):not(:has(.guest-code-button)):not(
+        :has(.table-button)
+      ),
+    &:has(.guest-code-button):not(:has(.tickets-button)):not(
+        :has(.table-button)
+      ),
+    &:has(.table-button):not(:has(.tickets-button)):not(
+        :has(.guest-code-button)
+      ) {
+      .eventDetails-action-button {
+        max-width: 100%;
+      }
+    }
+
+    .eventDetails-action-button {
+      flex: 1;
+      min-height: 60px;
+
+      // Adjust button content for horizontal layout
+      .button-content {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+
+        .button-icon {
+          margin-bottom: 0;
+          margin-right: 0.75rem;
+        }
+
+        .button-text {
+          text-align: left;
+
+          h5 {
+            margin-bottom: 0.25rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Ensure spacer works with new sticky behavior
+  .action-buttons-spacer {
+    display: block;
+    height: 60px !important;
+    transition: height 0.3s var(--transition-timing);
+  }
+}
+
+// Tablet landscape specific adjustments
+@include mq(tablet-landscape) {
+  // Enhance sticky behavior for tablet landscape
+  .eventDetails-action-buttons.sticky {
+    max-width: calc(100% - var(--sidebar-width, 120px)) !important;
+    width: calc(100% - var(--sidebar-width, 120px)) !important;
+    padding: 10px 20px !important;
+    margin-left: var(--sidebar-width, 120px) !important;
+
+    .eventDetails-action-button {
+      max-width: 220px !important;
+
+      .button-content {
+        padding: 10px 16px !important;
+
+        .button-icon {
+          min-width: 40px;
+        }
+      }
+    }
+  }
+
+  // Non-sticky horizontal layout improvements
+  .eventDetails-action-buttons:not(.sticky) {
+    margin: 1.5rem 0;
+
+    .eventDetails-action-button {
+      .button-content {
+        padding: 0.75rem;
+      }
+    }
+  }
+
+  // Adjust spacer height for larger devices
+  .action-buttons-spacer {
+    height: 70px !important;
+  }
+}
+
+// Desktop specific adjustments
+@include mq(desktop) {
+  // Enhance sticky behavior for desktop
+  .eventDetails-action-buttons.sticky {
+    max-width: calc(100% - var(--sidebar-width, 120px)) !important;
+    width: calc(100% - var(--sidebar-width, 120px)) !important;
+    margin-left: var(--sidebar-width, 120px) !important;
+    padding: 10px !important;
+
+    .eventDetails-action-button {
+      max-width: 250px !important;
+
+      .button-content {
+        padding: 12px 18px !important;
+        height: 60px !important;
+
+        .button-icon {
+          width: 40px !important;
+          height: 40px !important;
+
+          svg {
+            font-size: 1.3rem !important;
+          }
+        }
+
+        .button-text {
+          h5 {
+            font-size: 1rem !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Non-sticky improvements for desktop
+  .eventDetails-action-buttons:not(.sticky) {
+    max-width: 100%;
+    width: 100%;
+    margin: 1.5rem 0;
+
+    .eventDetails-action-button {
+      min-height: 70px;
+
+      .button-content {
+        padding: 1rem;
+
+        .button-icon {
+          svg {
+            font-size: 1.5rem;
+          }
+        }
+
+        .button-text {
+          h5 {
+            font-size: 1rem;
+          }
+
+          p {
+            font-size: 0.85rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Adjust spacer height for desktop
+  .action-buttons-spacer {
+    height: 75px !important;
+  }
+}
+
+// Special handling for Navigation element interaction
+@include mq(tablet) {
+  .Navigation + .eventDetails-container {
+    .eventDetails-action-buttons.sticky {
+      // Ensure proper z-index to work with Navigation
+      z-index: 998 !important; // Just below Navigation
+      top: calc(
+        var(--nav-height, 56px) + 1px
+      ) !important; // Slightly below nav to prevent overlap
+
+      // Ensure margins and width are correct when following Navigation
+      margin-left: var(--sidebar-width, 120px) !important;
+      width: calc(100% - var(--sidebar-width, 120px)) !important;
+      max-width: calc(100% - var(--sidebar-width, 120px)) !important;
     }
   }
 }

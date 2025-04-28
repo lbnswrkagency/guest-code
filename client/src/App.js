@@ -40,9 +40,11 @@ import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
-import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
+// import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
 import notificationManager from "./utils/notificationManager";
 import tokenService from "./utils/tokenService";
+
+// Mobile container to maintain smartphone dimensions on all devices
 
 // Main routing component
 const AppRoutes = () => {
@@ -608,12 +610,8 @@ function App() {
               <NavigationProvider>
                 <Toaster position="top-center" />
                 <ToastProvider>
-                  <DeviceRestriction>
-                    <div className="app">
-                      <AppRoutes />
-                      <CentralizedNavigation />
-                    </div>
-                  </DeviceRestriction>
+                  <AppRoutes />
+                  <CentralizedNavigation />
                 </ToastProvider>
               </NavigationProvider>
             </NotificationProvider>

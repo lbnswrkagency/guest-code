@@ -40,16 +40,34 @@ const EventDetails = ({
   const lastScrollY = useRef(0); // Track last scroll position to determine direction
   const scrollTimer = useRef(null); // For debouncing
 
-  // Update the handleScroll function to be smoother with better threshold management
+  // Update the handleScroll function to work with phone simulator
   const handleScroll = useCallback(() => {
     if (!actionsRef.current || !stickyPosRef.current) return;
 
-    const currentScrollY = window.scrollY;
+    // Find the scroll container - either the phone simulator content or the window
+    const phoneSimulatorContent = document.querySelector(
+      ".phone-simulator-content"
+    );
+    const scrollContainer = phoneSimulatorContent || window;
+
+    // Get the current scroll position - for the phone simulator or window
+    const currentScrollY = phoneSimulatorContent
+      ? phoneSimulatorContent.scrollTop
+      : window.scrollY || window.pageYOffset;
+
     const actionsElement = actionsRef.current;
 
-    // Get the original position relative to document
-    const stickyPos =
-      stickyPosRef.current.getBoundingClientRect().top + window.scrollY;
+    // Get the original position relative to scroll container
+    let stickyPos;
+    if (phoneSimulatorContent) {
+      const rect = stickyPosRef.current.getBoundingClientRect();
+      const simulatorRect = phoneSimulatorContent.getBoundingClientRect();
+      stickyPos =
+        rect.top - simulatorRect.top + phoneSimulatorContent.scrollTop;
+    } else {
+      stickyPos =
+        stickyPosRef.current.getBoundingClientRect().top + window.scrollY;
+    }
 
     // Get navigation height for offset
     const navHeight = parseInt(
@@ -61,8 +79,8 @@ const EventDetails = ({
     // Determine scroll direction
     const isScrollingDown = currentScrollY > lastScrollY.current;
 
-    // Add a significant threshold to prevent flickering (10px)
-    const threshold = isScrollingDown ? 10 : 20;
+    // Add a significant threshold to prevent flickering
+    const threshold = isScrollingDown ? 15 : 25;
 
     // Calculate if we should show sticky buttons
     const shouldBeSticky = currentScrollY > stickyPos - navHeight - threshold;
@@ -72,6 +90,11 @@ const EventDetails = ({
       setIsSticky(true);
       actionsElement.classList.add("sticky");
 
+      // Add special class if we're in phone simulator
+      if (phoneSimulatorContent) {
+        actionsElement.classList.add("in-simulator");
+      }
+
       // Add spacer height to prevent content jump
       if (spacerRef.current) {
         const height = actionsElement.offsetHeight;
@@ -80,6 +103,7 @@ const EventDetails = ({
     } else if (!shouldBeSticky && isSticky) {
       setIsSticky(false);
       actionsElement.classList.remove("sticky");
+      actionsElement.classList.remove("in-simulator");
 
       // Reset spacer height
       if (spacerRef.current) {
@@ -106,13 +130,23 @@ const EventDetails = ({
       }
     };
 
-    window.addEventListener("scroll", handleScrollEvent, { passive: true });
+    // Find the scroll container - either the phone simulator content or the window
+    const phoneSimulatorContent = document.querySelector(
+      ".phone-simulator-content"
+    );
+    const scrollContainer = phoneSimulatorContent || window;
+
+    // Attach scroll listener to the appropriate container
+    scrollContainer.addEventListener("scroll", handleScrollEvent, {
+      passive: true,
+    });
 
     // Initial check with slight delay to ensure all elements are properly sized
     setTimeout(handleScroll, 100);
 
     return () => {
-      window.removeEventListener("scroll", handleScrollEvent);
+      // Remove the event listener from the appropriate container
+      scrollContainer.removeEventListener("scroll", handleScrollEvent);
       if (scrollTimer.current) {
         window.cancelAnimationFrame(scrollTimer.current);
       }

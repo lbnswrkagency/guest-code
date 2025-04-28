@@ -1,20 +1,131 @@
+@import "../../_media-queries.scss";
+
 .home-header-container {
+  width: 100%;
+  height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100vh;
-  z-index: 0; /* Behind the animated background */
-  pointer-events: auto; /* Enable interaction with 3D space */
-  background: transparent;
+  z-index: 1;
+  will-change: transform; /* Add hardware acceleration hint */
+
+  &:hover {
+    cursor: grab;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Screen-specific adjustments
+  &.screen-desktop-large,
+  &.screen-desktop-extra-large {
+    height: 110%; // Slightly taller for larger screens
+  }
 }
 
 .home-header-canvas {
   width: 100%;
   height: 100%;
-  cursor: grab; /* Show grab cursor to indicate interactive area */
+  will-change: transform; /* Add hardware acceleration hint */
+  pointer-events: auto !important; /* Ensure the canvas is interactive */
+  touch-action: none; /* Improve touch handling */
+}
 
-  &:active {
-    cursor: grabbing; /* Change to grabbing when actively moving */
+/* Indicator shown when user is interacting with the 3D space */
+.interaction-notice {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #ffc807;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 10;
+  box-shadow: 0 0 10px rgba(255, 200, 7, 0.3);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Add optimizations for performance on various devices */
+@media (max-width: 768px) {
+  .home-header-canvas {
+    /* Reduce quality on mobile */
+    image-rendering: optimizeSpeed;
+  }
+
+  .interaction-notice {
+    font-size: 0.75rem;
+    padding: 6px 12px;
+  }
+}
+
+/* Enhanced styles for iPad Air/Pro */
+@include tablet-long {
+  .interaction-notice {
+    bottom: 30px;
+    font-size: 1rem;
+    padding: 10px 20px;
+    border-radius: 24px;
+    box-shadow: 0 0 15px rgba(255, 200, 7, 0.4);
+  }
+}
+
+/* Styles for laptop screens */
+@include mq(laptop) {
+  .interaction-notice {
+    bottom: 35px;
+    font-size: 1.05rem;
+    padding: 11px 22px;
+    border-radius: 26px;
+  }
+}
+
+/* Styles for desktop screens */
+@include mq(desktop) {
+  .interaction-notice {
+    bottom: 40px;
+    font-size: 1.1rem;
+    padding: 12px 24px;
+    border-radius: 30px;
+  }
+}
+
+/* Styles for larger desktop screens - enhanced */
+@include mq(desktop-large) {
+  .interaction-notice {
+    bottom: 45px;
+    font-size: 1.2rem;
+    padding: 14px 28px;
+    border-radius: 34px;
+    box-shadow: 0 0 18px rgba(255, 200, 7, 0.5);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+}
+
+@include mq(desktop-extra-large) {
+  .interaction-notice {
+    bottom: 60px;
+    font-size: 1.4rem;
+    padding: 16px 32px;
+    border-radius: 40px;
+    box-shadow: 0 0 25px rgba(255, 200, 7, 0.6);
+    font-weight: 600;
+    letter-spacing: 0.5px;
   }
 }
