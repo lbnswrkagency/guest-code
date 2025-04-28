@@ -299,16 +299,27 @@
 
   .dashNav-avatarContainer {
     position: relative;
-    margin-right: 15px;
-    animation: float 4s ease-in-out infinite;
-  }
+    width: 70px;
+    height: 70px;
+    margin-bottom: 1rem;
 
-  .dashNav-onlineIndicator {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    border: 2px solid #121212;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    // Ensure AvatarUpload is positioned correctly
+    .avatar-upload {
+      width: 70px;
+      height: 70px;
+
+      .avatar-display {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .dashNav-onlineIndicator {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      z-index: 2;
+    }
   }
 
   .dashNav-userDetails {

@@ -173,7 +173,6 @@ const DashboardHeader = ({
         {/* Profile Section */}
         <div className="dashboardHeader-profile">
           <div className="dashboardHeader-profile-avatar">
-            {renderUserAvatar()}
             <AvatarUpload
               user={currentUser}
               setUser={setCurrentUser}

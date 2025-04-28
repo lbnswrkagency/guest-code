@@ -248,22 +248,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
                       @{currentUser.username}
                     </span>
                     {currentUser.isAlpha && (
-                      <motion.span
-                        className="dashNav-alphaBadge"
-                        initial={
-                          animateAlpha
-                            ? { scale: 0.5, opacity: 0 }
-                            : { scale: 1 }
-                        }
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 15,
-                        }}
-                      >
-                        Alpha
-                      </motion.span>
+                      <span className="dashNav-alphaBadge">Alpha</span>
                     )}
                   </div>
                 </div>
