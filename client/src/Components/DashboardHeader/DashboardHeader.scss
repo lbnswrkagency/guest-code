@@ -189,6 +189,8 @@
     position: relative;
     flex: 1;
     min-width: auto;
+    width: 100%;
+    max-width: calc(50vw - 8px);
 
     &-selector {
       display: flex;
@@ -202,7 +204,8 @@
       transition: all 0.2s ease;
       min-height: 34px;
       justify-content: center;
-      min-width: 180px;
+      width: 100%;
+      max-width: 100%;
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -248,7 +251,8 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 140px;
+        max-width: calc(100% - 45px);
+        min-width: 0;
       }
 
       &-dropdown {
@@ -317,6 +321,10 @@
         &-name {
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.9);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
         }
       }
 
@@ -334,6 +342,8 @@
     position: relative;
     flex: 1;
     min-width: auto;
+    width: 100%;
+    max-width: calc(50vw - 8px);
 
     &-display {
       display: flex;
@@ -346,10 +356,10 @@
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
-      min-width: 120px;
       min-height: 34px;
       justify-content: center;
-      min-width: 180px;
+      width: 100%;
+      max-width: 100%;
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -373,11 +383,17 @@
       &-icon {
         font-size: 0.95rem;
         color: rgba(255, 255, 255, 0.5);
+        flex-shrink: 0;
       }
 
       &-text {
         font-size: 0.8rem;
         color: rgba(255, 255, 255, 0.9);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: calc(100% - 45px);
+        min-width: 0;
       }
 
       &-dropdown {
@@ -385,6 +401,7 @@
         font-size: 1rem;
         display: flex;
         align-items: center;
+        flex-shrink: 0;
       }
     }
 
@@ -734,15 +751,19 @@ body.has-sidebar {
 
     &-event,
     &-date {
+      max-width: none;
+
       &-selector,
       &-display {
         padding: 0.4rem 0.7rem;
         min-height: 36px;
         min-width: 200px;
+        max-width: 100%;
 
         &-name,
         &-text {
           font-size: 0.9rem;
+          max-width: calc(100% - 50px);
         }
 
         &-icon,
@@ -821,17 +842,12 @@ body.has-sidebar {
         &-name,
         &-text {
           font-size: 1.1rem;
-          max-width: 200px;
+          max-width: calc(100% - 60px);
         }
 
         &-logo {
           width: 24px;
           height: 24px;
-        }
-
-        &-name,
-        &-text {
-          max-width: 200px;
         }
       }
     }
@@ -899,7 +915,7 @@ body.has-sidebar {
         &-name,
         &-text {
           font-size: 1.2rem;
-          max-width: 240px;
+          max-width: calc(100% - 70px);
         }
 
         &-logo {
@@ -910,11 +926,6 @@ body.has-sidebar {
         &-icon,
         &-dropdown {
           font-size: 1.3rem;
-        }
-
-        &-name,
-        &-text {
-          max-width: 240px;
         }
       }
     }
@@ -981,7 +992,7 @@ body.has-sidebar {
         &-name,
         &-text {
           font-size: 1.3rem;
-          max-width: 280px;
+          max-width: calc(100% - 80px);
         }
 
         &-logo {
@@ -992,11 +1003,6 @@ body.has-sidebar {
         &-icon,
         &-dropdown {
           font-size: 1.4rem;
-        }
-
-        &-name,
-        &-text {
-          max-width: 280px;
         }
       }
     }
