@@ -214,8 +214,11 @@
   &-content {
     padding-top: 50px; // Add space to prevent navigation overlap
     display: grid;
-  }
 
+    @include mq(tablet) {
+      padding-top: 1rem;
+    }
+  }
   &-logo {
     width: 5rem;
     height: auto;
