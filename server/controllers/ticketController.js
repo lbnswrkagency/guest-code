@@ -148,7 +148,7 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
         .populate("brand")
         .populate({
           path: "lineups",
-          select: "name category avatar",
+          select: "name category subtitle avatar",
         });
     }
 
@@ -164,6 +164,16 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
 
     // Calculate total amount
     const totalAmount = calcTotalAmount(order);
+
+    // Ensure lineups are properly formatted with all fields
+    const lineups = Array.isArray(eventWithLineups.lineups)
+      ? eventWithLineups.lineups.map((lineup) => ({
+          name: lineup.name || "",
+          category: lineup.category || "Other",
+          subtitle: lineup.subtitle || "",
+          avatar: lineup.avatar || null,
+        }))
+      : [];
 
     // Create additional content specific to pay-at-entrance tickets
     const additionalContent = `
@@ -195,7 +205,7 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
       endTime: eventWithLineups?.endTime || "",
       description:
         "Thank you for reserving tickets for this event. Please see important payment information below.",
-      lineups: eventWithLineups?.lineups || [],
+      lineups: lineups,
       primaryColor: eventWithLineups?.brand?.colors?.primary || "#ff9800",
       additionalContent: additionalContent,
       footerText:
@@ -370,7 +380,7 @@ const generateTicketPDF = async (ticket) => {
       .populate("brand")
       .populate({
         path: "lineups",
-        select: "name category avatar",
+        select: "name category subtitle avatar",
       });
     const brand = event ? await Brand.findById(event.brand) : null;
 

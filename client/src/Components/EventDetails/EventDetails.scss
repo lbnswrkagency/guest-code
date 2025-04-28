@@ -558,10 +558,8 @@
     // ) !important; // Subtract sidebar width
     // max-width: calc(100% - var(--sidebar-width, 120px)) !important;
     padding: 8px 15px !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+
     z-index: 999999 !important;
-    background: rgba(0, 0, 0, 0.85) !important;
-    backdrop-filter: blur(8px) !important;
 
     // Center in available content area, not viewport
     // margin-left: var(--sidebar-width, 120px) !important;

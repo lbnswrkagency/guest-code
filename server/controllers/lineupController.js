@@ -72,7 +72,7 @@ exports.createLineUp = async (req, res) => {
       hasFile: !!req.file,
     });
 
-    const { brandId, name, category, sortOrder } = req.body;
+    const { brandId, name, category, subtitle, sortOrder } = req.body;
 
     // Validate brand ownership
     const brand = await Brand.findById(brandId);
@@ -122,6 +122,7 @@ exports.createLineUp = async (req, res) => {
       brandId,
       name,
       category,
+      subtitle,
       avatar: avatarUrls,
       sortOrder: sortOrder || 0,
       events: [],
@@ -199,7 +200,7 @@ exports.getLineUpById = async (req, res) => {
 exports.updateLineUp = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, sortOrder } = req.body;
+    const { name, category, subtitle, sortOrder } = req.body;
 
     // Find the lineup entry
     const lineUp = await LineUp.findById(id);
@@ -245,6 +246,7 @@ exports.updateLineUp = async (req, res) => {
     // Update basic fields if provided
     if (name) lineUp.name = name;
     if (category) lineUp.category = category;
+    if (subtitle !== undefined) lineUp.subtitle = subtitle;
     if (sortOrder !== undefined) lineUp.sortOrder = sortOrder;
 
     // Process new avatar if provided
@@ -535,6 +537,124 @@ exports.getLineUpsByEvent = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch event line-ups",
+      error: error.message,
+    });
+  }
+};
+
+// New functions to handle category and subtitle management
+exports.deleteCategory = async (req, res) => {
+  try {
+    const { brandId, category } = req.params;
+
+    // Validate brand ownership
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
+
+    // Check if req.user exists before accessing its properties
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Use req.user.userId instead of req.user._id
+    const userId = req.user.userId;
+
+    // Check permissions
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You don't have permission to delete categories for this brand",
+      });
+    }
+
+    // Find all lineups with this category and update them (set category to "Other")
+    const result = await LineUp.updateMany(
+      { brandId, category, isActive: true },
+      { category: "Other" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Category "${category}" deleted and replaced with "Other"`,
+      updatedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete category",
+      error: error.message,
+    });
+  }
+};
+
+exports.deleteSubtitle = async (req, res) => {
+  try {
+    const { brandId, subtitle } = req.params;
+
+    // Validate brand ownership
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
+
+    // Check if req.user exists before accessing its properties
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Use req.user.userId instead of req.user._id
+    const userId = req.user.userId;
+
+    // Check permissions
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin =
+      Array.isArray(brand.admins) &&
+      brand.admins.some((adminId) => adminId.toString() === userId.toString());
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to delete subtitles for this brand",
+      });
+    }
+
+    // Find all lineups with this subtitle and clear the subtitle field
+    const result = await LineUp.updateMany(
+      { brandId, subtitle, isActive: true },
+      { subtitle: "" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Subtitle "${subtitle}" deleted`,
+      updatedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error deleting subtitle:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete subtitle",
       error: error.message,
     });
   }

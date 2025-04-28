@@ -98,9 +98,9 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     background-color: #222;
 
-    .delete-icon {
+    .delete-icon,
+    .edit-icon {
       opacity: 1;
-      visibility: visible;
     }
   }
 
@@ -111,35 +111,53 @@
 
   .delete-icon {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 24px;
-    height: 24px;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background-color: rgba(244, 67, 54, 0.15);
-    color: #f44336;
+    background: rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
     opacity: 0;
-    visibility: hidden;
     transition: all 0.2s ease;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    z-index: 5;
+    cursor: pointer;
+    color: rgba(255, 0, 0, 0.6);
 
     &:hover {
-      background-color: rgba(244, 67, 54, 0.25);
-      transform: scale(1.1);
-    }
-
-    &:active {
-      transform: scale(0.9);
+      background: rgba(255, 0, 0, 0.2);
+      color: rgba(255, 0, 0, 0.8);
     }
 
     &.always-visible {
-      opacity: 1;
-      visibility: visible;
+      opacity: 0.7;
+    }
+  }
+
+  .edit-icon {
+    position: absolute;
+    top: 10px;
+
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    color: rgba(255, 200, 7, 0.6);
+
+    &:hover {
+      background: rgba(255, 200, 7, 0.2);
+      color: rgba(255, 200, 7, 0.8);
+    }
+
+    &.always-visible {
+      opacity: 0.7;
     }
   }
 
@@ -186,26 +204,41 @@
   }
 
   .lineup-info {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
 
     .lineup-category {
-      display: block;
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 2px;
+      font-size: 0.8rem;
+      color: #ffbc05;
+      text-transform: uppercase;
+      font-weight: 600;
     }
 
     .lineup-name {
-      display: block;
-      font-size: 0.9rem;
-      color: #fff;
-      font-weight: 500;
+      font-size: 1rem;
+      color: white;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lineup-subtitle {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   .selected-indicator {
     position: absolute;
-    top: 8px;
+    bottom: 8px;
     right: 8px;
     width: 18px;
     height: 18px;
@@ -784,28 +817,70 @@
         margin-top: 10px;
 
         .category-chip {
-          padding: 6px 12px;
-          background-color: rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 20px;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 6px;
+          padding: 0.4rem 0.75rem;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.85);
           cursor: pointer;
-          transition: background-color 0.2s ease, border-color 0.2s ease,
-            color 0.2s ease;
-          backdrop-filter: blur(5px);
-
-          &:hover {
-            background-color: rgba(255, 200, 7, 0.1);
-            border-color: rgba(255, 200, 7, 0.3);
-            color: rgba(255, 200, 7, 0.9);
-          }
+          transition: all 0.2s ease;
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
 
           &.active {
-            background-color: rgba(255, 200, 7, 0.2);
-            border-color: rgba(255, 200, 7, 0.5);
+            background: rgba(255, 200, 7, 0.15);
+            border-color: rgba(255, 200, 7, 0.3);
             color: #ffc807;
-            box-shadow: 0 2px 8px rgba(255, 200, 7, 0.2);
+
+            // When active, make the delete button visible
+            .chip-delete {
+              opacity: 1;
+              transform: scale(1);
+            }
+          }
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+
+            &.active {
+              background: rgba(255, 200, 7, 0.2);
+            }
+          }
+
+          .chip-content {
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .chip-delete {
+            opacity: 1; /* Always visible when rendered */
+            transform: scale(1);
+            transition: all 0.2s ease;
+            background: rgba(255, 60, 60, 0.15);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 60, 60, 0.8);
+            font-size: 0.8rem;
+            cursor: pointer;
+            flex-shrink: 0;
+
+            &:hover {
+              background: rgba(255, 60, 60, 0.25);
+              color: rgba(255, 60, 60, 1);
+              transform: scale(1.1);
+            }
           }
         }
 

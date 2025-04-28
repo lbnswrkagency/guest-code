@@ -11,6 +11,8 @@ const {
   getLineUpById,
   addLineUpToEvent,
   removeLineUpFromEvent,
+  deleteCategory,
+  deleteSubtitle,
 } = require("../../controllers/lineupController");
 
 // Configure multer storage
@@ -38,6 +40,10 @@ router.get("/:id", authenticate, getLineUpById);
 router.post("/", authenticate, upload.single("avatar"), createLineUp);
 router.put("/:id", authenticate, upload.single("avatar"), updateLineUp);
 router.delete("/:id", authenticate, deleteLineUp);
+
+// Category and subtitle management
+router.delete("/category/:brandId/:category", authenticate, deleteCategory);
+router.delete("/subtitle/:brandId/:subtitle", authenticate, deleteSubtitle);
 
 // Event association routes
 router.post("/:lineUpId/events/:eventId", authenticate, addLineUpToEvent);

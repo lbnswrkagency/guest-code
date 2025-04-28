@@ -141,10 +141,15 @@
   position: relative;
   z-index: 2;
 
+  .title-icon-wrapper {
+    background: none;
+  }
+
   .title-icon {
     font-size: 1.75rem;
     color: #ffc807;
     filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+    background: none !important;
     animation: glow 3s infinite ease-in-out;
   }
 
@@ -198,7 +203,7 @@
   }
 
   &-content {
-    padding-top: 15px; // Add space to prevent navigation overlap
+    padding-top: 50px; // Add space to prevent navigation overlap
     display: grid;
   }
 
@@ -741,5 +746,92 @@
   svg {
     max-width: 100%;
     height: auto;
+  }
+}
+
+// Add styles for the header similar to Analytics.js
+.tablesystem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  // Hide on small devices
+  @media (max-width: 767px) {
+    display: none;
+  }
+
+  .tablesystem-title {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+
+    svg {
+      margin-right: 0.75rem;
+      color: rgba(255, 200, 7, 0.9);
+    }
+
+    .event-name {
+      margin-left: 0.5rem;
+      font-size: 1rem;
+      font-weight: normal;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: rgba(255, 255, 255, 0.7);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      &.refresh-btn {
+        svg.spinning {
+          animation: spin 1s linear infinite;
+        }
+      }
+
+      &.close-btn {
+        &:hover {
+          background: rgba(255, 60, 60, 0.15);
+          color: rgba(255, 60, 60, 0.9);
+        }
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

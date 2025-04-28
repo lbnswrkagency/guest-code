@@ -96,43 +96,78 @@ const createEventEmailTemplate = (options) => {
       return groups;
     }, {});
 
-    // Create lineup HTML
+    // Sort categories: DJs first, then by number of artists, then alphabetically
+    const sortedCategories = Object.keys(groupedLineups).sort((a, b) => {
+      // Always prioritize DJ/DJs category
+      if (a.toLowerCase() === "dj" || a.toLowerCase() === "djs") return -1;
+      if (b.toLowerCase() === "dj" || b.toLowerCase() === "djs") return 1;
+
+      // Then sort by number of artists (descending)
+      const countDiff = groupedLineups[b].length - groupedLineups[a].length;
+      if (countDiff !== 0) return countDiff;
+
+      // If same number of artists, sort alphabetically
+      return a.localeCompare(b);
+    });
+
+    // Create lineup HTML - completely redesigned for email clients
     lineupHtml = `
       <div style="margin-top: 20px; margin-bottom: 20px; background-color: #f8f8f8; border-radius: 8px; padding: 15px;">
-        <h3 style="color: ${primaryColor}; margin-top: 0;">Event Lineup</h3>
-        ${Object.keys(groupedLineups)
-          .map(
-            (category) => `
-          <div style="margin-bottom: 15px;">
-            <h4 style="margin: 0 0 10px; color: #444;">${category}</h4>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-              ${groupedLineups[category]
-                .map(
-                  (artist) => `
-                <div style="display: flex; align-items: center; background-color: #fff; border-radius: 5px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                  ${
-                    artist.avatar
-                      ? `<img src="${
-                          artist.avatar.thumbnail || artist.avatar
-                        }" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 8px;">`
-                      : `<div style="width: 30px; height: 30px; border-radius: 50%; background-color: ${primaryColor}; color: #fff; display: flex; align-items: center; justify-content: center; margin-right: 8px; font-weight: bold;">${(
-                          artist.name || "A"
-                        )
-                          .charAt(0)
-                          .toUpperCase()}</div>`
-                  }
-                  <span style="font-weight: 500;">${
-                    artist.name || "Artist"
-                  }</span>
-                </div>
+        <h3 style="color: ${primaryColor}; margin-top: 0; margin-bottom: 15px; font-size: 18px;">Event Lineup</h3>
+        
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tbody>
+            ${sortedCategories
+              .map(
+                (category) => `
+                <tr>
+                  <td colspan="2" style="padding-top: 15px; padding-bottom: 5px;">
+                    <strong style="color: #333; font-size: 16px;">${formatCategoryName(
+                      category,
+                      groupedLineups[category].length
+                    )}</strong>
+                  </td>
+                </tr>
+                ${groupedLineups[category]
+                  .map(
+                    (artist) => `
+                    <tr>
+                      <td style="padding: 5px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td width="36" valign="middle">
+                              ${
+                                artist.avatar
+                                  ? `<img src="${getAvatarUrl(
+                                      artist.avatar
+                                    )}" style="width: 30px; height: 30px; border-radius: 50%;" alt="${
+                                      artist.name
+                                    }">`
+                                  : `<div style="width: 30px; height: 30px; border-radius: 50%; background-color: ${primaryColor}; color: #fff; text-align: center; line-height: 30px; font-weight: bold;">${artist.name
+                                      .charAt(0)
+                                      .toUpperCase()}</div>`
+                              }
+                            </td>
+                            <td valign="middle" style="padding-left: 8px;">
+                              <div style="font-weight: 500; font-size: 14px;">${
+                                artist.name
+                              }</div>
+                            </td>
+                            <td valign="middle" style="padding-left: 8px; font-style: italic; color: #666; font-size: 13px;">
+                              ${artist.subtitle || ""}
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  `
+                  )
+                  .join("")}
               `
-                )
-                .join("")}
-            </div>
-          </div>
-        `
-          )
-          .join("")}
+              )
+              .join("")}
+          </tbody>
+        </table>
       </div>
     `;
   }
@@ -216,7 +251,41 @@ const createEventEmailTemplate = (options) => {
   `;
 };
 
+// Helper function to pluralize category names
+function formatCategoryName(category, count) {
+  if (count <= 1) return category.toUpperCase();
+
+  // Check if the category already ends with 'S'
+  if (category.toUpperCase().endsWith("S")) return category.toUpperCase();
+
+  // Special case for categories that need custom pluralization
+  if (category.toUpperCase() === "DJ") return "DJS";
+
+  // Default pluralization: add 'S'
+  return `${category.toUpperCase()}S`;
+}
+
+// Helper function to get the best avatar URL
+function getAvatarUrl(avatar) {
+  if (typeof avatar === "string") {
+    return avatar;
+  } else if (avatar.medium) {
+    return avatar.medium;
+  } else if (avatar.small) {
+    return avatar.small;
+  } else if (avatar.thumbnail) {
+    return avatar.thumbnail;
+  } else if (avatar.full) {
+    return avatar.full;
+  } else if (avatar.large) {
+    return avatar.large;
+  }
+  return "";
+}
+
 module.exports = {
   formatEventDate,
   createEventEmailTemplate,
+  formatCategoryName,
+  getAvatarUrl,
 };

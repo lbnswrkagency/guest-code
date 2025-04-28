@@ -20,6 +20,11 @@ const LineUpSchema = new Schema(
       trim: true,
       maxlength: 50,
     },
+    subtitle: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
     avatar: {
       thumbnail: String,
       small: String,

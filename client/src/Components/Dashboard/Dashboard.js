@@ -581,6 +581,34 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Add listener for table system open requests
+  useEffect(() => {
+    const handleOpenTableSystem = (e) => {
+      if (e.detail && e.detail.event) {
+        // Set the selected event if needed
+        if (!selectedEvent || selectedEvent._id !== e.detail.event._id) {
+          // Find the event in the events list
+          const targetEvent = events.find(
+            (event) => event._id === e.detail.event._id
+          );
+
+          if (targetEvent) {
+            setSelectedEvent(targetEvent);
+          }
+        }
+
+        // Open the table system
+        setShowTableSystem(true);
+      }
+    };
+
+    window.addEventListener("openTableSystem", handleOpenTableSystem);
+
+    return () => {
+      window.removeEventListener("openTableSystem", handleOpenTableSystem);
+    };
+  }, [selectedEvent, events, setSelectedEvent, setShowTableSystem]);
+
   if (!user) return null;
 
   // Get the user's role for the selected brand

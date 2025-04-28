@@ -9,6 +9,7 @@ import Tickets from "../Tickets/Tickets";
 import EventDetails from "../EventDetails/EventDetails";
 import GuestCode from "../GuestCode/GuestCode";
 import TableSystem from "../TableSystem/TableSystem";
+import LineUpView from "../LineUpView/LineUpView";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -114,6 +115,7 @@ const UpcomingEvent = ({
                 _id: lineup._id || lineup.id,
                 name: lineup.name || "Unknown Artist",
                 category: lineup.category || "Other",
+                subtitle: lineup.subtitle || null,
                 avatar: lineup.avatar || null,
                 events: lineup.events || [],
                 isActive:
@@ -643,7 +645,12 @@ const UpcomingEvent = ({
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const options = { weekday: "short", month: "short", day: "numeric" };
+    const options = {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    };
     return date.toLocaleDateString("en-US", options);
   };
 
@@ -733,97 +740,6 @@ const UpcomingEvent = ({
 
     // Last resort: return null if no suitable image was found
     return null;
-  };
-
-  // Render lineup artists
-  const renderLineups = (lineups) => {
-    if (!lineups || !Array.isArray(lineups) || lineups.length === 0) {
-      return null;
-    }
-
-    // If lineups is an array of strings (IDs), we can't render it
-    if (lineups.length > 0 && typeof lineups[0] === "string") {
-      return null;
-    }
-
-    // Check if lineup data is valid (has required properties)
-    const validLineups = lineups.filter(
-      (artist) => artist && artist.name && artist._id
-    );
-
-    if (validLineups.length === 0) {
-      return null;
-    }
-
-    // Group lineups by category
-    const groupedLineups = validLineups.reduce((groups, artist) => {
-      const category = artist.category || "Other";
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(artist);
-      return groups;
-    }, {});
-
-    // Sort categories to ensure consistent order (with DJ and Headliner at the top)
-    const sortedCategories = Object.keys(groupedLineups).sort((a, b) => {
-      if (a === "DJ") return -1;
-      if (b === "DJ") return 1;
-      if (a === "Headliner") return -1;
-      if (b === "Headliner") return 1;
-      return a.localeCompare(b);
-    });
-
-    return (
-      <div className="event-lineups">
-        <h5>Lineup</h5>
-        <div className="lineup-artists-container">
-          {sortedCategories.map((category, categoryIndex) => (
-            <motion.div
-              key={category}
-              className="lineup-category-group"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: categoryIndex * 0.1 }}
-            >
-              <h5 className="category-title">
-                {category}
-                <span className="artist-count">
-                  ({groupedLineups[category].length})
-                </span>
-              </h5>
-              <div className="lineup-artists">
-                {groupedLineups[category].map((artist, index) => (
-                  <motion.div
-                    key={artist._id || index}
-                    className="artist"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 + categoryIndex * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    {artist.avatar && artist.avatar.thumbnail ? (
-                      <div className="artist-avatar">
-                        <img src={artist.avatar.thumbnail} alt={artist.name} />
-                      </div>
-                    ) : (
-                      <div className="artist-avatar placeholder">
-                        {artist.name
-                          ? artist.name.charAt(0).toUpperCase()
-                          : "?"}
-                      </div>
-                    )}
-                    <div className="artist-info">
-                      <span className="artist-name">{artist.name}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   // Add the preloadEventImage function
@@ -959,6 +875,20 @@ const UpcomingEvent = ({
   const handleTableBookingClick = (event, e) => {
     e.stopPropagation(); // Prevent the main event click handler from firing
 
+    // If table booking section is hidden (when inside dashboard), trigger dashboard's table system
+    if (hideTableBooking) {
+      // Dispatch a custom event that Dashboard will listen for
+      window.dispatchEvent(
+        new CustomEvent("openTableSystem", {
+          detail: {
+            event: event,
+          },
+        })
+      );
+      return;
+    }
+
+    // For regular (public) view, continue with the normal flow
     // Force the table section to be rendered
     setShowTableBooking(true);
 
@@ -1235,7 +1165,7 @@ const UpcomingEvent = ({
 
             {/* Lineup section - MOVED UP BEFORE TICKETS */}
             {currentEvent.lineups && currentEvent.lineups.length > 0 && (
-              <>{renderLineups(currentEvent.lineups)}</>
+              <LineUpView lineups={currentEvent.lineups} />
             )}
 
             {/* Content sections wrapper for responsive layout */}
@@ -1366,7 +1296,7 @@ const UpcomingEvent = ({
         </motion.div>
       </AnimatePresence>
 
-      {/* New Footer Section */}
+      {/* Footer Section */}
       <motion.div
         className="upcomingEvent-footer"
         initial={{ opacity: 0, y: 20 }}
@@ -1377,7 +1307,10 @@ const UpcomingEvent = ({
           <div className="upcomingEvent-footer-info">
             <div className="upcomingEvent-footer-logo">
               <RiStarLine className="logo-icon" />
-              <span className="logo-text">GUESTCODE</span>
+              <span className="logo-text">
+                <span className="brand-guest">Guest</span>
+                <span className="brand-code">Code</span>
+              </span>
             </div>
 
             {currentEvent && (
@@ -1397,7 +1330,10 @@ const UpcomingEvent = ({
                   {currentEvent.startTime && (
                     <div className="detail-item">
                       <RiTimeLine className="detail-icon" />
-                      <span>{currentEvent.startTime}</span>
+                      <span>
+                        {currentEvent.startTime}
+                        {currentEvent.endTime && ` - ${currentEvent.endTime}`}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1420,7 +1356,7 @@ const UpcomingEvent = ({
                   {currentEvent.lineups && currentEvent.lineups.length > 0 && (
                     <div className="meta-tag lineup">
                       <RiMusic2Line />
-                      <span>{currentEvent.lineups.length} Artists</span>
+                      <span>Lineup</span>
                     </div>
                   )}
                   {supportsTableBooking(currentEvent) && (

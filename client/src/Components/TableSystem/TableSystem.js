@@ -9,7 +9,7 @@ import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 import TableBookingPopup from "../TableBookingPopup/TableBookingPopup";
-import { RiTableLine, RiRefreshLine } from "react-icons/ri";
+import { RiTableLine, RiRefreshLine, RiCloseLine } from "react-icons/ri";
 
 function TableSystem({
   user,
@@ -424,14 +424,7 @@ function TableSystem({
   const handleBack = () => {
     console.log("TableSystem: Back button clicked");
 
-    // Notify any listeners that we're going back
-    window.dispatchEvent(
-      new CustomEvent("navigationBack", {
-        detail: { source: "TableSystem" },
-      })
-    );
-
-    // Call the provided onClose handler
+    // Call the provided onClose handler directly without custom event
     if (onClose) onClose();
   };
 
@@ -461,7 +454,7 @@ function TableSystem({
     >
       <div className="table-system-wrapper">
         <Navigation
-          onBack={handleBack}
+          onBack={onClose}
           // Menu click is handled through global events - we don't need a local handler
           onMenuClick={() => {
             console.log("TableSystem: Menu clicked in TableSystem navigation");
@@ -474,16 +467,32 @@ function TableSystem({
             <div className="table-booking-header">
               <div className="table-booking-title-wrapper">
                 <h1 className="table-booking-title">
-                  <span className="title-icon">
-                    <RiTableLine />
-                  </span>
                   <span className="title-text">TABLE BOOKING</span>
                 </h1>
                 <div className="title-decoration"></div>
               </div>
             </div>
           ) : (
-            <h1 className="table-system-title">Table Booking</h1>
+            <div className="tablesystem-header">
+              <h1 className="tablesystem-title">
+                <RiTableLine /> Table Booking
+                {selectedEvent && (
+                  <span className="event-name"> - {selectedEvent.title}</span>
+                )}
+              </h1>
+              <div className="header-actions">
+                <button
+                  className="refresh-btn"
+                  onClick={handleRefresh}
+                  disabled={isSpinning || isLoading}
+                >
+                  <RiRefreshLine className={isSpinning ? "spinning" : ""} />
+                </button>
+                <button className="close-btn" onClick={onClose}>
+                  <RiCloseLine />
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Show refresh button and table count summary only in non-public mode */}
@@ -545,8 +554,8 @@ function TableSystem({
             )}
           </div>
 
-          {/* Only show TableCodeManagement in non-public mode */}
-          {!isPublic && (
+          {/* Only show refresh button in non-public mode if using old refresh layout */}
+          {!isPublic && !document.querySelector(".tablesystem-header") && (
             <div className="refresh-button">
               <button
                 onClick={handleRefresh}

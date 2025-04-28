@@ -1635,34 +1635,84 @@ const EventForm = ({
             <div className="form-section">
               <h3>Line Up</h3>
 
-              {/* Display selected lineups */}
+              {/* Display selected lineups grouped by category */}
               {selectedLineups.length > 0 && (
-                <div className="selected-lineups">
-                  {selectedLineups.map((lineup) => (
-                    <div key={lineup._id} className="selected-lineup-item">
-                      <div className="lineup-avatar">
-                        {lineup.avatar ? (
-                          <img
-                            src={
-                              typeof lineup.avatar === "string"
-                                ? lineup.avatar
-                                : lineup.avatar.medium ||
-                                  lineup.avatar.thumbnail
-                            }
-                            alt={lineup.name}
-                          />
-                        ) : (
-                          <div className="avatar-placeholder"></div>
-                        )}
-                      </div>
-                      <div className="lineup-info">
-                        <span className="lineup-category">
-                          {lineup.category}
-                        </span>
-                        <span className="lineup-name">{lineup.name}</span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="selected-lineups-container">
+                  {(() => {
+                    // Group lineups by category
+                    const groupedByCategory = selectedLineups.reduce(
+                      (groups, lineup) => {
+                        const category = lineup.category || "Uncategorized";
+                        if (!groups[category]) {
+                          groups[category] = [];
+                        }
+                        groups[category].push(lineup);
+                        return groups;
+                      },
+                      {}
+                    );
+
+                    // Create an array of JSX elements for each category
+                    return Object.entries(groupedByCategory).map(
+                      ([category, lineups]) => (
+                        <div key={category} className="lineup-category-section">
+                          <div className="category-header">
+                            {/* Pluralize category name if more than one artist */}
+                            <h4 className="category-title">
+                              {category}
+                              {lineups.length > 1 &&
+                                (category === "DJ"
+                                  ? "s"
+                                  : category === "MC"
+                                  ? "s"
+                                  : category.endsWith("er")
+                                  ? "s"
+                                  : category.endsWith("y")
+                                  ? "ies"
+                                  : "s")}
+                              <span className="artist-count">
+                                ({lineups.length})
+                              </span>
+                            </h4>
+                          </div>
+                          <div className="selected-lineups">
+                            {lineups.map((lineup) => (
+                              <div
+                                key={lineup._id}
+                                className="selected-lineup-item"
+                              >
+                                <div className="lineup-avatar">
+                                  {lineup.avatar ? (
+                                    <img
+                                      src={
+                                        typeof lineup.avatar === "string"
+                                          ? lineup.avatar
+                                          : lineup.avatar.medium ||
+                                            lineup.avatar.thumbnail
+                                      }
+                                      alt={lineup.name}
+                                    />
+                                  ) : (
+                                    <div className="avatar-placeholder"></div>
+                                  )}
+                                </div>
+                                <div className="lineup-info">
+                                  <span className="lineup-name">
+                                    {lineup.name}
+                                  </span>
+                                  {lineup.subtitle && (
+                                    <span className="lineup-subtitle">
+                                      {lineup.subtitle}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    );
+                  })()}
                 </div>
               )}
 

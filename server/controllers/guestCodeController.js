@@ -312,8 +312,15 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
       },
     ];
 
-    // Get lineups if they're populated
-    const lineups = event.lineups || [];
+    // Ensure lineups are properly formatted with all fields
+    const lineups = Array.isArray(event.lineups)
+      ? event.lineups.map((lineup) => ({
+          name: lineup.name || "",
+          category: lineup.category || "Other",
+          subtitle: lineup.subtitle || "",
+          avatar: lineup.avatar || null,
+        }))
+      : [];
 
     // Use the emailLayout template
     const htmlContent = createEventEmailTemplate({
