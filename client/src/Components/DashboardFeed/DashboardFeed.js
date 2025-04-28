@@ -27,6 +27,21 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const [eventData, setEventData] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Helper function to enhance lineup objects with required fields
+  const enhanceLineups = (lineups) => {
+    if (!lineups || !Array.isArray(lineups)) return [];
+
+    return lineups.map((lineup) => ({
+      _id: lineup._id || lineup.id,
+      name: lineup.name || "Unknown Artist",
+      category: lineup.category || "Other",
+      subtitle: lineup.subtitle || lineup.location || "", // Ensure subtitle is included
+      avatar: lineup.avatar || null,
+      events: lineup.events || [],
+      isActive: lineup.isActive !== undefined ? lineup.isActive : true,
+    }));
+  };
+
   // Effect to use event data from Redux props
   useEffect(() => {
     // If we have a selected event, use it directly
@@ -80,15 +95,8 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
           });
         }
 
-        // Ensure all lineup objects have required properties
-        const validLineups = eventLineups.map((lineup) => ({
-          _id: lineup._id || lineup.id,
-          name: lineup.name || "Unknown Artist",
-          category: lineup.category || "Other",
-          avatar: lineup.avatar || null,
-          events: lineup.events || [],
-          isActive: lineup.isActive !== undefined ? lineup.isActive : true,
-        }));
+        // Use the helper function to ensure all lineup objects have required properties
+        const validLineups = enhanceLineups(eventLineups);
 
         // Create a new event object with lineups data
         const eventWithLineups = {
@@ -199,15 +207,8 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
               });
             }
 
-            // Ensure all lineup objects have required properties
-            const validLineups = eventLineups.map((lineup) => ({
-              _id: lineup._id || lineup.id,
-              name: lineup.name || "Unknown Artist",
-              category: lineup.category || "Other",
-              avatar: lineup.avatar || null,
-              events: lineup.events || [],
-              isActive: lineup.isActive !== undefined ? lineup.isActive : true,
-            }));
+            // Use the helper function to ensure all lineup objects have required properties
+            const validLineups = enhanceLineups(eventLineups);
 
             // Create a new event object with lineups data
             const eventWithLineups = {

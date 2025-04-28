@@ -1,6 +1,7 @@
 // TableCodeManagement.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
 import "./TableCodeManagement.scss";
 
@@ -148,14 +149,8 @@ function TableCodeManagement({
       setIsLoading(true);
       try {
         const loadingToast = toast.showLoading("Deleting reservation...");
-        await axios.delete(
-          `${process.env.REACT_APP_API_BASE_URL}/code/table/delete/${deleteCodeId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        // Use axiosInstance with token refresh capability
+        await axiosInstance.delete(`/code/table/delete/${deleteCodeId}`);
         loadingToast.dismiss();
         toast.showSuccess("Reservation deleted successfully");
         triggerRefresh();
@@ -187,28 +182,16 @@ function TableCodeManagement({
         const isPublicRequest = code?.isPublic === true;
 
         // Update the status to cancelled
-        await axios.put(
-          `${process.env.REACT_APP_API_BASE_URL}/code/table/status/${cancelCodeId}`,
-          { status: "cancelled" },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        // Use axiosInstance with token refresh capability
+        await axiosInstance.put(`/code/table/status/${cancelCodeId}`, {
+          status: "cancelled",
+        });
 
         // If this is a public request with email, also send cancellation email
         if (isPublicRequest && code.email) {
           try {
-            await axios.post(
-              `${process.env.REACT_APP_API_BASE_URL}/table/code/${cancelCodeId}/cancel`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-              }
-            );
+            // Use axiosInstance with token refresh capability
+            await axiosInstance.post(`/table/code/${cancelCodeId}/cancel`, {});
             loadingToast.dismiss();
             toast.showSuccess(
               "Reservation cancelled and notification email sent!",
@@ -265,28 +248,16 @@ function TableCodeManagement({
       const isPublicRequest = code?.isPublic === true;
 
       // Update the status
-      await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/status/${codeId}`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use axiosInstance with token refresh capability
+      await axiosInstance.put(`/code/table/status/${codeId}`, {
+        status: newStatus,
+      });
 
       // If this is confirming a public request that has an email, also send confirmation email
       if (newStatus === "confirmed" && isPublicRequest && code.email) {
         try {
-          await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/confirm`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
+          // Use axiosInstance with token refresh capability
+          await axiosInstance.post(`/table/code/${codeId}/confirm`, {});
           loadingToast.dismiss();
           toast.showSuccess(
             "Reservation confirmed and confirmation email sent!",
@@ -304,8 +275,8 @@ function TableCodeManagement({
       // If this is declining a public request that has an email, send decline email
       else if (newStatus === "declined" && isPublicRequest && code.email) {
         try {
-          await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/decline`,
+          await axiosInstance.post(
+            `/table/code/${codeId}/decline`,
             {},
             {
               headers: {
@@ -353,15 +324,10 @@ function TableCodeManagement({
     try {
       setIsLoading(true);
       const loadingToast = toast.showLoading("Preparing your table code...");
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png`,
-        {
-          responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use axiosInstance with token refresh capability
+      const response = await axiosInstance.get(`/table/code/${codeId}/png`, {
+        responseType: "blob",
+      });
       const reader = new FileReader();
       reader.readAsDataURL(response.data);
       reader.onloadend = () => {
@@ -391,13 +357,11 @@ function TableCodeManagement({
         setIsLoading(false);
         return;
       }
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/table/code/${codeId}/png-download`,
+      // Use axiosInstance with token refresh capability
+      const response = await axiosInstance.get(
+        `/table/code/${codeId}/png-download`,
         {
           responseType: "blob",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
         }
       );
       const blob = new Blob([response.data], { type: "image/png" });
@@ -449,15 +413,10 @@ function TableCodeManagement({
     setIsLoading(true);
     try {
       const loadingToast = toast.showLoading("Sending email...");
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/table/code/${selectedCodeId}/send`,
-        { email: emailRecipient },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use axiosInstance with token refresh capability
+      await axiosInstance.post(`/table/code/${selectedCodeId}/send`, {
+        email: emailRecipient,
+      });
       loadingToast.dismiss();
       toast.showSuccess("Table code sent successfully");
       setShowSendEmailModal(false);
@@ -501,32 +460,19 @@ function TableCodeManagement({
       }
 
       // Update the table code
-      await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/code/table/edit/${editCodeId}`,
-        {
-          name: editName,
-          pax: editPax,
-          tableNumber: editTableNumber,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      // Use axiosInstance with token refresh capability
+      await axiosInstance.put(`/code/table/edit/${editCodeId}`, {
+        name: editName,
+        pax: editPax,
+        tableNumber: editTableNumber,
+      });
 
       // Send update notification if this is a public request or has an email
       if (originalCode?.isPublic && originalCode.email) {
         try {
-          await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/table/code/${editCodeId}/update`,
-            { email: originalCode.email },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
+          await axiosInstance.post(`/table/code/${editCodeId}/update`, {
+            email: originalCode.email,
+          });
           loadingToast.dismiss();
           toast.showSuccess(
             "Reservation updated and notification email sent!",

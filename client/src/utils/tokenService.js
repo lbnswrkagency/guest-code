@@ -11,8 +11,8 @@ class TokenService {
     this.sessionPingTimer = null;
     this.tokenRefreshListeners = [];
 
-    // Initialize ping interval (2.5 minutes)
-    this.PING_INTERVAL = 2.5 * 60 * 1000;
+    // Initialize ping interval (2 minutes instead of 2.5 minutes for more reliability)
+    this.PING_INTERVAL = 2 * 60 * 1000;
 
     // Initialize refresh threshold (50% of token lifetime)
     this.REFRESH_THRESHOLD = 0.5;
@@ -23,8 +23,23 @@ class TokenService {
     this.axiosInstance = axiosInstance;
     this.setupRefreshTimer();
     this.setupSessionPing();
+
+    // Add window focus event to trigger token check when tab becomes active
+    window.addEventListener("focus", this.handleWindowFocus);
+
     return this;
   }
+
+  // Handle window focus event to check token immediately when user returns to tab
+  handleWindowFocus = () => {
+    if (document.visibilityState === "visible") {
+      console.log(
+        "[tokenService] Window focus detected, checking token validity"
+      );
+      this.checkAndRefreshToken();
+      this.pingSession();
+    }
+  };
 
   // Set up a timer to regularly check and refresh tokens
   setupRefreshTimer() {
@@ -50,7 +65,9 @@ class TokenService {
     this.sessionPingTimer = setInterval(() => {
       // Only ping if document is visible (active tab)
       if (document.visibilityState === "visible") {
+        console.log("[tokenService] Sending session ping");
         this.pingSession().catch((err) => {
+          console.error("[tokenService] Ping failed:", err);
           // Silent catch
         });
       }
@@ -86,6 +103,7 @@ class TokenService {
 
       // If we got a new token from the ping, update it without triggering state changes
       if (response.data && response.data.tokenRefreshed) {
+        console.log("[tokenService] Token refreshed from ping");
         // Try to extract token from cookies instead of relying on response
         const cookies = document.cookie.split(";");
         for (let cookie of cookies) {
@@ -106,6 +124,23 @@ class TokenService {
 
       return response.data;
     } catch (error) {
+      // If ping fails with 401, try to refresh the token
+      if (error.response && error.response.status === 401) {
+        console.log(
+          "[tokenService] Ping failed with 401, trying to refresh token"
+        );
+        try {
+          await this.refreshToken();
+          return { status: "refreshed" };
+        } catch (refreshError) {
+          console.error(
+            "[tokenService] Refresh after ping failure failed:",
+            refreshError
+          );
+          return { status: "refresh-failed", message: refreshError.message };
+        }
+      }
+
       // Don't throw error to avoid propagating to AuthContext unnecessarily
       return { status: "error", message: error.message };
     }
@@ -271,17 +306,28 @@ class TokenService {
     });
   }
 
-  // Stop all timers
+  // Clean up all timers and listeners
   cleanup() {
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
     }
-
     if (this.sessionPingTimer) {
       clearInterval(this.sessionPingTimer);
       this.sessionPingTimer = null;
     }
+
+    // Remove window focus listener
+    window.removeEventListener("focus", this.handleWindowFocus);
+
+    // Clear all token refresh listeners
+    this.tokenRefreshListeners = [];
+
+    // Reset flags
+    this.isRefreshing = false;
+    this.refreshPromise = null;
+
+    console.log("[tokenService] Cleanup completed");
   }
 }
 

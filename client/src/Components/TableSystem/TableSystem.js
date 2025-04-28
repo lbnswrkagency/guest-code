@@ -1,6 +1,7 @@
 // TableSystem.js
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
 import "./TableSystem.scss";
 import TableLayout from "../TableLayout/TableLayout";
@@ -104,16 +105,14 @@ function TableSystem({
     try {
       // Use different endpoint for public vs. authenticated requests
       const endpoint = isPublic
-        ? `${process.env.REACT_APP_API_BASE_URL}/table/public/counts/${eventId}`
-        : `${process.env.REACT_APP_API_BASE_URL}/table/counts/${eventId}`;
+        ? `/table/public/counts/${eventId}`
+        : `/table/counts/${eventId}`;
 
-      const response = await axios.get(endpoint, {
-        headers: isPublic
-          ? {}
-          : {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-      });
+      // Use axiosInstance with token refresh interceptors for authenticated requests
+      // Keep direct axios for public requests
+      const response = isPublic
+        ? await axios.get(`${process.env.REACT_APP_API_BASE_URL}${endpoint}`)
+        : await axiosInstance.get(endpoint);
 
       // Expecting response format { tableCounts: [], totalCount: 0 }
       if (response.data && Array.isArray(response.data.tableCounts)) {
@@ -310,17 +309,18 @@ function TableSystem({
       };
 
       // Use different endpoint for public vs. authenticated requests
-      const endpoint = isPublic
-        ? `${process.env.REACT_APP_API_BASE_URL}/table/public/add`
-        : `${process.env.REACT_APP_API_BASE_URL}/table/add`;
+      const endpoint = isPublic ? `/table/public/add` : `/table/add`;
 
-      await axios.post(endpoint, bookingData, {
-        headers: isPublic
-          ? {}
-          : {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-      });
+      // Use axiosInstance with token refresh interceptors for authenticated requests
+      // Keep direct axios for public requests
+      if (isPublic) {
+        await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}${endpoint}`,
+          bookingData
+        );
+      } else {
+        await axiosInstance.post(endpoint, bookingData);
+      }
 
       loadingToast.dismiss();
 

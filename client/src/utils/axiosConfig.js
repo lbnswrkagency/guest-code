@@ -86,11 +86,37 @@ axiosInstance.interceptors.response.use(
       try {
         // Try to refresh the token if we're not on the auth routes
         if (!originalRequest.url.includes("/auth/")) {
-          // Handle refresh token logic here if needed
-          // ...
+          // Attempt to refresh the token
+          console.log("[axiosConfig] Attempting to refresh token due to 401");
+
+          try {
+            const refreshResult = await tokenService.refreshToken();
+
+            // If token refresh was successful, retry the original request
+            if (refreshResult && refreshResult.token) {
+              console.log(
+                "[axiosConfig] Token refresh successful, retrying request"
+              );
+
+              // Mark this request as retried
+              originalRequest._retry = true;
+
+              // Update the authorization header with the new token
+              originalRequest.headers.Authorization = `Bearer ${refreshResult.token}`;
+
+              // Reset the session expiration flag
+              isHandlingSessionExpiration = false;
+
+              // Retry the original request with the new token
+              return axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            console.error("[axiosConfig] Token refresh failed:", refreshError);
+            // Continue to redirect to login
+          }
         }
 
-        // If we can't refresh, redirect to login with a message
+        // If token refresh failed or wasn't attempted, redirect to login
         const redirectUrl = "/login";
         // Only redirect if we're not already on a public brand/event route
         if (
