@@ -99,22 +99,10 @@ const NotificationPanel = ({ onClose }) => {
       await handleMarkAsRead(notification._id);
     }
 
-    // console.log("[NotificationPanel] handleEntityClick - Raw data:", {
-    //   type,
-    //   id,
-    //   notification: {
-    //     _id: notification?._id,
-    //     type: notification?.type,
-    //     metadata: notification?.metadata,
-    //     brandId: notification?.brandId,
-    //   },
-    // });
-
     switch (type) {
       case "brand":
         // First try to get the brand data from metadata
         const brandData = notification?.metadata?.brand;
-        // console.log("[NotificationPanel] Brand data from metadata:", brandData);
 
         // Try to get username in order of priority
         const brandUsername =
@@ -123,32 +111,11 @@ const NotificationPanel = ({ onClose }) => {
           notification?.brand?.username || // from notification.brand
           id; // fallback to id if it's a string
 
-        // console.log("[NotificationPanel] Resolved brand username:", {
-        //   fromMetadata: brandData?.username,
-        //   fromIdObject: typeof id === "object" ? id.username : null,
-        //   fromNotification: notification?.brand?.username,
-        //   fromId: id,
-        //   final: brandUsername,
-        // });
-
         if (!brandUsername) {
-          // console.error(
-          //   "[NotificationPanel] Could not resolve brand username:",
-          //   {
-          //     brandData,
-          //     id,
-          //     notification,
-          //   }
-          // );
           toast.showError("Could not navigate to brand profile");
           return;
         }
 
-        // Log the final navigation attempt
-        // console.log(
-        //   "[NotificationPanel] Attempting navigation to:",
-        //   `/@${user.username}/@${brandUsername}`
-        // );
         navigate(`/@${user.username}/@${brandUsername}`);
         onClose();
         break;
@@ -196,7 +163,6 @@ const NotificationPanel = ({ onClose }) => {
         break;
 
       default:
-        // console.log("[NotificationPanel] Unhandled entity type:", type);
         break;
     }
   };
@@ -260,7 +226,6 @@ const NotificationPanel = ({ onClose }) => {
 
   const renderNotificationContent = (notification) => {
     const { type, metadata, read, requestId } = notification;
-    // console.log("Rendering notification:", { type, metadata });
 
     // Check if we should show an avatar (expand this for more notification types)
     const showAvatar =

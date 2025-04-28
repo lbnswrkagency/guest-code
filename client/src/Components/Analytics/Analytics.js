@@ -29,7 +29,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     );
 
     const handleNavigationStateChange = (event) => {
-      console.log("Analytics: Received navigation state change:", event.detail);
+      // Remove console.log
     };
 
     window.addEventListener(
@@ -59,12 +59,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     setError(null);
 
     try {
-      console.log(
-        "Fetching analytics for brand:",
-        selectedBrand._id,
-        "event:",
-        selectedEvent._id
-      );
+      // Remove console.log
 
       const response = await axiosInstance.get("/analytics/summary", {
         params: {
@@ -75,34 +70,22 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
       // Process the response data
       const data = response.data;
-      console.log(
-        "Raw analytics data received:",
-        JSON.stringify(data, null, 2)
-      );
+      // Remove console.log
 
       // If there are ticket categories, ensure each has a paymentMethod
       if (data.tickets && data.tickets.categories) {
-        // Log tickets data
-        console.log(
-          "Tickets data before processing:",
-          JSON.stringify(data.tickets, null, 2)
-        );
+        // Remove console.log
 
         // Check if paymentMethod exists in the response
-        console.log("Payment method in response:", data.tickets.paymentMethod);
+        // Remove console.log
 
         // Get the event's paymentMethod (all tickets should have the same payment method)
         const paymentMethod = data.tickets.paymentMethod || "online";
-        console.log("Using payment method:", paymentMethod);
+        // Remove console.log
 
         // Apply paymentMethod to all categories if not already present
         data.tickets.categories = data.tickets.categories.map((category) => {
-          console.log(
-            "Processing category:",
-            category.name,
-            "Current paymentMethod:",
-            category.paymentMethod
-          );
+          // Remove console.log
           return {
             ...category,
             paymentMethod: category.paymentMethod || paymentMethod,
@@ -112,15 +95,12 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
         // Ensure the main tickets object has paymentMethod
         data.tickets.paymentMethod = paymentMethod;
 
-        console.log(
-          "Tickets data after processing:",
-          JSON.stringify(data.tickets, null, 2)
-        );
+        // Remove console.log
       }
 
       setStats(data);
     } catch (err) {
-      console.error("Error fetching analytics:", err);
+      // Remove console.error
       setError("Failed to load analytics data. Please try again.");
     } finally {
       setLoading(false);
@@ -265,21 +245,13 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
   // Render a ticket category card
   const renderTicketCategory = (category) => {
-    console.log(
-      "Rendering category:",
-      category.name,
-      "Payment method:",
-      category.paymentMethod
-    );
+    // Remove console.log
 
     // Calculate revenue based on payment method
     let revenue = category.stats.revenue;
     if (category.paymentMethod === "atEntrance") {
       revenue = category.stats.checkedIn * category.price;
-      console.log(
-        "atEntrance revenue calculation:",
-        `${category.stats.checkedIn} × ${category.price} = ${revenue}`
-      );
+      // Remove console.log
     }
 
     return (
@@ -341,10 +313,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
   // Render tickets section with categories
   const renderTicketsSection = (tickets) => {
-    console.log(
-      "Rendering tickets section. Payment method:",
-      tickets.paymentMethod
-    );
+    // Remove console.log
 
     // Calculate total revenue based on payment method
     let totalRevenue = tickets.totalRevenue;
@@ -353,7 +322,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
       totalRevenue = tickets.categories.reduce((sum, category) => {
         return sum + category.stats.checkedIn * category.price;
       }, 0);
-      console.log("atEntrance total revenue calculation:", totalRevenue);
+      // Remove console.log
     }
 
     return (

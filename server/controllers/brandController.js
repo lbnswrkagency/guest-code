@@ -66,10 +66,6 @@ exports.createBrand = async (req, res) => {
       brand._id,
       req.user._id
     );
-    console.log("[BrandController:createBrand] Created default roles:", {
-      founderRole: { id: founderRole._id, name: founderRole.name },
-      memberRole: { id: memberRole._id, name: memberRole.name },
-    });
 
     // Now add the owner as a team member with the Founder role ID
     brand.team.push({
@@ -195,17 +191,6 @@ exports.getAllBrands = async (req, res) => {
 
       return brandObj;
     });
-
-    console.log(
-      "[BrandController:getAllBrands] Returning brands with role info:",
-      brandsWithExtendedInfo.map((b) => ({
-        id: b._id,
-        name: b.name,
-        roleId: b.roleId || "None",
-        roleName: b.role?.name || "Unknown",
-        isOwner: b.isOwner || false,
-      }))
-    );
 
     res.status(200).json(brandsWithExtendedInfo);
   } catch (error) {
@@ -627,28 +612,10 @@ exports.updateBrandCover = async (req, res) => {
 // Delete brand
 exports.deleteBrand = async (req, res) => {
   try {
-    console.log("[Delete Brand] Request params:", {
-      brandId: req.params.brandId,
-      userId: req.user._id,
-    });
-
     // First find the brand to check permissions
     const brandToDelete = await Brand.findById(req.params.brandId);
-    console.log("[Delete Brand] Found brand:", {
-      brand: brandToDelete
-        ? {
-            _id: brandToDelete._id,
-            owner: brandToDelete.owner,
-            team: brandToDelete.team,
-          }
-        : null,
-    });
 
     if (!brandToDelete) {
-      console.log(
-        "[Delete Brand] Brand not found with ID:",
-        req.params.brandId
-      );
       return res.status(404).json({ message: "Brand not found" });
     }
 
@@ -660,36 +627,16 @@ exports.deleteBrand = async (req, res) => {
         member.role === "admin"
     );
 
-    console.log("[Delete Brand] Permission check:", {
-      isOwner,
-      isTeamAdmin,
-      requestingUserId: req.user._id,
-      brandOwnerId: brandToDelete.owner,
-    });
-
     if (!isOwner && !isTeamAdmin) {
-      console.log("[Delete Brand] Permission denied for user:", req.user._id);
       return res
         .status(403)
         .json({ message: "You don't have permission to delete this brand" });
     }
 
-    // First delete all roles associated with this brand
-    console.log(
-      "[Delete Brand] Deleting associated roles for brand:",
-      req.params.brandId
-    );
-    const deletedRoles = await Role.deleteMany({ brandId: req.params.brandId });
-    console.log("[Delete Brand] Deleted roles:", {
-      count: deletedRoles.deletedCount,
-      brandId: req.params.brandId,
-    });
-
     // Delete the brand
     const deletedBrand = await Brand.findOneAndDelete({
       _id: req.params.brandId,
     });
-    console.log("[Delete Brand] Brand deleted:", deletedBrand?._id);
 
     res.status(200).json({
       message: "Brand deleted successfully",
@@ -897,12 +844,6 @@ exports.banMember = async (req, res) => {
 
 // Follow a brand
 exports.followBrand = async (req, res) => {
-  console.log("[BrandController:followBrand] Starting follow request:", {
-    brandId: req.params.brandId,
-    userId: req.user?._id,
-    timestamp: new Date().toISOString(),
-  });
-
   try {
     const { brandId } = req.params;
     const userId = req.user._id;
@@ -915,9 +856,6 @@ exports.followBrand = async (req, res) => {
     );
 
     if (!updatedBrand) {
-      console.log("[BrandController:followBrand] Brand not found:", {
-        brandId,
-      });
       return res.status(404).json({ message: "Brand not found" });
     }
 
@@ -925,12 +863,6 @@ exports.followBrand = async (req, res) => {
     const followersAsStrings = updatedBrand.followers.map((id) =>
       id.toString()
     );
-
-    console.log("[BrandController:followBrand] Updated brand:", {
-      brandId: updatedBrand._id,
-      followersAsStrings,
-      addedUserId: userId.toString(),
-    });
 
     // Create notification for brand owner
     await Notification.create({
@@ -961,10 +893,6 @@ exports.followBrand = async (req, res) => {
       },
     };
 
-    console.log(
-      "[BrandController:followBrand] Sending success response:",
-      response
-    );
     res.status(200).json(response);
   } catch (error) {
     console.error("[BrandController:followBrand] Error:", {
@@ -979,12 +907,6 @@ exports.followBrand = async (req, res) => {
 
 // Unfollow a brand
 exports.unfollowBrand = async (req, res) => {
-  console.log("[BrandController:unfollowBrand] Starting unfollow request:", {
-    brandId: req.params.brandId,
-    userId: req.user?._id,
-    timestamp: new Date().toISOString(),
-  });
-
   try {
     const { brandId } = req.params;
     const userId = req.user._id;
@@ -997,9 +919,6 @@ exports.unfollowBrand = async (req, res) => {
     );
 
     if (!updatedBrand) {
-      console.log("[BrandController:unfollowBrand] Brand not found:", {
-        brandId,
-      });
       return res.status(404).json({ message: "Brand not found" });
     }
 
@@ -1007,13 +926,6 @@ exports.unfollowBrand = async (req, res) => {
     const followersAsStrings = updatedBrand.followers.map((id) =>
       id.toString()
     );
-
-    console.log("[BrandController:unfollowBrand] Updated brand:", {
-      brandId: updatedBrand._id,
-      previousFollowers: updatedBrand.followers,
-      followersAsStrings,
-      removedUserId: userId.toString(),
-    });
 
     const response = {
       message: "Successfully unfollowed brand",
@@ -1023,10 +935,6 @@ exports.unfollowBrand = async (req, res) => {
       },
     };
 
-    console.log(
-      "[BrandController:unfollowBrand] Sending success response:",
-      response
-    );
     res.status(200).json(response);
   } catch (error) {
     console.error("[BrandController:unfollowBrand] Error:", {
@@ -1044,12 +952,6 @@ exports.requestJoin = async (req, res) => {
   try {
     const { brandId } = req.params;
     const userId = req.user._id;
-
-    console.log("[BrandController:requestJoin] Starting join request:", {
-      brandId,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
 
     // Check if brand exists
     const brand = await Brand.findById(brandId);
@@ -1135,13 +1037,6 @@ exports.requestJoin = async (req, res) => {
         brand: brandId,
         status: "pending",
         requestedAt: new Date(),
-      });
-
-      console.log("[BrandController:requestJoin] Created join request:", {
-        requestId: joinRequest._id,
-        userId,
-        brandId,
-        timestamp: new Date().toISOString(),
       });
 
       // Create notification for brand owner
@@ -1448,12 +1343,6 @@ exports.cancelJoinRequest = async (req, res) => {
     const { brandId } = req.params;
     const userId = req.user._id;
 
-    console.log("[BrandController:cancelJoinRequest] Starting cancellation:", {
-      brandId,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
-
     // Delete the join request
     const deletedRequest = await JoinRequest.findOneAndDelete({
       user: userId,
@@ -1471,16 +1360,6 @@ exports.cancelJoinRequest = async (req, res) => {
       "metadata.user.id": userId,
       brandId: brandId,
     });
-
-    console.log(
-      "[BrandController:cancelJoinRequest] Successfully cancelled request:",
-      {
-        requestId: deletedRequest._id,
-        userId,
-        brandId,
-        timestamp: new Date().toISOString(),
-      }
-    );
 
     res.status(200).json({
       message: "Join request cancelled successfully",

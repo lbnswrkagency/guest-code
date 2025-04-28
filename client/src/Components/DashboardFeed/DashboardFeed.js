@@ -219,13 +219,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
             setEventData(eventWithLineups);
             preloadEventImage(eventWithLineups);
           } else {
-            // Log final event data before setting it
-            console.log("DashboardFeed - Final Event Data (no lineups):", {
-              eventId: event?._id || null,
-              brandId: selectedBrand?._id || null,
-              eventTitle: event?.title || null,
-            });
-
+            // Remove debug logging
             setEventData(event);
             preloadEventImage(event);
           }
@@ -391,15 +385,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   return (
     <div className="dashboardFeed-container">
       <div className="dashboardFeed-content">
-        {/* Debug log for data being passed to UpcomingEvent */}
-        {console.log("DashboardFeed - Rendering:", {
-          key: `${selectedBrand?._id}-${eventData?._id}`,
-          brandId: selectedBrand?._id || null,
-          brandUsername: selectedBrand?.username || null,
-          eventId: eventData?._id || null,
-          eventTitle: eventData?.title || null,
-        })}
-
         <UpcomingEvent
           key={`${selectedBrand?._id}-${eventData?._id}`}
           brandId={selectedBrand?._id}

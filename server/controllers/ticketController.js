@@ -521,11 +521,26 @@ const generateTicketPDF = async (ticket) => {
               <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${
                 ticket.ticketName
               }</p>        
+              ${
+                ticket.paymentMethod === "atEntrance"
+                  ? `
+                <p style="margin: 0.5rem 0 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">Price</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.price.toFixed(
+                  2
+                )} EUR</p>
+                `
+                  : ``
+              }
             </div>
             
             <div style="margin-top: 0.75rem;">
               ${
-                ticket.pax > 1
+                ticket.paymentMethod === "atEntrance"
+                  ? `
+                <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
+                <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.pax}</p>
+                `
+                  : ticket.pax > 1
                   ? `
                 <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem;">People</p>
                 <p style="margin: 0; font-weight: 500; font-size: 0.857rem; color: #fff; line-height: 1.25rem;">${ticket.pax}</p>

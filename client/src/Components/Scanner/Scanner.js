@@ -117,8 +117,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         // If primary detection failed, try alternative approaches
         if (!code) {
           // Try with inverted colors (some older QR codes might need this)
-          if (DEBUG_SCANNING)
-            console.log("Primary scan failed, trying alternatives...");
 
           // Invert the image data to try detecting inverted QR codes
           const invertedData = new Uint8ClampedArray(imageData.data);
@@ -143,8 +141,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         }
 
         if (code && !isProcessing && !errorMessage) {
-          if (DEBUG_SCANNING) console.log("QR code detected:", code.data);
-
           // Prevent processing the same code multiple times in succession
           if (
             code.data !== lastScannedCode.current ||
@@ -153,7 +149,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
             handleQRCode(code.data);
           }
         } else if (DEBUG_SCANNING && !code) {
-          console.log("No QR code detected in this frame");
         }
       }
       animationFrameRef.current = requestAnimationFrame(tick);
@@ -187,7 +182,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       if (/^[A-Z0-9]{8}$/.test(data)) {
         codeType = "Short Code";
         // No need to modify data, codeToValidate already set to data
-        console.log("Detected 8-character alphanumeric code:", data);
       } else {
         // Check if the data is JSON
         let codeData;
@@ -314,14 +308,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
 
         // Log TableCode validation details
         if (response.data.typeOfTicket === "Table-Code") {
-          console.log("TableCode validation successful:", {
-            id: response.data._id,
-            code: response.data.code,
-            status: response.data.status,
-            tableNumber: response.data.tableNumber,
-            pax: response.data.pax,
-            paxChecked: response.data.paxChecked,
-          });
         }
 
         // If the ticket doesn't belong to the selected event, show an error
@@ -478,8 +464,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           ? `/qr/increase/${scanResult._id}`
           : `/qr/decrease/${scanResult._id}`;
       }
-
-      console.log("Calling endpoint for check-in/out:", endpoint); // Debug log to show which endpoint is called
 
       // Make the request with proper payload
       const response = await axiosInstance.put(endpoint, payload);
@@ -644,8 +628,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   // Add event listener to close component when Profile is clicked in Navigation
   useEffect(() => {
     const handleCloseFromProfile = (event) => {
-      console.log("Scanner: Closing from Profile click");
-
       // Use a small timeout to ensure smooth transitions
       setTimeout(() => {
         if (onClose) {
@@ -670,7 +652,6 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   // Add a useEffect for proper cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log("Scanner component unmounting - cleaning up");
       componentCleanup(cleanupCamera);
     };
   }, []);

@@ -337,11 +337,6 @@ const DashboardContent = ({ user, setUser }) => {
 
     const fetchCodeSettings = async () => {
       try {
-        console.log(
-          "%c⚙️ Starting code settings fetch",
-          "color: #3F51B5; font-weight: bold;"
-        );
-
         // First check if we have a selected event
         if (selectedBrand?._id) {
           // Try to fetch all code settings for the user's brand
@@ -512,11 +507,6 @@ const DashboardContent = ({ user, setUser }) => {
             updatedAt: new Date().toISOString(),
           }));
 
-          console.log(
-            "%c✅ Created default settings after error:",
-            "color: #4CAF50; font-weight: bold;",
-            defaultSettings
-          );
           setCodeSettings(defaultSettings);
         } else {
           console.warn(
@@ -602,7 +592,6 @@ const DashboardContent = ({ user, setUser }) => {
       // First look for custom roles (isDefault !== true)
       for (const role of brandRoles) {
         if (role.isDefault !== true) {
-          console.log(`Found custom role: ${role.name}`);
           highestRole = role.name;
           highestRoleIsCustom = true;
           break;

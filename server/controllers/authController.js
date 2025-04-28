@@ -226,10 +226,6 @@ exports.login = async (req, res) => {
             .select("-__v")
             .populate("genres")
             .lean();
-          console.log(
-            `[AuthController Login] Fetched ${parentEvents.length} parent events for brand ${brand._id}. First event genres:`,
-            parentEvents[0]?.genres
-          ); // Log first event genres
 
           // Get child events for weekly events
           const weeklyEventIds = parentEvents
@@ -244,10 +240,6 @@ exports.login = async (req, res) => {
               .select("-__v")
               .populate("genres")
               .lean();
-            console.log(
-              `[AuthController Login] Fetched ${childEvents.length} child events for brand ${brand._id}. First child event genres:`,
-              childEvents[0]?.genres
-            ); // Log first child event genres
           }
 
           // Combine all events
@@ -303,11 +295,6 @@ exports.login = async (req, res) => {
         }
       })
     );
-
-    console.log(
-      `[AuthController Login] Final 'allEvents' array structure before sending. First event genres:`,
-      allEvents[0]?.genres
-    ); // Log final structure
 
     // Return user data and tokens
     const userData = {

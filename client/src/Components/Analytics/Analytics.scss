@@ -521,6 +521,23 @@
             0 1px 1px rgba(255, 255, 255, 0.05);
           position: relative;
 
+          /* Add subtle pulsing shadow for empty progress bars */
+          &:has(.progress-fill[style*="width: 0%"]),
+          &:has(.progress-fill[style*="width: 4px"]) {
+            &::after {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 4px;
+              height: 100%;
+              background: rgba(255, 200, 7, 0.3);
+              border-radius: 5px 0 0 5px;
+              animation: pulse-glow 2s infinite ease-in-out;
+              box-shadow: 0 0 5px rgba(255, 200, 7, 0.5);
+            }
+          }
+
           &::before {
             content: "";
             position: absolute;
@@ -539,6 +556,16 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             position: relative;
             overflow: hidden;
+
+            /* Min width for all progress bars */
+            min-width: 4px;
+
+            /* Special styling for 0% progress */
+            &[style*="width: 0%"] {
+              min-width: 4px;
+              background: rgba(255, 200, 7, 0.5);
+              animation: pulse-opacity 2s infinite ease-in-out;
+            }
 
             &::after {
               content: "";
@@ -566,6 +593,12 @@
           min-width: 40px;
           text-align: right;
           text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+
+          /* Add subtle animation for 0% */
+          &:contains("0%") {
+            color: rgba(255, 200, 7, 0.7);
+            animation: pulse-text 2s infinite ease-in-out;
+          }
         }
       }
     }
@@ -654,6 +687,7 @@
       background: #ffc807;
       border-radius: 2px;
       transition: width 0.3s ease;
+      min-width: 4px;
     }
   }
 }
@@ -873,6 +907,7 @@
         transition: width 0.5s ease;
         opacity: 0.9;
         position: relative;
+        min-width: 4px;
 
         &::after {
           content: "";
@@ -888,7 +923,7 @@
             rgba(255, 255, 255, 0) 100%
           );
           background-size: 200% 100%;
-          animation: shimmer 2s infinite;
+          animation: pulse-shimmer 2.5s infinite ease-in-out;
         }
       }
     }
@@ -918,5 +953,56 @@
         }
       }
     }
+  }
+}
+
+@keyframes pulse-shimmer {
+  0% {
+    background-position: -200% 0;
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 200% 0;
+    opacity: 0.5;
+  }
+}
+
+/* Animation for pulsing empty progress bars */
+@keyframes pulse-opacity {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 2px rgba(255, 200, 7, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 200, 7, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 2px rgba(255, 200, 7, 0.3);
+  }
+}
+
+@keyframes pulse-text {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
   }
 }

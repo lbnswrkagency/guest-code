@@ -33,9 +33,6 @@ class TokenService {
   // Handle window focus event to check token immediately when user returns to tab
   handleWindowFocus = () => {
     if (document.visibilityState === "visible") {
-      console.log(
-        "[tokenService] Window focus detected, checking token validity"
-      );
       this.checkAndRefreshToken();
       this.pingSession();
     }
@@ -65,9 +62,7 @@ class TokenService {
     this.sessionPingTimer = setInterval(() => {
       // Only ping if document is visible (active tab)
       if (document.visibilityState === "visible") {
-        console.log("[tokenService] Sending session ping");
         this.pingSession().catch((err) => {
-          console.error("[tokenService] Ping failed:", err);
           // Silent catch
         });
       }
@@ -103,7 +98,6 @@ class TokenService {
 
       // If we got a new token from the ping, update it without triggering state changes
       if (response.data && response.data.tokenRefreshed) {
-        console.log("[tokenService] Token refreshed from ping");
         // Try to extract token from cookies instead of relying on response
         const cookies = document.cookie.split(";");
         for (let cookie of cookies) {
@@ -126,17 +120,10 @@ class TokenService {
     } catch (error) {
       // If ping fails with 401, try to refresh the token
       if (error.response && error.response.status === 401) {
-        console.log(
-          "[tokenService] Ping failed with 401, trying to refresh token"
-        );
         try {
           await this.refreshToken();
           return { status: "refreshed" };
         } catch (refreshError) {
-          console.error(
-            "[tokenService] Refresh after ping failure failed:",
-            refreshError
-          );
           return { status: "refresh-failed", message: refreshError.message };
         }
       }
@@ -326,8 +313,6 @@ class TokenService {
     // Reset flags
     this.isRefreshing = false;
     this.refreshPromise = null;
-
-    console.log("[tokenService] Cleanup completed");
   }
 }
 

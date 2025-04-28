@@ -622,15 +622,6 @@ const Dashboard = () => {
   // Check if user has no brands
   const hasNoBrands = brands.length === 0;
 
-  // Debug log for selected data
-  console.log("Current selection:", {
-    selectedEventId: selectedEvent?._id || null,
-    selectedBrandId: selectedBrand?._id || null,
-    eventCodeSettings: selectedEvent
-      ? getCodeSettingsForSelectedEvent().map((cs) => cs._id)
-      : [],
-  });
-
   return (
     <div className="dashboard">
       <Navigation
