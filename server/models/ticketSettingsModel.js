@@ -105,7 +105,7 @@ const TicketSettingsSchema = new Schema(
       enum: ["online", "atEntrance"],
       default: "online",
       description:
-        "Payment method for tickets - online payment or payment at entrance",
+        "Payment method for tickets - online payment or payment at entrance. Used in Analytics to determine if tickets are displayed as 'Sold' or 'Generated', and how revenue is calculated.",
     },
     sortOrder: {
       type: Number,

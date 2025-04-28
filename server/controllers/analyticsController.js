@@ -239,6 +239,16 @@ async function getDetailedTicketStats(eventId) {
       categories: [],
     };
 
+    // Determine common payment method
+    // Default to the first ticket setting's payment method if available
+    let commonPaymentMethod =
+      ticketSettings.length > 0
+        ? ticketSettings[0].paymentMethod || "online"
+        : "online";
+
+    // Set the payment method in the summary
+    summary.paymentMethod = commonPaymentMethod;
+
     // Process each ticket setting
     for (const setting of ticketSettings) {
       // Filter tickets for this category
@@ -266,6 +276,8 @@ async function getDetailedTicketStats(eventId) {
           name: setting.name,
           price: setting.price,
           color: setting.color || "#2196F3",
+          // Include payment method from ticket settings
+          paymentMethod: setting.paymentMethod || commonPaymentMethod,
           stats: {
             sold: categorySold,
             checkedIn: categoryCheckedIn,
@@ -302,6 +314,7 @@ async function getDetailedTicketStats(eventId) {
       totalCheckedIn: 0,
       totalRevenue: 0,
       categories: [],
+      paymentMethod: "online", // Default fallback
     };
   }
 }

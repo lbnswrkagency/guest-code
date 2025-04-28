@@ -112,6 +112,18 @@ const Navigation = ({ onBack, onLogout }) => {
   const handleBack = () => {
     if (onBack) {
       onBack();
+    } else if (isDashboardController) {
+      // If we're in dashboard context and in a subcomponent, navigate back to dashboard
+      const isDashboardSubComponent =
+        location.pathname.includes("/dashboard") ||
+        localStorage.getItem("currentComponent") === "Analytics";
+
+      if (isDashboardSubComponent) {
+        console.log("Navigation: Back to dashboard");
+        navigate("/dashboard");
+      } else {
+        navigate(`/@${user.username}`);
+      }
     } else if (isAuthenticated) {
       navigate(`/@${user.username}`);
     } else {
@@ -170,6 +182,31 @@ const Navigation = ({ onBack, onLogout }) => {
       navigate(`/@${user.username}`);
     }
   };
+
+  // Listen for navigation back events
+  useEffect(() => {
+    const handleNavigationBack = (event) => {
+      const { source, returnTo } = event.detail;
+      console.log(
+        `Navigation: Received back event from ${source}, returnTo: ${returnTo}`
+      );
+
+      if (returnTo === "Dashboard") {
+        // Save the current component to localStorage to help with back navigation
+        localStorage.setItem("currentComponent", source);
+        navigate("/dashboard");
+      } else if (onBack) {
+        onBack();
+      } else {
+        handleBack();
+      }
+    };
+
+    window.addEventListener("navigationBack", handleNavigationBack);
+    return () => {
+      window.removeEventListener("navigationBack", handleNavigationBack);
+    };
+  }, [navigate, onBack]);
 
   // Render sidebar navigation for tablet and larger screens
   const renderSidebar = () => {

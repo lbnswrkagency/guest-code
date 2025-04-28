@@ -20,7 +20,11 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("subComponentMounted", {
-        detail: { component: "Analytics", usesNavigation: true },
+        detail: {
+          component: "Analytics",
+          usesNavigation: true,
+          source: "Dashboard",
+        },
       })
     );
 
@@ -41,18 +45,6 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     };
   }, []);
 
-  const handleBack = () => {
-    console.log("Analytics: Back button clicked");
-
-    window.dispatchEvent(
-      new CustomEvent("navigationBack", {
-        detail: { source: "Analytics" },
-      })
-    );
-
-    if (onClose) onClose();
-  };
-
   useEffect(() => {
     if (selectedBrand && selectedEvent) {
       fetchAnalytics();
@@ -67,6 +59,13 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     setError(null);
 
     try {
+      console.log(
+        "Fetching analytics for brand:",
+        selectedBrand._id,
+        "event:",
+        selectedEvent._id
+      );
+
       const response = await axiosInstance.get("/analytics/summary", {
         params: {
           brandId: selectedBrand._id,
@@ -74,7 +73,52 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
         },
       });
 
-      setStats(response.data);
+      // Process the response data
+      const data = response.data;
+      console.log(
+        "Raw analytics data received:",
+        JSON.stringify(data, null, 2)
+      );
+
+      // If there are ticket categories, ensure each has a paymentMethod
+      if (data.tickets && data.tickets.categories) {
+        // Log tickets data
+        console.log(
+          "Tickets data before processing:",
+          JSON.stringify(data.tickets, null, 2)
+        );
+
+        // Check if paymentMethod exists in the response
+        console.log("Payment method in response:", data.tickets.paymentMethod);
+
+        // Get the event's paymentMethod (all tickets should have the same payment method)
+        const paymentMethod = data.tickets.paymentMethod || "online";
+        console.log("Using payment method:", paymentMethod);
+
+        // Apply paymentMethod to all categories if not already present
+        data.tickets.categories = data.tickets.categories.map((category) => {
+          console.log(
+            "Processing category:",
+            category.name,
+            "Current paymentMethod:",
+            category.paymentMethod
+          );
+          return {
+            ...category,
+            paymentMethod: category.paymentMethod || paymentMethod,
+          };
+        });
+
+        // Ensure the main tickets object has paymentMethod
+        data.tickets.paymentMethod = paymentMethod;
+
+        console.log(
+          "Tickets data after processing:",
+          JSON.stringify(data.tickets, null, 2)
+        );
+      }
+
+      setStats(data);
     } catch (err) {
       console.error("Error fetching analytics:", err);
       setError("Failed to load analytics data. Please try again.");
@@ -220,93 +264,53 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
   };
 
   // Render a ticket category card
-  const renderTicketCategory = (category) => (
-    <div
-      key={category.name}
-      className="ticket-category"
-      style={{ borderLeft: `4px solid ${category.color}` }}
-    >
-      <div className="category-header">
-        <div className="category-icon-wrapper">
-          <RiTicket2Line
-            className="category-icon"
-            style={{ color: category.color }}
-          />
-        </div>
-        <h4>{category.name}</h4>
-        <span className="price">{category.price}€</span>
-      </div>
-      <div className="category-stats">
-        <div className="stat">
-          <span className="value">{category.stats.sold}</span>
-          <span className="label">Sold</span>
-        </div>
-        <div className="stat">
-          <span className="value">{category.stats.checkedIn}</span>
-          <span className="label">Checked In</span>
-        </div>
-        <div className="stat">
-          <span className="value">{category.stats.revenue}€</span>
-          <span className="label">Revenue</span>
-        </div>
-      </div>
-      <div className="progress-container">
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${getPercentage(
-                category.stats.checkedIn,
-                category.stats.sold
-              )}%`,
-              backgroundColor: category.color,
-            }}
-          ></div>
-        </div>
-        <div className="progress-percentage">
-          {getPercentage(category.stats.checkedIn, category.stats.sold).toFixed(
-            0
-          )}
-          %
-        </div>
-      </div>
-    </div>
-  );
+  const renderTicketCategory = (category) => {
+    console.log(
+      "Rendering category:",
+      category.name,
+      "Payment method:",
+      category.paymentMethod
+    );
 
-  // Render tickets section with categories
-  const renderTicketsSection = (tickets) => (
-    <div
-      className={`stat-card tickets-card clickable ${
-        expandedCard === "tickets" ? "expanded" : ""
-      }`}
-    >
+    // Calculate revenue based on payment method
+    let revenue = category.stats.revenue;
+    if (category.paymentMethod === "atEntrance") {
+      revenue = category.stats.checkedIn * category.price;
+      console.log(
+        "atEntrance revenue calculation:",
+        `${category.stats.checkedIn} × ${category.price} = ${revenue}`
+      );
+    }
+
+    return (
       <div
-        className="card-header"
-        onClick={() =>
-          setExpandedCard(expandedCard === "tickets" ? null : "tickets")
-        }
+        key={category.name}
+        className="ticket-category"
+        style={{ borderLeft: `4px solid ${category.color}` }}
       >
-        <div className="card-header-content">
-          <div className="card-icon-wrapper">
-            <RiTicket2Line className="card-icon" />
+        <div className="category-header">
+          <div className="category-icon-wrapper">
+            <RiTicket2Line
+              className="category-icon"
+              style={{ color: category.color }}
+            />
           </div>
-          <h3>Tickets</h3>
-          <div className="card-toggle">
-            <span className="toggle-icon">⌵</span>
-          </div>
+          <h4>{category.name}</h4>
+          <span className="price">{category.price}€</span>
         </div>
-
-        <div className="stat-values">
-          <div className="stat-total">
-            <span className="value">{tickets.totalSold}</span>
-            <span className="label">Sold</span>
+        <div className="category-stats">
+          <div className="stat">
+            <span className="value">{category.stats.sold}</span>
+            <span className="label">
+              {category.paymentMethod === "atEntrance" ? "Generated" : "Sold"}
+            </span>
           </div>
-          <div className="stat-checked">
-            <span className="value">{tickets.totalCheckedIn}</span>
+          <div className="stat">
+            <span className="value">{category.stats.checkedIn}</span>
             <span className="label">Checked In</span>
           </div>
-          <div className="stat-revenue">
-            <span className="value">{tickets.totalRevenue}€</span>
+          <div className="stat">
+            <span className="value">{revenue}€</span>
             <span className="label">Revenue</span>
           </div>
         </div>
@@ -316,38 +320,119 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
               className="progress-fill"
               style={{
                 width: `${getPercentage(
-                  tickets.totalCheckedIn,
-                  tickets.totalSold
+                  category.stats.checkedIn,
+                  category.stats.sold
                 )}%`,
+                backgroundColor: category.color,
               }}
             ></div>
           </div>
           <div className="progress-percentage">
-            {getPercentage(tickets.totalCheckedIn, tickets.totalSold).toFixed(
-              0
-            )}
+            {getPercentage(
+              category.stats.checkedIn,
+              category.stats.sold
+            ).toFixed(0)}
             %
           </div>
         </div>
       </div>
+    );
+  };
 
-      <AnimatePresence>
-        {expandedCard === "tickets" && tickets.categories.length > 0 && (
-          <motion.div
-            className="ticket-categories"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {tickets.categories.map((category) =>
-              renderTicketCategory(category)
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+  // Render tickets section with categories
+  const renderTicketsSection = (tickets) => {
+    console.log(
+      "Rendering tickets section. Payment method:",
+      tickets.paymentMethod
+    );
+
+    // Calculate total revenue based on payment method
+    let totalRevenue = tickets.totalRevenue;
+    if (tickets.paymentMethod === "atEntrance") {
+      // For atEntrance, revenue is only from checked-in tickets
+      totalRevenue = tickets.categories.reduce((sum, category) => {
+        return sum + category.stats.checkedIn * category.price;
+      }, 0);
+      console.log("atEntrance total revenue calculation:", totalRevenue);
+    }
+
+    return (
+      <div
+        className={`stat-card tickets-card clickable ${
+          expandedCard === "tickets" ? "expanded" : ""
+        }`}
+      >
+        <div
+          className="card-header"
+          onClick={() =>
+            setExpandedCard(expandedCard === "tickets" ? null : "tickets")
+          }
+        >
+          <div className="card-header-content">
+            <div className="card-icon-wrapper">
+              <RiTicket2Line className="card-icon" />
+            </div>
+            <h3>Tickets</h3>
+            <div className="card-toggle">
+              <span className="toggle-icon">⌵</span>
+            </div>
+          </div>
+
+          <div className="stat-values">
+            <div className="stat-total">
+              <span className="value">{tickets.totalSold}</span>
+              <span className="label">
+                {tickets.paymentMethod === "atEntrance" ? "Generated" : "Sold"}
+              </span>
+            </div>
+            <div className="stat-checked">
+              <span className="value">{tickets.totalCheckedIn}</span>
+              <span className="label">Checked In</span>
+            </div>
+            <div className="stat-revenue">
+              <span className="value">{totalRevenue}€</span>
+              <span className="label">Revenue</span>
+            </div>
+          </div>
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${getPercentage(
+                    tickets.totalCheckedIn,
+                    tickets.totalSold
+                  )}%`,
+                }}
+              ></div>
+            </div>
+            <div className="progress-percentage">
+              {getPercentage(tickets.totalCheckedIn, tickets.totalSold).toFixed(
+                0
+              )}
+              %
+            </div>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {expandedCard === "tickets" && tickets.categories.length > 0 && (
+            <motion.div
+              className="ticket-categories"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {tickets.categories.map((category) =>
+                renderTicketCategory(category)
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
 
   return (
     <motion.div
@@ -356,6 +441,8 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
     >
+      <Navigation onBack={onClose} />
+
       <div className="analytics-header">
         <h2>
           <RiFileChartLine /> Analytics
@@ -371,7 +458,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
           >
             <RiRefreshLine className={loading ? "spinning" : ""} />
           </button>
-          <button className="close-btn" onClick={handleBack}>
+          <button className="close-btn" onClick={onClose}>
             <RiCloseLine />
           </button>
         </div>

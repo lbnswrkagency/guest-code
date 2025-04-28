@@ -327,9 +327,6 @@
     right: 0;
     padding: 8px 15px;
 
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.85); // Make background more opaque
     margin-bottom: 0;
     animation: none; // Remove animation for smoother transition
     transition: all 0.25s var(--transition-timing);
