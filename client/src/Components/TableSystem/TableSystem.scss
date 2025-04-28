@@ -192,14 +192,23 @@
   color: #fff;
   padding-top: 2rem;
 
+  @include mq(tablet) {
+    padding-top: 0;
+  }
+
   &-wrapper {
-    max-width: 600px;
-    margin: 0 auto;
+    // max-width: 600px;
+    // margin: 0 auto;
     background: #111;
     border-radius: 16px;
     display: grid;
     flex-direction: column;
     gap: 1.5rem;
+
+    @include mq(tablet) {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
   }
 
   &-content {
