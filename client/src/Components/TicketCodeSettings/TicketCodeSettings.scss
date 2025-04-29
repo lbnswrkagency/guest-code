@@ -1,5 +1,15 @@
-@import "../../_variables";
 @import "../../_animations";
+
+// Define colors directly (based on previous usage)
+// $primary-color: #ffc807; // Example primary color
+// $primary-rgb: 255, 200, 7; // RGB for primary color
+// $background-dark: #121212;
+// $text-color: #ffffff;
+// $text-secondary: #aaaaaa;
+// $text-tertiary: #757575;
+// $error-color: #f44336;
+// $danger-color: #f44336;
+// $text-muted: #aaaaaa;
 
 // Fix for drag-and-drop nested scrollable container warnings
 .ticket-code-settings,
@@ -49,7 +59,7 @@
 
     svg {
       font-size: 1.25rem;
-      color: var(--primary-color);
+      color: #ffc807;
     }
 
     span {
@@ -83,7 +93,7 @@
         left: 1rem;
         top: 50%;
         transform: translateY(-50%);
-        color: var(--primary-color);
+        color: #ffc807;
         font-size: 1.1rem;
       }
 
@@ -101,8 +111,8 @@
         &:focus {
           outline: none;
           background: rgba(255, 255, 255, 0.08);
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.15);
+          border-color: #ffc807;
+          box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.15);
         }
 
         &::-webkit-outer-spin-button,
@@ -122,13 +132,13 @@
     padding: 0.8rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 6px;
-    border-left: 3px solid var(--primary-color);
+    border-left: 3px solid #ffc807;
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
 
     svg {
-      color: var(--primary-color);
+      color: #ffc807;
       font-size: 1.2rem;
       margin-top: 0.1rem;
     }
@@ -144,13 +154,13 @@
     display: block;
     font-size: 14px;
     margin-bottom: 12px;
-    color: var(--text-secondary);
+    color: #aaaaaa;
   }
 
   .help-text {
     display: block;
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #757575;
     margin-top: 8px;
   }
 }
@@ -181,7 +191,7 @@
   svg {
     font-size: 18px;
     margin-right: 10px;
-    color: var(--text-secondary);
+    color: #aaaaaa;
   }
 
   &:hover {
@@ -190,11 +200,11 @@
   }
 
   &.selected {
-    background: rgba(var(--primary-rgb), 0.1);
-    border-color: var(--primary-color);
+    background: rgba(255, 200, 7, 0.1);
+    border-color: #ffc807;
 
     svg {
-      color: var(--primary-color);
+      color: #ffc807;
     }
   }
 }
@@ -220,7 +230,7 @@
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
-  border-left: 4px solid var(--ticket-color, var(--primary-color));
+  border-left: 4px solid var(--ticket-color, #ffc807);
   min-height: 135px;
   position: relative;
 
@@ -231,7 +241,7 @@
   }
 
   &.is-dragging {
-    background: rgba(var(--primary-rgb), 0.1);
+    background: rgba(255, 200, 7, 0.1);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
 }
@@ -242,11 +252,11 @@
   align-items: center;
   justify-content: center;
   cursor: grab;
-  color: var(--text-tertiary);
+  color: #757575;
   background: rgba(0, 0, 0, 0.05);
 
   &:hover {
-    color: var(--text-secondary);
+    color: #aaaaaa;
   }
 
   svg {
@@ -286,8 +296,8 @@
 .ticket-group-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(var(--primary-rgb), 0.15);
-  color: var(--primary-color);
+  background: rgba(255, 200, 7, 0.15);
+  color: #ffc807;
   border-radius: 20px;
   padding: 4px 10px;
   font-size: 12px;
@@ -341,22 +351,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
+    color: #aaaaaa;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
       background: rgba(255, 255, 255, 0.12);
-      color: var(--text-color);
+      color: #ffffff;
     }
 
     &.edit-button:hover {
-      background: var(--primary-color);
+      background: #ffc807;
       color: white;
     }
 
     &.delete-button:hover {
-      background: var(--error-color);
+      background: #f44336;
       color: white;
     }
 
@@ -379,9 +389,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(var(--primary-rgb), 0.1);
-  color: var(--primary-color);
-  border: 1px dashed var(--primary-color);
+  background: rgba(255, 200, 7, 0.1);
+  color: #ffc807;
+  border: 1px dashed #ffc807;
   border-radius: 8px;
   padding: 12px 24px;
   cursor: pointer;
@@ -389,7 +399,7 @@
   font-weight: 500;
 
   &:hover {
-    background: rgba(var(--primary-rgb), 0.2);
+    background: rgba(255, 200, 7, 0.2);
     transform: translateY(-2px);
   }
 
@@ -408,5 +418,36 @@
 
   .ticketCodeSettings-actions {
     align-self: flex-end;
+  }
+}
+
+// Visibility button specific styles
+.visibility-button {
+  color: #aaaaaa;
+  &.hidden {
+    color: #f44336;
+  }
+  &:hover {
+    background-color: rgba(170, 170, 170, 0.1);
+  }
+}
+
+// Style for non-visible tickets
+.ticketCodeSettings-item.not-visible {
+  opacity: 0.6;
+  background-color: #1e1e1e;
+  border-left-color: #aaaaaa;
+
+  h4 {
+    color: #aaaaaa;
+    text-decoration: line-through;
+  }
+  .ticket-price-section {
+    opacity: 0.5;
+  }
+
+  &:hover {
+    opacity: 0.8;
+    background-color: #242424;
   }
 }

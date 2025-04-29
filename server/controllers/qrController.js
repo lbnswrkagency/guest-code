@@ -118,19 +118,34 @@ const validateTicket = async (req, res) => {
     let codeSetting = null; // Store codeSetting for later use
     let wrongEventError = false; // Flag to track if the event ID doesn't match
 
+    console.log(`[QR Validate] Checking token: ${securityTokenToCheck}`);
+
     // First check if this is a security token in the Code model
     let codeBySecurityToken = await Code.findOne({
       securityToken: securityTokenToCheck,
     });
+    console.log(
+      `[QR Validate] Result from Code model (by securityToken): ${
+        codeBySecurityToken ? codeBySecurityToken._id : "null"
+      }`
+    );
 
     // If not found by securityToken, try by code field (for manual entries)
     if (!codeBySecurityToken) {
-      console.log("Trying to find code by 'code' field:", securityTokenToCheck);
+      console.log(
+        "[QR Validate] Trying to find code by 'code' field:",
+        securityTokenToCheck
+      );
       codeBySecurityToken = await Code.findOne({ code: securityTokenToCheck });
+      console.log(
+        `[QR Validate] Result from Code model (by code): ${
+          codeBySecurityToken ? codeBySecurityToken._id : "null"
+        }`
+      );
     }
 
     if (codeBySecurityToken) {
-      console.log("Found code in Code model:", codeBySecurityToken.code);
+      console.log("[QR Validate] Found match in Code model, using it.");
       ticket = codeBySecurityToken;
 
       // If the code has a codeSettingId, fetch it to get the proper name
@@ -183,21 +198,21 @@ const validateTicket = async (req, res) => {
     // Check for TableCode by securityToken
     else if (securityTokenToCheck) {
       console.log(
-        "Trying to find TableCode by securityToken:",
+        "[QR Validate] Checking TableCode by securityToken:",
         securityTokenToCheck
       );
       const tableCodeBySecurityToken = await TableCode.findOne({
         securityToken: securityTokenToCheck,
       });
+      console.log(
+        `[QR Validate] Result from TableCode (by securityToken): ${
+          tableCodeBySecurityToken ? tableCodeBySecurityToken._id : "null"
+        }`
+      );
 
       if (tableCodeBySecurityToken) {
         console.log(
-          "Found TableCode by securityToken:",
-          tableCodeBySecurityToken._id,
-          "with status:",
-          tableCodeBySecurityToken.status,
-          "and code value:",
-          tableCodeBySecurityToken.code
+          "[QR Validate] Found match in TableCode (by securityToken), using it."
         );
         ticket = tableCodeBySecurityToken;
         typeOfTicket = "Table-Code";
@@ -227,19 +242,22 @@ const validateTicket = async (req, res) => {
         hostName = ticket.host || "Unknown Host";
       } else {
         // Try by code field directly
-        console.log("Trying to find TableCode by code field:", ticketId);
+        console.log(
+          "[QR Validate] Trying to find TableCode by code field:",
+          ticketId
+        );
         const tableCodeByCode = await TableCode.findOne({
           code: ticketId,
         });
+        console.log(
+          `[QR Validate] Result from TableCode (by code): ${
+            tableCodeByCode ? tableCodeByCode._id : "null"
+          }`
+        );
 
         if (tableCodeByCode) {
           console.log(
-            "Found TableCode by code field:",
-            tableCodeByCode._id,
-            "with status:",
-            tableCodeByCode.status,
-            "and security token:",
-            tableCodeByCode.securityToken
+            "[QR Validate] Found match in TableCode (by code), using it."
           );
           ticket = tableCodeByCode;
           typeOfTicket = "Table-Code";
@@ -259,25 +277,39 @@ const validateTicket = async (req, res) => {
     // Check if this is a security token in the Ticket model
     else {
       const Ticket = require("../models/ticketModel");
+      console.log(
+        "[QR Validate] Checking Ticket model by securityToken:",
+        securityTokenToCheck
+      );
 
       // First try by security token
       let ticketBySecurityToken = await Ticket.findOne({
         securityToken: securityTokenToCheck,
       });
+      console.log(
+        `[QR Validate] Result from Ticket model (by securityToken): ${
+          ticketBySecurityToken ? ticketBySecurityToken._id : "null"
+        }`
+      );
 
       // If not found, try by code field
       if (!ticketBySecurityToken) {
         console.log(
-          "Trying to find ticket by 'code' field:",
+          "[QR Validate] Trying to find ticket by 'code' field:",
           securityTokenToCheck
         );
         ticketBySecurityToken = await Ticket.findOne({
           code: securityTokenToCheck,
         });
+        console.log(
+          `[QR Validate] Result from Ticket model (by code): ${
+            ticketBySecurityToken ? ticketBySecurityToken._id : "null"
+          }`
+        );
       }
 
       if (ticketBySecurityToken) {
-        console.log("Found ticket in Ticket model:", ticketBySecurityToken._id);
+        console.log("[QR Validate] Found match in Ticket model, using it.");
         ticket = ticketBySecurityToken;
         typeOfTicket = "Ticket-Code";
 

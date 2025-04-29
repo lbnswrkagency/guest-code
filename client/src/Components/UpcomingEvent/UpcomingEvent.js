@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./UpcomingEvent.scss";
 import { useNavigate } from "react-router-dom";
@@ -84,6 +90,16 @@ const UpcomingEvent = ({
 
   // Add a ticket settings cache
   const [ticketSettingsCache, setTicketSettingsCache] = useState({});
+
+  // Filter ticket settings to only include visible ones
+  const visibleTicketSettings = useMemo(() => {
+    // Ensure ticketSettings exists and is an array before filtering
+    if (!Array.isArray(ticketSettings)) {
+      return [];
+    }
+    // Filter out tickets where isVisible is explicitly false
+    return ticketSettings.filter((ticket) => ticket.isVisible !== false);
+  }, [ticketSettings]);
 
   useEffect(() => {
     // If events are provided directly, use them
@@ -1181,10 +1197,10 @@ const UpcomingEvent = ({
                   // Use the new handler for table booking
                   handleTableBookingClick(currentEvent, e);
                 }}
-                hasTickets={ticketSettings.length > 0}
+                hasTickets={visibleTicketSettings.length > 0}
                 ticketPaymentMethod={
-                  ticketSettings.length > 0
-                    ? ticketSettings[0].paymentMethod
+                  visibleTicketSettings.length > 0
+                    ? visibleTicketSettings[0].paymentMethod
                     : "online"
                 }
               />
@@ -1197,73 +1213,34 @@ const UpcomingEvent = ({
 
             {/* Content sections wrapper for responsive layout */}
             <div className="upcomingEvent-content-sections">
-              {/* Ticket Purchase Section - MOVED UP BEFORE GUEST CODE */}
-              <div
-                ref={ticketSectionRef}
-                className="upcomingEvent-ticket-section full-width"
-              >
-                {currentEvent && currentEvent.ticketsAvailable !== false && (
-                  <>
-                    {
-                      loadingTickets ? (
-                        <div className="upcomingEvent-ticket-loading">
-                          <LoadingSpinner color="#ffc807" />
-                          <p>Loading tickets...</p>
-                        </div>
-                      ) : ticketSettings.length > 0 ? (
-                        <Tickets
-                          eventId={currentEvent._id}
-                          eventTitle={currentEvent.title}
-                          eventDate={currentEvent.date}
-                          seamless={seamless}
-                          event={currentEvent}
-                          fetchTicketSettings={async (eventId) => {
-                            try {
-                              const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
-
-                              const response = await axiosInstance.get(
-                                endpoint
-                              );
-                              let ticketSettings = [];
-
-                              if (
-                                response.data &&
-                                response.data.ticketSettings &&
-                                response.data.ticketSettings.length > 0
-                              ) {
-                                ticketSettings = response.data.ticketSettings;
-                              } else if (currentEvent.parentEventId) {
-                                // If this is a child event and no ticket settings were found, check parent event
-                                try {
-                                  const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
-                                  const parentResponse =
-                                    await axiosInstance.get(parentEndpoint);
-
-                                  if (
-                                    parentResponse.data &&
-                                    parentResponse.data.ticketSettings &&
-                                    parentResponse.data.ticketSettings.length >
-                                      0
-                                  ) {
-                                    ticketSettings =
-                                      parentResponse.data.ticketSettings;
-                                  }
-                                } catch (parentError) {
-                                  return [];
-                                }
-                              }
-
-                              return ticketSettings;
-                            } catch (error) {
-                              return [];
-                            }
-                          }}
-                        />
-                      ) : null /* Hide "No tickets" message completely */
-                    }
-                  </>
+              {/* Ticket Purchase Section - Render only if there are VISIBLE tickets */}
+              {currentEvent &&
+                currentEvent.ticketsAvailable !== false &&
+                visibleTicketSettings.length > 0 && (
+                  <div
+                    ref={ticketSectionRef}
+                    className="upcomingEvent-ticket-section full-width"
+                  >
+                    {loadingTickets ? (
+                      <div className="upcomingEvent-ticket-loading">
+                        <LoadingSpinner color="#ffc807" />
+                        <p>Loading tickets...</p>
+                      </div>
+                    ) : (
+                      // No need to check length again here, already done above
+                      <Tickets
+                        eventId={currentEvent._id}
+                        eventTitle={currentEvent.title}
+                        eventDate={currentEvent.date}
+                        seamless={seamless}
+                        event={currentEvent} // Pass the full event data
+                        // Pass the fetch function so Tickets can potentially refresh if needed internally
+                        // NOTE: Tickets component might need adjustment if it directly uses a ticketSettings prop
+                        fetchTicketSettings={fetchTicketSettings}
+                      />
+                    )}
+                  </div>
                 )}
-              </div>
 
               {/* GuestCode component section - MOVED AFTER TICKETS */}
               <div
@@ -1380,7 +1357,7 @@ const UpcomingEvent = ({
                 </div>
 
                 <div className="event-meta">
-                  {ticketSettings && ticketSettings.length > 0 && (
+                  {visibleTicketSettings.length > 0 && (
                     <div className="meta-tag tickets">
                       <RiTicketLine />
                       <span>Tickets Available</span>

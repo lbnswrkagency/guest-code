@@ -53,10 +53,18 @@ const getTicketSettings = async (req, res) => {
       }
     }
 
-    // Get all ticket settings for this event, sorted by sortOrder
-    const ticketSettings = await TicketSettings.find({
-      eventId: parentEventId,
-    }).sort({ sortOrder: 1 });
+    // Define the query criteria
+    let queryCriteria = { eventId: parentEventId };
+
+    // If it's a public route, only fetch visible tickets
+    if (isPublicRoute) {
+      queryCriteria.isVisible = true;
+    }
+
+    // Get ticket settings based on criteria, sorted by sortOrder
+    const ticketSettings = await TicketSettings.find(queryCriteria).sort({
+      sortOrder: 1,
+    });
 
     return res.status(200).json({ ticketSettings });
   } catch (error) {
@@ -312,10 +320,68 @@ const reorderTickets = async (req, res) => {
   }
 };
 
+// Toggle ticket visibility
+const toggleTicketVisibility = async (req, res) => {
+  console.log(
+    `[TicketSettings] Received request to toggle visibility for Ticket ID: ${req.params.ticketId} in Event ID: ${req.params.eventId}`
+  );
+  try {
+    const { eventId, ticketId } = req.params;
+
+    // Find the event to check permissions
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check authorization (similar to update/delete)
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    const userId = req.user.userId || req.user._id;
+    const isDirectOwner = event.user.toString() === userId.toString();
+    let isBrandTeamMember = false;
+    if (!isDirectOwner && !req.user.isAdmin) {
+      const brand = await Brand.findOne({
+        _id: event.brand,
+        $or: [{ owner: userId }, { "team.user": userId }],
+      });
+      isBrandTeamMember = !!brand;
+      if (!isBrandTeamMember) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to modify this event" });
+      }
+    }
+
+    // Find the ticket setting
+    const ticketSetting = await TicketSettings.findById(ticketId);
+    if (!ticketSetting) {
+      return res.status(404).json({ message: "Ticket setting not found" });
+    }
+
+    // Toggle the isVisible status
+    ticketSetting.isVisible = !ticketSetting.isVisible;
+    await ticketSetting.save();
+
+    // Return the updated ticket and a success message
+    res.status(200).json({
+      message: `Ticket visibility ${
+        ticketSetting.isVisible ? "enabled" : "disabled"
+      }`,
+      ticketSetting,
+    });
+  } catch (error) {
+    console.error("[TicketSettings] Error toggling ticket visibility:", error);
+    res.status(500).json({ message: "Server error while toggling visibility" });
+  }
+};
+
 module.exports = {
   getTicketSettings,
   createTicketSetting,
   updateTicketSetting,
   deleteTicketSetting,
   reorderTickets,
+  toggleTicketVisibility,
 };

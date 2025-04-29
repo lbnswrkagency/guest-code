@@ -47,4 +47,11 @@ router.delete(
   ticketSettingsController.deleteTicketSetting
 );
 
+// Toggle ticket visibility
+router.patch(
+  "/events/:eventId/:ticketId/toggle-visibility",
+  authMiddleware,
+  ticketSettingsController.toggleTicketVisibility
+);
+
 module.exports = router;

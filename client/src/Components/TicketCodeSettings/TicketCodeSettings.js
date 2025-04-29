@@ -29,6 +29,8 @@ import {
   RiWalletLine,
   RiDoorLine,
   RiSettings4Line,
+  RiEyeLine,
+  RiEyeOffLine,
 } from "react-icons/ri";
 import "./TicketCodeSettings.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -327,6 +329,34 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     }));
   };
 
+  // Add handler for toggling visibility
+  const handleToggleVisibility = async (ticketId, currentVisibility) => {
+    try {
+      const response = await axiosInstance.patch(
+        `/ticket-settings/events/${event._id}/${ticketId}/toggle-visibility`
+      );
+
+      if (response.data.ticketSetting) {
+        // Update the state locally for immediate feedback
+        setTickets((prevTickets) =>
+          prevTickets.map((t) =>
+            t._id === ticketId
+              ? { ...t, isVisible: response.data.ticketSetting.isVisible }
+              : t
+          )
+        );
+        toast.showSuccess(response.data.message);
+      } else {
+        toast.showError("Failed to update visibility status.");
+      }
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+      toast.showError(
+        error.response?.data?.message || "Failed to toggle visibility."
+      );
+    }
+  };
+
   const renderGlobalSettings = () => {
     return (
       <div className="global-settings-section">
@@ -421,7 +451,7 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                         {...provided.draggableProps}
                         className={`ticketCodeSettings-item ${
                           snapshot.isDragging ? "is-dragging" : ""
-                        }`}
+                        } ${!ticket.isVisible ? "not-visible" : ""}`}
                         style={{
                           ...provided.draggableProps.style,
                           "--ticket-color": ticket.color || "#2196F3",
@@ -471,6 +501,26 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
                           </div>
 
                           <div className="ticketCodeSettings-actions">
+                            <button
+                              className={`visibility-button ${
+                                ticket.isVisible ? "visible" : "hidden"
+                              }`}
+                              onClick={() =>
+                                handleToggleVisibility(
+                                  ticket._id,
+                                  ticket.isVisible
+                                )
+                              }
+                              aria-label={
+                                ticket.isVisible ? "Hide ticket" : "Show ticket"
+                              }
+                            >
+                              {ticket.isVisible ? (
+                                <RiEyeLine />
+                              ) : (
+                                <RiEyeOffLine />
+                              )}
+                            </button>
                             <button
                               className="edit-button"
                               onClick={() => handleEditTicket(ticket)}
