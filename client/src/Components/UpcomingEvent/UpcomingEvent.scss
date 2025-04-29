@@ -792,3 +792,36 @@
     transform: translateY(-3px);
   }
 }
+
+// Spotify section styling within UpcomingEvent
+.upcomingEvent-spotify-section {
+  width: 100%;
+  max-width: 100%;
+  margin: 2rem auto;
+  overflow: hidden;
+
+  // Make Spotify match the other sections styling
+  .spotify {
+    overflow: hidden;
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+    }
+  }
+}
+
+@keyframes shine {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}

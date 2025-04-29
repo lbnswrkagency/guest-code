@@ -93,4 +93,10 @@ router.post("/:brandId/members/:memberId/ban", brandController.banMember);
 // Settings management
 router.put("/:brandId/settings", brandController.updateBrandSettings);
 
+// Meta Pixel management
+router.put("/:brandId/metapixel", brandController.updateBrandMetaPixel);
+
+// Spotify configuration management
+router.put("/:brandId/spotify-config", brandController.updateSpotifyConfig);
+
 module.exports = router;

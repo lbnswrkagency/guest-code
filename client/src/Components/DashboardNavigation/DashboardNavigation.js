@@ -142,7 +142,6 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
     menuItems.push({
       title: "Settings",
       icon: <RiSettings4Line />,
-      path: "/settings",
       action: () => {
         navigate("/settings");
         onClose();

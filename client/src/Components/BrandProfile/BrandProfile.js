@@ -388,6 +388,69 @@ const BrandProfile = () => {
     return icons[platform];
   };
 
+  // Dynamically load Meta Pixel script
+  useEffect(() => {
+    if (brand && brand.metaPixelId) {
+      // Check if a pixel script with this ID already exists
+      const existingPixelScript = document.querySelector(
+        `script[data-pixel-id="${brand.metaPixelId}"]`
+      );
+      if (existingPixelScript) {
+        // Pixel already loaded for this brand
+        return;
+      }
+
+      // Remove any previously injected pixel scripts (if navigating between brands)
+      const previousPixelScripts = document.querySelectorAll(
+        "script[data-pixel-id]"
+      );
+      previousPixelScripts.forEach((script) => script.remove());
+
+      const script = document.createElement("script");
+      script.innerHTML = `
+        !(function (f, b, e, v, n, t, s) {
+          if (f.fbq) return;
+          n = f.fbq = function () {
+            n.callMethod
+              ? n.callMethod.apply(n, arguments)
+              : n.queue.push(arguments);
+          };
+          if (!f._fbq) f._fbq = n;
+          n.push = n;
+          n.loaded = !0;
+          n.version = "2.0";
+          n.queue = [];
+          t = b.createElement(e);
+          t.async = !0;
+          t.src = v;
+          s = b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t, s);
+        })(
+          window,
+          document,
+          'script',
+          'https://connect.facebook.net/en_US/fbevents.js'
+        );
+        fbq('init', '${brand.metaPixelId}');
+        fbq('track', 'PageView');
+      `;
+      // Add a data attribute to identify the script
+      script.setAttribute("data-pixel-id", brand.metaPixelId);
+      document.head.appendChild(script);
+
+      // Optional: Cleanup function to remove the script when the component unmounts
+      // or when the brand changes and a new pixel needs to be loaded.
+      return () => {
+        const currentPixelScript = document.querySelector(
+          `script[data-pixel-id="${brand.metaPixelId}"]`
+        );
+        if (currentPixelScript) {
+          currentPixelScript.remove();
+        }
+      };
+    }
+  }, [brand]); // Rerun effect if brand data changes
+
   const handleLeaveBrand = async () => {
     if (!user) {
       toast.showError("Please log in to leave brands");

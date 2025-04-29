@@ -6,6 +6,7 @@ import {
   RiCloseLine,
   RiShieldUserLine,
   RiUserAddLine,
+  RiBarChart2Line,
 } from "react-icons/ri";
 import UserInterface from "../UserInterface/UserInterface";
 import RoleSetting from "../RoleSetting/RoleSetting";
@@ -23,6 +24,17 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
     defaultRole: brand.settings?.defaultRole || "staff",
   });
   const [roles, setRoles] = useState([]);
+  const [metaPixelId, setMetaPixelId] = useState(brand.metaPixelId || "");
+  const [isSavingPixel, setIsSavingPixel] = useState(false);
+
+  // Spotify integration states
+  const [spotifyConfig, setSpotifyConfig] = useState({
+    spotifyClientId: brand.spotifyClientId || "",
+    spotifyClientSecret: brand.spotifyClientSecret || "",
+    spotifyPlaylistId: brand.spotifyPlaylistId || "",
+  });
+  const [isSavingSpotify, setIsSavingSpotify] = useState(false);
+
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -38,6 +50,22 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
 
     fetchRoles();
   }, [brand]);
+
+  useEffect(() => {
+    setMetaPixelId(brand.metaPixelId || "");
+  }, [brand.metaPixelId]);
+
+  useEffect(() => {
+    setSpotifyConfig({
+      spotifyClientId: brand.spotifyClientId || "",
+      spotifyClientSecret: brand.spotifyClientSecret || "",
+      spotifyPlaylistId: brand.spotifyPlaylistId || "",
+    });
+  }, [
+    brand.spotifyClientId,
+    brand.spotifyClientSecret,
+    brand.spotifyPlaylistId,
+  ]);
 
   const fetchRoles = async () => {
     try {
@@ -151,6 +179,85 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
     fetchRoles(); // Refresh roles when returning from role settings
   };
 
+  const handleMetaPixelChange = (e) => {
+    setMetaPixelId(e.target.value);
+  };
+
+  const saveMetaPixelId = async () => {
+    if (!brand || !brand._id) {
+      showError("Brand information is missing.");
+      return;
+    }
+    setIsSavingPixel(true);
+    try {
+      const response = await axiosInstance.put(
+        `/brands/${brand._id}/metapixel`,
+        { metaPixelId }
+      );
+      showSuccess(
+        response.data.message || "Meta Pixel ID updated successfully!"
+      );
+      if (onSave) {
+        const updatedBrandData = {
+          _id: brand._id,
+          metaPixelId: response.data.metaPixelId,
+        };
+        onSave(updatedBrandData, true);
+      }
+    } catch (error) {
+      console.error("Error updating Meta Pixel ID:", error);
+      showError(
+        error.response?.data?.message || "Failed to update Meta Pixel ID."
+      );
+    } finally {
+      setIsSavingPixel(false);
+    }
+  };
+
+  const handleSpotifyConfigChange = (e) => {
+    const { name, value } = e.target;
+    setSpotifyConfig((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const saveSpotifyConfig = async () => {
+    if (!brand || !brand._id) {
+      showError("Brand information is missing.");
+      return;
+    }
+    setIsSavingSpotify(true);
+    try {
+      const response = await axiosInstance.put(
+        `/brands/${brand._id}/spotify-config`,
+        spotifyConfig
+      );
+      showSuccess(
+        response.data.message || "Spotify configuration updated successfully!"
+      );
+
+      // Optionally update the brand object in the parent component if needed
+      if (onSave) {
+        // Create a minimal update object
+        const updatedBrandData = {
+          _id: brand._id,
+          ...spotifyConfig,
+          spotifyConfigured: response.data.spotifyConfigured,
+        };
+        onSave(updatedBrandData, true); // Pass flag indicating only spotify update
+      }
+    } catch (error) {
+      console.error("Error updating Spotify configuration:", error);
+      showError(
+        error.response?.data?.message ||
+          "Failed to update Spotify configuration."
+      );
+    } finally {
+      setIsSavingSpotify(false);
+    }
+  };
+
   return (
     <div
       className="brand-settings-container"
@@ -241,6 +348,100 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
                   </option>
                 )}
               </select>
+            </div>
+          </div>
+
+          {/* Analytics Section */}
+          <div className="settings-section settings-analytics">
+            <h3>Analytics</h3>
+            <div className="setting-item meta-pixel-setting">
+              <RiBarChart2Line className="setting-icon" />
+              <div className="setting-details">
+                <h4>Meta Pixel ID</h4>
+                <p>
+                  Track profile views and conversions with your Facebook Pixel.
+                </p>
+                <div className="meta-pixel-input-group">
+                  <input
+                    type="text"
+                    placeholder="Enter your Meta Pixel ID"
+                    value={metaPixelId}
+                    onChange={handleMetaPixelChange}
+                    className="meta-pixel-input"
+                  />
+                  <motion.button
+                    onClick={saveMetaPixelId}
+                    disabled={isSavingPixel}
+                    className="save-pixel-btn"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {isSavingPixel ? "Saving..." : "Save"}
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Spotify Integration Section */}
+          <div className="settings-section settings-spotify">
+            <h3>Spotify Integration</h3>
+            <div className="setting-item spotify-setting">
+              <div className="setting-details">
+                <h4>Spotify API Credentials</h4>
+                <p>
+                  Connect your Spotify account to display playlists on your
+                  brand profile.
+                </p>
+                <div className="spotify-input-fields">
+                  <div className="form-group">
+                    <label>Client ID</label>
+                    <input
+                      type="text"
+                      name="spotifyClientId"
+                      placeholder="Enter Spotify Client ID"
+                      value={spotifyConfig.spotifyClientId}
+                      onChange={handleSpotifyConfigChange}
+                      className="spotify-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Client Secret</label>
+                    <input
+                      type="password"
+                      name="spotifyClientSecret"
+                      placeholder="Enter Spotify Client Secret"
+                      value={spotifyConfig.spotifyClientSecret}
+                      onChange={handleSpotifyConfigChange}
+                      className="spotify-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Playlist ID</label>
+                    <input
+                      type="text"
+                      name="spotifyPlaylistId"
+                      placeholder="Enter Spotify Playlist ID"
+                      value={spotifyConfig.spotifyPlaylistId}
+                      onChange={handleSpotifyConfigChange}
+                      className="spotify-input"
+                    />
+                    <small className="help-text">
+                      The ID is the part after "/playlist/" in your Spotify
+                      playlist URL
+                    </small>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={saveSpotifyConfig}
+                  disabled={isSavingSpotify}
+                  className="save-spotify-btn"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {isSavingSpotify ? "Saving..." : "Save Spotify Configuration"}
+                </motion.button>
+              </div>
             </div>
           </div>
 

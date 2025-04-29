@@ -354,6 +354,20 @@ exports.getBrandProfileByUsername = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
+    // Increment page views (simple version)
+    try {
+      await Brand.updateOne(
+        { _id: brand._id },
+        { $inc: { "metrics.pageViews": 1 } }
+      );
+    } catch (incrementError) {
+      console.error(
+        "[BrandController:getBrandProfileByUsername] Error incrementing page views:",
+        incrementError
+      );
+      // Non-critical error, proceed with sending the response
+    }
+
     // Clean up followers array and ensure all IDs are strings
     brand.followers = (brand.followers || [])
       .filter((id) => id != null)
@@ -1380,6 +1394,102 @@ exports.cancelJoinRequest = async (req, res) => {
   }
 };
 
+// New function specifically for updating Meta Pixel ID
+exports.updateBrandMetaPixel = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { metaPixelId } = req.body;
+    const userId = req.user._id;
+
+    if (!brandId) {
+      return res.status(400).json({ message: "Brand ID is required." });
+    }
+
+    const brand = await Brand.findById(brandId);
+
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found." });
+    }
+
+    // Check if the current user is the owner of the brand
+    // TODO: Enhance permission check to allow admins based on roles later if needed
+    if (brand.owner.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message:
+          "Unauthorized. Only the brand owner can update the Meta Pixel ID.",
+      });
+    }
+
+    // Update the metaPixelId - allow empty string to clear it
+    brand.metaPixelId = metaPixelId || "";
+    await brand.save();
+
+    // Return only necessary brand info, especially the updated pixel ID
+    res.status(200).json({
+      message: "Brand Meta Pixel ID updated successfully.",
+      metaPixelId: brand.metaPixelId,
+    });
+  } catch (error) {
+    console.error("[BrandController:updateBrandMetaPixel] Error:", error);
+    res.status(500).json({
+      message: "Error updating Brand Meta Pixel ID",
+      error: error.message,
+    });
+  }
+};
+
+// New function for updating Spotify configuration
+exports.updateSpotifyConfig = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { spotifyClientId, spotifyClientSecret, spotifyPlaylistId } =
+      req.body;
+    const userId = req.user._id;
+
+    if (!brandId) {
+      return res.status(400).json({ message: "Brand ID is required." });
+    }
+
+    const brand = await Brand.findById(brandId);
+
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found." });
+    }
+
+    // Check if the current user is the owner of the brand
+    // TODO: Enhance permission check to allow admins based on roles later if needed
+    if (brand.owner.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message:
+          "Unauthorized. Only the brand owner can update Spotify configuration.",
+      });
+    }
+
+    // Update Spotify credentials - empty strings will clear the values
+    brand.spotifyClientId = spotifyClientId || "";
+    brand.spotifyClientSecret = spotifyClientSecret || "";
+    brand.spotifyPlaylistId = spotifyPlaylistId || "";
+    await brand.save();
+
+    // Only return IDs for security, not the full credentials
+    res.status(200).json({
+      message: "Spotify configuration updated successfully.",
+      spotifyConfigured: !!(
+        spotifyClientId &&
+        spotifyClientSecret &&
+        spotifyPlaylistId
+      ),
+      spotifyPlaylistId: brand.spotifyPlaylistId,
+    });
+  } catch (error) {
+    console.error("[BrandController:updateSpotifyConfig] Error:", error);
+    res.status(500).json({
+      message: "Error updating Spotify configuration",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createBrand: exports.createBrand,
   getAllBrands: exports.getAllBrands,
@@ -1403,4 +1513,6 @@ module.exports = {
   unfavoriteBrand: exports.unfavoriteBrand,
   updateBrandSettings: exports.updateBrandSettings,
   cancelJoinRequest: exports.cancelJoinRequest,
+  updateBrandMetaPixel: exports.updateBrandMetaPixel,
+  updateSpotifyConfig: exports.updateSpotifyConfig,
 };

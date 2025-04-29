@@ -1,2 +1,85 @@
 @import "../../_variables";
 @import "../../_animations";
+@import "../../_mixins";
+
+.settings-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-section {
+  background-color: $background-color-dark;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-large;
+  padding: 1.5rem;
+  box-shadow: $shadow-medium;
+
+  h2 {
+    font-size: 1.4rem;
+    color: $primary-color;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: $text-color-secondary;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"] {
+    @include input-styles;
+  }
+}
+
+.button {
+  @include button-base;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  align-self: flex-start;
+
+  &.primary-button {
+    @include button-primary;
+  }
+
+  &.danger-button {
+    @include button-danger;
+    margin-top: 1rem;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.logout-section {
+  margin-top: 1rem;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  justify-content: flex-start;
+}

@@ -10,6 +10,7 @@ import EventDetails from "../EventDetails/EventDetails";
 import GuestCode from "../GuestCode/GuestCode";
 import TableSystem from "../TableSystem/TableSystem";
 import LineUpView from "../LineUpView/LineUpView";
+import Spotify from "../Spotify/Spotify";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -871,6 +872,32 @@ const UpcomingEvent = ({
     );
   };
 
+  // Check if Spotify is configured for this brand
+  const isSpotifyConfigured = (event) => {
+    // Check different ways the brand could be referenced
+    if (event && event.brand) {
+      // If brand is a full object
+      if (typeof event.brand === "object" && event.brand !== null) {
+        return (
+          event.brand.spotifyClientId &&
+          event.brand.spotifyClientSecret &&
+          event.brand.spotifyPlaylistId
+        );
+      }
+
+      // If we only have a brand ID, we need to rely on a special check
+      // This is a simple approach - we can make this more sophisticated later
+      // by checking through known brands with Spotify configured
+      return (
+        // Add brand IDs of brands known to have Spotify configured
+        event.brand === "67d737d6e1299b18afabf4f4" || // Example ID
+        event.brand === "67ba051873bd89352d3ab6db" // Example ID
+      );
+    }
+
+    return false;
+  };
+
   // Modify the handleTableBookingClick to toggle the view without scrolling
   const handleTableBookingClick = (event, e) => {
     e.stopPropagation(); // Prevent the main event click handler from firing
@@ -1295,6 +1322,20 @@ const UpcomingEvent = ({
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Spotify Integration - Show before footer if configured */}
+      {currentEvent && isSpotifyConfigured(currentEvent) && (
+        <div className="upcomingEvent-spotify-section">
+          <Spotify
+            brandUsername={
+              typeof currentEvent.brand === "object" &&
+              currentEvent.brand?.username
+                ? currentEvent.brand.username
+                : brandUsername // Fall back to the prop if the brand object doesn't have a username
+            }
+          />
+        </div>
+      )}
 
       {/* Footer Section */}
       <motion.div

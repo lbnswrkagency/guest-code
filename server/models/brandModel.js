@@ -53,6 +53,14 @@ const BrandSchema = new Schema(
       address: { type: String },
     },
 
+    // Meta Pixel ID
+    metaPixelId: { type: String },
+
+    // Spotify Integration
+    spotifyClientId: { type: String },
+    spotifyClientSecret: { type: String },
+    spotifyPlaylistId: { type: String },
+
     // Content
     media: {
       photos: [{ type: String }],
@@ -84,6 +92,7 @@ const BrandSchema = new Schema(
       totalEvents: { type: Number, default: 0 },
       totalAttendees: { type: Number, default: 0 },
       averageRating: { type: Number, default: 0 },
+      pageViews: { type: Number, default: 0 },
     },
 
     bannedMembers: [
