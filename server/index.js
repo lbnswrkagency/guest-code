@@ -46,6 +46,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const commissionRoutes = require("./routes/commissionRoutes");
 const adminFinanceRoutes = require("./routes/adminFinanceRoutes");
 const genreRoutes = require("./routes/genreRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -244,6 +245,7 @@ app.use("/api", debugRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/admin/finance", adminFinanceRoutes);
 app.use("/api/genres", genreRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // MongoDB connection
 mongoose

@@ -143,7 +143,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       title: "Settings",
       icon: <RiSettings4Line />,
       action: () => {
-        navigate("/settings");
+        navigate(`/@${currentUser.username}/settings`);
         onClose();
       },
     });

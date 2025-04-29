@@ -228,66 +228,6 @@ const DashboardMenu = ({
             )}
 
             <div className={`menu-grid ${isMenuDisabled ? "disabled" : ""}`}>
-              {permissions.analytics.view && (
-                <motion.div
-                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
-                  onClick={() => {
-                    if (!isMenuDisabled) {
-                      setShowStatistic(true);
-                      setIsOpen(false);
-                    }
-                  }}
-                  whileHover={
-                    !isMenuDisabled
-                      ? {
-                          scale: 1.05,
-                          y: -5,
-                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-                        }
-                      : {}
-                  }
-                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <div className="menu-item-icon-wrapper">
-                    <RiBarChartFill />
-                  </div>
-                  <p>Analytics</p>
-                </motion.div>
-              )}
-
-              {permissions.scanner.use && (
-                <motion.div
-                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
-                  onClick={() => {
-                    if (!isMenuDisabled) {
-                      setShowScanner(true);
-                      setIsOpen(false);
-                    }
-                  }}
-                  whileHover={
-                    !isMenuDisabled
-                      ? {
-                          scale: 1.05,
-                          y: -5,
-                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-                        }
-                      : {}
-                  }
-                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <div className="menu-item-icon-wrapper">
-                    <RiQrCodeFill />
-                  </div>
-                  <span>Scanner</span>
-                </motion.div>
-              )}
-
               {/* Show Codes option if user can generate codes and there are code settings */}
               {permissions.codes.canGenerateAny && codeSettings.length > 0 && (
                 <motion.div
@@ -310,7 +250,7 @@ const DashboardMenu = ({
                   whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.1 }}
                 >
                   <div className="menu-item-icon-wrapper">
                     <RiCodeBoxFill />
@@ -341,12 +281,72 @@ const DashboardMenu = ({
                   whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.2 }}
                 >
                   <div className="menu-item-icon-wrapper">
                     <RiTableLine />
                   </div>
                   <span>Tables</span>
+                </motion.div>
+              )}
+
+              {permissions.analytics.view && (
+                <motion.div
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
+                  onClick={() => {
+                    if (!isMenuDisabled) {
+                      setShowStatistic(true);
+                      setIsOpen(false);
+                    }
+                  }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="menu-item-icon-wrapper">
+                    <RiBarChartFill />
+                  </div>
+                  <p>Analytics</p>
+                </motion.div>
+              )}
+
+              {permissions.scanner.use && (
+                <motion.div
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
+                  onClick={() => {
+                    if (!isMenuDisabled) {
+                      setShowScanner(true);
+                      setIsOpen(false);
+                    }
+                  }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <div className="menu-item-icon-wrapper">
+                    <RiQrCodeFill />
+                  </div>
+                  <span>Scanner</span>
                 </motion.div>
               )}
             </div>

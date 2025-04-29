@@ -40,6 +40,7 @@ import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
+import Settings from "./Components/Settings/Settings";
 // import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
 import notificationManager from "./utils/notificationManager";
 import tokenService from "./utils/tokenService";
@@ -50,21 +51,7 @@ import tokenService from "./utils/tokenService";
 const AppRoutes = () => {
   const location = useLocation();
   const { user, loading: authLoading, authInitialized } = useAuth();
-  const params = useParams();
   const navigate = useNavigate();
-
-  // Pre-build the user profile route if we have a user
-  const userProfilePath = user ? `/@${user.username.trim()}` : null;
-
-  // Check if the current path matches the brand profile pattern
-  const isBrandProfilePath = /^\/@[a-zA-Z0-9_-]+$/.test(location.pathname);
-
-  // Check if the path starts with /@ to handle all brand-related routes
-  const isBrandRelatedPath = location.pathname.startsWith("/@");
-
-  // Check if this is the user's own profile path
-  const isUserOwnProfilePath =
-    userProfilePath && location.pathname === userProfilePath;
 
   // Create a simple loading screen component for auth loading
   const AuthLoadingScreen = () => (
@@ -75,458 +62,148 @@ const AppRoutes = () => {
     </div>
   );
 
-  // If auth is not yet initialized or still loading and we're on a potentially ambiguous path,
-  // show loading screen to prevent incorrect routing decisions
-  if ((!authInitialized || authLoading) && isBrandRelatedPath) {
+  // Show loading screen while authentication is initializing
+  if (!authInitialized) {
     return <AuthLoadingScreen />;
   }
 
-  // Extract username from path for ambiguous routes
-  const getRouteUsername = () => {
-    if (isBrandRelatedPath) {
-      const pathParts = location.pathname.substring(2).split("/");
-      return pathParts[0]; // Only the first segment after /@
-    }
-    return null;
-  };
-
-  // Determine if this should be treated as the user's dashboard
-  const routeUsername = getRouteUsername();
-
-  // Check if this is a dashboard subpage (brands, events)
-  const isDashboardSubpage =
-    user &&
-    routeUsername &&
-    routeUsername.toLowerCase() === user.username.toLowerCase() &&
-    location.pathname.match(/\/@[^\/]+\/(brands|events)$/); // Ends with /brands or /events
-
-  // Check if this is the user's dashboard homepage
-  const shouldTreatAsUserDashboard =
-    user &&
-    routeUsername &&
-    routeUsername.toLowerCase() === user.username.toLowerCase() &&
-    !location.pathname.includes(`/@${routeUsername}/`); // Not a nested path
-
-  // Check if this is a brand profile within the user's account
-  const isBrandProfileWithinUserAccount =
-    user &&
-    routeUsername &&
-    routeUsername.toLowerCase() === user.username.toLowerCase() &&
-    location.pathname.includes(`/@${routeUsername}/`) && // Has additional path segments
-    !isDashboardSubpage; // Not a dashboard subpage
+  // Build user profile path only after user is confirmed
+  const userProfilePath = user ? `/@${user.username.trim()}` : null;
 
   return (
     <Routes>
-      {isDashboardSubpage ? (
-        // Dashboard subpages (brands, events)
-        <Route
-          path={location.pathname}
-          element={
-            <RouteDebug name="user-dashboard-subpage">
-              {({ params }) => {
-                // Extract the subpage type from the URL
-                const subpage = location.pathname.split("/").pop();
-                return subpage === "brands" ? <Brands /> : <Events />;
-              }}
-            </RouteDebug>
-          }
-        />
-      ) : shouldTreatAsUserDashboard ? (
-        // Treat as user dashboard when username matches authenticated user
-        // AND there are no additional path segments
-        <Route path={location.pathname} element={<Dashboard />} />
-      ) : isBrandProfileWithinUserAccount ? (
-        // Brand profile within user account
-        <Route
-          path={location.pathname}
-          element={
-            <RouteDebug name="brand-profile-within-account">
-              {({ params }) => {
-                // Extract the brand username from the path
-                const brandUsername = location.pathname
-                  .split("/")[2]
-                  .replace("@", "");
-                return <BrandProfile key={brandUsername} />;
-              }}
-            </RouteDebug>
-          }
-        />
-      ) : isBrandProfilePath ? (
-        // Public brand profile
-        <Route
-          path={location.pathname}
-          element={
-            <RouteDebug name="brand-profile-direct-match">
-              {({ params }) => {
-                // Extract the brand username from the path
-                const brandUsername = location.pathname.substring(2); // Remove the leading /@
-                return <BrandProfile key={brandUsername} />;
-              }}
-            </RouteDebug>
-          }
-        />
-      ) : null}
-
-      {user ? (
-        <>
-          {/* User's own profile route - this should take precedence over brand routes */}
+      {/* Authenticated Routes */}
+      {user && userProfilePath && (
+        <Route path={userProfilePath}>
+          {/* Index route for user dashboard */}
+          <Route index element={<Dashboard />} />
+          {/* Nested authenticated routes */}
+          <Route path="brands" element={<Brands />} />
+          <Route path="events" element={<Events />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path=":brandUsername" element={<BrandProfile />} />
           <Route
-            path={userProfilePath}
-            element={
-              <RouteDebug name="user-own-profile">
-                {({ params }) => {
-                  return <Dashboard />;
-                }}
-              </RouteDebug>
-            }
+            path=":brandUsername/@:eventUsername/:dateSlug"
+            element={<EventProfile />}
           />
-
           <Route
-            path={`${userProfilePath}/*`}
-            element={
-              <Routes>
-                <Route
-                  index
-                  element={
-                    <RouteDebug name="user-profile-index">
-                      <Dashboard />
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path="brands"
-                  element={
-                    <RouteDebug name="user-brands">
-                      <Brands />
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path="events"
-                  element={
-                    <RouteDebug name="user-events">
-                      <Events />
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path=":brandUsername"
-                  element={
-                    <RouteDebug name="brand-profile-auth">
-                      {({ params }) => {
-                        return <BrandProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path=":brandUsername/:eventUsername/:dateSlug"
-                  element={
-                    <RouteDebug name="event-auth-special-format">
-                      {({ params }) => {
-                        // Always use EventProfile for this pattern
-                        return <EventProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path=":brandUsername/:eventUsername"
-                  element={
-                    <RouteDebug name="event-auth">
-                      {({ params }) => {
-                        return <EventProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                {/* Routes with /e/ for backward compatibility */}
-                <Route
-                  path=":brandUsername/e/:dateSlug"
-                  element={
-                    <RouteDebug name="event-auth-simple-format">
-                      {({ params }) => {
-                        return <EventProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path=":brandUsername/e/:dateSlug/:eventSlug"
-                  element={
-                    <RouteDebug name="event-auth-new-format">
-                      {({ params }) => {
-                        return <EventProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                {/* New simplified route for events with format /@username/@brandusername/MMDDYY */}
-                <Route
-                  path=":brandUsername/:dateSlug"
-                  element={
-                    <RouteDebug name="event-auth-simplified-format">
-                      {({ params }) => {
-                        // We need to check if dateSlug is a valid date format to avoid mismatching
-                        const isDateFormat = /^\d{6}(-\d+)?$/.test(
-                          params.dateSlug
-                        );
-
-                        if (isDateFormat) {
-                          return <EventProfile />;
-                        } else {
-                          // If it's not a date format, use EventProfile anyway to avoid errors
-                          return <EventProfile />;
-                        }
-                      }}
-                    </RouteDebug>
-                  }
-                />
-                <Route
-                  path={`${userProfilePath}/:brandUsername/@:eventUsername/:dateSlug`}
-                  element={
-                    <RouteDebug name="event-auth-special-direct-format">
-                      {({ params }) => {
-                        return <EventProfile />;
-                      }}
-                    </RouteDebug>
-                  }
-                />
-              </Routes>
-            }
+            path=":brandUsername/@:eventUsername"
+            element={<EventProfile />}
           />
-        </>
-      ) : (
-        <>
-          {/* Empty placeholder - all public routes are now defined outside the conditional */}
-        </>
+          {/* Routes with /e/ for backward compatibility */}
+          <Route path=":brandUsername/e/:dateSlug" element={<EventProfile />} />
+          <Route
+            path=":brandUsername/e/:dateSlug/:eventSlug"
+            element={<EventProfile />}
+          />
+          {/* Simplified event route */}
+          <Route path=":brandUsername/:dateSlug" element={<EventProfile />} />
+        </Route>
       )}
 
-      {/* Brand profile routes - MUST be before the catch-all route */}
-      <Route
-        path="/@:brandUsername"
-        element={
-          <RouteDebug name="brand-profile-public">
-            {({ params }) => {
-              // Brand profiles are always publicly accessible, no authentication checks needed
-              return <BrandProfile />;
-            }}
-          </RouteDebug>
-        }
-      />
-
-      {/* Public route for /@brandusername/YYXXZZ format */}
-      <Route
-        path="/@:brandUsername/:dateSlug"
-        element={
-          <RouteDebug name="event-public-ultra-simplified">
-            {({ params }) => {
-              // We need to check if dateSlug is a valid date format to avoid mismatching
-              const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
-
-              if (isDateFormat) {
-                return <EventProfile />;
-              } else {
-                // If it's not a date format, it might be another type of route
-                // Instead of redirecting, we should show the BrandProfile
-                return <BrandProfile />;
-              }
-            }}
-          </RouteDebug>
-        }
-      />
-
-      {/* Additional public routes */}
-      <Route
-        path="/@:brandUsername/@:eventUsername/:dateSlug"
-        element={
-          <RouteDebug name="event-public-special-format">
-            {({ params }) => {
-              // Always use EventProfile for this pattern
-              return <EventProfile />;
-            }}
-          </RouteDebug>
-        }
-      />
-
-      <Route
-        path="/@:brandUsername/@:eventUsername"
-        element={
-          <RouteDebug name="event-public">
-            {({ params }) => {
-              return <EventProfile />;
-            }}
-          </RouteDebug>
-        }
-      />
-
-      {/* Routes with /e/ for backward compatibility */}
-      <Route
-        path="/@:brandUsername/e/:dateSlug"
-        element={
-          <RouteDebug name="event-public-simple-format">
-            {({ params }) => {
-              return <EventProfile />;
-            }}
-          </RouteDebug>
-        }
-      />
-
-      <Route
-        path="/@:brandUsername/e/:dateSlug/:eventSlug"
-        element={
-          <RouteDebug name="event-public-new-format">
-            {({ params }) => {
-              return <EventProfile />;
-            }}
-          </RouteDebug>
-        }
-      />
-
-      {/* Specific routes */}
-      <Route
-        path="/login"
-        element={
-          <RouteDebug name="login">
-            <Login />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <RouteDebug name="register">
-            <Register />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <RouteDebug name="forgot-password">
-            <ForgotPassword />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/reset-password/:token"
-        element={
-          <RouteDebug name="reset-password">
-            <ResetPassword />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/registration-success"
-        element={
-          <RouteDebug name="registration-success">
-            <RegistrationSuccess />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/verify/:token"
-        element={
-          <RouteDebug name="verify">
-            <EmailVerification />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/verify-email/:token"
-        element={
-          <RouteDebug name="verify-email">
-            <EmailVerification />
-          </RouteDebug>
-        }
-      />
-
-      {/* Event Profile Route - keep for backward compatibility */}
-      <Route
-        path="/events/:eventId"
-        element={
-          <RouteDebug name="event-profile">
-            <EventProfile />
-          </RouteDebug>
-        }
-      />
-
-      {/* Utility routes */}
-      <Route
-        path="/guest-code-settings"
-        element={
-          <RouteDebug name="guest-code-settings">
-            <GuestCodeSettings />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/upload"
-        element={
-          <RouteDebug name="upload">
-            <DropFiles showDashboard={false} />
-          </RouteDebug>
-        }
-      />
-      <Route
-        path="/locations"
-        element={
-          <RouteDebug name="locations">
-            <Locations />
-          </RouteDebug>
-        }
-      />
+      {/* Public Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/registration-success" element={<RegistrationSuccess />} />
+      <Route path="/verify/:token" element={<EmailVerification />} />
+      <Route path="/verify-email/:token" element={<EmailVerification />} />
       <Route path="/paid" element={<AfterPayment />} />
 
-      {/* Catch-all route - MUST be last */}
+      {/* Public Brand Profile */}
+      <Route path="/@:brandUsername" element={<PublicBrandProfileWrapper />} />
+
+      {/* Public Event Profiles */}
+      <Route
+        path="/@:brandUsername/:dateSlug"
+        element={<PublicEventOrBrandProfileWrapper />}
+      />
+      <Route
+        path="/@:brandUsername/@:eventUsername/:dateSlug"
+        element={<EventProfile />}
+      />
+      <Route
+        path="/@:brandUsername/@:eventUsername"
+        element={<EventProfile />}
+      />
+      {/* Routes with /e/ for backward compatibility */}
+      <Route path="/@:brandUsername/e/:dateSlug" element={<EventProfile />} />
+      <Route
+        path="/@:brandUsername/e/:dateSlug/:eventSlug"
+        element={<EventProfile />}
+      />
+
+      {/* Utility Routes (Can be public or private depending on implementation) */}
+      <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
+      <Route path="/upload" element={<DropFiles showDashboard={false} />} />
+      <Route path="/locations" element={<Locations />} />
+
+      {/* Home Route */}
       <Route
         path="/"
         element={
-          <RouteDebug name="home-root">
+          user ? (
+            <Navigate to={userProfilePath} replace /> // Redirect logged-in users to their dashboard
+          ) : (
             <ClearNotificationsOnMount>
               <Home />
             </ClearNotificationsOnMount>
-          </RouteDebug>
+          )
         }
       />
 
-      {/* Fallback for any other routes */}
+      {/* Fallback Route - MUST be last */}
       <Route
         path="*"
         element={
-          <RouteDebug name="home-fallback">
-            {({ params }) => {
-              // If it's the user's own profile path, we should redirect to the dashboard
-              if (isUserOwnProfilePath) {
-                return <Navigate to={userProfilePath} replace />;
-              }
-
-              // If it's a brand-related path but not matched by any specific route,
-              // we should try to render the BrandProfile component
-              if (isBrandRelatedPath) {
-                // Check if this might be an event URL with a date pattern
-                const pathParts = location.pathname.substring(2).split("/");
-
-                // If there's a second part and it looks like a date (6 digits, possibly with a suffix)
-                if (
-                  pathParts.length > 1 &&
-                  /^\d{6}(-\d+)?$/.test(pathParts[1])
-                ) {
-                  return <EventProfile />;
-                }
-
-                // Otherwise, treat as a brand profile
-                const brandUsername = pathParts[0]; // First part after /@
-                return <BrandProfile key={brandUsername} />;
-              }
-
-              return <Home />;
-            }}
-          </RouteDebug>
+          // If logged in, redirect unknown authenticated-like paths to dashboard
+          user && location.pathname.startsWith(`/@${user.username.trim()}/`) ? (
+            <Navigate to={userProfilePath} replace />
+          ) : (
+            // Otherwise, redirect to Home
+            <Navigate to="/" replace />
+          )
         }
       />
     </Routes>
   );
+};
+
+// Wrapper component for Public Brand Profile to handle conditional logic and hooks correctly
+const PublicBrandProfileWrapper = () => {
+  const { user } = useAuth();
+  const params = useParams();
+  const userProfilePath = user ? `/@${user.username.trim()}` : null;
+
+  if (
+    user &&
+    userProfilePath &&
+    `@${user.username.trim()}` === `@${params.brandUsername}`
+  ) {
+    return <Navigate to={userProfilePath} replace />;
+  }
+  return <BrandProfile />;
+};
+
+// Wrapper component for Public Event/Brand Profile to handle conditional logic and hooks correctly
+const PublicEventOrBrandProfileWrapper = () => {
+  const { user } = useAuth();
+  const params = useParams();
+  const userProfilePath = user ? `/@${user.username.trim()}` : null;
+
+  // Check if this path matches the logged-in user's potential path
+  if (
+    user &&
+    userProfilePath &&
+    `@${user.username.trim()}` === `@${params.brandUsername}`
+  ) {
+    return <Navigate to={userProfilePath} replace />;
+  }
+
+  // Determine if it's an event or brand profile based on dateSlug format
+  const isDateFormat = /^\d{6}(-\d+)?$/.test(params.dateSlug);
+  return isDateFormat ? <EventProfile /> : <BrandProfile />;
 };
 
 // Debug wrapper for routes

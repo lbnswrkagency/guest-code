@@ -706,24 +706,6 @@ const Dashboard = () => {
         ) : (
           <>
             {/* Golden Arrow Guide for new users with no brands */}
-            {hasNoBrands && (
-              <motion.div
-                className="golden-arrow-guide"
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: 1,
-                  y: [0, -5, 0],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatType: "loop",
-                }}
-              >
-                <RiArrowUpSLine className="arrow-icon" />
-                <span className="arrow-text">Join/Create Brand</span>
-              </motion.div>
-            )}
 
             <DashboardHeader
               user={user}

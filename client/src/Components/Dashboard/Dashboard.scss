@@ -8,31 +8,6 @@
   height: 100%;
   position: relative;
 
-  // Golden Arrow Guide for new users
-  .golden-arrow-guide {
-    position: fixed;
-    top: 15px;
-    right: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 90;
-    pointer-events: none;
-
-    .arrow-text {
-      color: #ffc807;
-      font-size: 10px;
-      font-weight: 500;
-      margin-top: 2px;
-    }
-
-    .arrow-icon {
-      font-size: 18px;
-      color: #ffc807;
-      filter: drop-shadow(0 0 3px rgba(255, 200, 7, 0.5));
-    }
-  }
-
   @keyframes pulse {
     0% {
       transform: translateY(0);

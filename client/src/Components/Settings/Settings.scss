@@ -1,85 +1,453 @@
-@import "../../_variables";
 @import "../../_animations";
-@import "../../_mixins";
 
-.settings-content {
-  padding: 1rem;
+// Define colors based on Login/Register styles
+$primary-gold: #ffc807;
+$secondary-gold: #d1a300;
+$dark-gold: #a58300;
+$light-gold: #ffdf80;
+$black: #000000;
+$dark-gray: #1c1c1c;
+$darker-gray: #0f0f0f;
+$deep-black: #050505;
+$text-light: #ffffff;
+$text-muted: #aaaaaa;
+$text-dark: #000000;
+$danger-color: #f44336;
+$danger-color-dark: #d32f2f;
+$border-color: #333333;
+$border-color-light: #444444;
+$border-radius-small: 4px;
+$border-radius-medium: 8px;
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(
+    180deg,
+    $darker-gray 0%,
+    $black 100%
+  ); // Match Login background
+  color: $text-light;
+  position: relative;
+  overflow-x: hidden;
+
+  &::before {
+    // Add background glow like Login
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(
+      circle at center,
+      rgba($primary-gold, 0.1) 0%,
+      transparent 70%
+    );
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  // Ensure Navigation and Footer are handled correctly within the flex layout
+  .navigation-component {
+    // Use the actual class name of your Navigation component
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2; // Ensure nav is above background effects
+  }
+  .footer-component {
+    // Use the actual class name of your Footer component
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+}
+
+.settings-container {
+  flex-grow: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 2rem auto; // Center container and add vertical space
+  padding: 2rem; // Add padding inside the container
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
+  position: relative; // Ensure content is above background
+  z-index: 1;
 
-.settings-section {
-  background-color: $background-color-dark;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-large;
-  padding: 1.5rem;
-  box-shadow: $shadow-medium;
-
-  h2 {
-    font-size: 1.4rem;
-    color: $primary-color;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid $border-color;
+  /* Media Queries */
+  @media (max-width: 768px) {
+    // Replaced @include mq(tablet)
+    padding: 1.5rem;
+    margin: 1.5rem auto;
+  }
+  @media (max-width: 480px) {
+    // Replaced @include mq(mobile)
+    padding: 1rem;
+    margin: 1rem auto;
   }
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.settings-title {
+  font-size: 2rem; // Adjust title size
+  font-weight: 700;
+  color: $text-light; // Use variable
+  margin-bottom: 1rem;
+  text-align: center;
+  border-bottom: 1px solid rgba($primary-gold, 0.2); // Use gold border
+  padding-bottom: 1rem;
+  background: linear-gradient(
+    135deg,
+    $light-gold 0%,
+    $primary-gold 50%,
+    $secondary-gold 100%
+  ); // Gold gradient text
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s ease-in-out infinite; // Add shimmer
+  background-size: 200% auto;
+
+  @media (max-width: 480px) {
+    // Replaced @include mq(mobile)
+    font-size: 1.75rem;
+  }
 }
 
-.form-group {
+.settings-content {
+  display: flex;
+  gap: 2rem;
+  flex-grow: 1;
+
+  @media (max-width: 768px) {
+    // Replaced @include mq(tablet)
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.settings-sidebar {
+  flex: 0 0 220px; // Fixed width for sidebar
+  background-color: rgba($black, 0.4); // Match form background
+  backdrop-filter: blur(8px);
+  padding: 1.5rem;
+  border-radius: $border-radius-medium;
+  border: 1px solid rgba($primary-gold, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  height: fit-content; // Make sidebar height adjust to content
 
-  label {
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: $text-color-secondary;
-  }
-
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="date"] {
-    @include input-styles;
-  }
-}
-
-.button {
-  @include button-base;
-  padding: 0.8rem 1.5rem;
-  font-size: 1rem;
-  align-self: flex-start;
-
-  &.primary-button {
-    @include button-primary;
-  }
-
-  &.danger-button {
-    @include button-danger;
-    margin-top: 1rem;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  @media (max-width: 768px) {
+    // Replaced @include mq(tablet)
+    flex: 1 1 auto; // Allow sidebar to grow on smaller screens
+    flex-direction: row; // Horizontal layout on tablet/mobile
+    overflow-x: auto; // Allow scrolling if items overflow
+    padding: 1rem;
+    gap: 1rem;
+    justify-content: center;
+    background-color: rgba(
+      $black,
+      0.5
+    ); // Slightly darker for horizontal scroll
   }
 }
 
-.logout-section {
-  margin-top: 1rem;
-  background-color: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
+.settings-menu-item {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background-color: transparent;
+  color: $text-muted; // Use variable
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: $border-radius-small;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  svg {
+    font-size: 1.1rem;
+    color: $text-muted; // Match text color initially
+    transition: color 0.2s ease;
+  }
+
+  &:hover {
+    background-color: rgba($primary-gold, 0.1); // Use variable
+    color: $primary-gold;
+    svg {
+      color: $primary-gold;
+    }
+  }
+
+  &.active {
+    background-color: rgba($primary-gold, 0.15);
+    color: $primary-gold;
+    font-weight: 600;
+    svg {
+      color: $primary-gold;
+    }
+  }
+
+  &.logout-button {
+    margin-top: auto; // Push logout to the bottom
+    color: $danger-color; // Use variable
+    svg {
+      color: $danger-color;
+    }
+
+    &:hover {
+      background-color: rgba($danger-color, 0.1);
+      color: darken($danger-color, 10%);
+      svg {
+        color: darken($danger-color, 10%);
+      }
+    }
+
+    @media (max-width: 768px) {
+      // Replaced @include mq(tablet)
+      margin-top: 0; // Reset margin for horizontal layout
+    }
+  }
+
+  @media (max-width: 768px) {
+    // Replaced @include mq(tablet)
+    flex-direction: column; // Stack icon and text vertically
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    gap: 0.25rem;
+    min-width: 80px; // Ensure items have some width
+    white-space: nowrap; // Prevent text wrapping
+
+    svg {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+  }
+}
+
+.settings-main-content {
+  flex-grow: 1;
+  background-color: rgba($black, 0.5); // Match form background
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: $border-radius-medium;
+  border: 1px solid rgba($primary-gold, 0.1);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 480px) {
+    // Replaced @include mq(mobile)
+    padding: 1.5rem;
+  }
+
+  .settings-section {
+    margin-bottom: 2.5rem; // Add space between sections
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    // Styles for individual setting sections (e.g., profile, account)
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: $light-gold;
+      margin-bottom: 1.5rem; // Increased space
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba($primary-gold, 0.15);
+      position: relative;
+
+      &::after {
+        // Add subtle underline accent
+        content: "";
+        position: absolute;
+        bottom: -1px; // Position on the border
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: $primary-gold;
+      }
+    }
+
+    p {
+      color: $text-muted;
+      margin-bottom: 2rem; // Increased space
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(200px, 1fr)
+      ); // Responsive grid
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 0; // Remove margin as gap is handled by grid
+
+      label {
+        display: block;
+        margin-bottom: 0.6rem;
+        color: $text-muted;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="date"] {
+        width: 100%;
+        padding: 0.85rem 1rem; // Consistent padding
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: $border-radius-medium;
+        color: $text-light;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        &:focus {
+          outline: none;
+          border-color: rgba($primary-gold, 0.5);
+          background: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 0 0 2px rgba($primary-gold, 0.2);
+        }
+
+        &:read-only {
+          background-color: rgba(255, 255, 255, 0.02);
+          color: $text-muted;
+          cursor: not-allowed;
+          border-color: rgba(255, 255, 255, 0.05);
+          &:focus {
+            // Remove focus styles for read-only
+            box-shadow: none;
+            border-color: rgba(255, 255, 255, 0.05);
+          }
+        }
+
+        &[type="date"] {
+          color: rgba(255, 255, 255, 0.7);
+
+          &::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(0.7) opacity(0.7);
+            cursor: pointer;
+            transition: filter 0.2s ease;
+
+            &:hover {
+              filter: invert(1) brightness(0.9) opacity(1);
+            }
+          }
+        }
+      }
+
+      // Specific styling for username group
+      &.username-group {
+        .username-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: $border-radius-medium;
+          transition: all 0.2s ease;
+
+          &:focus-within {
+            border-color: rgba($primary-gold, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 2px rgba($primary-gold, 0.2);
+          }
+
+          .username-prefix {
+            color: $primary-gold;
+            font-size: 1rem; // Match input font size
+            font-weight: 600;
+            padding: 0 0.5rem 0 1rem; // Match input padding
+            user-select: none;
+            line-height: 1; // Align prefix vertically
+          }
+
+          .username-input {
+            border: none !important; // Remove border from input itself
+            background: transparent !important;
+            padding-left: 0 !important; // Remove left padding
+            box-shadow: none !important; // Remove focus shadow from input
+
+            &:focus {
+              border: none !important;
+              background: transparent !important;
+              box-shadow: none !important;
+            }
+          }
+        }
+      }
+
+      // Hint text style
+      .input-hint {
+        font-size: 0.8rem;
+        color: $text-muted; // Use muted text color
+        margin-top: 0.5rem;
+        margin-left: 0.25rem; // Small indent
+        font-style: italic;
+      }
+    }
+
+    // Save button style matching Login/Register
+    .save-button {
+      display: inline-block;
+      padding: 0.85rem 1.75rem; // Adjusted padding
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: $text-dark;
+      background: linear-gradient(
+        135deg,
+        $primary-gold 0%,
+        $secondary-gold 100%
+      );
+      border: none;
+      border-radius: $border-radius-medium;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba($primary-gold, 0.25);
+      margin-top: 1rem; // Add some space above the button
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba($primary-gold, 0.35);
+      }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba($primary-gold, 0.25);
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      // Add loading spinner styling if needed
+      .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        border-radius: 50%;
+        border-top-color: $black;
+        animation: spin 1s linear infinite;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+      }
+    }
+  }
 }
