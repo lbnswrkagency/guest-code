@@ -69,6 +69,9 @@ const AppRoutes = () => {
 
   // Build user profile path only after user is confirmed
   const userProfilePath = user ? `/@${user.username.trim()}` : null;
+  const isBrandProfilePath = /^\/@[a-zA-Z0-9_-]+$/.test(location.pathname);
+  const isUserOwnProfilePath =
+    userProfilePath && location.pathname === userProfilePath;
 
   return (
     <Routes>
@@ -111,8 +114,17 @@ const AppRoutes = () => {
       <Route path="/verify-email/:token" element={<EmailVerification />} />
       <Route path="/paid" element={<AfterPayment />} />
 
-      {/* Public Brand Profile */}
-      <Route path="/@:brandUsername" element={<PublicBrandProfileWrapper />} />
+      {/* Direct Public Brand Profile - Key Fix */}
+      <Route
+        path="/@:brandUsername"
+        element={
+          isUserOwnProfilePath ? (
+            <Navigate to={userProfilePath} replace />
+          ) : (
+            <BrandProfile />
+          )
+        }
+      />
 
       {/* Public Event Profiles */}
       <Route
@@ -153,13 +165,16 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Fallback Route - MUST be last */}
+      {/* Fallback Route - Modified from current version */}
       <Route
         path="*"
         element={
           // If logged in, redirect unknown authenticated-like paths to dashboard
           user && location.pathname.startsWith(`/@${user.username.trim()}/`) ? (
             <Navigate to={userProfilePath} replace />
+          ) : location.pathname.startsWith("/@") ? (
+            // If it's a brand-related path, try to render BrandProfile
+            <BrandProfile />
           ) : (
             // Otherwise, redirect to Home
             <Navigate to="/" replace />
@@ -168,22 +183,6 @@ const AppRoutes = () => {
       />
     </Routes>
   );
-};
-
-// Wrapper component for Public Brand Profile to handle conditional logic and hooks correctly
-const PublicBrandProfileWrapper = () => {
-  const { user } = useAuth();
-  const params = useParams();
-  const userProfilePath = user ? `/@${user.username.trim()}` : null;
-
-  if (
-    user &&
-    userProfilePath &&
-    `@${user.username.trim()}` === `@${params.brandUsername}`
-  ) {
-    return <Navigate to={userProfilePath} replace />;
-  }
-  return <BrandProfile />;
 };
 
 // Wrapper component for Public Event/Brand Profile to handle conditional logic and hooks correctly
