@@ -1065,13 +1065,43 @@ const UpcomingEvent = ({
           seamless ? "seamless" : ""
         }`}
       >
-        <div className="upcomingEvent-empty">
-          <div className="upcomingEvent-empty-state">
-            <RiCalendarEventLine className="upcomingEvent-empty-icon" />
-            <p>No upcoming events</p>
-            <span className="upcomingEvent-empty-state-subtext">
-              Check back later for new events
-            </span>
+        <div className="premium-empty-state">
+          <div className="premium-empty-inner">
+            <div className="top-accent-line">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div className="icon-container">
+              <div className="icon-glow-outer"></div>
+              <div className="icon-glow-inner"></div>
+              <div className="icon-wrapper">
+                <div className="icon-ring"></div>
+                <RiCalendarEventLine className="calendar-icon" />
+              </div>
+              <div className="pulse-circle"></div>
+            </div>
+
+            <h2 className="empty-title">No upcoming events</h2>
+
+            <div className="empty-divider">
+              <div className="divider-line"></div>
+              <div className="divider-diamond"></div>
+              <div className="divider-line"></div>
+            </div>
+
+            <p className="empty-message">Check back later for new events</p>
+
+            <div className="empty-decoration">
+              <div className="decoration-dot"></div>
+              <div className="decoration-line"></div>
+              <div className="decoration-dot"></div>
+            </div>
+
+            <div className="bottom-accent">
+              <div className="bottom-accent-line"></div>
+            </div>
           </div>
         </div>
       </div>
