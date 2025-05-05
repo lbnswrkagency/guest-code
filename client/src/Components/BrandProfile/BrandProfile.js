@@ -390,12 +390,18 @@ const BrandProfile = () => {
 
   // Dynamically load Meta Pixel script
   useEffect(() => {
+    console.log("[Meta Pixel Debug] Effect triggered. Brand:", brand); // DEBUG LOG
     if (brand && brand.metaPixelId) {
+      console.log(`[Meta Pixel Debug] Found metaPixelId: ${brand.metaPixelId}`); // DEBUG LOG
+
       // Check if a pixel script with this ID already exists
       const existingPixelScript = document.querySelector(
         `script[data-pixel-id="${brand.metaPixelId}"]`
       );
       if (existingPixelScript) {
+        console.log(
+          `[Meta Pixel Debug] Pixel script for ${brand.metaPixelId} already exists. Skipping injection.`
+        ); // DEBUG LOG
         // Pixel already loaded for this brand
         return;
       }
@@ -404,8 +410,21 @@ const BrandProfile = () => {
       const previousPixelScripts = document.querySelectorAll(
         "script[data-pixel-id]"
       );
-      previousPixelScripts.forEach((script) => script.remove());
+      if (previousPixelScripts.length > 0) {
+        console.log(
+          "[Meta Pixel Debug] Removing previous pixel scripts:",
+          previousPixelScripts
+        ); // DEBUG LOG
+        previousPixelScripts.forEach((script) => script.remove());
+      } else {
+        console.log(
+          "[Meta Pixel Debug] No previous pixel scripts found to remove."
+        ); // DEBUG LOG
+      }
 
+      console.log(
+        `[Meta Pixel Debug] Injecting script for metaPixelId: ${brand.metaPixelId}`
+      ); // DEBUG LOG
       const script = document.createElement("script");
       script.innerHTML = `
         !(function (f, b, e, v, n, t, s) {
@@ -431,25 +450,43 @@ const BrandProfile = () => {
           'script',
           'https://connect.facebook.net/en_US/fbevents.js'
         );
+        console.log('[Meta Pixel Debug] Initializing fbq with ID:', '${brand.metaPixelId}'); // DEBUG LOG
         fbq('init', '${brand.metaPixelId}');
         fbq('track', 'PageView');
       `;
       // Add a data attribute to identify the script
       script.setAttribute("data-pixel-id", brand.metaPixelId);
       document.head.appendChild(script);
+      console.log(
+        `[Meta Pixel Debug] Script added to head for metaPixelId: ${brand.metaPixelId}`
+      ); // DEBUG LOG
 
       // Optional: Cleanup function to remove the script when the component unmounts
       // or when the brand changes and a new pixel needs to be loaded.
       return () => {
+        console.log(
+          `[Meta Pixel Debug] Cleanup: Removing script for metaPixelId: ${brand?.metaPixelId}`
+        ); // DEBUG LOG
         const currentPixelScript = document.querySelector(
-          `script[data-pixel-id="${brand.metaPixelId}"]`
+          `script[data-pixel-id="${brand?.metaPixelId}"]` // Use optional chaining here
         );
         if (currentPixelScript) {
           currentPixelScript.remove();
+          console.log(
+            `[Meta Pixel Debug] Script removed for metaPixelId: ${brand?.metaPixelId}`
+          ); // DEBUG LOG
+        } else {
+          console.log(
+            `[Meta Pixel Debug] Script not found during cleanup for metaPixelId: ${brand?.metaPixelId}`
+          ); // DEBUG LOG
         }
       };
+    } else {
+      console.log(
+        "[Meta Pixel Debug] No brand or metaPixelId found. Skipping pixel injection."
+      ); // DEBUG LOG
     }
-  }, [brand]); // Rerun effect if brand data changes
+  }, [brand?.metaPixelId]); // Rerun effect if brand.metaPixelId changes
 
   const handleLeaveBrand = async () => {
     if (!user) {

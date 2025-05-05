@@ -528,6 +528,7 @@ const RoleSetting = ({ brand, onClose }) => {
         className="add-role-btn"
         onClick={() => {
           resetRoleForm();
+          setEditingRole(null); // Ensure we are creating, not editing
           setShowCreateForm(true);
         }}
         whileHover={{ scale: 1.02 }}
@@ -537,67 +538,77 @@ const RoleSetting = ({ brand, onClose }) => {
         <span>Add New Role</span>
       </motion.button>
 
-      {showCreateForm && (
-        <motion.div
-          className="form-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
+      {/* Form is now rendered within the overlay conditionally */}
+      <AnimatePresence>
+        {showCreateForm && (
           <motion.div
-            className="create-role-form"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
+            className="form-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <h3>{editingRole ? "Edit Role" : "Create New Role"}</h3>
-            <input
-              type="text"
-              placeholder="Role Name"
-              value={newRole.name}
-              onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
-            />
+            <motion.div
+              className="create-role-form"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+            >
+              <h3>{editingRole ? "Edit Role" : "Create New Role"}</h3>
+              <input
+                type="text"
+                placeholder="Role Name"
+                value={newRole.name}
+                onChange={(e) =>
+                  setNewRole({ ...newRole, name: e.target.value })
+                }
+              />
 
-            <div className="permissions-section">
-              <h4>Event Permissions</h4>
-              <div className="permission-group">
-                {renderPermissionItem(
-                  "Create Events",
-                  "events",
-                  "create",
-                  newRole.permissions.events.create
-                )}
-                {renderPermissionItem(
-                  "Edit Events",
-                  "events",
-                  "edit",
-                  newRole.permissions.events.edit
-                )}
-                {renderPermissionItem(
-                  "Delete Events",
-                  "events",
-                  "delete",
-                  newRole.permissions.events.delete
-                )}
-              </div>
-
-              <h4>Team Permissions</h4>
-              <div className="permission-group">
-                {renderPermissionItem(
-                  "Manage Team",
-                  "team",
-                  "manage",
-                  newRole.permissions.team.manage
-                )}
-              </div>
-
-              {codeSettings.length > 0 && (
+              <div className="permissions-section">
+                <h4>Event Permissions</h4>
                 <div className="permission-group">
-                  <h4>Custom Codes</h4>
-                  {codeSettings.length > 0 ? (
-                    <div className="custom-codes">
+                  {renderPermissionItem(
+                    "Create Events",
+                    "events",
+                    "create",
+                    newRole.permissions.events.create
+                  )}
+                  {renderPermissionItem(
+                    "Edit Events",
+                    "events",
+                    "edit",
+                    newRole.permissions.events.edit
+                  )}
+                  {renderPermissionItem(
+                    "Delete Events",
+                    "events",
+                    "delete",
+                    newRole.permissions.events.delete
+                  )}
+                </div>
+
+                <h4>Team Permissions</h4>
+                <div className="permission-group">
+                  {renderPermissionItem(
+                    "Manage Team",
+                    "team",
+                    "manage",
+                    newRole.permissions.team.manage
+                  )}
+                </div>
+
+                {/* Only render custom codes section if there are custom codes */}
+                {codeSettings.length > 0 && (
+                  <>
+                    <h4>Custom Codes</h4>
+                    <div className="permission-group">
                       {codeSettings.map((code) => (
-                        <div key={code.name}>
+                        <div
+                          key={code.name}
+                          className="permission-item custom-code-item"
+                          style={{ borderLeftColor: code.color || "#ffc807" }} // Apply color dynamically
+                        >
                           {renderCodePermission(
                             code.displayName,
                             code.name,
@@ -607,58 +618,64 @@ const RoleSetting = ({ brand, onClose }) => {
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <div className="no-custom-codes">
-                      <RiCodeLine />
-                      <span>No custom codes available</span>
-                    </div>
+                  </>
+                )}
+                {/* Optional: Add a message if no custom codes */}
+                {/* {codeSettings.length === 0 && (
+                  <div className="permission-group">
+                      <h4>Custom Codes</h4>
+                      <div className="no-custom-codes">
+                          <RiCodeLine />
+                          <span>No custom codes defined for events in this brand.</span>
+                      </div>
+                  </div>
+                )} */}
+
+                <h4>Other Permissions</h4>
+                <div className="permission-group">
+                  {renderPermissionItem(
+                    "View Analytics",
+                    "analytics",
+                    "view",
+                    newRole.permissions.analytics.view
+                  )}
+                  {renderPermissionItem(
+                    "Scanner Access",
+                    "scanner",
+                    "use",
+                    newRole.permissions.scanner.use
                   )}
                 </div>
-              )}
-
-              <h4>Other Permissions</h4>
-              <div className="permission-group">
-                {renderPermissionItem(
-                  "View Analytics",
-                  "analytics",
-                  "view",
-                  newRole.permissions.analytics.view
-                )}
-                {renderPermissionItem(
-                  "Scanner Access",
-                  "scanner",
-                  "use",
-                  newRole.permissions.scanner.use
-                )}
               </div>
-            </div>
 
-            <div className="form-actions">
-              <motion.button
-                className="cancel-btn"
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setEditingRole(null);
-                  resetRoleForm();
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                className="save-btn"
-                onClick={editingRole ? handleUpdateRole : handleCreateRole}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {editingRole ? "Update Role" : "Create Role"}
-              </motion.button>
-            </div>
+              <div className="form-actions">
+                <motion.button
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingRole(null);
+                    resetRoleForm();
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  className="save-btn"
+                  onClick={editingRole ? handleUpdateRole : handleCreateRole}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {editingRole ? "Update Role" : "Create Role"}
+                </motion.button>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
+      {/* Confirmation Dialog remains outside the form overlay */}
       <AnimatePresence>
         {showDeleteConfirm && roleToDelete && (
           <ConfirmDialog
