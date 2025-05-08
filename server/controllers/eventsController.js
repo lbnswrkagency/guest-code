@@ -52,8 +52,18 @@ const generateSlug = (text) => {
 const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
   try {
     // Calculate the date for this occurrence
-    const occurrenceDate = new Date(parentEvent.date);
-    occurrenceDate.setDate(occurrenceDate.getDate() + weekNumber * 7);
+    const parentStartDateObj = new Date(parentEvent.startDate); // Use parent's actual startDate
+    const parentEndDateObj = new Date(parentEvent.endDate); // Use parent's actual endDate
+
+    // Calculate child's actual start date and time
+    let childStartDate = new Date(parentStartDateObj);
+    childStartDate.setDate(parentStartDateObj.getDate() + weekNumber * 7); // Moves to the correct week, preserving original time
+
+    // Calculate duration
+    const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
+
+    // Calculate child's actual end date and time
+    let childEndDate = new Date(childStartDate.getTime() + duration);
 
     // Create a unique link for this occurrence
     const link = `${parentEvent.link}-w${weekNumber}`;
@@ -74,7 +84,9 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       title: parentEvent.title,
       subTitle: parentEvent.subTitle,
       description: parentEvent.description,
-      date: occurrenceDate,
+      date: childStartDate, // Legacy 'date' field, align with startDate
+      startDate: childStartDate, // Store full Date object
+      endDate: childEndDate, // Store full Date object
       startTime: parentEvent.startTime,
       endTime: parentEvent.endTime,
       location: parentEvent.location,
@@ -318,6 +330,33 @@ exports.createEvent = async (req, res) => {
       ticketCode: ticketCode,
       tableCode: tableCode,
     };
+
+    // Calculate final startDate and endDate considering startTime and endTime for overnight events
+    let finalStartDate = eventData.startDate
+      ? new Date(eventData.startDate)
+      : new Date(eventData.date);
+    // Initialize finalEndDate based on finalStartDate initially for calculation
+    let finalEndDate = new Date(finalStartDate);
+
+    if (eventData.startTime) {
+      const [sh, sm] = eventData.startTime.split(":").map(Number);
+      finalStartDate.setHours(sh, sm, 0, 0);
+    }
+    // Use the date part of finalStartDate for endDate calculation before applying endTime
+    finalEndDate = new Date(finalStartDate);
+    if (eventData.endTime) {
+      const [eh, em] = eventData.endTime.split(":").map(Number);
+      finalEndDate.setHours(eh, em, 0, 0);
+    }
+
+    // If finalEndDate is on or before finalStartDate after times are applied, it means it's the next day
+    if (finalEndDate.getTime() <= finalStartDate.getTime()) {
+      finalEndDate.setDate(finalEndDate.getDate() + 1);
+    }
+
+    eventData.startDate = finalStartDate;
+    eventData.endDate = finalEndDate;
+    eventData.date = finalStartDate; // Align legacy date with the precise startDate
 
     // Create and save the event
     const event = new Event(eventData);
@@ -673,32 +712,69 @@ exports.editEvent = async (req, res) => {
 
         // Update the child event with the new data
         // Make sure we don't change certain fields that should remain consistent
-        const updatedChildData = {
-          ...req.body,
-          isWeekly: true, // Keep it marked as weekly
-          parentEventId: event._id, // Keep the parent reference
-          weekNumber: weekNumber, // Keep the week number
-        };
+        const {
+          startTime,
+          endTime,
+          title,
+          subTitle,
+          description,
+          isLive: isLiveBody,
+          genres: genresBody,
+          lineups: lineupsBody,
+        } = req.body;
 
-        // Apply updates to the child event
-        Object.keys(updatedChildData).forEach((key) => {
-          if (
-            key !== "parentEventId" &&
-            key !== "weekNumber" &&
-            key !== "isWeekly"
-          ) {
-            // Handle special fields that might need parsing
-            if (key === "genres" && typeof updatedChildData[key] === "string") {
-              try {
-                childEvent[key] = JSON.parse(updatedChildData[key]);
-              } catch (e) {
-                // Error parsing genres for child event
-              }
-            } else {
-              childEvent[key] = updatedChildData[key];
-            }
-          }
-        });
+        // Preserve the date part of the childEvent's startDate (it's fixed for the week)
+        let calculatedStartDate = new Date(childEvent.startDate);
+
+        if (startTime) {
+          const [startHours, startMinutes] = startTime.split(":").map(Number);
+          calculatedStartDate.setHours(startHours, startMinutes, 0, 0);
+          childEvent.startTime = startTime; // Update the string field
+        }
+        childEvent.startDate = calculatedStartDate; // Update the Date field
+
+        let calculatedEndDate = new Date(calculatedStartDate); // Start with the new start date/time
+
+        if (endTime) {
+          const [endHours, endMinutes] = endTime.split(":").map(Number);
+          calculatedEndDate.setHours(endHours, endMinutes, 0, 0);
+          childEvent.endTime = endTime; // Update the string field
+        }
+
+        // Check if it spans midnight
+        if (calculatedEndDate.getTime() <= calculatedStartDate.getTime()) {
+          calculatedEndDate.setDate(calculatedEndDate.getDate() + 1);
+        }
+        childEvent.endDate = calculatedEndDate;
+
+        // Update other editable fields from req.body specifically for child events
+        if (title !== undefined) childEvent.title = title;
+        if (subTitle !== undefined) childEvent.subTitle = subTitle;
+        if (description !== undefined) childEvent.description = description;
+        if (isLiveBody !== undefined)
+          childEvent.isLive = onToBoolean(isLiveBody);
+
+        // Handle genres and lineups if provided in the request body
+        if (genresBody) {
+          childEvent.genres =
+            typeof genresBody === "string"
+              ? JSON.parse(genresBody)
+              : genresBody.map((g) => g._id || g);
+        }
+        if (lineupsBody) {
+          childEvent.lineups =
+            typeof lineupsBody === "string"
+              ? JSON.parse(lineupsBody)
+              : lineupsBody.map((l) => l._id || l);
+        }
+
+        // Align legacy date field
+        childEvent.date = childEvent.startDate;
+
+        // These fields should not be changed for a child event from req.body directly
+        // childEvent.isWeekly = true; // Already set by findOrCreateWeeklyOccurrence
+        // childEvent.parentEventId = event._id; // Already set
+        // childEvent.weekNumber = weekNumber; // Already set
 
         // Remove validation for embedded code settings to prevent errors
         // These fields are now handled by the CodeSettings model
@@ -781,6 +857,42 @@ exports.editEvent = async (req, res) => {
           error: error.message,
         });
       }
+    }
+
+    // If this is a parent event, calculate its endDate properly if startTime/endTime suggest it spans midnight
+    if (!event.parentEventId && weekNumber === 0) {
+      const { startTime, endTime } = req.body;
+      let eventStartDate = event.startDate
+        ? new Date(event.startDate)
+        : new Date(event.date);
+      let eventEndDate = event.endDate
+        ? new Date(event.endDate)
+        : new Date(event.date);
+
+      if (req.body.startDate) eventStartDate = new Date(req.body.startDate);
+      if (req.body.endDate) eventEndDate = new Date(req.body.endDate); // Initial endDate from body or event
+
+      if (startTime) {
+        const [startHours, startMinutes] = startTime.split(":").map(Number);
+        eventStartDate.setHours(startHours, startMinutes, 0, 0);
+        req.body.startTime = startTime; // ensure it's in req.body if only event.startTime was used
+      }
+      req.body.startDate = eventStartDate; // update req.body to reflect changes
+
+      if (endTime) {
+        const [endHours, endMinutes] = endTime.split(":").map(Number);
+        // Important: Apply endTime to the date part of eventStartDate to correctly calculate if it spans midnight
+        let tempEndDateForCalc = new Date(eventStartDate);
+        tempEndDateForCalc.setHours(endHours, endMinutes, 0, 0);
+
+        if (tempEndDateForCalc.getTime() <= eventStartDate.getTime()) {
+          tempEndDateForCalc.setDate(tempEndDateForCalc.getDate() + 1);
+        }
+        eventEndDate = tempEndDateForCalc;
+        req.body.endTime = endTime; // ensure it's in req.body
+      }
+      req.body.endDate = eventEndDate; // update req.body to reflect changes
+      req.body.date = eventStartDate; // Align legacy date
     }
 
     // For regular events or the parent weekly event (week 0)

@@ -986,21 +986,19 @@ const EventForm = ({
   // Effect to initialize form when editing
   useEffect(() => {
     if (event?._id) {
-      // Existing event with an ID - use its data
       // IMPORTANT: Make sure we properly parse date fields
-      const parsedStartDate = event.startDate
-        ? new Date(event.startDate)
-        : event.date
-        ? new Date(event.date)
-        : null;
-      const parsedEndDate = event.endDate ? new Date(event.endDate) : null;
+      const { startDate: parsedStartDate, endDate: parsedEndDate } =
+        parseEventDateTime(event);
 
       // Log parsed values for debugging
-      console.log("Initializing form data with dates:", {
+      console.log("Initializing form data with dates from existing event:", {
+        eventId: event._id,
         providedStartDate: event.startDate,
         providedEndDate: event.endDate,
         parsedStartDate,
         parsedEndDate,
+        startTime: event.startTime,
+        endTime: event.endTime,
       });
 
       setFormData({
@@ -1048,40 +1046,50 @@ const EventForm = ({
       parentEventData &&
       (weekNumber > 0 || event?.weekNumber > 0)
     ) {
-      // Calculate the date for this occurrence
+      // NEW CHILD EVENT being created, derived from parentEventData
       const weekNum = event?.weekNumber || weekNumber;
-      const baseDate = new Date(
+
+      const parentStartDateObj = new Date(
         parentEventData.startDate || parentEventData.date
       );
-      const occurrenceDate = new Date(baseDate);
-      occurrenceDate.setDate(occurrenceDate.getDate() + weekNum * 7);
+      const parentEndDateObj = new Date(
+        parentEventData.endDate || parentEventData.date
+      ); // Ensure parent has endDate
 
-      // If parent has startDate and endDate, calculate child event dates preserving time
-      let childStartDate = null;
-      let childEndDate = null;
+      // Calculate child's actual start date and time
+      // Start with parent's start date & time, then shift by weeks
+      let childEventStartDate = new Date(parentStartDateObj);
+      childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
 
-      if (parentEventData.startDate) {
-        childStartDate = new Date(parentEventData.startDate);
-        // Adjust the date while preserving the time
-        childStartDate.setDate(childStartDate.getDate() + weekNum * 7);
-      }
+      // Calculate duration of parent event
+      const duration =
+        parentEndDateObj.getTime() - parentStartDateObj.getTime();
 
-      if (parentEventData.endDate) {
-        childEndDate = new Date(parentEventData.endDate);
-        // Adjust the date while preserving the time
-        childEndDate.setDate(childEndDate.getDate() + weekNum * 7);
-      }
+      // Calculate child's actual end date and time by adding duration to child's start
+      let childEventEndDate = new Date(
+        childEventStartDate.getTime() + duration
+      );
+
+      console.log("Initializing form data for NEW CHILD event:", {
+        parentStartDate: parentStartDateObj,
+        parentEndDate: parentEndDateObj,
+        weekNum,
+        calculatedChildStartDate: childEventStartDate,
+        calculatedChildEndDate: childEventEndDate,
+        parentStartTime: parentEventData.startTime,
+        parentEndTime: parentEventData.endTime,
+      });
 
       // Set form data from parent event
       setFormData({
         title: parentEventData.title || "",
         subTitle: parentEventData.subTitle || "",
         description: parentEventData.description || "",
-        date: occurrenceDate.toISOString().split("T")[0],
-        startDate: childStartDate,
-        endDate: childEndDate,
-        startTime: parentEventData.startTime || "",
-        endTime: parentEventData.endTime || "",
+        date: childEventStartDate.toISOString().split("T")[0], // Legacy date field
+        startDate: childEventStartDate, // Date object
+        endDate: childEventEndDate, // Date object
+        startTime: parentEventData.startTime || "", // From parent
+        endTime: parentEventData.endTime || "", // From parent
         location: parentEventData.location || "",
         street: parentEventData.street || "",
         postalCode: parentEventData.postalCode || "",
@@ -1486,12 +1494,27 @@ const EventForm = ({
                             date = new Date();
                           }
 
+                          // Create new Date object from formData.startDate to preserve its date part
+                          const newStartDate =
+                            formData.startDate instanceof Date
+                              ? new Date(formData.startDate)
+                              : new Date();
+                          newStartDate.setHours(
+                            date.getHours(),
+                            date.getMinutes(),
+                            0,
+                            0
+                          );
+
                           // If the new start time is after the end time, update end time too
-                          const newFormData = { ...formData, startDate: date };
+                          const newFormData = {
+                            ...formData,
+                            startDate: newStartDate,
+                          };
 
                           // Compare only hours and minutes
-                          const startHours = date.getHours();
-                          const startMinutes = date.getMinutes();
+                          const startHours = newStartDate.getHours();
+                          const startMinutes = newStartDate.getMinutes();
                           const endHours =
                             formData.endDate instanceof Date
                               ? formData.endDate.getHours()
@@ -1507,9 +1530,26 @@ const EventForm = ({
                               (startHours === endHours &&
                                 startMinutes >= endMinutes))
                           ) {
-                            // Set end time to 1 hour later
-                            const newEndDate = new Date(date);
-                            newEndDate.setHours(date.getHours() + 1);
+                            // Set end time to 1 hour later than new start time, preserving end date's original date part
+                            const newEndDate =
+                              formData.endDate instanceof Date
+                                ? new Date(formData.endDate)
+                                : new Date(newStartDate);
+                            newEndDate.setHours(
+                              newStartDate.getHours() + 1,
+                              newStartDate.getMinutes(),
+                              0,
+                              0
+                            );
+                            // If end date was same as start date, and new time makes it cross midnight, it will be handled by backend.
+                            // For form display, we ensure time is later.
+                            if (
+                              newEndDate.getDate() === newStartDate.getDate() &&
+                              newEndDate.getTime() <= newStartDate.getTime()
+                            ) {
+                              //This case is tricky, backend should primarily handle date advancement
+                              //For now, just ensure time is visually later.
+                            }
                             newFormData.endDate = newEndDate;
                           }
 
@@ -1546,7 +1586,19 @@ const EventForm = ({
                             date = new Date();
                           }
 
-                          setFormData({ ...formData, endDate: date });
+                          // Create new Date object from formData.endDate to preserve its date part
+                          const newEndDate =
+                            formData.endDate instanceof Date
+                              ? new Date(formData.endDate)
+                              : new Date();
+                          newEndDate.setHours(
+                            date.getHours(),
+                            date.getMinutes(),
+                            0,
+                            0
+                          );
+
+                          setFormData({ ...formData, endDate: newEndDate });
                         }}
                         showTimeSelect
                         showTimeSelectOnly
@@ -1559,6 +1611,19 @@ const EventForm = ({
                       />
                       <BiTime className="date-icon" />
                     </div>
+                  </div>
+                  <div className="form-group read-only-dates">
+                    {formData.startDate && (
+                      <p>
+                        Event Date: {formData.startDate.toLocaleDateString()}
+                      </p>
+                    )}
+                    {formData.endDate &&
+                      formData.startDate &&
+                      formData.endDate.toLocaleDateString() !==
+                        formData.startDate.toLocaleDateString() && (
+                        <p>Ends On: {formData.endDate.toLocaleDateString()}</p>
+                      )}
                   </div>
                 </>
               )}

@@ -100,6 +100,22 @@ const BrandProfile = () => {
     }
   }, [cleanUsername, user]);
 
+  // New useEffect to log brand data after fetch/update for data flow verification
+  useEffect(() => {
+    if (brand) {
+      console.log(
+        "[Data Flow Debug] Brand data updated. Current brand object:",
+        brand
+      );
+      console.log(
+        "[Data Flow Debug] Current brand.metaPixelId:",
+        brand.metaPixelId
+      );
+    } else {
+      console.log("[Data Flow Debug] Brand data is currently null.");
+    }
+  }, [brand]); // This hook runs whenever the 'brand' state changes
+
   useEffect(() => {
     if (brand?.userStatus) {
       setIsFollowing(brand.userStatus.isFollowing || false);
@@ -390,7 +406,11 @@ const BrandProfile = () => {
 
   // Dynamically load Meta Pixel script
   useEffect(() => {
-    console.log("[Meta Pixel Debug] Effect triggered. Brand:", brand); // DEBUG LOG
+    // Enhanced log to show the value from the dependency array
+    console.log(
+      "[Meta Pixel Debug] Pixel useEffect triggered. Value of brand?.metaPixelId from dependency:",
+      brand?.metaPixelId
+    );
     if (brand && brand.metaPixelId) {
       console.log(`[Meta Pixel Debug] Found metaPixelId: ${brand.metaPixelId}`); // DEBUG LOG
 
