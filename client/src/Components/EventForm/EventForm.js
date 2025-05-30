@@ -1241,241 +1241,72 @@ const EventForm = ({
               <h3>{isChildEvent ? "Time" : "Date & Time"}</h3>
 
               {/* For parent events, show date and time pickers */}
-              {!isChildEvent && (
-                <>
-                  <div className="date-time-container">
-                    <div className="date-time-column">
-                      <div className="form-group required">
-                        <label>Start Date</label>
-                        <div className="date-picker-container">
-                          <DatePicker
-                            selected={
-                              formData.startDate instanceof Date
-                                ? formData.startDate
-                                : new Date()
-                            }
-                            onChange={(date) => {
-                              // Handle null date case
-                              if (!date) {
-                                console.warn(
-                                  "Selected start date is null, using current date as fallback"
-                                );
-                                date = new Date();
-                              }
+              <div className="date-time-container">
+                <div className="date-time-column">
+                  <div className="form-group required">
+                    <label>Start Date</label>
+                    <div className="date-picker-container">
+                      <DatePicker
+                        selected={
+                          formData.startDate instanceof Date
+                            ? formData.startDate
+                            : new Date()
+                        }
+                        onChange={(date) => {
+                          if (isChildEvent) return; // Do nothing if it's a child event
+                          // Handle null date case
+                          if (!date) {
+                            console.warn(
+                              "Selected start date is null, using current date as fallback"
+                            );
+                            date = new Date();
+                          }
 
-                              // Keep the time from the current startDate
-                              const newDate = new Date(date);
-                              // Make sure formData.startDate exists before accessing its methods
-                              if (formData.startDate instanceof Date) {
-                                newDate.setHours(
-                                  formData.startDate.getHours(),
-                                  formData.startDate.getMinutes(),
-                                  0,
-                                  0
-                                );
-                              }
+                          // Keep the time from the current startDate
+                          const newDate = new Date(date);
+                          // Make sure formData.startDate exists before accessing its methods
+                          if (formData.startDate instanceof Date) {
+                            newDate.setHours(
+                              formData.startDate.getHours(),
+                              formData.startDate.getMinutes(),
+                              0,
+                              0
+                            );
+                          }
 
-                              // If the new start date is after the end date, update end date too
-                              const newFormData = {
-                                ...formData,
-                                startDate: newDate,
-                              };
-                              if (
-                                formData.endDate instanceof Date &&
-                                newDate > formData.endDate
-                              ) {
-                                // Set end date to same day but keep the end time
-                                const newEndDate = new Date(newDate);
-                                if (formData.endDate instanceof Date) {
-                                  newEndDate.setHours(
-                                    formData.endDate.getHours(),
-                                    formData.endDate.getMinutes(),
-                                    0,
-                                    0
-                                  );
-                                }
-                                newFormData.endDate = newEndDate;
-                              }
-                              setFormData(newFormData);
-                            }}
-                            showTimeSelect={false}
-                            dateFormat="MMMM d, yyyy"
-                            className="date-picker"
-                            popperPlacement="bottom-start"
-                          />
-                          <RiCalendarEventLine className="date-icon" />
-                        </div>
-                      </div>
-
-                      <div className="form-group required">
-                        <label>Start Time</label>
-                        <div className="date-picker-container">
-                          <DatePicker
-                            selected={
-                              formData.startDate instanceof Date
-                                ? formData.startDate
-                                : new Date()
-                            }
-                            onChange={(date) => {
-                              // Handle null date case
-                              if (!date) {
-                                console.warn(
-                                  "Selected start time is null, using current time as fallback"
-                                );
-                                date = new Date();
-                              }
-
-                              // Keep the date from the current startDate
-                              const newDate =
-                                formData.startDate instanceof Date
-                                  ? new Date(formData.startDate)
-                                  : new Date();
-                              newDate.setHours(
-                                date.getHours(),
-                                date.getMinutes(),
+                          // If the new start date is after the end date, update end date too
+                          const newFormData = {
+                            ...formData,
+                            startDate: newDate,
+                          };
+                          if (
+                            formData.endDate instanceof Date &&
+                            newDate > formData.endDate
+                          ) {
+                            // Set end date to same day but keep the end time
+                            const newEndDate = new Date(newDate);
+                            if (formData.endDate instanceof Date) {
+                              newEndDate.setHours(
+                                formData.endDate.getHours(),
+                                formData.endDate.getMinutes(),
                                 0,
                                 0
                               );
-
-                              // If the new start time makes it later than end time on the same day, update end time
-                              const newFormData = {
-                                ...formData,
-                                startDate: newDate,
-                              };
-                              if (
-                                formData.endDate instanceof Date &&
-                                formData.startDate instanceof Date &&
-                                formData.startDate.toDateString() ===
-                                  formData.endDate.toDateString() &&
-                                newDate > formData.endDate
-                              ) {
-                                // Set end time to 1 hour later
-                                const newEndDate = new Date(newDate);
-                                newEndDate.setHours(
-                                  newDate.getHours() + 1,
-                                  newDate.getMinutes(),
-                                  0,
-                                  0
-                                );
-                                newFormData.endDate = newEndDate;
-                              }
-                              setFormData(newFormData);
-                            }}
-                            showTimeSelect
-                            showTimeSelectOnly
-                            timeFormat="HH:mm"
-                            timeIntervals={15}
-                            timeCaption="Time"
-                            dateFormat="h:mm aa"
-                            className="date-picker"
-                            popperPlacement="bottom-start"
-                          />
-                          <RiTimeLine className="date-icon" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="date-time-column">
-                      <div className="form-group required">
-                        <label>End Date</label>
-                        <div className="date-picker-container">
-                          <DatePicker
-                            selected={
-                              formData.endDate instanceof Date
-                                ? formData.endDate
-                                : new Date()
                             }
-                            onChange={(date) => {
-                              // Handle null date case
-                              if (!date) {
-                                console.warn(
-                                  "Selected end date is null, using current date as fallback"
-                                );
-                                date = new Date();
-                              }
-
-                              // Keep the time from the current endDate
-                              const newDate = new Date(date);
-                              if (formData.endDate instanceof Date) {
-                                newDate.setHours(
-                                  formData.endDate.getHours(),
-                                  formData.endDate.getMinutes(),
-                                  0,
-                                  0
-                                );
-                              }
-                              setFormData({ ...formData, endDate: newDate });
-                            }}
-                            showTimeSelect={false}
-                            dateFormat="MMMM d, yyyy"
-                            className="date-picker"
-                            minDate={
-                              formData.startDate instanceof Date
-                                ? formData.startDate
-                                : new Date()
-                            }
-                            popperPlacement="bottom-start"
-                          />
-                          <RiCalendarEventLine className="date-icon" />
-                        </div>
-                      </div>
-
-                      <div className="form-group required">
-                        <label>End Time</label>
-                        <div className="date-picker-container">
-                          <DatePicker
-                            selected={
-                              formData.endDate instanceof Date
-                                ? formData.endDate
-                                : new Date()
-                            }
-                            onChange={(date) => {
-                              // Handle null date case
-                              if (!date) {
-                                console.warn(
-                                  "Selected end time is null, using current time as fallback"
-                                );
-                                date = new Date();
-                              }
-
-                              // Keep the date from the current endDate
-                              const newDate =
-                                formData.endDate instanceof Date
-                                  ? new Date(formData.endDate)
-                                  : new Date();
-                              newDate.setHours(
-                                date.getHours(),
-                                date.getMinutes(),
-                                0,
-                                0
-                              );
-                              setFormData({ ...formData, endDate: newDate });
-                            }}
-                            showTimeSelect
-                            showTimeSelectOnly
-                            timeFormat="HH:mm"
-                            timeIntervals={15}
-                            timeCaption="Time"
-                            dateFormat="h:mm aa"
-                            className="date-picker"
-                            popperPlacement="bottom-start"
-                          />
-                          <RiTimeLine className="date-icon" />
-                        </div>
-                      </div>
+                            newFormData.endDate = newEndDate;
+                          }
+                          setFormData(newFormData);
+                        }}
+                        showTimeSelect={false}
+                        dateFormat="MMMM d, yyyy"
+                        className="date-picker"
+                        popperPlacement="bottom-start"
+                        disabled={isChildEvent} // Disable Date part for child events
+                      />
+                      <RiCalendarEventLine className="date-icon" />
                     </div>
                   </div>
-                  {formData.endDate < formData.startDate && (
-                    <div className="error-message">
-                      End date/time must be after start date/time
-                    </div>
-                  )}
-                </>
-              )}
 
-              {/* For child events, only show time pickers */}
-              {isChildEvent && (
-                <>
                   <div className="form-group required">
                     <label>Start Time</label>
                     <div className="date-picker-container">
@@ -1494,65 +1325,40 @@ const EventForm = ({
                             date = new Date();
                           }
 
-                          // Create new Date object from formData.startDate to preserve its date part
-                          const newStartDate =
+                          // Keep the date from the current startDate
+                          const newDate =
                             formData.startDate instanceof Date
                               ? new Date(formData.startDate)
                               : new Date();
-                          newStartDate.setHours(
+                          newDate.setHours(
                             date.getHours(),
                             date.getMinutes(),
                             0,
                             0
                           );
 
-                          // If the new start time is after the end time, update end time too
+                          // If the new start time makes it later than end time on the same day, update end time
                           const newFormData = {
                             ...formData,
-                            startDate: newStartDate,
+                            startDate: newDate,
                           };
-
-                          // Compare only hours and minutes
-                          const startHours = newStartDate.getHours();
-                          const startMinutes = newStartDate.getMinutes();
-                          const endHours =
-                            formData.endDate instanceof Date
-                              ? formData.endDate.getHours()
-                              : 0;
-                          const endMinutes =
-                            formData.endDate instanceof Date
-                              ? formData.endDate.getMinutes()
-                              : 0;
-
                           if (
                             formData.endDate instanceof Date &&
-                            (startHours > endHours ||
-                              (startHours === endHours &&
-                                startMinutes >= endMinutes))
+                            formData.startDate instanceof Date &&
+                            formData.startDate.toDateString() ===
+                              formData.endDate.toDateString() &&
+                            newDate > formData.endDate
                           ) {
-                            // Set end time to 1 hour later than new start time, preserving end date's original date part
-                            const newEndDate =
-                              formData.endDate instanceof Date
-                                ? new Date(formData.endDate)
-                                : new Date(newStartDate);
+                            // Set end time to 1 hour later
+                            const newEndDate = new Date(newDate);
                             newEndDate.setHours(
-                              newStartDate.getHours() + 1,
-                              newStartDate.getMinutes(),
+                              newDate.getHours() + 1,
+                              newDate.getMinutes(),
                               0,
                               0
                             );
-                            // If end date was same as start date, and new time makes it cross midnight, it will be handled by backend.
-                            // For form display, we ensure time is later.
-                            if (
-                              newEndDate.getDate() === newStartDate.getDate() &&
-                              newEndDate.getTime() <= newStartDate.getTime()
-                            ) {
-                              //This case is tricky, backend should primarily handle date advancement
-                              //For now, just ensure time is visually later.
-                            }
                             newFormData.endDate = newEndDate;
                           }
-
                           setFormData(newFormData);
                         }}
                         showTimeSelect
@@ -1564,7 +1370,55 @@ const EventForm = ({
                         className="date-picker"
                         popperPlacement="bottom-start"
                       />
-                      <BiTime className="date-icon" />
+                      <RiTimeLine className="date-icon" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="date-time-column">
+                  <div className="form-group required">
+                    <label>End Date</label>
+                    <div className="date-picker-container">
+                      <DatePicker
+                        selected={
+                          formData.endDate instanceof Date
+                            ? formData.endDate
+                            : new Date()
+                        }
+                        onChange={(date) => {
+                          if (isChildEvent) return; // Do nothing if it's a child event
+                          // Handle null date case
+                          if (!date) {
+                            console.warn(
+                              "Selected end date is null, using current date as fallback"
+                            );
+                            date = new Date();
+                          }
+
+                          // Keep the time from the current endDate
+                          const newDate = new Date(date);
+                          if (formData.endDate instanceof Date) {
+                            newDate.setHours(
+                              formData.endDate.getHours(),
+                              formData.endDate.getMinutes(),
+                              0,
+                              0
+                            );
+                          }
+                          setFormData({ ...formData, endDate: newDate });
+                        }}
+                        showTimeSelect={false}
+                        dateFormat="MMMM d, yyyy"
+                        className="date-picker"
+                        minDate={
+                          formData.startDate instanceof Date
+                            ? formData.startDate
+                            : new Date()
+                        }
+                        popperPlacement="bottom-start"
+                        disabled={isChildEvent} // Disable Date part for child events
+                      />
+                      <RiCalendarEventLine className="date-icon" />
                     </div>
                   </div>
 
@@ -1586,19 +1440,18 @@ const EventForm = ({
                             date = new Date();
                           }
 
-                          // Create new Date object from formData.endDate to preserve its date part
-                          const newEndDate =
+                          // Keep the date from the current endDate
+                          const newDate =
                             formData.endDate instanceof Date
                               ? new Date(formData.endDate)
                               : new Date();
-                          newEndDate.setHours(
+                          newDate.setHours(
                             date.getHours(),
                             date.getMinutes(),
                             0,
                             0
                           );
-
-                          setFormData({ ...formData, endDate: newEndDate });
+                          setFormData({ ...formData, endDate: newDate });
                         }}
                         showTimeSelect
                         showTimeSelectOnly
@@ -1612,21 +1465,8 @@ const EventForm = ({
                       <BiTime className="date-icon" />
                     </div>
                   </div>
-                  <div className="form-group read-only-dates">
-                    {formData.startDate && (
-                      <p>
-                        Event Date: {formData.startDate.toLocaleDateString()}
-                      </p>
-                    )}
-                    {formData.endDate &&
-                      formData.startDate &&
-                      formData.endDate.toLocaleDateString() !==
-                        formData.startDate.toLocaleDateString() && (
-                        <p>Ends On: {formData.endDate.toLocaleDateString()}</p>
-                      )}
-                  </div>
-                </>
-              )}
+                </div>
+              </div>
 
               {/* Only show weekly toggle for parent events */}
               {!isChildEvent && (

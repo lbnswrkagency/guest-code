@@ -20,6 +20,7 @@ import {
   RiRefreshLine,
 } from "react-icons/ri";
 import { componentCleanup } from "../../utils/layoutHelpers";
+import Tesseract from "tesseract.js";
 
 // Add this debug flag to help with troubleshooting
 const DEBUG_SCANNING = false; // Set to true to enable extended logging
@@ -41,8 +42,92 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const lastProcessedFrame = useRef(0); // To control frame processing rate
   const toast = useToast();
 
+  // State for Member Chip Scanning
+  const [showMemberFlow, setShowMemberFlow] = useState(false);
+  const [memberNumberInput, setMemberNumberInput] = useState("");
+  const [confirmedMemberNumber, setConfirmedMemberNumber] = useState(null);
+  const [showMemberRegistrationForm, setShowMemberRegistrationForm] =
+    useState(false);
+  const [memberRegistrationData, setMemberRegistrationData] = useState({
+    firstName: "",
+    lastName: "",
+  });
+  const [scannedMemberData, setScannedMemberData] = useState(null);
+  const [isMemberProcessing, setIsMemberProcessing] = useState(false); // Separate processing state for members
+  const [memberErrorMessage, setMemberErrorMessage] = useState(null);
+  const [showMemberCamera, setShowMemberCamera] = useState(false); // State for member camera view
+  const [capturedFrameDataUrl, setCapturedFrameDataUrl] = useState(null); // State to hold captured image data URL
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false); // <-- State for OCR loading
+
+  // Placeholder for handleMemberPaxUpdate
+  const handleMemberPaxUpdate = async (increment) => {
+    if (isMemberProcessing || !scannedMemberData) return;
+    setIsMemberProcessing(true);
+    setMemberErrorMessage(null);
+    console.log(
+      "Attempting to update member PAX:",
+      scannedMemberData.memberNumber,
+      "Increment:",
+      increment
+    );
+    try {
+      // API call to PUT /api/members/pax/:memberNumber
+      const response = await axiosInstance.put(
+        `/api/members/pax/${scannedMemberData.memberNumber}`,
+        {
+          increment,
+          eventId: selectedEvent?._id, // Pass eventId if available
+        }
+      );
+      setScannedMemberData(response.data.member);
+      toast.showSuccess(response.data.message);
+    } catch (error) {
+      const msg =
+        error.response?.data?.message || "Failed to update member PAX.";
+      toast.showError(msg);
+      setMemberErrorMessage(msg);
+    }
+    setIsMemberProcessing(false);
+  };
+
+  // Placeholder for handleRegisterMember
+  const handleRegisterMember = async () => {
+    if (
+      isMemberProcessing ||
+      !confirmedMemberNumber ||
+      !memberRegistrationData.firstName ||
+      !memberRegistrationData.lastName
+    )
+      return;
+    setIsMemberProcessing(true);
+    setMemberErrorMessage(null);
+    console.log(
+      "Attempting to register member:",
+      confirmedMemberNumber,
+      memberRegistrationData
+    );
+    try {
+      // API call to POST /api/members/register
+      const response = await axiosInstance.post("/api/members/register", {
+        memberNumber: confirmedMemberNumber,
+        firstName: memberRegistrationData.firstName,
+        lastName: memberRegistrationData.lastName,
+        brandId: selectedBrand?._id, // Pass brandId if available
+      });
+      setScannedMemberData(response.data.member);
+      setShowMemberRegistrationForm(false);
+      setConfirmedMemberNumber(null); // Clear confirmed number after registration
+      toast.showSuccess(response.data.message);
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to register member.";
+      toast.showError(msg);
+      setMemberErrorMessage(msg);
+    }
+    setIsMemberProcessing(false);
+  };
+
   // Function to initialize camera
-  const initializeCamera = async () => {
+  const initializeCamera = async (forMemberScan = false) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -61,6 +146,11 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         "Failed to access camera. Please ensure camera permissions are granted."
       );
     }
+    setIsMemberProcessing(false);
+    setMemberErrorMessage(null);
+    setShowMemberCamera(false); // Reset member camera state
+    setCapturedFrameDataUrl(null); // Clear captured frame
+    setIsOcrProcessing(false); // <-- Reset OCR state
   };
 
   // Function to handle QR code scanning
@@ -512,6 +602,15 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
     setScannerError(false);
     setShowCamera(false);
     setErrorMessage(null);
+    // Reset member states as well
+    setShowMemberFlow(false);
+    setMemberNumberInput("");
+    setConfirmedMemberNumber(null);
+    setShowMemberRegistrationForm(false);
+    setMemberRegistrationData({ firstName: "", lastName: "" });
+    setScannedMemberData(null);
+    setIsMemberProcessing(false);
+    setMemberErrorMessage(null);
   };
 
   // Helper function to determine code color class
@@ -708,6 +807,22 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                   <span>Scan QR Code</span>
                 </motion.button>
 
+                {/* New Button for Member Chip Scanning */}
+                <motion.button
+                  className="scan-button member-scan-button" // Add a new class for styling
+                  onClick={() => {
+                    resetScanner(); // Ensure a clean state
+                    setShowMemberFlow(true);
+                    setScanning(false); // Not using QR scanning for this flow initially
+                    setShowCamera(false); // Don't show camera immediately
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RiUserLine /> {/* Or a more relevant icon */}
+                  <span>Scan Member Chip</span>
+                </motion.button>
+
                 <div className="manual-input">
                   <input
                     type="text"
@@ -797,123 +912,286 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                 <RiCloseLine />
                 <span>Cancel</span>
               </motion.button>
+
+              {!scannerError && (
+                <motion.button
+                  className={`capture-button ${
+                    isOcrProcessing ? "processing" : ""
+                  }`}
+                  onClick={async () => {
+                    if (
+                      videoRef.current?.readyState ===
+                        videoRef.current?.HAVE_ENOUGH_DATA &&
+                      !isOcrProcessing
+                    ) {
+                      setIsOcrProcessing(true);
+                    }
+                  }}
+                  disabled={isOcrProcessing}
+                  whileHover={!isOcrProcessing ? { scale: 1.05 } : {}}
+                  whileTap={!isOcrProcessing ? { scale: 0.95 } : {}}
+                >
+                  <span>Capture & Recognize</span>
+                </motion.button>
+              )}
             </motion.div>
           )}
 
-          {scanResult && (
+          {/* Member Scanning Flow UI placeholder - to be built out */}
+          {showMemberFlow &&
+            !scannedMemberData &&
+            !showMemberRegistrationForm && (
+              <motion.div
+                className="member-flow-container"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Initial Manual Input for Member Number */}
+                {!confirmedMemberNumber && (
+                  <div className="member-manual-input">
+                    <h2>Enter Member Chip Number</h2>
+                    <input
+                      type="text"
+                      value={memberNumberInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, ""); // Allow only digits
+                        if (val.length <= 5) setMemberNumberInput(val);
+                      }}
+                      placeholder="Enter 5-digit number"
+                      maxLength={5}
+                    />
+                    <motion.button
+                      onClick={async () => {
+                        if (
+                          memberNumberInput.length !== 5 ||
+                          isMemberProcessing
+                        )
+                          return;
+                        setIsMemberProcessing(true);
+                        setMemberErrorMessage(null);
+                        try {
+                          const response = await axiosInstance.get(
+                            `/api/members/lookup/${memberNumberInput}?eventId=${
+                              selectedEvent?._id || ""
+                            }`
+                          );
+                          setScannedMemberData(response.data);
+                          setConfirmedMemberNumber(memberNumberInput); // Keep for context if needed, though scannedMemberData now primary
+                          setShowMemberRegistrationForm(false); // Ensure reg form is hidden
+                        } catch (error) {
+                          if (error.response?.status === 404) {
+                            // Member not found, proceed to registration confirmation
+                            setConfirmedMemberNumber(memberNumberInput); // Set this to trigger the confirmation step
+                            setShowMemberRegistrationForm(false); // Hide reg form for now
+                            setMemberErrorMessage(
+                              "Member not found. Confirm number to register."
+                            ); // Prompt for next step
+                          } else {
+                            const msg =
+                              error.response?.data?.message ||
+                              "Error looking up member.";
+                            toast.showError(msg);
+                            setMemberErrorMessage(msg);
+                            setConfirmedMemberNumber(null); // Clear if error
+                          }
+                        }
+                        setIsMemberProcessing(false);
+                      }}
+                      disabled={
+                        memberNumberInput.length !== 5 || isMemberProcessing
+                      }
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isMemberProcessing ? "Checking..." : "Check Number"}
+                    </motion.button>
+                    {memberErrorMessage && (
+                      <p className="error-message">{memberErrorMessage}</p>
+                    )}
+                    <button
+                      className="cancel-member-flow"
+                      onClick={resetScanner}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {/* Confirmation Step - if number not found initially by lookup but confirmed by user to proceed */}
+                {confirmedMemberNumber &&
+                  !scannedMemberData &&
+                  !showMemberRegistrationForm && (
+                    <div className="member-confirmation-step">
+                      <h2>Is this the correct number?</h2>
+                      <p className="confirmed-number-display">
+                        {confirmedMemberNumber}
+                      </p>
+                      <div className="confirmation-actions">
+                        <motion.button
+                          className="confirm-yes"
+                          onClick={() => setShowMemberRegistrationForm(true)} // Proceed to registration
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Yes, Register New Member
+                        </motion.button>
+                        <motion.button
+                          className="confirm-no"
+                          onClick={() => {
+                            setConfirmedMemberNumber(null);
+                            setMemberNumberInput("");
+                            setMemberErrorMessage(null);
+                          }} // Go back to input
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          No, Re-enter Number
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+
+                {showMemberRegistrationForm && (
+                  <motion.div
+                    className="member-registration-form"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h2>Register New Member</h2>
+                    <p>
+                      Chip Number: <strong>{confirmedMemberNumber}</strong>
+                    </p>
+                    <div className="form-group">
+                      <label>First Name</label>
+                      <input
+                        type="text"
+                        value={memberRegistrationData.firstName}
+                        onChange={(e) =>
+                          setMemberRegistrationData({
+                            ...memberRegistrationData,
+                            firstName: e.target.value,
+                          })
+                        }
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Last Name</label>
+                      <input
+                        type="text"
+                        value={memberRegistrationData.lastName}
+                        onChange={(e) =>
+                          setMemberRegistrationData({
+                            ...memberRegistrationData,
+                            lastName: e.target.value,
+                          })
+                        }
+                        placeholder="Enter last name"
+                      />
+                    </div>
+                    <motion.button
+                      onClick={handleRegisterMember} // Implement this function
+                      disabled={
+                        !memberRegistrationData.firstName ||
+                        !memberRegistrationData.lastName ||
+                        isMemberProcessing
+                      }
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isMemberProcessing
+                        ? "Registering..."
+                        : "Register Member"}
+                    </motion.button>
+                    {memberErrorMessage && (
+                      <p className="error-message">{memberErrorMessage}</p>
+                    )}
+                    <button
+                      className="cancel-member-flow"
+                      onClick={() => {
+                        setShowMemberRegistrationForm(false);
+                        setConfirmedMemberNumber(null);
+                        setMemberErrorMessage(null);
+                      }}
+                    >
+                      Back
+                    </button>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+          {showMemberFlow && scannedMemberData && (
             <motion.div
-              className="scan-result"
+              className="member-scan-result" // Similar to scan-result but for members
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="result-header" style={getCustomColorStyle()}>
-                <h2>{scanResult.typeOfTicket}</h2>
-                <div className="result-event">
-                  {scanResult.eventDetails?.title && (
-                    <p>{scanResult.eventDetails.title}</p>
-                  )}
-                  {selectedEvent && !scanResult.eventDetails?.title && (
+              <div className="result-header member-header">
+                {" "}
+                {/* Add a distinct class or style */}
+                <h2>Member Verified</h2>
+                {selectedEvent && (
+                  <div className="result-event">
                     <p>{selectedEvent.title}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="event-banner">
-                {scanResult.metadata?.hostName && (
-                  <div className="event-info">
-                    <RiUserLine />
-                    <div className="info-text">
-                      <div className="label">Created By</div>
-                      <div className="value">
-                        {scanResult.metadata.hostName}
-                      </div>
-                    </div>
                   </div>
                 )}
-
-                {scanResult.eventDetails && scanResult.eventDetails.date && (
-                  <div className="event-info">
-                    <RiCalendarEventLine />
-                    <div className="info-text">
-                      <div className="label">Event Date</div>
-                      <div className="value">
-                        {new Date(
-                          scanResult.eventDetails.date
-                        ).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Always show the condition if it exists */}
-                <div className="event-info">
-                  <RiInformationLine />
-                  <div className="info-text">
-                    <div className="label">Condition</div>
-                    <div className="value">
-                      {scanResult.condition || "Standard Entry"}
-                    </div>
-                  </div>
-                </div>
               </div>
-
               <div className="result-details">
                 <div className="detail-item">
                   <RiUserLine />
                   <div>
                     <label>Name</label>
-                    <p>{scanResult.name}</p>
+                    <p>
+                      {scannedMemberData.firstName} {scannedMemberData.lastName}
+                    </p>
                   </div>
                 </div>
-
-                {scanResult.typeOfTicket?.toLowerCase().includes("ticket") && (
-                  <div className="detail-item">
-                    <RiTimeLine />
-                    <div>
-                      <label>Ticket Type</label>
-                      <p>{scanResult.ticketType || "Standard"}</p>
-                    </div>
+                <div className="detail-item">
+                  <RiQrCodeFill /> {/* Placeholder icon */}
+                  <div>
+                    <label>Member Number</label>
+                    <p>{scannedMemberData.memberNumber}</p>
                   </div>
-                )}
-
-                {scanResult.typeOfTicket?.toLowerCase().includes("table") && (
-                  <div className="detail-item">
-                    <RiTimeLine />
-                    <div>
-                      <label>Table</label>
-                      <p>{scanResult.tableNumber || "N/A"}</p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               <div className="counter-section">
                 <div className="counter-label">
                   <span>People</span>
                   <div className="counter-info">
-                    <span className="current">{scanResult.paxChecked}</span>
+                    <span className="current">
+                      {scannedMemberData.paxChecked}
+                    </span>
                     <span className="divider">/</span>
-                    <span className="max">{scanResult.pax}</span>
+                    <span className="max">{scannedMemberData.pax}</span>
                   </div>
                 </div>
-
                 <div className="counter-controls">
                   <motion.button
                     className="counter-btn decrease"
-                    onClick={() => updatePax(false)}
-                    disabled={scanResult.paxChecked <= 0}
+                    onClick={() => handleMemberPaxUpdate(false)} // Implement this function
+                    disabled={
+                      isMemberProcessing || scannedMemberData.paxChecked <= 0
+                    }
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <RiArrowLeftLine />
                   </motion.button>
-
                   <motion.button
                     className="counter-btn increase"
-                    onClick={() => updatePax(true)}
-                    disabled={scanResult.paxChecked >= scanResult.pax}
+                    onClick={() => handleMemberPaxUpdate(true)} // Implement this function
+                    disabled={
+                      isMemberProcessing ||
+                      scannedMemberData.paxChecked >= scannedMemberData.pax
+                    }
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -921,15 +1199,14 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                   </motion.button>
                 </div>
               </div>
-
               <motion.button
                 className="scan-again-btn"
-                onClick={resetScanner}
+                onClick={resetScanner} // Will reset member flow too
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <RiQrScanLine />
-                <span>Scan Again</span>
+                <span>Scan Next</span>
               </motion.button>
             </motion.div>
           )}
