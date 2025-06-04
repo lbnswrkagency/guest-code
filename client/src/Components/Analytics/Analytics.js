@@ -459,8 +459,8 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
                 "guest-codes"
               )}
 
-            {/* Tickets with categories */}
-            {stats.tickets && renderTicketsSection(stats.tickets)}
+            {/* Tickets with categories - only show if sold > 0 */}
+            {stats.tickets && stats.tickets.totalSold > 0 && renderTicketsSection(stats.tickets)}
 
             {/* Dynamically render custom code types */}
             {stats.customCodeTypes &&
