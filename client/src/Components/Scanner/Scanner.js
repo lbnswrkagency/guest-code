@@ -1210,6 +1210,114 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
               </motion.button>
             </motion.div>
           )}
+
+          {scanResult && !showMemberFlow && (
+            <motion.div
+              className={`scan-result ${getCodeColorClass()}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className={`result-header ${getCodeColorClass()}`} style={getCustomColorStyle()}>
+                <h2>{scanResult.name}</h2>
+                {scanResult.eventDetails && (
+                  <div className="result-event">
+                    <p>{scanResult.eventDetails.title}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="result-details">
+                <div className="detail-item">
+                  <RiQrCodeFill />
+                  <div>
+                    <label>Code</label>
+                    <p>{scanResult.code}</p>
+                  </div>
+                </div>
+
+                <div className="detail-item">
+                  <RiInformationLine />
+                  <div>
+                    <label>Type</label>
+                    <p>{scanResult.typeOfTicket}</p>
+                  </div>
+                </div>
+
+                {scanResult.tableNumber && (
+                  <div className="detail-item">
+                    <RiQrCodeFill />
+                    <div>
+                      <label>Table</label>
+                      <p>{scanResult.tableNumber}</p>
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.condition && (
+                  <div className="detail-item highlight-condition">
+                    <RiInformationLine />
+                    <div>
+                      <label>Special Instructions</label>
+                      <p>{scanResult.condition}</p>
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.metadata?.hostName && (
+                  <div className="detail-item">
+                    <RiUserLine />
+                    <div>
+                      <label>Host</label>
+                      <p>{scanResult.metadata.hostName}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="counter-section">
+                <div className="counter-label">
+                  <span>People</span>
+                  <div className="counter-info">
+                    <span className="current">{scanResult.paxChecked}</span>
+                    <span className="divider">/</span>
+                    <span className="max">{scanResult.pax}</span>
+                  </div>
+                </div>
+                <div className="counter-controls">
+                  <motion.button
+                    className="counter-btn decrease"
+                    onClick={() => updatePax(false)}
+                    disabled={scanResult.paxChecked <= 0}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RiArrowLeftLine />
+                  </motion.button>
+                  <motion.button
+                    className="counter-btn increase"
+                    onClick={() => updatePax(true)}
+                    disabled={scanResult.paxChecked >= scanResult.pax}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RiArrowRightLine />
+                  </motion.button>
+                </div>
+              </div>
+
+              <motion.button
+                className="scan-again-btn"
+                onClick={resetScanner}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <RiQrScanLine />
+                <span>Scan Next</span>
+              </motion.button>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {isProcessing && (
