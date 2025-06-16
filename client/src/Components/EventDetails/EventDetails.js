@@ -170,14 +170,18 @@ const EventDetails = ({
 
   // Check if this is an event that supports table booking
   const isBolivarEvent =
-    // Check event ID
-    event._id === "6807c197d4455638731dbda6" ||
-    // Check brand as object with _id
-    (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
-    (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
-    // Fallback check for brand as string ID
-    event.brand === "67d737d6e1299b18afabf4f4" ||
-    event.brand === "67ba051873bd89352d3ab6db";
+    // Exclude specific event ID that should never show table bookings
+    event._id !== "68504c76f50c6d871f1a8013" &&
+    (
+      // Check event ID
+      event._id === "6807c197d4455638731dbda6" ||
+      // Check brand as object with _id
+      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+      (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
+      // Fallback check for brand as string ID
+      event.brand === "67d737d6e1299b18afabf4f4" ||
+      event.brand === "67ba051873bd89352d3ab6db"
+    );
 
   // Format time for display
   const formatTime = (timeString) => {

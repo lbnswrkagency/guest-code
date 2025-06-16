@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ss:*)",
+      "Bash(fuser:*)",
+      "Bash(lsof:*)",
+      "Bash(npm start)",
+      "Bash(pkill:*)",
+      "Bash(node:*)",
+      "Bash(npm --version)"
+    ],
+    "deny": []
+  }
+}

@@ -147,8 +147,8 @@ const corsOptions = {
           "https://guestcode-server.onrender.com",
         ]
       : [
-          "http://localhost:3000",
-          "http://127.0.0.1:3000",
+          "http://localhost:9231",
+          "http://127.0.0.1:9231",
           "http://localhost:5001",
         ],
   credentials: true,

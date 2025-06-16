@@ -9,11 +9,13 @@
   .brand-header {
     background: #151515;
     position: relative;
+    padding-top: 3rem;
     margin-bottom: 1rem;
     border-radius: 1rem;
     overflow: hidden;
 
     .brand-cover {
+      display: none;
       height: 200px;
       position: relative;
       overflow: hidden;

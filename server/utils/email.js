@@ -21,7 +21,7 @@ const getBaseUrl = () => {
   if (process.env.NODE_ENV === "production") {
     return "https://guest-code.com";
   }
-  return "http://localhost:3000";
+  return "http://localhost:9231";
 };
 
 const sendVerificationEmail = async (to, token) => {

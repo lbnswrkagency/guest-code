@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./UpcomingEvent.scss";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../../Components/Toast/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -70,6 +70,7 @@ const UpcomingEvent = ({
     providedEvents ? providedEvents.length : 0
   );
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { user } = useAuth();
 
@@ -90,6 +91,9 @@ const UpcomingEvent = ({
 
   // Add a ticket settings cache
   const [ticketSettingsCache, setTicketSettingsCache] = useState({});
+  
+  // Add flag to prevent infinite loops in URL navigation
+  const [hasNavigatedFromURL, setHasNavigatedFromURL] = useState(false);
 
   // Filter ticket settings to only include visible ones
   const visibleTicketSettings = useMemo(() => {
@@ -182,6 +186,7 @@ const UpcomingEvent = ({
     setTicketSettings([]);
     setLoadingTickets(false);
     setShowGuestCodeForm(false);
+    setHasNavigatedFromURL(false); // Reset URL navigation flag
 
     fetchUpcomingEvents();
   }, [brandId, brandUsername, providedEvents]);
@@ -347,6 +352,107 @@ const UpcomingEvent = ({
     },
     [events, ticketSettingsCache]
   );
+
+  // Helper function to extract dateSlug from URL and find matching event
+  const navigateToEventFromURL = useCallback(() => {
+    if (!events || events.length === 0 || hasNavigatedFromURL) return;
+    
+    // Extract dateSlug from URL path - look for pattern like /@brandusername/270625
+    const pathParts = location.pathname.split('/');
+    let dateSlug = null;
+    
+    console.log('[URL Navigation Debug] Current path:', location.pathname);
+    console.log('[URL Navigation Debug] Path parts:', pathParts);
+    
+    // Find the dateSlug in the path - it should be after the brand username
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+      // Check if this part matches date format (6 digits, optionally followed by -number)
+      if (/^\d{6}(-\d+)?$/.test(part)) {
+        dateSlug = part.split('-')[0]; // Remove any suffix like -1, -2
+        console.log('[URL Navigation Debug] Found dateSlug:', dateSlug);
+        break;
+      }
+    }
+    
+    if (!dateSlug) {
+      console.log('[URL Navigation Debug] No dateSlug found in URL');
+      setHasNavigatedFromURL(true); // Mark as processed even if no dateSlug
+      return;
+    }
+    
+    // Parse the dateSlug (MMDDYY format to match handleViewEvent logic)
+    const month = parseInt(dateSlug.substring(0, 2), 10);
+    const day = parseInt(dateSlug.substring(2, 4), 10);
+    const year = 2000 + parseInt(dateSlug.substring(4, 6), 10);
+    
+    // Create target date
+    const targetDate = new Date(year, month - 1, day); // month is 0-indexed
+    
+    console.log('[URL Navigation Debug] Parsed date:', { day, month, year });
+    console.log('[URL Navigation Debug] Target date:', targetDate);
+    console.log('[URL Navigation Debug] Available events:', events.length);
+    
+    // Find matching event
+    const matchingEventIndex = events.findIndex((event, index) => {
+      const eventDate = getEventDate(event);
+      if (!eventDate) return false;
+      
+      const eventDateObj = new Date(eventDate);
+      
+      console.log(`[URL Navigation Debug] Event ${index}:`, {
+        title: event.title,
+        eventDate: eventDate,
+        eventDateObj: eventDateObj,
+        day: eventDateObj.getDate(),
+        month: eventDateObj.getMonth() + 1,
+        year: eventDateObj.getFullYear()
+      });
+      
+      // Compare dates (ignore time)
+      const matches = (
+        eventDateObj.getFullYear() === targetDate.getFullYear() &&
+        eventDateObj.getMonth() === targetDate.getMonth() &&
+        eventDateObj.getDate() === targetDate.getDate()
+      );
+      
+      if (matches) {
+        console.log(`[URL Navigation Debug] Found matching event at index ${index}:`, event.title);
+      }
+      
+      return matches;
+    });
+    
+    console.log('[URL Navigation Debug] Matching event index:', matchingEventIndex);
+    console.log('[URL Navigation Debug] Current index:', currentIndex);
+    
+    // Mark as processed regardless of whether we found a match
+    setHasNavigatedFromURL(true);
+    
+    if (matchingEventIndex !== -1 && matchingEventIndex !== currentIndex) {
+      console.log('[URL Navigation Debug] Navigating to event index:', matchingEventIndex);
+      // Use a slight delay to ensure this happens after other state updates
+      setTimeout(() => {
+        setCurrentIndex(matchingEventIndex);
+        console.log('[URL Navigation Debug] Navigation completed to index:', matchingEventIndex);
+      }, 100);
+    }
+  }, [events, location.pathname, hasNavigatedFromURL]);
+
+  // Reset navigation flag when URL changes
+  useEffect(() => {
+    setHasNavigatedFromURL(false);
+  }, [location.pathname]);
+
+  // Effect to navigate to event based on URL when events load or path changes  
+  useEffect(() => {
+    // Add a small delay to ensure this runs after fetchUpcomingEvents completes
+    const timer = setTimeout(() => {
+      navigateToEventFromURL();
+    }, 200);
+    
+    return () => clearTimeout(timer);
+  }, [navigateToEventFromURL]);
 
   const fetchUpcomingEvents = async () => {
     setLoading(true);
@@ -564,7 +670,7 @@ const UpcomingEvent = ({
       onEventsLoaded(upcomingEvents.length);
 
       if (upcomingEvents.length > 0) {
-        // Set the first event as the current event
+        // Set the first event as the current event (unless we're planning to navigate from URL)
         setCurrentIndex(0);
 
         // Preload the first event's image if available
@@ -872,6 +978,11 @@ const UpcomingEvent = ({
 
   // Utility function to check if event supports table booking
   const supportsTableBooking = (event) => {
+    // Exclude specific event ID that should never show table bookings
+    if (event._id === "68504c76f50c6d871f1a8013") {
+      return false;
+    }
+    
     // Check all possible formats
     return (
       // Special event ID
@@ -1303,6 +1414,7 @@ const UpcomingEvent = ({
 
                   {/* Fallback check for specific brand IDs - in case brand is stored differently */}
                   {!supportsTableBooking(currentEvent) &&
+                    currentEvent._id !== "68504c76f50c6d871f1a8013" &&
                     currentEvent.brand &&
                     (currentEvent.brand === "67d737d6e1299b18afabf4f4" ||
                       currentEvent.brand === "67ba051873bd89352d3ab6db") &&

@@ -41,7 +41,7 @@ router.post("/create-checkout-session", async (req, res) => {
     }
 
     // Ensure CLIENT_BASE_URL is properly set
-    let baseUrl = process.env.CLIENT_BASE_URL || "http://localhost:3000";
+    let baseUrl = process.env.CLIENT_BASE_URL || "http://localhost:9231";
 
     // Log the raw environment variable for debugging
     console.log(
