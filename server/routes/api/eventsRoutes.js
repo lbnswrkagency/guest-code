@@ -223,6 +223,60 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
   }
 });
 
+// Add the flyer delete route
+router.delete(
+  "/:eventId/flyer/:format",
+  authenticate,
+  async (req, res) => {
+    try {
+      const { eventId, format } = req.params;
+
+      console.log("[Flyer Delete] Processing request:", {
+        eventId,
+        format,
+      });
+
+      // Find event and check permissions
+      const event = await Event.findById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check if flyer format exists
+      if (!event.flyer || !event.flyer[format]) {
+        return res.status(404).json({ message: "Flyer format not found" });
+      }
+
+      // Delete the flyer format from the event
+      if (event.flyer[format]) {
+        delete event.flyer[format];
+      }
+
+      // If no flyer formats remain, remove the flyer object entirely
+      if (Object.keys(event.flyer).length === 0) {
+        event.flyer = undefined;
+      }
+
+      await event.save();
+      console.log(`[Flyer Delete] Deleted ${format} flyer successfully`);
+
+      res.status(200).json({
+        message: "Flyer deleted successfully",
+        event
+      });
+    } catch (error) {
+      console.error("[Flyer Delete Error]", {
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({
+        message: "Error deleting flyer",
+        error: error.message,
+      });
+    }
+  }
+);
+
 // Add the flyer update route
 router.put(
   "/:eventId/flyer/:format",

@@ -91,7 +91,7 @@ const UpcomingEvent = ({
 
   // Add a ticket settings cache
   const [ticketSettingsCache, setTicketSettingsCache] = useState({});
-  
+
   // Add flag to prevent infinite loops in URL navigation
   const [hasNavigatedFromURL, setHasNavigatedFromURL] = useState(false);
 
@@ -356,85 +356,56 @@ const UpcomingEvent = ({
   // Helper function to extract dateSlug from URL and find matching event
   const navigateToEventFromURL = useCallback(() => {
     if (!events || events.length === 0 || hasNavigatedFromURL) return;
-    
+
     // Extract dateSlug from URL path - look for pattern like /@brandusername/270625
-    const pathParts = location.pathname.split('/');
+    const pathParts = location.pathname.split("/");
     let dateSlug = null;
-    
-    console.log('[URL Navigation Debug] Current path:', location.pathname);
-    console.log('[URL Navigation Debug] Path parts:', pathParts);
-    
+
     // Find the dateSlug in the path - it should be after the brand username
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
       // Check if this part matches date format (6 digits, optionally followed by -number)
       if (/^\d{6}(-\d+)?$/.test(part)) {
-        dateSlug = part.split('-')[0]; // Remove any suffix like -1, -2
-        console.log('[URL Navigation Debug] Found dateSlug:', dateSlug);
+        dateSlug = part.split("-")[0]; // Remove any suffix like -1, -2
         break;
       }
     }
-    
+
     if (!dateSlug) {
-      console.log('[URL Navigation Debug] No dateSlug found in URL');
       setHasNavigatedFromURL(true); // Mark as processed even if no dateSlug
       return;
     }
-    
+
     // Parse the dateSlug (MMDDYY format to match handleViewEvent logic)
     const month = parseInt(dateSlug.substring(0, 2), 10);
     const day = parseInt(dateSlug.substring(2, 4), 10);
     const year = 2000 + parseInt(dateSlug.substring(4, 6), 10);
-    
+
     // Create target date
     const targetDate = new Date(year, month - 1, day); // month is 0-indexed
-    
-    console.log('[URL Navigation Debug] Parsed date:', { day, month, year });
-    console.log('[URL Navigation Debug] Target date:', targetDate);
-    console.log('[URL Navigation Debug] Available events:', events.length);
-    
+
     // Find matching event
-    const matchingEventIndex = events.findIndex((event, index) => {
+    const matchingEventIndex = events.findIndex((event) => {
       const eventDate = getEventDate(event);
       if (!eventDate) return false;
-      
+
       const eventDateObj = new Date(eventDate);
-      
-      console.log(`[URL Navigation Debug] Event ${index}:`, {
-        title: event.title,
-        eventDate: eventDate,
-        eventDateObj: eventDateObj,
-        day: eventDateObj.getDate(),
-        month: eventDateObj.getMonth() + 1,
-        year: eventDateObj.getFullYear()
-      });
-      
+
       // Compare dates (ignore time)
-      const matches = (
+      return (
         eventDateObj.getFullYear() === targetDate.getFullYear() &&
         eventDateObj.getMonth() === targetDate.getMonth() &&
         eventDateObj.getDate() === targetDate.getDate()
       );
-      
-      if (matches) {
-        console.log(`[URL Navigation Debug] Found matching event at index ${index}:`, event.title);
-      }
-      
-      return matches;
     });
-    
-    console.log('[URL Navigation Debug] Matching event index:', matchingEventIndex);
-    console.log('[URL Navigation Debug] Current index:', currentIndex);
-    
+
     // Mark as processed regardless of whether we found a match
     setHasNavigatedFromURL(true);
-    
+
     if (matchingEventIndex !== -1 && matchingEventIndex !== currentIndex) {
-      console.log('[URL Navigation Debug] Navigating to event index:', matchingEventIndex);
       // Use a slight delay to ensure this happens after other state updates
       setTimeout(() => {
         setCurrentIndex(matchingEventIndex);
-        console.log('[URL Navigation Debug] Navigation completed to index:', matchingEventIndex);
       }, 100);
     }
   }, [events, location.pathname, hasNavigatedFromURL]);
@@ -444,13 +415,13 @@ const UpcomingEvent = ({
     setHasNavigatedFromURL(false);
   }, [location.pathname]);
 
-  // Effect to navigate to event based on URL when events load or path changes  
+  // Effect to navigate to event based on URL when events load or path changes
   useEffect(() => {
     // Add a small delay to ensure this runs after fetchUpcomingEvents completes
     const timer = setTimeout(() => {
       navigateToEventFromURL();
     }, 200);
-    
+
     return () => clearTimeout(timer);
   }, [navigateToEventFromURL]);
 
@@ -982,7 +953,7 @@ const UpcomingEvent = ({
     if (event._id === "68504c76f50c6d871f1a8013") {
       return false;
     }
-    
+
     // Check all possible formats
     return (
       // Special event ID
@@ -1375,8 +1346,7 @@ const UpcomingEvent = ({
                         eventDate={currentEvent.date}
                         seamless={seamless}
                         event={currentEvent} // Pass the full event data
-                        // Pass the fetch function so Tickets can potentially refresh if needed internally
-                        // NOTE: Tickets component might need adjustment if it directly uses a ticketSettings prop
+                        ticketSettings={visibleTicketSettings} // Pass the already fetched and filtered ticket settings
                         fetchTicketSettings={fetchTicketSettings}
                       />
                     )}

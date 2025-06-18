@@ -363,6 +363,54 @@ const EventForm = ({
     fileInputRefs[type].current?.click();
   };
 
+  const handleDeleteFlyer = async (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      // If it's an existing flyer (has isExisting flag), delete from server
+      if (flyerPreviews[type]?.isExisting && event?._id) {
+        const response = await axiosInstance.delete(
+          `/events/${event._id}/flyer/${type}`
+        );
+        
+        if (response.status === 200) {
+          toast.showSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} flyer deleted successfully`);
+        }
+      }
+
+      // Remove from local state
+      setFlyerFiles((prev) => {
+        const newFiles = { ...prev };
+        delete newFiles[type];
+        return newFiles;
+      });
+
+      setFlyerPreviews((prev) => {
+        const newPreviews = { ...prev };
+        // Revoke blob URLs to prevent memory leaks
+        if (newPreviews[type]) {
+          Object.values(newPreviews[type]).forEach(url => {
+            if (typeof url === 'string' && url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+            }
+          });
+          delete newPreviews[type];
+        }
+        return newPreviews;
+      });
+
+      // Reset file input
+      if (fileInputRefs[type]?.current) {
+        fileInputRefs[type].current.value = '';
+      }
+
+    } catch (error) {
+      console.error('Error deleting flyer:', error);
+      toast.showError('Failed to delete flyer');
+    }
+  };
+
   const handleFlyerChange = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1677,9 +1725,19 @@ const EventForm = ({
                     </div>
                     <span className="ratio-text">{type.ratio}</span>
                     {(flyerFiles[type.id] || flyerPreviews[type.id]) && (
-                      <span className="check-icon">
-                        <FaCheck />
-                      </span>
+                      <>
+                        <span className="check-icon">
+                          <FaCheck />
+                        </span>
+                        <button
+                          type="button"
+                          className="flyer-delete-button"
+                          onClick={(e) => handleDeleteFlyer(e, type.id)}
+                          title="Delete flyer"
+                        >
+                          <RiCloseLine />
+                        </button>
+                      </>
                     )}
                     {uploadProgress[type.id] > 0 &&
                       uploadProgress[type.id] < 100 && (

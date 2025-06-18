@@ -65,6 +65,7 @@ const LoadingSpinner = React.memo(({ size = "default", color = "#d4af37" }) => {
  * @param {boolean} props.seamless - Whether to display in seamless mode without borders
  * @param {Function} props.fetchTicketSettings - Function to fetch ticket settings
  * @param {Object} props.event - The complete event object with all details
+ * @param {Array} props.ticketSettings - Pre-fetched ticket settings (optional)
  */
 const Tickets = ({
   eventId,
@@ -73,9 +74,10 @@ const Tickets = ({
   seamless = false,
   fetchTicketSettings,
   event,
+  ticketSettings: providedTicketSettings,
 }) => {
-  const [ticketSettings, setTicketSettings] = useState([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketSettings, setTicketSettings] = useState(providedTicketSettings || []);
+  const [loadingTickets, setLoadingTickets] = useState(!providedTicketSettings);
   const toast = useToast();
   const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
   const [checkoutColor, setCheckoutColor] = useState("#d4af37"); // Neutral gold color for checkout
@@ -135,6 +137,22 @@ const Tickets = ({
 
   // Memoize loadTickets function to prevent recreation on each render
   const loadTickets = useCallback(async () => {
+    // If ticket settings are provided as props, use them instead of fetching
+    if (providedTicketSettings && providedTicketSettings.length > 0) {
+      setTicketSettings(providedTicketSettings);
+      setLoadingTickets(false);
+      
+      // Set primary color from first ticket if available
+      if (providedTicketSettings[0].color) {
+        setPrimaryColor(providedTicketSettings[0].color);
+        document.documentElement.style.setProperty(
+          "--ticket-primary-color",
+          providedTicketSettings[0].color
+        );
+      }
+      return;
+    }
+
     if (!eventId) return;
 
     setLoadingTickets(true);
@@ -160,12 +178,29 @@ const Tickets = ({
     } finally {
       setLoadingTickets(false);
     }
-  }, [eventId, fetchTicketSettings]);
+  }, [eventId, fetchTicketSettings, providedTicketSettings]);
 
   // Load ticket settings only once when component mounts or when dependencies change
   useEffect(() => {
     loadTickets();
   }, [loadTickets]);
+
+  // Handle changes to providedTicketSettings
+  useEffect(() => {
+    if (providedTicketSettings) {
+      setTicketSettings(providedTicketSettings);
+      setLoadingTickets(false);
+      
+      // Set primary color from first ticket if available
+      if (providedTicketSettings.length > 0 && providedTicketSettings[0].color) {
+        setPrimaryColor(providedTicketSettings[0].color);
+        document.documentElement.style.setProperty(
+          "--ticket-primary-color",
+          providedTicketSettings[0].color
+        );
+      }
+    }
+  }, [providedTicketSettings]);
 
   // Memoize the validated tickets to prevent unnecessary re-renders
   const validatedTickets = useMemo(() => {
