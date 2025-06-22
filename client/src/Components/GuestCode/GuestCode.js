@@ -12,6 +12,8 @@ import {
   RiGroupLine,
   RiShieldCheckLine,
   RiMailSendLine,
+  RiAlertLine,
+  RiFireLine,
 } from "react-icons/ri";
 
 /**
@@ -33,12 +35,37 @@ const GuestCode = ({ event }) => {
   const [formErrors, setFormErrors] = useState({});
   const [existingCodeWarning, setExistingCodeWarning] = useState("");
   const [formTouched, setFormTouched] = useState({});
+  const [limitInfo, setLimitInfo] = useState(null);
+  const [isLoadingLimit, setIsLoadingLimit] = useState(false);
 
   // Validate email format
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+
+  // Effect to fetch limit information
+  useEffect(() => {
+    const fetchLimitInfo = async () => {
+      if (event && event._id) {
+        try {
+          setIsLoadingLimit(true);
+          const response = await axiosInstance.get(
+            `/codes/counts/${event._id}?type=guest`
+          );
+          if (response.data) {
+            setLimitInfo(response.data);
+          }
+        } catch (error) {
+          console.error("[GuestCode] Error fetching limit info:", error);
+        } finally {
+          setIsLoadingLimit(false);
+        }
+      }
+    };
+
+    fetchLimitInfo();
+  }, [event]);
 
   // Effect to get maxPax and primaryColor from event code settings
   useEffect(() => {
@@ -82,6 +109,33 @@ const GuestCode = ({ event }) => {
     }
 
     return "Please fill in your details to request a guest code for this event.";
+  };
+
+  // Function to check if limit is reached
+  const isLimitReached = () => {
+    if (!limitInfo || limitInfo.unlimited) return false;
+    return limitInfo.totalPax >= limitInfo.limit;
+  };
+
+  // Function to get remaining slots
+  const getRemainingSlots = () => {
+    if (!limitInfo || limitInfo.unlimited) return null;
+    return Math.max(0, limitInfo.limit - limitInfo.totalPax);
+  };
+
+  // Function to check if we should show limit info
+  const shouldShowLimit = () => {
+    const guestCodeSetting = event?.codeSettings?.find(
+      (cs) => cs.type === "guest"
+    );
+    return (
+      limitInfo &&
+      !limitInfo.unlimited &&
+      limitInfo.limit > 0 &&
+      guestCodeSetting &&
+      !guestCodeSetting.unlimited &&
+      guestCodeSetting.limit > 0
+    );
   };
 
   // Handle field change
@@ -196,6 +250,18 @@ const GuestCode = ({ event }) => {
 
         // Show success toast
         toast.showSuccess("Guest code generated and sent successfully");
+
+        // Refresh limit info after successful generation
+        try {
+          const response = await axiosInstance.get(
+            `/codes/counts/${event._id}?type=guest`
+          );
+          if (response.data) {
+            setLimitInfo(response.data);
+          }
+        } catch (error) {
+          console.error("[GuestCode] Error refreshing limit info:", error);
+        }
       } else {
         // If response doesn't have expected success properties, show an error
         toast.showError(
@@ -297,7 +363,45 @@ const GuestCode = ({ event }) => {
           )}
         </AnimatePresence>
 
-        <div className="guest-code-form">
+        {/* Limit Display */}
+        {shouldShowLimit() && limitInfo && (
+          <div className="limit-display">
+            <div className="limit-content">
+              <RiFireLine
+                className="limit-icon"
+                style={{ color: primaryColor }}
+              />
+              <div className="limit-text">
+                <span className="limit-remaining">
+                  {limitInfo.totalPax}/{limitInfo.limit}
+                </span>
+                <span className="limit-label">limited</span>
+              </div>
+              <div className="limit-bar">
+                <div
+                  className="limit-progress"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        (limitInfo.totalPax / (limitInfo.limit || 1)) * 100
+                      )
+                    )}%`,
+                    backgroundColor: primaryColor,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div
+          className={`guest-code-form ${
+            isLimitReached() ? "limit-reached" : ""
+          }`}
+          style={{ position: "relative" }}
+        >
           <div className="form-group">
             <div
               className="input-icon"
@@ -424,9 +528,17 @@ const GuestCode = ({ event }) => {
           <motion.button
             className="guest-code-button"
             onClick={handleGenerateGuestCode}
-            disabled={generatingCode}
-            whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(0,0,0,0.3)" }}
-            whileTap={{ y: 0, boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}
+            disabled={generatingCode || isLimitReached()}
+            whileHover={
+              !isLimitReached()
+                ? { y: -2, boxShadow: "0 6px 20px rgba(0,0,0,0.3)" }
+                : {}
+            }
+            whileTap={
+              !isLimitReached()
+                ? { y: 0, boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }
+                : {}
+            }
             style={{
               background: primaryColor,
               backgroundImage: generatingCode
@@ -442,11 +554,45 @@ const GuestCode = ({ event }) => {
             ) : (
               <>
                 <RiCodeSSlashLine className="button-icon" />
-                <span>Generate Guest Code</span>
+                <span>
+                  {isLimitReached() ? "Limit Reached" : "Generate Guest Code"}
+                </span>
               </>
             )}
           </motion.button>
         </div>
+
+        {/* Limit Reached Overlay */}
+        <AnimatePresence>
+          {isLimitReached() && (
+            <motion.div
+              className="limit-reached-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="limit-reached-content">
+                <motion.div
+                  className="limit-reached-icon"
+                  initial={{ scale: 0.8, rotate: -10 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.5, ease: "backOut" }}
+                >
+                  <RiAlertLine />
+                </motion.div>
+                <motion.h3
+                  className="limit-reached-title"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                >
+                  SOLD OUT
+                </motion.h3>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="guest-code-footer">
           <RiShieldCheckLine style={{ color: primaryColor }} />

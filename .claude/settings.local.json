@@ -7,7 +7,8 @@
       "Bash(npm start)",
       "Bash(pkill:*)",
       "Bash(node:*)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

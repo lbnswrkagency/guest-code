@@ -250,11 +250,14 @@ router.delete(
       // Delete the flyer format from the event
       if (event.flyer[format]) {
         delete event.flyer[format];
+        // Mark the flyer field as modified so Mongoose knows to save the change
+        event.markModified('flyer');
       }
 
       // If no flyer formats remain, remove the flyer object entirely
       if (Object.keys(event.flyer).length === 0) {
         event.flyer = undefined;
+        event.markModified('flyer');
       }
 
       await event.save();
