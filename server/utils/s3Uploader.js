@@ -233,8 +233,95 @@ const deleteExistingFile = async (folder, quality, fileName) => {
   }
 };
 
+const deleteFileFromS3 = async (folder, fileName) => {
+  let key;
+  
+  // If folder is empty, fileName contains the full key
+  if (!folder || folder.trim() === "") {
+    key = fileName;
+  } else {
+    key = `${folder}/${fileName}`;
+  }
+
+  console.log(chalk.blue("[S3Service] Deleting file:"), {
+    bucket: AWS_S3_BUCKET_NAME,
+    key,
+  });
+
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: AWS_S3_BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3.send(command);
+    console.log(chalk.green("[S3Service] File deleted successfully:"), key);
+  } catch (error) {
+    if (error.name !== "NoSuchKey") {
+      console.error(chalk.red("[S3Service] Delete error:"), error.message);
+      throw error;
+    } else {
+      console.log(chalk.yellow("[S3Service] File not found, skipping:"), key);
+    }
+  }
+};
+
+const listFilesFromS3 = async (folder) => {
+  console.log(chalk.blue("[S3Service] Listing files in folder:"), folder);
+  
+  try {
+    const { ListObjectsV2Command } = require("@aws-sdk/client-s3");
+    
+    const command = new ListObjectsV2Command({
+      Bucket: AWS_S3_BUCKET_NAME,
+      Prefix: folder ? `${folder}/` : "",
+    });
+
+    const result = await s3.send(command);
+    
+    const files = (result.Contents || []).map(item => ({
+      key: item.Key,
+      size: item.Size,
+      lastModified: item.LastModified,
+      etag: item.ETag,
+    }));
+
+    console.log(chalk.green("[S3Service] Listed files:"), files.length);
+    return files;
+  } catch (error) {
+    console.error(chalk.red("[S3Service] List files error:"), error.message);
+    throw error;
+  }
+};
+
+const generateSignedUrl = async (folder, fileName) => {
+  const key = folder ? `${folder}/${fileName}` : fileName;
+  
+  console.log(chalk.blue("[S3Service] Generating signed URL for:"), key);
+  
+  try {
+    const { GetObjectCommand } = require("@aws-sdk/client-s3");
+    const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+    
+    const command = new GetObjectCommand({
+      Bucket: AWS_S3_BUCKET_NAME,
+      Key: key,
+    });
+
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
+    console.log(chalk.green("[S3Service] Signed URL generated successfully"));
+    return url;
+  } catch (error) {
+    console.error(chalk.red("[S3Service] Generate signed URL error:"), error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   uploadToS3,
   uploadMultipleResolutions,
   deleteExistingFile,
+  deleteFileFromS3,
+  listFilesFromS3,
+  generateSignedUrl,
 };

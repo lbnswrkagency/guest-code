@@ -281,7 +281,6 @@ const EventForm = ({
       );
       setAllGenres(response.data || []);
     } catch (error) {
-      console.error("Error fetching brand genres:", error);
       toast.showError("Failed to load music genres");
     } finally {
       setLoading(false);
@@ -309,7 +308,6 @@ const EventForm = ({
             );
             setSelectedGenres(response.data);
           } catch (error) {
-            console.error("Error fetching event genres:", error);
           }
         };
 
@@ -406,7 +404,6 @@ const EventForm = ({
       }
 
     } catch (error) {
-      console.error('Error deleting flyer:', error);
       toast.showError('Failed to delete flyer');
     }
   };
@@ -463,7 +460,6 @@ const EventForm = ({
 
       toast.showSuccess(`${flyerType.label} flyer ready for upload`);
     } catch (error) {
-      console.error(`Error processing ${type} flyer:`, error);
       toast.showError(error.message);
       e.target.value = "";
     } finally {
@@ -504,7 +500,6 @@ const EventForm = ({
         } else {
           // Default to current date if invalid
           startDate = new Date();
-          console.warn("Invalid startDate format, using current date");
         }
 
         // Handle endDate similarly
@@ -516,7 +511,6 @@ const EventForm = ({
           // Default to startDate + 2 hours if invalid
           endDate = new Date(startDate);
           endDate.setHours(endDate.getHours() + 2);
-          console.warn("Invalid endDate format, using startDate + 2 hours");
         }
 
         // Format times
@@ -535,15 +529,7 @@ const EventForm = ({
         dataToSend.append("startTime", startTime);
         dataToSend.append("endTime", endTime);
 
-        console.log("Dates being sent:", {
-          date: startDate.toISOString(),
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          startTime,
-          endTime,
-        });
       } catch (error) {
-        console.error("Error formatting date:", error);
         toast.showError("Invalid date format");
         setIsSubmitting(false);
         return;

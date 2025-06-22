@@ -99,27 +99,15 @@ router.get(
   async (req, res) => {
     try {
       const { brandUsername } = req.params;
-      console.log(
-        `[Events] Fetching events for brand username: ${brandUsername}`
-      );
-      console.log(`[Events] Request details:`, {
-        path: req.path,
-        method: req.method,
-        isAuthenticated: !!req.user,
-        userId: req.user?.userId,
-        timestamp: new Date().toISOString(),
-      });
 
       // Find the brand by username
       const brand = await Brand.findOne({ username: brandUsername });
       if (!brand) {
-        console.log(`[Events] Brand not found with username: ${brandUsername}`);
         return res.status(404).json({
           message: "Brand not found",
         });
       }
 
-      console.log(`[Events] Found brand: ${brand.name} (${brand._id})`);
 
       // Get only parent events (events with no parentEventId)
       const events = await Event.find({
@@ -135,26 +123,9 @@ router.get(
         })
         .populate("genres");
 
-      console.log(
-        `[Events] Found ${events.length} parent events for brand: ${brand.name}`
-      );
-
-      // Log the first event for debugging
-      if (events.length > 0) {
-        console.log(`[Events] First event details:`, {
-          id: events[0]._id,
-          title: events[0].title,
-          date: events[0].date,
-          hasLineups: !!events[0].lineups,
-          lineupCount: events[0].lineups?.length,
-          hasGenres: !!events[0].genres,
-          genreCount: events[0].genres?.length,
-        });
-      }
 
       res.status(200).json(events);
     } catch (error) {
-      console.error("[Events] Error fetching brand events by username:", error);
       res.status(500).json({
         message: "Error fetching brand events",
         error: error.message,
@@ -175,7 +146,6 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     const { eventId } = req.params;
     const week = parseInt(req.params.weekNumber);
 
-    console.log(`[Weekly Events] Fetching week ${week} for event ${eventId}`);
 
     // First, find the parent event
     const parentEvent = await Event.findById(eventId).populate("lineups");
@@ -192,9 +162,6 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     if (!childEvent) {
       // Instead of returning a 404, return a 200 with the parent event
       // and a flag indicating no child event exists yet
-      console.log(
-        `[Weekly Events] No child event found for week ${week}, returning parent event with calculated date`
-      );
 
       // Calculate the date for this occurrence based on parent
       const occurrenceDate = new Date(parentEvent.date);
@@ -213,12 +180,8 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
       return res.status(200).json(tempChildEvent);
     }
 
-    console.log(
-      `[Weekly Events] Found child event for week ${week}: ${childEvent._id}`
-    );
     res.status(200).json(childEvent);
   } catch (error) {
-    console.error("[Weekly Events] Error:", error);
     res.status(500).json({ message: "Error fetching weekly event" });
   }
 });
@@ -231,10 +194,6 @@ router.delete(
     try {
       const { eventId, format } = req.params;
 
-      console.log("[Flyer Delete] Processing request:", {
-        eventId,
-        format,
-      });
 
       // Find event and check permissions
       const event = await Event.findById(eventId);
@@ -242,36 +201,104 @@ router.delete(
         return res.status(404).json({ message: "Event not found" });
       }
 
+
       // Check if flyer format exists
       if (!event.flyer || !event.flyer[format]) {
         return res.status(404).json({ message: "Flyer format not found" });
       }
 
-      // Delete the flyer format from the event
-      if (event.flyer[format]) {
-        delete event.flyer[format];
-        // Mark the flyer field as modified so Mongoose knows to save the change
-        event.markModified('flyer');
+      // Store the URLs before deleting from database
+      const flyerUrls = event.flyer[format];
+
+      // Delete the actual files from S3 storage
+      try {
+        const { deleteFileFromS3 } = require("../../utils/s3Uploader");
+        
+        // Delete all quality versions (thumbnail, medium, full)
+        const qualities = ['thumbnail', 'medium', 'full'];
+        for (const quality of qualities) {
+          if (flyerUrls[quality]) {
+            try {
+              // Extract the S3 key from the URL
+              // URLs are typically in format: https://bucket.s3.region.amazonaws.com/path/to/file
+              const url = new URL(flyerUrls[quality]);
+              const s3Key = url.pathname.substring(1); // Remove leading slash
+              
+              await deleteFileFromS3("", s3Key); // Empty folder since key includes full path
+            } catch (s3Error) {
+              // Continue with other deletions even if one fails
+            }
+          }
+        }
+      } catch (s3DeleteError) {
+        // Continue with database deletion even if S3 deletion fails
       }
 
-      // If no flyer formats remain, remove the flyer object entirely
-      if (Object.keys(event.flyer).length === 0) {
-        event.flyer = undefined;
-        event.markModified('flyer');
+      // Handle child events - if this is a child event, DO NOT update the parent
+      // Child events should have their own flyers independent of the parent
+      if (event.parentEventId) {
+        // We skip updating the parent event because child events should be independent
       }
 
-      await event.save();
-      console.log(`[Flyer Delete] Deleted ${format} flyer successfully`);
+      // If this is a parent event, also remove from all child events
+      if (event.isWeekly && !event.parentEventId) {
+        
+        try {
+          const childEvents = await Event.find({ parentEventId: eventId });
+          
+          for (const childEvent of childEvents) {
+            if (childEvent.flyer && childEvent.flyer[format]) {
+              delete childEvent.flyer[format];
+              childEvent.markModified('flyer');
+              
+              // If no flyer formats remain in child, remove the flyer object entirely
+              if (Object.keys(childEvent.flyer).length === 0) {
+                childEvent.flyer = undefined;
+                childEvent.markModified('flyer');
+              }
+              
+              await childEvent.save();
+            }
+          }
+        } catch (childError) {
+          // Continue with parent event deletion even if child updates fail
+        }
+      }
+
+      // Delete the flyer format from the current event using MongoDB $unset operator
+
+      if (event.flyer && event.flyer[format]) {
+        
+        // Use direct MongoDB update with $unset to ensure the field is removed
+        const updateResult = await Event.updateOne(
+          { _id: event._id },
+          { $unset: { [`flyer.${format}`]: "" } }
+        );
+        
+        
+        // Check if any flyer formats remain
+        const updatedEvent = await Event.findById(event._id);
+        const remainingFormats = updatedEvent.flyer ? Object.keys(updatedEvent.flyer) : [];
+        
+        // If no flyer formats remain, remove the flyer object entirely
+        if (remainingFormats.length === 0) {
+          await Event.updateOne(
+            { _id: event._id },
+            { $unset: { flyer: "" } }
+          );
+        }
+      } else {
+      }
+
+      
+      // Verify the save by refetching
+      const savedEvent = await Event.findById(event._id);
 
       res.status(200).json({
         message: "Flyer deleted successfully",
-        event
+        event: savedEvent // Return the verified saved event instead of the in-memory event
       });
     } catch (error) {
-      console.error("[Flyer Delete Error]", {
-        error: error.message,
-        stack: error.stack,
-      });
       res.status(500).json({
         message: "Error deleting flyer",
         error: error.message,
@@ -290,16 +317,6 @@ router.put(
       const { eventId, format } = req.params;
       const file = req.file;
 
-      console.log("[Flyer Update] Processing request:", {
-        eventId,
-        format,
-        fileInfo: file
-          ? {
-              size: file.size,
-              mimetype: file.mimetype,
-            }
-          : "No file",
-      });
 
       if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -340,10 +357,6 @@ router.put(
         );
         urls[quality] = url;
 
-        console.log(`[Flyer Update] Uploaded ${format}/${quality}:`, {
-          size: processedBuffer.length,
-          url,
-        });
       }
 
       // Update event with the flyer URLs
@@ -356,14 +369,9 @@ router.put(
       };
 
       await event.save();
-      console.log(`[Flyer Update] Updated ${format} flyer successfully`);
 
       res.status(200).json(event);
     } catch (error) {
-      console.error("[Flyer Update Error]", {
-        error: error.message,
-        stack: error.stack,
-      });
       res.status(500).json({
         message: "Error updating flyer",
         error: error.message,
@@ -408,14 +416,6 @@ router.get(
     try {
       const { parentId } = req.params;
 
-      console.log(`[Events] Fetching all child events for parent: ${parentId}`);
-      console.log(`[Events] Request details:`, {
-        path: req.path,
-        method: req.method,
-        isAuthenticated: !!req.user,
-        userId: req.user?.userId,
-        timestamp: new Date().toISOString(),
-      });
 
       // Make sure we populate code settings
       const childEvents = await Event.find({
@@ -428,13 +428,9 @@ router.get(
         })
         .populate("genres");
 
-      console.log(
-        `[Events] Found ${childEvents.length} child events for parent: ${parentId}`
-      );
 
       res.status(200).json(childEvents);
     } catch (error) {
-      console.error("[Events] Error fetching child events:", error);
       res.status(500).json({ message: "Error fetching child events" });
     }
   }
