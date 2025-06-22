@@ -17,11 +17,6 @@ const BrandProfileFeed = ({ brand }) => {
     <div className="brand-profile-feed">
       {/* Upcoming Events Section */}
       <div className="feed-section upcoming-events">
-        <h2 className="section-title">
-          <RiCalendarEventLine />
-          {eventCount === 1 ? "Upcoming Event" : "Upcoming Events"}
-        </h2>
-
         <div className="events-list">
           {isAuthenticated ? (
             <UpcomingEvent

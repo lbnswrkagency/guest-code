@@ -580,21 +580,9 @@ const BrandProfile = () => {
     <div className="page-wrapper">
       <Navigation onBack={handleBack} />
       <div className="brand-profile">
-        <div className="brand-header">
-          <div className="brand-cover">
-            {brand.coverImage ? (
-              <img
-                src={brand.coverImage.full}
-                alt={brand.name}
-                className="cover-image"
-              />
-            ) : (
-              <div className="cover-placeholder" />
-            )}
-          </div>
-
-          <div className="brand-info">
-            <div className="brand-logo">
+        <div className="brand-header brand-header--minimal">
+          <div className="brand-info brand-info--minimal">
+            <div className="brand-logo brand-logo--minimal">
               {brand.logo ? (
                 <img src={brand.logo.thumbnail} alt={brand.name} />
               ) : (
@@ -604,7 +592,7 @@ const BrandProfile = () => {
               )}
             </div>
 
-            <div className="brand-details">
+            <div className="brand-details brand-details--minimal">
               <h1>{brand.name}</h1>
               <span className="username">@{brand.username}</span>
             </div>

@@ -170,8 +170,9 @@ const EventDetails = ({
 
   // Check if this is an event that supports table booking
   const isBolivarEvent =
-    // Exclude specific event ID that should never show table bookings
+    // Exclude specific event IDs that should never show table bookings
     event._id !== "68504c76f50c6d871f1a8013" &&
+    event._id !== "685825953aa1769419195723" &&
     (
       // Check event ID
       event._id === "6807c197d4455638731dbda6" ||

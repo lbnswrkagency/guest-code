@@ -301,54 +301,272 @@
     }
   }
 
+  // Event Preview Carousel Styling
+  .upcomingEvent-preview-carousel {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px 12px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+
+    .preview-carousel-container {
+      overflow: hidden;
+      border-radius: 8px;
+      padding: 0 0.5rem; // Add padding to prevent cutoff
+    }
+
+    .preview-carousel-track {
+      display: flex;
+      gap: 0.75rem;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0.25rem 0; // Add vertical padding
+
+      .preview-card {
+        flex: 0 0 auto;
+        width: 120px; // Increased from 80px
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        position: relative;
+
+        &:hover {
+          transform: translateY(-3px) scale(1.03);
+          background: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        &.active {
+          border-color: rgba(255, 200, 7, 0.8);
+          background: rgba(255, 200, 7, 0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(255, 200, 7, 0.4);
+        }
+
+        .preview-image-container {
+          position: relative;
+          width: 100%;
+          height: 120px; // Increased from 80px
+          overflow: hidden;
+          background: linear-gradient(145deg, #111, #1a1a1a);
+
+          .preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+          }
+
+          .preview-no-image {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1.5rem;
+          }
+
+          .preview-active-indicator {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 8px;
+            height: 8px;
+            background: #ffc807;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 200, 7, 0.8);
+            animation: pulse-active 2s infinite;
+          }
+        }
+
+        .preview-info {
+          padding: 0.5rem; // Increased padding
+
+          .preview-title {
+            font-size: 0.75rem; // Increased from 0.6rem
+            font-weight: 600;
+            color: #fff;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); // Add text shadow for better readability
+          }
+
+          .preview-subtitle {
+            display: none; // Keep hidden in small cards
+          }
+
+          .preview-date {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem; // Slightly increased for better readability
+            color: rgba(255, 200, 7, 0.9); // Golden color
+            font-weight: 700; // Increased weight
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9),
+              0 0 6px rgba(255, 200, 7, 0.3); // Golden glow
+            text-align: center;
+
+            span {
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              letter-spacing: 0.05em; // More letter spacing for elegance
+              background: linear-gradient(
+                45deg,
+                rgba(255, 200, 7, 0.8) 0%,
+                #ffc807 50%,
+                rgba(255, 200, 7, 0.8) 100%
+              );
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+            }
+          }
+        }
+
+        &:hover .preview-image {
+          transform: scale(1.05);
+        }
+      }
+    }
+
+    // Responsive adjustments
+    @media (max-width: 768px) {
+      padding: 0.75rem;
+
+      .preview-carousel-track {
+        gap: 0.5rem;
+
+        .preview-card {
+          width: 100px;
+
+          .preview-image-container {
+            height: 100px;
+          }
+
+          .preview-info {
+            padding: 0.375rem;
+
+            .preview-title {
+              font-size: 0.7rem;
+            }
+
+            .preview-date {
+              font-size: 0.65rem;
+              font-weight: 700;
+
+              span {
+                letter-spacing: 0.04em;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    @media (max-width: 480px) {
+      .preview-carousel-track .preview-card {
+        width: 90px;
+
+        .preview-image-container {
+          height: 90px;
+        }
+
+        .preview-info {
+          padding: 0.3rem;
+
+          .preview-title {
+            font-size: 0.65rem;
+          }
+
+          .preview-date {
+            font-size: 0.6rem;
+          }
+        }
+      }
+    }
+  }
+
   .upcomingEvent-navigation {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 12px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    gap: 1.5rem;
+    backdrop-filter: blur(10px);
 
     .upcomingEvent-navigation-indicator {
       display: flex;
       gap: 0.5rem;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
 
       .upcomingEvent-indicator-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.3);
         cursor: pointer;
-        transition: background-color 0.2s ease, transform 0.2s ease;
+        transition: all 0.2s ease;
+        position: relative;
 
         &.upcomingEvent-active {
-          background-color: #ffc807;
-          transform: scale(1.2);
+          background: #ffc807;
+          transform: scale(1.5);
+          box-shadow: 0 0 8px rgba(255, 200, 7, 0.6);
         }
 
-        &:hover {
-          background-color: rgba(255, 200, 7, 0.7);
+        &:hover:not(.upcomingEvent-active) {
+          background: rgba(255, 200, 7, 0.7);
+          transform: scale(1.2);
         }
       }
     }
 
     .upcomingEvent-nav-button {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.1rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.2s ease;
+      transition: all 0.2s ease;
 
       &:hover:not(.upcomingEvent-disabled) {
         color: #ffc807;
+        background: rgba(255, 200, 7, 0.15);
+        border-color: rgba(255, 200, 7, 0.3);
+        transform: translateY(-1px);
+      }
+
+      &:active:not(.upcomingEvent-disabled) {
+        transform: translateY(0);
       }
 
       &.upcomingEvent-disabled {
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.05);
         cursor: not-allowed;
       }
     }
@@ -502,58 +720,116 @@
       }
     }
 
+    // Event Header styling (outside details section)
+    .upcomingEvent-header {
+      margin-bottom: 1.5rem;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      padding: 0 1rem;
+
+      @media (max-width: 768px) {
+        margin-bottom: 1rem;
+        padding: 0 0.75rem;
+      }
+    }
+
+    .upcomingEvent-event-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 1rem 0 0.5rem 0;
+      line-height: 1.2;
+      text-align: center;
+      position: relative;
+
+      // Subtle golden gradient text effect
+      background: linear-gradient(
+        135deg,
+        #ffffff 10%,
+        rgba(255, 200, 7, 0.9) 45%,
+        #ffc807 55%,
+        rgba(255, 200, 7, 0.9) 65%,
+        #ffffff 90%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+
+      // Enhanced text shadow for depth
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+        drop-shadow(0 0 6px rgba(255, 200, 7, 0.2));
+
+      @media (max-width: 768px) {
+        font-size: 1.8rem;
+        margin: 0.75rem 0 0.5rem 0;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 1.6rem;
+      }
+
+      // Subtle golden underline
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(255, 200, 7, 0.7),
+          #ffc807,
+          rgba(255, 200, 7, 0.7),
+          transparent
+        );
+        border-radius: 2px;
+        box-shadow: 0 0 6px rgba(255, 200, 7, 0.3);
+
+        @media (max-width: 768px) {
+          width: 50px;
+          height: 1.5px;
+          bottom: -6px;
+        }
+      }
+    }
+
+    .upcomingEvent-event-subtitle {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.85);
+      margin: 0 0 1rem;
+      font-weight: 500;
+      line-height: 1.4;
+      text-align: center;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+      letter-spacing: 0.025em;
+
+      // Very subtle golden tint
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.85) 70%,
+        rgba(255, 200, 7, 0.8) 85%,
+        rgba(255, 255, 255, 0.85) 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 0.95rem;
+      }
+    }
+
     .upcomingEvent-details {
       background-color: #151515;
       flex: 1;
-
-      .upcomingEvent-header {
-        margin-bottom: 1.25rem;
-        position: relative;
-        z-index: 2;
-        text-align: center;
-      }
-
-      .upcomingEvent-event-title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin: 1rem 0 0.5rem 0;
-        color: #fff;
-        line-height: 1.2;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5),
-          0 0 15px rgba(255, 200, 7, 0.3);
-        position: relative;
-        text-align: center;
-
-        @include mq(medium) {
-          margin-top: 1.5rem;
-        }
-
-        &::after {
-          content: "";
-          position: absolute;
-          bottom: -8px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 80px;
-          height: 3px;
-          background: linear-gradient(
-            to right,
-            transparent,
-            #ffc807,
-            transparent
-          );
-          border-radius: 3px;
-          box-shadow: 0 0 8px rgba(255, 200, 7, 0.5);
-        }
-      }
-
-      .upcomingEvent-event-subtitle {
-        font-size: 1.1rem;
-        color: rgba(255, 255, 255, 0.8);
-        margin: 0 0 1rem;
-        font-weight: 500;
-        line-height: 1.4;
-      }
 
       .upcomingEvent-description-container {
         margin: 1rem auto;
@@ -1157,6 +1433,18 @@
   50% {
     width: 50px;
     opacity: 1;
+  }
+}
+
+@keyframes pulse-active {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
   }
 }
 

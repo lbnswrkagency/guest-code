@@ -32,6 +32,8 @@ import {
   RiTableLine,
   RiArrowUpLine,
   RiStarLine,
+  RiArrowLeftLine,
+  RiArrowRightLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -94,6 +96,13 @@ const UpcomingEvent = ({
 
   // Add flag to prevent infinite loops in URL navigation
   const [hasNavigatedFromURL, setHasNavigatedFromURL] = useState(false);
+
+  // Event preview carousel state
+  const [previewScrollIndex, setPreviewScrollIndex] = useState(0);
+  const maxVisiblePreviews = 4; // Reduced for larger cards
+  const cardWidth = 120; // 120px + gap
+  const cardGap = 12; // 0.75rem = 12px
+  const totalCardWidth = cardWidth + cardGap;
 
   // Filter ticket settings to only include visible ones
   const visibleTicketSettings = useMemo(() => {
@@ -748,6 +757,22 @@ const UpcomingEvent = ({
     return date.toLocaleDateString("en-US", options);
   };
 
+  const formatCompactDate = (dateString) => {
+    if (!dateString) return "TBD";
+    const date = new Date(dateString);
+    
+    // Get day name abbreviation (FR for Friday, etc.)
+    const dayName = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    
+    // Get day and month
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+    
+    // Format as "FR 27/06/25"
+    return `${dayName} ${day}/${month}/${year}`;
+  };
+
   const handleViewEvent = (event) => {
     // Get the brand username either from the event or from props
     let brandUser = "";
@@ -949,8 +974,8 @@ const UpcomingEvent = ({
 
   // Utility function to check if event supports table booking
   const supportsTableBooking = (event) => {
-    // Exclude specific event ID that should never show table bookings
-    if (event._id === "68504c76f50c6d871f1a8013") {
+    // Exclude specific event IDs that should never show table bookings
+    if (event._id === "68504c76f50c6d871f1a8013" || event._id === "685825953aa1769419195723") {
       return false;
     }
 
@@ -1100,6 +1125,60 @@ const UpcomingEvent = ({
     });
   };
 
+  // Event preview carousel functions
+  const handlePreviewScrollLeft = () => {
+    setPreviewScrollIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handlePreviewScrollRight = () => {
+    // Calculate how many cards we can scroll based on container width
+    const containerWidth = 600; // approximate container width for larger cards
+    const visibleCards = Math.floor(containerWidth / totalCardWidth);
+    const maxScroll = Math.max(0, events.length - visibleCards);
+    setPreviewScrollIndex((prev) => Math.min(maxScroll, prev + 1));
+  };
+
+  const handlePreviewClick = (index) => {
+    setCurrentIndex(index);
+    setShowGuestCodeForm(false);
+  };
+
+  // Get preview image for an event
+  const getPreviewImage = (event) => {
+    if (!event?.flyer) return null;
+
+    // For previews, prefer square format first, then landscape, then portrait
+    if (event.flyer.square) {
+      return (
+        event.flyer.square.thumbnail ||
+        event.flyer.square.medium ||
+        event.flyer.square.full
+      );
+    }
+
+    if (event.flyer.landscape) {
+      return (
+        event.flyer.landscape.thumbnail ||
+        event.flyer.landscape.medium ||
+        event.flyer.landscape.full
+      );
+    }
+
+    if (event.flyer.portrait) {
+      return (
+        event.flyer.portrait.thumbnail ||
+        event.flyer.portrait.medium ||
+        event.flyer.portrait.full
+      );
+    }
+
+    if (typeof event.flyer === "string") {
+      return event.flyer;
+    }
+
+    return null;
+  };
+
   // Check if we have a current event to display
   if (loading) {
     return (
@@ -1207,6 +1286,58 @@ const UpcomingEvent = ({
         seamless ? "upcomingEvent-seamless" : ""
       } ${loading ? "upcomingEvent-loading" : ""}`}
     >
+
+      {/* Event Preview Carousel - only show when there are multiple events */}
+      {!hideNavigation && events.length > 1 && (
+        <div className="upcomingEvent-preview-carousel">
+          <div className="preview-carousel-container">
+            <div
+              className="preview-carousel-track"
+              style={{
+                transform: `translateX(-${previewScrollIndex * totalCardWidth}px)`,
+              }}
+            >
+              {events.map((event, index) => {
+                const previewImage = getPreviewImage(event);
+                const isActive = index === currentIndex;
+                
+                return (
+                  <div
+                    key={event._id || `preview-${index}`}
+                    className={`preview-card ${isActive ? "active" : ""}`}
+                    onClick={() => handlePreviewClick(index)}
+                  >
+                    <div className="preview-image-container">
+                      {previewImage ? (
+                        <img
+                          src={previewImage}
+                          alt={event.title}
+                          className="preview-image"
+                        />
+                      ) : (
+                        <div className="preview-no-image">
+                          <RiImageLine />
+                        </div>
+                      )}
+                      {isActive && <div className="preview-active-indicator" />}
+                    </div>
+                    <div className="preview-info">
+                      <h4 className="preview-title">{event.title}</h4>
+                      {event.subTitle && (
+                        <p className="preview-subtitle">{event.subTitle}</p>
+                      )}
+                      <div className="preview-date">
+                        <span>{formatCompactDate(getEventDate(event))}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNavigation && (
         <div className="upcomingEvent-navigation">
           <button
@@ -1250,6 +1381,18 @@ const UpcomingEvent = ({
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
+          {/* Event Title and Subtitle */}
+          <div className="upcomingEvent-header">
+            <h1 className="upcomingEvent-event-title">
+              {currentEvent.title}
+            </h1>
+            {currentEvent.subTitle && (
+              <h2 className="upcomingEvent-event-subtitle">
+                {currentEvent.subTitle}
+              </h2>
+            )}
+          </div>
+
           <div className="upcomingEvent-image-wrapper">
             <div className="upcomingEvent-image-container">
               {eventImage ? (
@@ -1270,25 +1413,14 @@ const UpcomingEvent = ({
           </div>
 
           <div className="upcomingEvent-details">
-            <div className="upcomingEvent-header">
-              <h3 className="upcomingEvent-event-title">
-                {currentEvent.title}
-              </h3>
-              {currentEvent.subTitle && (
-                <p className="upcomingEvent-event-subtitle">
-                  {currentEvent.subTitle}
+            {/* Event Description */}
+            {currentEvent.description && (
+              <div className="upcomingEvent-description-container">
+                <p className="upcomingEvent-event-description">
+                  {currentEvent.description}
                 </p>
-              )}
-
-              {/* Event Description */}
-              {currentEvent.description && (
-                <div className="upcomingEvent-description-container">
-                  <p className="upcomingEvent-event-description">
-                    {currentEvent.description}
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* EventDetails Component with integrated action buttons */}
             <div className="upcomingEvent-details-section">
