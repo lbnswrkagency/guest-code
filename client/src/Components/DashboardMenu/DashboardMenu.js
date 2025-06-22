@@ -49,6 +49,11 @@ const DashboardMenu = ({
 
   // Function to check if the user should see the table system option
   const shouldShowTableSystem = () => {
+    // Exclude specific event IDs that should never show table bookings
+    if (selectedEvent && selectedEvent._id === "685825953aa1769419195723") {
+      return false;
+    }
+
     // Show for any user who is part of the specified brands
     if (
       selectedBrand &&
