@@ -55,6 +55,15 @@ const CodeSettingsSchema = new Schema(
       type: String,
       default: "RiCodeLine",
     },
+    // Contact information requirements for guest codes
+    requireEmail: {
+      type: Boolean,
+      default: true,
+    }, // Whether email is required for guest code generation
+    requirePhone: {
+      type: Boolean,
+      default: false,
+    }, // Whether phone number is required for guest code generation
     // Additional fields for specific code types
     price: {
       type: Number,

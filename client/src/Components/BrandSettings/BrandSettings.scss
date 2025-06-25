@@ -1,59 +1,62 @@
 .brand-settings-container {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   background: #151515;
   color: #fff;
-  z-index: 1000;
-  transform: translateZ(1px);
-  backface-visibility: hidden;
-  isolation: isolate;
-  pointer-events: auto !important;
+  width: 100%;
+  min-height: 600px;
+  max-height: 90vh;
 
   .brand-settings-card {
     position: relative;
     width: 100%;
-    height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    background: #151515;
-    border-radius: 1rem;
+    background: transparent;
     overflow: hidden;
-    z-index: 1001;
   }
 
   .settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem;
-    background: rgba(0, 0, 0, 0.2);
+    padding: 1.5rem 1.5rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    background: #151515;
+    z-index: 10;
 
     h2 {
       margin: 0;
-      font-size: 1.25rem;
+      font-size: 1.75rem;
       font-weight: 600;
+      color: white;
     }
 
     .close-btn {
-      width: 36px;
-      height: 36px;
       background: rgba(255, 255, 255, 0.1);
       border: none;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 1.25rem;
+      color: white;
       cursor: pointer;
+      padding: 0.6rem;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.15);
-        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
       }
     }
   }
@@ -356,6 +359,143 @@
   }
 }
 
+// User Interface Modal Styles
+.user-interface-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.user-interface-modal {
+  background: #151515;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 200, 7, 0.3);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 200, 7, 0.5);
+    }
+  }
+}
+
+// Role Settings Modal Styles
+.role-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.role-settings-modal {
+  background: #151515;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 200, 7, 0.3);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 200, 7, 0.5);
+    }
+  }
+
+  .role-settings {
+    padding: 0;
+    max-height: none;
+    height: auto;
+    
+    &::before {
+      display: none;
+    }
+  }
+}
+
+// Mobile: Keep full screen for modal interfaces
+@media (max-width: 768px) {
+  .user-interface-overlay {
+    padding: 0;
+  }
+
+  .user-interface-modal {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .role-settings-overlay {
+    padding: 0;
+  }
+
+  .role-settings-modal {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    
+    .role-settings {
+      padding: 1.5rem;
+      height: 100%;
+      max-height: 100vh;
+      
+      &::before {
+        display: block;
+      }
+    }
+  }
+}
+
 // Analytics Section Styles
 .settings-analytics {
   .setting-item {
@@ -541,5 +681,126 @@
 }
 
 @media (max-width: 768px) {
-  // ... existing code ...
+  .brand-settings-container {
+    min-height: auto;
+    max-height: none;
+  }
+
+  .brand-settings-card {
+    .settings-header {
+      padding: 1rem;
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .settings-content {
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    .settings-section {
+      padding: 1rem;
+      
+      h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .settings-btn {
+        padding: 0.85rem;
+        font-size: 0.85rem;
+        
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  // Analytics Section Mobile Styles
+  .settings-analytics {
+    .setting-item {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .setting-icon {
+      font-size: 1.25rem;
+      margin-top: 0;
+      align-self: flex-start;
+    }
+
+    .setting-details {
+      h4 {
+        font-size: 1rem;
+      }
+      p {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+
+    .meta-pixel-input-group {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .meta-pixel-input {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .save-pixel-btn {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+    }
+  }
+
+  // Spotify Integration Mobile Styles
+  .settings-spotify {
+    .spotify-input-fields {
+      gap: 0.75rem;
+    }
+
+    .form-group {
+      label {
+        font-size: 0.85rem;
+      }
+
+      .spotify-input {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .help-text {
+        font-size: 0.75rem;
+      }
+    }
+
+    .save-spotify-btn {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+    }
+  }
+
+  // Role Setting Mobile
+  .setting-item {
+    &.role-setting {
+      margin-top: 1rem;
+      
+      h4 {
+        font-size: 0.85rem;
+      }
+      
+      select {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+      }
+    }
+  }
 }

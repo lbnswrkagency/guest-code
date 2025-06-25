@@ -88,21 +88,9 @@ const EventSettings = ({ event, onClose }) => {
     setShowConfirmDialog(false);
   };
 
-  const handleContainerClick = (e) => {
-    e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
-  };
 
   return (
-    <div
-      className="event-settings"
-      onClick={handleContainerClick}
-      style={{
-        isolation: "isolate",
-        transform: "translateZ(1px)",
-        backfaceVisibility: "hidden",
-      }}
-    >
+    <div className="event-settings">
       <div className="settings-header">
         <h2>Event Settings</h2>
         <motion.button

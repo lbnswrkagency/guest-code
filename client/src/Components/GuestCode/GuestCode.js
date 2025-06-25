@@ -14,6 +14,7 @@ import {
   RiMailSendLine,
   RiAlertLine,
   RiFireLine,
+  RiPhoneLine,
 } from "react-icons/ri";
 
 /**
@@ -27,6 +28,7 @@ const GuestCode = ({ event }) => {
   // State for form fields
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [guestPax, setGuestPax] = useState(1);
   const [maxPax, setMaxPax] = useState(5);
   const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
@@ -42,6 +44,38 @@ const GuestCode = ({ event }) => {
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  // Validate phone format (accepts various formats including local numbers)
+  const isValidPhone = (phone) => {
+    // Remove spaces, dashes, parentheses, and other common separators
+    const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+    
+    // Accept various formats:
+    // - International: +49123456789
+    // - Local German: 0123456789 (10-11 digits starting with 0)
+    // - Other international: 49123456789 (without +)
+    // - General: any number with 7-15 digits
+    const phoneRegex = /^(\+?[1-9]\d{1,14}|0\d{9,10})$/;
+    
+    return phoneRegex.test(cleanPhone) && cleanPhone.length >= 7;
+  };
+
+  // Get guest code settings
+  const getGuestCodeSettings = () => {
+    if (event && event.codeSettings && event.codeSettings.length > 0) {
+      return event.codeSettings.find(cs => cs.type === 'guest');
+    }
+    return null;
+  };
+
+  // Email is always required
+  const isEmailRequired = () => true;
+
+  // Check if phone is required
+  const isPhoneRequired = () => {
+    const settings = getGuestCodeSettings();
+    return settings?.requirePhone === true; // Default to false
   };
 
   // Effect to fetch limit information
@@ -154,6 +188,9 @@ const GuestCode = ({ event }) => {
       case "email":
         setGuestEmail(value);
         break;
+      case "phone":
+        setGuestPhone(value);
+        break;
       case "pax":
         setGuestPax(parseInt(value));
         break;
@@ -178,10 +215,20 @@ const GuestCode = ({ event }) => {
         errors.name = "Please enter your name";
       }
 
+      // Email is always required
       if (!guestEmail.trim()) {
         errors.email = "Please enter your email";
       } else if (!isValidEmail(guestEmail)) {
         errors.email = "Please enter a valid email address";
+      }
+
+      // Validate phone if required
+      if (isPhoneRequired()) {
+        if (!guestPhone.trim()) {
+          errors.phone = "Please enter your phone number";
+        } else if (!isValidPhone(guestPhone)) {
+          errors.phone = "Please enter a valid phone number";
+        }
       }
 
       if (Object.keys(errors).length > 0) {
@@ -215,12 +262,19 @@ const GuestCode = ({ event }) => {
         pax: guestPax,
       });
 
-      const response = await axiosInstance.post("/guest-code/generate", {
+      const requestData = {
         eventId: eventId,
         guestName: guestName,
-        guestEmail: guestEmail,
+        guestEmail: guestEmail, // Email is always included
         maxPax: guestPax,
-      });
+      };
+
+      // Add phone if required and provided
+      if (isPhoneRequired() && guestPhone) {
+        requestData.guestPhone = guestPhone;
+      }
+
+      const response = await axiosInstance.post("/guest-code/generate", requestData);
 
       console.log("[GuestCode] API response:", response);
 
@@ -237,12 +291,17 @@ const GuestCode = ({ event }) => {
         // Clear form fields
         setGuestName("");
         setGuestEmail("");
+        setGuestPhone("");
         setGuestPax(1);
         setFormTouched({});
 
         // Show success message
+        const contactInfo = [];
+        if (guestEmail) contactInfo.push(`email (${guestEmail})`);
+        if (guestPhone) contactInfo.push(`phone (${guestPhone})`);
+        
         setSuccessMessage(
-          `Guest code sent to ${guestEmail}. Please check your email.`
+          `Guest code sent to your ${contactInfo.join(' and ')}. Please check your messages.`
         );
         setTimeout(() => {
           setSuccessMessage("");
@@ -441,12 +500,12 @@ const GuestCode = ({ event }) => {
           </div>
 
           <div className="form-group">
-            <div
-              className="input-icon"
-              style={{ color: formTouched.email ? primaryColor : undefined }}
-            >
-              <RiMailLine />
-            </div>
+              <div
+                className="input-icon"
+                style={{ color: formTouched.email ? primaryColor : undefined }}
+              >
+                <RiMailLine />
+              </div>
             <input
               type="email"
               placeholder="Your Email"
@@ -489,6 +548,58 @@ const GuestCode = ({ event }) => {
                 ></div>
               )}
           </div>
+
+          {isPhoneRequired() && (
+            <div className="form-group">
+              <div
+                className="input-icon"
+                style={{ color: formTouched.phone ? primaryColor : undefined }}
+              >
+                <RiPhoneLine />
+              </div>
+              <input
+                type="tel"
+                placeholder="Your Phone Number"
+                value={guestPhone}
+                onChange={(e) => handleFieldChange("phone", e.target.value)}
+                onBlur={() => {
+                  setFormTouched((prev) => ({ ...prev, phone: true }));
+                  if (guestPhone && !isValidPhone(guestPhone)) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      phone: "Please enter a valid phone number",
+                    }));
+                  }
+                }}
+                className={
+                  formErrors.phone
+                    ? "error"
+                    : formTouched.phone && isValidPhone(guestPhone)
+                    ? "valid"
+                    : ""
+                }
+                style={{
+                  borderColor:
+                    formTouched.phone &&
+                    !formErrors.phone &&
+                    isValidPhone(guestPhone)
+                      ? `${primaryColor}40`
+                      : undefined,
+                }}
+              />
+              {formErrors.phone && (
+                <div className="error-message">{formErrors.phone}</div>
+              )}
+              {formTouched.phone &&
+                isValidPhone(guestPhone) &&
+                !formErrors.phone && (
+                  <div
+                    className="valid-indicator"
+                    style={{ backgroundColor: primaryColor }}
+                  ></div>
+                )}
+            </div>
+          )}
 
           <div className="form-group">
             <div

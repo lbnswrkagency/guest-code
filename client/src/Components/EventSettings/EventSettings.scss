@@ -3,81 +3,77 @@
 @import "../../_glassy";
 
 .event-settings {
-  position: fixed;
-  top: 0;
-  right: 0;
+  position: relative;
   width: 100%;
-  max-width: 600px;
-  height: 100vh;
-  max-height: 100%;
-  background-color: var(--surface-color);
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  height: 100%;
+  background-color: transparent;
   display: flex;
   flex-direction: column;
-  color: var(--text-color);
+  color: white;
   overflow: hidden;
-
-  .card-back & {
-    position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    box-shadow: none !important;
-    background-color: #151515 !important;
-    z-index: auto !important;
-    overflow: auto !important;
-    transform: translateZ(1px);
-    backface-visibility: hidden;
-  }
+  max-width: 100%;
+  box-sizing: border-box;
 
   .settings-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    background: #151515;
+    z-index: 10;
 
     h2 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 600;
+      color: white;
     }
 
     .close-button {
-      background: none;
+      background: rgba(255, 255, 255, 0.1);
       border: none;
-      color: var(--text-color);
+      color: white;
       cursor: pointer;
-      padding: 0.5rem;
+      padding: 0.6rem;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
 
       &:hover {
-        background-color: var(--hover-color);
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1);
       }
 
       svg {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
       }
     }
   }
 
   .settings-content {
-    padding: 1rem;
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-    padding-bottom: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    max-width: 100%;
+
+    /* Force single-column layout */
+    > * {
+      width: 100%;
+      max-width: 100%;
+      flex-shrink: 0;
+    }
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -94,13 +90,11 @@
   }
 
   .settings-group {
-    margin-bottom: 2rem;
-
     h3 {
       font-size: 1.2rem;
       font-weight: 500;
-      margin-bottom: 1rem;
-      color: var(--text-color);
+
+      color: white;
     }
 
     &.danger-zone {
@@ -183,21 +177,24 @@
     display: flex;
     align-items: center;
     padding: 1rem;
-    background-color: var(--surface-color-elevated);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 
     &:hover {
-      background-color: var(--hover-color);
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
     }
 
     &.active {
-      background-color: var(--primary-color-light);
+      background: rgba(255, 200, 7, 0.1);
+      border-color: rgba(255, 200, 7, 0.3);
     }
 
     &.danger {
       &:hover {
-        background-color: var(--danger-color-light);
+        background: rgba(244, 67, 54, 0.1);
       }
     }
 
@@ -208,12 +205,13 @@
         margin: 0;
         font-size: 1rem;
         font-weight: 500;
+        color: white;
       }
 
       p {
         margin: 0.25rem 0 0;
         font-size: 0.875rem;
-        color: var(--text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
       }
     }
 
@@ -226,12 +224,12 @@
         border: none;
         padding: 0.5rem;
         border-radius: 50%;
-        color: var(--text-color);
+        color: white;
         cursor: pointer;
         transition: all 0.2s;
 
         &:hover {
-          background-color: var(--hover-color);
+          background: rgba(255, 255, 255, 0.1);
           transform: scale(1.1);
         }
 
@@ -264,21 +262,26 @@
   }
 
   .danger {
-    margin-top: 2rem;
+    margin-top: auto;
     padding: 1.5rem;
-    border-radius: 8px;
-    background-color: rgba(244, 67, 54, 0.08);
+    border-radius: 12px;
+    background: rgba(244, 67, 54, 0.1);
     border: 1px solid rgba(244, 67, 54, 0.3);
     position: relative;
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 
     &::before {
       content: "⚠️ Danger Zone";
       display: block;
       font-weight: bold;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
       color: #f44336;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       letter-spacing: 0.5px;
     }
 
@@ -295,20 +298,25 @@
     }
 
     .delete-button {
-      background-color: #f44336;
+      background: linear-gradient(135deg, #f44336, #d32f2f);
       color: white;
       border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 1rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 
       &:hover {
-        background-color: #d32f2f;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #d32f2f, #b71c1c);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+      }
+
+      &:active {
+        transform: translateY(0);
       }
     }
   }
@@ -327,20 +335,20 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: var(--surface-color-elevated);
+  background-color: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 24px;
   width: 90%;
   max-width: 400px;
   z-index: 1100;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  color: var(--text-color);
+  color: white;
 
   h3 {
     margin: 0 0 16px;
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--text-color);
+    color: white;
   }
 
   .dialog-content {
@@ -355,21 +363,21 @@
 
       label {
         font-size: 0.9rem;
-        color: var(--text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
       }
 
       input {
         padding: 10px 12px;
         border-radius: 6px;
-        border: 1px solid var(--border-color);
-        background-color: var(--input-bg-color, rgba(255, 255, 255, 0.05));
-        color: var(--text-color);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: white;
         font-size: 0.95rem;
 
         &:focus {
           outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 1px var(--primary-color-light);
+          border-color: #ffc807;
+          box-shadow: 0 0 0 1px rgba(255, 200, 7, 0.2);
         }
 
         &::placeholder {
@@ -394,18 +402,18 @@
 
         &.cancel-button {
           background: none;
-          border: 1px solid var(--border-color);
-          color: var(--text-color);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: white;
 
           &:hover {
-            background-color: var(--hover-color);
+            background: rgba(255, 255, 255, 0.1);
           }
         }
 
         &.confirm-button {
           background-color: var(--primary-color, #ffc807);
           border: none;
-          color: var(--primary-button-text, #000);
+          color: #000;
 
           &:hover:not(:disabled) {
             background-color: var(--primary-color-dark, #d1a300);

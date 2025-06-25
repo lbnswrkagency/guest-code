@@ -15,6 +15,8 @@
   max-width: 100%;
   margin: 1rem 0;
   position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 // Add a marker element to prevent jumps
@@ -68,6 +70,8 @@
   gap: 1.5rem;
   width: 100%;
   max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .eventDetails-section {
@@ -103,7 +107,7 @@
 
     &.eventDetails-time-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
       gap: 1rem;
     }
   }
@@ -194,7 +198,7 @@
 .eventDetails-availability-section {
   .eventDetails-availability-items {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
     gap: 1rem;
     padding: 1rem;
   }
@@ -796,6 +800,13 @@
       width: calc(100% - var(--sidebar-width, 120px)) !important;
       max-width: calc(100% - var(--sidebar-width, 120px)) !important;
     }
+  }
+}
+
+// Laptop and bigger screens - adjust content width
+@media (min-width: 1024px) {
+  .eventDetails-content {
+    max-width: 90%;
   }
 }
 

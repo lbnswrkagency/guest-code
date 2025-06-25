@@ -28,6 +28,7 @@ const CodeSchema = new Schema(
     // Guest code specific fields
     guestName: { type: String }, // Name of the guest for guest codes
     guestEmail: { type: String }, // Email of the guest for guest codes
+    guestPhone: { type: String }, // Phone number of the guest for guest codes
     // Additional fields for specific code types
     price: { type: Number }, // For ticket codes
     tableNumber: { type: String }, // For table codes

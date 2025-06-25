@@ -182,14 +182,6 @@ const Brands = () => {
       }
 
       const deleteUrl = `${process.env.REACT_APP_API_BASE_URL}/brands/${brandId}`;
-      console.log(
-        "[Delete Brand] Attempting to delete brand with URL:",
-        deleteUrl
-      );
-      console.log("[Delete Brand] Environment:", {
-        REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
-        brandId,
-      });
 
       await axios.delete(deleteUrl, {
         withCredentials: true,
@@ -202,12 +194,6 @@ const Brands = () => {
       fetchBrands();
       loadingToast.dismiss();
     } catch (error) {
-      console.error("Delete brand error:", error);
-      console.error("[Delete Brand] Full error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config,
-      });
       toast.showError("Failed to delete brand");
     }
   };
@@ -217,6 +203,15 @@ const Brands = () => {
   };
 
   const handleSettingsClick = (brand) => {
+    // Check if this is a deletion result from BrandCard
+    if (brand && brand.action === "deleted") {
+      // Remove the deleted brand from the brands array
+      setBrands((prev) => prev.filter((b) => b._id !== brand.brandId));
+      toast.showSuccess("Brand successfully deleted");
+      return;
+    }
+
+    // Regular settings handling
     setSelectedBrandForSettings(brand);
     setShowSettings(true);
   };
@@ -341,8 +336,7 @@ const BrandCard = ({
   onSettingsSave,
   onSettingsDelete,
 }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [showBackContent, setShowBackContent] = useState(false);
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const { user } = useContext(AuthContext); // Get current user
 
   // Check if the user has permission to edit this brand
@@ -370,15 +364,6 @@ const BrandCard = ({
     );
   };
 
-  useEffect(() => {
-    if (isFlipped) {
-      // Show back content after a small delay to sync with flip
-      const timer = setTimeout(() => setShowBackContent(true), 150);
-      return () => clearTimeout(timer);
-    } else {
-      setShowBackContent(false);
-    }
-  }, [isFlipped]);
 
   const coverImageUrl = getImageUrl(brand.coverImage);
   const logoUrl = getImageUrl(brand.logo);
@@ -404,154 +389,134 @@ const BrandCard = ({
 
   const handleSettingsClick = (e) => {
     e.stopPropagation();
-    setIsFlipped(true);
-  };
-
-  const handleSettingsClose = () => {
-    setIsFlipped(false);
+    setShowSettingsPopup(true);
   };
 
   return (
-    <motion.div
-      className={`brand-card ${isFlipped ? "flipped" : ""}`}
-      style={{
-        transformStyle: "preserve-3d",
-        perspective: "1000px",
-      }}
-    >
-      {/* Front side */}
-      <div
-        className="card-front"
-        style={{
-          backfaceVisibility: "hidden",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          zIndex: isFlipped ? 0 : 1,
-          position: "absolute",
-          inset: 0,
-          transformOrigin: "center",
-          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
-        <div className="brand-card-header">
-          <div className="brand-cover-image">
-            {coverImageUrl && (
-              <ProgressiveImage
-                thumbnailSrc={getImageUrl(brand.coverImage)}
-                mediumSrc={getImageUrl(brand.coverImage)}
-                fullSrc={getImageUrl(brand.coverImage)}
-                alt={`${brand.name} cover`}
-                className="cover-image"
-              />
-            )}
-          </div>
-          <div className="card-actions">
-            {hasPermission && (
-              <>
-                <motion.button
-                  className="action-button edit"
-                  onClick={handleEditClick}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiEditLine />
-                </motion.button>
-                <motion.button
-                  className="action-button settings"
-                  onClick={handleSettingsClick}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiSettings4Line />
-                </motion.button>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="brand-card-content">
-          {logoUrl && (
-            <div className="brand-logo">
-              <ProgressiveImage
-                thumbnailSrc={getImageUrl(brand.logo)}
-                mediumSrc={getImageUrl(brand.logo)}
-                fullSrc={getImageUrl(brand.logo)}
-                alt={`${brand.name} logo`}
-                className="logo-image"
-              />
-            </div>
+    <>
+    <motion.div className="brand-card">
+      <div className="brand-card-header">
+        <div className="brand-cover-image">
+          {coverImageUrl && (
+            <ProgressiveImage
+              thumbnailSrc={getImageUrl(brand.coverImage)}
+              mediumSrc={getImageUrl(brand.coverImage)}
+              fullSrc={getImageUrl(brand.coverImage)}
+              alt={`${brand.name} cover`}
+              className="cover-image"
+            />
           )}
-          <div className="brand-info">
-            <h3>{brand.name}</h3>
-            <span className="username">@{brand.username}</span>
-            {brand.description && (
-              <p className="description">{brand.description}</p>
-            )}
+        </div>
+        <div className="card-actions">
+          {hasPermission && (
+            <>
+              <motion.button
+                className="action-button edit"
+                onClick={handleEditClick}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiEditLine />
+              </motion.button>
+              <motion.button
+                className="action-button settings"
+                onClick={handleSettingsClick}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <RiSettings4Line />
+              </motion.button>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="brand-card-content">
+        {logoUrl && (
+          <div className="brand-logo">
+            <ProgressiveImage
+              thumbnailSrc={getImageUrl(brand.logo)}
+              mediumSrc={getImageUrl(brand.logo)}
+              fullSrc={getImageUrl(brand.logo)}
+              alt={`${brand.name} logo`}
+              className="logo-image"
+            />
+          </div>
+        )}
+        <div className="brand-info">
+          <h3>{brand.name}</h3>
+          <span className="username">@{brand.username}</span>
+          {brand.description && (
+            <p className="description">{brand.description}</p>
+          )}
+        </div>
+
+        <div className="brand-details">
+          <div className="social-icons">
+            {socialPlatforms.map((platform) => (
+              <SocialIcon
+                key={platform}
+                platform={platform}
+                url={brand.social?.[platform]}
+              />
+            ))}
           </div>
 
-          <div className="brand-details">
-            <div className="social-icons">
-              {socialPlatforms.map((platform) => (
-                <SocialIcon
-                  key={platform}
-                  platform={platform}
-                  url={brand.social?.[platform]}
-                />
-              ))}
-            </div>
-
-            <div className="contact-section">
-              <ContactInfo
-                type="email"
-                value={brand.contact?.email}
-                icon={MdEmail}
-              />
-              <ContactInfo
-                type="phone"
-                value={brand.contact?.phone}
-                icon={MdPhone}
-              />
-              <ContactInfo
-                type="address"
-                value={brand.contact?.address}
-                icon={MdLocationOn}
-              />
-            </div>
+          <div className="contact-section">
+            <ContactInfo
+              type="email"
+              value={brand.contact?.email}
+              icon={MdEmail}
+            />
+            <ContactInfo
+              type="phone"
+              value={brand.contact?.phone}
+              icon={MdPhone}
+            />
+            <ContactInfo
+              type="address"
+              value={brand.contact?.address}
+              icon={MdLocationOn}
+            />
           </div>
         </div>
       </div>
-
-      {/* Back side */}
-      <div
-        className="card-back"
-        style={{
-          backfaceVisibility: "hidden",
-          transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
-          zIndex: isFlipped ? 1 : 0,
-          position: "absolute",
-          inset: 0,
-          transformOrigin: "center",
-          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          transformStyle: "preserve-3d",
-        }}
-      >
-        {showBackContent && hasPermission && (
+    </motion.div>
+    
+    {/* Settings Popup Modal */}
+    {showSettingsPopup && hasPermission && (
+      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
+        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <BrandSettings
             brand={brand}
-            onClose={() => setIsFlipped(false)}
+            onClose={(result) => {
+              setShowSettingsPopup(false);
+              // If this was a deletion, notify the parent via onSettingsClick callback
+              if (result && result.deleted) {
+                onSettingsClick({ action: "deleted", brandId: result.brandId });
+              }
+            }}
             onDelete={onSettingsDelete}
             onSave={onSettingsSave}
           />
-        )}
-        {showBackContent && !hasPermission && (
+        </div>
+      </div>
+    )}
+    
+    {/* No Permission Modal */}
+    {showSettingsPopup && !hasPermission && (
+      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
+        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <div className="no-permission-message">
             <h3>Access Restricted</h3>
             <p>You don't have permission to modify this brand.</p>
-            <button className="back-button" onClick={() => setIsFlipped(false)}>
-              Back to Brand
+            <button className="back-button" onClick={() => setShowSettingsPopup(false)}>
+              Close
             </button>
           </div>
-        )}
+        </div>
       </div>
-    </motion.div>
+    )}
+    </>
   );
 };
 

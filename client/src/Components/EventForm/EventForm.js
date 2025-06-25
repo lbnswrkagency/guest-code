@@ -607,11 +607,6 @@ const EventForm = ({
         );
       }
 
-      // Log all form data being sent for debugging
-      console.log("Form data being sent:");
-      for (let [key, value] of dataToSend.entries()) {
-        console.log(`${key}: ${value}`);
-      }
 
       let eventResponse;
 
@@ -832,16 +827,6 @@ const EventForm = ({
     }
   };
 
-  // Add some additional logging at initialization
-  console.log("EventForm received event:", {
-    event,
-    id: event?._id,
-    parentId: event?.parentEventId,
-    weekNumber,
-    isChildEvent,
-    isCalculatedOccurrence:
-      !event?._id && event?.parentEventId && weekNumber > 0,
-  });
 
   // Add state and functions for genre selection
   const [genreSelection, setGenreSelection] = useState([]);
@@ -1024,16 +1009,6 @@ const EventForm = ({
       const { startDate: parsedStartDate, endDate: parsedEndDate } =
         parseEventDateTime(event);
 
-      // Log parsed values for debugging
-      console.log("Initializing form data with dates from existing event:", {
-        eventId: event._id,
-        providedStartDate: event.startDate,
-        providedEndDate: event.endDate,
-        parsedStartDate,
-        parsedEndDate,
-        startTime: event.startTime,
-        endTime: event.endTime,
-      });
 
       setFormData({
         title: event.title || "",
@@ -1104,15 +1079,6 @@ const EventForm = ({
         childEventStartDate.getTime() + duration
       );
 
-      console.log("Initializing form data for NEW CHILD event:", {
-        parentStartDate: parentStartDateObj,
-        parentEndDate: parentEndDateObj,
-        weekNum,
-        calculatedChildStartDate: childEventStartDate,
-        calculatedChildEndDate: childEventEndDate,
-        parentStartTime: parentEventData.startTime,
-        parentEndTime: parentEventData.endTime,
-      });
 
       // Set form data from parent event
       setFormData({

@@ -392,6 +392,7 @@ const createGuestCode = async (
   eventId,
   guestName,
   guestEmail,
+  guestPhone,
   userId,
   maxPax = 1
 ) => {
@@ -424,6 +425,7 @@ const createGuestCode = async (
         userId || new mongoose.Types.ObjectId("000000000000000000000000"), // Default guest user ID if not provided
       guestName,
       guestEmail,
+      guestPhone,
       status: "active",
       maxPax: maxPax, // Use the provided maxPax parameter
       paxChecked: 0,
@@ -443,19 +445,35 @@ const createGuestCode = async (
 // Generate guest code
 const generateGuestCode = async (req, res) => {
   try {
-    const { eventId, guestName, guestEmail, maxPax = 1 } = req.body;
+    const { eventId, guestName, guestEmail, guestPhone, maxPax = 1 } = req.body;
 
     console.log("[GuestCode] Generate request:", {
       eventId,
       guestName,
       guestEmail,
+      guestPhone,
       maxPax,
       isAuthenticated: !!req.user,
       userId: req.user?._id,
       timestamp: new Date().toISOString(),
     });
 
-    // Validate required fields
+    // Fetch event and code settings first to determine requirements
+    const event = await Event.findById(eventId);
+    if (!event) {
+      console.log("[GuestCode] Event not found:", eventId);
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Get guest code settings to check email/phone requirements
+    const codeSettings = await mongoose.model("CodeSettings").findOne({
+      eventId: eventId,
+      type: "guest",
+    });
+
+    const requirePhone = codeSettings?.requirePhone === true; // Default to false
+
+    // Validate basic required fields (email is always required)
     if (!eventId || !guestName || !guestEmail) {
       console.log("[GuestCode] Missing required fields");
       return res.status(400).json({
@@ -463,7 +481,7 @@ const generateGuestCode = async (req, res) => {
       });
     }
 
-    // Basic email validation
+    // Validate email format (always required)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(guestEmail.trim())) {
       console.log("[GuestCode] Invalid email format:", guestEmail);
@@ -472,9 +490,31 @@ const generateGuestCode = async (req, res) => {
       });
     }
 
+    // Validate phone if required
+    if (requirePhone) {
+      if (!guestPhone) {
+        console.log("[GuestCode] Phone is required but not provided");
+        return res.status(400).json({
+          message: "Phone number is required",
+        });
+      }
+      
+      // Phone validation (allows various formats including local numbers)
+      const cleanPhone = guestPhone.replace(/[\s\-\(\)\.]/g, '');
+      // Accept international (+49...), local German (0...), and general formats
+      const phoneRegex = /^(\+?[1-9]\d{1,14}|0\d{9,10})$/;
+      if (!phoneRegex.test(cleanPhone) || cleanPhone.length < 7) {
+        console.log("[GuestCode] Invalid phone format:", guestPhone);
+        return res.status(400).json({
+          message: "Invalid phone number format",
+        });
+      }
+    }
+
     // Sanitize inputs
     const sanitizedName = guestName.trim();
-    const sanitizedEmail = guestEmail.trim();
+    const sanitizedEmail = guestEmail.trim(); // Email is always provided
+    const sanitizedPhone = guestPhone ? guestPhone.trim() : null;
 
     // Check if a guest code already exists for this email and event
     const existingCode = await Code.findOne({
@@ -503,17 +543,9 @@ const generateGuestCode = async (req, res) => {
     const userId = req.user ? req.user._id : null;
     console.log("[GuestCode] User ID for code generation:", userId);
 
-    // Fetch the event with brand and lineups
-    const event = await Event.findById(eventId)
-      .populate("brand")
-      .populate("lineups")
-      .select(
-        "title date startDate startTime endTime location street address postalCode city brand lineups venue"
-      );
-    if (!event) {
-      console.log("[GuestCode] Event not found:", eventId);
-      return res.status(404).json({ message: "Event not found" });
-    }
+    // Populate the event with brand and lineups
+    await event.populate("brand");
+    await event.populate("lineups");
 
     console.log("[GuestCode] Found event:", {
       eventId: event._id,
@@ -528,6 +560,7 @@ const generateGuestCode = async (req, res) => {
         eventId,
         sanitizedName,
         sanitizedEmail,
+        sanitizedPhone,
         userId,
         maxPax
       );

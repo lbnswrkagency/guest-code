@@ -262,14 +262,6 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
     <div
       className="brand-settings-container"
       onClick={handleContainerClick}
-      style={{
-        isolation: "isolate",
-        position: "absolute",
-        inset: 0,
-        zIndex: 1000,
-        transform: "translateZ(1px)",
-        backfaceVisibility: "hidden",
-      }}
     >
       <div className="brand-settings-card">
         <div className="settings-header">
@@ -463,29 +455,47 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
       <AnimatePresence mode="wait">
         {showUserInterface && (
           <motion.div
-            className="full-screen-panel"
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
+            className="user-interface-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ type: "tween", duration: 0.3 }}
             style={{ zIndex: 1100 }}
+            onClick={() => setShowUserInterface(false)}
           >
-            <UserInterface
-              brand={brand}
-              onClose={() => setShowUserInterface(false)}
-            />
+            <motion.div
+              className="user-interface-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <UserInterface
+                brand={brand}
+                onClose={() => setShowUserInterface(false)}
+              />
+            </motion.div>
           </motion.div>
         )}
         {showRoleSettings && (
           <motion.div
-            className="full-screen-panel"
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
+            className="role-settings-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ type: "tween", duration: 0.3 }}
             style={{ zIndex: 1100 }}
+            onClick={() => setShowRoleSettings(false)}
           >
-            <RoleSetting brand={brand} onClose={handleRoleSettingsClose} />
+            <motion.div
+              className="role-settings-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <RoleSetting brand={brand} onClose={handleRoleSettingsClose} />
+            </motion.div>
           </motion.div>
         )}
         {showDeleteConfirm && (

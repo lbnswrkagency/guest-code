@@ -670,6 +670,35 @@ const EventCodeSettings = ({
                     </div>
                   </div>
 
+                  {/* Phone requirement checkbox for guest codes */}
+                  {codeSetting.type === "guest" && (
+                    <div className="settings-field">
+                      <label>Contact Requirements</label>
+                      <div className="contact-requirements">
+                        <div className="requirement-info">
+                          <span className="email-always-required">✓ Email address is always required</span>
+                        </div>
+                        <div className="phone-requirement">
+                          <input
+                            type="checkbox"
+                            id={`phone-required-${codeSetting._id}`}
+                            checked={getCurrentValue(codeSetting, "requirePhone") || false}
+                            onChange={(e) =>
+                              handleLocalChange(
+                                codeSetting,
+                                "requirePhone",
+                                e.target.checked
+                              )
+                            }
+                          />
+                          <label htmlFor={`phone-required-${codeSetting._id}`}>
+                            Also require phone number
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="settings-field">
                     <label>Code Color</label>
                     <div className="color-preview-container">

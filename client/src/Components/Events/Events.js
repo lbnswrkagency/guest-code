@@ -203,15 +203,6 @@ const Events = () => {
     parentEventData = null,
     weekNumber = 0
   ) => {
-    // Debug log to verify data is flowing correctly
-    console.log("[handleEventClick] Data:", {
-      isNewChildEvent: !eventToEdit?._id && parentEventData && weekNumber > 0,
-      eventToEditId: eventToEdit?._id,
-      hasParentData: !!parentEventData,
-      parentId: parentEventData?._id,
-      weekNumber,
-    });
-
     setSelectedEvent(eventToEdit);
     // Store the parent event data if provided (for new child events)
     setParentEventForForm(parentEventData);
@@ -514,8 +505,7 @@ const Events = () => {
 };
 
 const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [showBackContent, setShowBackContent] = useState(false);
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
   const [currentEvent, setCurrentEvent] = useState(event); // Track the current event (parent or child)
   const [isLive, setIsLive] = useState(event.isLive || false); // Track live status
@@ -562,12 +552,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           const nextWeek =
             weeksPassed + (now.getDay() > eventStartDate.getDay() ? 1 : 0);
 
-          console.log(
-            "Auto-navigating to week:",
-            nextWeek,
-            "for event:",
-            event.title
-          );
           // Set the current week to the next upcoming week
           setCurrentWeek(nextWeek);
         } else {
@@ -674,16 +658,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     return null;
   };
 
-  // Revised useEffect to show back content immediately when flipped
-  useEffect(() => {
-    if (isFlipped) {
-      setShowBackContent(true);
-    } else {
-      // Only hide back content after the flip animation is complete
-      const timer = setTimeout(() => setShowBackContent(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isFlipped]);
 
   const handleEditClick = (e) => {
     e.stopPropagation();
@@ -700,14 +674,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     // Pass the parent event data if this is a calculated/non-created occurrence
     const parentData = isCalculatedOccurrence ? event : null;
 
-    // Log debug information
-    console.log("[EditClick] Current event:", {
-      id: currentEvent._id,
-      title: currentEvent.title,
-      isCalculated: isCalculatedOccurrence,
-      weekNumber,
-      hasParentData: !!parentData,
-    });
 
     // Call the main click handler with all the necessary data
     onClick(currentEvent, parentData, weekNumber);
@@ -715,7 +681,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
   const handleSettingsClick = (e) => {
     e.stopPropagation();
-    setIsFlipped(true);
+    setShowSettingsPopup(true);
   };
 
   // Handle navigation to previous week
@@ -756,7 +722,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           date: weekDate.toISOString(), // Update both date fields for compatibility
         }));
       } catch (error) {
-        console.error("[Weekly Navigation] Error updating date:", error);
       }
     }
   }, [currentWeek, event.startDate, event.date, currentEvent.isWeekly]);
@@ -850,9 +815,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
     const isCalculatedOccurrence = currentEvent.childExists === false;
 
     if (isCalculatedOccurrence) {
-      console.log(
-        `[Go Live] This is a calculated occurrence - a child event will be created in the database`
-      );
+      // This is a calculated occurrence - a child event will be created in the database
     }
 
     // Call the API to toggle the live status
@@ -892,29 +855,14 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
   };
 
   return (
+    <>
     <motion.div
-      className={`event-card ${isFlipped ? "flipped" : ""} ${
+      className={`event-card ${
         event.isWeekly ? "weekly-event" : ""
       } ${isLive ? "live-event" : ""} ${currentWeek > 0 ? "child-event" : ""}`}
-      style={{
-        transformStyle: "preserve-3d",
-        perspective: "1000px",
-      }}
     >
-      {/* Front side */}
-      <div
-        className="card-front"
-        style={{
-          backfaceVisibility: "hidden",
-          WebkitBackfaceVisibility: "hidden",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          position: "absolute",
-          inset: 0,
-          transformOrigin: "center",
-          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          zIndex: isFlipped ? 0 : 1,
-        }}
-      >
+      {/* Main card content */}
+      <div className="card-content">
         {/* Weekly Navigation */}
         {event.isWeekly && (
           <div className="weekly-navigation">
@@ -1038,45 +986,41 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
           </div>
         </div>
       </div>
-
-      {/* Back side */}
-      <div
-        className="card-back"
-        style={{
-          backfaceVisibility: "hidden",
-          WebkitBackfaceVisibility: "hidden",
-          transform: `rotateY(${isFlipped ? 0 : -180}deg) scaleX(-1)`,
-          zIndex: isFlipped ? 1 : 0,
-          position: "absolute",
-          inset: 0,
-          transformOrigin: "center",
-          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          transformStyle: "preserve-3d",
-        }}
-      >
-        {showBackContent && hasPermission && (
+    </motion.div>
+    
+    {/* Settings Popup Modal */}
+    {showSettingsPopup && hasPermission && (
+      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
+        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <EventSettings
             event={event}
             onClose={(result) => {
-              setIsFlipped(false);
+              setShowSettingsPopup(false);
               // If this was a deletion, notify the parent via onSettingsClick callback
               if (result && result.deleted) {
                 onSettingsClick({ action: "deleted", eventId: result.eventId });
               }
             }}
           />
-        )}
-        {showBackContent && !hasPermission && (
+        </div>
+      </div>
+    )}
+    
+    {/* No Permission Modal */}
+    {showSettingsPopup && !hasPermission && (
+      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
+        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <div className="no-permission-message">
             <h3>Access Restricted</h3>
             <p>You don't have permission to modify this event.</p>
-            <button className="back-button" onClick={() => setIsFlipped(false)}>
-              Back to Event
+            <button className="back-button" onClick={() => setShowSettingsPopup(false)}>
+              Close
             </button>
           </div>
-        )}
+        </div>
       </div>
-    </motion.div>
+    )}
+    </>
   );
 };
 

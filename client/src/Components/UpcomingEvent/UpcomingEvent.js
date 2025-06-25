@@ -1381,18 +1381,6 @@ const UpcomingEvent = ({
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Event Title and Subtitle */}
-          <div className="upcomingEvent-header">
-            <h1 className="upcomingEvent-event-title">
-              {currentEvent.title}
-            </h1>
-            {currentEvent.subTitle && (
-              <h2 className="upcomingEvent-event-subtitle">
-                {currentEvent.subTitle}
-              </h2>
-            )}
-          </div>
-
           <div className="upcomingEvent-image-wrapper">
             <div className="upcomingEvent-image-container">
               {eventImage ? (
@@ -1412,7 +1400,20 @@ const UpcomingEvent = ({
             </div>
           </div>
 
-          <div className="upcomingEvent-details">
+          {/* Content wrapper for desktop layout - only header and description */}
+          <div className="upcomingEvent-content-wrapper">
+            {/* Event Title and Subtitle */}
+            <div className="upcomingEvent-header">
+              <h1 className="upcomingEvent-event-title">
+                {currentEvent.title}
+              </h1>
+              {currentEvent.subTitle && (
+                <h2 className="upcomingEvent-event-subtitle">
+                  {currentEvent.subTitle}
+                </h2>
+              )}
+            </div>
+
             {/* Event Description */}
             {currentEvent.description && (
               <div className="upcomingEvent-description-container">
@@ -1421,7 +1422,10 @@ const UpcomingEvent = ({
                 </p>
               </div>
             )}
+          </div>
 
+          {/* Full-width sections that span both columns on desktop */}
+          <div className="upcomingEvent-full-width-sections">
             {/* EventDetails Component with integrated action buttons */}
             <div className="upcomingEvent-details-section">
               <EventDetails

@@ -1,23 +1,33 @@
-.settings-content {
-  flex: 1;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
 
 .settings-group {
   margin-bottom: 2rem;
+  width: 100%;
+  max-width: 100%;
 
   h3 {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1.3rem;
+    color: #ffc807;
+    margin: 0 0 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 200, 7, 0.2);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &::before {
+      content: "🎟️";
+      font-size: 1.1rem;
+    }
   }
 
   &.danger-zone {
     h3 {
       color: #ff3b30;
+
+      &::before {
+        content: "⚠️";
+      }
     }
   }
 }
@@ -836,6 +846,46 @@
           }
         }
       }
+    }
+  }
+}
+
+// Contact requirements styling for guest codes
+.contact-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 200, 7, 0.08);
+  border: 1px solid rgba(255, 200, 7, 0.2);
+  border-radius: 8px;
+
+  .requirement-info {
+    .email-always-required {
+      color: #ffc807;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+  }
+
+  .phone-requirement {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    input[type="checkbox"] {
+      width: auto;
+      height: 18px;
+      margin: 0;
+      accent-color: #ffc807;
+      cursor: pointer;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      margin: 0;
     }
   }
 }

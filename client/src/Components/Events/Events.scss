@@ -195,9 +195,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   cursor: pointer;
-  transform-style: preserve-3d;
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-  perspective: 1000px;
+  transition: box-shadow 0.3s ease;
   min-height: 500px;
   display: flex;
   flex-direction: column;
@@ -483,18 +481,6 @@
     }
   }
 
-  &.flipped {
-    transform: rotateY(180deg);
-
-    .card-front {
-      pointer-events: none;
-    }
-
-    .card-back {
-      pointer-events: auto;
-    }
-  }
-
   &.add-card {
     display: flex;
     flex-direction: column;
@@ -526,89 +512,10 @@
     }
   }
 
-  .card-front,
-  .card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    background: #151515;
-    border-radius: 24px;
-  }
-
-  .card-front {
+  .card-content {
     display: flex;
     flex-direction: column;
-  }
-
-  .card-back {
-    transform: rotateY(180deg);
-    pointer-events: none;
-
-    .event-settings {
-      position: relative;
-      top: auto;
-      right: auto;
-      width: 100%;
-      height: 100%;
-      max-width: none;
-      max-height: none;
-      box-shadow: none;
-      background-color: transparent;
-      z-index: auto;
-
-      .settings-header {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .settings-content {
-        padding: 1rem;
-        max-height: 450px;
-        overflow-y: auto;
-      }
-    }
-
-    .no-permission-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      padding: 2rem;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.8);
-
-      h3 {
-        color: #f44336;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
-
-      p {
-        color: rgba(255, 255, 255, 0.8);
-        margin-bottom: 2rem;
-        font-size: 1.1rem;
-        line-height: 1.5;
-      }
-
-      .back-button {
-        padding: 0.75rem 1.5rem;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        color: #fff;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.2);
-          transform: translateY(-2px);
-        }
-      }
-    }
+    height: 100%;
   }
 }
 
@@ -773,6 +680,12 @@
     padding: 0;
   }
 
+  .settings-popup {
+    max-width: 95vw;
+    margin: 10px;
+    max-height: 95vh;
+  }
+
   .event-form {
     height: 100vh;
     max-height: none;
@@ -794,5 +707,107 @@
         gap: 1rem;
       }
     }
+  }
+}
+
+// Settings Popup Modal Styles
+.settings-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.settings-popup {
+  background: #151515;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: popupFadeIn 0.3s ease-out;
+  padding: 1rem;
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .no-permission-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    min-height: 300px;
+
+    h3 {
+      color: #f44336;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    .back-button {
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }

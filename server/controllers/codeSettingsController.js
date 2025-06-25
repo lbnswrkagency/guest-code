@@ -176,6 +176,8 @@ const configureCodeSettings = async (req, res) => {
       tableNumber,
       color,
       icon,
+      requireEmail,
+      requirePhone,
     } = req.body;
 
     // Find the event
@@ -272,6 +274,8 @@ const configureCodeSettings = async (req, res) => {
             tableNumber,
             color: color || "#2196F3",
             icon: icon || "RiCodeLine",
+            requireEmail: requireEmail !== undefined ? requireEmail : true,
+            requirePhone: requirePhone !== undefined ? requirePhone : false,
           });
         } else {
           return res.status(404).json({ message: "Code setting not found" });
@@ -289,6 +293,8 @@ const configureCodeSettings = async (req, res) => {
         if (tableNumber !== undefined) codeSetting.tableNumber = tableNumber;
         if (color !== undefined) codeSetting.color = color;
         if (icon !== undefined) codeSetting.icon = icon;
+        if (requireEmail !== undefined) codeSetting.requireEmail = requireEmail;
+        if (requirePhone !== undefined) codeSetting.requirePhone = requirePhone;
       }
 
       await codeSetting.save();
@@ -327,6 +333,8 @@ const configureCodeSettings = async (req, res) => {
           tableNumber,
           color: color || "#2196F3",
           icon: icon || "RiCodeLine",
+          requireEmail: requireEmail !== undefined ? requireEmail : true,
+          requirePhone: requirePhone !== undefined ? requirePhone : false,
         });
       } else {
         // Update existing setting
@@ -341,6 +349,8 @@ const configureCodeSettings = async (req, res) => {
         if (tableNumber !== undefined) codeSetting.tableNumber = tableNumber;
         if (color !== undefined) codeSetting.color = color;
         if (icon !== undefined) codeSetting.icon = icon;
+        if (requireEmail !== undefined) codeSetting.requireEmail = requireEmail;
+        if (requirePhone !== undefined) codeSetting.requirePhone = requirePhone;
       }
 
       await codeSetting.save();
@@ -565,6 +575,8 @@ const initializeDefaultSettings = async (eventId) => {
         type: "guest",
         isEnabled: false,
         isEditable: false,
+        requireEmail: true,
+        requirePhone: false,
       });
     }
 
