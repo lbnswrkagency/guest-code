@@ -392,9 +392,13 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         payload.brandId = selectedBrand._id;
       }
 
+      console.log("[Scanner] Validating code:", codeValue);
+      console.log("[Scanner] Payload:", payload);
+
       try {
         // Single API call to validate the code - will handle security tokens, IDs, and code values
         const response = await axiosInstance.post("/qr/validate", payload);
+        console.log("[Scanner] Validation response:", response.data);
 
         // Log TableCode validation details
         if (response.data.typeOfTicket === "Table-Code") {
@@ -407,6 +411,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           selectedEvent._id !== response.data.eventId &&
           response.data.eventDetails?.title !== selectedEvent.title
         ) {
+          console.log("[Scanner] Event mismatch - expected:", selectedEvent._id, "got:", response.data.eventId);
           // Handle wrong event error with a simpler UI message
           setErrorMessage("That code is from a different event.");
           setShowCamera(false);
@@ -470,6 +475,9 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
         // Single toast for successful validation - simplified
         toast.showSuccess("Verified");
       } catch (error) {
+        console.log("[Scanner] Validation error:", error.response?.data || error.message);
+        console.log("[Scanner] Error status:", error.response?.status);
+        
         // More user-friendly error messages based on error type
         let errorMessage = "";
 
@@ -507,6 +515,10 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
 
   const updatePax = async (increment) => {
     try {
+      console.log("[Scanner] Updating pax for:", scanResult.typeOfTicket, "ID:", scanResult._id);
+      console.log("[Scanner] scanResult.type:", scanResult.type);
+      console.log("[Scanner] Increment:", increment);
+      
       // First check if the code is from the new model (Code) or legacy models
       let endpoint = "";
       let payload = {};
@@ -515,6 +527,11 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
       const isTicketModel =
         scanResult.typeOfTicket === "Ticket-Code" && !scanResult.type; // Regular tickets don't have a 'type' field
 
+      console.log("[Scanner] isTicketModel:", isTicketModel);
+      console.log("[Scanner] typeOfTicket:", scanResult.typeOfTicket);
+      console.log("[Scanner] Has type field:", !!scanResult.type);
+      console.log("[Scanner] scanResult full object:", scanResult);
+
       if (isTicketModel) {
         // For tickets from ticketModel.js, use the ticket endpoints
         endpoint = `/qr/tickets/${scanResult._id}/update-pax`;
@@ -522,6 +539,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           eventId: scanResult.eventId || selectedEvent?._id,
           increment: increment,
         };
+        console.log("[Scanner] Using ticket endpoint:", endpoint);
       }
       // Check if this is a TableCode
       else if (scanResult.typeOfTicket === "Table-Code") {
@@ -531,6 +549,7 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
           eventId: scanResult.eventId || selectedEvent?._id,
           increment: increment,
         };
+        console.log("[Scanner] Using table code endpoint:", endpoint);
       }
       // New approach - check the typeOfTicket to determine how to update
       else if (
@@ -548,15 +567,21 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
 
         // The endpoint depends on whether we're dealing with legacy or new code types
         endpoint = `/qr/codes/${scanResult._id}/update-pax`;
+        console.log("[Scanner] Using codes endpoint:", endpoint);
       } else {
         // Legacy approach
         endpoint = increment
           ? `/qr/increase/${scanResult._id}`
           : `/qr/decrease/${scanResult._id}`;
+        console.log("[Scanner] Using legacy endpoint:", endpoint);
       }
 
+      console.log("[Scanner] Final endpoint:", endpoint);
+      console.log("[Scanner] Final payload:", payload);
+      
       // Make the request with proper payload
       const response = await axiosInstance.put(endpoint, payload);
+      console.log("[Scanner] Update response:", response.data);
 
       // Update local state with new paxChecked value (from response or calculated)
       const updatedPaxChecked =

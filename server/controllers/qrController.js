@@ -195,8 +195,9 @@ const validateTicket = async (req, res) => {
         hostName = ticket.metadata.hostName;
       }
     }
-    // Check for TableCode by securityToken
-    else if (securityTokenToCheck) {
+    
+    // If not found in Code model, check TableCode
+    if (!ticket && securityTokenToCheck) {
       console.log(
         "[QR Validate] Checking TableCode by securityToken:",
         securityTokenToCheck
@@ -274,15 +275,17 @@ const validateTicket = async (req, res) => {
         }
       }
     }
-    // Check if this is a security token in the Ticket model
-    else {
+    
+    // If not found in Code or TableCode models, check Ticket model
+    if (!ticket) {
       const Ticket = require("../models/ticketModel");
       console.log(
         "[QR Validate] Checking Ticket model by securityToken:",
         securityTokenToCheck
       );
+      console.log("[QR Validate] Original ticketId:", ticketId);
 
-      // Only try by security token
+      // Try by security token first
       let ticketBySecurityToken = await Ticket.findOne({
         securityToken: securityTokenToCheck,
       });
@@ -291,20 +294,66 @@ const validateTicket = async (req, res) => {
           ticketBySecurityToken ? ticketBySecurityToken._id : "null"
         }`
       );
+      
+      // If not found by security token, also try by _id if it's a valid ObjectId
+      if (!ticketBySecurityToken && mongoose.Types.ObjectId.isValid(ticketId)) {
+        console.log("[QR Validate] Trying Ticket model by ID:", ticketId);
+        ticketBySecurityToken = await Ticket.findById(ticketId);
+        console.log(
+          `[QR Validate] Result from Ticket model (by ID): ${
+            ticketBySecurityToken ? ticketBySecurityToken._id : "null"
+          }`
+        );
+      }
+      
+      // If still not found, try by original ticketId in case it's different
+      if (!ticketBySecurityToken && ticketId !== securityTokenToCheck) {
+        console.log("[QR Validate] Trying Ticket model with original ticketId:", ticketId);
+        if (mongoose.Types.ObjectId.isValid(ticketId)) {
+          ticketBySecurityToken = await Ticket.findById(ticketId);
+        } else {
+          ticketBySecurityToken = await Ticket.findOne({ securityToken: ticketId });
+        }
+        console.log(
+          `[QR Validate] Result from Ticket model (original ticketId): ${
+            ticketBySecurityToken ? ticketBySecurityToken._id : "null"
+          }`
+        );
+      }
 
       if (ticketBySecurityToken) {
         console.log("[QR Validate] Found match in Ticket model, using it.");
+        console.log("[QR Validate] Ticket data:", {
+          _id: ticketBySecurityToken._id,
+          eventId: ticketBySecurityToken.eventId,
+          securityToken: ticketBySecurityToken.securityToken,
+          status: ticketBySecurityToken.status,
+          pax: ticketBySecurityToken.pax,
+          paxChecked: ticketBySecurityToken.paxChecked
+        });
+        
         ticket = ticketBySecurityToken;
         typeOfTicket = "Ticket-Code";
 
         // Get the event details for this ticket
         if (ticket.eventId) {
+          eventId = ticket.eventId;
           const Event = require("../models/eventsModel");
           event = await Event.findById(ticket.eventId);
           console.log(
             "Found event for ticket:",
             event ? event.title : "No event found"
           );
+          
+          // Check for event mismatch
+          if (
+            requestEventId &&
+            eventId &&
+            requestEventId !== eventId.toString()
+          ) {
+            console.log("Event mismatch detected for Ticket");
+            wrongEventError = true;
+          }
         }
 
         // Get user info if available
@@ -314,52 +363,19 @@ const validateTicket = async (req, res) => {
             hostName = user.firstName || user.username || user.email;
           }
         }
-      }
-      // If still not found after checking Ticket model by securityToken, check legacy models
-      else {
-        console.log("[QR Validate] Checking legacy models...");
-        // ... (rest of the legacy model checks by ID or code) ...
-        if (mongoose.Types.ObjectId.isValid(ticketId)) {
-          // Try to find by ID
-          const friendsCodeTicket = await FriendsCode.findById(ticketId);
-          if (friendsCodeTicket) {
-            // ... (set ticket, typeOfTicket, hostName for FriendsCode)
-          } else {
-            const guestCodeTicket = await GuestCode.findById(ticketId);
-            if (guestCodeTicket) {
-              // ... (set ticket, typeOfTicket for GuestCode)
-            } else {
-              const backstageCodeTicket = await BackstageCode.findById(
-                ticketId
-              );
-              if (backstageCodeTicket) {
-                // ... (set ticket, typeOfTicket, hostName for BackstageCode)
-              } else {
-                // NOTE: TableCode check by ID was potentially missed here previously,
-                // but TableCode is already checked earlier by securityToken and code.
-                // We'll rely on the earlier checks for TableCode.
-
-                const invitationCodeTicket = await InvitationCode.findById(
-                  ticketId
-                );
-                if (invitationCodeTicket) {
-                  // ... (set ticket, typeOfTicket for InvitationCode)
-                } else {
-                  // Final check in legacy Code model by ID (if applicable)
-                  // const newCodeTicket = await Code.findById(ticketId);
-                  // This check is likely redundant as Code model was checked first
-                }
-              }
-            }
-          }
-        } else {
-          // Try legacy models by CODE field
-          console.log(
-            "[QR Validate] Checking legacy models by code field:",
-            ticketId
-          );
-          // ... (existing legacy checks by code field for FriendsCode, GuestCode, BackstageCode, TableCode, InvitationCode) ...
+        
+        // Also check for customer name from ticket
+        if (!hostName && (ticket.firstName || ticket.lastName)) {
+          hostName = `${ticket.firstName || ''} ${ticket.lastName || ''}`.trim();
         }
+        if (!hostName && ticket.customerEmail) {
+          hostName = ticket.customerEmail;
+        }
+      }
+      // If still not found after checking Ticket model, log the failure
+      if (!ticketBySecurityToken) {
+        console.log("[QR Validate] No ticket found in Ticket model for:", securityTokenToCheck);
+        console.log("[QR Validate] Original ticketId:", ticketId);
       }
     }
 
@@ -371,6 +387,8 @@ const validateTicket = async (req, res) => {
       requestEventId !== ticket.eventId.toString()
     ) {
       console.log("Event mismatch detected in second check");
+      console.log("Request eventId:", requestEventId);
+      console.log("Ticket eventId:", ticket.eventId.toString());
       wrongEventError = true;
     }
 
@@ -385,8 +403,17 @@ const validateTicket = async (req, res) => {
 
     // If no ticket was found, return an error
     if (!ticket) {
+      console.log("[QR Validate] No ticket found for:", securityTokenToCheck);
+      console.log("[QR Validate] Original input:", ticketId);
       return res.status(404).json({ message: "Ticket not found" });
     }
+    
+    console.log("[QR Validate] Final ticket found:", {
+      _id: ticket._id,
+      typeOfTicket: typeOfTicket,
+      eventId: eventId || ticket.eventId,
+      status: ticket.status
+    });
 
     // Get event details if we haven't already and the ticket has an eventId
     if (!event && ticket.eventId) {
@@ -474,8 +501,8 @@ const validateTicket = async (req, res) => {
       typeOfTicket
     );
 
-    // Add event details and type to the response
-    res.json({
+    // Prepare the response with all necessary fields
+    const response = {
       ...ticketData,
       typeOfTicket,
       eventDetails,
@@ -498,7 +525,24 @@ const validateTicket = async (req, res) => {
         // Also include color in metadata
         codeColor: codeColor,
       },
+    };
+    
+    // For tickets from ticketModel.js, ensure we don't include a 'type' field
+    // as this is used by frontend to distinguish between Code model and Ticket model
+    if (typeOfTicket === "Ticket-Code" && !ticket.type) {
+      // Remove any 'type' field that might have been included
+      delete response.type;
+      console.log("[QR Validate] Ticket model response prepared (no type field)");
+    }
+    
+    console.log("[QR Validate] Final response:", {
+      _id: response._id,
+      typeOfTicket: response.typeOfTicket,
+      type: response.type,
+      hasTypeField: !!response.type
     });
+    
+    res.json(response);
   } catch (error) {
     console.error("Error in validateTicket:", error);
     res.status(500).json({ message: error.message });
@@ -652,16 +696,24 @@ const updateTicketPax = async (req, res) => {
     const ticketId = req.params.ticketId;
     const { increment } = req.body;
 
-    console.log(`Updating pax for ticket ${ticketId}, increment: ${increment}`);
+    console.log(`[QR Update] Updating pax for ticket ${ticketId}, increment: ${increment}`);
+    console.log(`[QR Update] Request body:`, req.body);
 
     // Load the Ticket model and find the ticket
     const Ticket = require("../models/ticketModel");
 
     if (!mongoose.Types.ObjectId.isValid(ticketId)) {
+      console.log(`[QR Update] Invalid ticket ID format: ${ticketId}`);
       return res.status(400).json({ message: "Invalid ticket ID format" });
     }
 
     const ticket = await Ticket.findById(ticketId);
+    console.log(`[QR Update] Found ticket:`, ticket ? {
+      _id: ticket._id,
+      pax: ticket.pax,
+      paxChecked: ticket.paxChecked,
+      status: ticket.status
+    } : 'null');
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });

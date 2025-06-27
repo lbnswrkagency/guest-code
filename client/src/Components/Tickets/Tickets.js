@@ -731,6 +731,40 @@ const Tickets = ({
                 </div>
               )}
 
+            {/* Exclusive Online Discount Banner - Show for online payments with door prices */}
+            {validatedTickets.length > 0 &&
+              validatedTickets[0].paymentMethod === "online" &&
+              validatedTickets.some((ticket) => ticket.doorPrice > ticket.price) && (
+                <motion.div
+                  className="exclusive-online-discount"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
+                  <div className="discount-content">
+                    <div className="discount-icon">
+                      <FaShieldAlt />
+                    </div>
+                    <div className="discount-details">
+                      <h3>🎯 Exclusive Online Discount</h3>
+                      <p>
+                        Save up to{" "}
+                        {Math.max(
+                          ...validatedTickets.map(
+                            (ticket) =>
+                              calculateDiscountPercentage(
+                                ticket.doorPrice,
+                                ticket.price
+                              ) || 0
+                          )
+                        )}
+                        % compared to door prices!
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
             <div className="tickets-list">
               {validatedTickets.map(renderTicketItem)}
             </div>
@@ -813,47 +847,13 @@ const Tickets = ({
                   </span>
                 </div>
 
-                {/* Door price display with animation */}
-                {ticketSettings?.paymentMethod === "online" && (
-                  <motion.div
-                    className="checkout-door-price"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
-                  >
-                    <div className="door-price-content">
-                      <div className="door-price-icon">
-                        <FaShieldAlt />
-                      </div>
-                      <div className="door-price-details">
-                        <h3>Exclusive Online Discount</h3>
-                        {validatedTickets.some(
-                          (ticket) => ticket.doorPrice > ticket.price
-                        ) && (
-                          <p>
-                            Save up to{" "}
-                            {Math.max(
-                              ...validatedTickets.map(
-                                (ticket) =>
-                                  calculateDiscountPercentage(
-                                    ticket.doorPrice,
-                                    ticket.price
-                                  ) || 0
-                              )
-                            )}
-                            % compared to door prices
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
+                {/* Removed the exclusive online discount section from checkout area */}
 
                 {/* Checkout payment method with enhanced animations */}
-                {ticketSettings && (
+                {validatedTickets.length > 0 && (
                   <motion.div
                     className={`checkout-payment-method ${
-                      ticketSettings.paymentMethod === "online"
+                      validatedTickets[0].paymentMethod === "online"
                         ? "online-payment"
                         : "entrance-payment"
                     }`}
@@ -863,7 +863,7 @@ const Tickets = ({
                   >
                     <div className="payment-method">
                       <div className="payment-icon">
-                        {ticketSettings.paymentMethod === "online" ? (
+                        {validatedTickets[0].paymentMethod === "online" ? (
                           <FaLock />
                         ) : (
                           <FaMapMarkerAlt />
@@ -871,18 +871,18 @@ const Tickets = ({
                       </div>
                       <div className="payment-details">
                         <h3>
-                          {ticketSettings.paymentMethod === "online"
+                          {validatedTickets[0].paymentMethod === "online"
                             ? "Secure Online Payment"
                             : "Pay at Entrance"}
                         </h3>
                         <p>
-                          {ticketSettings.paymentMethod === "online"
+                          {validatedTickets[0].paymentMethod === "online"
                             ? "Your payment is secured with industry-standard encryption"
                             : "Please be ready to pay at the door"}
                         </p>
                       </div>
                     </div>
-                    {ticketSettings.paymentMethod === "online" && (
+                    {validatedTickets[0].paymentMethod === "online" && (
                       <motion.div
                         className="online-payment-icons"
                         initial={{ opacity: 0 }}

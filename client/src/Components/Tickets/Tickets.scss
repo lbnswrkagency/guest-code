@@ -203,6 +203,107 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   }
 }
 
+// Exclusive Online Discount Banner - matches payment method banner style
+.exclusive-online-discount {
+  background: linear-gradient(
+    145deg,
+    rgba(30, 30, 30, 0.8),
+    rgba(20, 20, 20, 0.9)
+  );
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+
+  // Gold gradient overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gold-gradient;
+    opacity: 0.1;
+    z-index: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  // Gold accent border at top
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: $gold-gradient;
+    z-index: 1;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
+      0 0 15px rgba(212, 175, 55, 0.2);
+
+    &::before {
+      opacity: 0.15;
+    }
+
+    .discount-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+  }
+
+  .discount-content {
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .discount-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $gold-medium;
+    color: #000;
+    border-radius: 50%;
+    margin-right: 18px;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2),
+      0 0 0 2px rgba(212, 175, 55, 0.2);
+  }
+
+  .discount-details {
+    flex: 1;
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: $gold-medium;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    p {
+      font-size: 14px;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.5;
+    }
+  }
+}
+
 .tickets-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

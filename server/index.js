@@ -147,6 +147,7 @@ const corsOptions = {
           "https://guestcode-server.onrender.com",
         ]
       : [
+          "http://localhost:3000",
           "http://localhost:9231",
           "http://127.0.0.1:9231",
           "http://localhost:5001",
@@ -186,6 +187,9 @@ app.use((req, res, next) => {
       origin.includes("onrender.com"))
   ) {
     res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    // Always set CORS headers for development
+    res.header("Access-Control-Allow-Origin", "*");
   }
   res.header("Access-Control-Allow-Credentials", "true");
   res.header(
