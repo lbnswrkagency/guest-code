@@ -32,7 +32,7 @@ export const getToken = () => {
 
 export const refreshToken = async () => {
   try {
-    const response = await axiosInstance.post("/auth/refresh_token");
+    const response = await axiosInstance.post("/auth/refresh-token");
     return response.data;
   } catch (error) {
     throw error;

@@ -186,9 +186,6 @@ const getCodeSettings = async (req, res) => {
       event.user.toString() !== req.user._id.toString() &&
       !req.user.isAdmin
     ) {
-      console.log(
-        `❌ SERVER: User ${req.user._id} not authorized to view event ${eventId}`
-      );
       return res
         .status(403)
         .json({ message: "Not authorized to view this event" });
@@ -196,7 +193,6 @@ const getCodeSettings = async (req, res) => {
 
     // Log warning if event.user is undefined
     if (!event.user) {
-      console.warn(`⚠️ SERVER: Event ${eventId} has no user field`);
     }
 
     return res.status(200).json({
@@ -578,14 +574,10 @@ const createDynamicCode = async (req, res) => {
 const getEventCodes = async (req, res) => {
   try {
     const { eventId, type } = req.params;
-    console.log(`🔍 SERVER: Fetching codes for event=${eventId}, type=${type}`);
-    console.log(`🔑 SERVER: User=${req.user ? req.user._id : "No user"}`);
-    console.log(`🔑 SERVER: Headers=`, req.headers);
 
     // Find the event
     const event = await Event.findById(eventId);
     if (!event) {
-      console.log(`❌ SERVER: Event not found: ${eventId}`);
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -598,9 +590,6 @@ const getEventCodes = async (req, res) => {
       event.user.toString() !== req.user._id.toString() &&
       !req.user.isAdmin
     ) {
-      console.log(
-        `❌ SERVER: User ${req.user._id} not authorized to view event ${eventId}`
-      );
       return res
         .status(403)
         .json({ message: "Not authorized to view this event" });
@@ -608,7 +597,6 @@ const getEventCodes = async (req, res) => {
 
     // Log warning if event.user is undefined
     if (!event.user) {
-      console.warn(`⚠️ SERVER: Event ${eventId} has no user field`);
     }
 
     // Build query
@@ -617,26 +605,15 @@ const getEventCodes = async (req, res) => {
       query.type = type;
     }
 
-    console.log(`🔍 SERVER: Query for codes: ${JSON.stringify(query)}`);
 
     // Get all codes for this event
     const codes = await Code.find(query).sort({ createdAt: -1 });
-    console.log(`✅ SERVER: Found ${codes.length} codes for event ${eventId}`);
 
     // Check if we have any codes with metadata.codeType
     const codesWithMetadataType = codes.filter(
       (code) => code.metadata && code.metadata.codeType
     );
-    console.log(
-      `✅ SERVER: Found ${codesWithMetadataType.length} codes with metadata.codeType`
-    );
 
-    // Log each code for debugging
-    codes.forEach((code) => {
-      console.log(
-        `📋 SERVER CODE: id=${code._id}, type=${code.type}, condition=${code.condition}, metadata.codeType=${code.metadata?.codeType}, metadata.settingName=${code.metadata?.settingName}`
-      );
-    });
 
     // Get code settings for reference
     const CodeSettings = require("../models/codeSettingsModel");
@@ -682,9 +659,6 @@ const getEventCodes = async (req, res) => {
       };
     });
 
-    console.log(
-      `✅ SERVER: Returning ${codesWithSettings.length} formatted codes`
-    );
     return res.status(200).json(codesWithSettings);
   } catch (error) {
     console.error("❌ SERVER ERROR getting event codes:", error);
@@ -732,56 +706,31 @@ const updateCode = async (req, res) => {
     const { name, condition, maxPax, pax, paxChecked, status, tableNumber } =
       req.body;
 
-    console.log(`🔍 SERVER: Updating code ${codeId}`, req.body);
-    console.log(
-      `🔑 SERVER: User=${
-        req.user ? req.user._id || req.user.userId : "undefined"
-      }`
-    );
 
     // Check if code exists
     const code = await Code.findById(codeId);
     if (!code) {
-      console.log(`❌ SERVER: Code ${codeId} not found`);
       return res.status(404).json({ message: "Code not found" });
     }
 
-    console.log(`✅ SERVER: Found code ${codeId}, eventId=${code.eventId}`);
 
     // Find the event
     const event = await Event.findById(code.eventId);
     if (!event) {
-      console.log(`❌ SERVER: Event ${code.eventId} not found`);
       return res.status(404).json({ message: "Event not found" });
     }
 
-    console.log(
-      `✅ SERVER: Found event ${code.eventId}, user=${
-        event.user || "undefined"
-      }, brand=${event.brand || "undefined"}`
-    );
-
     // Get the user ID from the request
     const userId = req.user ? req.user._id || req.user.userId : null;
-    console.log(`🔑 SERVER: User ID for permission check: ${userId}`);
 
     // Skip permission check if user is admin
     if (req.user && req.user.isAdmin) {
-      console.log(
-        `✅ SERVER: User ${userId} is admin, skipping permission check`
-      );
     }
     // Skip permission check if event.user or userId is undefined
     else if (!event.user || !userId) {
-      console.log(
-        `✅ SERVER: Missing event.user or userId, skipping permission check`
-      );
     }
     // Check if user is the event creator
     else if (event.user.toString() === userId.toString()) {
-      console.log(
-        `✅ SERVER: User ${userId} is event creator, permission granted`
-      );
     }
     // Check if user is part of the brand team
     else {
@@ -791,7 +740,6 @@ const updateCode = async (req, res) => {
         const brand = await Brand.findById(event.brand);
 
         if (!brand) {
-          console.log(`❌ SERVER: Brand ${event.brand} not found`);
           return res.status(404).json({ message: "Brand not found" });
         }
 
@@ -805,22 +753,13 @@ const updateCode = async (req, res) => {
               member.user && member.user.toString() === userId.toString()
           );
 
-        console.log(
-          `🔍 SERVER: Brand permission check: isOwner=${isOwner}, isTeamMember=${isTeamMember}`
-        );
 
         if (!isOwner && !isTeamMember) {
-          console.log(
-            `❌ SERVER: User ${userId} not authorized to update code ${codeId}`
-          );
           return res
             .status(403)
             .json({ message: "Not authorized to update this code" });
         }
 
-        console.log(
-          `✅ SERVER: User ${userId} is brand owner or team member, permission granted`
-        );
       } catch (permError) {
         console.error("Error checking permissions:", permError);
         return res.status(500).json({ message: "Error checking permissions" });
@@ -853,7 +792,6 @@ const updateCode = async (req, res) => {
       if (tableNumber) code.tableNumber = tableNumber;
 
       await code.save();
-      console.log(`✅ SERVER: Successfully updated code ${codeId}`);
 
       return res.status(200).json({
         message: "Code updated successfully",
@@ -874,56 +812,31 @@ const deleteCode = async (req, res) => {
   try {
     const { codeId } = req.params;
 
-    console.log(`🔍 SERVER: Deleting code ${codeId}`);
-    console.log(
-      `🔑 SERVER: User=${
-        req.user ? req.user._id || req.user.userId : "undefined"
-      }`
-    );
 
     // Check if code exists
     const code = await Code.findById(codeId);
     if (!code) {
-      console.log(`❌ SERVER: Code ${codeId} not found`);
       return res.status(404).json({ message: "Code not found" });
     }
 
-    console.log(`✅ SERVER: Found code ${codeId}, eventId=${code.eventId}`);
 
     // Find the event
     const event = await Event.findById(code.eventId);
     if (!event) {
-      console.log(`❌ SERVER: Event ${code.eventId} not found`);
       return res.status(404).json({ message: "Event not found" });
     }
 
-    console.log(
-      `✅ SERVER: Found event ${code.eventId}, user=${
-        event.user || "undefined"
-      }, brand=${event.brand || "undefined"}`
-    );
-
     // Get the user ID from the request
     const userId = req.user ? req.user._id || req.user.userId : null;
-    console.log(`🔑 SERVER: User ID for permission check: ${userId}`);
 
     // Skip permission check if user is admin
     if (req.user && req.user.isAdmin) {
-      console.log(
-        `✅ SERVER: User ${userId} is admin, skipping permission check`
-      );
     }
     // Skip permission check if event.user or userId is undefined
     else if (!event.user || !userId) {
-      console.log(
-        `✅ SERVER: Missing event.user or userId, skipping permission check`
-      );
     }
     // Check if user is the event creator
     else if (event.user.toString() === userId.toString()) {
-      console.log(
-        `✅ SERVER: User ${userId} is event creator, permission granted`
-      );
     }
     // Check if user is part of the brand team
     else {
@@ -933,7 +846,6 @@ const deleteCode = async (req, res) => {
         const brand = await Brand.findById(event.brand);
 
         if (!brand) {
-          console.log(`❌ SERVER: Brand ${event.brand} not found`);
           return res.status(404).json({ message: "Brand not found" });
         }
 
@@ -947,22 +859,16 @@ const deleteCode = async (req, res) => {
               member.user && member.user.toString() === userId.toString()
           );
 
-        console.log(
-          `🔍 SERVER: Brand permission check: isOwner=${isOwner}, isTeamMember=${isTeamMember}`
-        );
 
         if (!isOwner && !isTeamMember) {
           console.log(
-            `❌ SERVER: User ${userId} not authorized to delete code ${codeId}`
+            `User ${userId} not authorized to delete code ${codeId}`
           );
           return res
             .status(403)
             .json({ message: "Not authorized to delete this code" });
         }
 
-        console.log(
-          `✅ SERVER: User ${userId} is brand owner or team member, permission granted`
-        );
       } catch (permError) {
         console.error("Error checking permissions:", permError);
         return res.status(500).json({ message: "Error checking permissions" });
@@ -973,10 +879,8 @@ const deleteCode = async (req, res) => {
     try {
       const result = await Code.findByIdAndDelete(codeId);
       if (!result) {
-        console.log(`❌ SERVER: Failed to delete code ${codeId}`);
         return res.status(500).json({ message: "Failed to delete code" });
       }
-      console.log(`✅ SERVER: Successfully deleted code ${codeId}`);
 
       return res.status(200).json({
         message: "Code deleted successfully",
@@ -1235,14 +1139,10 @@ const getCodeCounts = async (req, res) => {
     const { eventId } = req.params;
     const { type, displayType } = req.query;
 
-    console.log(
-      `🔍 SERVER: Fetching code counts for event=${eventId}, type=${type}, displayType=${displayType}`
-    );
 
     // Find the event
     const event = await Event.findById(eventId);
     if (!event) {
-      console.log(`❌ SERVER: Event not found: ${eventId}`);
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -1252,7 +1152,6 @@ const getCodeCounts = async (req, res) => {
       query.type = type;
     }
 
-    console.log(`🔍 SERVER: Query for code counts: ${JSON.stringify(query)}`);
 
     // Count codes
     const count = await Code.countDocuments(query);
@@ -1269,9 +1168,6 @@ const getCodeCounts = async (req, res) => {
           code.metadata?.settingName === displayType ||
           code.metadata?.displayName === displayType
       );
-      console.log(
-        `🔍 SERVER: Filtered ${codes.length} codes to ${filteredCodes.length} codes with displayType=${displayType}`
-      );
     }
 
     // Calculate pax used and total pax for the filtered codes
@@ -1284,9 +1180,6 @@ const getCodeCounts = async (req, res) => {
       0
     );
 
-    console.log(
-      `📊 SERVER: Counts for event=${eventId}, type=${type}, displayType=${displayType}: count=${filteredCodes.length}, paxUsed=${paxUsed}, totalPax=${totalPax}`
-    );
 
     // Get code settings for this type
     const CodeSettings = require("../models/codeSettingsModel");
@@ -1306,9 +1199,6 @@ const getCodeCounts = async (req, res) => {
     const limit = codeSetting ? codeSetting.limit : 0;
     const unlimited = limit === 0; // If limit is 0, it's unlimited
 
-    console.log(
-      `📊 SERVER: Code setting for type=${type}: limit=${limit}, unlimited=${unlimited}`
-    );
 
     return res.status(200).json({
       count: filteredCodes.length, // Return the count of filtered codes
@@ -1329,41 +1219,19 @@ const getCodeCounts = async (req, res) => {
  * Get code counts for a specific user
  */
 const getUserCodeCounts = async (req, res) => {
-  console.log("==================================================");
-  console.log("🚀 SERVER: getUserCodeCounts CALLED");
-  console.log("==================================================");
 
   try {
     const { eventId, userId } = req.params;
     const { settingId } = req.query;
 
-    console.log("🔍 SERVER: RAW REQUEST:", {
-      url: req.url,
-      method: req.method,
-      params: req.params,
-      query: req.query,
-      body: req.body,
-      headers: {
-        authorization: req.headers.authorization
-          ? "Bearer [token]"
-          : "No authorization header",
-        cookie: req.headers.cookie ? "Cookie present" : "No cookie",
-      },
-    });
 
     // Validate that we have both eventId and userId
     if (!eventId || !userId) {
-      console.log(
-        `⚠️ SERVER: Missing required parameters: eventId=${eventId}, userId=${userId}`
-      );
 
       // Try to get userId from the authenticated user if it's missing in the path
       let effectiveUserId = userId;
       if (!effectiveUserId && req.user) {
         effectiveUserId = req.user.userId || req.user._id;
-        console.log(
-          `🔄 SERVER: Using userId from authenticated user: ${effectiveUserId}`
-        );
       }
 
       // If we still don't have a userId, return an error
@@ -1374,23 +1242,14 @@ const getUserCodeCounts = async (req, res) => {
       }
 
       // Continue with the effectiveUserId
-      console.log(`🔍 SERVER: Continuing with userId=${effectiveUserId}`);
 
       // Update userId for the rest of the function
       userId = effectiveUserId;
     }
 
-    console.log(
-      `🔍 SERVER: Fetching user code counts for event=${eventId}, userId=${userId}${
-        settingId ? `, settingId=${settingId}` : ""
-      }`
-    );
 
     // Step 1: Get all code settings for this event
     const codeSettings = await CodeSettings.find({ eventId });
-    console.log(
-      `✅ SERVER: Found ${codeSettings.length} code settings for event ${eventId}`
-    );
 
     // Create a map of codeSettingId to code setting details
     const codeSettingsMap = {};
@@ -1415,17 +1274,11 @@ const getUserCodeCounts = async (req, res) => {
     // Add settingId to query if provided
     if (settingId) {
       query.codeSettingId = settingId;
-      console.log(`🔍 SERVER: Filtering by specific settingId=${settingId}`);
     }
 
     // Step 3: Find all codes created by this user for this event
     const userCodes = await Code.find(query).populate("codeSettingId");
 
-    console.log(
-      `✅ SERVER: Found ${userCodes.length} codes created by user ${userId}${
-        settingId ? ` for setting ${settingId}` : ""
-      }`
-    );
 
     // Step 4: Group codes by codeSettingId
     const codeCountsBySettingId = {};
@@ -1439,7 +1292,6 @@ const getUserCodeCounts = async (req, res) => {
         : null;
 
       if (!settingId) {
-        console.log(`⚠️ SERVER: Code ${code._id} has no codeSettingId`);
         return;
       }
 
@@ -1487,15 +1339,6 @@ const getUserCodeCounts = async (req, res) => {
       };
     });
 
-    console.log(
-      `📊 SERVER: User code counts by setting ID:`,
-      Object.keys(result).map((id) => ({
-        settingId: id,
-        settingName: result[id].setting.name,
-        count: result[id].count,
-        codesCount: result[id].codes.length,
-      }))
-    );
 
     // Step 6: Return the response
     const response = {
@@ -1508,11 +1351,6 @@ const getUserCodeCounts = async (req, res) => {
       },
     };
 
-    console.log(
-      `📊 SERVER: Returning user code counts response with ${
-        Object.keys(result).length
-      } settings`
-    );
 
     return res.json(response);
   } catch (error) {

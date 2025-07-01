@@ -1,28 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../../middleware/authMiddleware");
+const { optionalAuthenticateToken } = require("../../middleware/auth");
 const codesController = require("../../controllers/codesController");
 const Code = require("../../models/codesModel");
-
-// Optional authentication middleware
-const optionalAuth = (req, res, next) => {
-  // Try to authenticate, but continue even if it fails
-  try {
-    authenticate(req, res, (err) => {
-      // Continue to the next middleware regardless of authentication result
-      next();
-    });
-  } catch (error) {
-    // Continue without authentication
-    next();
-  }
-};
 
 // Code Settings Routes
 // Get all code settings for an event (with optional authentication)
 router.get(
   "/settings/events/:eventId",
-  optionalAuth,
+  optionalAuthenticateToken,
   codesController.getCodeSettings
 );
 
@@ -53,15 +40,15 @@ router.post("/generate", authenticate, codesController.createDynamicCode);
 // Get all codes for an event
 router.get(
   "/events/:eventId/:type?",
-  optionalAuth,
+  optionalAuthenticateToken,
   codesController.getEventCodes
 );
 
 // Get code counts for an event
-router.get("/counts/:eventId", optionalAuth, codesController.getCodeCounts);
+router.get("/counts/:eventId", optionalAuthenticateToken, codesController.getCodeCounts);
 
 // Get a specific code
-router.get("/:id", optionalAuth, codesController.getCode);
+router.get("/:id", optionalAuthenticateToken, codesController.getCode);
 
 // Update a code
 router.put("/:codeId", authenticate, codesController.updateCode);

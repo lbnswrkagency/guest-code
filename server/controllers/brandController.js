@@ -654,7 +654,6 @@ exports.deleteBrand = async (req, res) => {
 
     res.status(200).json({
       message: "Brand deleted successfully",
-      deletedRolesCount: deletedRoles.deletedCount,
     });
   } catch (error) {
     console.error("[Delete Brand] Error:", error);
@@ -1099,44 +1098,94 @@ exports.requestJoin = async (req, res) => {
 // Process join request (accept/reject)
 exports.processJoinRequest = async (req, res) => {
   try {
+    console.log("[DEBUG] processJoinRequest called with:", {
+      requestId: req.params.requestId,
+      action: req.body.action,
+      userId: req.user?._id,
+      userInfo: req.user ? { id: req.user._id, username: req.user.username } : "No user"
+    });
+
     const { requestId } = req.params;
     const { action } = req.body;
 
     if (!requestId || !action) {
+      console.log("[DEBUG] Missing required fields:", { requestId, action });
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    console.log("[DEBUG] Looking for join request with ID:", requestId);
     const joinRequest = await JoinRequest.findById(requestId).populate("user");
     if (!joinRequest) {
+      console.log("[DEBUG] Join request not found for ID:", requestId);
       return res.status(404).json({ message: "Join request not found" });
     }
 
+    console.log("[DEBUG] Found join request:", {
+      id: joinRequest._id,
+      user: joinRequest.user?._id,
+      brand: joinRequest.brand,
+      status: joinRequest.status
+    });
+
+    console.log("[DEBUG] Looking for brand with ID:", joinRequest.brand);
     const brand = await Brand.findById(joinRequest.brand);
     if (!brand) {
+      console.log("[DEBUG] Brand not found for ID:", joinRequest.brand);
       return res.status(404).json({ message: "Brand not found" });
     }
 
+    console.log("[DEBUG] Found brand:", {
+      id: brand._id,
+      name: brand.name,
+      owner: brand.owner,
+      teamCount: brand.team?.length || 0
+    });
+
     // Check if user has permission to process requests
+    console.log("[DEBUG] Checking permissions:", {
+      brandOwner: brand.owner,
+      currentUser: req.user._id,
+      isEqual: brand.owner.equals(req.user._id)
+    });
+
     if (!brand.owner.equals(req.user._id)) {
+      console.log("[DEBUG] User not authorized - not brand owner");
       return res
         .status(403)
         .json({ message: "Not authorized to process requests" });
     }
 
     if (action === "accept") {
+      console.log("[DEBUG] Processing ACCEPT action");
+      
       // Find the default role ID
       const defaultRoleName = brand.settings?.defaultRole || "Member";
+      console.log("[DEBUG] Looking for default role:", defaultRoleName);
+      
       const defaultRole = await Role.findOne({
         brandId: brand._id,
         name: defaultRoleName,
       });
 
+      console.log("[DEBUG] Default role search result:", {
+        found: !!defaultRole,
+        roleId: defaultRole?._id,
+        roleName: defaultRole?.name
+      });
+
       if (!defaultRole) {
+        console.log("[DEBUG] Default role not found, returning error");
         return res.status(500).json({
           message: "Default role not found",
           error: "Could not find the default role for this brand",
         });
       }
+
+      console.log("[DEBUG] Adding user to team:", {
+        userId: joinRequest.user._id,
+        roleId: defaultRole._id,
+        currentTeamSize: brand.team.length
+      });
 
       // Add user to team with role ID
       brand.team.push({
@@ -1144,8 +1193,11 @@ exports.processJoinRequest = async (req, res) => {
         role: defaultRole._id, // Use role ID instead of name
         joinedAt: new Date(),
       });
+      
+      console.log("[DEBUG] Saving brand with new team member");
       await brand.save();
 
+      console.log("[DEBUG] Creating notification for user");
       // Create notification for the user
       await Notification.create({
         userId: joinRequest.user._id,
@@ -1155,14 +1207,18 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
 
+      console.log("[DEBUG] Deleting join request");
       // Delete the request
       await JoinRequest.findByIdAndDelete(requestId);
 
+      console.log("[DEBUG] Join request processed successfully");
       return res.status(200).json({
         message: "Join request accepted",
         team: brand.team,
       });
     } else if (action === "reject") {
+      console.log("[DEBUG] Processing REJECT action");
+      
       // Update request status
       joinRequest.status = "rejected";
       await joinRequest.save();
@@ -1176,10 +1232,12 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
 
+      console.log("[DEBUG] Join request rejected successfully");
       return res.status(200).json({
         message: "Join request rejected",
       });
     } else {
+      console.log("[DEBUG] Invalid action provided:", action);
       return res.status(400).json({ message: "Invalid action" });
     }
   } catch (error) {

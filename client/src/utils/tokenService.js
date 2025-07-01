@@ -235,7 +235,7 @@ class TokenService {
     }
   }
 
-  // Refresh the token
+  // Refresh the token with retry logic
   async refreshToken() {
     // If already refreshing, return the existing promise
     if (this.refreshPromise) {
@@ -246,25 +246,55 @@ class TokenService {
 
     // Create a new refresh promise
     this.refreshPromise = new Promise(async (resolve, reject) => {
-      try {
-        const response = await this.axiosInstance.post("/auth/refresh-token");
+      const maxRetries = 3;
+      let retryCount = 0;
 
-        // Update tokens in localStorage
-        this.setToken(response.data.token);
-        this.setRefreshToken(response.data.refreshToken);
+      const attemptRefresh = async () => {
+        try {
+          const response = await this.axiosInstance.post("/auth/refresh-token", {}, {
+            timeout: 10000, // 10 second timeout for refresh requests
+          });
 
-        // Notify any listeners that token has been refreshed
-        this.notifyTokenRefreshed(response.data.token);
+          // Update tokens in localStorage
+          this.setToken(response.data.token);
+          this.setRefreshToken(response.data.refreshToken);
 
-        resolve(response.data);
-      } catch (error) {
-        // Clear tokens on refresh failure
-        this.clearTokens();
-        reject(error);
-      } finally {
-        this.isRefreshing = false;
-        this.refreshPromise = null;
-      }
+          // Notify any listeners that token has been refreshed
+          this.notifyTokenRefreshed(response.data.token);
+
+          resolve(response.data);
+        } catch (error) {
+          retryCount++;
+          
+          // Check if it's a network error and we haven't exceeded retry limit
+          const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR';
+          
+          if (isNetworkError && retryCount < maxRetries) {
+            // Exponential backoff: wait 1s, 2s, 4s
+            const delay = Math.pow(2, retryCount - 1) * 1000;
+            console.log(`[TokenService] Refresh attempt ${retryCount} failed, retrying in ${delay}ms...`);
+            
+            setTimeout(() => {
+              attemptRefresh();
+            }, delay);
+          } else {
+            // Max retries reached or non-network error - clear tokens and reject
+            if (error.response?.status === 401) {
+              console.log('[TokenService] Refresh token expired, clearing tokens');
+              this.clearTokens();
+            }
+            reject(error);
+          }
+        }
+      };
+
+      await attemptRefresh();
+    });
+
+    // Always clean up the promise when done
+    this.refreshPromise.finally(() => {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
     });
 
     return this.refreshPromise;

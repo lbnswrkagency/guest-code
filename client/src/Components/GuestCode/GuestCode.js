@@ -84,14 +84,16 @@ const GuestCode = ({ event }) => {
       if (event && event._id) {
         try {
           setIsLoadingLimit(true);
+          
           const response = await axiosInstance.get(
             `/codes/counts/${event._id}?type=guest`
           );
+          
           if (response.data) {
             setLimitInfo(response.data);
           }
         } catch (error) {
-          console.error("[GuestCode] Error fetching limit info:", error);
+          // Silent error handling
         } finally {
           setIsLoadingLimit(false);
         }
@@ -255,12 +257,6 @@ const GuestCode = ({ event }) => {
       }
 
       const eventId = event._id;
-      console.log("[GuestCode] Generating guest code for event:", eventId);
-      console.log("[GuestCode] Guest details:", {
-        name: guestName,
-        email: guestEmail,
-        pax: guestPax,
-      });
 
       const requestData = {
         eventId: eventId,
@@ -275,8 +271,6 @@ const GuestCode = ({ event }) => {
       }
 
       const response = await axiosInstance.post("/guest-code/generate", requestData);
-
-      console.log("[GuestCode] API response:", response);
 
       // Check for the already exists case (status 409)
       if (response.data && response.data.alreadyExists) {
@@ -319,7 +313,7 @@ const GuestCode = ({ event }) => {
             setLimitInfo(response.data);
           }
         } catch (error) {
-          console.error("[GuestCode] Error refreshing limit info:", error);
+          // Silent error handling
         }
       } else {
         // If response doesn't have expected success properties, show an error
@@ -328,8 +322,6 @@ const GuestCode = ({ event }) => {
         );
       }
     } catch (error) {
-      console.error("[GuestCode] Error generating guest code:", error);
-
       // Check for 409 Conflict status (already exists)
       if (error.response && error.response.status === 409) {
         setExistingCodeWarning(

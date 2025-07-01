@@ -9,7 +9,8 @@
       "Bash(node:*)",
       "Bash(npm --version)",
       "Bash(grep:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

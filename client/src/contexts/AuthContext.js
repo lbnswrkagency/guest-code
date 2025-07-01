@@ -83,8 +83,21 @@ const AuthProviderWithRouter = ({ children }) => {
           await fetchUserData(); // Fetch user data after successful refresh
         } catch (error) {
           console.error("[AuthContext] Initial refresh failed:", error);
-          setUser(null);
-          tokenService.clearTokens(); // Ensure tokens are cleared
+          
+          // Only clear tokens if it's actually an auth error, not a network error
+          if (error.response?.status === 401) {
+            console.log("[AuthContext] Refresh token expired, clearing tokens");
+            setUser(null);
+            tokenService.clearTokens();
+          } else if (!error.response || error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR') {
+            console.log("[AuthContext] Network error during initial refresh, retrying later");
+            // Keep tokens for retry later, but don't set user as authenticated
+            setUser(null);
+          } else {
+            // Other errors - clear tokens
+            setUser(null);
+            tokenService.clearTokens();
+          }
         }
       } else {
         // No tokens exist

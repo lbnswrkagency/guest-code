@@ -5,8 +5,10 @@ import notificationManager from "./notificationManager";
 // Create axios instance with base URL
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api",
-  timeout: 30000, // 30 seconds timeout
+  timeout: 15000, // 15 seconds timeout (reasonable for production)
   withCredentials: true,
+  // Add retry-specific config
+  maxRedirects: 3,
 });
 
 // Set up request interceptor to add token to all requests
@@ -71,10 +73,12 @@ axiosInstance.interceptors.response.use(
       // Skip redirect for brand-related API calls - these should be publicly accessible
       if (
         originalRequest.url.includes("/brands/") ||
-        originalRequest.url.includes("/events/")
+        originalRequest.url.includes("/events/") ||
+        originalRequest.url.includes("/codes/counts/") ||
+        originalRequest.url.includes("/codes/settings/")
       ) {
         console.log(
-          "[axiosConfig] Skipping login redirect for brand/event API call:",
+          "[axiosConfig] Skipping login redirect for public API call:",
           originalRequest.url
         );
         return Promise.reject(error);
