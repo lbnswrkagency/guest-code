@@ -979,18 +979,24 @@ const UpcomingEvent = ({
       return false;
     }
 
-    // Check all possible formats
+    // Exclude specific brand ID that should not show table bookings
+    if (
+      event.brand === "67d737d6e1299b18afabf4f4" ||
+      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+      event.brandId === "67d737d6e1299b18afabf4f4"
+    ) {
+      return false;
+    }
+
+    // Check all possible formats for allowed brands
     return (
       // Special event ID
       event._id === "6807c197d4455638731dbda6" ||
-      // Brand as object with _id property
-      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+      // Brand as object with _id property (excluding the specific brand ID)
       (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
-      // Brand as string ID directly
-      event.brand === "67d737d6e1299b18afabf4f4" ||
+      // Brand as string ID directly (excluding the specific brand ID)
       event.brand === "67ba051873bd89352d3ab6db" ||
-      // Brand ID in other properties
-      event.brandId === "67d737d6e1299b18afabf4f4" ||
+      // Brand ID in other properties (excluding the specific brand ID)
       event.brandId === "67ba051873bd89352d3ab6db"
     );
   };
@@ -1522,8 +1528,8 @@ const UpcomingEvent = ({
                   {!supportsTableBooking(currentEvent) &&
                     currentEvent._id !== "68504c76f50c6d871f1a8013" &&
                     currentEvent.brand &&
-                    (currentEvent.brand === "67d737d6e1299b18afabf4f4" ||
-                      currentEvent.brand === "67ba051873bd89352d3ab6db") &&
+                    currentEvent.brand === "67ba051873bd89352d3ab6db" &&
+                    currentEvent.brand !== "67d737d6e1299b18afabf4f4" &&
                     showTableBooking && (
                       <div
                         ref={tableBookingSectionRef}

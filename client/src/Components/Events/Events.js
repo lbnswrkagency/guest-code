@@ -26,6 +26,9 @@ import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
 import Navigation from "../Navigation/Navigation";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectAllBrands } from "../../redux/brandSlice";
+import { selectAllRoles } from "../../redux/rolesSlice";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
@@ -62,7 +65,13 @@ const hasEventPermissions = (event, user, userBrands) => {
     return true;
   }
 
-  // If user is a team member, check their permissions
+  // Check if the brand has the user's role attached (from Redux resolution)
+  if (eventBrand.role && eventBrand.role.permissions) {
+    // Use the resolved role permissions
+    return eventBrand.role.permissions.events?.edit === true;
+  }
+
+  // Fallback to the original logic for backward compatibility
   if (eventBrand.team && Array.isArray(eventBrand.team)) {
     // Find the team member by comparing user IDs
     const teamMember = eventBrand.team.find((member) => {
@@ -93,7 +102,8 @@ const hasEventPermissions = (event, user, userBrands) => {
         "VERANSTALTER",
         "ORGANIZER",
         "EDITOR",
-        "MEDIA MANAGER", // Adding MEDIA MANAGER to the list of roles with edit permissions
+        "BOSS",
+        "MEDIA MANAGER",
       ];
 
       // Check if the user's role is in the editRoles list (case insensitive)
@@ -103,13 +113,12 @@ const hasEventPermissions = (event, user, userBrands) => {
           (role) => role.toUpperCase() === teamMember.role.toUpperCase()
         );
 
-      // IMPORTANT FIX: If the role is in our editRoles list, grant permission regardless of
-      // what's in the permissions object. This is the key fix.
+      // If the role is in our editRoles list, grant permission
       if (hasEditRole) {
         return true;
       }
 
-      // Only check the permissions object if the role doesn't automatically grant access
+      // Check the permissions object
       if (parsedPermissions) {
         // Check if the team member has edit permissions for events
         const hasEditPermission = parsedPermissions?.events?.edit === true;
@@ -120,8 +129,6 @@ const hasEventPermissions = (event, user, userBrands) => {
         }
       }
 
-      // If we get here, the role doesn't have automatic access and there's no
-      // valid permissions object, so deny access
       return false;
     }
   }
@@ -132,6 +139,12 @@ const hasEventPermissions = (event, user, userBrands) => {
 const Events = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  
+  // Get Redux store data
+  const brands = useSelector(selectAllBrands);
+  const roles = useSelector(selectAllRoles);
+  const userRoles = useSelector((state) => state.roles?.userRoles || {});
+  
   const [userBrands, setUserBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [events, setEvents] = useState([]);
@@ -149,26 +162,37 @@ const Events = () => {
   const [brandsLoaded, setBrandsLoaded] = useState(false);
   const [parentEventForForm, setParentEventForForm] = useState(null);
 
-  const fetchBrands = async () => {
-    try {
-      const response = await axiosInstance.get("/brands");
-      if (Array.isArray(response.data)) {
-        setUserBrands(response.data);
-        setBrandsLoaded(true);
-        if (response.data.length > 0 && !selectedBrand) {
-          setSelectedBrand(response.data[0]);
-        }
-      }
-    } catch (error) {
-      toast.showError("Failed to load brands");
-      setUserBrands([]);
+  // Prepare brand with events and role data (copied from Dashboard.js)
+  const prepareBrandWithData = (brand) => {
+    // Get user's role for this brand
+    const userRoleId = userRoles[brand._id];
+    const userRole = roles.find((role) => role._id === userRoleId);
+
+    // Calculate team size
+    const teamSize = (brand.team?.length || 0) + (brand.owner ? 1 : 0);
+
+    return {
+      ...brand,
+      role: userRole,
+      teamSize,
+    };
+  };
+
+  // Use Redux brands and prepare them with role data
+  const prepareBrands = () => {
+    if (brands.length > 0) {
+      const brandsWithData = brands.map(prepareBrandWithData);
+      setUserBrands(brandsWithData);
       setBrandsLoaded(true);
+      if (brandsWithData.length > 0 && !selectedBrand) {
+        setSelectedBrand(brandsWithData[0]);
+      }
     }
   };
 
   useEffect(() => {
-    fetchBrands();
-  }, []);
+    prepareBrands();
+  }, [brands, roles, userRoles]);
 
   const fetchEvents = async () => {
     if (!selectedBrand?._id) return;
@@ -217,7 +241,9 @@ const Events = () => {
   };
 
   const handleBrandSelect = (brand) => {
-    setSelectedBrand(brand);
+    // Prepare the brand with role data if it doesn't already have it
+    const brandWithData = brand.role ? brand : prepareBrandWithData(brand);
+    setSelectedBrand(brandWithData);
     setIsDropdownOpen(false);
   };
 

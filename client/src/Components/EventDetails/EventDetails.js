@@ -173,14 +173,15 @@ const EventDetails = ({
     // Exclude specific event IDs that should never show table bookings
     event._id !== "68504c76f50c6d871f1a8013" &&
     event._id !== "685825953aa1769419195723" &&
+    // Exclude specific brand ID that should not show table bookings
+    event.brand !== "67d737d6e1299b18afabf4f4" &&
+    (event.brand && event.brand._id !== "67d737d6e1299b18afabf4f4") &&
     (
       // Check event ID
       event._id === "6807c197d4455638731dbda6" ||
-      // Check brand as object with _id
-      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4") ||
+      // Check brand as object with _id (excluding the specific brand ID)
       (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
-      // Fallback check for brand as string ID
-      event.brand === "67d737d6e1299b18afabf4f4" ||
+      // Fallback check for brand as string ID (excluding the specific brand ID)
       event.brand === "67ba051873bd89352d3ab6db"
     );
 
