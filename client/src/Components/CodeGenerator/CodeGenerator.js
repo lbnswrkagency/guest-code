@@ -35,20 +35,7 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
-    // Log user and selectedEvent
-    console.log("🧑‍💻 User in CodeGenerator:", {
-      id: user?._id,
-      username: user?.username,
-      firstName: user?.firstName,
-      lastName: user?.lastName,
-    });
-
-    console.log("🎭 Selected Event in CodeGenerator:", {
-      id: selectedEvent?._id,
-      title: selectedEvent?.title,
-      name: selectedEvent?.name,
-      date: selectedEvent?.date,
-    });
+    // Initialize component with settings and user permissions
 
     // Get user role permissions from selectedBrand
     const userPermissions = selectedBrand?.role?.permissions?.codes || {};
@@ -78,14 +65,7 @@ function CodeGenerator({
       return hasPermission;
     });
 
-    console.log("🔍 Available code settings:", {
-      count: permittedSettings.length,
-      settings: permittedSettings.map((s) => ({
-        id: s._id,
-        name: s.name,
-        type: s.type,
-      })),
-    });
+    // Settings filtered based on user permissions
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -109,12 +89,8 @@ function CodeGenerator({
     if (selectedEvent && user && availableSettings.length > 0) {
       const fetchUserCodes = async () => {
         try {
-          console.log("🔄 Fetching user codes for event:", selectedEvent._id);
-
           // Get the IDs of available code settings
           const settingIds = availableSettings.map((setting) => setting._id);
-
-          console.log("🔧 Using code setting IDs:", settingIds);
 
           const response = await axiosInstance.post(`/codes/event-user-codes`, {
             eventId: selectedEvent._id,
@@ -122,33 +98,11 @@ function CodeGenerator({
             codeSettingIds: settingIds,
           });
 
-          console.log("✅ User codes data:", response.data);
-
           // Store the codes data
           setUserCodes(response.data.codes || {});
           setTotalCodesCount(response.data.totalCount || 0);
-
-          // Log codes organized by setting name for better readability
-          const codesBySetting = {};
-
-          availableSettings.forEach((setting) => {
-            const settingId = setting._id;
-            const settingName = setting.name;
-            const codes = response.data.codes[settingId] || [];
-
-            codesBySetting[settingName] = {
-              settingId,
-              count: codes.length,
-              codes,
-            };
-          });
-
-          console.log("📊 Codes by setting name:", codesBySetting);
         } catch (error) {
-          console.error(
-            "❌ Error fetching user codes:",
-            error.response?.data?.message || error.message
-          );
+          // Silent fail for user codes fetch
         }
       };
 
@@ -346,13 +300,7 @@ function CodeGenerator({
       const hostName = user?.firstName || user?.username || "Unknown";
       const hostUsername = user?.username || "unknown";
 
-      // Ensure we have the user ID and username
-      if (!user?._id || !hostUsername) {
-        console.error("Missing user information:", {
-          userId: user?._id,
-          username: hostUsername,
-        });
-      }
+      // Ensure we have the user ID and username for code generation
 
       // Prepare the code data with the verified username
       const codeData = {
@@ -386,12 +334,7 @@ function CodeGenerator({
         isDynamic: true,
       };
 
-      console.log("🎟 Creating code with user data:", {
-        userId: user?._id,
-        username: hostUsername,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-      });
+      // Generate code with user data
 
       const response = await axiosInstance.post(
         `/codes/create-dynamic`,
@@ -467,7 +410,6 @@ function CodeGenerator({
       showSuccess("Code generated successfully!");
     } catch (error) {
       showError(error.response?.data?.message || "Failed to generate code");
-      console.error("❌ Error generating code:", error);
     } finally {
       setIsLoading(false);
     }
@@ -604,7 +546,7 @@ function CodeGenerator({
           }
         }
       } catch (error) {
-        console.error("Error updating code setting icon:", error);
+        // Silent fail for icon update
       }
     }
   };
@@ -639,7 +581,6 @@ function CodeGenerator({
       }
       showSuccess("Data refreshed successfully");
     } catch (error) {
-      console.error("Error refreshing data:", error);
       showError("Failed to refresh data");
     } finally {
       setIsLoading(false);
@@ -649,8 +590,6 @@ function CodeGenerator({
   // Add event listener to close component when Profile is clicked in Navigation
   useEffect(() => {
     const handleCloseFromProfile = (event) => {
-      console.log("CodeGenerator: Closing from Profile click");
-
       // Use a small timeout to ensure smooth transitions
       setTimeout(() => {
         if (onClose) {
@@ -675,7 +614,6 @@ function CodeGenerator({
   // Add a useEffect for proper cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log("CodeGenerator component unmounting - cleaning up");
       componentCleanup();
     };
   }, []);

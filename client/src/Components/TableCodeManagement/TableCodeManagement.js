@@ -565,9 +565,7 @@ function TableCodeManagement({
   const getCategoryCounts = (category) => {
     const categoryItems =
       allCodes.filter(
-        (code) =>
-          getCategoryForTable(code.tableNumber) === category &&
-          (tablePermissions.manage || code.hostId === user?._id)
+        (code) => getCategoryForTable(code.tableNumber) === category
       ) || [];
 
     const totalTablesInCategory = tableCategories[category]?.length || 0;
@@ -1063,9 +1061,7 @@ function TableCodeManagement({
       ) : (
         <div className="reservations-list">
           {categoryOrder.map((category) => {
-            const categoryItems = codesByCategory[category]?.filter(
-              (code) => tablePermissions.manage || code.hostId === user?._id
-            );
+            const categoryItems = codesByCategory[category];
 
             return categoryItems?.length > 0 ? (
               <div key={category} className="table-category">

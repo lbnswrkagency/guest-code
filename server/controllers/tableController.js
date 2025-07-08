@@ -131,7 +131,6 @@ const addTableCode = async (req, res) => {
     condition,
     backstagePass,
     paxChecked,
-    isAdmin,
     isPublic,
   } = req.body;
 
@@ -141,16 +140,66 @@ const addTableCode = async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Fetch the event details for the email
+    // First, always fetch the event details
     const eventDetails = await Event.findById(event)
       .populate({
         path: "lineups",
         select: "name category avatar",
       })
       .populate("brand");
+
     if (!eventDetails) {
       return res.status(404).json({ message: "Event not found" });
     }
+
+    // Check table management permissions for authenticated users
+    let hasTableManage = false;
+    if (!isPublic && req.user) {
+      // Get user roles to check table permissions
+      const Role = require("../models/roleModel");
+      const Brand = require("../models/brandModel");
+
+      // First check if user is part of the brand team (primary check)
+      const brand = await Brand.findById(eventDetails.brand._id);
+      const isTeamMember = brand && brand.team && brand.team.some(member => 
+        member.user.toString() === req.user.userId.toString()
+      );
+
+      // Also check if user is the brand owner
+      const isBrandOwner = brand && brand.owner && brand.owner.toString() === req.user.userId.toString();
+
+      // Get user roles for this brand
+      let hasRolePermission = false;
+      
+      // Since JWT only contains userId, we need to fetch the user's roles from database
+      const User = require("../models/User");
+      const userDoc = await User.findById(req.user.userId);
+      
+      if (userDoc) {
+        // Find the user's role for this specific brand
+        const userRoleId = brand.team?.find(member => 
+          member.user.toString() === req.user.userId.toString()
+        )?.role;
+        
+        if (userRoleId) {
+          const userRole = await Role.findOne({
+            _id: userRoleId,
+            brandId: eventDetails.brand._id
+          });
+          
+          if (userRole && userRole.permissions && userRole.permissions.tables) {
+            hasRolePermission = userRole.permissions.tables.manage === true;
+          }
+        }
+      }
+
+      // Allow table management if user is team member, brand owner, or has role permission
+      hasTableManage = isTeamMember || isBrandOwner || hasRolePermission;
+      
+    }
+
+    // Use the already fetched event details for email
+    const eventDetailsForEmail = eventDetails;
 
     // Generate unique code and security token
     const code = await generateUniqueTableCode();
@@ -175,7 +224,7 @@ const addTableCode = async (req, res) => {
       condition: condition || "TABLE RESERVATION", // Default value
       paxChecked: paxChecked || 0, // Default value
       backstagePass: backstagePass || false,
-      status: isAdmin ? "confirmed" : "pending",
+      status: hasTableManage ? "confirmed" : "pending",
       code,
       qrCodeData: qrCodeDataUrl,
       securityToken,
@@ -189,13 +238,13 @@ const addTableCode = async (req, res) => {
     if (isPublic && email) {
       try {
         // Get brand colors or use defaults
-        const primaryColor = eventDetails?.brand?.colors?.primary || "#3a1a5a";
+        const primaryColor = eventDetailsForEmail?.brand?.colors?.primary || "#3a1a5a";
 
         // Set up the email sender using Brevo
         const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
         // Prioritize startDate over date
-        const eventDate = eventDetails?.startDate || eventDetails?.date;
+        const eventDate = eventDetailsForEmail?.startDate || eventDetailsForEmail?.date;
         const formattedDate = formatCodeDate(eventDate);
         const formattedDateDE = formatDateDE(eventDate);
         const dayOfWeek = getDayOfWeek(eventDate);
@@ -212,8 +261,8 @@ const addTableCode = async (req, res) => {
 
         // Process lineups with safety check
         let safeLineups = [];
-        if (eventDetails.lineups && Array.isArray(eventDetails.lineups)) {
-          safeLineups = eventDetails.lineups
+        if (eventDetailsForEmail.lineups && Array.isArray(eventDetailsForEmail.lineups)) {
+          safeLineups = eventDetailsForEmail.lineups
             .filter((artist) => artist !== null && artist !== undefined)
             .map((artist) => {
               // Create a safe copy with all required properties
@@ -241,7 +290,7 @@ const addTableCode = async (req, res) => {
               </div>
               
               <p style="margin: 0 0 5px;"><strong>Event:</strong> ${
-                eventDetails.title
+                eventDetailsForEmail.title
               }</p>
               <p style="margin: 0 0 5px;"><strong>Event Date:</strong> ${formattedDate}</p>
               <p style="margin: 0 0 5px;"><strong>Guest Name:</strong> ${firstName} ${lastName}</p>
@@ -277,15 +326,15 @@ const addTableCode = async (req, res) => {
         // Build the email using our template
         const emailHtml = createEventEmailTemplate({
           recipientName: `${firstName} ${lastName}`,
-          eventTitle: eventDetails.title,
+          eventTitle: eventDetailsForEmail.title,
           eventDate: eventDate,
-          eventLocation: eventDetails.location || eventDetails.venue || "",
-          eventAddress: eventDetails.street || eventDetails.address || "",
-          eventCity: eventDetails.city || "",
-          eventPostalCode: eventDetails.postalCode || "",
-          startTime: eventDetails.startTime,
-          endTime: eventDetails.endTime,
-          description: eventDetails.description,
+          eventLocation: eventDetailsForEmail.location || eventDetailsForEmail.venue || "",
+          eventAddress: eventDetailsForEmail.street || eventDetailsForEmail.address || "",
+          eventCity: eventDetailsForEmail.city || "",
+          eventPostalCode: eventDetailsForEmail.postalCode || "",
+          startTime: eventDetailsForEmail.startTime,
+          endTime: eventDetailsForEmail.endTime,
+          description: eventDetailsForEmail.description,
           lineups: safeLineups, // Use the sanitized lineups
           primaryColor,
           additionalContent: tableDetailsHtml,
@@ -316,7 +365,7 @@ const addTableCode = async (req, res) => {
             name: "GuestCode",
           },
           subject: `Table Reservation Request for ${
-            eventDetails?.title || "Event"
+            eventDetailsForEmail?.title || "Event"
           }`,
           htmlContent: emailHtml,
         };
@@ -360,8 +409,91 @@ const getTableCounts = async (req, res) => {
   }
 
   try {
-    // Fetch all table codes for this event
-    const tableCounts = await TableCode.find({ event: eventId });
+    // Check user's table management permissions
+    let hasTableManage = false;
+    let tableCounts = [];
+    
+    // For authenticated requests, check permissions
+    if (req.user) {
+      const Role = require("../models/roleModel");
+      const Event = require("../models/eventsModel");
+      const Brand = require("../models/brandModel");
+
+      // Get event details to find the brand
+      const eventDetails = await Event.findById(eventId).populate("brand");
+      if (!eventDetails) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // First check if user is part of the brand team
+      const brand = await Brand.findById(eventDetails.brand._id);
+      const isTeamMember = brand && brand.team && brand.team.some(member => 
+        member.user.toString() === req.user.userId.toString()
+      );
+
+      // Also check if user is the brand owner
+      const isBrandOwner = brand && brand.owner && brand.owner.toString() === req.user.userId.toString();
+
+      // Get user roles for this brand
+      let hasRolePermission = false;
+      
+      // Since JWT only contains userId, we need to fetch the user's roles from database
+      const User = require("../models/User");
+      const userDoc = await User.findById(req.user.userId);
+      
+      if (userDoc) {
+        // Find the user's role for this specific brand
+        const userRoleId = brand.team?.find(member => 
+          member.user.toString() === req.user.userId.toString()
+        )?.role;
+        
+        if (userRoleId) {
+          const userRole = await Role.findOne({
+            _id: userRoleId,
+            brandId: eventDetails.brand._id
+          });
+          
+          if (userRole && userRole.permissions && userRole.permissions.tables) {
+            hasRolePermission = userRole.permissions.tables.manage === true;
+          }
+        }
+      }
+
+      // Allow table management if user is team member, brand owner, or has role permission
+      hasTableManage = isTeamMember || isBrandOwner || hasRolePermission;
+
+      // Debug log to help understand permission issues
+      console.log("TableCounts Debug:", {
+        userId: req.user.userId,
+        brandId: eventDetails.brand._id,
+        isTeamMember,
+        isBrandOwner,
+        hasRolePermission,
+        hasTableManage,
+        userRoleId: brand.team?.find(member => 
+          member.user.toString() === req.user.userId.toString()
+        )?.role,
+        brandTeam: brand.team?.map(member => ({ 
+          user: member.user.toString(), 
+          role: member.role?.toString() 
+        }))
+      });
+
+      // Fetch table codes based on permissions
+      if (hasTableManage) {
+        // Users with manage permission can see ALL table codes for this event
+        tableCounts = await TableCode.find({ event: eventId });
+      } else {
+        // Users with only access permission can only see their own table codes
+        tableCounts = await TableCode.find({ 
+          event: eventId, 
+          hostId: req.user.userId 
+        });
+      }
+    } else {
+      // For public requests (no authentication), return empty array
+      tableCounts = [];
+    }
 
     res.status(200).json({
       tableCounts,

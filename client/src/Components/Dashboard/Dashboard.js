@@ -689,6 +689,7 @@ const Dashboard = () => {
         ) : showTableSystem ? (
           <TableSystem
             user={user}
+            userRoles={userRoleForSelectedBrand}
             onClose={() => {
               setShowTableSystem(false);
               // Preserve navigation state when closing

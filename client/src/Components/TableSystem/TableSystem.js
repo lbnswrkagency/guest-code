@@ -385,10 +385,9 @@ function TableSystem({
         tableNumber: selectedTable,
         backstagePass: isBackstageTable,
         paxChecked: 0,
-        status: tablePermissions.manage ? "confirmed" : "pending",
-        isAdmin: tablePermissions.manage,
         isPublic: isPublic, // Flag to identify public requests
       };
+
 
       // Use different endpoint for public vs. authenticated requests
       const endpoint = isPublic ? `/table/public/add` : `/table/add`;
@@ -474,10 +473,6 @@ function TableSystem({
   useEffect(() => {
     // Function to handle navigation events from Dashboard
     const handleNavigationStateChange = (event) => {
-      console.log(
-        "TableSystem: Received navigation state change:",
-        event.detail
-      );
       // Any special handling for navigation state changes if needed
     };
 
@@ -504,8 +499,6 @@ function TableSystem({
 
   // Enhance the back button to ensure it communicates with Dashboard
   const handleBack = () => {
-    console.log("TableSystem: Back button clicked");
-
     // Call the provided onClose handler directly without custom event
     if (onClose) onClose();
   };
@@ -539,7 +532,6 @@ function TableSystem({
           onBack={onClose}
           // Menu click is handled through global events - we don't need a local handler
           onMenuClick={() => {
-            console.log("TableSystem: Menu clicked in TableSystem navigation");
             // The global event is dispatched in Navigation component
           }}
         />

@@ -67,7 +67,6 @@ const RoleSetting = ({ brand, onClose }) => {
       setRoles(response.data);
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching roles:", error);
       setLoading(false);
     }
   };
@@ -109,13 +108,12 @@ const RoleSetting = ({ brand, onClose }) => {
         }
       }
 
-      console.log("Available custom code settings:", customCodeSettings);
       setCodeSettings(customCodeSettings);
 
       // Initialize role with permissions for only custom code types
       initializeRoleWithCodePermissions(customCodeSettings);
     } catch (error) {
-      console.error("Error fetching code settings:", error);
+      // Silent fail for code settings fetch
     } finally {
       setLoadingCodeSettings(false);
     }
@@ -160,7 +158,6 @@ const RoleSetting = ({ brand, onClose }) => {
       resetRoleForm();
       setShowCreateForm(false);
     } catch (error) {
-      console.error("Error creating role:", error);
       toast.error(error.response?.data?.message || "Failed to create role");
     }
   };
@@ -224,7 +221,6 @@ const RoleSetting = ({ brand, onClose }) => {
         toast.error("Cannot delete role that is assigned to team members");
       } else {
         toast.error("Failed to delete role");
-        console.error("Error deleting role:", error);
       }
     } finally {
       setShowDeleteConfirm(false);
@@ -338,26 +334,16 @@ const RoleSetting = ({ brand, onClose }) => {
     if (!newRole.name.trim() || !editingRole) return;
 
     try {
-      console.log("Updating role:", editingRole);
-      console.log("New role data:", newRole);
-
       // Allow updating founder roles by not checking isFounder here
       const normalizedRole = {
         ...newRole,
         name: newRole.name.toUpperCase(),
       };
 
-      console.log("Normalized role data:", normalizedRole);
-      console.log(
-        `Sending request to: /roles/brands/${brand._id}/roles/${editingRole._id}`
-      );
-
       const response = await axiosInstance.put(
         `/roles/brands/${brand._id}/roles/${editingRole._id}`,
         normalizedRole
       );
-
-      console.log("Update role response:", response.data);
 
       setRoles(
         roles.map((role) =>
@@ -369,7 +355,6 @@ const RoleSetting = ({ brand, onClose }) => {
       toast.success("Role updated successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update role");
-      console.error("Error updating role:", error);
     }
   };
 

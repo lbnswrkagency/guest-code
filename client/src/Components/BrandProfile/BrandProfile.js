@@ -557,7 +557,7 @@ const BrandProfile = () => {
                   }));
                 }
               } catch (parentError) {
-                console.log("BrandProfile parent fetch error:", parentError);
+                // Silent fail for parent event fetch
               }
             }
           }
@@ -571,7 +571,7 @@ const BrandProfile = () => {
 
         return ticketSettings;
       } catch (error) {
-        console.log("BrandProfile ticket fetch error:", error);
+        // Silent fail for ticket settings fetch
         return [];
       }
     },
@@ -613,14 +613,8 @@ const BrandProfile = () => {
         setTicketSettings(fetchedTicketSettings);
         setCodeSettings(codeSettings);
 
-        console.log("BrandProfile extracted data (updated):", {
-          ticketSettings: fetchedTicketSettings,
-          codeSettings,
-          ticketCount: fetchedTicketSettings.length,
-          codeCount: codeSettings.length,
-        });
+        // Data fetched successfully
       } catch (error) {
-        console.log("BrandProfile fetch error:", error);
         // Silent fail - just set empty arrays
         setTicketSettings([]);
         setCodeSettings([]);
@@ -821,16 +815,7 @@ const BrandProfile = () => {
     // For guest code, check if it's enabled - always show it if event exists
     const showGuestCode = !!currentEvent;
 
-    // Debug logging
-    console.log("BrandProfile Button Debug:", {
-      currentEvent: currentEvent?.title,
-      ticketsAvailable: currentEvent?.ticketsAvailable,
-      visibleTicketSettings: visibleTicketSettings,
-      visibleCount: visibleTicketSettings.length,
-      finalTicketsAvailable: ticketsAvailable,
-      showGuestCode,
-      supportsTableBookingForEvent,
-    });
+    // Determine what actions to show based on event configuration
 
     // Only render if any action is available
     if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode) {

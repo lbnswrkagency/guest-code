@@ -71,12 +71,7 @@ const BrandProfileHeader = ({
 }) => {
   const { user } = useAuth();
 
-  console.log("Brand Profile Header Props:", {
-    isFollowing,
-    isMember,
-    isFavorited,
-    userStatus: brand?.userStatus,
-  });
+  // Component rendering with current state
 
   return (
     <div className="brand-header">
