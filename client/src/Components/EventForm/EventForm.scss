@@ -1371,7 +1371,7 @@ input[type="checkbox"] {
     }
 
     .layout-preview {
-      height: 80px;
+      height: 120px; // Increased height for 9:16 ratio
       margin-bottom: 0.75rem;
       display: flex;
       align-items: center;
@@ -1379,215 +1379,178 @@ input[type="checkbox"] {
     }
 
     .layout-mini-map {
-      width: 100%;
+      width: 67px; // 9:16 aspect ratio (67px width for 120px height)
       height: 100%;
       position: relative;
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.4);
       border-radius: 8px;
       overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin: 0 auto;
+
+      // Common styles for all mini elements
+      .mini-section {
+        position: absolute;
+        border-radius: 1px;
+      }
+      
+      .mini-table {
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        position: absolute;
+        border: 0.2px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
+      }
+      
+      .mini-floor {
+        border-radius: 1px;
+        border: 0.3px solid rgba(255, 255, 255, 0.2);
+      }
 
       &.studio {
-        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a2e 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        
-        .mini-table {
-          position: absolute;
-          border-radius: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          
-          &.table-1 { 
-            width: 5px; height: 5px; 
-            top: 12px; left: 8px; 
-            background: #4a90e2;
-          }
-          &.table-2 { 
-            width: 5px; height: 5px; 
-            top: 25px; right: 12px; 
-            background: #4a90e2;
-          }
-          &.table-3 { 
-            width: 5px; height: 5px; 
-            bottom: 12px; left: 15px; 
-            background: #4a90e2;
-          }
-        }
-        
-        .dj-mini {
-          position: absolute;
-          width: 18px;
-          height: 8px;
-          background: #ffd700;
-          border-radius: 2px;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          border: 1px solid rgba(255, 215, 0, 0.5);
-        }
-        
-        // Add more tables for realistic representation
+        background: linear-gradient(
+          145deg, 
+          #2d2d2d 0%, 
+          #1a1a2e 20%,
+          rgba(255, 215, 0, 0.15) 40%,
+          rgba(46, 139, 87, 0.15) 60%,
+          #0f0f23 80%,
+          #1a1a2e 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 
+          inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+          0 4px 12px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+
+        // Studio-themed overlay with DJ and VIP areas
         &::before {
-          content: '';
+          content: "";
           position: absolute;
-          width: 4px;
-          height: 4px;
-          background: #2e8b57;
-          border-radius: 50%;
-          top: 40px;
-          left: 25px;
-          border: 1px solid rgba(46, 139, 87, 0.5);
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(ellipse at 20% 80%, rgba(255, 215, 0, 0.3) 0%, transparent 40%),
+            radial-gradient(ellipse at 80% 20%, rgba(46, 139, 87, 0.25) 0%, transparent 35%),
+            radial-gradient(ellipse at 50% 40%, rgba(239, 68, 68, 0.15) 0%, transparent 25%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+          pointer-events: none;
         }
-        
+
+        // Add subtle text overlay
         &::after {
-          content: '';
+          content: "STUDIO";
           position: absolute;
-          width: 4px;
-          height: 4px;
-          background: #80221c;
-          border-radius: 50%;
-          top: 18px;
-          right: 20px;
-          border: 1px solid rgba(128, 34, 28, 0.5);
+          bottom: 4px;
+          right: 4px;
+          font-size: 6px;
+          color: rgba(255, 255, 255, 0.3);
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          pointer-events: none;
         }
       }
 
       &.bolivar {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        
-        .mini-table {
-          position: absolute;
-          border-radius: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          
-          &.table-a { 
-            width: 4px; height: 4px; 
-            top: 8px; left: 6px; 
-            background: #74b9ff;
-          }
-          &.table-b { 
-            width: 4px; height: 4px; 
-            top: 20px; right: 8px; 
-            background: #74b9ff;
-          }
-          &.table-c { 
-            width: 4px; height: 4px; 
-            bottom: 8px; left: 12px; 
-            background: #74b9ff;
-          }
-        }
-        
-        .main-mini {
-          position: absolute;
-          width: 25px;
-          height: 6px;
-          background: #e17055;
-          border-radius: 3px;
-          bottom: 15px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(225, 112, 85, 0.5);
-        }
-        
-        // Add more scattered tables like the real layout
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 20%,
+          rgba(33, 150, 243, 0.2) 40%,
+          rgba(46, 139, 87, 0.15) 60%,
+          rgba(225, 112, 85, 0.1) 80%,
+          #0f172a 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 
+          inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+          0 4px 12px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+
+        // Bolivar club-themed overlay with dance floor and VIP areas
         &::before {
-          content: '';
+          content: "";
           position: absolute;
-          width: 3px;
-          height: 3px;
-          background: #ffd700;
-          border-radius: 50%;
-          top: 35px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(255, 215, 0, 0.5);
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(ellipse at 50% 50%, rgba(33, 150, 243, 0.3) 0%, transparent 50%),
+            radial-gradient(ellipse at 15% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
+            radial-gradient(ellipse at 85% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
+            radial-gradient(ellipse at 50% 85%, rgba(225, 112, 85, 0.2) 0%, transparent 30%);
+          pointer-events: none;
         }
-        
+
+        // Add subtle text overlay
         &::after {
-          content: '';
+          content: "BOLIVAR";
           position: absolute;
-          width: 3px;
-          height: 3px;
-          background: #2e8b57;
-          border-radius: 50%;
-          top: 15px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(46, 139, 87, 0.5);
+          bottom: 4px;
+          right: 4px;
+          font-size: 6px;
+          color: rgba(255, 255, 255, 0.3);
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          pointer-events: none;
         }
       }
 
       &.venti {
-        background: linear-gradient(135deg, #0f0f23 0%, #2c3e50 50%, #27ae60 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(
+          145deg,
+          #0f0f23 0%,
+          #1e293b 15%,
+          rgba(220, 53, 69, 0.2) 35%,
+          rgba(34, 197, 94, 0.25) 55%,
+          rgba(59, 130, 246, 0.15) 75%,
+          #065f46 85%,
+          #166534 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 
+          inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+          0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
-        
-        .mini-table {
-          position: absolute;
-          border-radius: 50%;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          
-          &.table-x { 
-            width: 4px; height: 4px; 
-            top: 15px; left: 8px; 
-            background: #4a90e2;
-          }
-          &.table-y { 
-            width: 4px; height: 4px; 
-            top: 30px; right: 8px; 
-            background: #4a90e2;
-          }
-        }
-        
-        .mini-garden {
-          position: absolute;
-          width: 30px;
-          height: 4px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 2px;
-          top: 6px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .vip-mini {
-          position: absolute;
-          width: 20px;
-          height: 8px;
-          background: #663399;
-          border-radius: 2px;
-          bottom: 8px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(102, 51, 153, 0.5);
-        }
-        
-        // Add moonlight effect
+
+        // Venti-themed overlay with multiple zones and club features
         &::before {
-          content: '';
+          content: "";
           position: absolute;
-          width: 12px;
-          height: 12px;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-          border-radius: 50%;
-          top: 5px;
-          left: 8px;
-          z-index: 1;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(ellipse at 20% 80%, rgba(220, 53, 69, 0.3) 0%, transparent 35%),
+            radial-gradient(ellipse at 80% 20%, rgba(34, 197, 94, 0.25) 0%, transparent 40%),
+            radial-gradient(ellipse at 60% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 45%),
+            radial-gradient(ellipse at 30% 30%, rgba(168, 85, 247, 0.15) 0%, transparent 30%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+          pointer-events: none;
         }
-        
-        // Add more VIP tables
+
+        // Add subtle text overlay
         &::after {
-          content: '';
+          content: "VENTI";
           position: absolute;
-          width: 3px;
-          height: 3px;
-          background: #c0c0c0;
-          border-radius: 50%;
-          top: 42px;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 1px solid rgba(192, 192, 192, 0.5);
+          bottom: 4px;
+          right: 4px;
+          font-size: 6px;
+          color: rgba(255, 255, 255, 0.3);
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          pointer-events: none;
         }
       }
     }

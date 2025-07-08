@@ -84,10 +84,7 @@ const LineUpView = ({ lineups }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="lineup-view-header">
-        <h3>Line Up</h3>
-        <div className="lineup-view-decoration"></div>
-      </div>
+      <h3 className="lineup-title">Line Up</h3>
 
       <div className="lineup-view-content">
         <AnimatePresence>

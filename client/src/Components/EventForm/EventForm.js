@@ -333,9 +333,9 @@ const EventForm = ({
         console.error("Failed to fetch table layouts:", error);
         // Fallback to default layouts if API fails
         setAvailableTableLayouts([
-          { id: "studio", name: "Studio Layout", description: "Professional studio layout" },
-          { id: "bolivar", name: "Bolivar Layout", description: "Classic club layout" },
-          { id: "venti", name: "Venti Layout", description: "Modern garden-themed layout" },
+          { id: "studio", name: "Studio", description: "Professional studio layout" },
+          { id: "bolivar", name: "Bolivar", description: "Classic club layout" },
+          { id: "venti", name: "Venti", description: "Modern garden-themed layout" },
         ]);
       }
     };
@@ -1058,6 +1058,7 @@ const EventForm = ({
         friendsCode: event.friendsCode || false,
         ticketCode: event.ticketCode || false,
         tableCode: event.tableCode || false,
+        tableLayout: event.tableLayout || "",
       });
 
       // Populate selected genres if available
@@ -1882,33 +1883,87 @@ const EventForm = ({
                         <div className={`layout-mini-map ${layout.id}`}>
                           {layout.id === "studio" && (
                             <>
-                              <div className="mini-table table-1"></div>
-                              <div className="mini-table table-2"></div>
-                              <div className="mini-table table-3"></div>
-                              <div className="dj-mini"></div>
+                              {/* DJ Area */}
+                              <div className="mini-section dj-section">
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                              </div>
+                              {/* VIP Area */}
+                              <div className="mini-section vip-section">
+                                <div className="mini-table vip-table"></div>
+                                <div className="mini-table vip-table"></div>
+                              </div>
+                              {/* Backstage Area */}
+                              <div className="mini-section backstage-section">
+                                <div className="mini-table backstage-table"></div>
+                                <div className="mini-table backstage-table"></div>
+                              </div>
+                              {/* Main Floor */}
+                              <div className="mini-floor main-floor"></div>
                             </>
                           )}
                           {layout.id === "bolivar" && (
                             <>
-                              <div className="mini-table table-a"></div>
-                              <div className="mini-table table-b"></div>
-                              <div className="mini-table table-c"></div>
-                              <div className="main-mini"></div>
+                              {/* Main Dance Floor */}
+                              <div className="mini-section main-section">
+                                <div className="mini-floor dance-floor"></div>
+                              </div>
+                              {/* VIP Tables */}
+                              <div className="mini-section vip-section-left">
+                                <div className="mini-table vip-table"></div>
+                                <div className="mini-table vip-table"></div>
+                              </div>
+                              <div className="mini-section vip-section-right">
+                                <div className="mini-table vip-table"></div>
+                                <div className="mini-table vip-table"></div>
+                              </div>
+                              {/* DJ Area */}
+                              <div className="mini-section dj-section-bottom">
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                              </div>
+                              {/* Bar Area */}
+                              <div className="mini-section bar-section">
+                                <div className="mini-bar"></div>
+                              </div>
                             </>
                           )}
                           {layout.id === "venti" && (
                             <>
-                              <div className="mini-table table-x"></div>
-                              <div className="mini-table table-y"></div>
-                              <div className="mini-garden"></div>
-                              <div className="vip-mini"></div>
+                              {/* DJ Area (Red) */}
+                              <div className="mini-section dj-section-red">
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-columns"></div>
+                              </div>
+                              {/* Dance Floor */}
+                              <div className="mini-section dance-section">
+                                <div className="mini-floor dance-floor"></div>
+                              </div>
+                              {/* VIP Area (Green) */}
+                              <div className="mini-section vip-section-green">
+                                <div className="mini-table vip-table"></div>
+                                <div className="mini-table vip-table"></div>
+                              </div>
+                              {/* Stairs */}
+                              <div className="mini-section stairs-section">
+                                <div className="mini-stairs"></div>
+                              </div>
+                              {/* Upstairs (Purple) */}
+                              <div className="mini-section upstairs-section">
+                                <div className="mini-table upstairs-table"></div>
+                                <div className="mini-table upstairs-table"></div>
+                                <div className="mini-columns upstairs-columns"></div>
+                              </div>
                             </>
                           )}
                         </div>
                       </div>
                       <div className="layout-info">
                         <h4>{layout.name}</h4>
-                        <p>{layout.totalTables} tables</p>
+                        <p>{layout.totalTables}</p>
                       </div>
                       <div className={`selected-indicator ${formData.tableLayout === layout.id ? 'visible' : ''}`}>
                         ✓

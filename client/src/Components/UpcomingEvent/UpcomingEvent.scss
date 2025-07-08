@@ -795,37 +795,6 @@
       }
     }
 
-    .upcomingEvent-event-subtitle {
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.85);
-      margin-bottom: 1rem;
-      margin-top: 0.5rem;
-      font-weight: 500;
-      line-height: 1.4;
-      text-align: center;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-      letter-spacing: 0.025em;
-
-      // Very subtle golden tint
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.85) 70%,
-        rgba(255, 200, 7, 0.8) 85%,
-        rgba(255, 255, 255, 0.85) 100%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-
-      @media (max-width: 768px) {
-        font-size: 1rem;
-      }
-
-      @media (max-width: 480px) {
-        font-size: 0.95rem;
-      }
-    }
-
     .upcomingEvent-details {
       background-color: #151515;
       flex: 1;
@@ -966,8 +935,10 @@
         }
       }
 
-      .upcomingEvent-event-subtitle {
-        text-align: left;
+      // Subtitle with frame styling
+      .upcomingEvent-subtitle-header {
+        margin: 1.5rem 0;
+        position: relative;
       }
 
       // Details section styling
@@ -2280,6 +2251,131 @@
     @media (max-width: 768px) {
       font-size: 0.8rem;
       line-height: 1.4;
+    }
+  }
+}
+
+.upcomingEvent-event-subtitle {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.025em;
+
+  // Very subtle golden tint
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.85) 70%,
+    rgba(255, 200, 7, 0.8) 85%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+  }
+}
+
+.upcomingEvent-event-subtitle {
+  text-align: left;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  // Maintain the original text gradient effect
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.85) 70%,
+    rgba(255, 200, 7, 0.8) 85%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  // Frame background (behind the text)
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+    border-radius: inherit;
+    z-index: -2;
+  }
+
+  // Subtle glow accent line at top
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 200, 7, 0.4),
+      transparent
+    );
+    z-index: -1;
+  }
+
+  &:hover {
+    border-color: rgba(255, 200, 7, 0.12);
+    box-shadow: 0 3px 12px rgba(255, 200, 7, 0.08);
+
+    &::before {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 200, 7, 0.03) 0%,
+        rgba(0, 0, 0, 0.35) 100%
+      );
+    }
+  }
+
+  // Mobile responsive adjustments
+  @media (max-width: 768px) {
+    text-align: center;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+
+    &::after {
+      left: 15%;
+      right: 15%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.6rem 0.8rem;
+
+    &::after {
+      left: 10%;
+      right: 10%;
     }
   }
 }

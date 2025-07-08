@@ -957,9 +957,16 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      width: calc(100vw - 32px); // Take full available width minus reasonable margins
+      width: calc(100% - 32px); // Use container width instead of viewport
       max-width: 900px; // Increased max width for better utilization
       min-width: 320px; // Minimum width for mobile
+
+      // Ensure it respects content boundaries on different devices
+      @media (min-width: 769px) and (max-width: 1024px) {
+        // iPad specific fix
+        width: calc(100% - 64px);
+        max-width: 700px;
+      }
       margin: 0;
       padding: 0.6rem 1.2rem; // Slightly increased padding for better spacing
       background: rgba(21, 21, 21, 0.96); // Slightly more opaque

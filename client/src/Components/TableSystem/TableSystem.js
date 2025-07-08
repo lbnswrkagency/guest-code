@@ -445,7 +445,6 @@ function TableSystem({
         }
       }, 500);
     } catch (error) {
-      console.error("Table booking error:", error);
       loadingToast.dismiss();
       toast.showError(
         error.response?.data?.message ||

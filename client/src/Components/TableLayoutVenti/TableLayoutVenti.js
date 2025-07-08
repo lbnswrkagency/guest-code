@@ -25,14 +25,14 @@ const TableLayoutVenti = ({
   // Table configuration with minimum spend and max persons - Venti layout
   const tableConfig = {
     // D tables (DJ area) - €350 minimum, 6 persons max
-    D1: { minSpend: 220, maxPersons: 6, category: "D" },
-    D2: { minSpend: 220, maxPersons: 6, category: "D" },
-    D3: { minSpend: 220, maxPersons: 6, category: "D" },
-    D4: { minSpend: 220, maxPersons: 6, category: "D" },
-    D5: { minSpend: 220, maxPersons: 6, category: "D" },
-    D6: { minSpend: 220, maxPersons: 6, category: "D" },
-    D7: { minSpend: 220, maxPersons: 6, category: "D" },
-    D8: { minSpend: 220, maxPersons: 6, category: "D" },
+    D1: { minSpend: 200, maxPersons: 6, category: "D" },
+    D2: { minSpend: 200, maxPersons: 6, category: "D" },
+    D3: { minSpend: 200, maxPersons: 6, category: "D" },
+    D4: { minSpend: 200, maxPersons: 6, category: "D" },
+    D5: { minSpend: 200, maxPersons: 6, category: "D" },
+    D6: { minSpend: 200, maxPersons: 6, category: "D" },
+    D7: { minSpend: 200, maxPersons: 6, category: "D" },
+    D8: { minSpend: 200, maxPersons: 6, category: "D" },
 
     // V tables (VIP area) - €500 minimum, 8 persons max
     V1: { minSpend: 120, maxPersons: 8, category: "V" },

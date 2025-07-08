@@ -392,7 +392,7 @@ const BrandProfile = () => {
           text: brand.description,
           url: url,
         })
-        .catch(console.error);
+        .catch(() => toast.showError("Failed to copy link"));
     } else {
       navigator.clipboard
         .writeText(url)

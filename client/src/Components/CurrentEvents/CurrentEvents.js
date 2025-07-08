@@ -6,12 +6,23 @@ import "./CurrentEvents.scss";
 const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     if (isOpen && selectedBrand) {
       loadEvents();
     }
   }, [isOpen, selectedBrand]);
+
+  // Handle screen size changes
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const loadEvents = () => {
     if (!selectedBrand) return;
@@ -283,21 +294,21 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div
-            className="current-events-backdrop"
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            onClick={onClose}
-          />
+        <motion.div
+          className="current-events-backdrop"
+          variants={backdropVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          onClick={onClose}
+        >
           <motion.div
             className="current-events-menu"
             variants={menuVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="current-events-header">
               <h3>Current Events</h3>
@@ -311,7 +322,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
                 <div className="loading-state">Loading events...</div>
               ) : events.length > 0 ? (
                 <div className="events-list">
-                  {events.map((event) => (
+                  {(isMobile ? events.slice(0, 4) : events).map((event) => (
                     <div
                       key={event._id || event.id}
                       className={`event-item ${
@@ -365,7 +376,7 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
               )}
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );

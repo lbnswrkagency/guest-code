@@ -35,16 +35,59 @@ function TableCodeManagement({
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [cancelCodeId, setCancelCodeId] = useState(null);
 
-  // Default color mapping for categories
-  const tableColors = {
-    djarea: "#ffd700", // Gold for DJ Area tables
-    backstage: "#80221c", // Rich red for backstage/dancefloor
-    vip: "#1b5e20", // Green for VIP
-    premium: "#4a90e2", // Blue for premium/front row
+  // Dynamic color mapping for categories based on layout config
+  const getTableColors = () => {
+    if (layoutConfig?.tableConfig) {
+      // Use dynamic layout configuration
+      const colors = {};
+      Object.values(layoutConfig.tableConfig).forEach((tableInfo) => {
+        if (tableInfo.category) {
+          const areaName = layoutConfig.categoryAreaNames?.[tableInfo.category];
+          if (areaName) {
+            // Map category to appropriate color
+            switch (tableInfo.category) {
+              case "D": // DJ Area in Venti
+                colors[areaName] = "#ffd700";
+                break;
+              case "V": // VIP in Venti
+                colors[areaName] = "#1b5e20";
+                break;
+              case "U": // Upstairs in Venti
+                colors[areaName] = "#663399";
+                break;
+              default:
+                colors[areaName] = "#4a90e2";
+            }
+          }
+        }
+      });
+      return colors;
+    }
+    
+    // Fallback to default mapping for backward compatibility
+    return {
+      djarea: "#ffd700", // Gold for DJ Area tables
+      backstage: "#80221c", // Rich red for backstage/dancefloor
+      vip: "#1b5e20", // Green for VIP
+      premium: "#4a90e2", // Blue for premium/front row
+    };
   };
 
-  // Default category order for display
-  const categoryOrder = ["djarea", "backstage", "vip", "premium"];
+  const tableColors = getTableColors();
+
+  // Dynamic category order based on layout config
+  const getCategoryOrder = () => {
+    if (layoutConfig?.categoryAreaNames) {
+      return Object.values(layoutConfig.categoryAreaNames);
+    }
+    if (tableCategories) {
+      return Object.keys(tableCategories);
+    }
+    // Fallback to default order
+    return ["djarea", "backstage", "vip", "premium"];
+  };
+
+  const categoryOrder = getCategoryOrder();
 
   // Calculate table permissions from user roles
   const getTablePermissions = () => {
@@ -76,39 +119,40 @@ function TableCodeManagement({
     if (!tableNumber) return "unknown";
 
     // If we have layout configuration, use it for categorization
-    if (layoutConfig && layoutConfig.tableConfig) {
+    if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
       const tableInfo = layoutConfig.tableConfig[tableNumber];
 
-      if (tableInfo) {
-        // Map the table category to our system categories
-        switch (tableInfo.category) {
-          case "D":
-            return "backstage"; // Dancefloor tables (red)
-          case "V":
-            return "vip"; // VIP Booth tables (green)
-          case "F":
-            return "premium"; // Front Row tables (gold)
-          default:
-            break;
+      if (tableInfo && tableInfo.category) {
+        // Return the actual area name from the layout configuration
+        const areaName = layoutConfig.categoryAreaNames[tableInfo.category];
+        if (areaName) {
+          return areaName;
         }
       }
     }
 
-    // Fallback to checking first character of table number
+    // Fallback: check if we have tableCategories prop
+    if (tableCategories) {
+      for (const [category, tables] of Object.entries(tableCategories)) {
+        if (tables.includes(tableNumber)) {
+          return category;
+        }
+      }
+    }
+
+    // Final fallback to checking first character of table number
     const prefix = tableNumber.charAt(0);
 
-    // Handle Bolivar layout
-    if (prefix === "D") return "backstage"; // Dancefloor tables
-    if (prefix === "V") return "vip"; // VIP Booth tables
-    if (prefix === "F") return "premium"; // Front Row tables
+    // Handle common layouts
+    if (prefix === "D") return "DJ Area"; // DJ Area tables
+    if (prefix === "V") return "VIP Lounge"; // VIP tables
+    if (prefix === "U") return "Upstairs"; // Upstairs tables
+    if (prefix === "B") return "DJ Area"; // DJ Area tables (alternate)
+    if (prefix === "A" || prefix === "R") return "VIP";
+    if (prefix === "F") return "Premium";
+    if (prefix === "K") return "Premium";
 
-    // Handle default layout
-    if (prefix === "B") return "djarea";
-    if (prefix === "P" || prefix === "E") return "backstage";
-    if (prefix === "A" || prefix === "R") return "vip";
-    if (prefix === "K") return "premium";
-
-    return "unknown";
+    return "General"; // Default
   };
 
   // Get display name for category
@@ -568,7 +612,37 @@ function TableCodeManagement({
         (code) => getCategoryForTable(code.tableNumber) === category
       ) || [];
 
-    const totalTablesInCategory = tableCategories[category]?.length || 0;
+    // Find the correct tableCategories key for this display category
+    let totalTablesInCategory = 0;
+    
+    if (tableCategories) {
+      // Map display names back to tableCategories keys
+      const categoryKey = (() => {
+        // Direct key match first
+        if (tableCategories[category]) {
+          return category;
+        }
+        
+        // Map display names to tableCategories keys
+        const displayToKeyMap = {
+          "DJ Area": "djarea",
+          "VIP Lounge": "vip", 
+          "Upstairs": "upstairs",
+          "VIP": "vip",
+          "VIP Booth": "vip",
+          "Premium": "premium",
+          "Front Row": "premium", 
+          "General": "general",
+          "Dancefloor": "backstage",
+          "Backstage": "backstage"
+        };
+        
+        return displayToKeyMap[category] || category.toLowerCase();
+      })();
+      
+      totalTablesInCategory = tableCategories[categoryKey]?.length || 0;
+    }
+
     const acceptedCount = categoryItems.filter(
       (code) => code.status === "confirmed"
     ).length;
