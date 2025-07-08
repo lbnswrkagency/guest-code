@@ -7,6 +7,7 @@ import "./TableCodeManagement.scss";
 
 function TableCodeManagement({
   user,
+  userRoles = [],
   triggerRefresh,
   tableCategories,
   layoutConfig,
@@ -44,6 +45,31 @@ function TableCodeManagement({
 
   // Default category order for display
   const categoryOrder = ["djarea", "backstage", "vip", "premium"];
+
+  // Calculate table permissions from user roles
+  const getTablePermissions = () => {
+    let hasTableAccess = false;
+    let hasTableManage = false;
+
+    // Loop through all user roles to check table permissions
+    userRoles.forEach((role) => {
+      if (role.permissions && role.permissions.tables) {
+        if (role.permissions.tables.access === true) {
+          hasTableAccess = true;
+        }
+        if (role.permissions.tables.manage === true) {
+          hasTableManage = true;
+        }
+      }
+    });
+
+    return {
+      access: hasTableAccess,
+      manage: hasTableManage,
+    };
+  };
+
+  const tablePermissions = getTablePermissions();
 
   // Dynamic category mapping function
   const getCategoryForTable = (tableNumber) => {
@@ -541,7 +567,7 @@ function TableCodeManagement({
       allCodes.filter(
         (code) =>
           getCategoryForTable(code.tableNumber) === category &&
-          (user.isAdmin || code.hostId === user._id)
+          (tablePermissions.manage || code.hostId === user?._id)
       ) || [];
 
     const totalTablesInCategory = tableCategories[category]?.length || 0;
@@ -568,7 +594,7 @@ function TableCodeManagement({
         <h3>
           <span style={{ color: tableColors[category] }}>{displayName}</span>
           <div className="category-counts">
-            {user.isAdmin ? (
+            {tablePermissions.manage ? (
               <>
                 {counts.pending > 0 && (
                   <span className="count-pending">
@@ -736,7 +762,7 @@ function TableCodeManagement({
               </>
             ) : (
               <>
-                {user.isAdmin ? (
+                {tablePermissions.manage ? (
                   <>
                     {code.status === "pending" && (
                       <>
@@ -847,7 +873,7 @@ function TableCodeManagement({
                   </>
                 ) : (
                   <>
-                    {code.hostId === user._id && (
+                    {code.hostId === user?._id && (
                       <>
                         {code.status === "pending" && (
                           <>
@@ -1038,7 +1064,7 @@ function TableCodeManagement({
         <div className="reservations-list">
           {categoryOrder.map((category) => {
             const categoryItems = codesByCategory[category]?.filter(
-              (code) => user.isAdmin || code.hostId === user._id
+              (code) => tablePermissions.manage || code.hostId === user?._id
             );
 
             return categoryItems?.length > 0 ? (

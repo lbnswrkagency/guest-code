@@ -134,7 +134,6 @@ const TableBookingPopup = ({
 
         <div className="popup-header">
           <h3>{tableName}</h3>
-          <p>{areaName || "Table"} Reservation</p>
           <div className="minimum-spend">Minimum Spend: {minSpend}</div>
         </div>
 
@@ -206,7 +205,6 @@ const TableBookingPopup = ({
           )}
 
           <div className="popup-field">
-            <label>Number of People</label>
             <select
               className="popup-select"
               value={pax}

@@ -36,6 +36,10 @@ const RoleSchema = new Schema(
       scanner: {
         use: { type: Boolean, default: false },
       },
+      tables: {
+        access: { type: Boolean, default: false },
+        manage: { type: Boolean, default: false },
+      },
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },

@@ -161,6 +161,7 @@ const EventForm = ({
         friendsCode: parentEventData?.friendsCode || false,
         ticketCode: parentEventData?.ticketCode || false,
         tableCode: parentEventData?.tableCode || false,
+        tableLayout: parentEventData?.tableLayout || "",
       }
     : {
         // Use existing event data or defaults
@@ -180,6 +181,7 @@ const EventForm = ({
         friendsCode: event?.friendsCode || false,
         ticketCode: event?.ticketCode || false,
         tableCode: event?.tableCode || false,
+        tableLayout: event?.tableLayout || "",
       };
 
   const [formData, setFormData] = useState(initialData);
@@ -244,6 +246,9 @@ const EventForm = ({
 
   // Add state for GenreSelector modal
   const [showGenreModal, setShowGenreModal] = useState(false);
+
+  // Add state for table layouts
+  const [availableTableLayouts, setAvailableTableLayouts] = useState([]);
 
   // Add state for selected genres
   const [selectedGenres, setSelectedGenres] = useState([]);
@@ -315,6 +320,28 @@ const EventForm = ({
       }
     }
   }, [event]);
+
+  // Fetch available table layouts
+  useEffect(() => {
+    const fetchTableLayouts = async () => {
+      try {
+        const response = await axiosInstance.get("/table/layouts");
+        if (response.data.success) {
+          setAvailableTableLayouts(response.data.layouts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch table layouts:", error);
+        // Fallback to default layouts if API fails
+        setAvailableTableLayouts([
+          { id: "studio", name: "Studio Layout", description: "Professional studio layout" },
+          { id: "bolivar", name: "Bolivar Layout", description: "Classic club layout" },
+          { id: "venti", name: "Venti Layout", description: "Modern garden-themed layout" },
+        ]);
+      }
+    };
+
+    fetchTableLayouts();
+  }, []);
 
   // Handle saving selected lineups
   const handleSaveLineups = (lineups) => {
@@ -1827,6 +1854,76 @@ const EventForm = ({
                         Save
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Table Layout section */}
+            <div className="form-section">
+              <h3>Table Layout</h3>
+              <div className="table-layout-selection">
+                <label>Choose Table Layout (Optional):</label>
+                <div className="layout-cards">
+                  {availableTableLayouts.map((layout) => (
+                    <div
+                      key={layout.id}
+                      className={`layout-card ${
+                        formData.tableLayout === layout.id ? "selected" : ""
+                      }`}
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          tableLayout: prev.tableLayout === layout.id ? "" : layout.id,
+                        }));
+                      }}
+                    >
+                      <div className="layout-preview">
+                        <div className={`layout-mini-map ${layout.id}`}>
+                          {layout.id === "studio" && (
+                            <>
+                              <div className="mini-table table-1"></div>
+                              <div className="mini-table table-2"></div>
+                              <div className="mini-table table-3"></div>
+                              <div className="dj-mini"></div>
+                            </>
+                          )}
+                          {layout.id === "bolivar" && (
+                            <>
+                              <div className="mini-table table-a"></div>
+                              <div className="mini-table table-b"></div>
+                              <div className="mini-table table-c"></div>
+                              <div className="main-mini"></div>
+                            </>
+                          )}
+                          {layout.id === "venti" && (
+                            <>
+                              <div className="mini-table table-x"></div>
+                              <div className="mini-table table-y"></div>
+                              <div className="mini-garden"></div>
+                              <div className="vip-mini"></div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="layout-info">
+                        <h4>{layout.name}</h4>
+                        <p>{layout.totalTables} tables</p>
+                      </div>
+                      <div className={`selected-indicator ${formData.tableLayout === layout.id ? 'visible' : ''}`}>
+                        ✓
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {formData.tableLayout && (
+                  <div className="layout-preview-info">
+                    {availableTableLayouts.find(layout => layout.id === formData.tableLayout)?.areas && (
+                      <div className="layout-areas">
+                        <span>Areas: </span>
+                        {availableTableLayouts.find(layout => layout.id === formData.tableLayout).areas.join(", ")}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -4,8 +4,9 @@ import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
 import "./TableSystem.scss";
-import TableLayout from "../TableLayout/TableLayout";
+import TableLayoutStudio from "../TableLayoutStudio/TableLayoutStudio";
 import TableLayoutBolivar from "../TableLayoutBolivar/TableLayoutBolivar";
+import TableLayoutVenti from "../TableLayoutVenti/TableLayoutVenti";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
@@ -14,6 +15,7 @@ import { RiTableLine, RiRefreshLine, RiCloseLine } from "react-icons/ri";
 
 function TableSystem({
   user,
+  userRoles = [],
   onClose,
   refreshCounts,
   selectedEvent,
@@ -42,22 +44,102 @@ function TableSystem({
   // Use ref to track if config was loaded to prevent multiple loads
   const configLoadedRef = useRef(false);
 
-  // Always use Bolivar layout (no longer checking event ID)
-  const useBolivarLayout = true;
+  // Calculate table permissions from user roles
+  const getTablePermissions = () => {
+    let hasTableAccess = false;
+    let hasTableManage = false;
 
-  // Default table categories as fallback
-  const defaultTableCategories = {
-    djarea: ["B1", "B2", "B3", "B4", "B5"],
-    backstage: useBolivarLayout
-      ? ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "E1", "E2"]
-      : ["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"],
-    vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"],
-    premium: ["K1", "K2", "K3", "K4"],
+    // Loop through all user roles to check table permissions
+    userRoles.forEach((role) => {
+      if (role.permissions && role.permissions.tables) {
+        if (role.permissions.tables.access === true) {
+          hasTableAccess = true;
+        }
+        if (role.permissions.tables.manage === true) {
+          hasTableManage = true;
+        }
+      }
+    });
+
+    return {
+      access: hasTableAccess,
+      manage: hasTableManage,
+    };
   };
+
+  const tablePermissions = getTablePermissions();
+
+  // Determine which layout to use based on event's tableLayout field
+  const getSelectedLayout = () => {
+    if (selectedEvent?.tableLayout && selectedEvent.tableLayout !== "") {
+      return selectedEvent.tableLayout;
+    }
+    // Return null if no layout is selected
+    return null;
+  };
+
+  const selectedLayout = getSelectedLayout();
+
+  // Default table categories as fallback based on selected layout
+  const getDefaultTableCategories = () => {
+    switch (selectedLayout) {
+      case "bolivar":
+        return {
+          djarea: ["B1", "B2", "B3", "B4", "B5"],
+          backstage: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "E1", "E2"],
+          vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"],
+          premium: ["K1", "K2", "K3", "K4"],
+        };
+      case "venti":
+        return {
+          basic: ["A1", "A2", "A3", "A4", "A5", "A6"],
+          djarea: ["B1", "B2", "B3", "B4", "B5"],
+          vip: ["V1", "V2", "V3", "V4"],
+          premium: ["P1", "P2", "P3"],
+        };
+      case "studio":
+      default:
+        return {
+          djarea: ["B1", "B2", "B3", "B4", "B5"],
+          backstage: ["P1", "P2", "P3", "P4", "P5", "P6", "E1", "E2"],
+          vip: ["A1", "A2", "A3", "F1", "F2", "F3", "F4", "R1"],
+          premium: ["K1", "K2", "K3", "K4"],
+        };
+    }
+  };
+
+  const defaultTableCategories = getDefaultTableCategories();
 
   // Use dynamic table categories from layout if available
   const tableCategories =
     layoutConfig?.tableCategories || defaultTableCategories;
+
+  // Function to render the appropriate table layout component
+  const renderTableLayout = () => {
+    // If no layout is selected, don't render anything
+    if (!selectedLayout) {
+      return null;
+    }
+
+    const layoutProps = {
+      counts: tableData,
+      tableNumber: tableNumber,
+      setTableNumber: handleTableSelection,
+      refreshTrigger: refreshTrigger,
+      onConfigurationLoaded: handleConfigurationLoaded,
+    };
+
+    switch (selectedLayout) {
+      case "bolivar":
+        return <TableLayoutBolivar {...layoutProps} />;
+      case "venti":
+        return <TableLayoutVenti {...layoutProps} />;
+      case "studio":
+        return <TableLayoutStudio {...layoutProps} />;
+      default:
+        return <TableLayoutStudio {...layoutProps} />;
+    }
+  };
 
   // Handler for receiving configuration from layout components - memoize to prevent infinite loop
   const handleConfigurationLoaded = useCallback(
@@ -283,7 +365,7 @@ function TableSystem({
     const loadingToast = toast.showLoading(
       isPublic
         ? "Submitting table reservation request..."
-        : user.isAdmin
+        : tablePermissions.manage
         ? "Booking table reservation..."
         : "Submitting table reservation request..."
     );
@@ -303,8 +385,8 @@ function TableSystem({
         tableNumber: selectedTable,
         backstagePass: isBackstageTable,
         paxChecked: 0,
-        status: user && user.isAdmin ? "confirmed" : "pending",
-        isAdmin: user && user.isAdmin,
+        status: tablePermissions.manage ? "confirmed" : "pending",
+        isAdmin: tablePermissions.manage,
         isPublic: isPublic, // Flag to identify public requests
       };
 
@@ -339,7 +421,7 @@ function TableSystem({
           </div>,
           { autoClose: 15000 } // Increased from 10000 to 15000 (15 seconds)
         );
-      } else if (user && user.isAdmin) {
+      } else if (tablePermissions.manage) {
         toast.showSuccess("Table reservation booked successfully!");
       } else {
         toast.showSuccess("Table reservation request submitted!");
@@ -516,7 +598,7 @@ function TableSystem({
               tableNumber={selectedTable}
               onSubmit={handleBookingSubmit}
               position={popupPosition}
-              isAdmin={user && user.isAdmin}
+              isAdmin={tablePermissions.manage}
               isSubmitting={isSubmitting}
               isPublic={isPublic}
             />
@@ -532,24 +614,12 @@ function TableSystem({
                   <span className="instruction-text">Click a Table </span>
                 </div>
                 <div className="table-layout-container">
-                  <TableLayoutBolivar
-                    counts={tableData}
-                    tableNumber={tableNumber}
-                    setTableNumber={handleTableSelection}
-                    refreshTrigger={refreshTrigger}
-                    onConfigurationLoaded={handleConfigurationLoaded}
-                  />
+                  {renderTableLayout()}
                 </div>
               </div>
             ) : (
               <div className="table-layout-container">
-                <TableLayoutBolivar
-                  counts={tableData}
-                  tableNumber={tableNumber}
-                  setTableNumber={handleTableSelection}
-                  refreshTrigger={refreshTrigger}
-                  onConfigurationLoaded={handleConfigurationLoaded}
-                />
+                {renderTableLayout()}
               </div>
             )}
           </div>
@@ -572,6 +642,7 @@ function TableSystem({
           {!isPublic && (
             <TableCodeManagement
               user={user}
+              userRoles={userRoles}
               triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
               tableCategories={tableCategories}
               layoutConfig={layoutConfig}

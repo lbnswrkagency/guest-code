@@ -2241,6 +2241,56 @@ const sendTableUpdateEmail = async (req, res) => {
   }
 };
 
+/**
+ * Get available table layouts
+ */
+const getAvailableTableLayouts = async (req, res) => {
+  try {
+    // Define available table layouts with their metadata
+    const availableLayouts = [
+      {
+        id: "studio",
+        name: "Studio Layout",
+        description: "Professional studio layout with VIP, DJ, and premium areas",
+        component: "TableLayoutStudio",
+        totalTables: 24,
+        areas: ["VIP", "DJ Area", "Backstage", "Premium"],
+        previewImage: "/images/layouts/studio-preview.jpg", // Optional preview image
+      },
+      {
+        id: "bolivar",
+        name: "Bolivar Layout", 
+        description: "Classic club layout with multiple zones and flexible seating",
+        component: "TableLayoutBolivar",
+        totalTables: 28,
+        areas: ["Main Floor", "DJ Zone", "VIP Section", "Bar Area"],
+        previewImage: "/images/layouts/bolivar-preview.jpg",
+      },
+      {
+        id: "venti",
+        name: "Venti Layout",
+        description: "Modern garden-themed layout with premium suites and VIP lounges",
+        component: "TableLayoutVenti", 
+        totalTables: 18,
+        areas: ["Standard Tables", "DJ Area", "VIP Lounge", "Premium Suite"],
+        previewImage: "/images/layouts/venti-preview.jpg",
+      },
+    ];
+
+    res.status(200).json({
+      success: true,
+      layouts: availableLayouts,
+    });
+  } catch (error) {
+    console.error("Error fetching available table layouts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching available table layouts",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   addTableCode,
   getTableCounts,
@@ -2252,4 +2302,5 @@ module.exports = {
   sendTableCancellationEmail,
   sendTableDeclinedEmail,
   sendTableUpdateEmail,
+  getAvailableTableLayouts,
 };

@@ -10,7 +10,20 @@
       "Bash(npm --version)",
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "Bash(curl:*)",
+      "mcp__puppeteer__puppeteer_navigate",
+      "Bash(sudo apt-get:*)",
+      "Bash(sudo apt-get install:*)",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_click",
+      "Bash(hostname:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

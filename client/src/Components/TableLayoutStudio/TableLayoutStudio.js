@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import "./TableLayout.scss"; // Ensure the CSS file exists and is correctly linked
+import "./TableLayoutStudio.scss"; // Ensure the CSS file exists and is correctly linked
 
-const TableLayout = ({
+const TableLayoutStudio = ({
   codes,
   tableNumber,
   setTableNumber,
@@ -138,7 +138,7 @@ const TableLayout = ({
   };
 
   return (
-    <div className="table-layout">
+    <div className="table-layout-studio">
       <div className="table-guide">Click an Available Table</div>
 
       {/* Table Layout 01 */}
@@ -331,4 +331,4 @@ const TableLayout = ({
   );
 };
 
-export default TableLayout;
+export default TableLayoutStudio;

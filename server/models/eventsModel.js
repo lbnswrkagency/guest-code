@@ -157,6 +157,13 @@ const EventSchema = new Schema(
       default: () => ({}),
     },
 
+    // Table layout configuration
+    tableLayout: {
+      type: String,
+      enum: ["", "studio", "bolivar", "venti"],
+      default: "",
+    },
+
     link: { type: String, required: true, unique: true },
     isPublic: { type: Boolean, default: true },
   },

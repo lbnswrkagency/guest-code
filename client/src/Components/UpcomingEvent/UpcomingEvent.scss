@@ -798,7 +798,8 @@
     .upcomingEvent-event-subtitle {
       font-size: 1.1rem;
       color: rgba(255, 255, 255, 0.85);
-
+      margin-bottom: 1rem;
+      margin-top: 0.5rem;
       font-weight: 500;
       line-height: 1.4;
       text-align: center;
@@ -828,30 +829,6 @@
     .upcomingEvent-details {
       background-color: #151515;
       flex: 1;
-
-      .upcomingEvent-description-container {
-        margin: 1rem auto;
-        padding: 1rem 1.25rem;
-        max-width: 85%;
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        position: relative;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-
-        .upcomingEvent-event-description {
-          color: rgba(255, 255, 255, 0.85);
-          font-size: 0.95rem;
-          line-height: 1.6;
-          margin: 0;
-          position: relative;
-          font-weight: 300;
-          font-style: italic;
-          letter-spacing: 0.02em;
-        }
-      }
 
       .upcomingEvent-details-section {
         margin: 1.5rem 0;
@@ -929,11 +906,11 @@
         .upcomingEvent-image-wrapper {
           max-height: 700px;
         }
-        
+
         .upcomingEvent-image-container {
           max-width: 100%;
           margin: 0;
-          
+
           .upcomingEvent-event-image {
             max-height: 700px;
             max-width: 100%;
@@ -946,14 +923,14 @@
         .upcomingEvent-image-container {
           aspect-ratio: 1/1;
           max-width: 100%;
-          
+
           .upcomingEvent-event-image {
             max-height: 500px;
           }
         }
       }
 
-      // Landscape flyer adjustments for desktop  
+      // Landscape flyer adjustments for desktop
       &.has-landscape-flyer {
         .upcomingEvent-image-container {
           .upcomingEvent-event-image {
@@ -981,7 +958,7 @@
       .upcomingEvent-event-title {
         font-size: 2rem;
         text-align: left;
-        
+
         &::after {
           left: 0;
           transform: none;
@@ -997,7 +974,7 @@
       .upcomingEvent-details {
         background: transparent;
         flex: 1;
-        
+
         .upcomingEvent-description-container {
           margin: 1rem 0;
           max-width: 100%;
@@ -1026,7 +1003,7 @@
         .upcomingEvent-image-wrapper {
           max-height: 800px;
         }
-        
+
         .upcomingEvent-image-container {
           .upcomingEvent-event-image {
             max-height: 800px;
@@ -1950,15 +1927,20 @@
     .upcomingEvent-description-container {
       .upcomingEvent-event-description {
         padding: 1rem;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.92);
-        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.5;
+        font-size: 0.8rem;
         position: relative;
-        
+
         &::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -2035,9 +2017,9 @@
           letter-spacing: 0.02em;
           position: relative;
           padding-left: 1rem;
-          
+
           &::before {
-            content: '';
+            content: "";
             position: absolute;
             left: 0;
             top: 50%;
@@ -2052,12 +2034,16 @@
 
       .upcomingEvent-description-container {
         .upcomingEvent-event-description {
-          font-size: 1.1rem;
-          line-height: 1.7;
-          color: rgba(255, 255, 255, 0.95);
+          font-size: 0.95rem;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.88);
           margin: 0;
           padding: 1.5rem;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.08),
+            rgba(255, 255, 255, 0.04)
+          );
           border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -2065,9 +2051,12 @@
           position: relative;
           overflow: hidden;
           max-width: 90%;
-          
+          font-weight: 400;
+          letter-spacing: 0.025em;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
           &::before {
-            content: '';
+            content: "";
             position: absolute;
             top: 0;
             left: 0;
@@ -2076,9 +2065,9 @@
             background: linear-gradient(180deg, #ffc807, #ffaa07);
             border-radius: 0 2px 2px 0;
           }
-          
+
           &::after {
-            content: '';
+            content: "";
             position: absolute;
             top: 0;
             left: 0;
@@ -2104,7 +2093,9 @@
     }
 
     // Adjust flyer sizing for different formats in desktop view
-    &.has-portrait-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container {
+    &.has-portrait-flyer
+      .upcomingEvent-image-wrapper
+      .upcomingEvent-image-container {
       .upcomingEvent-event-image {
         max-height: 600px;
         width: auto;
@@ -2112,14 +2103,18 @@
       }
     }
 
-    &.has-square-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container {
+    &.has-square-flyer
+      .upcomingEvent-image-wrapper
+      .upcomingEvent-image-container {
       .upcomingEvent-event-image {
         max-height: 500px;
         max-width: 100%;
       }
     }
 
-    &.has-landscape-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container {
+    &.has-landscape-flyer
+      .upcomingEvent-image-wrapper
+      .upcomingEvent-image-container {
       .upcomingEvent-event-image {
         max-height: 400px;
         width: 100%;
@@ -2159,8 +2154,8 @@
 
       .upcomingEvent-description-container {
         .upcomingEvent-event-description {
-          font-size: 1.2rem;
-          line-height: 1.8;
+          font-size: 1.05rem;
+          line-height: 1.7;
           padding: 2rem;
         }
       }
@@ -2204,8 +2199,8 @@
 
       .upcomingEvent-description-container {
         .upcomingEvent-event-description {
-          font-size: 1.3rem;
-          line-height: 1.9;
+          font-size: 1.1rem;
+          line-height: 1.8;
           padding: 2.5rem;
         }
       }
@@ -2214,6 +2209,77 @@
     .upcomingEvent-full-width-sections {
       margin-top: 4rem;
       gap: 4rem;
+    }
+  }
+}
+
+.upcomingEvent-description-container {
+  margin: 1rem auto;
+  padding: 1.5rem 1.75rem;
+  max-width: 85%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(255, 200, 7, 0.02) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+
+  // Add accent border on the left
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(
+      180deg,
+      #ffc807 0%,
+      rgba(255, 200, 7, 0.7) 50%,
+      rgba(255, 200, 7, 0.3) 100%
+    );
+    border-radius: 0 2px 2px 0;
+  }
+
+  // Add subtle texture overlay
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at 30% 20%,
+      rgba(255, 200, 7, 0.05) 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+  }
+
+  .upcomingEvent-event-description {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    position: relative;
+    z-index: 2;
+    font-weight: 400;
+    letter-spacing: 0.025em;
+    text-align: left;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+    @media (max-width: 768px) {
+      font-size: 0.8rem;
+      line-height: 1.4;
     }
   }
 }

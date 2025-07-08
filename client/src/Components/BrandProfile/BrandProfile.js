@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./BrandProfile.scss";
 import Navigation from "../Navigation/Navigation";
@@ -26,6 +32,10 @@ import {
   RiTelegramLine,
   RiStarLine,
   RiStarFill,
+  RiTicketLine,
+  RiVipCrownLine,
+  RiTableLine,
+  RiArrowRightSLine,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
@@ -54,6 +64,27 @@ const BrandProfile = () => {
   });
   const [joinRequests, setJoinRequests] = useState([]);
   const [loadingJoinRequests, setLoadingJoinRequests] = useState(false);
+
+  // State for current event and action buttons
+  const [currentEvent, setCurrentEvent] = useState(null);
+  const [ticketSettings, setTicketSettings] = useState([]);
+  const [codeSettings, setCodeSettings] = useState([]);
+  const [loadingEventData, setLoadingEventData] = useState(false);
+
+  // Filter ticket settings to only include visible ones (same as UpcomingEvent)
+  const visibleTicketSettings = useMemo(() => {
+    // Ensure ticketSettings exists and is an array before filtering
+    if (!Array.isArray(ticketSettings)) {
+      return [];
+    }
+    // Filter out tickets where isVisible is explicitly false
+    return ticketSettings.filter((ticket) => ticket.isVisible !== false);
+  }, [ticketSettings]);
+
+  // State for sticky action buttons
+  const [isActionButtonsSticky, setIsActionButtonsSticky] = useState(false);
+  const actionButtonsRef = useRef(null);
+  const actionButtonsStickyPosRef = useRef(null);
 
   // Clean username for API calls - handle both param and direct path extraction
   let cleanUsername;
@@ -99,7 +130,6 @@ const BrandProfile = () => {
       navigate("/");
     }
   }, [cleanUsername, user]);
-
 
   useEffect(() => {
     if (brand?.userStatus) {
@@ -473,21 +503,241 @@ const BrandProfile = () => {
     }
   };
 
+  // Add ticket settings cache (same as UpcomingEvent)
+  const [ticketSettingsCache, setTicketSettingsCache] = useState({});
+
+  // Fetch ticket settings function (same logic as UpcomingEvent)
+  const fetchTicketSettings = useCallback(
+    async (eventId, currentEvent) => {
+      if (!eventId) {
+        return [];
+      }
+
+      try {
+        // Check if we already have this event's ticket settings in cache
+        if (ticketSettingsCache[eventId]) {
+          return ticketSettingsCache[eventId];
+        }
+
+        // Try the event profile endpoint which has optional authentication
+        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${eventId}`;
+        const response = await axiosInstance.get(endpoint);
+
+        let ticketSettings = [];
+
+        if (
+          response.data &&
+          response.data.ticketSettings &&
+          response.data.ticketSettings.length > 0
+        ) {
+          ticketSettings = response.data.ticketSettings;
+        } else {
+          // If this is a child event (has parentEventId) and no ticket settings were found,
+          // try to get ticket settings from the parent event
+          if (currentEvent?.parentEventId) {
+            // Check if parent event ticket settings are in cache
+            if (ticketSettingsCache[currentEvent.parentEventId]) {
+              ticketSettings = ticketSettingsCache[currentEvent.parentEventId];
+            } else {
+              try {
+                const parentEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${currentEvent.parentEventId}`;
+                const parentResponse = await axiosInstance.get(parentEndpoint);
+
+                if (
+                  parentResponse.data &&
+                  parentResponse.data.ticketSettings &&
+                  parentResponse.data.ticketSettings.length > 0
+                ) {
+                  ticketSettings = parentResponse.data.ticketSettings;
+
+                  // Cache the parent's ticket settings too
+                  setTicketSettingsCache((prev) => ({
+                    ...prev,
+                    [currentEvent.parentEventId]: ticketSettings,
+                  }));
+                }
+              } catch (parentError) {
+                console.log("BrandProfile parent fetch error:", parentError);
+              }
+            }
+          }
+        }
+
+        // Cache the ticket settings for this event
+        setTicketSettingsCache((prev) => ({
+          ...prev,
+          [eventId]: ticketSettings,
+        }));
+
+        return ticketSettings;
+      } catch (error) {
+        console.log("BrandProfile ticket fetch error:", error);
+        return [];
+      }
+    },
+    [ticketSettingsCache]
+  );
+
+  // Handler for when an event is selected from UpcomingEvent
+  const handleEventChange = useCallback(
+    async (event) => {
+      if (!event) {
+        setCurrentEvent(null);
+        setTicketSettings([]);
+        setCodeSettings([]);
+        return;
+      }
+
+      // Initialize ticketsAvailable to true by default if not explicitly false (same as UpcomingEvent)
+      const eventCopy = { ...event };
+      if (eventCopy.ticketsAvailable === undefined) {
+        eventCopy.ticketsAvailable = true;
+      }
+
+      setCurrentEvent(eventCopy);
+      setLoadingEventData(true);
+
+      try {
+        // Use the same sophisticated ticket fetching logic as UpcomingEvent
+        const fetchedTicketSettings = await fetchTicketSettings(
+          event._id,
+          eventCopy
+        );
+
+        // Use the same endpoint as UpcomingEvent for code settings
+        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event._id}`;
+        const response = await axiosInstance.get(endpoint);
+
+        const codeSettings = response.data?.codeSettings || [];
+
+        setTicketSettings(fetchedTicketSettings);
+        setCodeSettings(codeSettings);
+
+        console.log("BrandProfile extracted data (updated):", {
+          ticketSettings: fetchedTicketSettings,
+          codeSettings,
+          ticketCount: fetchedTicketSettings.length,
+          codeCount: codeSettings.length,
+        });
+      } catch (error) {
+        console.log("BrandProfile fetch error:", error);
+        // Silent fail - just set empty arrays
+        setTicketSettings([]);
+        setCodeSettings([]);
+      } finally {
+        setLoadingEventData(false);
+      }
+    },
+    [fetchTicketSettings]
+  );
+
+  // Scroll handler functions for action buttons
+  const scrollToTickets = useCallback((e) => {
+    e.stopPropagation();
+    const ticketsSection = document.querySelector(
+      ".upcomingEvent-ticket-section"
+    );
+    if (ticketsSection) {
+      ticketsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  const scrollToGuestCode = useCallback((e) => {
+    e.stopPropagation();
+    const guestCodeSection = document.querySelector(
+      ".upcomingEvent-guest-code-section"
+    );
+    if (guestCodeSection) {
+      guestCodeSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  const scrollToTableBooking = useCallback((e) => {
+    e.stopPropagation();
+    const tableSection = document.querySelector(
+      ".upcomingEvent-table-booking-section"
+    );
+    if (tableSection) {
+      tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  // Cache the sticky position calculation
+  const [cachedStickyPos, setCachedStickyPos] = useState(0);
+  const lastScrollY = useRef(0);
+  const scrollTimeout = useRef(null);
+
+  // Throttled scroll handler for sticky action buttons
+  const handleActionButtonsScroll = useCallback(() => {
+    if (!actionButtonsRef.current || !actionButtonsStickyPosRef.current) return;
+
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    // Only recalculate sticky position when necessary
+    let stickyPos = cachedStickyPos;
+    if (stickyPos === 0 && actionButtonsStickyPosRef.current) {
+      const rect = actionButtonsStickyPosRef.current.getBoundingClientRect();
+      stickyPos = rect.top + scrollY;
+      setCachedStickyPos(stickyPos);
+    }
+
+    const navHeight = 56; // Navigation height
+    const buffer = 20; // Increased buffer to prevent rapid state changes
+
+    const shouldBeSticky = scrollY > stickyPos - navHeight - buffer;
+
+    // Only update state if it actually changed and we've moved enough
+    const scrollDelta = Math.abs(scrollY - lastScrollY.current);
+    if (shouldBeSticky !== isActionButtonsSticky && scrollDelta > 5) {
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+
+      scrollTimeout.current = setTimeout(() => {
+        setIsActionButtonsSticky(shouldBeSticky);
+      }, 100); // Increased delay to prevent rapid changes
+    }
+
+    lastScrollY.current = scrollY;
+  }, [isActionButtonsSticky, cachedStickyPos]);
+
+  // Setup throttled scroll listener for sticky action buttons
+  useEffect(() => {
+    let ticking = false;
+
+    const throttledScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleActionButtonsScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", throttledScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", throttledScroll);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, [handleActionButtonsScroll]);
+
+  // Recalculate sticky position when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      setCachedStickyPos(0); // Reset cached position on resize
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const renderActions = () => {
     if (!user) {
-      return (
-        <div className="brand-actions">
-          {/* Only show the share button for public view */}
-          <motion.button
-            className="action-button"
-            onClick={handleShare}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <RiShareLine />
-          </motion.button>
-        </div>
-      );
+      return null; // Don't render any actions for non-authenticated users
     }
 
     return (
@@ -530,12 +780,208 @@ const BrandProfile = () => {
     );
   };
 
+  // Function to check if event supports table booking
+  const supportsTableBooking = useCallback((event) => {
+    if (!event) return false;
+
+    // Primary check: Does event have a table layout configured?
+    if (event.tableLayout && event.tableLayout !== "") {
+      return true;
+    }
+
+    // Exclude specific brand ID that should not show table bookings
+    if (
+      event.brand === "67d737d6e1299b18afabf4f4" ||
+      (event.brand && event.brand._id === "67d737d6e1299b18afabf4f4")
+    ) {
+      return false;
+    }
+
+    // Legacy fallback: Check for supported brands/events
+    return (
+      event._id === "6807c197d4455638731dbda6" ||
+      (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
+      event.brand === "67ba051873bd89352d3ab6db"
+    );
+  }, []);
+
+  // Function to render event action buttons
+  const renderEventActionButtons = () => {
+    if (!currentEvent || loadingEventData) return null;
+
+    const supportsTableBookingForEvent = supportsTableBooking(currentEvent);
+
+    // Use the EXACT SAME logic as UpcomingEvent:
+    // {currentEvent && currentEvent.ticketsAvailable !== false && visibleTicketSettings.length > 0 && (...)}
+    const ticketsAvailable =
+      currentEvent &&
+      currentEvent.ticketsAvailable !== false &&
+      visibleTicketSettings.length > 0;
+
+    // For guest code, check if it's enabled - always show it if event exists
+    const showGuestCode = !!currentEvent;
+
+    // Debug logging
+    console.log("BrandProfile Button Debug:", {
+      currentEvent: currentEvent?.title,
+      ticketsAvailable: currentEvent?.ticketsAvailable,
+      visibleTicketSettings: visibleTicketSettings,
+      visibleCount: visibleTicketSettings.length,
+      finalTicketsAvailable: ticketsAvailable,
+      showGuestCode,
+      supportsTableBookingForEvent,
+    });
+
+    // Only render if any action is available
+    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode) {
+      return null;
+    }
+
+    return (
+      <>
+        {/* Sticky position marker */}
+        <div
+          ref={actionButtonsStickyPosRef}
+          className="action-buttons-sticky-marker"
+        ></div>
+
+        <div
+          ref={actionButtonsRef}
+          className={`brand-event-actions ${
+            isActionButtonsSticky ? "sticky" : ""
+          }`}
+        >
+          {/* Tickets button */}
+          {ticketsAvailable && (
+            <motion.button
+              className="event-action-button tickets-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={scrollToTickets}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiTicketLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Tickets</span>
+                  <span className="button-text-short">Tickets</span>
+                  {!isActionButtonsSticky && <p>Buy tickets online</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Guest Code button */}
+          {showGuestCode && (
+            <motion.button
+              className="event-action-button guestcode-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={scrollToGuestCode}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiVipCrownLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Guest Code</span>
+                  <span className="button-text-short">Codes</span>
+                  {!isActionButtonsSticky && <p>Free entry with code</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Table booking button */}
+          {supportsTableBookingForEvent && (
+            <motion.button
+              className="event-action-button table-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={scrollToTableBooking}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiTableLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Book Table</span>
+                  <span className="button-text-short">Tables</span>
+                  {!isActionButtonsSticky && <p>Reserve your table now</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+        </div>
+      </>
+    );
+  };
+
   if (loading) {
     return (
       <div className="page-wrapper">
         <Navigation onBack={handleBack} />
         <div className="brand-profile loading">
-          <div className="loading-spinner" />
+          <div className="charming-loading">
+            {/* Animated background elements */}
+            <div className="loading-background">
+              <div className="floating-orb orb-1"></div>
+              <div className="floating-orb orb-2"></div>
+              <div className="floating-orb orb-3"></div>
+              <div className="shimmer-overlay"></div>
+            </div>
+
+            {/* Main loading content */}
+            <div className="loading-content">
+              {/* Logo area with pulse animation */}
+              <div className="loading-logo">
+                <div className="logo-container">
+                  <div className="logo-ring"></div>
+                  <div className="logo-center">
+                    <div className="logo-placeholder">
+                      {cleanUsername
+                        ? cleanUsername.charAt(0).toUpperCase()
+                        : "G"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Welcome text */}
+              <div className="loading-text">
+                <h1 className="welcome-title">
+                  {cleanUsername ? `Welcome to @${cleanUsername}` : "Welcome"}
+                </h1>
+                <p className="loading-subtitle">
+                  Preparing your exclusive experience...
+                </p>
+              </div>
+
+              {/* Animated progress dots */}
+              <div className="loading-dots">
+                <div className="dot dot-1"></div>
+                <div className="dot dot-2"></div>
+                <div className="dot dot-3"></div>
+                <div className="dot dot-4"></div>
+                <div className="dot dot-5"></div>
+              </div>
+
+              {/* Loading bar */}
+              <div className="loading-bar">
+                <div className="loading-progress"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -600,7 +1046,10 @@ const BrandProfile = () => {
             {renderActions()}
           </div>
 
-          {user && (
+          {/* Event action buttons section */}
+          {renderEventActionButtons()}
+
+          {/* {user && (
             <div className="brand-stats">
               <div className="stat-item">
                 <span className="stat-value">{brand.team?.length || 0}</span>
@@ -625,7 +1074,7 @@ const BrandProfile = () => {
                 </span>
               </div>
             </div>
-          )}
+          )} */}
 
           {brand.social &&
             Object.keys(brand.social).some((key) => brand.social[key]) && (
@@ -680,7 +1129,7 @@ const BrandProfile = () => {
           )}
         </div>
 
-        <BrandProfileFeed brand={brand} />
+        <BrandProfileFeed brand={brand} onEventChange={handleEventChange} />
       </div>
 
       <AnimatePresence mode="wait">

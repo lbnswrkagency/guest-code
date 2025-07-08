@@ -77,6 +77,10 @@ exports.createDefaultRoles = async (brandId, userId) => {
         scanner: {
           use: true,
         },
+        tables: {
+          access: true,
+          manage: true,
+        },
       },
     });
 
@@ -104,6 +108,10 @@ exports.createDefaultRoles = async (brandId, userId) => {
         codes: limitedCodePermissions,
         scanner: {
           use: false,
+        },
+        tables: {
+          access: false,
+          manage: false,
         },
       },
     });

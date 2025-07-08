@@ -31,6 +31,7 @@ const DashboardMenu = ({
   const [permissions, setPermissions] = useState({
     analytics: { view: false },
     scanner: { use: false },
+    tables: { access: false, manage: false },
     codes: {
       canGenerateAny: false,
       settings: [],
@@ -54,16 +55,8 @@ const DashboardMenu = ({
       return false;
     }
 
-    // Show for any user who is part of the specified brands
-    if (
-      selectedBrand &&
-      (selectedBrand._id === "67ba051873bd89352d3ab6db" ||
-        selectedBrand._id === "67d737d6e1299b18afabf4f4")
-    ) {
-      return true;
-    }
-
-    return false;
+    // Check if user has table access permission based on their role
+    return permissions.tables.access;
   };
 
   useEffect(() => {
@@ -71,6 +64,8 @@ const DashboardMenu = ({
       // Check user role permissions directly
       let hasAnalyticsPermission = false;
       let hasScannerPermission = false;
+      let hasTableAccessPermission = false;
+      let hasTableManagePermission = false;
 
       // Loop through all user roles to check permissions
       userRoles.forEach((role) => {
@@ -91,6 +86,16 @@ const DashboardMenu = ({
           ) {
             hasScannerPermission = true;
           }
+
+          // Check table permissions
+          if (role.permissions.tables) {
+            if (role.permissions.tables.access === true) {
+              hasTableAccessPermission = true;
+            }
+            if (role.permissions.tables.manage === true) {
+              hasTableManagePermission = true;
+            }
+          }
         }
       });
 
@@ -101,6 +106,10 @@ const DashboardMenu = ({
         },
         scanner: {
           use: hasScannerPermission,
+        },
+        tables: {
+          access: hasTableAccessPermission,
+          manage: hasTableManagePermission,
         },
         codes: {
           canGenerateAny: accessSummary.canCreateCodes || false,

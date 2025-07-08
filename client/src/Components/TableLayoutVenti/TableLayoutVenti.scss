@@ -1,0 +1,2069 @@
+@import "../../_variables";
+
+$background-color: #1a1a1a;
+$text-color: #ffffff;
+$vip-color: #ffd700; // Gold for VIP tables
+$backstage-color: #80221c; // Rich, deeper red for backstage
+$regular-table-color: #4a90e2; // Keep the blue for regular tables
+$border-color: #333333;
+$accent-color: #8a2be2; // Deep purple for accents
+$premium-green: #2e8b57; // Premium emerald green for V tables
+$premium-green-border: #3cb371; // Lighter green for border contrast
+$silver-table: #c0c0c0; // Silver for B tables
+$silver-border: #e6e6e6; // Lighter silver for border
+$purple-premium: #663399; // Purple for P tables
+$purple-border: #9966cc; // Lighter purple for border
+
+$dj-area-color: #ffd700; // Premium gold color
+$dj-area-glow: rgba(255, 215, 0, 0.3);
+
+$anthracite-bg: #2d2d2d;
+$anthracite-border: #626262;
+$anthracite-hover: #252525;
+
+.table-layout-venti {
+  display: grid;
+  justify-self: center;
+  position: relative;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(min-content, max-content));
+  grid-template-rows: repeat(2, minmax(min-content, max-content));
+  // Subtle gradient overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      45deg,
+      rgba(102, 51, 153, 0.03),
+      rgba(0, 0, 0, 0) 70%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+    width: 100%;
+  }
+
+  // Optional hover effect
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15),
+      0 3px 6px -2px rgba(0, 0, 0, 0.1),
+      inset 0 1px 2px rgba(255, 255, 255, 0.15);
+  }
+
+  // Optional modern edge glow
+  &::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      45deg,
+      rgba(102, 51, 153, 0.1),
+      transparent 30%,
+      transparent 70%,
+      rgba(102, 51, 153, 0.1)
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  // Floating guide message
+  .table-guide {
+    position: absolute;
+    top: 4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.4rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: #fff;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Add animation to move up and down */
+    animation: floatGuide 2s ease-in-out infinite;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .table-garden {
+    width: 363px;
+    height: 100px;
+    justify-self: center;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+
+    /* Night garden gradient background */
+    background: linear-gradient(
+      to bottom,
+      #0f0f23 0%,
+      /* Deep night sky */ #1a1a2e 15%,
+      /* Night sky */ #16213e 30%,
+      /* Evening sky */ #2c3e50 45%,
+      /* Twilight */ #34495e 60%,
+      /* Garden shadow */ #2c3e50 75%,
+      /* Dark grass */ #1a5f3f 90%,
+      /* Green grass */ #27ae60 100% /* Fresh grass */
+    );
+
+    /* Moonlight effect */
+    .moonlight {
+      position: absolute;
+      top: -30px;
+      left: 20px;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(240, 248, 255, 0.6) 20%,
+        rgba(176, 196, 222, 0.4) 40%,
+        rgba(119, 136, 153, 0.2) 60%,
+        transparent 80%
+      );
+      border-radius: 50%;
+      z-index: 10;
+      filter: blur(3px);
+      animation: moonGlow 12s infinite alternate;
+      box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.3);
+      transform: translateZ(0);
+    }
+
+    /* Gentle garden breeze effect on TOP */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -5%;
+      right: -5%;
+      bottom: 30%;
+      background: 
+        /* Gentle wind patterns */ repeating-linear-gradient(
+          170deg,
+          transparent 0px,
+          transparent 4px,
+          rgba(255, 255, 255, 0.08) 4px,
+          rgba(255, 255, 255, 0.08) 6px
+        ),
+        repeating-linear-gradient(
+          190deg,
+          transparent 0px,
+          transparent 6px,
+          rgba(255, 255, 255, 0.06) 6px,
+          rgba(255, 255, 255, 0.06) 8px
+        ),
+        /* Moonbeam patterns */
+          repeating-radial-gradient(
+            ellipse at 25% 20%,
+            rgba(255, 255, 255, 0.12) 0px,
+            rgba(255, 255, 255, 0.12) 1px,
+            transparent 2px,
+            transparent 8px
+          ),
+        repeating-radial-gradient(
+          ellipse at 75% 30%,
+          rgba(255, 255, 255, 0.1) 0px,
+          rgba(255, 255, 255, 0.1) 1px,
+          transparent 2px,
+          transparent 10px
+        );
+      background-size: 100% 100%, 90% 90%, 60% 60%, 70% 70%;
+      background-blend-mode: screen;
+      transform-origin: bottom center;
+      animation: gentleBreeze 25s linear infinite;
+      z-index: 2;
+    }
+
+    /* Garden texture on BOTTOM */
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        /* Grass texture */ url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grassFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grassFilter)'/%3E%3C/svg%3E"),
+        /* Small dots for flower petals */
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(144, 238, 144, 0.2) 0%,
+            rgba(144, 238, 144, 0.2) 2px,
+            transparent 2px
+          ),
+        /* Subtle garden paths */
+          repeating-linear-gradient(
+            35deg,
+            transparent 0px,
+            transparent 5px,
+            rgba(34, 139, 34, 0.1) 5px,
+            rgba(34, 139, 34, 0.1) 6px
+          );
+      background-size: 50px 50px, 8px 8px, 12px 12px;
+      background-blend-mode: overlay, multiply, normal;
+      transform: translateZ(0);
+      z-index: 1;
+    }
+  }
+
+  &-01 {
+    display: grid;
+    grid-gap: 10px !important;
+    grid-template-columns: repeat(3, 35px);
+    grid-template-rows: repeat(10, 35px);
+
+    grid-column: 1/2;
+    grid-row: 2/3;
+    position: relative;
+
+    .d1 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 10/11;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d2 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 9/10;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d3 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 8/9;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d4 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 7/8;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d5 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 4/5;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d6 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 3/4;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d7 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 2/3;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .d8 {
+      align-self: center;
+      z-index: 15;
+      grid-row: 1/2;
+      grid-column: 1/3;
+      margin-left: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .dj-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(255, 215, 0, 0.9);
+      border-radius: 8px;
+      position: relative;
+      justify-self: stretch;
+      align-self: stretch;
+      width: 35px;
+      height: 75px;
+      margin-left: 0.5rem;
+
+      background: linear-gradient(
+        135deg,
+        rgba(255, 215, 0, 0.95),
+        rgba(255, 193, 7, 0.9),
+        rgba(255, 140, 0, 0.85)
+      );
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+        0 0 12px rgba(255, 215, 0, 0.6),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
+      z-index: 25;
+      height: 70px;
+      overflow: hidden;
+      grid-row: 5/8;
+      grid-column: 1/2;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+
+      /* Clean DJ area pattern - like entrance style */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* Clean DJ equipment lines - no dots over text */ repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 8px,
+            rgba(255, 255, 255, 0.15) 8px,
+            rgba(255, 255, 255, 0.15) 10px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 6px,
+            rgba(255, 215, 0, 0.2) 6px,
+            rgba(255, 215, 0, 0.2) 8px
+          );
+        z-index: 1;
+        border-radius: 6px;
+      }
+
+      p {
+        color: rgba(20, 20, 20, 0.95);
+        font-weight: 900; /* Extra bold for better readability */
+        margin: 0;
+        letter-spacing: 3px;
+        text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(255, 215, 0, 0.8), 0 0 15px rgba(255, 255, 255, 0.6);
+        font-size: 1.1rem;
+        z-index: 2;
+        text-transform: uppercase;
+        transform: rotate(180deg); /* Text written top to bottom like BAR */
+      }
+    }
+
+    .table-main-floor {
+      background: linear-gradient(
+        135deg,
+        rgba(220, 20, 60, 0.5),
+        rgba(255, 69, 0, 0.6),
+        rgba(255, 140, 0, 0.4)
+      );
+      height: 100%;
+      width: 100%;
+      grid-column: 1/4;
+      grid-row: 1/11; /* Extended to fill bottom properly */
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
+        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
+        inset 0 3px 8px rgba(255, 69, 0, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 69, 0, 0.5);
+
+      /* Premium DJ floor pattern - hexagonal stage tiles */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          /* Hexagonal stage pattern */ radial-gradient(
+            circle at 25% 25%,
+            rgba(255, 69, 0, 0.1) 6px,
+            transparent 6px
+          ),
+          radial-gradient(
+            circle at 75% 25%,
+            rgba(220, 20, 60, 0.08) 5px,
+            transparent 5px
+          ),
+          radial-gradient(
+            circle at 50% 75%,
+            rgba(255, 140, 0, 0.12) 7px,
+            transparent 7px
+          ),
+          /* DJ booth line patterns */
+            repeating-linear-gradient(
+              120deg,
+              transparent 0px,
+              transparent 15px,
+              rgba(255, 255, 255, 0.06) 15px,
+              rgba(255, 255, 255, 0.06) 17px
+            ),
+          /* Premium grid */
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 30px 30px, 25px 25px, 35px 35px, 20px 20px, 10px 10px,
+          10px 10px;
+        z-index: 0;
+      }
+
+      /* Enhanced DJ lighting */
+      &::after {
+        content: "";
+        position: absolute;
+        width: 120%;
+        height: 120%;
+        top: -10%;
+        left: -10%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 69, 0, 0.2) 0%,
+          rgba(220, 20, 60, 0.15) 30%,
+          rgba(255, 140, 0, 0.1) 60%,
+          transparent 80%
+        );
+        z-index: 1;
+        animation: gentleBreeze 6s ease-in-out infinite;
+      }
+    }
+
+    /* Top steps element - 15% spacing */
+    .top-steps {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 15%;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.7) 0px,
+        rgba(255, 255, 255, 0.7) 2px,
+        rgba(240, 240, 240, 0.6) 2px,
+        rgba(240, 240, 240, 0.6) 4px,
+        transparent 4px,
+        transparent 8px
+      );
+      border-radius: 0 3px 3px 0;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+      z-index: 12;
+    }
+
+    /* Bottom steps element - aligned to right line */
+    .bottom-steps {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 25px;
+      height: 10%;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.7) 0px,
+        rgba(255, 255, 255, 0.7) 2px,
+        rgba(240, 240, 240, 0.6) 2px,
+        rgba(240, 240, 240, 0.6) 4px,
+        transparent 4px,
+        transparent 8px
+      );
+      border-radius: 0 3px 3px 0;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+      z-index: 12;
+    }
+
+    /* Right columns (säulen) - ONLY on right border with 6 capitals */
+    .right-columns {
+      position: absolute;
+      top: 15%;
+      right: -7px;
+      width: 7px;
+      height: 75%;
+      margin-right: 2rem;
+      background: 
+        /* Fine column fluting */ repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.95) 0px,
+          rgba(248, 248, 248, 0.9) 0.8px,
+          rgba(240, 240, 240, 0.85) 1.5px,
+          rgba(248, 248, 248, 0.9) 2.2px,
+          rgba(255, 255, 255, 0.95) 3px
+        ),
+        /* Elegant column segments */
+          repeating-linear-gradient(
+            to bottom,
+            rgba(250, 250, 250, 0.95) 0px,
+            rgba(245, 245, 245, 0.9) 15px,
+            rgba(235, 235, 235, 0.85) 17px,
+            rgba(225, 225, 225, 0.8) 19px,
+            rgba(235, 235, 235, 0.85) 21px,
+            rgba(245, 245, 245, 0.9) 23px,
+            rgba(250, 250, 250, 0.95) 38px
+          );
+      border-radius: 0 4px 4px 0;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.05), 2px 0 8px rgba(0, 0, 0, 0.15),
+        1px 0 4px rgba(0, 0, 0, 0.08);
+      z-index: 12;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-left: none;
+
+      /* 6 Column capitals */
+      &::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        right: -5px;
+        width: 100%;
+        height: calc(100% + 4px);
+        background-image: 
+          /* 6 evenly spaced capitals */ radial-gradient(
+            circle at right 12%,
+            rgba(255, 255, 255, 0.9) 0px,
+            rgba(250, 250, 250, 0.8) 4px,
+            rgba(240, 240, 240, 0.6) 6px,
+            transparent 8px
+          ),
+          radial-gradient(
+            circle at right 28%,
+            rgba(255, 255, 255, 0.85) 0px,
+            rgba(245, 245, 245, 0.7) 3px,
+            rgba(235, 235, 235, 0.5) 5px,
+            transparent 7px
+          ),
+          radial-gradient(
+            circle at right 44%,
+            rgba(255, 255, 255, 0.9) 0px,
+            rgba(250, 250, 250, 0.8) 4px,
+            rgba(240, 240, 240, 0.6) 6px,
+            transparent 8px
+          ),
+          radial-gradient(
+            circle at right 56%,
+            rgba(255, 255, 255, 0.85) 0px,
+            rgba(245, 245, 245, 0.7) 3px,
+            rgba(235, 235, 235, 0.5) 5px,
+            transparent 7px
+          ),
+          radial-gradient(
+            circle at right 72%,
+            rgba(255, 255, 255, 0.9) 0px,
+            rgba(250, 250, 250, 0.8) 4px,
+            rgba(240, 240, 240, 0.6) 6px,
+            transparent 8px
+          ),
+          radial-gradient(
+            circle at right 88%,
+            rgba(255, 255, 255, 0.85) 0px,
+            rgba(245, 245, 245, 0.7) 3px,
+            rgba(235, 235, 235, 0.5) 5px,
+            transparent 7px
+          );
+        border-radius: 0 6px 6px 0;
+        box-shadow: 1px 0 6px rgba(0, 0, 0, 0.08),
+          inset 1px 0 2px rgba(255, 255, 255, 0.5);
+        z-index: 1;
+      }
+    }
+  }
+
+  &-02 {
+    display: grid;
+    grid-gap: 10px !important;
+    grid-template-columns: repeat(3, 35px);
+    grid-template-rows: repeat(10, 35px);
+    justify-self: center;
+    position: relative;
+    background: linear-gradient(
+      45deg,
+      rgba(0, 206, 209, 0.2),
+      rgba(64, 224, 208, 0.3)
+    );
+    border-radius: 8px;
+    grid-column: 2/3;
+    grid-row: 2/3;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+
+    .bar-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: -5rem;
+
+      background: linear-gradient(
+        135deg,
+        rgba(0, 206, 209, 0.95),
+        rgba(64, 224, 208, 0.9),
+        rgba(32, 178, 170, 0.8)
+      );
+      border: 2px solid rgba(0, 206, 209, 0.9);
+      border-radius: 1.2rem;
+      grid-row: 3/9;
+      grid-column: 1/3;
+      height: 100%;
+      width: 35px;
+      justify-self: center;
+      box-shadow: 0 0 15px rgba(0, 206, 209, 0.6),
+        0 0 8px rgba(64, 224, 208, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
+      position: relative;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      overflow: hidden;
+      z-index: 20;
+
+      p {
+        color: rgba(255, 255, 255, 0.98);
+        font-weight: bold;
+        margin: 0;
+        letter-spacing: 2px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        font-size: 0.9rem;
+        z-index: 2;
+        transform: rotate(180deg);
+      }
+
+      /* Enhanced bar texture with bottles/glasses */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* Bottle shapes */ radial-gradient(
+            ellipse at 25% 15%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            ellipse at 75% 25%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            ellipse at 25% 40%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            ellipse at 75% 55%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            ellipse at 25% 70%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            ellipse at 75% 85%,
+            rgba(255, 255, 255, 0.3) 1px,
+            transparent 1px
+          ),
+          /* Bar counter lines */
+            repeating-linear-gradient(
+              0deg,
+              transparent 0px,
+              transparent 4px,
+              rgba(255, 255, 255, 0.15) 4px,
+              rgba(255, 255, 255, 0.15) 6px
+            );
+        z-index: 1;
+      }
+    }
+
+    .dancefloor-area {
+      background: linear-gradient(
+        135deg,
+        rgba(0, 206, 209, 0.6),
+        rgba(64, 224, 208, 0.7),
+        rgba(32, 178, 170, 0.5)
+      );
+      height: 100%;
+      width: 100%;
+      grid-column: 1/4;
+      grid-row: 1/11; /* Extended to fill properly */
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
+        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
+        inset 0 3px 8px rgba(0, 206, 209, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+      border: 1px solid rgba(0, 206, 209, 0.5);
+
+      /* Enhanced premium dancefloor pattern */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          /* Premium disco floor tiles - larger and more defined */ repeating-linear-gradient(
+            45deg,
+            transparent 0px,
+            transparent 12px,
+            rgba(255, 255, 255, 0.08) 12px,
+            rgba(255, 255, 255, 0.08) 24px
+          ),
+          repeating-linear-gradient(
+            -45deg,
+            transparent 0px,
+            transparent 12px,
+            rgba(0, 206, 209, 0.12) 12px,
+            rgba(0, 206, 209, 0.12) 24px
+          ),
+          /* Dance floor parquet effect */
+            repeating-linear-gradient(
+              90deg,
+              rgba(32, 178, 170, 0.1) 0px,
+              rgba(32, 178, 170, 0.1) 2px,
+              transparent 2px,
+              transparent 20px
+            ),
+          /* Fine grid for premium finish */
+            linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        background-size: 32px 32px, 32px 32px, 22px 22px, 16px 16px, 16px 16px;
+        z-index: 0;
+      }
+
+      /* Enhanced premium lighting with dance floor glow */
+      &::after {
+        content: "";
+        position: absolute;
+        width: 120%;
+        height: 120%;
+        top: -10%;
+        left: -10%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(0, 206, 209, 0.25) 0%,
+          rgba(64, 224, 208, 0.2) 30%,
+          rgba(32, 178, 170, 0.15) 60%,
+          transparent 80%
+        );
+        z-index: 1;
+        animation: gentleBreeze 8s ease-in-out infinite;
+      }
+    }
+
+    /* Entrance area at bottom - aligned left */
+    .entrance-area {
+      position: absolute;
+      bottom: 0;
+      left: 1rem;
+      width: 60%; /* 60% width */
+      height: 10%; /* Same height as WC */
+      background: linear-gradient(
+        135deg,
+        rgba(0, 206, 209, 0.95),
+        rgba(64, 224, 208, 0.9),
+        rgba(32, 178, 170, 0.95)
+      );
+      border: 2px solid rgba(0, 206, 209, 0.8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(0, 206, 209, 0.6),
+        0 0 6px rgba(64, 224, 208, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
+      z-index: 20;
+
+      p {
+        color: rgba(255, 255, 255, 0.98);
+        font-weight: bold;
+        margin: 0;
+        letter-spacing: 1px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        font-size: 0.6rem;
+        z-index: 2;
+      }
+
+      /* Entrance pattern */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* Door/entrance patterns */ repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 8px,
+            rgba(255, 255, 255, 0.2) 8px,
+            rgba(255, 255, 255, 0.2) 10px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 4px,
+            rgba(0, 206, 209, 0.3) 4px,
+            rgba(0, 206, 209, 0.3) 6px
+          );
+        z-index: 1;
+        border-radius: 6px;
+      }
+    }
+  }
+
+  &-03 {
+    display: grid;
+    grid-gap: 8px;
+    grid-template-columns: repeat(3, 35px);
+    grid-template-rows: repeat(10, 35px);
+    justify-self: start;
+    background: linear-gradient(
+      135deg,
+      rgba(46, 139, 87, 0.5),
+      rgba(60, 179, 113, 0.6),
+      rgba(34, 139, 34, 0.4)
+    );
+    border-radius: 12px;
+    grid-column: 3/4;
+    grid-row: 2/3;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
+      inset 0 -3px 8px rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+    transform: translateY(-2px); /* Slightly higher than 02 */
+    border: 1px solid rgba(60, 179, 113, 0.4);
+
+    /* Bottom left steps at 10% */
+    &::before {
+      content: "";
+      position: absolute;
+      bottom: 10%;
+      left: 0;
+      width: 6px;
+      height: 15%;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.6) 0px,
+        rgba(255, 255, 255, 0.6) 2px,
+        rgba(240, 240, 240, 0.5) 2px,
+        rgba(240, 240, 240, 0.5) 4px,
+        transparent 4px,
+        transparent 8px
+      );
+      border-radius: 0 3px 3px 0;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+
+    .v1 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 9/11;
+      grid-column: 3/4;
+      margin-right: 3rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .v2 {
+      justify-self: center;
+      align-self: end;
+      z-index: 15;
+      grid-row: 7/9;
+      margin-right: 3rem;
+      grid-column: 3/4;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .v3 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 6/8;
+      margin-right: 3rem;
+      grid-column: 3/4;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .v4 {
+      justify-self: center;
+      align-self: start;
+      z-index: 15;
+      grid-row: 5/7;
+      margin-right: 3rem;
+      grid-column: 3/4;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .v5 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 3/5;
+      margin-right: 3rem;
+      grid-column: 3/4;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .v6 {
+      justify-self: center;
+      align-self: end;
+      z-index: 15;
+      grid-row: 1/3;
+      margin-right: 3rem;
+      grid-column: 3/4;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .vip-background {
+      background: linear-gradient(
+        135deg,
+        rgba(46, 139, 87, 0.6),
+        rgba(60, 179, 113, 0.7),
+        rgba(34, 139, 34, 0.5)
+      );
+      height: 100%;
+      width: 100%;
+      grid-column: 1/4;
+      grid-row: 1/12;
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
+        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
+        inset 0 3px 8px rgba(60, 179, 113, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+      border: 1px solid rgba(60, 179, 113, 0.5);
+
+      /* Premium VIP lounge pattern - unique emerald luxury design */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          /* Emerald crystal texture pattern */ radial-gradient(
+            ellipse at 25% 25%,
+            rgba(60, 179, 113, 0.15) 8px,
+            transparent 8px
+          ),
+          radial-gradient(
+            ellipse at 75% 75%,
+            rgba(46, 139, 87, 0.12) 6px,
+            transparent 6px
+          ),
+          radial-gradient(
+            ellipse at 50% 50%,
+            rgba(34, 139, 34, 0.1) 10px,
+            transparent 10px
+          ),
+          /* VIP geometric emerald pattern */
+            repeating-linear-gradient(
+              60deg,
+              transparent 0px,
+              transparent 12px,
+              rgba(60, 179, 113, 0.08) 12px,
+              rgba(60, 179, 113, 0.08) 15px
+            ),
+          /* Emerald border accent */
+            repeating-linear-gradient(
+              120deg,
+              transparent 0px,
+              transparent 20px,
+              rgba(255, 255, 255, 0.04) 20px,
+              rgba(255, 255, 255, 0.04) 22px
+            );
+        background-size: 35px 35px, 30px 30px, 40px 40px, 25px 25px, 25px 25px;
+        z-index: 0;
+      }
+
+      /* Enhanced VIP luxury glow - emerald green theme */
+      &::after {
+        content: "";
+        position: absolute;
+        width: 120%;
+        height: 120%;
+        top: -10%;
+        left: -10%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(60, 179, 113, 0.25) 0%,
+          rgba(46, 139, 87, 0.2) 30%,
+          rgba(34, 139, 34, 0.15) 60%,
+          transparent 80%
+        );
+        z-index: 1;
+        animation: moonGlow 6s ease-in-out infinite;
+      }
+    }
+  }
+
+  &-04 {
+    display: grid;
+    grid-gap: 6px;
+    grid-template-columns: repeat(3, 35px);
+    grid-template-rows: repeat(5, 30px);
+    justify-self: start;
+    background: linear-gradient(
+      135deg,
+      rgba(70, 70, 70, 0.7),
+      rgba(45, 45, 45, 0.9)
+    );
+    border-radius: 8px;
+    grid-column: 1/2;
+    grid-row: 1/2;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6),
+      0 -3px 10px rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 3;
+    transform: perspective(200px) rotateX(8deg) translateY(-2px);
+
+    /* WC area at top - centered */
+    .wc-area {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70%; /* 70% width */
+      height: 16%; /* 16% height to match entrance area */
+      background: linear-gradient(
+        135deg,
+        rgba(200, 200, 200, 0.95),
+        rgba(180, 180, 180, 0.9),
+        rgba(160, 160, 160, 0.95)
+      );
+      border: 2px solid rgba(220, 220, 220, 0.8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(200, 200, 200, 0.6),
+        0 0 6px rgba(180, 180, 180, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
+      z-index: 20;
+
+      p {
+        color: rgba(80, 80, 80, 0.95);
+        font-weight: bold;
+        margin: 0;
+        letter-spacing: 1px;
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        font-size: 0.7rem;
+        z-index: 2;
+      }
+
+      /* WC icon pattern */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* WC symbol patterns */ radial-gradient(
+            circle at 25% 50%,
+            rgba(100, 100, 100, 0.3) 1px,
+            transparent 1px
+          ),
+          radial-gradient(
+            circle at 75% 50%,
+            rgba(100, 100, 100, 0.3) 1px,
+            transparent 1px
+          ),
+          /* Facility lines */
+            repeating-linear-gradient(
+              90deg,
+              transparent 0px,
+              transparent 4px,
+              rgba(255, 255, 255, 0.2) 4px,
+              rgba(255, 255, 255, 0.2) 6px
+            );
+        z-index: 1;
+        border-radius: 6px;
+      }
+    }
+
+    .staircase-area {
+      background: linear-gradient(
+        150deg,
+        rgba(85, 85, 85, 0.95) 0%,
+        rgba(70, 70, 70, 0.9) 15%,
+        rgba(55, 55, 55, 0.9) 30%,
+        rgba(45, 45, 45, 0.9) 50%,
+        rgba(35, 35, 35, 0.9) 70%,
+        rgba(25, 25, 25, 0.95) 85%,
+        rgba(20, 20, 20, 0.95) 100%
+      );
+      height: 100%;
+      width: 100%;
+      grid-column: 1/4;
+      grid-row: 1/6;
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 6px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8),
+        inset 0 3px 8px rgba(255, 255, 255, 0.1), 0 -4px 12px rgba(0, 0, 0, 0.4),
+        0 -8px 20px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+
+      /* Detailed stair steps - smaller, more realistic */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          /* Step 8 (top) */ linear-gradient(
+            to bottom,
+            transparent 2%,
+            rgba(255, 255, 255, 0.12) 2%,
+            rgba(255, 255, 255, 0.08) 4%,
+            rgba(0, 0, 0, 0.4) 4%,
+            rgba(0, 0, 0, 0.5) 6%,
+            transparent 6%
+          ),
+          /* Step 7 */
+            linear-gradient(
+              to bottom,
+              transparent 14%,
+              rgba(255, 255, 255, 0.11) 14%,
+              rgba(255, 255, 255, 0.07) 16%,
+              rgba(0, 0, 0, 0.42) 16%,
+              rgba(0, 0, 0, 0.52) 18%,
+              transparent 18%
+            ),
+          /* Step 6 */
+            linear-gradient(
+              to bottom,
+              transparent 26%,
+              rgba(255, 255, 255, 0.1) 26%,
+              rgba(255, 255, 255, 0.06) 28%,
+              rgba(0, 0, 0, 0.44) 28%,
+              rgba(0, 0, 0, 0.54) 30%,
+              transparent 30%
+            ),
+          /* Step 5 */
+            linear-gradient(
+              to bottom,
+              transparent 38%,
+              rgba(255, 255, 255, 0.09) 38%,
+              rgba(255, 255, 255, 0.05) 40%,
+              rgba(0, 0, 0, 0.46) 40%,
+              rgba(0, 0, 0, 0.56) 42%,
+              transparent 42%
+            ),
+          /* Step 4 */
+            linear-gradient(
+              to bottom,
+              transparent 50%,
+              rgba(255, 255, 255, 0.08) 50%,
+              rgba(255, 255, 255, 0.04) 52%,
+              rgba(0, 0, 0, 0.48) 52%,
+              rgba(0, 0, 0, 0.58) 54%,
+              transparent 54%
+            ),
+          /* Step 3 */
+            linear-gradient(
+              to bottom,
+              transparent 62%,
+              rgba(255, 255, 255, 0.07) 62%,
+              rgba(255, 255, 255, 0.03) 64%,
+              rgba(0, 0, 0, 0.5) 64%,
+              rgba(0, 0, 0, 0.6) 66%,
+              transparent 66%
+            ),
+          /* Step 2 */
+            linear-gradient(
+              to bottom,
+              transparent 74%,
+              rgba(255, 255, 255, 0.06) 74%,
+              rgba(255, 255, 255, 0.02) 76%,
+              rgba(0, 0, 0, 0.52) 76%,
+              rgba(0, 0, 0, 0.62) 78%,
+              transparent 78%
+            ),
+          /* Step 1 (bottom) */
+            linear-gradient(
+              to bottom,
+              transparent 86%,
+              rgba(255, 255, 255, 0.05) 86%,
+              rgba(255, 255, 255, 0.01) 88%,
+              rgba(0, 0, 0, 0.54) 88%,
+              rgba(0, 0, 0, 0.64) 90%,
+              transparent 90%
+            );
+        z-index: 2;
+      }
+
+      /* Enhanced 3D depth and side lighting */
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* Left side shadow */ linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.6) 0%,
+            rgba(0, 0, 0, 0.3) 15%,
+            transparent 30%
+          ),
+          /* Top lighting */
+            linear-gradient(
+              180deg,
+              rgba(255, 255, 255, 0.15) 0%,
+              transparent 20%
+            ),
+          /* Right side highlight */
+            linear-gradient(
+              270deg,
+              rgba(255, 255, 255, 0.08) 0%,
+              transparent 25%
+            );
+        z-index: 3;
+      }
+    }
+  }
+
+  &-05 {
+    display: grid;
+    grid-gap: 6px;
+    grid-template-columns: repeat(6, 35px);
+    grid-template-rows: repeat(3, 30px);
+    justify-self: start;
+    background: linear-gradient(
+      45deg,
+      rgba(102, 51, 153, 0.6),
+      rgba(147, 112, 219, 0.7)
+    );
+    border-radius: 12px;
+    grid-column: 2/4;
+    grid-row: 1/2;
+    box-shadow: 
+      /* Contained elevation shadows */ inset 0 0 25px
+        rgba(0, 0, 0, 0.5),
+      inset 0 -6px 15px rgba(255, 255, 255, 0.2),
+      inset 0 3px 8px rgba(147, 112, 219, 0.3),
+      /* Reduced shadows to prevent overflow */ 0 4px 12px rgba(0, 0, 0, 0.4),
+      0 8px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 5; /* Reduced from 15 to prevent overlap */
+    transform: translateY(-8px) perspective(300px) rotateX(-3deg) scale(1.02)
+      translateZ(8px); /* Reduced transforms to contain within bounds */
+    filter: brightness(1.05) contrast(1.05);
+    border: 2px solid rgba(147, 112, 219, 0.4);
+    overflow: hidden; /* Prevent pseudo-elements from extending beyond bounds */
+
+    /* Contained platform effect */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 95%; /* Changed from 100% to prevent overflow */
+      left: 0; /* Changed from -6px to prevent overflow */
+      right: 0; /* Changed from -6px to prevent overflow */
+      height: 8px; /* Reduced from 20px */
+      background: 
+        /* Contained platform layers */ linear-gradient(
+          to bottom,
+          rgba(75, 75, 75, 0.8) 0%,
+          rgba(65, 65, 65, 0.8) 25%,
+          rgba(55, 55, 55, 0.8) 50%,
+          rgba(45, 45, 45, 0.8) 75%,
+          rgba(35, 35, 35, 0.8) 100%
+        );
+      border-radius: 0 0 8px 8px;
+      box-shadow: 
+        /* Contained platform shadows */ 0 2px 8px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.1);
+      z-index: -1;
+    }
+
+    /* Contained platform aura */
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0; /* Changed from -8px to prevent overflow */
+      left: 0; /* Changed from -8px to prevent overflow */
+      right: 0; /* Changed from -8px to prevent overflow */
+      bottom: 0; /* Changed from -8px to prevent overflow */
+      background: radial-gradient(
+        ellipse at center,
+        rgba(147, 112, 219, 0.15) 0%,
+        rgba(102, 51, 153, 0.1) 30%,
+        rgba(147, 112, 219, 0.05) 60%,
+        transparent 80%
+      );
+      border-radius: 12px;
+      z-index: -2;
+      animation: platformGlow 4s ease-in-out infinite;
+    }
+
+    /* White terrace edge line */
+    .terrace-edge {
+      position: absolute;
+      bottom: -12px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.95) 50%,
+        rgba(255, 255, 255, 0.9) 100%
+      );
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      z-index: 17;
+    }
+
+    /* Enhanced round column capitals */
+    .column-capitals {
+      position: absolute;
+      bottom: -18px;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background-image: 
+        /* Many more capitals for luxury effect */ radial-gradient(
+          circle at 4% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 12% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 20% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 28% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 36% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 44% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 52% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 60% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 68% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 76% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 84% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 92% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 96% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        );
+      z-index: 16;
+    }
+
+    /* White line terrace edge */
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.95) 50%,
+        rgba(255, 255, 255, 0.9) 100%
+      );
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      z-index: 14;
+    }
+
+    /* Enhanced round hanging capitals for bottom columns */
+    .column-capitals {
+      position: absolute;
+      bottom: -16px;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background-image: 
+        /* More frequent capitals */ radial-gradient(
+          circle at 5% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 15% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 25% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 35% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 50% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 65% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 75% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        ),
+        radial-gradient(
+          circle at 85% bottom,
+          rgba(255, 255, 255, 0.85) 0px,
+          rgba(245, 245, 245, 0.7) 2px,
+          rgba(235, 235, 235, 0.5) 4px,
+          transparent 5px
+        ),
+        radial-gradient(
+          circle at 95% bottom,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(250, 250, 250, 0.8) 3px,
+          rgba(240, 240, 240, 0.6) 5px,
+          transparent 6px
+        );
+      z-index: 15;
+    }
+
+    .u1 {
+      justify-self: center;
+      align-self: center;
+      z-index: 16;
+      grid-row: 5/6;
+      grid-column: 1/3;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .u2 {
+      justify-self: center;
+      align-self: center;
+      z-index: 16;
+      grid-row: 5/6;
+      grid-column: 3/5;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .u3 {
+      justify-self: center;
+      align-self: center;
+      z-index: 16;
+      grid-row: 5/6;
+      grid-column: 5/7;
+      margin-right: 0.75rem;
+      box-shadow: 
+        /* Elevated table shadows - refined */ 0 5px 18px
+          rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
+        0 18px 55px rgba(0, 0, 0, 0.25),
+        /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+      transform: translateY(-3px) scale(1.05) translateZ(8px);
+      filter: brightness(1.12) contrast(1.08);
+    }
+
+    .upstairs-background {
+      background: linear-gradient(
+        45deg,
+        rgba(102, 51, 153, 0.5),
+        rgba(147, 112, 219, 0.6)
+      );
+      height: 100%;
+      width: 100%;
+      grid-column: 1/7;
+      grid-row: 1/6;
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5),
+        inset 0 -2px 8px rgba(255, 255, 255, 0.1);
+      z-index: 1;
+      border: 1px solid rgba(147, 112, 219, 0.3);
+
+      /* Elevated floor pattern */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+          /* Premium upstairs luxury pattern - unique from area -02 */ radial-gradient(
+            circle at 30% 30%,
+            rgba(147, 112, 219, 0.18) 12px,
+            transparent 12px
+          ),
+          radial-gradient(
+            circle at 70% 70%,
+            rgba(102, 51, 153, 0.15) 10px,
+            transparent 10px
+          ),
+          /* Luxury carpet texture */
+            repeating-linear-gradient(
+              45deg,
+              transparent 0px,
+              transparent 8px,
+              rgba(147, 112, 219, 0.1) 8px,
+              rgba(147, 112, 219, 0.1) 16px
+            ),
+          /* Premium parquet floor - different from dancefloor */
+            repeating-linear-gradient(
+              0deg,
+              rgba(255, 255, 255, 0.04) 0px,
+              rgba(255, 255, 255, 0.04) 2px,
+              transparent 2px,
+              transparent 18px
+            ),
+          repeating-linear-gradient(
+            90deg,
+            rgba(102, 51, 153, 0.08) 0px,
+            rgba(102, 51, 153, 0.08) 1px,
+            transparent 1px,
+            transparent 30px
+          );
+        background-size: 40px 40px, 35px 35px, 20px 20px, 22px 22px, 32px 32px;
+        z-index: 0;
+      }
+
+      /* Upstairs luxury glow */
+      &::after {
+        content: "";
+        position: absolute;
+        width: 120%;
+        height: 120%;
+        top: -10%;
+        left: -10%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(147, 112, 219, 0.2) 0%,
+          rgba(102, 51, 153, 0.15) 30%,
+          transparent 60%
+        );
+        z-index: 0;
+      }
+    }
+  }
+}
+
+.selected {
+  animation: pulse 1.5s infinite;
+}
+
+.table-width {
+  display: grid;
+  width: 60px !important;
+  height: 30px !important;
+  border-radius: 30%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+  p {
+    align-self: center;
+    justify-self: center;
+    margin: 0;
+  }
+}
+
+.table-height {
+  display: grid;
+  width: 30px !important;
+  height: 60px !important;
+  border-radius: 30%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+  p {
+    align-self: center;
+    justify-self: center;
+    margin: 0;
+  }
+}
+
+.table-round {
+  display: grid;
+  width: 35px !important;
+  height: 35px !important;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+  p {
+    align-self: center;
+    justify-self: center;
+    margin: 0;
+  }
+}
+
+.blue-table {
+  background-color: $regular-table-color;
+  border: 2px solid #6bb6ff;
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.red-table {
+  background: linear-gradient(145deg, #dc143c, #ff4500);
+  border: 2px solid #ff6347;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 15px rgba(220, 20, 60, 0.4);
+
+  width: 2rem !important;
+  height: 2rem !important;
+
+  &:hover {
+    background: linear-gradient(145deg, #ff4500, #dc143c);
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.5);
+  }
+}
+
+.silver-table {
+  background: linear-gradient(145deg, $silver-table, #a8a8a8);
+  border: 2px solid $silver-border;
+  color: #333333;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
+
+  &:hover {
+    background: linear-gradient(145deg, #a8a8a8, $silver-table);
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.4);
+  }
+}
+
+.green-table {
+  background-color: $premium-green;
+  border: 2px solid $premium-green-border;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(46, 139, 87, 0.3);
+}
+
+.orange-table {
+  background: linear-gradient(145deg, #ff8c00, #ffa500);
+  border: 2px solid #ffb347;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+
+  &:hover {
+    background: linear-gradient(145deg, #ffa500, #ff8c00);
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.5);
+  }
+}
+
+.purple-table {
+  background: linear-gradient(145deg, $purple-premium, #7d4dd8);
+  border: 2px solid $purple-border;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 15px rgba(102, 51, 153, 0.4);
+
+  &:hover {
+    background: linear-gradient(145deg, #7d4dd8, $purple-premium);
+    box-shadow: 0 0 20px rgba(102, 51, 153, 0.5);
+  }
+}
+
+.table-booked {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+// Animations
+@keyframes floatGuide {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes moonGlow {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes gentleBreeze {
+  0% {
+    background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px;
+    transform: scaleY(1);
+  }
+  25% {
+    background-position: 3px 5px, -3px 3px, 5px 4px, -4px 6px;
+    transform: scaleY(1.01);
+  }
+  50% {
+    background-position: 6px 10px, -6px 6px, 10px 8px, -8px 12px;
+    transform: scaleY(1.02);
+  }
+  75% {
+    background-position: 9px 15px, -9px 9px, 15px 12px, -12px 18px;
+    transform: scaleY(1.01);
+  }
+  100% {
+    background-position: 12px 20px, -12px 12px, 20px 16px, -16px 24px;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes floatNote {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-30px) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes floatHeart {
+  0% {
+    transform: translateY(0) rotate(-5deg) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+    transform: translateY(-5px) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-15px) rotate(5deg) scale(1.1);
+  }
+  80% {
+    opacity: 0.6;
+    transform: translateY(-25px) rotate(0deg) scale(1);
+  }
+  100% {
+    transform: translateY(-35px) rotate(-5deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes platformGlow {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}

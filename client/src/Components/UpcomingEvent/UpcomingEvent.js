@@ -61,6 +61,7 @@ const UpcomingEvent = ({
   hideNavigation = false,
   hideTableBooking = false,
   onEventsLoaded = () => {},
+  onEventChange = () => {},
 }) => {
   const [events, setEvents] = useState(
     providedEvents ? [...providedEvents] : []
@@ -253,6 +254,19 @@ const UpcomingEvent = ({
       }
     }
   }, [currentIndex, events]);
+
+  // Notify parent when current event changes
+  useEffect(() => {
+    if (
+      events.length > 0 &&
+      currentIndex >= 0 &&
+      currentIndex < events.length
+    ) {
+      onEventChange(events[currentIndex]);
+    } else {
+      onEventChange(null);
+    }
+  }, [currentIndex, events, onEventChange]);
 
   // Function to fetch complete code settings for an event
   const fetchCompleteCodeSettings = async (eventId) => {
@@ -760,15 +774,17 @@ const UpcomingEvent = ({
   const formatCompactDate = (dateString) => {
     if (!dateString) return "TBD";
     const date = new Date(dateString);
-    
+
     // Get day name abbreviation (FR for Friday, etc.)
-    const dayName = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    
+    const dayName = date
+      .toLocaleDateString("en-US", { weekday: "short" })
+      .toUpperCase();
+
     // Get day and month
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = String(date.getFullYear()).slice(-2);
-    
+
     // Format as "FR 27/06/25"
     return `${dayName} ${day}/${month}/${year}`;
   };
@@ -974,9 +990,9 @@ const UpcomingEvent = ({
 
   // Utility function to check if event supports table booking
   const supportsTableBooking = (event) => {
-    // Exclude specific event IDs that should never show table bookings
-    if (event._id === "68504c76f50c6d871f1a8013" || event._id === "685825953aa1769419195723") {
-      return false;
+    // Primary check: Does event have a table layout configured?
+    if (event.tableLayout && event.tableLayout !== "") {
+      return true;
     }
 
     // Exclude specific brand ID that should not show table bookings
@@ -988,7 +1004,7 @@ const UpcomingEvent = ({
       return false;
     }
 
-    // Check all possible formats for allowed brands
+    // Legacy fallback: Check all possible formats for allowed brands
     return (
       // Special event ID
       event._id === "6807c197d4455638731dbda6" ||
@@ -1292,7 +1308,6 @@ const UpcomingEvent = ({
         seamless ? "upcomingEvent-seamless" : ""
       } ${loading ? "upcomingEvent-loading" : ""}`}
     >
-
       {/* Event Preview Carousel - only show when there are multiple events */}
       {!hideNavigation && events.length > 1 && (
         <div className="upcomingEvent-preview-carousel">
@@ -1300,13 +1315,15 @@ const UpcomingEvent = ({
             <div
               className="preview-carousel-track"
               style={{
-                transform: `translateX(-${previewScrollIndex * totalCardWidth}px)`,
+                transform: `translateX(-${
+                  previewScrollIndex * totalCardWidth
+                }px)`,
               }}
             >
               {events.map((event, index) => {
                 const previewImage = getPreviewImage(event);
                 const isActive = index === currentIndex;
-                
+
                 return (
                   <div
                     key={event._id || `preview-${index}`}
@@ -1387,37 +1404,45 @@ const UpcomingEvent = ({
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="upcomingEvent-image-wrapper">
-            <div className="upcomingEvent-image-container">
-              {eventImage ? (
-                <img
-                  src={eventImage}
-                  alt={currentEvent.title}
-                  className="upcomingEvent-event-image"
-                  onLoad={handleImageLoad}
-                  onError={handleImageError}
-                />
-              ) : (
-                <div className="upcomingEvent-no-image">
-                  <RiImageLine />
-                  <span>No image available</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Content wrapper for desktop layout - only header and description */}
+          {/* Content wrapper for desktop layout - title first */}
           <div className="upcomingEvent-content-wrapper">
-            {/* Event Title and Subtitle */}
+            {/* Event Title */}
             <div className="upcomingEvent-header">
               <h1 className="upcomingEvent-event-title">
                 {currentEvent.title}
               </h1>
-              {currentEvent.subTitle && (
+            </div>
+          </div>
+
+          {/* Subtitle and Description wrapper - moved to third position */}
+          <div className="upcomingEvent-subtitle-wrapper">
+            {/* Event Subtitle */}
+            {currentEvent.subTitle && (
+              <div className="upcomingEvent-subtitle-header">
                 <h2 className="upcomingEvent-event-subtitle">
                   {currentEvent.subTitle}
                 </h2>
-              )}
+              </div>
+            )}
+
+            {/* Image/Flyer - moved to second position */}
+            <div className="upcomingEvent-image-wrapper">
+              <div className="upcomingEvent-image-container">
+                {eventImage ? (
+                  <img
+                    src={eventImage}
+                    alt={currentEvent.title}
+                    className="upcomingEvent-event-image"
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
+                  />
+                ) : (
+                  <div className="upcomingEvent-no-image">
+                    <RiImageLine />
+                    <span>No image available</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Event Description */}
@@ -1503,52 +1528,26 @@ const UpcomingEvent = ({
                 {currentEvent && <GuestCode event={currentEvent} />}
               </div>
 
-              {/* Table booking section - KEPT AS LAST SECTION */}
-              {currentEvent && !hideTableBooking && (
-                <>
-                  {supportsTableBooking(currentEvent) && showTableBooking && (
-                    <div
-                      ref={tableBookingSectionRef}
-                      className="upcomingEvent-table-booking-section"
-                      id="table-booking-section"
-                    >
-                      {/* <h3 className="section-title">Table Booking</h3> */}
-                      <div className="upcomingEvent-table-container">
-                        <TableSystem
-                          selectedEvent={currentEvent}
-                          selectedBrand={currentEvent.brand}
-                          isPublic={true} // Mark as public
-                          onClose={toggleTableBooking}
-                        />
-                      </div>
+              {/* Table booking section - Only shown if layout is configured */}
+              {currentEvent &&
+                !hideTableBooking &&
+                supportsTableBooking(currentEvent) &&
+                showTableBooking && (
+                  <div
+                    ref={tableBookingSectionRef}
+                    className="upcomingEvent-table-booking-section"
+                    id="table-booking-section"
+                  >
+                    <div className="upcomingEvent-table-container">
+                      <TableSystem
+                        selectedEvent={currentEvent}
+                        selectedBrand={currentEvent.brand}
+                        isPublic={true} // Mark as public
+                        onClose={toggleTableBooking}
+                      />
                     </div>
-                  )}
-
-                  {/* Fallback check for specific brand IDs - in case brand is stored differently */}
-                  {!supportsTableBooking(currentEvent) &&
-                    currentEvent._id !== "68504c76f50c6d871f1a8013" &&
-                    currentEvent.brand &&
-                    currentEvent.brand === "67ba051873bd89352d3ab6db" &&
-                    currentEvent.brand !== "67d737d6e1299b18afabf4f4" &&
-                    showTableBooking && (
-                      <div
-                        ref={tableBookingSectionRef}
-                        className="upcomingEvent-table-booking-section"
-                        id="table-booking-section"
-                      >
-                        {/* <h3 className="section-title">Table Booking</h3> */}
-                        <div className="upcomingEvent-table-container">
-                          <TableSystem
-                            selectedEvent={currentEvent}
-                            selectedBrand={currentEvent.brand}
-                            isPublic={true} // Mark as public
-                            onClose={toggleTableBooking}
-                          />
-                        </div>
-                      </div>
-                    )}
-                </>
-              )}
+                  </div>
+                )}
             </div>
           </div>
         </motion.div>

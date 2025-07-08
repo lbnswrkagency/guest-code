@@ -15,6 +15,9 @@ router.post("/add", authenticate, tableController.addTableCode);
 // GET route to fetch table counts for a specific event
 router.get("/counts/:eventId", authenticate, tableController.getTableCounts);
 
+// GET route to list available table layouts
+router.get("/layouts", authenticate, tableController.getAvailableTableLayouts);
+
 // GET route to view a table code as PNG (for inline viewing)
 router.get(
   "/code/:codeId/png",

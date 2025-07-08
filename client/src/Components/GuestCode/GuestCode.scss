@@ -68,7 +68,6 @@
   width: 100%;
   max-width: 550px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
 }
 
 .guest-code-card {
@@ -272,7 +271,7 @@
     border-radius: 2px;
     overflow: hidden;
     margin-top: 0.5rem;
-    
+
     .limit-progress {
       height: 100%;
       border-radius: 2px;
@@ -517,7 +516,7 @@
       opacity: 0.5;
       cursor: not-allowed;
       background: #666 !important;
-      
+
       &:hover {
         transform: none !important;
         box-shadow: none !important;

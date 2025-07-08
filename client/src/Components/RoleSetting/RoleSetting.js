@@ -47,6 +47,10 @@ const RoleSetting = ({ brand, onClose }) => {
       scanner: {
         use: false,
       },
+      tables: {
+        access: false,
+        manage: false,
+      },
     },
   });
 
@@ -183,6 +187,10 @@ const RoleSetting = ({ brand, onClose }) => {
         scanner: {
           use: false,
         },
+        tables: {
+          access: false,
+          manage: false,
+        },
       },
     };
 
@@ -297,6 +305,10 @@ const RoleSetting = ({ brand, onClose }) => {
         codes: {},
         scanner: {
           use: role.permissions?.scanner?.use || false,
+        },
+        tables: {
+          access: role.permissions?.tables?.access || false,
+          manage: role.permissions?.tables?.manage || false,
         },
       },
     };
@@ -630,6 +642,22 @@ const RoleSetting = ({ brand, onClose }) => {
                       </div>
                   </div>
                 )} */}
+
+                <h4>Table Permissions</h4>
+                <div className="permission-group">
+                  {renderPermissionItem(
+                    "Table Access",
+                    "tables",
+                    "access",
+                    newRole.permissions.tables.access
+                  )}
+                  {renderPermissionItem(
+                    "Table Management",
+                    "tables",
+                    "manage",
+                    newRole.permissions.tables.manage
+                  )}
+                </div>
 
                 <h4>Other Permissions</h4>
                 <div className="permission-group">
