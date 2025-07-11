@@ -474,9 +474,40 @@ exports.getBrandEvents = async (req, res) => {
 
 exports.getAllEvents = async (req, res) => {
   try {
-    // Get all brands where user is a team member
-    const brands = await Brand.find({ "team.user": req.user.userId });
-    const brandIds = brands.map((brand) => brand._id);
+    // Get user's favorite brands
+    const user = await User.findById(req.user.userId).select('favoriteBrands');
+    const favoriteBrandIds = user.favoriteBrands || [];
+
+    // Get all brands where user is a team member or owner
+    const brands = await Brand.find({ 
+      $or: [
+        { "team.user": req.user.userId },
+        { owner: req.user.userId }
+      ]
+    });
+
+    // Sort brands by priority: owner first, then favorites, then alphabetical
+    const sortedBrands = brands.sort((a, b) => {
+      const aIsOwner = a.owner.toString() === req.user.userId.toString();
+      const bIsOwner = b.owner.toString() === req.user.userId.toString();
+      const aIsFavorite = favoriteBrandIds.some(fav => fav.toString() === a._id.toString());
+      const bIsFavorite = favoriteBrandIds.some(fav => fav.toString() === b._id.toString());
+
+      // Owner brands first
+      if (aIsOwner && !bIsOwner) return -1;
+      if (!aIsOwner && bIsOwner) return 1;
+
+      // Among non-owner brands, favorites first
+      if (!aIsOwner && !bIsOwner) {
+        if (aIsFavorite && !bIsFavorite) return -1;
+        if (!aIsFavorite && bIsFavorite) return 1;
+      }
+
+      // Alphabetical order for same priority
+      return a.name.localeCompare(b.name);
+    });
+
+    const brandIds = sortedBrands.map((brand) => brand._id);
 
     // Get events from all these brands
     const events = await Event.find({ brand: { $in: brandIds } })
@@ -2047,5 +2078,94 @@ exports.toggleEventLive = async (req, res) => {
       message: "Error toggling live status",
       error: error.message,
     });
+  }
+};
+
+// Event favoriting functionality
+exports.favoriteEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.userId;
+
+    // Check if event exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Add event to both user's favorite events and event's favoritedBy
+    await Promise.all([
+      User.findByIdAndUpdate(
+        userId,
+        { $addToSet: { favoriteEvents: eventId } },
+        { new: true }
+      ),
+      Event.findByIdAndUpdate(
+        eventId,
+        { $addToSet: { favoritedBy: userId } },
+        { new: true }
+      )
+    ]);
+
+    res.status(200).json({
+      message: "Event added to favorites",
+      isFavorited: true,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error favoriting event" });
+  }
+};
+
+exports.unfavoriteEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.userId;
+
+    // Remove event from both user's favorite events and event's favoritedBy
+    await Promise.all([
+      User.findByIdAndUpdate(
+        userId,
+        { $pull: { favoriteEvents: eventId } },
+        { new: true }
+      ),
+      Event.findByIdAndUpdate(
+        eventId,
+        { $pull: { favoritedBy: userId } },
+        { new: true }
+      )
+    ]);
+
+    res.status(200).json({
+      message: "Event removed from favorites",
+      isFavorited: false,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error unfavoriting event" });
+  }
+};
+
+exports.getUserFavoriteEvents = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId).populate({
+      path: "favoriteEvents",
+      populate: [
+        { path: "brand", select: "name username logo" },
+        { path: "genres", select: "name" },
+        { path: "lineups", select: "name" }
+      ]
+    });
+
+    // Sort favorite events by date (newest first)
+    const sortedFavoriteEvents = (user.favoriteEvents || []).sort((a, b) => 
+      new Date(b.startDate || b.date) - new Date(a.startDate || a.date)
+    );
+
+    res.status(200).json({
+      favoriteEvents: sortedFavoriteEvents,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching favorite events" });
   }
 };

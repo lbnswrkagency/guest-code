@@ -230,6 +230,12 @@ async function getDetailedTicketStats(eventId) {
 
     // Get all tickets for the event
     const tickets = await Ticket.find({ eventId });
+    
+    console.log(`Found ${tickets.length} tickets for event ${eventId}`);
+    if (tickets.length > 0) {
+      console.log('Sample ticket fields:', Object.keys(tickets[0].toObject()));
+      console.log('Sample ticket:', JSON.stringify(tickets[0].toObject(), null, 2));
+    }
 
     // Initialize summary object
     const summary = {
@@ -251,10 +257,18 @@ async function getDetailedTicketStats(eventId) {
 
     // Process each ticket setting
     for (const setting of ticketSettings) {
-      // Filter tickets for this category
+      console.log(`Processing setting: ${setting.name}`);
+      
+      // Filter tickets for this category - try multiple field matches
       const categoryTickets = tickets.filter(
-        (ticket) => ticket.ticketName === setting.name
+        (ticket) => 
+          ticket.ticketName === setting.name ||
+          ticket.ticketType === setting.name ||
+          ticket.ticketName === setting.type ||
+          ticket.ticketType === setting.type
       );
+      
+      console.log(`Found ${categoryTickets.length} tickets for setting ${setting.name}`);
 
       // Calculate stats for this category
       const categorySold = categoryTickets.reduce(
@@ -266,12 +280,12 @@ async function getDetailedTicketStats(eventId) {
         0
       );
       const categoryRevenue = categoryTickets.reduce(
-        (sum, ticket) => sum + (ticket.price || 0),
+        (sum, ticket) => sum + ((ticket.price || 0) * (ticket.pax || 1)),
         0
       );
 
-      // Add to category summaries if there are any tickets
-      if (categorySold > 0) {
+      // Add to category summaries (include even with 0 sales for completeness)
+      if (categorySold > 0 || setting.isEnabled !== false) {
         summary.categories.push({
           name: setting.name,
           price: setting.price,
@@ -297,6 +311,14 @@ async function getDetailedTicketStats(eventId) {
         });
 
         // Add to totals
+        summary.totalSold += categorySold;
+        summary.totalCheckedIn += categoryCheckedIn;
+        summary.totalRevenue += categoryRevenue;
+      }
+      
+      // Always add to totals even if category wasn't added to array
+      if (categorySold === 0 && (setting.isEnabled === false || !summary.categories.find(c => c.name === setting.name))) {
+        // Still count tickets that exist but weren't added to categories
         summary.totalSold += categorySold;
         summary.totalCheckedIn += categoryCheckedIn;
         summary.totalRevenue += categoryRevenue;

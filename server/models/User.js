@@ -52,6 +52,8 @@ const UserSchema = new Schema(
     resetPasswordExpires: Date,
     lastLogin: Date,
     lastUsernameChange: { type: Date },
+    favoriteBrands: [{ type: Schema.Types.ObjectId, ref: "Brand" }],
+    favoriteEvents: [{ type: Schema.Types.ObjectId, ref: "Event" }],
   },
   {
     timestamps: true,

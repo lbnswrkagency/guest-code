@@ -21,6 +21,8 @@ import {
   RiCalendarLine,
   RiGlobalLine,
   RiRepeatLine,
+  RiStarLine,
+  RiStarFill,
 } from "react-icons/ri";
 import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
@@ -161,6 +163,8 @@ const Events = () => {
   const [isLive, setIsLive] = useState(false); // Track live status
   const [brandsLoaded, setBrandsLoaded] = useState(false);
   const [parentEventForForm, setParentEventForForm] = useState(null);
+  const [favoriteBrands, setFavoriteBrands] = useState([]);
+  const [favoriteEvents, setFavoriteEvents] = useState([]);
 
   // Prepare brand with events and role data (copied from Dashboard.js)
   const prepareBrandWithData = (brand) => {
@@ -178,21 +182,49 @@ const Events = () => {
     };
   };
 
-  // Use Redux brands and prepare them with role data
+  // Use Redux brands and prepare them with role data + prioritization
   const prepareBrands = () => {
     if (brands.length > 0) {
       const brandsWithData = brands.map(prepareBrandWithData);
-      setUserBrands(brandsWithData);
+      
+      // Apply prioritization: Owner brands first, then favorites, then alphabetical
+      const sortedBrands = brandsWithData.sort((a, b) => {
+        const aIsOwner = a.owner._id === user._id || a.owner === user._id;
+        const bIsOwner = b.owner._id === user._id || b.owner === user._id;
+        const aIsFavorite = favoriteBrands.some(fav => fav._id === a._id);
+        const bIsFavorite = favoriteBrands.some(fav => fav._id === b._id);
+
+        // Owner brands first
+        if (aIsOwner && !bIsOwner) return -1;
+        if (!aIsOwner && bIsOwner) return 1;
+
+        // Among non-owner brands, favorites first
+        if (!aIsOwner && !bIsOwner) {
+          if (aIsFavorite && !bIsFavorite) return -1;
+          if (!aIsFavorite && bIsFavorite) return 1;
+        }
+
+        // Alphabetical order for same priority
+        return a.name.localeCompare(b.name);
+      });
+
+      setUserBrands(sortedBrands);
       setBrandsLoaded(true);
-      if (brandsWithData.length > 0 && !selectedBrand) {
-        setSelectedBrand(brandsWithData[0]);
+      if (sortedBrands.length > 0 && !selectedBrand) {
+        setSelectedBrand(sortedBrands[0]);
       }
     }
   };
 
   useEffect(() => {
     prepareBrands();
-  }, [brands, roles, userRoles]);
+  }, [brands, roles, userRoles, favoriteBrands, user]);
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchUserFavorites();
+    }
+  }, [user]);
 
   const fetchEvents = async () => {
     if (!selectedBrand?._id) return;
@@ -377,6 +409,89 @@ const Events = () => {
     setSelectedEventForSettings(null);
   };
 
+  // Fetch user's favorite brands and events
+  const fetchUserFavorites = async () => {
+    if (!user?._id) {
+      console.log("User not available yet, skipping favorites fetch");
+      return;
+    }
+    
+    try {
+      console.log("Fetching user favorites...");
+      const [brandsResponse, eventsResponse] = await Promise.all([
+        axiosInstance.get(`/brands/user-favorites`),
+        axiosInstance.get(`/events/user-favorites`)
+      ]);
+      
+      console.log("Brands response:", brandsResponse.data);
+      console.log("Events response:", eventsResponse.data);
+      
+      setFavoriteBrands(brandsResponse.data.favoriteBrands || []);
+      setFavoriteEvents(eventsResponse.data.favoriteEvents || []);
+    } catch (error) {
+      console.error("Error fetching user favorites:", error);
+      // Don't show error toast for favorites - it's not critical
+    }
+  };
+
+  // Handle brand favoriting
+  const handleBrandFavorite = async (brandId, isFavorited) => {
+    try {
+      console.log(`${isFavorited ? 'Removing' : 'Adding'} brand ${brandId} to favorites`);
+      
+      if (isFavorited) {
+        await axiosInstance.delete(`/brands/${brandId}/user-favorite`);
+        setFavoriteBrands(prev => prev.filter(brand => brand._id !== brandId));
+        toast.showSuccess("Brand removed from favorites");
+      } else {
+        await axiosInstance.post(`/brands/${brandId}/user-favorite`);
+        // Add the brand to favorites (we'll need to find it in userBrands)
+        const brandToAdd = userBrands.find(b => b._id === brandId);
+        if (brandToAdd) {
+          setFavoriteBrands(prev => [...prev, brandToAdd]);
+        }
+        toast.showSuccess("Brand added to favorites");
+      }
+    } catch (error) {
+      console.error("Brand favorite error:", error);
+      toast.showError("Error updating brand favorite");
+    }
+  };
+
+  // Handle event favoriting
+  const handleEventFavorite = async (eventId, isFavorited) => {
+    try {
+      console.log(`${isFavorited ? 'Removing' : 'Adding'} event ${eventId} to favorites`);
+      
+      if (isFavorited) {
+        await axiosInstance.delete(`/events/${eventId}/favorite`);
+        setFavoriteEvents(prev => prev.filter(event => event._id !== eventId));
+        toast.showSuccess("Event removed from favorites");
+      } else {
+        await axiosInstance.post(`/events/${eventId}/favorite`);
+        // Add the event to favorites (we'll need to find it in events)
+        const eventToAdd = events.find(e => e._id === eventId);
+        if (eventToAdd) {
+          setFavoriteEvents(prev => [...prev, eventToAdd]);
+        }
+        toast.showSuccess("Event added to favorites");
+      }
+    } catch (error) {
+      console.error("Event favorite error:", error);
+      toast.showError("Error updating event favorite");
+    }
+  };
+
+  // Check if brand is favorited
+  const isBrandFavorited = (brandId) => {
+    return favoriteBrands.some(brand => brand._id === brandId);
+  };
+
+  // Check if event is favorited
+  const isEventFavorited = (eventId) => {
+    return favoriteEvents.some(event => event._id === eventId);
+  };
+
   return (
     <div className="page-wrapper">
       <Navigation
@@ -396,39 +511,57 @@ const Events = () => {
           <p>Create and manage your event portfolio</p>
 
           {userBrands && userBrands.length > 0 ? (
-            <div className="brand-selector">
-              <div
-                className="selected-brand"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              >
-                {selectedBrand?.logo ? (
-                  <img
-                    src={selectedBrand.logo.thumbnail}
-                    alt={selectedBrand.name}
-                  />
-                ) : (
-                  <div className="brand-initial">{selectedBrand?.name[0]}</div>
-                )}
-                <span className="brand-name">{selectedBrand?.name}</span>
+            <div className="brand-selector-container">
+              <div className="brand-selector">
+                <div
+                  className="selected-brand"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  {selectedBrand?.logo ? (
+                    <img
+                      src={selectedBrand.logo.thumbnail}
+                      alt={selectedBrand.name}
+                    />
+                  ) : (
+                    <div className="brand-initial">{selectedBrand?.name[0]}</div>
+                  )}
+                  <span className="brand-name">{selectedBrand?.name}</span>
+                </div>
+                <div className={`brand-options ${isDropdownOpen ? "open" : ""}`}>
+                  {userBrands.map((brand) => (
+                    <div
+                      key={brand._id}
+                      className={`brand-option ${
+                        selectedBrand?._id === brand._id ? "selected" : ""
+                      }`}
+                      onClick={() => handleBrandSelect(brand)}
+                    >
+                      {brand.logo ? (
+                        <img src={brand.logo.thumbnail} alt={brand.name} />
+                      ) : (
+                        <div className="brand-initial">{brand.name[0]}</div>
+                      )}
+                      <span className="brand-name">{brand.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className={`brand-options ${isDropdownOpen ? "open" : ""}`}>
-                {userBrands.map((brand) => (
-                  <div
-                    key={brand._id}
-                    className={`brand-option ${
-                      selectedBrand?._id === brand._id ? "selected" : ""
-                    }`}
-                    onClick={() => handleBrandSelect(brand)}
-                  >
-                    {brand.logo ? (
-                      <img src={brand.logo.thumbnail} alt={brand.name} />
-                    ) : (
-                      <div className="brand-initial">{brand.name[0]}</div>
-                    )}
-                    <span className="brand-name">{brand.name}</span>
-                  </div>
-                ))}
-              </div>
+              {selectedBrand && (
+                <motion.button
+                  className={`brand-favorite-btn ${
+                    isBrandFavorited(selectedBrand._id) ? "favorited" : ""
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBrandFavorite(selectedBrand._id, isBrandFavorited(selectedBrand._id));
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  title={isBrandFavorited(selectedBrand._id) ? "Remove from favorites" : "Add to favorites"}
+                >
+                  {isBrandFavorited(selectedBrand._id) ? <RiStarFill /> : <RiStarLine />}
+                </motion.button>
+              )}
             </div>
           ) : null}
         </div>
@@ -493,6 +626,8 @@ const Events = () => {
                     onClick={handleEventClick}
                     onSettingsClick={handleSettingsClick}
                     userBrands={userBrands}
+                    onEventFavorite={handleEventFavorite}
+                    isEventFavorited={isEventFavorited}
                   />
                 ))}
                 <div
@@ -530,7 +665,8 @@ const Events = () => {
   );
 };
 
-const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
+const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorite, isEventFavorited }) => {
+  console.log("EventCard props:", { onEventFavorite: !!onEventFavorite, isEventFavorited: !!isEventFavorited });
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
   const [currentEvent, setCurrentEvent] = useState(event); // Track the current event (parent or child)
@@ -915,12 +1051,29 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands }) => {
 
         {/* Title/Subtitle area */}
         <div className="event-card-title-area">
-          <h3>{currentEvent.title}</h3>
+          <div className="title-with-favorite">
+            <h3>{currentEvent.title}</h3>
+            {/* Event favorite button - positioned next to title */}
+            <motion.button
+              className={`event-favorite-btn ${
+                isEventFavorited(event._id) ? "favorited" : ""
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEventFavorite(event._id, isEventFavorited(event._id));
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title={isEventFavorited(event._id) ? "Remove from favorites" : "Add to favorites"}
+            >
+              {isEventFavorited(event._id) ? <RiStarFill /> : <RiStarLine />}
+            </motion.button>
+          </div>
           {currentEvent.subTitle && (
             <span className="subtitle">{currentEvent.subTitle}</span>
           )}
 
-          {/* Move card actions here */}
+          {/* Move card actions here - only for users with permission */}
           {hasPermission && (
             <div className="card-actions">
               <motion.button

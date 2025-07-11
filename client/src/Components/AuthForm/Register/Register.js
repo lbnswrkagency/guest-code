@@ -33,18 +33,37 @@ function Register({ onRegisterSuccess }) {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    console.log('=== CLIENT REGISTRATION ATTEMPT ===');
+    console.log('Form data:', formData);
+    console.log('API Base URL:', process.env.REACT_APP_API_BASE_URL);
+    console.log('Is form valid:', isFormValid);
+    
+    if (!isFormValid) {
+      console.log('❌ Form is not valid, stopping registration');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
+      console.log('❌ Passwords do not match');
       toast.error("Passwords do not match!");
       return;
     }
 
+    console.log('✅ Client-side validation passed');
+    console.log('🚀 Sending registration request...');
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/auth/register`,
-        formData
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       );
+      
+      console.log('✅ Registration response received:', response.data);
 
       if (response.data.success) {
         setRegistrationComplete(true);
@@ -53,12 +72,33 @@ function Register({ onRegisterSuccess }) {
         });
       }
     } catch (error) {
-      console.error("Registration error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        "Registration failed. Please try again.";
+      console.log('❌ Registration error occurred:');
+      console.error("Full error object:", error);
+      console.error("Error response:", error.response);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+      console.error("Error message:", error.message);
+      
+      const errorData = error.response?.data;
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (errorData) {
+        console.log('Server error data:', errorData);
+        errorMessage = errorData.details || errorData.message || errorMessage;
+        
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          console.log('Validation errors:', errorData.errors);
+          errorMessage = errorData.errors.map(err => err.msg || err.message).join(', ');
+        }
+        
+        if (errorData.validationErrors) {
+          console.log('Mongoose validation errors:', errorData.validationErrors);
+        }
+      }
+      
+      console.log('Final error message to display:', errorMessage);
       toast.error(errorMessage, {
-        duration: 4000,
+        duration: 6000,
       });
       return;
     }
@@ -176,7 +216,11 @@ function Register({ onRegisterSuccess }) {
               value={formData.birthday}
               onChange={handleChange}
               required
+              max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+              min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+              aria-label="Select your birth date"
             />
+            <label htmlFor="birthday" className="date-label">Birthday</label>
           </div>
 
           <div className="input-group">

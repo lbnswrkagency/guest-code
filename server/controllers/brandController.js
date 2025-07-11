@@ -1496,6 +1496,72 @@ exports.updateBrandMetaPixel = async (req, res) => {
   }
 };
 
+// User favorite brand management
+exports.favoriteUserBrand = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const userId = req.user._id;
+
+    // Check if brand exists
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+
+    // Add brand to user's favorite brands
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $addToSet: { favoriteBrands: brandId } },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Brand added to favorites",
+      favoriteBrands: updatedUser.favoriteBrands,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error favoriting brand" });
+  }
+};
+
+exports.unfavoriteUserBrand = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const userId = req.user._id;
+
+    // Remove brand from user's favorite brands
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { favoriteBrands: brandId } },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Brand removed from favorites",
+      favoriteBrands: updatedUser.favoriteBrands,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error unfavoriting brand" });
+  }
+};
+
+exports.getUserFavoriteBrands = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId).populate({
+      path: "favoriteBrands",
+      select: "name username logo description",
+    });
+
+    res.status(200).json({
+      favoriteBrands: user.favoriteBrands || [],
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching favorite brands" });
+  }
+};
+
 // New function for updating Spotify configuration
 exports.updateSpotifyConfig = async (req, res) => {
   try {
@@ -1573,4 +1639,7 @@ module.exports = {
   cancelJoinRequest: exports.cancelJoinRequest,
   updateBrandMetaPixel: exports.updateBrandMetaPixel,
   updateSpotifyConfig: exports.updateSpotifyConfig,
+  favoriteUserBrand: exports.favoriteUserBrand,
+  unfavoriteUserBrand: exports.unfavoriteUserBrand,
+  getUserFavoriteBrands: exports.getUserFavoriteBrands,
 };

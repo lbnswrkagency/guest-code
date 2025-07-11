@@ -61,6 +61,9 @@ const {
   getSignedUrlForDownload,
   toggleEventLive,
   getEventProfile,
+  favoriteEvent,
+  unfavoriteEvent,
+  getUserFavoriteEvents,
 } = require("../../controllers/eventsController");
 
 // Brand-specific event routes
@@ -435,5 +438,10 @@ router.get(
     }
   }
 );
+
+// Event favoriting routes
+router.post("/:eventId/favorite", authenticate, favoriteEvent);
+router.delete("/:eventId/favorite", authenticate, unfavoriteEvent);
+router.get("/user-favorites", authenticate, getUserFavoriteEvents);
 
 module.exports = router;

@@ -467,23 +467,26 @@ const UpcomingEvent = ({
             events = response.data;
           }
 
-          // If we have parent events, fetch their children too
+          // If we have parent events, fetch their children too (optimized with Promise.all)
           const parentEvents = events.filter((event) => event.isWeekly);
 
-          for (const parentEvent of parentEvents) {
+          if (parentEvents.length > 0) {
             try {
-              const childrenResponse = await axiosInstance.get(
-                `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+              const childrenPromises = parentEvents.map(parentEvent =>
+                axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`)
+                  .catch(() => ({ data: [] })) // Return empty array on error
               );
 
-              if (
-                childrenResponse.data &&
-                Array.isArray(childrenResponse.data)
-              ) {
-                events = [...events, ...childrenResponse.data];
-              }
-            } catch (childError) {
-              // Warning removed
+              const childrenResponses = await Promise.all(childrenPromises);
+              
+              // Flatten all children responses
+              const allChildren = childrenResponses
+                .filter(response => response.data && Array.isArray(response.data))
+                .flatMap(response => response.data);
+
+              events = [...events, ...allChildren];
+            } catch (error) {
+              // Continue without children if there's an error
             }
           }
         } catch (error) {
@@ -1202,19 +1205,20 @@ const UpcomingEvent = ({
   };
 
   // Check if we have a current event to display
-  if (loading) {
+  if (loading && !seamless) {
     return (
-      <div
-        className={`upcomingEvent-container loading ${
-          seamless ? "seamless" : ""
-        }`}
-      >
+      <div className="upcomingEvent-container loading">
         <div className="upcomingEvent-loader">
           <LoadingSpinner size="large" color="#ffc807" />
           <p>Loading events...</p>
         </div>
       </div>
     );
+  }
+
+  // For seamless mode, don't show loading spinner - parent handles loading
+  if (loading && seamless) {
+    return null;
   }
 
   if (error) {
@@ -1500,12 +1504,12 @@ const UpcomingEvent = ({
                     ref={ticketSectionRef}
                     className="upcomingEvent-ticket-section full-width"
                   >
-                    {loadingTickets ? (
+                    {loadingTickets && !seamless ? (
                       <div className="upcomingEvent-ticket-loading">
                         <LoadingSpinner color="#ffc807" />
                         <p>Loading tickets...</p>
                       </div>
-                    ) : (
+                    ) : loadingTickets && seamless ? null : (
                       // No need to check length again here, already done above
                       <Tickets
                         eventId={currentEvent._id}

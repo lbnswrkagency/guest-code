@@ -63,13 +63,24 @@ const BrandProfile = () => {
     joinRequestStatus: null,
   });
   const [joinRequests, setJoinRequests] = useState([]);
-  const [loadingJoinRequests, setLoadingJoinRequests] = useState(false);
 
   // State for current event and action buttons
   const [currentEvent, setCurrentEvent] = useState(null);
   const [ticketSettings, setTicketSettings] = useState([]);
   const [codeSettings, setCodeSettings] = useState([]);
-  const [loadingEventData, setLoadingEventData] = useState(false);
+
+  // More granular loading progress tracking
+  const [loadingProgress, setLoadingProgress] = useState({
+    brand: 0,
+    events: 0,
+    tickets: 0,
+  });
+
+  // Calculate total progress percentage
+  const totalProgress = useMemo(() => {
+    const { brand, events, tickets } = loadingProgress;
+    return Math.round((brand + events + tickets) / 3);
+  }, [loadingProgress]);
 
   // Filter ticket settings to only include visible ones (same as UpcomingEvent)
   const visibleTicketSettings = useMemo(() => {
@@ -85,6 +96,75 @@ const BrandProfile = () => {
   const [isActionButtonsSticky, setIsActionButtonsSticky] = useState(false);
   const actionButtonsRef = useRef(null);
   const actionButtonsStickyPosRef = useRef(null);
+
+  // Handler for when events are loaded from UpcomingEvent
+  const handleEventsLoaded = useCallback((count) => {
+    setLoadingProgress(prev => ({ 
+      ...prev, 
+      events: 100,
+      // If no events, also mark tickets as loaded since there's nothing to load
+      tickets: count === 0 ? 100 : prev.tickets
+    }));
+  }, []);
+
+  // Check if all data is loaded
+  const allDataLoaded = useMemo(() => {
+    return totalProgress >= 100;
+  }, [totalProgress]);
+
+  // Update main loading state when all data is ready
+  useEffect(() => {
+    if (allDataLoaded && loading) {
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    }
+  }, [allDataLoaded, loading]);
+
+  // Progressive loading simulation with realistic timings
+  useEffect(() => {
+    if (!loading) return;
+
+    // Simulate progressive loading for better UX
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        const newProgress = { ...prev };
+        
+        // Brand loading simulation (fastest)
+        if (newProgress.brand < 100 && newProgress.brand < 80) {
+          newProgress.brand = Math.min(100, newProgress.brand + Math.random() * 15 + 5);
+        }
+        
+        // Events loading simulation (medium speed, starts after brand reaches 30%)
+        if (newProgress.brand > 30 && newProgress.events < 100 && newProgress.events < 90) {
+          newProgress.events = Math.min(100, newProgress.events + Math.random() * 8 + 2);
+        }
+        
+        // Tickets loading simulation (starts after events reach 60%)
+        if (newProgress.events > 60 && newProgress.tickets < 100 && newProgress.tickets < 95) {
+          newProgress.tickets = Math.min(100, newProgress.tickets + Math.random() * 12 + 3);
+        }
+        
+        return newProgress;
+      });
+    }, 150);
+
+    // Cleanup interval
+    return () => clearInterval(progressInterval);
+  }, [loading]);
+
+  // Fallback timeout to prevent infinite loading
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (loading) {
+        // Force completion after 8 seconds
+        setLoadingProgress({ brand: 100, events: 100, tickets: 100 });
+      }
+    }, 8000);
+
+    return () => clearTimeout(fallbackTimeout);
+  }, [loading]);
 
   // Clean username for API calls - handle both param and direct path extraction
   let cleanUsername;
@@ -143,6 +223,7 @@ const BrandProfile = () => {
   const fetchBrand = async () => {
     try {
       setLoading(true);
+      setLoadingProgress({ brand: 0, events: 0, tickets: 0 });
 
       const apiEndpoint = `/brands/profile/username/${cleanUsername}`;
 
@@ -154,6 +235,8 @@ const BrandProfile = () => {
         setIsMember(response.data.userStatus?.isMember || false);
         setIsFavorited(response.data.userStatus?.isFavorited || false);
       }
+      
+      setLoadingProgress(prev => ({ ...prev, brand: 100 }));
     } catch (error) {
       // Check for authentication error - redirect to login instead of showing toast
       if (error.response?.status === 401) {
@@ -177,8 +260,6 @@ const BrandProfile = () => {
         setBrand(null);
         setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -585,6 +666,7 @@ const BrandProfile = () => {
         setCurrentEvent(null);
         setTicketSettings([]);
         setCodeSettings([]);
+        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
         return;
       }
 
@@ -595,7 +677,6 @@ const BrandProfile = () => {
       }
 
       setCurrentEvent(eventCopy);
-      setLoadingEventData(true);
 
       try {
         // Use the same sophisticated ticket fetching logic as UpcomingEvent
@@ -612,14 +693,14 @@ const BrandProfile = () => {
 
         setTicketSettings(fetchedTicketSettings);
         setCodeSettings(codeSettings);
+        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
 
         // Data fetched successfully
       } catch (error) {
         // Silent fail - just set empty arrays
         setTicketSettings([]);
         setCodeSettings([]);
-      } finally {
-        setLoadingEventData(false);
+        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
       }
     },
     [fetchTicketSettings]
@@ -801,7 +882,7 @@ const BrandProfile = () => {
 
   // Function to render event action buttons
   const renderEventActionButtons = () => {
-    if (!currentEvent || loadingEventData) return null;
+    if (!currentEvent) return null;
 
     const supportsTableBookingForEvent = supportsTableBooking(currentEvent);
 
@@ -961,9 +1042,39 @@ const BrandProfile = () => {
                 <div className="dot dot-5"></div>
               </div>
 
-              {/* Loading bar */}
+              {/* Loading bar with progress */}
               <div className="loading-bar">
-                <div className="loading-progress"></div>
+                <div 
+                  className="loading-progress"
+                  style={{
+                    width: `${totalProgress}%`
+                  }}
+                ></div>
+              </div>
+
+              {/* Loading steps */}
+              <div className="loading-steps">
+                <div className={`loading-step ${loadingProgress.brand >= 100 ? 'completed' : loadingProgress.brand > 0 ? 'active' : ''}`}>
+                  <div className="step-content">
+                    <span className="step-indicator"></span>
+                    <span className="step-text">Loading profile...</span>
+                  </div>
+                  <span className="step-progress">{Math.round(loadingProgress.brand)}%</span>
+                </div>
+                <div className={`loading-step ${loadingProgress.events >= 100 ? 'completed' : loadingProgress.events > 0 ? 'active' : ''}`}>
+                  <div className="step-content">
+                    <span className="step-indicator"></span>
+                    <span className="step-text">Loading events...</span>
+                  </div>
+                  <span className="step-progress">{Math.round(loadingProgress.events)}%</span>
+                </div>
+                <div className={`loading-step ${loadingProgress.tickets >= 100 ? 'completed' : loadingProgress.tickets > 0 ? 'active' : ''}`}>
+                  <div className="step-content">
+                    <span className="step-indicator"></span>
+                    <span className="step-text">Preparing experience...</span>
+                  </div>
+                  <span className="step-progress">{Math.round(loadingProgress.tickets)}%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1114,7 +1225,11 @@ const BrandProfile = () => {
           )}
         </div>
 
-        <BrandProfileFeed brand={brand} onEventChange={handleEventChange} />
+        <BrandProfileFeed 
+          brand={brand} 
+          onEventChange={handleEventChange}
+          onEventsLoaded={handleEventsLoaded}
+        />
       </div>
 
       <AnimatePresence mode="wait">

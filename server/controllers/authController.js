@@ -41,12 +41,36 @@ const refreshTokenCookieOptions = {
 };
 
 exports.register = async (req, res) => {
+  console.log('=== REGISTRATION ATTEMPT ===');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  
+  // Check for validation errors first
+  const errors = validationResult(req);
+  console.log('Validation errors:', errors.array());
+  
+  if (!errors.isEmpty()) {
+    console.log('❌ Validation failed:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors.array(),
+      details: errors.array().map(err => err.msg).join(', ')
+    });
+  }
+
   const { username, email, password, firstName, lastName, birthday } = req.body;
+  console.log('✅ Validation passed');
+  console.log('Extracted fields:', { username, email, password: password ? '[HIDDEN]' : 'MISSING', firstName, lastName, birthday });
 
   try {
+    console.log('🔍 Checking for existing user...');
     let user = await User.findOne({ $or: [{ email }, { username }] });
+    console.log('Existing user check result:', user ? 'User found' : 'No existing user');
 
     if (user) {
+      console.log('❌ User already exists:', user.email === email ? 'Email taken' : 'Username taken');
       return res.status(400).json({
         success: false,
         message: "Registration failed",
@@ -57,9 +81,12 @@ exports.register = async (req, res) => {
       });
     }
 
+    console.log('🔒 Hashing password...');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    console.log('✅ Password hashed successfully');
 
+    console.log('👤 Creating new user...');
     user = new User({
       username,
       firstName,
@@ -69,25 +96,65 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     });
 
+    console.log('💾 Saving user to database...');
     await user.save();
+    console.log('✅ User saved successfully with ID:', user._id);
 
+    console.log('🔑 Generating verification token...');
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+    console.log('✅ Token generated successfully');
 
+    console.log('📧 Sending verification email...');
     // Send verification email without event details
     await sendVerificationEmail(user.email, token);
+    console.log('✅ Verification email sent successfully');
 
+    console.log('🎉 Registration completed successfully!');
     res.json({
       success: true,
       message: "Registration successful",
       details: "Please check your email for verification.",
     });
   } catch (error) {
+    console.log('❌ Registration error occurred:');
+    console.error('Error details:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    // Check if it's a mongoose validation error
+    if (error.name === 'ValidationError') {
+      console.log('🚨 Mongoose validation error:');
+      Object.keys(error.errors).forEach(key => {
+        console.log(`  - ${key}: ${error.errors[key].message}`);
+      });
+      
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        details: Object.values(error.errors).map(e => e.message).join(', '),
+        validationErrors: error.errors
+      });
+    }
+    
+    // Check if it's a duplicate key error
+    if (error.code === 11000) {
+      console.log('🚨 Duplicate key error:', error.keyPattern);
+      return res.status(400).json({
+        success: false,
+        message: "Registration failed",
+        details: "Email or username already exists.",
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Registration failed",
       details: "An unexpected error occurred. Please try again later.",
+      errorType: error.name,
+      errorMessage: error.message
     });
   }
 };

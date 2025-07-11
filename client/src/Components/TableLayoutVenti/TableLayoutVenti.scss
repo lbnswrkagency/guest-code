@@ -27,6 +27,7 @@ $anthracite-hover: #252525;
   justify-content: center !important;
   position: relative;
   width: 100%;
+  padding-bottom: 3rem;
   grid-template-columns: repeat(3, minmax(min-content, max-content));
   grid-template-rows: repeat(2, minmax(min-content, max-content));
   // Subtle gradient overlay
@@ -1501,10 +1502,9 @@ $anthracite-hover: #252525;
           );
       border-radius: 0 0 4px 4px;
       box-shadow: 
-        /* Clean shadows like -01 but slightly enhanced for 2nd floor */
-        inset 0 1px 2px rgba(255, 255, 255, 0.6),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.05), 
-        0 2px 8px rgba(0, 0, 0, 0.2),
+        /* Clean shadows like -01 but slightly enhanced for 2nd floor */ inset
+          0 1px 2px rgba(255, 255, 255, 0.6),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.2),
         0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 17;
       border: 1px solid rgba(255, 255, 255, 0.8);
@@ -1519,15 +1519,15 @@ $anthracite-hover: #252525;
         height: 2px;
         background: 
           /* White capitals segments */ repeating-linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0.9) 0px,
-            rgba(255, 255, 255, 0.9) 12px,
-            rgba(240, 240, 240, 0.7) 13px,
-            rgba(235, 235, 235, 0.6) 15px,
-            rgba(240, 240, 240, 0.7) 16px,
-            transparent 17px,
-            transparent 20px
-          );
+          to right,
+          rgba(255, 255, 255, 0.9) 0px,
+          rgba(255, 255, 255, 0.9) 12px,
+          rgba(240, 240, 240, 0.7) 13px,
+          rgba(235, 235, 235, 0.6) 15px,
+          rgba(240, 240, 240, 0.7) 16px,
+          transparent 17px,
+          transparent 20px
+        );
         border-radius: 2px 2px 0 0;
         z-index: 1;
       }
@@ -1539,15 +1539,13 @@ $anthracite-hover: #252525;
         left: -1px;
         right: -1px;
         height: 3px;
-        background: 
-          linear-gradient(
-            to bottom,
-            rgba(60, 60, 60, 0.6) 0%,
-            rgba(40, 40, 40, 0.7) 100%
-          );
+        background: linear-gradient(
+          to bottom,
+          rgba(60, 60, 60, 0.6) 0%,
+          rgba(40, 40, 40, 0.7) 100%
+        );
         border-radius: 0 0 6px 6px;
-        box-shadow: 
-          0 1px 4px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
         z-index: -1;
       }
     }

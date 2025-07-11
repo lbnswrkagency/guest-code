@@ -166,6 +166,7 @@ const EventSchema = new Schema(
 
     link: { type: String, required: true, unique: true },
     isPublic: { type: Boolean, default: true },
+    favoritedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

@@ -24,7 +24,9 @@
       "mcp__puppeteer__puppeteer_click",
       "Bash(hostname:*)",
       "Bash(find:*)",
-      "mcp__filesystem__read_file"
+      "mcp__filesystem__read_file",
+      "Bash(npm start:*)",
+      "Bash(npx sass:*)"
     ],
     "deny": []
   }
