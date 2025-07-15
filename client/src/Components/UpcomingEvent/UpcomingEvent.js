@@ -175,15 +175,34 @@ const UpcomingEvent = ({
         preloadEventImage(processedEvents[currentIndex]);
       }
 
-      // OPTIMIZATION: Preload ticket settings for ALL events at once
-      processedEvents.forEach((event) => {
-        if (event._id && event.ticketsAvailable !== false) {
-          // Queue the ticket fetch with a slight delay to avoid overwhelming the server
-          setTimeout(() => {
-            fetchTicketSettings(event._id);
-          }, 100);
+      // OPTIMIZATION: If we have cached ticket settings from comprehensive endpoint, no need to fetch
+      if (Object.keys(ticketSettingsCache).length > 0) {
+        console.log(
+          "✅ [UpcomingEvent] Using cached ticket settings from comprehensive endpoint"
+        );
+        // Set ticket settings for current event if available
+        if (
+          processedEvents[currentIndex]?._id &&
+          ticketSettingsCache[processedEvents[currentIndex]._id]
+        ) {
+          setTicketSettings(
+            ticketSettingsCache[processedEvents[currentIndex]._id]
+          );
         }
-      });
+      } else {
+        // Fallback: Preload ticket settings for ALL events at once
+        console.log(
+          "⚠️ [UpcomingEvent] No cached ticket settings, falling back to individual fetches"
+        );
+        processedEvents.forEach((event) => {
+          if (event._id && event.ticketsAvailable !== false) {
+            // Queue the ticket fetch with a slight delay to avoid overwhelming the server
+            setTimeout(() => {
+              fetchTicketSettings(event._id);
+            }, 100);
+          }
+        });
+      }
 
       return;
     }
@@ -297,8 +316,12 @@ const UpcomingEvent = ({
       setLoadingTickets(true);
 
       try {
-        // Check if we already have this event's ticket settings in cache
+        // OPTIMIZATION: Check if we already have this event's ticket settings in cache (from comprehensive endpoint)
         if (ticketSettingsCache[eventId]) {
+          console.log(
+            "✅ [UpcomingEvent] Using cached ticket settings for event:",
+            eventId
+          );
           setTicketSettings(ticketSettingsCache[eventId]);
           setLoadingTickets(false);
           return;
@@ -453,100 +476,169 @@ const UpcomingEvent = ({
     setError(null);
 
     try {
-      let endpoint;
-      let events = [];
+      console.log(
+        "🚀 [UpcomingEvent] Using COMPREHENSIVE endpoint for optimized data fetching"
+      );
 
-      // Try to fetch by brandId first if available
+      let events = []; // Declare events variable at function scope
+
+      // Use the comprehensive endpoint that fetches ALL data in one request
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data`;
+      const params = new URLSearchParams();
+
       if (brandId) {
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
-
-        try {
-          const response = await axiosInstance.get(endpoint);
-
-          if (response.data && Array.isArray(response.data)) {
-            events = response.data;
-          }
-
-          // If we have parent events, fetch their children too (optimized with Promise.all)
-          const parentEvents = events.filter((event) => event.isWeekly);
-
-          if (parentEvents.length > 0) {
-            try {
-              const childrenPromises = parentEvents.map(parentEvent =>
-                axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`)
-                  .catch(() => ({ data: [] })) // Return empty array on error
-              );
-
-              const childrenResponses = await Promise.all(childrenPromises);
-              
-              // Flatten all children responses
-              const allChildren = childrenResponses
-                .filter(response => response.data && Array.isArray(response.data))
-                .flatMap(response => response.data);
-
-              events = [...events, ...allChildren];
-            } catch (error) {
-              // Continue without children if there's an error
-            }
-          }
-        } catch (error) {
-          // Warning removed
-
-          // Fall back to using brandUsername for any error, not just 401/403
-          if (brandUsername) {
-            const cleanUsername = brandUsername.replace(/^@/, "");
-            endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
-
-            try {
-              const response = await axiosInstance.get(endpoint);
-              if (response.data && Array.isArray(response.data)) {
-                events = response.data;
-              } else {
-                events = [];
-              }
-            } catch (usernameError) {
-              // Warning removed
-              events = [];
-            }
-          }
-        }
+        params.append("brandId", brandId);
       } else if (brandUsername) {
-        // No brandId, try using brandUsername
         const cleanUsername = brandUsername.replace(/^@/, "");
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+        params.append("brandUsername", cleanUsername);
+      }
 
-        try {
-          const response = await axiosInstance.get(endpoint);
+      params.append("limit", limit.toString());
 
-          if (response.data && Array.isArray(response.data)) {
-            events = response.data;
+      const fullEndpoint = `${endpoint}?${params.toString()}`;
+      console.log("🔗 [UpcomingEvent] Fetching from:", fullEndpoint);
 
-            // If we have parent events, fetch their children too
+      const response = await axiosInstance.get(fullEndpoint);
+
+      console.log("🔍 [UpcomingEvent] Raw response:", response.data);
+
+      if (response.data && response.data.success && response.data.data) {
+        const {
+          events: responseEvents,
+          ticketSettings,
+          codeSettings,
+          tableData,
+          brand,
+        } = response.data.data;
+
+        console.log("✅ [UpcomingEvent] Comprehensive data received:", {
+          eventsCount: responseEvents?.length || 0,
+          ticketSettingsCount: Object.keys(ticketSettings || {}).length,
+          codeSettingsCount: Object.keys(codeSettings || {}).length,
+          tableDataCount: Object.keys(tableData || {}).length,
+        });
+
+        console.log("🔍 [UpcomingEvent] Events data:", responseEvents);
+
+        // Store all related data for later use
+        if (ticketSettings) {
+          setTicketSettingsCache(ticketSettings);
+        }
+
+        // Store code settings globally (you might want to add state for this)
+        if (codeSettings) {
+          window.upcomingEventCodeSettingsCache = codeSettings;
+        }
+
+        // Store table data globally (you might want to add state for this)
+        if (tableData) {
+          window.upcomingEventTableDataCache = tableData;
+        }
+
+        // Use the events from comprehensive response
+        events = responseEvents || [];
+      } else {
+        console.warn(
+          "❌ [UpcomingEvent] Comprehensive endpoint failed, falling back to individual calls"
+        );
+
+        // Fallback to individual API calls if comprehensive endpoint fails
+        events = []; // Remove 'let' since events is already declared above
+
+        // Try to fetch by brandId first if available
+        if (brandId) {
+          const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`;
+
+          try {
+            const response = await axiosInstance.get(endpoint);
+
+            if (response.data && Array.isArray(response.data)) {
+              events = response.data;
+            }
+
+            // If we have parent events, fetch their children too (optimized with Promise.all)
             const parentEvents = events.filter((event) => event.isWeekly);
 
-            for (const parentEvent of parentEvents) {
+            if (parentEvents.length > 0) {
               try {
-                // Fetch all child events that already exist for this parent
-                const childrenResponse = await axiosInstance.get(
-                  `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+                const childrenPromises = parentEvents.map(
+                  (parentEvent) =>
+                    axiosInstance
+                      .get(
+                        `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+                      )
+                      .catch(() => ({ data: [] })) // Return empty array on error
                 );
 
-                if (
-                  childrenResponse.data &&
-                  Array.isArray(childrenResponse.data)
-                ) {
-                  events = [...events, ...childrenResponse.data];
-                }
-              } catch (childError) {
-                // Warning removed
+                const childrenResponses = await Promise.all(childrenPromises);
+
+                // Flatten all children responses
+                const allChildren = childrenResponses
+                  .filter(
+                    (response) => response.data && Array.isArray(response.data)
+                  )
+                  .flatMap((response) => response.data);
+
+                events = [...events, ...allChildren];
+              } catch (error) {
+                // Continue without children if there's an error
               }
             }
-          } else {
+          } catch (error) {
+            // Fall back to using brandUsername for any error, not just 401/403
+            if (brandUsername) {
+              const cleanUsername = brandUsername.replace(/^@/, "");
+              const fallbackEndpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+
+              try {
+                const response = await axiosInstance.get(fallbackEndpoint);
+                if (response.data && Array.isArray(response.data)) {
+                  events = response.data;
+                } else {
+                  events = [];
+                }
+              } catch (usernameError) {
+                events = [];
+              }
+            }
+          }
+        } else if (brandUsername) {
+          // No brandId, try using brandUsername
+          const cleanUsername = brandUsername.replace(/^@/, "");
+          const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/date/${cleanUsername}`;
+
+          try {
+            const response = await axiosInstance.get(endpoint);
+
+            if (response.data && Array.isArray(response.data)) {
+              events = response.data;
+
+              // If we have parent events, fetch their children too
+              const parentEvents = events.filter((event) => event.isWeekly);
+
+              for (const parentEvent of parentEvents) {
+                try {
+                  // Fetch all child events that already exist for this parent
+                  const childrenResponse = await axiosInstance.get(
+                    `${process.env.REACT_APP_API_BASE_URL}/events/children/${parentEvent._id}`
+                  );
+
+                  if (
+                    childrenResponse.data &&
+                    Array.isArray(childrenResponse.data)
+                  ) {
+                    events = [...events, ...childrenResponse.data];
+                  }
+                } catch (childError) {
+                  // Continue without children
+                }
+              }
+            } else {
+              events = [];
+            }
+          } catch (err) {
             events = [];
           }
-        } catch (err) {
-          // Warning removed
-          events = [];
         }
       }
 
@@ -678,7 +770,8 @@ const UpcomingEvent = ({
         setCurrentIndex(-1);
       }
     } catch (error) {
-      // Error handling removed
+      console.error("❌ [UpcomingEvent] Error in fetchUpcomingEvents:", error);
+      console.error("❌ [UpcomingEvent] Error stack:", error.stack);
       setError("Failed to load events");
       setEvents([]);
       setCurrentIndex(-1);
@@ -1122,9 +1215,22 @@ const UpcomingEvent = ({
         setEvents(updatedEvents);
       }
 
-      // IMPORTANT: Directly call fetchTicketSettings here to ensure it runs
+      // OPTIMIZATION: Use cached ticket settings if available, otherwise fetch
       if (currentEvent._id) {
-        fetchTicketSettings(currentEvent._id);
+        if (ticketSettingsCache[currentEvent._id]) {
+          console.log(
+            "✅ [UpcomingEvent] Using cached ticket settings from useEffect for event:",
+            currentEvent._id
+          );
+          setTicketSettings(ticketSettingsCache[currentEvent._id]);
+          setLoadingTickets(false);
+        } else {
+          console.log(
+            "⚠️ [UpcomingEvent] No cached data, fetching ticket settings for event:",
+            currentEvent._id
+          );
+          fetchTicketSettings(currentEvent._id);
+        }
       }
     }
   }, [currentIndex, fetchTicketSettings, events]);
@@ -1348,6 +1454,7 @@ const UpcomingEvent = ({
                       )}
                       {isActive && <div className="preview-active-indicator" />}
                     </div>
+
                     <div className="preview-info">
                       <h4 className="preview-title">{event.title}</h4>
                       {event.subTitle && (
@@ -1409,6 +1516,7 @@ const UpcomingEvent = ({
           transition={{ duration: 0.3 }}
         >
           {/* Content wrapper for desktop layout - title first */}
+
           <div className="upcomingEvent-content-wrapper">
             {/* Event Title */}
             <div className="upcomingEvent-header">
@@ -1416,48 +1524,47 @@ const UpcomingEvent = ({
                 {currentEvent.title}
               </h1>
             </div>
-          </div>
-
-          {/* Subtitle and Description wrapper - moved to third position */}
-          <div className="upcomingEvent-subtitle-wrapper">
+            
             {/* Event Subtitle */}
-            {currentEvent.subTitle && (
-              <div className="upcomingEvent-subtitle-header">
-                <h2 className="upcomingEvent-event-subtitle">
-                  {currentEvent.subTitle}
-                </h2>
-              </div>
-            )}
-
-            {/* Image/Flyer - moved to second position */}
-            <div className="upcomingEvent-image-wrapper">
-              <div className="upcomingEvent-image-container">
-                {eventImage ? (
-                  <img
-                    src={eventImage}
-                    alt={currentEvent.title}
-                    className="upcomingEvent-event-image"
-                    onLoad={handleImageLoad}
-                    onError={handleImageError}
-                  />
-                ) : (
-                  <div className="upcomingEvent-no-image">
-                    <RiImageLine />
-                    <span>No image available</span>
-                  </div>
-                )}
-              </div>
+            <div className="upcomingEvent-subtitle-wrapper">
+              {currentEvent.subTitle && (
+                <div className="upcomingEvent-subtitle-header">
+                  <h2 className="upcomingEvent-event-subtitle">
+                    {currentEvent.subTitle}
+                  </h2>
+                </div>
+              )}
             </div>
-
-            {/* Event Description */}
-            {currentEvent.description && (
-              <div className="upcomingEvent-description-container">
-                <p className="upcomingEvent-event-description">
-                  {currentEvent.description}
-                </p>
-              </div>
-            )}
           </div>
+
+          {/* Image/Flyer - positioned separately for grid layout */}
+          <div className="upcomingEvent-image-wrapper">
+            <div className="upcomingEvent-image-container">
+              {eventImage ? (
+                <img
+                  src={eventImage}
+                  alt={currentEvent.title}
+                  className="upcomingEvent-event-image"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+              ) : (
+                <div className="upcomingEvent-no-image">
+                  <RiImageLine />
+                  <span>No image available</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Event Description */}
+          {currentEvent.description && (
+            <div className="upcomingEvent-description-container">
+              <p className="upcomingEvent-event-description">
+                {currentEvent.description}
+              </p>
+            </div>
+          )}
 
           {/* Full-width sections that span both columns on desktop */}
           <div className="upcomingEvent-full-width-sections">
@@ -1548,6 +1655,9 @@ const UpcomingEvent = ({
                         selectedBrand={currentEvent.brand}
                         isPublic={true} // Mark as public
                         onClose={toggleTableBooking}
+                        tableData={
+                          window.upcomingEventTableDataCache?.[currentEvent._id]
+                        } // Pass pre-fetched table data
                       />
                     </div>
                   </div>

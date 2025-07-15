@@ -90,6 +90,7 @@
   overflow: hidden;
   box-sizing: border-box;
   padding: 1.25rem;
+  justify-self: center;
 }
 
 .eventDetails-section {
@@ -221,7 +222,7 @@
     font-weight: 500;
     padding-left: 1.3rem;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-
+    text-align: left;
     &.eventDetails-music-value {
       display: flex;
       align-items: center;
@@ -401,8 +402,6 @@
   }
 }
 
-
-
 // Responsive adjustments
 @media (max-width: 768px) {
   .eventDetails-section-content.eventDetails-time-grid {
@@ -413,7 +412,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 // Laptop and bigger screens - adjust content width
 @media (min-width: 1024px) {

@@ -592,6 +592,14 @@
       align-items: center;
       overflow: hidden;
       grid-row: 1/2;
+
+      @media (min-width: 1024px) {
+        grid-column: 1/2 !important;
+        grid-row: 1/4 !important;
+        align-self: center;
+        justify-self: center;
+        width: 30rem;
+      }
     }
 
     .upcomingEvent-image-container {
@@ -792,6 +800,26 @@
           height: 1.5px;
           bottom: -6px;
         }
+      }
+    }
+
+    // Global subtitle styling for all screen sizes
+    .upcomingEvent-event-subtitle {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #ffc807;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: center;
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+      }
+
+      @media (max-width: 480px) {
+        font-size: 0.95rem;
       }
     }
 
@@ -1880,187 +1908,204 @@
   }
 }
 
-// Mobile and tablet styling for subtitle and description
-.upcomingEvent-card {
-  .upcomingEvent-content-wrapper {
-    .upcomingEvent-header {
-      .upcomingEvent-event-subtitle {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #ffc807;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        margin-bottom: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-      }
-    }
-
-    .upcomingEvent-description-container {
-      .upcomingEvent-event-description {
-        padding: 1rem;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.06),
-          rgba(255, 255, 255, 0.03)
-        );
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.8);
-        line-height: 1.5;
-        font-size: 0.8rem;
-        position: relative;
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 3px;
-          height: 100%;
-          background: linear-gradient(180deg, #ffc807, #ffaa07);
-          border-radius: 0 2px 2px 0;
-        }
-      }
-    }
-  }
-}
-
-// Desktop Grid Layout - Side-by-side flyer and content for laptop and bigger screens
+// Desktop Grid Layout - Beautiful centered layout for laptop and bigger screens
 @media (min-width: 1024px) {
   .upcomingEvent-card {
     display: grid;
-    grid-template-columns: 42% 1fr;
-    grid-template-rows: auto auto;
-    gap: 3rem;
-    align-items: start;
-    max-width: 100vw;
-    overflow: hidden;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto auto;
+    gap: 2rem;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
 
-    .upcomingEvent-image-wrapper {
-      grid-row: 1;
-      grid-column: 1;
-      height: fit-content;
-      max-height: 600px;
-      position: sticky;
-      top: 1rem;
-
-      .upcomingEvent-image-container {
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-
-        .upcomingEvent-event-image {
-          max-height: 600px;
-          object-fit: contain;
-        }
-      }
-    }
-
+    // Content wrapper contains title and subtitle
     .upcomingEvent-content-wrapper {
       grid-row: 1;
-      grid-column: 2;
+      grid-column: 1;
       display: flex;
       flex-direction: column;
-      gap: 2rem;
-      padding: 1rem 2rem 1rem 0;
-      max-width: calc(100vw - 42% - 5rem); // Prevent overflow
-      overflow: hidden;
+      gap: 1.5rem;
+      align-items: center;
+      width: 100%;
 
       .upcomingEvent-header {
+        text-align: center;
+
         .upcomingEvent-event-title {
-          font-size: 2.75rem;
+          font-size: 3rem;
           font-weight: 800;
           line-height: 1.1;
-          margin: 0 0 1rem 0;
-          color: #ffffff;
-          text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-          letter-spacing: -0.02em;
-        }
+          margin: 0;
+          text-align: center;
 
-        .upcomingEvent-event-subtitle {
-          font-size: 1.4rem;
-          font-weight: 500;
-          line-height: 1.3;
-          margin: 0 0 2rem 0;
-          color: rgba(255, 200, 7, 0.9);
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-          font-style: italic;
-          letter-spacing: 0.02em;
-          position: relative;
-          padding-left: 1rem;
-
-          &::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 20px;
-            background: linear-gradient(180deg, #ffc807, #ffaa07);
-            border-radius: 2px;
+          &::after {
+            left: 50%;
+            transform: translateX(-50%);
           }
         }
       }
 
-      .upcomingEvent-description-container {
-        .upcomingEvent-event-description {
-          font-size: 0.95rem;
-          line-height: 1.6;
-          color: rgba(255, 255, 255, 0.88);
-          margin: 0;
-          padding: 1.5rem;
+      .upcomingEvent-subtitle-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+
+        .upcomingEvent-subtitle-header {
+          position: relative;
           background: linear-gradient(
             135deg,
-            rgba(255, 255, 255, 0.08),
-            rgba(255, 255, 255, 0.04)
+            rgba(21, 21, 21, 0.98) 0%,
+            rgba(30, 30, 30, 0.95) 50%,
+            rgba(21, 21, 21, 0.98) 100%
           );
-          border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-          backdrop-filter: blur(10px);
-          position: relative;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-radius: 1rem;
+          border: 1px solid rgba(255, 200, 7, 0.1);
+          padding: 1rem 2rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
           overflow: hidden;
-          max-width: 90%;
-          font-weight: 400;
-          letter-spacing: 0.025em;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+          max-width: 600px;
 
+          // Subtle golden glow
           &::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, #ffc807, #ffaa07);
-            border-radius: 0 2px 2px 0;
-          }
-
-          &::after {
             content: "";
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='rgba(255,255,255,0.02)' fill-opacity='1'%3E%3Ccircle cx='7' cy='7' r='1'/%3E%3Ccircle cx='53' cy='53' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            background: linear-gradient(
+              45deg,
+              transparent 40%,
+              rgba(255, 200, 7, 0.03) 50%,
+              transparent 60%
+            );
+            border-radius: inherit;
             pointer-events: none;
-            opacity: 0.6;
+            z-index: 1;
+          }
+
+          // Top accent line
+          &::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(
+              to right,
+              transparent,
+              rgba(255, 200, 7, 0.6),
+              transparent
+            );
+            border-radius: 0 0 2px 2px;
+            z-index: 2;
+          }
+
+          .upcomingEvent-event-subtitle {
+            position: relative;
+            z-index: 3;
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(
+              135deg,
+              #ffffff 0%,
+              #ffc807 50%,
+              #ffffff 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.025em;
+            text-align: center;
+            text-transform: none;
+            text-shadow: none;
           }
         }
       }
     }
 
-    // Full-width sections that should span both columns
-    .upcomingEvent-full-width-sections {
-      grid-column: 1 / -1; // Span both columns
+    // Image wrapper positioned in center
+    .upcomingEvent-image-wrapper {
       grid-row: 2;
-      margin-top: 2rem;
+      grid-column: 1;
+      height: fit-content;
+      max-height: 500px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+
+      .upcomingEvent-image-container {
+        .upcomingEvent-event-image {
+          max-height: 500px;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+      }
+    }
+
+    // Description positioned below image
+    .upcomingEvent-description-container {
+      grid-row: 3;
+      grid-column: 1;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+
+      .upcomingEvent-event-description {
+        max-width: 700px;
+        text-align: center;
+        padding: 1.5rem 2rem;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.04)
+        );
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: linear-gradient(180deg, #ffc807, #ffaa07);
+          border-radius: 0 2px 2px 0;
+        }
+      }
+    }
+
+    // Full-width sections span the full width
+    .upcomingEvent-full-width-sections {
+      grid-row: 4;
+      grid-column: 1;
+      width: 100%;
       display: flex;
       flex-direction: column;
       gap: 2rem;
-      width: 100%;
+      margin-top: 2rem;
+
+      @media (min-width: 1024px) {
+        grid-column: 1/3;
+      }
     }
 
     // Adjust flyer sizing for different formats in desktop view
@@ -2094,41 +2139,99 @@
   }
 }
 
-// Enhanced desktop layout for larger screens
-@media (min-width: 1200px) {
+// Medium desktop layout optimization for 1280x800 screens
+@media (min-width: 1024px) and (max-width: 1279px) {
   .upcomingEvent-card {
-    grid-template-columns: 40% 1fr;
-    gap: 4rem;
-
-    .upcomingEvent-image-wrapper {
-      max-height: 650px;
-
-      .upcomingEvent-image-container .upcomingEvent-event-image {
-        max-height: 650px;
-      }
-    }
+    gap: 1.5rem;
+    max-width: 1100px;
+    padding: 1.5rem;
 
     .upcomingEvent-content-wrapper {
-      gap: 2.5rem;
-      padding: 1.5rem 3rem 1.5rem 0;
-      max-width: calc(100vw - 40% - 7rem);
+      gap: 1.2rem;
 
       .upcomingEvent-header {
         .upcomingEvent-event-title {
-          font-size: 3.25rem;
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.6rem;
+          font-size: 2.5rem;
         }
       }
 
-      .upcomingEvent-description-container {
-        .upcomingEvent-event-description {
-          font-size: 1.05rem;
-          line-height: 1.7;
-          padding: 2rem;
+      .upcomingEvent-subtitle-wrapper {
+        .upcomingEvent-subtitle-header {
+          padding: 0.8rem 1.5rem;
+          max-width: 500px;
+
+          .upcomingEvent-event-subtitle {
+            font-size: 1.2rem;
+          }
         }
+      }
+    }
+
+    .upcomingEvent-image-wrapper {
+      max-height: 400px;
+
+      .upcomingEvent-image-container {
+        .upcomingEvent-event-image {
+          max-height: 400px;
+        }
+      }
+    }
+
+    .upcomingEvent-description-container {
+      .upcomingEvent-event-description {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        padding: 1.2rem 1.5rem;
+        max-width: 600px;
+      }
+    }
+  }
+}
+
+// Enhanced desktop layout for larger screens
+@media (min-width: 1200px) {
+  .upcomingEvent-card {
+    gap: 2.5rem;
+    max-width: 1300px;
+    padding: 2.5rem;
+
+    .upcomingEvent-content-wrapper {
+      gap: 2rem;
+
+      .upcomingEvent-header {
+        .upcomingEvent-event-title {
+          font-size: 3.5rem;
+        }
+      }
+
+      .upcomingEvent-subtitle-wrapper {
+        .upcomingEvent-subtitle-header {
+          padding: 1.2rem 2.5rem;
+          max-width: 700px;
+
+          .upcomingEvent-event-subtitle {
+            font-size: 1.6rem;
+          }
+        }
+      }
+    }
+
+    .upcomingEvent-image-wrapper {
+      max-height: 600px;
+
+      .upcomingEvent-image-container {
+        .upcomingEvent-event-image {
+          max-height: 600px;
+        }
+      }
+    }
+
+    .upcomingEvent-description-container {
+      .upcomingEvent-event-description {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        padding: 2rem 2.5rem;
+        max-width: 800px;
       }
     }
 
@@ -2142,38 +2245,47 @@
 // Premium desktop layout for very large screens
 @media (min-width: 1440px) {
   .upcomingEvent-card {
-    grid-template-columns: 38% 1fr;
-    gap: 5rem;
+    gap: 3rem;
+    max-width: 1400px;
+    padding: 3rem;
+
+    .upcomingEvent-content-wrapper {
+      gap: 2.5rem;
+
+      .upcomingEvent-header {
+        .upcomingEvent-event-title {
+          font-size: 4rem;
+        }
+      }
+
+      .upcomingEvent-subtitle-wrapper {
+        .upcomingEvent-subtitle-header {
+          padding: 1.5rem 3rem;
+          max-width: 800px;
+
+          .upcomingEvent-event-subtitle {
+            font-size: 1.8rem;
+          }
+        }
+      }
+    }
 
     .upcomingEvent-image-wrapper {
       max-height: 700px;
 
-      .upcomingEvent-image-container .upcomingEvent-event-image {
-        max-height: 700px;
+      .upcomingEvent-image-container {
+        .upcomingEvent-event-image {
+          max-height: 700px;
+        }
       }
     }
 
-    .upcomingEvent-content-wrapper {
-      gap: 3rem;
-      padding: 2rem 4rem 2rem 0;
-      max-width: calc(100vw - 38% - 9rem);
-
-      .upcomingEvent-header {
-        .upcomingEvent-event-title {
-          font-size: 3.75rem;
-        }
-
-        .upcomingEvent-event-subtitle {
-          font-size: 1.8rem;
-        }
-      }
-
-      .upcomingEvent-description-container {
-        .upcomingEvent-event-description {
-          font-size: 1.1rem;
-          line-height: 1.8;
-          padding: 2.5rem;
-        }
+    .upcomingEvent-description-container {
+      .upcomingEvent-event-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        padding: 2.5rem 3rem;
+        max-width: 900px;
       }
     }
 
@@ -2186,54 +2298,13 @@
 
 .upcomingEvent-description-container {
   margin: 1rem auto;
-  padding: 1.5rem 1.75rem;
   max-width: 85%;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 50%,
-    rgba(255, 200, 7, 0.02) 100%
-  );
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-
-  // Add accent border on the left
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(
-      180deg,
-      #ffc807 0%,
-      rgba(255, 200, 7, 0.7) 50%,
-      rgba(255, 200, 7, 0.3) 100%
-    );
-    border-radius: 0 2px 2px 0;
-  }
-
-  // Add subtle texture overlay
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(
-      circle at 30% 20%,
-      rgba(255, 200, 7, 0.05) 0%,
-      transparent 50%
-    );
-    pointer-events: none;
+  display: flex;
+  justify-content: center;
+  @media (min-width: 1024px) {
+    grid-column: 2/3 !important;
+    grid-row: 2/4 !important;
+    align-self: start;
   }
 
   .upcomingEvent-event-description {
@@ -2241,141 +2312,63 @@
     font-size: 0.85rem;
     line-height: 1.5;
     margin: 0;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      rgba(255, 200, 7, 0.02) 100%
+    );
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     position: relative;
-    z-index: 2;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    overflow: hidden;
     font-weight: 400;
     letter-spacing: 0.025em;
     text-align: left;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    width: 100%;
+
+    // Add accent border on the left
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(
+        180deg,
+        #ffc807 0%,
+        rgba(255, 200, 7, 0.7) 50%,
+        rgba(255, 200, 7, 0.3) 100%
+      );
+      border-radius: 0 2px 2px 0;
+    }
+
+    // Add subtle texture overlay
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(
+        circle at 30% 20%,
+        rgba(255, 200, 7, 0.05) 0%,
+        transparent 50%
+      );
+      pointer-events: none;
+    }
 
     @media (max-width: 768px) {
       font-size: 0.8rem;
       line-height: 1.4;
-    }
-  }
-}
-
-.upcomingEvent-event-subtitle {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 1rem;
-  margin-top: 0.5rem;
-  font-weight: 500;
-  line-height: 1.4;
-  text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-  letter-spacing: 0.025em;
-
-  // Very subtle golden tint
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.85) 70%,
-    rgba(255, 200, 7, 0.8) 85%,
-    rgba(255, 255, 255, 0.85) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 0.95rem;
-  }
-}
-
-.upcomingEvent-event-subtitle {
-  text-align: left;
-  margin: 0;
-  padding: 1rem 1.25rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-
-  // Maintain the original text gradient effect
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.85) 70%,
-    rgba(255, 200, 7, 0.8) 85%,
-    rgba(255, 255, 255, 0.85) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  // Frame background (behind the text)
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.02) 0%,
-      rgba(0, 0, 0, 0.3) 100%
-    );
-    border-radius: inherit;
-    z-index: -2;
-  }
-
-  // Subtle glow accent line at top
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 200, 7, 0.4),
-      transparent
-    );
-    z-index: -1;
-  }
-
-  &:hover {
-    border-color: rgba(255, 200, 7, 0.12);
-    box-shadow: 0 3px 12px rgba(255, 200, 7, 0.08);
-
-    &::before {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 200, 7, 0.03) 0%,
-        rgba(0, 0, 0, 0.35) 100%
-      );
-    }
-  }
-
-  // Mobile responsive adjustments
-  @media (max-width: 768px) {
-    text-align: center;
-    padding: 0.75rem 1rem;
-    margin: 1rem 0;
-    border-radius: 0.5rem;
-
-    &::after {
-      left: 15%;
-      right: 15%;
-    }
-  }
-
-  @media (max-width: 480px) {
-    padding: 0.6rem 0.8rem;
-
-    &::after {
-      left: 10%;
-      right: 10%;
     }
   }
 }

@@ -13,6 +13,23 @@ import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 import TableBookingPopup from "../TableBookingPopup/TableBookingPopup";
 import { RiTableLine, RiRefreshLine, RiCloseLine } from "react-icons/ri";
 
+/**
+ * TableSystem component for managing table reservations
+ * 
+ * HYBRID COMPONENT: Can work in two modes:
+ * 1. Standalone mode (DashboardMenu): Fetches its own table data via API calls
+ * 2. Optimized mode (UpcomingEvent): Uses pre-fetched table data from comprehensive endpoint
+ * 
+ * @param {Object} props
+ * @param {Object} props.user - Current user object
+ * @param {Array} props.userRoles - User's roles for permissions
+ * @param {Function} props.onClose - Function to call when closing component
+ * @param {Function} props.refreshCounts - Function to trigger parent refresh
+ * @param {Object} props.selectedEvent - Selected event object
+ * @param {Object} props.selectedBrand - Selected brand object
+ * @param {boolean} props.isPublic - Whether this is public-facing or admin
+ * @param {Object} props.tableData - Pre-fetched table data (optional, for optimization)
+ */
 function TableSystem({
   user,
   userRoles = [],
@@ -21,6 +38,7 @@ function TableSystem({
   selectedEvent,
   selectedBrand,
   isPublic = false,
+  tableData: providedTableData, // Pre-fetched table data (optional)
 }) {
   const toast = useToast();
   const [name, setName] = useState("");
@@ -32,11 +50,11 @@ function TableSystem({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [tableData, setTableData] = useState({
+  const [tableData, setTableData] = useState(providedTableData || {
     tableCounts: [],
     totalCount: 0,
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!providedTableData);
   const [selectedVenue, setSelectedVenue] = useState("default");
 
   // Dynamic table configuration
@@ -159,10 +177,25 @@ function TableSystem({
 
   // Fetch table counts when selectedEvent changes or refresh is triggered
   useEffect(() => {
+    // If table data is provided as props, use it instead of fetching
+    if (providedTableData && providedTableData.tableCounts) {
+      setTableData(providedTableData);
+      setIsLoading(false);
+      return;
+    }
+
     if (selectedEvent && selectedEvent._id) {
       fetchTableCounts(selectedEvent._id);
     }
-  }, [selectedEvent, refreshTrigger]);
+  }, [selectedEvent, refreshTrigger, providedTableData]);
+
+  // Handle changes to providedTableData prop
+  useEffect(() => {
+    if (providedTableData) {
+      setTableData(providedTableData);
+      setIsLoading(false);
+    }
+  }, [providedTableData]);
 
   // Set up event listener for table count updates triggered by children
   useEffect(() => {
@@ -456,11 +489,20 @@ function TableSystem({
 
   const handleRefresh = () => {
     setIsSpinning(true);
-    setRefreshTrigger((prev) => prev + 1);
-
-    setTimeout(() => {
-      setIsSpinning(false);
-    }, 1000);
+    
+    // If we have provided data, don't set refresh trigger as it won't refetch
+    // Instead, just show the spinning animation and reset it
+    if (providedTableData) {
+      setTimeout(() => {
+        setIsSpinning(false);
+      }, 1000);
+    } else {
+      // For standalone mode, trigger a refresh
+      setRefreshTrigger((prev) => prev + 1);
+      setTimeout(() => {
+        setIsSpinning(false);
+      }, 1000);
+    }
   };
 
   // Function to toggle between venues/layouts

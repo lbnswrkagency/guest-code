@@ -49,6 +49,7 @@ const genreRoutes = require("./routes/genreRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const memberController = require("./controllers/memberController");
 const memberRoutes = require("./routes/api/memberRoutes");
+const allRoutes = require("./routes/allRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -209,6 +210,39 @@ app.use((req, res, next) => {
   next();
 });
 
+// API Call Tracking Middleware (for performance monitoring)
+let apiCallCount = 0;
+const apiCallsByRoute = {};
+
+app.use((req, res, next) => {
+  // Only track API routes to avoid noise from static files
+  if (req.path.startsWith('/api/')) {
+    apiCallCount++;
+    const route = `${req.method} ${req.path}`;
+    
+    if (!apiCallsByRoute[route]) {
+      apiCallsByRoute[route] = 0;
+    }
+    apiCallsByRoute[route]++;
+    
+    console.log(`🔍 [API-TRACKER] Call #${apiCallCount}: ${route} (Total for this route: ${apiCallsByRoute[route]})`);
+    
+    // Show summary every 25 API calls to prevent spam
+    if (apiCallCount % 25 === 0) {
+      console.log(`📊 [API-TRACKER] === API CALL SUMMARY (Last 25 calls) ===`);
+      Object.entries(apiCallsByRoute)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10) // Show top 10 most called routes
+        .forEach(([route, count]) => {
+          console.log(`📊 [API-TRACKER] ${route}: ${count} calls`);
+        });
+      console.log(`📊 [API-TRACKER] === END SUMMARY ===`);
+    }
+  }
+  
+  next();
+});
+
 // Then continue with other middleware
 app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
@@ -253,6 +287,7 @@ app.use("/api/admin/finance", adminFinanceRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/members", memberRoutes);
+app.use("/api/all", allRoutes);
 
 // MongoDB connection
 mongoose

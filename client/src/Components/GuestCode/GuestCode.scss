@@ -68,6 +68,10 @@
   width: 100%;
   max-width: 550px;
   margin: 0 auto;
+
+  @media (min-width: 1024px) {
+    margin-bottom: 2rem;
+  }
 }
 
 .guest-code-card {
@@ -79,9 +83,7 @@
   );
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.3),
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3),
     inset 0 1px 2px rgba(255, 255, 255, 0.08),
     inset 0 -1px 2px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -100,11 +102,23 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E"),
-      radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 70% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%, rgba(255, 255, 255, 0.02) 100%);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E"),
+      radial-gradient(
+        circle at 30% 20%,
+        rgba(255, 255, 255, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 70% 80%,
+        rgba(212, 175, 55, 0.05) 0%,
+        transparent 50%
+      ),
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.02) 0%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.02) 100%
+      );
     background-size: 300px 300px, 600px 600px, 800px 800px, 100% 100%;
     pointer-events: none;
     z-index: 1;
@@ -142,9 +156,7 @@
   // Enhanced hover effect
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.5),
-      0 6px 20px rgba(0, 0, 0, 0.4),
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(0, 0, 0, 0.4),
       inset 0 1px 2px rgba(255, 255, 255, 0.1),
       inset 0 -1px 2px rgba(0, 0, 0, 0.6);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -172,7 +184,11 @@
     .title-icon {
       font-size: 1.8rem;
       filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
-      background: linear-gradient(135deg, var(--guest-code-primary-color), rgba(212, 175, 55, 0.8));
+      background: linear-gradient(
+        135deg,
+        var(--guest-code-primary-color),
+        rgba(212, 175, 55, 0.8)
+      );
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -205,12 +221,10 @@
   color: #ffffff;
   position: relative;
   display: inline-block;
-  text-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 1px 3px rgba(0, 0, 0, 0.2),
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2),
     0 0 1px rgba(0, 0, 0, 0.1);
   letter-spacing: 0.5px;
-  
+
   // Strong white with subtle depth
   background: linear-gradient(
     135deg,
@@ -221,7 +235,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  
+
   // Fallback for non-webkit browsers
   @supports not (-webkit-background-clip: text) {
     color: #ffffff;

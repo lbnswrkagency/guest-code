@@ -225,6 +225,7 @@ const BrandProfile = () => {
       setLoading(true);
       setLoadingProgress({ brand: 0, events: 0, tickets: 0 });
 
+      // Use the original endpoint for now (more reliable)
       const apiEndpoint = `/brands/profile/username/${cleanUsername}`;
 
       const response = await axiosInstance.get(apiEndpoint);
@@ -1089,28 +1090,54 @@ const BrandProfile = () => {
         <Navigation onBack={handleBack} />
         <div className="brand-profile error">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="error-content"
+            style={{
+              textAlign: "center",
+              padding: "2rem",
+              maxWidth: "400px",
+              margin: "2rem auto",
+              background: "rgba(21, 21, 21, 0.95)",
+              borderRadius: "16px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)"
+            }}
           >
-            <div>Session expired or invalid brand profile</div>
+            <div className="error-icon" style={{
+              fontSize: "3rem",
+              marginBottom: "1rem",
+              color: "#ffc807"
+            }}>🔍</div>
+            <h2 style={{
+              color: "#fff",
+              marginBottom: "0.5rem",
+              fontSize: "1.5rem",
+              fontWeight: "600"
+            }}>Something went wrong</h2>
+            <p style={{
+              color: "rgba(255, 255, 255, 0.7)",
+              marginBottom: "1.5rem",
+              lineHeight: "1.5"
+            }}>We couldn't find this profile. It might be private or temporarily unavailable.</p>
             <motion.button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/")}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="login-button"
               style={{
                 marginTop: "20px",
-                padding: "10px 20px",
-                borderRadius: "8px",
-                background: "#2196f3",
-                color: "#fff",
+                padding: "12px 24px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #ffc807, #ffb300)",
+                color: "#000",
                 border: "none",
                 cursor: "pointer",
                 fontSize: "16px",
+                fontWeight: "600",
+                boxShadow: "0 4px 12px rgba(255, 200, 7, 0.3)"
               }}
             >
-              Go to Login
+              Go to Home
             </motion.button>
           </motion.div>
         </div>

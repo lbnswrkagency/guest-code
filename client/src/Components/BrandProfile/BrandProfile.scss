@@ -1079,26 +1079,14 @@
     &.sticky {
       position: fixed;
       top: 56px; // Navigation height
-      left: 50%;
-      transform: translateX(-50%);
       z-index: 1000;
-      width: calc(100% - 32px); // Use container width instead of viewport
-      max-width: 900px; // Increased max width for better utilization
-      min-width: 320px; // Minimum width for mobile
-
-      // Ensure it respects content boundaries on different devices
-      @media (min-width: 769px) and (max-width: 1024px) {
-        // iPad specific fix
-        width: calc(100% - 64px);
-        max-width: 700px;
-      }
       margin: 0;
-      padding: 0.6rem 1.2rem; // Slightly increased padding for better spacing
-      background: rgba(21, 21, 21, 0.96); // Slightly more opaque
-      backdrop-filter: blur(16px); // Increased blur for better effect
+      padding: 0.6rem 1.2rem;
+      background: rgba(21, 21, 21, 0.96);
+      backdrop-filter: blur(16px);
       border-radius: 50px;
-      border: 1px solid rgba(255, 255, 255, 0.15); // Slightly more visible border
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); // Enhanced shadow
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
       
       // Change to horizontal layout for sticky
       flex-direction: row;
@@ -1106,12 +1094,36 @@
       justify-content: center;
       align-items: center;
 
+      // Universal positioning that works within parent container
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden; // Prevent content from overflowing
+
+      // Mobile specific adjustments
+      @media (max-width: 768px) {
+        gap: 0.6rem;
+        padding: 0.5rem 1rem;
+        width: calc(100% - 1rem); // Account for some margin on mobile
+        min-width: 280px; // Minimum width for mobile
+      }
+
+      // Tablet and desktop - ensure it doesn't exceed parent width
+      @media (min-width: 769px) {
+        width: calc(100% - 2rem); // Account for some margin
+        max-width: 900px; // Maximum reasonable width
+        min-width: 400px; // Minimum width for larger screens
+      }
+
       .event-action-button {
         padding: 0.5rem 1rem;
         border-radius: 50px;
-        min-width: 140px;
+        min-width: 120px;
         width: auto;
-        flex: none; // Don't grow/shrink
+        flex: 1; // Allow buttons to grow/shrink to fit container
+        max-width: 200px; // Prevent buttons from getting too wide
         
         .button-content {
           .button-icon {
@@ -1159,14 +1171,11 @@
       }
 
       @media (max-width: 768px) {
-        padding: 0.5rem 1rem;
-        width: calc(100vw - 16px); // Take full available width on mobile with minimal margins
-        max-width: none; // Remove max-width constraint on mobile
-        gap: 0.6rem;
-
         .event-action-button {
           padding: 0.35rem 0.7rem; // Further reduced padding
-          min-width: 85px; // Further reduced min-width for mobile
+          min-width: 80px; // Further reduced min-width for mobile
+          flex: 1; // Allow equal distribution
+          max-width: 120px; // Prevent buttons from getting too wide on mobile
 
           .button-content {
             .button-icon {
