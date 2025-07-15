@@ -96,6 +96,7 @@ const BrandProfile = () => {
   const [isActionButtonsSticky, setIsActionButtonsSticky] = useState(false);
   const actionButtonsRef = useRef(null);
   const actionButtonsStickyPosRef = useRef(null);
+  const brandProfileRef = useRef(null);
 
   // Handler for when events are loaded from UpcomingEvent
   const handleEventsLoaded = useCallback((count) => {
@@ -745,7 +746,7 @@ const BrandProfile = () => {
 
   // Throttled scroll handler for sticky action buttons
   const handleActionButtonsScroll = useCallback(() => {
-    if (!actionButtonsRef.current || !actionButtonsStickyPosRef.current) return;
+    if (!actionButtonsRef.current || !actionButtonsStickyPosRef.current || !brandProfileRef.current) return;
 
     const scrollY = window.scrollY || window.pageYOffset;
 
@@ -1148,7 +1149,7 @@ const BrandProfile = () => {
   return (
     <div className="page-wrapper">
       <Navigation onBack={handleBack} />
-      <div className="brand-profile">
+      <div className="brand-profile" ref={brandProfileRef}>
         <div className="brand-header brand-header--minimal">
           <div className="brand-info brand-info--minimal">
             <div className="brand-logo brand-logo--minimal">
