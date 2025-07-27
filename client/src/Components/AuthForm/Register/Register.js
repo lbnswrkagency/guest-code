@@ -207,20 +207,23 @@ function Register({ onRegisterSuccess }) {
             />
           </div>
 
-          <div className="input-group">
-            <input
-              className="register-input"
-              type="date"
-              name="birthday"
-              placeholder="Birthday"
-              value={formData.birthday}
-              onChange={handleChange}
-              required
-              max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
-              min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
-              aria-label="Select your birth date"
-            />
-            <label htmlFor="birthday" className="date-label">Birthday</label>
+          <div className="input-group date-input-group">
+            <div className="date-input-wrapper">
+              <span className="date-field-label">Birthday</span>
+              <input
+                className="register-input"
+                type="date"
+                name="birthday"
+                placeholder="Select your birth date"
+                value={formData.birthday}
+                onChange={handleChange}
+                required
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+                aria-label="Select your birth date"
+                title="Select your birth date"
+              />
+            </div>
           </div>
 
           <div className="input-group">

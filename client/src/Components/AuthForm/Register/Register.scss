@@ -129,6 +129,84 @@ $breakpoints: (
           margin-left: 0.5rem;
         }
       }
+
+      &.date-input-group {
+        .date-input-wrapper {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          padding: 0.5rem 1rem 0.25rem;
+
+          &:focus-within {
+            border-color: #ffc807;
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          .date-field-label {
+            color: #ffc807;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            line-height: 1;
+            user-select: none;
+          }
+
+          .register-input {
+            border: none;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            min-height: auto;
+
+            &:focus {
+              border: none;
+              background: transparent;
+              outline: none;
+            }
+
+            &[type="date"] {
+              color: rgba(255, 255, 255, 0.9);
+              
+              @media (max-width: 768px) {
+                color: rgba(255, 255, 255, 0.9);
+                padding-right: 0;
+                background-image: none;
+              }
+
+              &::-webkit-calendar-picker-indicator {
+                filter: invert(1) brightness(0.8);
+                cursor: pointer;
+                width: 16px;
+                height: 16px;
+                
+                @media (max-width: 768px) {
+                  opacity: 1;
+                  filter: invert(1) brightness(0.8);
+                }
+              }
+
+              &:invalid {
+                color: rgba(255, 255, 255, 0.5);
+              }
+              
+              &:valid {
+                color: rgba(255, 255, 255, 0.9);
+              }
+            }
+          }
+        }
+
+        .input-hint {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 0.5rem;
+          margin-left: 0.5rem;
+        }
+      }
     }
 
     .input-row {
@@ -157,78 +235,8 @@ $breakpoints: (
         background: rgba(255, 255, 255, 0.08);
       }
 
-      &[type="date"] {
-        color: rgba(255, 255, 255, 0.7);
-        position: relative;
-        min-height: 50px;
-        
-        // Better mobile support
-        @media (max-width: 768px) {
-          font-size: 16px; // Prevents zoom on iOS
-          min-height: 44px; // iOS minimum touch target
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 16 16'%3e%3cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM2 2a1 1 0 0 0-1 1v1h14V3a1 1 0 0 0-1-1H2zm13 3H1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5z'/%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 16px;
-          padding-right: 40px;
-        }
-
-        &::-webkit-calendar-picker-indicator {
-          filter: invert(1) brightness(0.7);
-          cursor: pointer;
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
-
-          @media (max-width: 768px) {
-            opacity: 0; // Hide native icon on mobile, use our custom one
-          }
-
-          &:hover {
-            filter: invert(1) brightness(0.9);
-          }
-        }
-        
-        &:invalid {
-          color: rgba(255, 255, 255, 0.5);
-        }
-        
-        &:valid {
-          color: rgba(255, 255, 255, 0.9);
-        }
-      }
     }
 
-    .date-label {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 0.95rem;
-      pointer-events: none;
-      transition: all 0.2s ease;
-      
-      @media (max-width: 768px) {
-        display: none; // Hide on mobile since date input shows native picker
-      }
-    }
-
-    .input-group {
-      position: relative;
-      
-      input[type="date"]:not(:placeholder-shown) + .date-label,
-      input[type="date"]:focus + .date-label,
-      input[type="date"]:valid + .date-label {
-        opacity: 0;
-      }
-    }
 
     .register-form-submit {
       margin-top: 1rem;
