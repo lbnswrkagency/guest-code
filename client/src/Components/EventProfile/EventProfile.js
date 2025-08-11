@@ -1011,14 +1011,16 @@ const EventProfile = () => {
                   <div className="lineup-grid">
                     {/* Group lineups by category */}
                     {Object.entries(
-                      lineups.reduce((groups, artist) => {
-                        const category = artist.category || "Other";
-                        if (!groups[category]) {
-                          groups[category] = [];
-                        }
-                        groups[category].push(artist);
-                        return groups;
-                      }, {})
+                      lineups
+                        .filter((artist) => artist && artist.name) // Filter out null/undefined artists
+                        .reduce((groups, artist) => {
+                          const category = artist.category || "Other";
+                          if (!groups[category]) {
+                            groups[category] = [];
+                          }
+                          groups[category].push(artist);
+                          return groups;
+                        }, {})
                     ).map(([category, artists]) => (
                       <div key={category} className="lineup-category-section">
                         <h4 className="lineup-category-title">{category}</h4>

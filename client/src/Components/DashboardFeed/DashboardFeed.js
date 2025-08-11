@@ -31,15 +31,17 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const enhanceLineups = (lineups) => {
     if (!lineups || !Array.isArray(lineups)) return [];
 
-    return lineups.map((lineup) => ({
-      _id: lineup._id || lineup.id,
-      name: lineup.name || "Unknown Artist",
-      category: lineup.category || "Other",
-      subtitle: lineup.subtitle || lineup.location || "", // Ensure subtitle is included
-      avatar: lineup.avatar || null,
-      events: lineup.events || [],
-      isActive: lineup.isActive !== undefined ? lineup.isActive : true,
-    }));
+    return lineups
+      .filter((lineup) => lineup && (lineup._id || lineup.id)) // Filter out null/undefined lineups
+      .map((lineup) => ({
+        _id: lineup._id || lineup.id,
+        name: lineup.name || "Unknown Artist",
+        category: lineup.category || "Other",
+        subtitle: lineup.subtitle || lineup.location || "", // Ensure subtitle is included
+        avatar: lineup.avatar || null,
+        events: lineup.events || [],
+        isActive: lineup.isActive !== undefined ? lineup.isActive : true,
+      }));
   };
 
   // Effect to use event data from Redux props

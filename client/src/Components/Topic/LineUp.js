@@ -72,7 +72,7 @@ function LineUp({ eventId }) {
   return (
     <div className="lineUp">
       <div className="lineUp-container">
-        {lineUps.map((artist) => (
+        {lineUps.filter((artist) => artist && artist._id).map((artist) => (
           <div className="lineUp-container-single" key={artist._id}>
             <img
               src={artist.avatar || "/image/sample.png"}

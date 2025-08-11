@@ -622,7 +622,11 @@ const EventForm = ({
       if (selectedLineups.length > 0) {
         dataToSend.append(
           "lineups",
-          JSON.stringify(selectedLineups.map((lineup) => lineup._id))
+          JSON.stringify(
+            selectedLineups
+              .filter((lineup) => lineup && lineup._id)
+              .map((lineup) => lineup._id)
+          )
         );
       }
 
@@ -707,7 +711,9 @@ const EventForm = ({
 
         // Add selected lineups to the update data
         if (selectedLineups.length > 0) {
-          updateData.lineups = selectedLineups.map((lineup) => lineup._id);
+          updateData.lineups = selectedLineups
+            .filter((lineup) => lineup && lineup._id)
+            .map((lineup) => lineup._id);
         }
 
         // Add selected genres to the update data (not as a stringified array)
@@ -1573,17 +1579,19 @@ const EventForm = ({
                 <div className="selected-lineups-container">
                   {(() => {
                     // Group lineups by category
-                    const groupedByCategory = selectedLineups.reduce(
-                      (groups, lineup) => {
-                        const category = lineup.category || "Uncategorized";
-                        if (!groups[category]) {
-                          groups[category] = [];
-                        }
-                        groups[category].push(lineup);
-                        return groups;
-                      },
-                      {}
-                    );
+                    const groupedByCategory = selectedLineups
+                      .filter((lineup) => lineup && lineup.name) // Filter out null/undefined lineups
+                      .reduce(
+                        (groups, lineup) => {
+                          const category = lineup.category || "Uncategorized";
+                          if (!groups[category]) {
+                            groups[category] = [];
+                          }
+                          groups[category].push(lineup);
+                          return groups;
+                        },
+                        {}
+                      );
 
                     // Create an array of JSX elements for each category
                     return Object.entries(groupedByCategory).map(

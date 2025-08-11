@@ -105,12 +105,12 @@ function LineUp({
   useEffect(() => {
     if (lineUps.length > 0) {
       const uniqueCategories = [
-        ...new Set(lineUps.map((lineup) => lineup.category)),
+        ...new Set(lineUps.filter((lineup) => lineup && lineup.category).map((lineup) => lineup.category)),
       ].filter(Boolean);
       setExistingCategories(uniqueCategories);
 
       const uniqueSubtitles = [
-        ...new Set(lineUps.map((lineup) => lineup.subtitle)),
+        ...new Set(lineUps.filter((lineup) => lineup && lineup.subtitle).map((lineup) => lineup.subtitle)),
       ].filter(Boolean);
       setExistingSubtitles(uniqueSubtitles);
     }
@@ -748,7 +748,7 @@ function LineUp({
                 </div>
               ) : (
                 <div className="lineup-grid">
-                  {lineUps.map((lineUp) => (
+                  {lineUps.filter((lineUp) => lineUp && lineUp._id).map((lineUp) => (
                     <div
                       key={lineUp._id}
                       className={`lineup-item ${

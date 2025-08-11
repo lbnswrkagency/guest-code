@@ -160,7 +160,10 @@ exports.getLineUpsByBrand = async (req, res) => {
       isActive: true,
     }).sort({ sortOrder: 1, name: 1 });
 
-    return res.status(200).json(lineUps);
+    // Filter out any null or invalid lineups
+    const validLineUps = lineUps.filter(lineup => lineup && lineup._id);
+
+    return res.status(200).json(validLineUps);
   } catch (error) {
     console.error("Error fetching line-up entries:", error);
     return res.status(500).json({
@@ -531,7 +534,10 @@ exports.getLineUpsByEvent = async (req, res) => {
       isActive: true,
     }).sort({ sortOrder: 1, name: 1 });
 
-    return res.status(200).json(lineUps);
+    // Filter out any null or invalid lineups
+    const validLineUps = lineUps.filter(lineup => lineup && lineup._id);
+
+    return res.status(200).json(validLineUps);
   } catch (error) {
     console.error("Error fetching event line-ups:", error);
     return res.status(500).json({

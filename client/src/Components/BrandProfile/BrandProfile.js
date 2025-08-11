@@ -1212,14 +1212,16 @@ const BrandProfile = () => {
               <div className="lineup-container">
                 {/* Group lineups by category */}
                 {Object.entries(
-                  brand.lineups.reduce((groups, artist) => {
-                    const category = artist.category || "Other";
-                    if (!groups[category]) {
-                      groups[category] = [];
-                    }
-                    groups[category].push(artist);
-                    return groups;
-                  }, {})
+                  brand.lineups
+                    .filter((artist) => artist && artist.name) // Filter out null/undefined artists
+                    .reduce((groups, artist) => {
+                      const category = artist.category || "Other";
+                      if (!groups[category]) {
+                        groups[category] = [];
+                      }
+                      groups[category].push(artist);
+                      return groups;
+                    }, {})
                 ).map(([category, artists]) => (
                   <div key={category} className="lineup-category-group">
                     <h4 className="category-title">{category}</h4>

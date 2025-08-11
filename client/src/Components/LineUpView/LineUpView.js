@@ -9,14 +9,16 @@ const LineUpView = ({ lineups }) => {
   }
 
   // Group lineups by category
-  const groupedLineups = lineups.reduce((acc, lineup) => {
-    const category = lineup.category || "Uncategorized";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(lineup);
-    return acc;
-  }, {});
+  const groupedLineups = lineups
+    .filter((lineup) => lineup && lineup.name) // Filter out null/undefined lineups
+    .reduce((acc, lineup) => {
+      const category = lineup.category || "Uncategorized";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(lineup);
+      return acc;
+    }, {});
 
   // Custom sorting function that always puts DJs first, then sorts by count, then alphabetically
   const sortedCategories = Object.keys(groupedLineups).sort((a, b) => {
