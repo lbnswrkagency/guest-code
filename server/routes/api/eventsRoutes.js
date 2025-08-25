@@ -163,20 +163,32 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     }).populate("lineups");
 
     if (!childEvent) {
-      // Instead of returning a 404, return a 200 with the parent event
-      // and a flag indicating no child event exists yet
+      // Instead of returning a 404, find the highest existing week <= target week for sequential inheritance
+      
+      // Find all existing events with weekNumber <= target week
+      const existingEvents = await Event.find({
+        $or: [
+          { _id: eventId, weekNumber: { $lte: week } }, // Include parent (week 0) if it qualifies
+          { parentEventId: eventId, weekNumber: { $lte: week } } // Include qualifying child events
+        ]
+      }).sort({ weekNumber: -1 }).populate("lineups"); // Sort by highest week number first
 
-      // Calculate the date for this occurrence based on parent
+      // Use the event with the highest week number <= target week as template
+      const templateEvent = existingEvents[0] || parentEvent;
+
+      // Calculate the date for this occurrence based on parent timing
       const occurrenceDate = new Date(parentEvent.date);
       occurrenceDate.setDate(occurrenceDate.getDate() + week * 7);
 
-      // Create a temporary representation of what the child would look like
+      // Create a temporary representation using sequential inheritance
       const tempChildEvent = {
-        ...parentEvent.toObject(),
+        ...templateEvent.toObject(),
         _id: null, // No ID since it doesn't exist in DB
         parentEventId: parentEvent._id,
         weekNumber: week,
         date: occurrenceDate,
+        startDate: occurrenceDate, // Update timing to match the target week
+        endDate: new Date(occurrenceDate.getTime() + (new Date(parentEvent.endDate || parentEvent.date).getTime() - new Date(parentEvent.startDate || parentEvent.date).getTime())),
         childExists: false, // Flag to indicate this is a calculated occurrence, not a real DB record
       };
 

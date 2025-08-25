@@ -51,9 +51,12 @@ const generateSlug = (text) => {
 // Helper function to generate weekly occurrences
 const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
   try {
-    // Calculate the date for this occurrence
-    const parentStartDateObj = new Date(parentEvent.startDate); // Use parent's actual startDate
-    const parentEndDateObj = new Date(parentEvent.endDate); // Use parent's actual endDate
+    // Find the highest existing week number <= weekNumber to inherit from (sequential inheritance)
+    const templateEvent = await findSequentialTemplateEvent(parentEvent, weekNumber);
+
+    // Calculate the date for this occurrence using the parent's original start/end dates for timing consistency
+    const parentStartDateObj = new Date(parentEvent.startDate); // Use parent's actual startDate for date calculation
+    const parentEndDateObj = new Date(parentEvent.endDate); // Use parent's actual endDate for date calculation
 
     // Calculate child's actual start date and time
     let childStartDate = new Date(parentStartDateObj);
@@ -77,34 +80,34 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       weeklySlug = `${generateSlug(parentEvent.title)}-w${weekNumber}`;
     }
 
-    // Create the weekly occurrence
+    // Create the weekly occurrence - inherit most data from templateEvent, but preserve timing from parent
     const weeklyEvent = new Event({
-      user: parentEvent.user,
-      brand: parentEvent.brand,
-      title: parentEvent.title,
-      subTitle: parentEvent.subTitle,
-      description: parentEvent.description,
+      user: templateEvent.user,
+      brand: templateEvent.brand,
+      title: templateEvent.title,
+      subTitle: templateEvent.subTitle,
+      description: templateEvent.description,
       date: childStartDate, // Legacy 'date' field, align with startDate
-      startDate: childStartDate, // Store full Date object
-      endDate: childEndDate, // Store full Date object
-      startTime: parentEvent.startTime,
-      endTime: parentEvent.endTime,
-      location: parentEvent.location,
+      startDate: childStartDate, // Store full Date object (calculated from parent timing)
+      endDate: childEndDate, // Store full Date object (calculated from parent timing)
+      startTime: templateEvent.startTime, // Inherit from sequential template event
+      endTime: templateEvent.endTime, // Inherit from sequential template event
+      location: templateEvent.location,
       isWeekly: true,
       parentEventId: parentEvent._id,
       weekNumber: weekNumber,
       isLive: false, // Default to not live
-      flyer: parentEvent.flyer,
-      // Copy the genres array from parent
-      genres: parentEvent.genres || [],
-      // Copy the lineups array from parent
-      lineups: parentEvent.lineups || [],
-      // Copy legacy code settings for backward compatibility
-      guestCode: parentEvent.guestCode,
-      friendsCode: parentEvent.friendsCode,
-      ticketCode: parentEvent.ticketCode,
-      tableCode: parentEvent.tableCode,
-      backstageCode: parentEvent.backstageCode,
+      flyer: templateEvent.flyer, // Inherit from sequential template event
+      // Copy the genres array from sequential template event
+      genres: templateEvent.genres || [],
+      // Copy the lineups array from sequential template event
+      lineups: templateEvent.lineups || [],
+      // Copy legacy code settings for backward compatibility from sequential template event
+      guestCode: templateEvent.guestCode,
+      friendsCode: templateEvent.friendsCode,
+      ticketCode: templateEvent.ticketCode,
+      tableCode: templateEvent.tableCode,
+      backstageCode: templateEvent.backstageCode,
       // Use empty objects for embedded code settings to avoid validation errors
       guestCodeSettings: {},
       friendsCodeSettings: {},
@@ -122,45 +125,45 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       const { initializeDefaultSettings } = require("./codeSettingsController");
       await initializeDefaultSettings(weeklyEvent._id);
 
-      // Copy code settings from parent event to child event
-      const parentCodeSettings = await CodeSettings.find({
-        eventId: parentEvent._id,
+      // Copy code settings from sequential template event to child event
+      const templateCodeSettings = await CodeSettings.find({
+        eventId: templateEvent._id,
       });
-      if (parentCodeSettings && parentCodeSettings.length > 0) {
-        // For each parent code setting, create a corresponding child code setting
+      if (templateCodeSettings && templateCodeSettings.length > 0) {
+        // For each template code setting, create a corresponding child code setting
         await Promise.all(
-          parentCodeSettings.map(async (parentSetting) => {
+          templateCodeSettings.map(async (templateSetting) => {
             // Check if a setting of this type already exists for the child
             const existingChildSetting = await CodeSettings.findOne({
               eventId: weeklyEvent._id,
-              type: parentSetting.type,
+              type: templateSetting.type,
             });
 
             if (existingChildSetting) {
-              // Update existing setting
-              existingChildSetting.name = parentSetting.name;
-              existingChildSetting.condition = parentSetting.condition;
-              existingChildSetting.maxPax = parentSetting.maxPax;
-              existingChildSetting.limit = parentSetting.limit;
-              existingChildSetting.isEnabled = parentSetting.isEnabled;
-              existingChildSetting.isEditable = parentSetting.isEditable;
-              existingChildSetting.price = parentSetting.price;
-              existingChildSetting.tableNumber = parentSetting.tableNumber;
+              // Update existing setting with template data
+              existingChildSetting.name = templateSetting.name;
+              existingChildSetting.condition = templateSetting.condition;
+              existingChildSetting.maxPax = templateSetting.maxPax;
+              existingChildSetting.limit = templateSetting.limit;
+              existingChildSetting.isEnabled = templateSetting.isEnabled;
+              existingChildSetting.isEditable = templateSetting.isEditable;
+              existingChildSetting.price = templateSetting.price;
+              existingChildSetting.tableNumber = templateSetting.tableNumber;
 
               await existingChildSetting.save();
             } else {
-              // Create new setting
+              // Create new setting with template data
               const newChildSetting = new CodeSettings({
                 eventId: weeklyEvent._id,
-                name: parentSetting.name,
-                type: parentSetting.type,
-                condition: parentSetting.condition,
-                maxPax: parentSetting.maxPax,
-                limit: parentSetting.limit,
-                isEnabled: parentSetting.isEnabled,
-                isEditable: parentSetting.isEditable,
-                price: parentSetting.price,
-                tableNumber: parentSetting.tableNumber,
+                name: templateSetting.name,
+                type: templateSetting.type,
+                condition: templateSetting.condition,
+                maxPax: templateSetting.maxPax,
+                limit: templateSetting.limit,
+                isEnabled: templateSetting.isEnabled,
+                isEditable: templateSetting.isEditable,
+                price: templateSetting.price,
+                tableNumber: templateSetting.tableNumber,
               });
 
               await newChildSetting.save();
@@ -178,6 +181,24 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
   }
 };
 
+// Helper function to find the highest existing week <= weekNumber to inherit from (sequential inheritance)
+const findSequentialTemplateEvent = async (parentEvent, weekNumber) => {
+  try {
+    // Find all existing events in the weekly series with weekNumber <= target week
+    const existingEvents = await Event.find({
+      $or: [
+        { _id: parentEvent._id, weekNumber: { $lte: weekNumber } }, // Include parent (week 0) if it qualifies
+        { parentEventId: parentEvent._id, weekNumber: { $lte: weekNumber } } // Include qualifying child events
+      ]
+    }).sort({ weekNumber: -1 }); // Sort by highest week number first
+
+    // Use the event with the highest week number <= target week as template
+    return existingEvents[0] || parentEvent;
+  } catch (error) {
+    return parentEvent; // Fallback to parent if query fails
+  }
+};
+
 // Find or create a weekly occurrence
 const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
   try {
@@ -191,7 +212,7 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
       return existingOccurrence;
     }
 
-    // If not found, create a new one
+    // If not found, create a new one using the most recent event as template
     return await generateWeeklyOccurrences(parentEvent, weekNumber);
   } catch (error) {
     throw error;

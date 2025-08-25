@@ -1089,88 +1089,180 @@ const EventForm = ({
       parentEventData &&
       (weekNumber > 0 || event?.weekNumber > 0)
     ) {
-      // NEW CHILD EVENT being created, derived from parentEventData
-      const weekNum = event?.weekNumber || weekNumber;
+      // NEW CHILD EVENT being created - fetch sequential inheritance data instead of using parent directly
+      const fetchSequentialInheritanceData = async () => {
+        try {
+          const weekNum = event?.weekNumber || weekNumber;
+          
+          // Fetch the sequential inheritance data from the API
+          const response = await axiosInstance.get(
+            `/events/${parentEventData._id}/weekly/${weekNum}`
+          );
+          
+          const templateEvent = response.data;
+          
+          // Calculate child's actual start date and time based on parent timing but using template data
+          const parentStartDateObj = new Date(
+            parentEventData.startDate || parentEventData.date
+          );
+          const parentEndDateObj = new Date(
+            parentEventData.endDate || parentEventData.date
+          );
 
-      const parentStartDateObj = new Date(
-        parentEventData.startDate || parentEventData.date
-      );
-      const parentEndDateObj = new Date(
-        parentEventData.endDate || parentEventData.date
-      ); // Ensure parent has endDate
+          let childEventStartDate = new Date(parentStartDateObj);
+          childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
 
-      // Calculate child's actual start date and time
-      // Start with parent's start date & time, then shift by weeks
-      let childEventStartDate = new Date(parentStartDateObj);
-      childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
-
-      // Calculate duration of parent event
-      const duration =
-        parentEndDateObj.getTime() - parentStartDateObj.getTime();
-
-      // Calculate child's actual end date and time by adding duration to child's start
-      let childEventEndDate = new Date(
-        childEventStartDate.getTime() + duration
-      );
-
-
-      // Set form data from parent event
-      setFormData({
-        title: parentEventData.title || "",
-        subTitle: parentEventData.subTitle || "",
-        description: parentEventData.description || "",
-        date: childEventStartDate.toISOString().split("T")[0], // Legacy date field
-        startDate: childEventStartDate, // Date object
-        endDate: childEventEndDate, // Date object
-        startTime: parentEventData.startTime || "", // From parent
-        endTime: parentEventData.endTime || "", // From parent
-        location: parentEventData.location || "",
-        street: parentEventData.street || "",
-        postalCode: parentEventData.postalCode || "",
-        city: parentEventData.city || "",
-        music: parentEventData.music || "",
-        isWeekly: true,
-        isLive: false,
-        flyer: parentEventData.flyer || null,
-        guestCode: parentEventData.guestCode || false,
-        friendsCode: parentEventData.friendsCode || false,
-        ticketCode: parentEventData.ticketCode || false,
-        tableCode: parentEventData.tableCode || false,
-      });
-
-      // Copy parent's lineups
-      if (Array.isArray(parentEventData.lineups)) {
-        setSelectedLineups(parentEventData.lineups);
-      }
-
-      // Copy parent's genres
-      if (
-        Array.isArray(parentEventData.genres) &&
-        parentEventData.genres.length > 0
-      ) {
-        if (typeof parentEventData.genres[0] === "object") {
-          setSelectedGenres(parentEventData.genres);
-        } else {
-          setGenreIdsToSelect(parentEventData.genres);
-        }
-      }
-
-      // Copy flyer previews from parent
-      if (parentEventData.flyer) {
-        const previews = {};
-        Object.entries(parentEventData.flyer).forEach(([format, urls]) => {
-          if (urls) {
-            previews[format] = {
-              thumbnail: urls.thumbnail,
-              medium: urls.medium,
-              full: urls.full,
-              blur: urls.blur || urls.thumbnail,
-              isExisting: true,
-            };
+          // Use template event times if available, otherwise calculate from parent
+          let childEventEndDate;
+          if (templateEvent.startTime && templateEvent.endTime) {
+            // Apply template times to the child event date
+            const [startHours, startMinutes] = templateEvent.startTime.split(':').map(Number);
+            const [endHours, endMinutes] = templateEvent.endTime.split(':').map(Number);
+            
+            childEventStartDate.setHours(startHours, startMinutes, 0, 0);
+            childEventEndDate = new Date(childEventStartDate);
+            childEventEndDate.setHours(endHours, endMinutes, 0, 0);
+            
+            // Check if it spans midnight
+            if (childEventEndDate.getTime() <= childEventStartDate.getTime()) {
+              childEventEndDate.setDate(childEventEndDate.getDate() + 1);
+            }
+          } else {
+            // Fallback to parent duration calculation
+            const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
+            childEventEndDate = new Date(childEventStartDate.getTime() + duration);
           }
-        });
-        setFlyerPreviews(previews);
-      }
+
+          // Set form data using template event (sequential inheritance) for content, but parent timing for dates
+          setFormData({
+            title: templateEvent.title || "",
+            subTitle: templateEvent.subTitle || "",
+            description: templateEvent.description || "",
+            date: childEventStartDate.toISOString().split("T")[0],
+            startDate: childEventStartDate,
+            endDate: childEventEndDate,
+            startTime: templateEvent.startTime || "", // From sequential template
+            endTime: templateEvent.endTime || "", // From sequential template
+            location: templateEvent.location || "",
+            street: templateEvent.street || "",
+            postalCode: templateEvent.postalCode || "",
+            city: templateEvent.city || "",
+            music: templateEvent.music || "",
+            isWeekly: true,
+            isLive: false,
+            flyer: templateEvent.flyer || null,
+            guestCode: templateEvent.guestCode || false,
+            friendsCode: templateEvent.friendsCode || false,
+            ticketCode: templateEvent.ticketCode || false,
+            tableCode: templateEvent.tableCode || false,
+            backstageCode: templateEvent.backstageCode || false,
+            tableLayout: templateEvent.tableLayout || "",
+          });
+
+          // Copy template's lineups
+          if (Array.isArray(templateEvent.lineups)) {
+            setSelectedLineups(templateEvent.lineups);
+          }
+
+          // Copy template's genres
+          if (Array.isArray(templateEvent.genres) && templateEvent.genres.length > 0) {
+            if (typeof templateEvent.genres[0] === "object") {
+              setSelectedGenres(templateEvent.genres);
+            } else {
+              setGenreIdsToSelect(templateEvent.genres);
+            }
+          }
+
+          // Copy flyer previews from template
+          if (templateEvent.flyer) {
+            const previews = {};
+            Object.entries(templateEvent.flyer).forEach(([format, urls]) => {
+              if (urls) {
+                previews[format] = {
+                  thumbnail: urls.thumbnail,
+                  medium: urls.medium,
+                  full: urls.full,
+                  blur: urls.blur || urls.thumbnail,
+                  isExisting: true,
+                };
+              }
+            });
+            setFlyerPreviews(previews);
+          }
+        } catch (error) {
+          // Fallback to parent event data if API call fails
+          const weekNum = event?.weekNumber || weekNumber;
+          
+          const parentStartDateObj = new Date(
+            parentEventData.startDate || parentEventData.date
+          );
+          const parentEndDateObj = new Date(
+            parentEventData.endDate || parentEventData.date
+          );
+
+          let childEventStartDate = new Date(parentStartDateObj);
+          childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
+
+          const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
+          let childEventEndDate = new Date(childEventStartDate.getTime() + duration);
+
+          // Fallback to parent event data
+          setFormData({
+            title: parentEventData.title || "",
+            subTitle: parentEventData.subTitle || "",
+            description: parentEventData.description || "",
+            date: childEventStartDate.toISOString().split("T")[0],
+            startDate: childEventStartDate,
+            endDate: childEventEndDate,
+            startTime: parentEventData.startTime || "",
+            endTime: parentEventData.endTime || "",
+            location: parentEventData.location || "",
+            street: parentEventData.street || "",
+            postalCode: parentEventData.postalCode || "",
+            city: parentEventData.city || "",
+            music: parentEventData.music || "",
+            isWeekly: true,
+            isLive: false,
+            flyer: parentEventData.flyer || null,
+            guestCode: parentEventData.guestCode || false,
+            friendsCode: parentEventData.friendsCode || false,
+            ticketCode: parentEventData.ticketCode || false,
+            tableCode: parentEventData.tableCode || false,
+            tableLayout: parentEventData.tableLayout || "",
+          });
+
+          if (Array.isArray(parentEventData.lineups)) {
+            setSelectedLineups(parentEventData.lineups);
+          }
+
+          if (Array.isArray(parentEventData.genres) && parentEventData.genres.length > 0) {
+            if (typeof parentEventData.genres[0] === "object") {
+              setSelectedGenres(parentEventData.genres);
+            } else {
+              setGenreIdsToSelect(parentEventData.genres);
+            }
+          }
+
+          if (parentEventData.flyer) {
+            const previews = {};
+            Object.entries(parentEventData.flyer).forEach(([format, urls]) => {
+              if (urls) {
+                previews[format] = {
+                  thumbnail: urls.thumbnail,
+                  medium: urls.medium,
+                  full: urls.full,
+                  blur: urls.blur || urls.thumbnail,
+                  isExisting: true,
+                };
+              }
+            });
+            setFlyerPreviews(previews);
+          }
+        }
+      };
+
+      // Call the async function
+      fetchSequentialInheritanceData();
     } else {
       // Reset form for new events (non-child)
       setFormData({

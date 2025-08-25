@@ -699,25 +699,28 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
 
       // If event start date is valid, calculate the next upcoming week
       if (!isNaN(eventStartDate.getTime())) {
-        // Calculate the difference in days
+        // Calculate the difference in milliseconds
         const diffTime = now.getTime() - eventStartDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        // Calculate the week number (how many weeks have passed)
-        const weeksPassed = Math.floor(diffDays / 7);
-
-        // If we've passed at least one week, update the current week
-        if (weeksPassed > 0) {
-          // Calculate the next upcoming week
-          // If today is the same weekday as the event, use this week
-          // Otherwise, use the next week
-          const nextWeek =
-            weeksPassed + (now.getDay() > eventStartDate.getDay() ? 1 : 0);
-
-          // Set the current week to the next upcoming week
-          setCurrentWeek(nextWeek);
+        
+        // If the event hasn't happened yet, show week 0
+        if (diffTime < 0) {
+          setCurrentWeek(0);
         } else {
-          setCurrentWeek(0); // Set to week 0 if we haven't passed a week yet
+          // Calculate how many complete weeks have passed
+          const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000;
+          const weeksPassed = Math.floor(diffTime / millisecondsInWeek);
+          
+          // Calculate the date of the next occurrence
+          const nextOccurrenceDate = new Date(eventStartDate);
+          nextOccurrenceDate.setDate(eventStartDate.getDate() + (weeksPassed + 1) * 7);
+          
+          // If the next occurrence is in the future, use it
+          // Otherwise, use the one after that
+          if (nextOccurrenceDate.getTime() > now.getTime()) {
+            setCurrentWeek(weeksPassed + 1);
+          } else {
+            setCurrentWeek(weeksPassed + 2);
+          }
         }
       } else {
         setCurrentWeek(0); // Default to week 0 if date is invalid
