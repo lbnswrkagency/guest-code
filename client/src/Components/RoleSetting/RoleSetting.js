@@ -51,6 +51,11 @@ const RoleSetting = ({ brand, onClose }) => {
         access: false,
         manage: false,
       },
+      battles: {
+        view: false,
+        edit: false,
+        delete: false,
+      },
     },
   });
 
@@ -234,7 +239,7 @@ const RoleSetting = ({ brand, onClose }) => {
       permissions: {
         ...prev.permissions,
         [category]: {
-          ...prev.permissions[category],
+          ...(prev.permissions[category] || {}),
           [key]: value,
         },
       },
@@ -305,6 +310,11 @@ const RoleSetting = ({ brand, onClose }) => {
         tables: {
           access: role.permissions?.tables?.access || false,
           manage: role.permissions?.tables?.manage || false,
+        },
+        battles: {
+          view: role.permissions?.battles?.view || false,
+          edit: role.permissions?.battles?.edit || false,
+          delete: role.permissions?.battles?.delete || false,
         },
       },
     };
@@ -382,7 +392,7 @@ const RoleSetting = ({ brand, onClose }) => {
     hasLimits,
     codeColor
   ) => {
-    const permission = newRole.permissions.codes[codeType] || {
+    const permission = newRole.permissions.codes?.[codeType] || {
       generate: false,
       ...(hasLimits ? { limit: 0, unlimited: false } : {}),
     };
@@ -569,19 +579,19 @@ const RoleSetting = ({ brand, onClose }) => {
                     "Create Events",
                     "events",
                     "create",
-                    newRole.permissions.events.create
+                    newRole.permissions.events?.create || false
                   )}
                   {renderPermissionItem(
                     "Edit Events",
                     "events",
                     "edit",
-                    newRole.permissions.events.edit
+                    newRole.permissions.events?.edit || false
                   )}
                   {renderPermissionItem(
                     "Delete Events",
                     "events",
                     "delete",
-                    newRole.permissions.events.delete
+                    newRole.permissions.events?.delete || false
                   )}
                 </div>
 
@@ -591,7 +601,7 @@ const RoleSetting = ({ brand, onClose }) => {
                     "Manage Team",
                     "team",
                     "manage",
-                    newRole.permissions.team.manage
+                    newRole.permissions.team?.manage || false
                   )}
                 </div>
 
@@ -634,13 +644,35 @@ const RoleSetting = ({ brand, onClose }) => {
                     "Table Access",
                     "tables",
                     "access",
-                    newRole.permissions.tables.access
+                    newRole.permissions.tables?.access || false
                   )}
                   {renderPermissionItem(
                     "Table Management",
                     "tables",
                     "manage",
-                    newRole.permissions.tables.manage
+                    newRole.permissions.tables?.manage || false
+                  )}
+                </div>
+
+                <h4>Battle Permissions</h4>
+                <div className="permission-group">
+                  {renderPermissionItem(
+                    "View Battles",
+                    "battles",
+                    "view",
+                    newRole.permissions.battles?.view || false
+                  )}
+                  {renderPermissionItem(
+                    "Edit Battles",
+                    "battles",
+                    "edit",
+                    newRole.permissions.battles?.edit || false
+                  )}
+                  {renderPermissionItem(
+                    "Delete Battles",
+                    "battles",
+                    "delete",
+                    newRole.permissions.battles?.delete || false
                   )}
                 </div>
 
@@ -650,13 +682,13 @@ const RoleSetting = ({ brand, onClose }) => {
                     "View Analytics",
                     "analytics",
                     "view",
-                    newRole.permissions.analytics.view
+                    newRole.permissions.analytics?.view || false
                   )}
                   {renderPermissionItem(
                     "Scanner Access",
                     "scanner",
                     "use",
-                    newRole.permissions.scanner.use
+                    newRole.permissions.scanner?.use || false
                   )}
                 </div>
               </div>

@@ -15,12 +15,6 @@ exports.getUpcomingEventData = async (req, res) => {
     const { brandId, brandUsername, limit = 10 } = req.query;
     const now = new Date();
     
-    console.log("🚀 [AllController] OPTIMIZED comprehensive data fetch", {
-      brandId,
-      brandUsername,
-      limit,
-      hasAuth: !!req.user
-    });
 
     // Step 1: Smart Brand + Events Query with pre-filtering
     let brand;
@@ -42,10 +36,8 @@ exports.getUpcomingEventData = async (req, res) => {
       });
     }
 
-    console.log("✅ [AllController] Brand found:", brand.username);
 
     // Step 2: SIMPLIFIED EVENT QUERY - Get all events for brand, filter logic will be in JavaScript
-    console.log("🔍 [AllController] Executing simplified event query...");
 
     // Get all parent events for the brand (we'll filter in JavaScript for better control)
     const parentEvents = await Event.find({
@@ -54,43 +46,29 @@ exports.getUpcomingEventData = async (req, res) => {
     })
     .sort({ startDate: 1, date: 1 })
     .limit(parseInt(limit))
-    .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout')
+    .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
     .populate("user", "username firstName lastName avatar")
     .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
     .populate("genres", "name description color")
     .lean();
 
-    console.log("✅ [AllController] Found", parentEvents.length, "parent events");
     
-    // Debug: Show sample of parent events
-    if (parentEvents.length > 0) {
-      console.log("🔍 [AllController] Sample parent event:", {
-        title: parentEvents[0].title,
-        isLive: parentEvents[0].isLive,
-        startDate: parentEvents[0].startDate,
-        date: parentEvents[0].date,
-        tableLayout: parentEvents[0].tableLayout,
-        hasFlyer: !!parentEvents[0].flyer
-      });
-    }
 
     // Step 3: Smart child events fetching (only for relevant weekly parents)
     let allEvents = [...parentEvents];
     
     const weeklyParents = parentEvents.filter(event => event.isWeekly);
     if (weeklyParents.length > 0) {
-      console.log("🔍 [AllController] Fetching children for", weeklyParents.length, "weekly parents");
       
       const childEvents = await Event.find({
         parentEventId: { $in: weeklyParents.map(p => p._id) }
       })
-      .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout')
+      .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
       .populate("user", "username firstName lastName avatar")
       .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
       .populate("genres", "name description color")
       .lean();
       
-      console.log("✅ [AllController] Found", childEvents.length, "relevant child events");
       allEvents = [...allEvents, ...childEvents];
     }
 
@@ -158,27 +136,7 @@ exports.getUpcomingEventData = async (req, res) => {
       return event.status === "active" || event.status === "upcoming";
     });
 
-    console.log("✅ [AllController] Filtered to", relevantEvents.length, "relevant events");
     
-    // Debug: Show filtering details
-    if (processedEvents.length > 0) {
-      console.log("🔍 [AllController] Filtering breakdown:");
-      console.log("  - Total processed:", processedEvents.length);
-      console.log("  - Live events:", processedEvents.filter(e => e.isLive).length);
-      console.log("  - Active/upcoming:", processedEvents.filter(e => e.status === "active" || e.status === "upcoming").length);
-      console.log("  - Final relevant:", relevantEvents.length);
-      
-      if (relevantEvents.length > 0) {
-        console.log("🔍 [AllController] Sample relevant event:", {
-          title: relevantEvents[0].title,
-          status: relevantEvents[0].status,
-          isLive: relevantEvents[0].isLive,
-          tableLayout: relevantEvents[0].tableLayout,
-          calculatedStartDate: relevantEvents[0].calculatedStartDate,
-          hasCompleteData: !!(relevantEvents[0].title && relevantEvents[0].flyer && relevantEvents[0].tableLayout)
-        });
-      }
-    }
 
     // Step 6: Final sort (most should already be in good order)
     const sortedEvents = relevantEvents.sort((a, b) => {
@@ -189,7 +147,6 @@ exports.getUpcomingEventData = async (req, res) => {
       return a.calculatedStartDate - b.calculatedStartDate;
     });
 
-    console.log("✅ [AllController] Processed", sortedEvents.length, "final events");
 
     if (sortedEvents.length === 0) {
       return res.status(200).json({
@@ -216,7 +173,6 @@ exports.getUpcomingEventData = async (req, res) => {
       }
     });
 
-    console.log("🔍 [AllController] Bulk fetching data for", eventIds.length, "events (+", allEventIds.length - eventIds.length, "parents)");
 
     const [ticketSettingsArray, codeSettingsArray, tableDataArray] = await Promise.all([
       TicketSettings.find({ eventId: { $in: allEventIds } }).lean(),
@@ -224,27 +180,7 @@ exports.getUpcomingEventData = async (req, res) => {
       TableCode.find({ event: { $in: allEventIds } }).lean() // Gets all fields by default
     ]);
 
-    console.log("✅ [AllController] Found", ticketSettingsArray.length, "tickets,", codeSettingsArray.length, "codes,", tableDataArray.length, "tables");
     
-    // Debug: Show sample data structures
-    if (codeSettingsArray.length > 0) {
-      console.log("🔍 [AllController] Sample code setting:", {
-        type: codeSettingsArray[0].type,
-        condition: codeSettingsArray[0].condition,
-        maxPax: codeSettingsArray[0].maxPax,
-        isEnabled: codeSettingsArray[0].isEnabled,
-        hasAllFields: Object.keys(codeSettingsArray[0])
-      });
-    }
-    
-    if (tableDataArray.length > 0) {
-      console.log("🔍 [AllController] Sample table data:", {
-        tableNumber: tableDataArray[0].tableNumber,
-        status: tableDataArray[0].status,
-        pax: tableDataArray[0].pax,
-        hasAllFields: Object.keys(tableDataArray[0])
-      });
-    }
 
     // Step 8: SMART data organization with inheritance handling
     const ticketSettingsByEvent = {};
@@ -308,7 +244,6 @@ exports.getUpcomingEventData = async (req, res) => {
       return acc;
     }, {});
 
-    console.log("🎉 [AllController] OPTIMIZED compilation complete!");
 
     // Step 11: Return optimized response
     res.status(200).json({
@@ -335,7 +270,6 @@ exports.getUpcomingEventData = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ [AllController] OPTIMIZED Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch upcoming event data",

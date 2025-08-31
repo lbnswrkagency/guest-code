@@ -17,6 +17,10 @@ import {
   RiSearchLine,
   RiAddLine,
   RiEditLine,
+  RiSwordLine,
+  RiTrophyLine,
+  RiCalendarCheckLine,
+  RiMoneyEuroCircleLine,
 } from "react-icons/ri";
 import { useToast } from "../Toast/ToastContext";
 import axiosInstance from "../../utils/axiosConfig";
@@ -270,6 +274,31 @@ const EventForm = ({
 
   // Add a new state to track genre IDs that need to be selected
   const [genreIdsToSelect, setGenreIdsToSelect] = useState([]);
+
+  // Battle configuration states
+  const [battleConfig, setBattleConfig] = useState({
+    isEnabled: false,
+    title: "Dance Battle",
+    subtitle: "1 vs 1 Dance Battles - The crowd picks the winner!",
+    description: "",
+    prizeMoney: 0,
+    currency: "€",
+    maxParticipantsPerCategory: 16,
+    categories: [],
+    registrationDeadline: null,
+    isRegistrationOpen: true,
+    battleRules: "",
+    additionalInfo: "",
+  });
+
+  const [battleCategories, setBattleCategories] = useState([
+    { name: "allStyles", displayName: "All Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
+    { name: "afroStyles", displayName: "Afro Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
+    { name: "dancehall", displayName: "Dancehall", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
+  ]);
+
+  const [newBattleCategory, setNewBattleCategory] = useState({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+  const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
 
   // Fetch genres for the brand
   useEffect(() => {
@@ -638,6 +667,26 @@ const EventForm = ({
         );
       }
 
+      // Add battle configuration
+      if (battleConfig.isEnabled) {
+        const battleData = {
+          ...battleConfig,
+          categories: battleConfig.categories.filter(cat => 
+            battleCategories.some(bc => bc.name === cat)
+          ).map(catName => {
+            const fullCat = battleCategories.find(bc => bc.name === catName);
+            return {
+              name: fullCat.name,
+              displayName: fullCat.displayName,
+              prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
+              maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
+              participantsPerSignup: fullCat.participantsPerSignup || 1
+            };
+          })
+        };
+        dataToSend.append("battleConfig", JSON.stringify(battleData));
+      }
+
 
       let eventResponse;
 
@@ -719,6 +768,29 @@ const EventForm = ({
         // Add selected genres to the update data (not as a stringified array)
         if (selectedGenres.length > 0) {
           updateData.genres = selectedGenres.map((genre) => genre._id);
+        }
+
+        // Add battle configuration for updates
+        if (battleConfig.isEnabled) {
+          const battleData = {
+            ...battleConfig,
+            categories: battleConfig.categories.filter(cat => 
+              battleCategories.some(bc => bc.name === cat)
+            ).map(catName => {
+              const fullCat = battleCategories.find(bc => bc.name === catName);
+              return {
+                name: fullCat.name,
+                displayName: fullCat.displayName,
+                prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
+                maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
+                participantsPerSignup: fullCat.participantsPerSignup || 1
+              };
+            })
+          };
+          updateData.battleConfig = battleData;
+        } else {
+          // Explicitly disable battle if not enabled
+          updateData.battleConfig = { isEnabled: false };
         }
 
         // Include the weekNumber in the URL if this is a child event or we're editing a specific week
@@ -1067,6 +1139,35 @@ const EventForm = ({
         tableLayout: event.tableLayout || "",
       });
 
+      // Initialize battle configuration if event has battle config
+      if (event.battleConfig) {
+        setBattleConfig({
+          isEnabled: event.battleConfig.isEnabled || false,
+          title: event.battleConfig.title || "Dance Battle",
+          subtitle: event.battleConfig.subtitle || "1 vs 1 Dance Battles - The crowd picks the winner!",
+          description: event.battleConfig.description || "",
+          prizeMoney: event.battleConfig.prizeMoney || 0,
+          currency: event.battleConfig.currency || "€",
+          maxParticipantsPerCategory: event.battleConfig.maxParticipantsPerCategory || 16,
+          categories: event.battleConfig.categories?.map(cat => cat.name) || [],
+          registrationDeadline: event.battleConfig.registrationDeadline ? new Date(event.battleConfig.registrationDeadline) : null,
+          isRegistrationOpen: event.battleConfig.isRegistrationOpen !== undefined ? event.battleConfig.isRegistrationOpen : true,
+          battleRules: event.battleConfig.battleRules || "",
+          additionalInfo: event.battleConfig.additionalInfo || "",
+        });
+
+        // Update battle categories with event-specific data
+        if (event.battleConfig.categories && event.battleConfig.categories.length > 0) {
+          setBattleCategories(event.battleConfig.categories.map(cat => ({
+            name: cat.name,
+            displayName: cat.displayName,
+            prizeMoney: cat.prizeMoney || event.battleConfig.prizeMoney || 0,
+            maxParticipants: cat.maxParticipants || event.battleConfig.maxParticipantsPerCategory || 16,
+            participantsPerSignup: cat.participantsPerSignup || 1,
+          })));
+        }
+      }
+
       // Populate selected genres if available
       if (Array.isArray(event.genres) && event.genres.length > 0) {
         if (typeof event.genres[0] === "object") {
@@ -1306,6 +1407,59 @@ const EventForm = ({
       }
     }
   }, [genreIdsToSelect, allGenres]);
+
+  // Battle category management functions
+  const handleBattleConfigChange = (field, value) => {
+    setBattleConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCategoryToggle = (categoryName) => {
+    setBattleConfig(prev => ({
+      ...prev,
+      categories: prev.categories.includes(categoryName)
+        ? prev.categories.filter(cat => cat !== categoryName)
+        : [...prev.categories, categoryName]
+    }));
+  };
+
+  const handleCategoryUpdate = (categoryName, field, value) => {
+    setBattleCategories(prev => 
+      prev.map(cat => 
+        cat.name === categoryName 
+          ? { ...cat, [field]: value }
+          : cat
+      )
+    );
+  };
+
+  const addBattleCategory = () => {
+    if (!newBattleCategory.name.trim() || !newBattleCategory.displayName.trim()) {
+      toast.showError("Category name and display name are required");
+      return;
+    }
+
+    if (battleCategories.some(cat => cat.name === newBattleCategory.name)) {
+      toast.showError("Category with this name already exists");
+      return;
+    }
+
+    setBattleCategories(prev => [...prev, { ...newBattleCategory }]);
+    setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+    setShowAddCategoryForm(false);
+    toast.showSuccess("Battle category added");
+  };
+
+  const removeBattleCategory = (categoryName) => {
+    setBattleCategories(prev => prev.filter(cat => cat.name !== categoryName));
+    setBattleConfig(prev => ({
+      ...prev,
+      categories: prev.categories.filter(cat => cat !== categoryName)
+    }));
+    toast.showSuccess("Battle category removed");
+  };
 
   return (
     <AnimatePresence>
@@ -2082,6 +2236,228 @@ const EventForm = ({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Battle Configuration section */}
+            <div className="form-section">
+              <h3><RiSwordLine /> Battle Configuration</h3>
+              
+              <div className="battle-toggle">
+                <label className="toggle-container">
+                  <input
+                    type="checkbox"
+                    checked={battleConfig.isEnabled}
+                    onChange={(e) => handleBattleConfigChange('isEnabled', e.target.checked)}
+                  />
+                  <span className="toggle-label">Enable Battle for this Event</span>
+                </label>
+              </div>
+
+              {battleConfig.isEnabled && (
+                <div className="battle-configuration">
+                  {/* Basic Info */}
+                  <div className="battle-section">
+                    <div className="battle-info-grid">
+                      <div className="form-group">
+                        <label>Battle Title</label>
+                        <input
+                          type="text"
+                          value={battleConfig.title}
+                          onChange={(e) => handleBattleConfigChange('title', e.target.value)}
+                          placeholder="Dance Battle"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Battle Subtitle</label>
+                        <input
+                          type="text"
+                          value={battleConfig.subtitle}
+                          onChange={(e) => handleBattleConfigChange('subtitle', e.target.value)}
+                          placeholder="1 vs 1 Dance Battles"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Battle Description</label>
+                      <textarea
+                        value={battleConfig.description}
+                        onChange={(e) => handleBattleConfigChange('description', e.target.value)}
+                        placeholder="Describe the battle event..."
+                        rows="2"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Categories */}
+                  <div className="battle-section">
+                    <h4><RiTrophyLine /> Battle Categories</h4>
+                    <div className="battle-categories">
+                      {battleCategories.map((category) => (
+                        <div key={category.name} className="battle-category">
+                          <div className="category-main">
+                            <label className="category-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={battleConfig.categories.includes(category.name)}
+                                onChange={() => handleCategoryToggle(category.name)}
+                              />
+                              <span className="category-name">{category.displayName}</span>
+                            </label>
+                            <button
+                              type="button"
+                              className="remove-category"
+                              onClick={() => removeBattleCategory(category.name)}
+                              title="Remove category"
+                            >
+                              <RiCloseLine />
+                            </button>
+                          </div>
+                          
+                          {battleConfig.categories.includes(category.name) && (
+                            <div className="category-details">
+                              <div className="detail-inputs">
+                                <div className="input-group">
+                                  <label>Prize</label>
+                                  <div className="prize-input">
+                                    <input
+                                      type="number"
+                                      value={category.prizeMoney || battleConfig.prizeMoney}
+                                      onChange={(e) => handleCategoryUpdate(category.name, 'prizeMoney', parseInt(e.target.value) || 0)}
+                                      placeholder={battleConfig.prizeMoney.toString()}
+                                      min="0"
+                                    />
+                                    <span className="currency">{battleConfig.currency}</span>
+                                  </div>
+                                </div>
+                                <div className="input-group">
+                                  <label>Max Participants</label>
+                                  <input
+                                    type="number"
+                                    value={category.maxParticipants || battleConfig.maxParticipantsPerCategory}
+                                    onChange={(e) => handleCategoryUpdate(category.name, 'maxParticipants', parseInt(e.target.value) || 16)}
+                                    placeholder={battleConfig.maxParticipantsPerCategory.toString()}
+                                    min="1"
+                                    max="32"
+                                  />
+                                </div>
+                                <div className="input-group">
+                                  <label>Participants Per Signup</label>
+                                  <input
+                                    type="number"
+                                    value={category.participantsPerSignup || 1}
+                                    onChange={(e) => handleCategoryUpdate(category.name, 'participantsPerSignup', parseInt(e.target.value) || 1)}
+                                    placeholder="1"
+                                    min="1"
+                                    max="4"
+                                  />
+                                  <small>How many people per registration (e.g., 2 for 2vs2)</small>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <div className="add-category">
+                        {!showAddCategoryForm ? (
+                          <button
+                            type="button"
+                            className="add-category-btn"
+                            onClick={() => setShowAddCategoryForm(true)}
+                          >
+                            <RiAddLine /> Add Category
+                          </button>
+                        ) : (
+                          <div className="add-category-form">
+                            <input
+                              type="text"
+                              placeholder="Display Name (e.g., Hip Hop)"
+                              value={newBattleCategory.displayName}
+                              onChange={(e) => setNewBattleCategory(prev => ({ 
+                                ...prev, 
+                                displayName: e.target.value,
+                                name: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '')
+                              }))}
+                            />
+                            <div className="form-actions">
+                              <button
+                                type="button"
+                                className="cancel-btn"
+                                onClick={() => {
+                                  setShowAddCategoryForm(false);
+                                  setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="add-btn"
+                                onClick={addBattleCategory}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Additional Settings */}
+                  <div className="battle-section">
+                    <h4><RiCalendarCheckLine /> Registration & Rules</h4>
+                    
+                    <div className="battle-settings-grid">
+                      <div className="form-group">
+                        <label>Registration Deadline</label>
+                        <DatePicker
+                          selected={battleConfig.registrationDeadline}
+                          onChange={(date) => handleBattleConfigChange('registrationDeadline', date)}
+                          showTimeSelect
+                          dateFormat="MMM d, yyyy h:mm aa"
+                          className="date-picker"
+                          placeholderText="No deadline set"
+                          isClearable
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="toggle-container">
+                          <input
+                            type="checkbox"
+                            checked={battleConfig.isRegistrationOpen}
+                            onChange={(e) => handleBattleConfigChange('isRegistrationOpen', e.target.checked)}
+                          />
+                          <span className="toggle-label">Registration Open</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Battle Rules</label>
+                      <textarea
+                        value={battleConfig.battleRules}
+                        onChange={(e) => handleBattleConfigChange('battleRules', e.target.value)}
+                        placeholder="Enter battle rules and regulations..."
+                        rows="3"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Additional Information</label>
+                      <textarea
+                        value={battleConfig.additionalInfo}
+                        onChange={(e) => handleBattleConfigChange('additionalInfo', e.target.value)}
+                        placeholder="Any additional information for participants..."
+                        rows="2"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-actions">

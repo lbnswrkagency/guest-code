@@ -17,6 +17,7 @@ import GuestCode from "../GuestCode/GuestCode";
 import TableSystem from "../TableSystem/TableSystem";
 import LineUpView from "../LineUpView/LineUpView";
 import Spotify from "../Spotify/Spotify";
+import BattleSign from "../BattleSign/BattleSign";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -34,6 +35,7 @@ import {
   RiStarLine,
   RiArrowLeftLine,
   RiArrowRightLine,
+  RiSwordLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -83,6 +85,9 @@ const UpcomingEvent = ({
   // Add state for table bookings
   const [showTableBooking, setShowTableBooking] = useState(false);
 
+  // Add state for battle signup
+  const [showBattleSignup, setShowBattleSignup] = useState(false);
+
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -91,6 +96,7 @@ const UpcomingEvent = ({
   const guestCodeSectionRef = useRef(null);
   const ticketSectionRef = useRef(null);
   const tableBookingSectionRef = useRef(null);
+  const battleSignupSectionRef = useRef(null);
 
   // Add a ticket settings cache
   const [ticketSettingsCache, setTicketSettingsCache] = useState({});
@@ -177,9 +183,6 @@ const UpcomingEvent = ({
 
       // OPTIMIZATION: If we have cached ticket settings from comprehensive endpoint, no need to fetch
       if (Object.keys(ticketSettingsCache).length > 0) {
-        console.log(
-          "✅ [UpcomingEvent] Using cached ticket settings from comprehensive endpoint"
-        );
         // Set ticket settings for current event if available
         if (
           processedEvents[currentIndex]?._id &&
@@ -191,9 +194,6 @@ const UpcomingEvent = ({
         }
       } else {
         // Fallback: Preload ticket settings for ALL events at once
-        console.log(
-          "⚠️ [UpcomingEvent] No cached ticket settings, falling back to individual fetches"
-        );
         processedEvents.forEach((event) => {
           if (event._id && event.ticketsAvailable !== false) {
             // Queue the ticket fetch with a slight delay to avoid overwhelming the server
@@ -318,10 +318,6 @@ const UpcomingEvent = ({
       try {
         // OPTIMIZATION: Check if we already have this event's ticket settings in cache (from comprehensive endpoint)
         if (ticketSettingsCache[eventId]) {
-          console.log(
-            "✅ [UpcomingEvent] Using cached ticket settings for event:",
-            eventId
-          );
           setTicketSettings(ticketSettingsCache[eventId]);
           setLoadingTickets(false);
           return;
@@ -476,10 +472,6 @@ const UpcomingEvent = ({
     setError(null);
 
     try {
-      console.log(
-        "🚀 [UpcomingEvent] Using COMPREHENSIVE endpoint for optimized data fetching"
-      );
-
       let events = []; // Declare events variable at function scope
 
       // Use the comprehensive endpoint that fetches ALL data in one request
@@ -496,11 +488,8 @@ const UpcomingEvent = ({
       params.append("limit", limit.toString());
 
       const fullEndpoint = `${endpoint}?${params.toString()}`;
-      console.log("🔗 [UpcomingEvent] Fetching from:", fullEndpoint);
 
       const response = await axiosInstance.get(fullEndpoint);
-
-      console.log("🔍 [UpcomingEvent] Raw response:", response.data);
 
       if (response.data && response.data.success && response.data.data) {
         const {
@@ -510,15 +499,6 @@ const UpcomingEvent = ({
           tableData,
           brand,
         } = response.data.data;
-
-        console.log("✅ [UpcomingEvent] Comprehensive data received:", {
-          eventsCount: responseEvents?.length || 0,
-          ticketSettingsCount: Object.keys(ticketSettings || {}).length,
-          codeSettingsCount: Object.keys(codeSettings || {}).length,
-          tableDataCount: Object.keys(tableData || {}).length,
-        });
-
-        console.log("🔍 [UpcomingEvent] Events data:", responseEvents);
 
         // Store all related data for later use
         if (ticketSettings) {
@@ -1082,6 +1062,14 @@ const UpcomingEvent = ({
   const toggleTableBooking = () => {
     setShowTableBooking(!showTableBooking);
     setShowGuestCodeForm(false); // Close guest code form if open
+    setShowBattleSignup(false); // Close battle signup if open
+  };
+
+  // Add function to toggle battle signup
+  const toggleBattleSignup = () => {
+    setShowBattleSignup(!showBattleSignup);
+    setShowGuestCodeForm(false); // Close guest code form if open
+    setShowTableBooking(false); // Close table booking if open
   };
 
   // Utility function to check if event supports table booking
@@ -1100,17 +1088,13 @@ const UpcomingEvent = ({
       return false;
     }
 
-    // Legacy fallback: Check all possible formats for allowed brands
-    return (
-      // Special event ID
-      event._id === "6807c197d4455638731dbda6" ||
-      // Brand as object with _id property (excluding the specific brand ID)
-      (event.brand && event.brand._id === "67ba051873bd89352d3ab6db") ||
-      // Brand as string ID directly (excluding the specific brand ID)
-      event.brand === "67ba051873bd89352d3ab6db" ||
-      // Brand ID in other properties (excluding the specific brand ID)
-      event.brandId === "67ba051873bd89352d3ab6db"
-    );
+    return false;
+  };
+
+  // Utility function to check if event supports battles
+  const supportsBattles = (event) => {
+    if (!event) return false;
+    return event.battleConfig && event.battleConfig.isEnabled;
   };
 
   // Check if Spotify is configured for this brand
@@ -1163,41 +1147,32 @@ const UpcomingEvent = ({
     // Short delay to ensure the component renders before scrolling
     setTimeout(() => {
       // Scroll to the table booking section using ID for more reliability
-      const tableSectionElement = document.getElementById(
-        "table-booking-section"
+      const tableSection = document.getElementById(
+        `table-booking-${event._id}`
       );
-
-      if (tableSectionElement) {
-        // Use classic scrolling as fallback
-        tableSectionElement.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-
-        // Add highlight effect
-        tableSectionElement.classList.add("highlight-section");
-        setTimeout(() => {
-          if (tableSectionElement) {
-            tableSectionElement.classList.remove("highlight-section");
-          }
-        }, 1500);
-      } else if (tableBookingSectionRef.current) {
-        // Use ref scrolling as backup
-        tableBookingSectionRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-
-        tableBookingSectionRef.current.classList.add("highlight-section");
-        setTimeout(() => {
-          if (tableBookingSectionRef.current) {
-            tableBookingSectionRef.current.classList.remove(
-              "highlight-section"
-            );
-          }
-        }, 1500);
+      if (tableSection) {
+        tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-    }, 300);
+    }, 100);
+  };
+
+  // Handle battle signup click
+  const handleBattleSignupClick = (event, e) => {
+    e.stopPropagation(); // Prevent the main event click handler from firing
+
+    // Force the battle section to be rendered
+    setShowBattleSignup(true);
+
+    // Short delay to ensure the component renders before scrolling
+    setTimeout(() => {
+      // Scroll to the battle signup section using ID for more reliability
+      const battleSection = document.getElementById(
+        `battle-signup-${event._id}`
+      );
+      if (battleSection) {
+        battleSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   // Initialize ticketsAvailable property and fetch ticket settings immediately
@@ -1218,17 +1193,9 @@ const UpcomingEvent = ({
       // OPTIMIZATION: Use cached ticket settings if available, otherwise fetch
       if (currentEvent._id) {
         if (ticketSettingsCache[currentEvent._id]) {
-          console.log(
-            "✅ [UpcomingEvent] Using cached ticket settings from useEffect for event:",
-            currentEvent._id
-          );
           setTicketSettings(ticketSettingsCache[currentEvent._id]);
           setLoadingTickets(false);
         } else {
-          console.log(
-            "⚠️ [UpcomingEvent] No cached data, fetching ticket settings for event:",
-            currentEvent._id
-          );
           fetchTicketSettings(currentEvent._id);
         }
       }
@@ -1524,7 +1491,7 @@ const UpcomingEvent = ({
                 {currentEvent.title}
               </h1>
             </div>
-            
+
             {/* Event Subtitle */}
             <div className="upcomingEvent-subtitle-wrapper">
               {currentEvent.subTitle && (
@@ -1587,12 +1554,18 @@ const UpcomingEvent = ({
                   // Use the new handler for table booking
                   handleTableBookingClick(currentEvent, e);
                 }}
+                scrollToBattleSignup={(e) => {
+                  e.stopPropagation();
+                  // Use the new handler for battle signup
+                  handleBattleSignupClick(currentEvent, e);
+                }}
                 hasTickets={visibleTicketSettings.length > 0}
                 ticketPaymentMethod={
                   visibleTicketSettings.length > 0
                     ? visibleTicketSettings[0].paymentMethod
                     : "online"
                 }
+                hasBattles={supportsBattles(currentEvent)}
               />
             </div>
 
@@ -1630,39 +1603,54 @@ const UpcomingEvent = ({
                     )}
                   </div>
                 )}
-
-              {/* GuestCode component section - MOVED AFTER TICKETS */}
-              <div
-                ref={guestCodeSectionRef}
-                className="upcomingEvent-guest-code-section"
-              >
-                {currentEvent && <GuestCode event={currentEvent} />}
-              </div>
-
-              {/* Table booking section - Only shown if layout is configured */}
-              {currentEvent &&
-                !hideTableBooking &&
-                supportsTableBooking(currentEvent) &&
-                showTableBooking && (
-                  <div
-                    ref={tableBookingSectionRef}
-                    className="upcomingEvent-table-booking-section"
-                    id="table-booking-section"
-                  >
-                    <div className="upcomingEvent-table-container">
-                      <TableSystem
-                        selectedEvent={currentEvent}
-                        selectedBrand={currentEvent.brand}
-                        isPublic={true} // Mark as public
-                        onClose={toggleTableBooking}
-                        tableData={
-                          window.upcomingEventTableDataCache?.[currentEvent._id]
-                        } // Pass pre-fetched table data
-                      />
-                    </div>
+              {/* Battle signup section - Only shown if battles are enabled */}
+              {currentEvent && supportsBattles(currentEvent) && (
+                <div
+                  ref={battleSignupSectionRef}
+                  className="upcomingEvent-battle-signup-section"
+                  id={`battle-signup-${currentEvent._id}`}
+                >
+                  <div className="upcomingEvent-battle-container">
+                    <BattleSign
+                      eventId={currentEvent._id}
+                      ref={battleSignupSectionRef}
+                    />
                   </div>
-                )}
+                </div>
+              )}
             </div>
+
+            {/* GuestCode component section - MOVED AFTER TICKETS */}
+            <div
+              ref={guestCodeSectionRef}
+              className="upcomingEvent-guest-code-section"
+            >
+              {currentEvent && <GuestCode event={currentEvent} />}
+            </div>
+
+            {/* Table booking section - Only shown if layout is configured */}
+            {currentEvent &&
+              !hideTableBooking &&
+              supportsTableBooking(currentEvent) &&
+              showTableBooking && (
+                <div
+                  ref={tableBookingSectionRef}
+                  className="upcomingEvent-table-booking-section"
+                  id="table-booking-section"
+                >
+                  <div className="upcomingEvent-table-container">
+                    <TableSystem
+                      selectedEvent={currentEvent}
+                      selectedBrand={currentEvent.brand}
+                      isPublic={true} // Mark as public
+                      onClose={toggleTableBooking}
+                      tableData={
+                        window.upcomingEventTableDataCache?.[currentEvent._id]
+                      } // Pass pre-fetched table data
+                    />
+                  </div>
+                </div>
+              )}
           </div>
         </motion.div>
       </AnimatePresence>
@@ -1748,6 +1736,16 @@ const UpcomingEvent = ({
                     <div className="meta-tag tables">
                       <RiTableLine />
                       <span>Table Booking</span>
+                    </div>
+                  )}
+                  {supportsBattles(currentEvent) && (
+                    <div
+                      className="meta-tag battle"
+                      onClick={() => setShowBattleSignup(true)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <RiSwordLine />
+                      <span>Battle</span>
                     </div>
                   )}
                 </div>

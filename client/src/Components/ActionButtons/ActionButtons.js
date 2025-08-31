@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from "../../utils/axiosConfig";
 import "./ActionButtons.scss";
 
 const ActionButtons = ({
@@ -36,10 +36,9 @@ const ActionButtons = ({
           return;
       }
 
-      response = await axios.post(
+      response = await axiosInstance.post(
         route(item._id),
-        { action },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { action }
       );
 
       // Set the active button

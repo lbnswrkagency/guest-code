@@ -1611,3 +1611,455 @@ input[type="checkbox"] {
     }
   }
 }
+
+// Battle Configuration Styles
+.battle-toggle {
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
+    border-radius: 8px;
+    border: 1px solid rgba($primary-color, 0.2);
+    margin-bottom: 1.5rem;
+
+    .icon {
+      color: $primary-color;
+      font-size: 1.25rem;
+    }
+
+    .toggle-label {
+      margin: 0;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    input[type="checkbox"] {
+      margin: 0;
+    }
+  }
+}
+
+.battle-configuration {
+  animation: fadeIn 0.3s ease-out;
+  
+  .battle-section {
+    margin-bottom: 2rem;
+    
+    h4 {
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .icon {
+        color: $primary-color;
+      }
+    }
+  }
+
+  .battle-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      label {
+        color: $text-light;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      input, textarea {
+        background: $bg-input;
+        border: 1px solid $border-light;
+        border-radius: 6px;
+        padding: 0.75rem;
+        color: white;
+        font-size: 0.9rem;
+        @include focus-effect;
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+    }
+  }
+
+  .battle-categories {
+    .battle-category {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+
+      .category-main {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+
+        .category-checkbox {
+          flex-shrink: 0;
+        }
+
+        .category-name {
+          color: white;
+          font-size: 1rem;
+          font-weight: 500;
+          flex: 1;
+        }
+
+        .remove-category {
+          flex-shrink: 0;
+          background: none;
+          border: none;
+          color: #dc3545;
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: rgba(220, 53, 69, 0.1);
+            color: #ff4757;
+          }
+        }
+      }
+
+      .category-details {
+        .detail-inputs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          padding-left: 2rem;
+
+          @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+            padding-left: 0;
+          }
+
+          .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+
+            label {
+              color: $text-light;
+              font-size: 0.85rem;
+              font-weight: 500;
+            }
+
+            .prize-input {
+              position: relative;
+
+              input {
+                background: $bg-input;
+                border: 1px solid $border-light;
+                border-radius: 6px;
+                padding: 0.75rem 2rem 0.75rem 0.75rem;
+                color: white;
+                font-size: 0.9rem;
+                width: 100%;
+                @include focus-effect;
+
+                &::placeholder {
+                  color: $text-muted;
+                }
+              }
+
+              .currency {
+                position: absolute;
+                right: 0.75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: $text-muted;
+                font-weight: 600;
+                pointer-events: none;
+              }
+            }
+
+            input:not(.prize-input input) {
+              background: $bg-input;
+              border: 1px solid $border-light;
+              border-radius: 6px;
+              padding: 0.75rem;
+              color: white;
+              font-size: 0.9rem;
+              @include focus-effect;
+
+              &::placeholder {
+                color: $text-muted;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .add-category {
+      margin-top: 1rem;
+
+      .add-category-btn {
+        background: $primary-color;
+        color: $secondary-color;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+
+        &:hover {
+          background: $primary-dark;
+          transform: translateY(-1px);
+        }
+      }
+
+      .add-category-form {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        align-items: flex-end;
+
+        .form-group {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+
+          label {
+            color: $text-light;
+            font-size: 0.9rem;
+            font-weight: 500;
+          }
+
+          input {
+            background: $bg-input;
+            border: 1px solid $border-light;
+            border-radius: 6px;
+            padding: 0.75rem;
+            color: white;
+            font-size: 0.9rem;
+            @include focus-effect;
+
+            &::placeholder {
+              color: $text-muted;
+            }
+          }
+        }
+
+        .cancel-btn, .add-btn {
+          flex-shrink: 0;
+          border: none;
+          padding: 0.75rem 1rem;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          font-size: 0.9rem;
+        }
+
+        .cancel-btn {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+          }
+        }
+
+        .add-btn {
+          background: $primary-color;
+          color: $secondary-color;
+
+          &:hover {
+            background: $primary-dark;
+          }
+        }
+      }
+    }
+  }
+
+  .battle-global-settings {
+    .global-setting {
+      margin-bottom: 1.5rem;
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        label {
+          color: $text-light;
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+
+        input, select {
+          background: $bg-input;
+          border: 1px solid $border-light;
+          border-radius: 6px;
+          padding: 0.75rem;
+          color: white;
+          font-size: 0.9rem;
+          @include focus-effect;
+
+          &::placeholder {
+            color: $text-muted;
+          }
+        }
+      }
+
+      .prize-input-group {
+        position: relative;
+
+        input {
+          padding-right: 2rem;
+        }
+
+        &::after {
+          content: "€";
+          position: absolute;
+          right: 0.75rem;
+          top: 70%;
+          transform: translateY(-50%);
+          color: $text-muted;
+          font-weight: 600;
+          pointer-events: none;
+        }
+      }
+    }
+  }
+
+  .battle-settings-grid {
+    display: grid;
+    gap: 1.5rem;
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      label {
+        color: $text-light;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      input, textarea, .datetime-input {
+        background: $bg-input;
+        border: 1px solid $border-light;
+        border-radius: 6px;
+        padding: 0.75rem;
+        color: white;
+        font-size: 0.9rem;
+        @include focus-effect;
+
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      .datetime-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .react-datepicker-wrapper {
+          flex: 1;
+        }
+
+        input {
+          background: none;
+          border: none;
+          padding: 0;
+          color: white;
+          font-size: 0.9rem;
+
+          &:focus {
+            outline: none;
+            box-shadow: none;
+          }
+        }
+      }
+
+      .form-group {
+        &:has(.toggle-container) {
+          .toggle-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: fit-content;
+            min-width: 200px;
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.05);
+              border-color: rgba(255, 255, 255, 0.12);
+            }
+
+            input[type="checkbox"] {
+              margin: 0;
+              width: 16px;
+              height: 16px;
+              flex-shrink: 0;
+            }
+
+            .toggle-label {
+              color: $text-light;
+              font-size: 0.9rem;
+              font-weight: 500;
+              margin: 0;
+              white-space: nowrap;
+            }
+          }
+        }
+      }
+    }
+  }
+}
