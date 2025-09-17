@@ -23,6 +23,7 @@ import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import TableSystem from "../TableSystem/TableSystem";
 import Scanner from "../Scanner/Scanner";
 import Analytics from "../Analytics/Analytics";
+import SpitixBattle from "../SpitixBattle/SpitixBattle";
 import { motion } from "framer-motion";
 import { RiArrowUpSLine } from "react-icons/ri";
 
@@ -47,6 +48,7 @@ const Dashboard = () => {
   // State for menu functionality
   const [showStatistic, setShowStatistic] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showSpitixBattle, setShowSpitixBattle] = useState(false);
   const [codeType, setCodeType] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
@@ -548,7 +550,7 @@ const Dashboard = () => {
   // Add effect to handle component transitions
   useEffect(() => {
     // When any of these states change, it means we're switching views
-    if (codeType || showScanner || showStatistic || showTableSystem) {
+    if (codeType || showScanner || showStatistic || showTableSystem || showSpitixBattle) {
       // If a new component is shown and navigation was open, ensure it stays open
       if (isNavigationOpen) {
         // Short delay to ensure state propagation
@@ -557,7 +559,7 @@ const Dashboard = () => {
         }, 100);
       }
     }
-  }, [codeType, showScanner, showStatistic, showTableSystem, isNavigationOpen]);
+  }, [codeType, showScanner, showStatistic, showTableSystem, showSpitixBattle, isNavigationOpen]);
 
   // Add global navigation event handlers
   useEffect(() => {
@@ -704,6 +706,25 @@ const Dashboard = () => {
             selectedBrand={selectedBrand}
             counts={{ tableCounts: [] }}
           />
+        ) : showSpitixBattle ? (
+          <SpitixBattle
+            user={user}
+            onClose={() => {
+              setShowSpitixBattle(false);
+              // Preserve navigation state when closing
+              if (isNavigationOpen)
+                setTimeout(() => setIsNavigationOpen(true), 50);
+            }}
+            eventId={selectedEvent?._id}
+            eventTitle={selectedEvent?.title}
+            permissions={{
+              battles: {
+                view: true, // Already checked in menu visibility
+                edit: userRoleForSelectedBrand?.some(role => role.permissions?.battles?.edit) || false,
+                delete: userRoleForSelectedBrand?.some(role => role.permissions?.battles?.delete) || false,
+              }
+            }}
+          />
         ) : (
           <>
             {/* Golden Arrow Guide for new users with no brands */}
@@ -732,6 +753,7 @@ const Dashboard = () => {
               setShowSettings={setShowSettings}
               setShowDropFiles={setShowDropFiles}
               setShowTableSystem={setShowTableSystem}
+              setShowSpitixBattle={setShowSpitixBattle}
               isOnline={true}
             />
             <DashboardFeed

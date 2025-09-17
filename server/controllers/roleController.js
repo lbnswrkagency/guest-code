@@ -82,6 +82,11 @@ exports.createDefaultRoles = async (brandId, userId) => {
           manage: true,
           summary: true,
         },
+        battles: {
+          view: true,
+          edit: true,
+          delete: true,
+        },
       },
     });
 
@@ -114,6 +119,11 @@ exports.createDefaultRoles = async (brandId, userId) => {
           access: false,
           manage: false,
           summary: false,
+        },
+        battles: {
+          view: false,
+          edit: false,
+          delete: false,
         },
       },
     });

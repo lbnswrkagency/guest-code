@@ -161,32 +161,38 @@ const addTableCode = async (req, res) => {
 
       // First check if user is part of the brand team (primary check)
       const brand = await Brand.findById(eventDetails.brand._id);
-      const isTeamMember = brand && brand.team && brand.team.some(member => 
-        member.user.toString() === req.user.userId.toString()
-      );
+      const isTeamMember =
+        brand &&
+        brand.team &&
+        brand.team.some(
+          (member) => member.user.toString() === req.user.userId.toString()
+        );
 
       // Also check if user is the brand owner
-      const isBrandOwner = brand && brand.owner && brand.owner.toString() === req.user.userId.toString();
+      const isBrandOwner =
+        brand &&
+        brand.owner &&
+        brand.owner.toString() === req.user.userId.toString();
 
       // Get user roles for this brand
       let hasRolePermission = false;
-      
+
       // Since JWT only contains userId, we need to fetch the user's roles from database
       const User = require("../models/User");
       const userDoc = await User.findById(req.user.userId);
-      
+
       if (userDoc) {
         // Find the user's role for this specific brand
-        const userRoleId = brand.team?.find(member => 
-          member.user.toString() === req.user.userId.toString()
+        const userRoleId = brand.team?.find(
+          (member) => member.user.toString() === req.user.userId.toString()
         )?.role;
-        
+
         if (userRoleId) {
           const userRole = await Role.findOne({
             _id: userRoleId,
-            brandId: eventDetails.brand._id
+            brandId: eventDetails.brand._id,
           });
-          
+
           if (userRole && userRole.permissions && userRole.permissions.tables) {
             hasRolePermission = userRole.permissions.tables.manage === true;
           }
@@ -195,7 +201,6 @@ const addTableCode = async (req, res) => {
 
       // Allow table management if user is team member, brand owner, or has role permission
       hasTableManage = isTeamMember || isBrandOwner || hasRolePermission;
-      
     }
 
     // Use the already fetched event details for email
@@ -238,13 +243,15 @@ const addTableCode = async (req, res) => {
     if (isPublic && email) {
       try {
         // Get brand colors or use defaults
-        const primaryColor = eventDetailsForEmail?.brand?.colors?.primary || "#3a1a5a";
+        const primaryColor =
+          eventDetailsForEmail?.brand?.colors?.primary || "#3a1a5a";
 
         // Set up the email sender using Brevo
         const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
         // Prioritize startDate over date
-        const eventDate = eventDetailsForEmail?.startDate || eventDetailsForEmail?.date;
+        const eventDate =
+          eventDetailsForEmail?.startDate || eventDetailsForEmail?.date;
         const formattedDate = formatCodeDate(eventDate);
         const formattedDateDE = formatDateDE(eventDate);
         const dayOfWeek = getDayOfWeek(eventDate);
@@ -261,7 +268,10 @@ const addTableCode = async (req, res) => {
 
         // Process lineups with safety check
         let safeLineups = [];
-        if (eventDetailsForEmail.lineups && Array.isArray(eventDetailsForEmail.lineups)) {
+        if (
+          eventDetailsForEmail.lineups &&
+          Array.isArray(eventDetailsForEmail.lineups)
+        ) {
           safeLineups = eventDetailsForEmail.lineups
             .filter((artist) => artist !== null && artist !== undefined)
             .map((artist) => {
@@ -328,8 +338,10 @@ const addTableCode = async (req, res) => {
           recipientName: `${firstName} ${lastName}`,
           eventTitle: eventDetailsForEmail.title,
           eventDate: eventDate,
-          eventLocation: eventDetailsForEmail.location || eventDetailsForEmail.venue || "",
-          eventAddress: eventDetailsForEmail.street || eventDetailsForEmail.address || "",
+          eventLocation:
+            eventDetailsForEmail.location || eventDetailsForEmail.venue || "",
+          eventAddress:
+            eventDetailsForEmail.street || eventDetailsForEmail.address || "",
           eventCity: eventDetailsForEmail.city || "",
           eventPostalCode: eventDetailsForEmail.postalCode || "",
           startTime: eventDetailsForEmail.startTime,
@@ -412,7 +424,7 @@ const getTableCounts = async (req, res) => {
     // Check user's table management permissions
     let hasTableManage = false;
     let tableCounts = [];
-    
+
     // For authenticated requests, check permissions
     if (req.user) {
       const Role = require("../models/roleModel");
@@ -427,32 +439,38 @@ const getTableCounts = async (req, res) => {
 
       // First check if user is part of the brand team
       const brand = await Brand.findById(eventDetails.brand._id);
-      const isTeamMember = brand && brand.team && brand.team.some(member => 
-        member.user.toString() === req.user.userId.toString()
-      );
+      const isTeamMember =
+        brand &&
+        brand.team &&
+        brand.team.some(
+          (member) => member.user.toString() === req.user.userId.toString()
+        );
 
       // Also check if user is the brand owner
-      const isBrandOwner = brand && brand.owner && brand.owner.toString() === req.user.userId.toString();
+      const isBrandOwner =
+        brand &&
+        brand.owner &&
+        brand.owner.toString() === req.user.userId.toString();
 
       // Get user roles for this brand
       let hasRolePermission = false;
-      
+
       // Since JWT only contains userId, we need to fetch the user's roles from database
       const User = require("../models/User");
       const userDoc = await User.findById(req.user.userId);
-      
+
       if (userDoc) {
         // Find the user's role for this specific brand
-        const userRoleId = brand.team?.find(member => 
-          member.user.toString() === req.user.userId.toString()
+        const userRoleId = brand.team?.find(
+          (member) => member.user.toString() === req.user.userId.toString()
         )?.role;
-        
+
         if (userRoleId) {
           const userRole = await Role.findOne({
             _id: userRoleId,
-            brandId: eventDetails.brand._id
+            brandId: eventDetails.brand._id,
           });
-          
+
           if (userRole && userRole.permissions && userRole.permissions.tables) {
             hasRolePermission = userRole.permissions.tables.manage === true;
           }
@@ -470,13 +488,13 @@ const getTableCounts = async (req, res) => {
         isBrandOwner,
         hasRolePermission,
         hasTableManage,
-        userRoleId: brand.team?.find(member => 
-          member.user.toString() === req.user.userId.toString()
+        userRoleId: brand.team?.find(
+          (member) => member.user.toString() === req.user.userId.toString()
         )?.role,
-        brandTeam: brand.team?.map(member => ({ 
-          user: member.user.toString(), 
-          role: member.role?.toString() 
-        }))
+        brandTeam: brand.team?.map((member) => ({
+          user: member.user.toString(),
+          role: member.role?.toString(),
+        })),
       });
 
       // Fetch table codes based on permissions
@@ -485,9 +503,9 @@ const getTableCounts = async (req, res) => {
         tableCounts = await TableCode.find({ event: eventId });
       } else {
         // Users with only access permission can only see their own table codes
-        tableCounts = await TableCode.find({ 
-          event: eventId, 
-          hostId: req.user.userId 
+        tableCounts = await TableCode.find({
+          event: eventId,
+          hostId: req.user.userId,
         });
       }
     } else {
@@ -2383,7 +2401,8 @@ const getAvailableTableLayouts = async (req, res) => {
       {
         id: "studio",
         name: "Studio Layout",
-        description: "Professional studio layout with VIP, DJ, and premium areas",
+        description:
+          "Professional studio layout with VIP, DJ, and premium areas",
         component: "TableLayoutStudio",
         totalTables: 24,
         areas: ["VIP", "DJ Area", "Backstage", "Premium"],
@@ -2391,8 +2410,9 @@ const getAvailableTableLayouts = async (req, res) => {
       },
       {
         id: "bolivar",
-        name: "Bolivar Layout", 
-        description: "Classic club layout with multiple zones and flexible seating",
+        name: "Bolivar Layout",
+        description:
+          "Classic club layout with multiple zones and flexible seating",
         component: "TableLayoutBolivar",
         totalTables: 28,
         areas: ["Main Floor", "DJ Zone", "VIP Section", "Bar Area"],
@@ -2401,8 +2421,9 @@ const getAvailableTableLayouts = async (req, res) => {
       {
         id: "venti",
         name: "Venti Layout",
-        description: "Modern garden-themed layout with premium suites and VIP lounges",
-        component: "TableLayoutVenti", 
+        description:
+          "Modern garden-themed layout with premium suites and VIP lounges",
+        component: "TableLayoutVenti",
         totalTables: 18,
         areas: ["Standard Tables", "DJ Area", "VIP Lounge", "Premium Suite"],
         previewImage: "/images/layouts/venti-preview.jpg",

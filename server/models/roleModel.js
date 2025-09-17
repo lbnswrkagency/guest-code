@@ -41,6 +41,11 @@ const RoleSchema = new Schema(
         manage: { type: Boolean, default: false },
         summary: { type: Boolean, default: false },
       },
+      battles: {
+        view: { type: Boolean, default: false },
+        edit: { type: Boolean, default: false },
+        delete: { type: Boolean, default: false },
+      },
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },

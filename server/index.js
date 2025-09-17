@@ -216,30 +216,24 @@ const apiCallsByRoute = {};
 
 app.use((req, res, next) => {
   // Only track API routes to avoid noise from static files
-  if (req.path.startsWith('/api/')) {
+  if (req.path.startsWith("/api/")) {
     apiCallCount++;
     const route = `${req.method} ${req.path}`;
-    
+
     if (!apiCallsByRoute[route]) {
       apiCallsByRoute[route] = 0;
     }
     apiCallsByRoute[route]++;
-    
-    console.log(`🔍 [API-TRACKER] Call #${apiCallCount}: ${route} (Total for this route: ${apiCallsByRoute[route]})`);
-    
+
     // Show summary every 25 API calls to prevent spam
     if (apiCallCount % 25 === 0) {
-      console.log(`📊 [API-TRACKER] === API CALL SUMMARY (Last 25 calls) ===`);
       Object.entries(apiCallsByRoute)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10) // Show top 10 most called routes
-        .forEach(([route, count]) => {
-          console.log(`📊 [API-TRACKER] ${route}: ${count} calls`);
-        });
-      console.log(`📊 [API-TRACKER] === END SUMMARY ===`);
+        .forEach(([route, count]) => {});
     }
   }
-  
+
   next();
 });
 

@@ -7,6 +7,7 @@ import {
   RiQrCodeFill,
   RiCodeBoxFill,
   RiTableLine,
+  RiSwordLine,
   RiSparklingFill,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
@@ -24,6 +25,7 @@ const DashboardMenu = ({
   setShowSettings,
   setShowDropFiles,
   setShowTableSystem,
+  setShowSpitixBattle,
   isOnline,
   selectedEvent,
 }) => {
@@ -32,6 +34,7 @@ const DashboardMenu = ({
     analytics: { view: false },
     scanner: { use: false },
     tables: { access: false, manage: false },
+    battles: { view: false, edit: false, delete: false },
     codes: {
       canGenerateAny: false,
       settings: [],
@@ -59,6 +62,12 @@ const DashboardMenu = ({
     return permissions.tables.access;
   };
 
+  // Function to check if the user should see the battle system option
+  const shouldShowBattleSystem = () => {
+    // Check if user has battle view permission based on their role
+    return permissions.battles.view;
+  };
+
   useEffect(() => {
     if (selectedBrand && user) {
       // Check user role permissions directly
@@ -66,6 +75,9 @@ const DashboardMenu = ({
       let hasScannerPermission = false;
       let hasTableAccessPermission = false;
       let hasTableManagePermission = false;
+      let hasBattleViewPermission = false;
+      let hasBattleEditPermission = false;
+      let hasBattleDeletePermission = false;
 
       // Loop through all user roles to check permissions
       userRoles.forEach((role) => {
@@ -96,6 +108,19 @@ const DashboardMenu = ({
               hasTableManagePermission = true;
             }
           }
+
+          // Check battle permissions
+          if (role.permissions.battles) {
+            if (role.permissions.battles.view === true) {
+              hasBattleViewPermission = true;
+            }
+            if (role.permissions.battles.edit === true) {
+              hasBattleEditPermission = true;
+            }
+            if (role.permissions.battles.delete === true) {
+              hasBattleDeletePermission = true;
+            }
+          }
         }
       });
 
@@ -110,6 +135,11 @@ const DashboardMenu = ({
         tables: {
           access: hasTableAccessPermission,
           manage: hasTableManagePermission,
+        },
+        battles: {
+          view: hasBattleViewPermission,
+          edit: hasBattleEditPermission,
+          delete: hasBattleDeletePermission,
         },
         codes: {
           canGenerateAny: accessSummary.canCreateCodes || false,
@@ -301,6 +331,37 @@ const DashboardMenu = ({
                     <RiTableLine />
                   </div>
                   <span>Tables</span>
+                </motion.div>
+              )}
+
+              {/* Battle System menu item based on role permissions */}
+              {shouldShowBattleSystem() && (
+                <motion.div
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
+                  onClick={() => {
+                    if (!isMenuDisabled && setShowSpitixBattle) {
+                      setShowSpitixBattle(true);
+                      setIsOpen(false);
+                    }
+                  }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <div className="menu-item-icon-wrapper">
+                    <RiSwordLine />
+                  </div>
+                  <span>Battles</span>
                 </motion.div>
               )}
 

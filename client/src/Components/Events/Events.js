@@ -141,12 +141,12 @@ const hasEventPermissions = (event, user, userBrands) => {
 const Events = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  
+
   // Get Redux store data
   const brands = useSelector(selectAllBrands);
   const roles = useSelector(selectAllRoles);
   const userRoles = useSelector((state) => state.roles?.userRoles || {});
-  
+
   const [userBrands, setUserBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [events, setEvents] = useState([]);
@@ -186,13 +186,13 @@ const Events = () => {
   const prepareBrands = () => {
     if (brands.length > 0) {
       const brandsWithData = brands.map(prepareBrandWithData);
-      
+
       // Apply prioritization: Owner brands first, then favorites, then alphabetical
       const sortedBrands = brandsWithData.sort((a, b) => {
         const aIsOwner = a.owner._id === user._id || a.owner === user._id;
         const bIsOwner = b.owner._id === user._id || b.owner === user._id;
-        const aIsFavorite = favoriteBrands.some(fav => fav._id === a._id);
-        const bIsFavorite = favoriteBrands.some(fav => fav._id === b._id);
+        const aIsFavorite = favoriteBrands.some((fav) => fav._id === a._id);
+        const bIsFavorite = favoriteBrands.some((fav) => fav._id === b._id);
 
         // Owner brands first
         if (aIsOwner && !bIsOwner) return -1;
@@ -412,20 +412,15 @@ const Events = () => {
   // Fetch user's favorite brands and events
   const fetchUserFavorites = async () => {
     if (!user?._id) {
-      console.log("User not available yet, skipping favorites fetch");
       return;
     }
-    
+
     try {
-      console.log("Fetching user favorites...");
       const [brandsResponse, eventsResponse] = await Promise.all([
         axiosInstance.get(`/brands/user-favorites`),
-        axiosInstance.get(`/events/user-favorites`)
+        axiosInstance.get(`/events/user-favorites`),
       ]);
-      
-      console.log("Brands response:", brandsResponse.data);
-      console.log("Events response:", eventsResponse.data);
-      
+
       setFavoriteBrands(brandsResponse.data.favoriteBrands || []);
       setFavoriteEvents(eventsResponse.data.favoriteEvents || []);
     } catch (error) {
@@ -437,18 +432,18 @@ const Events = () => {
   // Handle brand favoriting
   const handleBrandFavorite = async (brandId, isFavorited) => {
     try {
-      console.log(`${isFavorited ? 'Removing' : 'Adding'} brand ${brandId} to favorites`);
-      
       if (isFavorited) {
         await axiosInstance.delete(`/brands/${brandId}/user-favorite`);
-        setFavoriteBrands(prev => prev.filter(brand => brand._id !== brandId));
+        setFavoriteBrands((prev) =>
+          prev.filter((brand) => brand._id !== brandId)
+        );
         toast.showSuccess("Brand removed from favorites");
       } else {
         await axiosInstance.post(`/brands/${brandId}/user-favorite`);
         // Add the brand to favorites (we'll need to find it in userBrands)
-        const brandToAdd = userBrands.find(b => b._id === brandId);
+        const brandToAdd = userBrands.find((b) => b._id === brandId);
         if (brandToAdd) {
-          setFavoriteBrands(prev => [...prev, brandToAdd]);
+          setFavoriteBrands((prev) => [...prev, brandToAdd]);
         }
         toast.showSuccess("Brand added to favorites");
       }
@@ -461,18 +456,18 @@ const Events = () => {
   // Handle event favoriting
   const handleEventFavorite = async (eventId, isFavorited) => {
     try {
-      console.log(`${isFavorited ? 'Removing' : 'Adding'} event ${eventId} to favorites`);
-      
       if (isFavorited) {
         await axiosInstance.delete(`/events/${eventId}/favorite`);
-        setFavoriteEvents(prev => prev.filter(event => event._id !== eventId));
+        setFavoriteEvents((prev) =>
+          prev.filter((event) => event._id !== eventId)
+        );
         toast.showSuccess("Event removed from favorites");
       } else {
         await axiosInstance.post(`/events/${eventId}/favorite`);
         // Add the event to favorites (we'll need to find it in events)
-        const eventToAdd = events.find(e => e._id === eventId);
+        const eventToAdd = events.find((e) => e._id === eventId);
         if (eventToAdd) {
-          setFavoriteEvents(prev => [...prev, eventToAdd]);
+          setFavoriteEvents((prev) => [...prev, eventToAdd]);
         }
         toast.showSuccess("Event added to favorites");
       }
@@ -484,12 +479,12 @@ const Events = () => {
 
   // Check if brand is favorited
   const isBrandFavorited = (brandId) => {
-    return favoriteBrands.some(brand => brand._id === brandId);
+    return favoriteBrands.some((brand) => brand._id === brandId);
   };
 
   // Check if event is favorited
   const isEventFavorited = (eventId) => {
-    return favoriteEvents.some(event => event._id === eventId);
+    return favoriteEvents.some((event) => event._id === eventId);
   };
 
   return (
@@ -523,11 +518,15 @@ const Events = () => {
                       alt={selectedBrand.name}
                     />
                   ) : (
-                    <div className="brand-initial">{selectedBrand?.name[0]}</div>
+                    <div className="brand-initial">
+                      {selectedBrand?.name[0]}
+                    </div>
                   )}
                   <span className="brand-name">{selectedBrand?.name}</span>
                 </div>
-                <div className={`brand-options ${isDropdownOpen ? "open" : ""}`}>
+                <div
+                  className={`brand-options ${isDropdownOpen ? "open" : ""}`}
+                >
                   {userBrands.map((brand) => (
                     <div
                       key={brand._id}
@@ -553,13 +552,24 @@ const Events = () => {
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleBrandFavorite(selectedBrand._id, isBrandFavorited(selectedBrand._id));
+                    handleBrandFavorite(
+                      selectedBrand._id,
+                      isBrandFavorited(selectedBrand._id)
+                    );
                   }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  title={isBrandFavorited(selectedBrand._id) ? "Remove from favorites" : "Add to favorites"}
+                  title={
+                    isBrandFavorited(selectedBrand._id)
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
                 >
-                  {isBrandFavorited(selectedBrand._id) ? <RiStarFill /> : <RiStarLine />}
+                  {isBrandFavorited(selectedBrand._id) ? (
+                    <RiStarFill />
+                  ) : (
+                    <RiStarLine />
+                  )}
                 </motion.button>
               )}
             </div>
@@ -665,8 +675,14 @@ const Events = () => {
   );
 };
 
-const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorite, isEventFavorited }) => {
-  console.log("EventCard props:", { onEventFavorite: !!onEventFavorite, isEventFavorited: !!isEventFavorited });
+const EventCard = ({
+  event,
+  onClick,
+  onSettingsClick,
+  userBrands,
+  onEventFavorite,
+  isEventFavorited,
+}) => {
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
   const [currentEvent, setCurrentEvent] = useState(event); // Track the current event (parent or child)
@@ -701,7 +717,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
       if (!isNaN(eventStartDate.getTime())) {
         // Calculate the difference in milliseconds
         const diffTime = now.getTime() - eventStartDate.getTime();
-        
+
         // If the event hasn't happened yet, show week 0
         if (diffTime < 0) {
           setCurrentWeek(0);
@@ -709,11 +725,13 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
           // Calculate how many complete weeks have passed
           const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000;
           const weeksPassed = Math.floor(diffTime / millisecondsInWeek);
-          
+
           // Calculate the date of the next occurrence
           const nextOccurrenceDate = new Date(eventStartDate);
-          nextOccurrenceDate.setDate(eventStartDate.getDate() + (weeksPassed + 1) * 7);
-          
+          nextOccurrenceDate.setDate(
+            eventStartDate.getDate() + (weeksPassed + 1) * 7
+          );
+
           // If the next occurrence is in the future, use it
           // Otherwise, use the one after that
           if (nextOccurrenceDate.getTime() > now.getTime()) {
@@ -823,7 +841,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
     return null;
   };
 
-
   const handleEditClick = (e) => {
     e.stopPropagation();
 
@@ -838,7 +855,6 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
 
     // Pass the parent event data if this is a calculated/non-created occurrence
     const parentData = isCalculatedOccurrence ? event : null;
-
 
     // Call the main click handler with all the necessary data
     onClick(currentEvent, parentData, weekNumber);
@@ -886,8 +902,7 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
           startDate: weekDate.toISOString(),
           date: weekDate.toISOString(), // Update both date fields for compatibility
         }));
-      } catch (error) {
-      }
+      } catch (error) {}
     }
   }, [currentWeek, event.startDate, event.date, currentEvent.isWeekly]);
 
@@ -1021,187 +1036,203 @@ const EventCard = ({ event, onClick, onSettingsClick, userBrands, onEventFavorit
 
   return (
     <>
-    <motion.div
-      className={`event-card ${
-        event.isWeekly ? "weekly-event" : ""
-      } ${isLive ? "live-event" : ""} ${currentWeek > 0 ? "child-event" : ""}`}
-    >
-      {/* Main card content */}
-      <div className="card-content">
-        {/* Weekly Navigation */}
-        {event.isWeekly && (
-          <div className="weekly-navigation">
-            <button
-              className="nav-arrow prev"
-              onClick={
-                hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
-              }
-              disabled={currentWeek === 0 || !hasPermission}
-            >
-              <RiArrowLeftLine />
-            </button>
-            <button
-              className="nav-arrow next"
-              onClick={
-                hasPermission ? handleNextWeek : (e) => e.stopPropagation()
-              }
-              disabled={!hasPermission}
-            >
-              <RiArrowRightSLine />
-            </button>
-          </div>
-        )}
-
-        {/* Title/Subtitle area */}
-        <div className="event-card-title-area">
-          <div className="title-with-favorite">
-            <h3>{currentEvent.title}</h3>
-            {/* Event favorite button - positioned next to title */}
-            <motion.button
-              className={`event-favorite-btn ${
-                isEventFavorited(event._id) ? "favorited" : ""
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventFavorite(event._id, isEventFavorited(event._id));
-              }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              title={isEventFavorited(event._id) ? "Remove from favorites" : "Add to favorites"}
-            >
-              {isEventFavorited(event._id) ? <RiStarFill /> : <RiStarLine />}
-            </motion.button>
-          </div>
-          {currentEvent.subTitle && (
-            <span className="subtitle">{currentEvent.subTitle}</span>
-          )}
-
-          {/* Move card actions here - only for users with permission */}
-          {hasPermission && (
-            <div className="card-actions">
-              <motion.button
-                className="action-button edit"
-                onClick={handleEditClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+      <motion.div
+        className={`event-card ${event.isWeekly ? "weekly-event" : ""} ${
+          isLive ? "live-event" : ""
+        } ${currentWeek > 0 ? "child-event" : ""}`}
+      >
+        {/* Main card content */}
+        <div className="card-content">
+          {/* Weekly Navigation */}
+          {event.isWeekly && (
+            <div className="weekly-navigation">
+              <button
+                className="nav-arrow prev"
+                onClick={
+                  hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
+                }
+                disabled={currentWeek === 0 || !hasPermission}
               >
-                <RiEditLine />
-              </motion.button>
-              <motion.button
-                className="action-button settings"
-                onClick={handleSettingsClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                <RiArrowLeftLine />
+              </button>
+              <button
+                className="nav-arrow next"
+                onClick={
+                  hasPermission ? handleNextWeek : (e) => e.stopPropagation()
+                }
+                disabled={!hasPermission}
               >
-                <RiSettings4Line />
-              </motion.button>
+                <RiArrowRightSLine />
+              </button>
             </div>
           )}
-        </div>
 
-        {/* Header with image and actions */}
-        <div className="event-card-header">
-          <div className="event-cover-image glassy-element">
-            {currentEvent.flyer && (
-              <ProgressiveImage
-                thumbnailSrc={getFlyerImage(currentEvent.flyer)}
-                mediumSrc={getFlyerImage(currentEvent.flyer)}
-                fullSrc={getFlyerImage(currentEvent.flyer)}
-                alt={`${currentEvent.title} cover`}
-                className="cover-image"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Content section now focuses on details */}
-        <div className="event-card-content">
-          {/* Move Go Live button here */}
-          <div className="event-info">
-            {hasPermission && (
+          {/* Title/Subtitle area */}
+          <div className="event-card-title-area">
+            <div className="title-with-favorite">
+              <h3>{currentEvent.title}</h3>
+              {/* Event favorite button - positioned next to title */}
               <motion.button
-                className={`go-live-button ${isLive ? "live" : ""}`}
-                onClick={handleGoLive}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className={`event-favorite-btn ${
+                  isEventFavorited(event._id) ? "favorited" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEventFavorite(event._id, isEventFavorited(event._id));
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                title={
+                  isEventFavorited(event._id)
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
               >
-                {isLive ? (
-                  <>
-                    <RiEyeLine /> Live
-                  </>
-                ) : (
-                  <>
-                    <RiEyeOffLine /> Go Live
-                  </>
-                )}
+                {isEventFavorited(event._id) ? <RiStarFill /> : <RiStarLine />}
               </motion.button>
+            </div>
+            {currentEvent.subTitle && (
+              <span className="subtitle">{currentEvent.subTitle}</span>
+            )}
+
+            {/* Move card actions here - only for users with permission */}
+            {hasPermission && (
+              <div className="card-actions">
+                <motion.button
+                  className="action-button edit"
+                  onClick={handleEditClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+                <motion.button
+                  className="action-button settings"
+                  onClick={handleSettingsClick}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiSettings4Line />
+                </motion.button>
+              </div>
             )}
           </div>
 
-          {/* Details (Date, Time, Location) */}
-          <div className="event-details">
-            {event.isWeekly ? (
-              <div className="weekly-date-navigation">
-                <div className="navigation-controls">
-                  <div className="date-display">
-                    <RiCalendarEventLine className="calendar-icon" />
-                    {formatWeeklyDate(displayDate)}
+          {/* Header with image and actions */}
+          <div className="event-card-header">
+            <div className="event-cover-image glassy-element">
+              {currentEvent.flyer && (
+                <ProgressiveImage
+                  thumbnailSrc={getFlyerImage(currentEvent.flyer)}
+                  mediumSrc={getFlyerImage(currentEvent.flyer)}
+                  fullSrc={getFlyerImage(currentEvent.flyer)}
+                  alt={`${currentEvent.title} cover`}
+                  className="cover-image"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Content section now focuses on details */}
+          <div className="event-card-content">
+            {/* Move Go Live button here */}
+            <div className="event-info">
+              {hasPermission && (
+                <motion.button
+                  className={`go-live-button ${isLive ? "live" : ""}`}
+                  onClick={handleGoLive}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {isLive ? (
+                    <>
+                      <RiEyeLine /> Live
+                    </>
+                  ) : (
+                    <>
+                      <RiEyeOffLine /> Go Live
+                    </>
+                  )}
+                </motion.button>
+              )}
+            </div>
+
+            {/* Details (Date, Time, Location) */}
+            <div className="event-details">
+              {event.isWeekly ? (
+                <div className="weekly-date-navigation">
+                  <div className="navigation-controls">
+                    <div className="date-display">
+                      <RiCalendarEventLine className="calendar-icon" />
+                      {formatWeeklyDate(displayDate)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
+              ) : (
+                <div className="detail-item">
+                  <RiCalendarEventLine />
+                  <span>{formatDate(currentEvent.date)}</span>
+                </div>
+              )}
               <div className="detail-item">
-                <RiCalendarEventLine />
-                <span>{formatDate(currentEvent.date)}</span>
+                <RiTimeLine />
+                <span>
+                  {currentEvent.startTime} - {currentEvent.endTime}
+                </span>
               </div>
-            )}
-            <div className="detail-item">
-              <RiTimeLine />
-              <span>
-                {currentEvent.startTime} - {currentEvent.endTime}
-              </span>
-            </div>
-            <div className="detail-item">
-              <RiMapPinLine />
-              <span>{currentEvent.location}</span>
+              <div className="detail-item">
+                <RiMapPinLine />
+                <span>{currentEvent.location}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
-    
-    {/* Settings Popup Modal */}
-    {showSettingsPopup && hasPermission && (
-      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
-        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
-          <EventSettings
-            event={event}
-            onClose={(result) => {
-              setShowSettingsPopup(false);
-              // If this was a deletion, notify the parent via onSettingsClick callback
-              if (result && result.deleted) {
-                onSettingsClick({ action: "deleted", eventId: result.eventId });
-              }
-            }}
-          />
-        </div>
-      </div>
-    )}
-    
-    {/* No Permission Modal */}
-    {showSettingsPopup && !hasPermission && (
-      <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
-        <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
-          <div className="no-permission-message">
-            <h3>Access Restricted</h3>
-            <p>You don't have permission to modify this event.</p>
-            <button className="back-button" onClick={() => setShowSettingsPopup(false)}>
-              Close
-            </button>
+      </motion.div>
+
+      {/* Settings Popup Modal */}
+      {showSettingsPopup && hasPermission && (
+        <div
+          className="settings-popup-overlay"
+          onClick={() => setShowSettingsPopup(false)}
+        >
+          <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
+            <EventSettings
+              event={event}
+              onClose={(result) => {
+                setShowSettingsPopup(false);
+                // If this was a deletion, notify the parent via onSettingsClick callback
+                if (result && result.deleted) {
+                  onSettingsClick({
+                    action: "deleted",
+                    eventId: result.eventId,
+                  });
+                }
+              }}
+            />
           </div>
         </div>
-      </div>
-    )}
+      )}
+
+      {/* No Permission Modal */}
+      {showSettingsPopup && !hasPermission && (
+        <div
+          className="settings-popup-overlay"
+          onClick={() => setShowSettingsPopup(false)}
+        >
+          <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="no-permission-message">
+              <h3>Access Restricted</h3>
+              <p>You don't have permission to modify this event.</p>
+              <button
+                className="back-button"
+                onClick={() => setShowSettingsPopup(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

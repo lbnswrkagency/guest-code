@@ -36,6 +36,7 @@ import {
   RiVipCrownLine,
   RiTableLine,
   RiArrowRightSLine,
+  RiSwordLine,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
@@ -739,6 +740,27 @@ const BrandProfile = () => {
     }
   }, []);
 
+  const scrollToBattleSignup = useCallback((e) => {
+    e.stopPropagation();
+    
+    // First trigger the battle signup to show (similar to handleBattleSignupClick in UpcomingEvent)
+    // Find and click the battle meta-tag to trigger the form visibility
+    const battleMetaTag = document.querySelector(".meta-tag.battle");
+    if (battleMetaTag) {
+      battleMetaTag.click();
+    }
+    
+    // Then scroll to the section after a short delay
+    setTimeout(() => {
+      const battleSection = document.querySelector(
+        ".upcomingEvent-battle-signup-section"
+      );
+      if (battleSection) {
+        battleSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  }, []);
+
   // Cache the sticky position calculation
   const [cachedStickyPos, setCachedStickyPos] = useState(0);
   const lastScrollY = useRef(0);
@@ -857,6 +879,12 @@ const BrandProfile = () => {
     );
   };
 
+  // Function to check if event supports battles
+  const supportsBattles = useCallback((event) => {
+    if (!event) return false;
+    return event.battleConfig && event.battleConfig.isEnabled;
+  }, []);
+
   // Function to check if event supports table booking
   const supportsTableBooking = useCallback((event) => {
     if (!event) return false;
@@ -887,6 +915,7 @@ const BrandProfile = () => {
     if (!currentEvent) return null;
 
     const supportsTableBookingForEvent = supportsTableBooking(currentEvent);
+    const supportsBattlesForEvent = supportsBattles(currentEvent);
 
     // Use the EXACT SAME logic as UpcomingEvent:
     // {currentEvent && currentEvent.ticketsAvailable !== false && visibleTicketSettings.length > 0 && (...)}
@@ -901,7 +930,7 @@ const BrandProfile = () => {
     // Determine what actions to show based on event configuration
 
     // Only render if any action is available
-    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode) {
+    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode && !supportsBattlesForEvent) {
       return null;
     }
 
@@ -983,6 +1012,30 @@ const BrandProfile = () => {
                   <span className="button-text-full">Book Table</span>
                   <span className="button-text-short">Tables</span>
                   {!isActionButtonsSticky && <p>Reserve your table now</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Battle signup button */}
+          {supportsBattlesForEvent && (
+            <motion.button
+              className="event-action-button battle-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={scrollToBattleSignup}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiSwordLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Join Battle</span>
+                  <span className="button-text-short">Battle</span>
+                  {!isActionButtonsSticky && <p>Sign up for battle</p>}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />
