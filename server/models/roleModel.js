@@ -39,6 +39,7 @@ const RoleSchema = new Schema(
       tables: {
         access: { type: Boolean, default: false },
         manage: { type: Boolean, default: false },
+        summary: { type: Boolean, default: false },
       },
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

@@ -234,4 +234,11 @@ router.post(
   tableController.sendTableUpdateEmail
 );
 
+// POST route to generate a table summary PDF for multiple events
+router.post(
+  "/summary/generate-pdf",
+  authenticate,
+  tableController.generateTableSummaryPDF
+);
+
 module.exports = router;

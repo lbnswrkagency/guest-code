@@ -80,6 +80,7 @@ exports.createDefaultRoles = async (brandId, userId) => {
         tables: {
           access: true,
           manage: true,
+          summary: true,
         },
       },
     });
@@ -112,6 +113,7 @@ exports.createDefaultRoles = async (brandId, userId) => {
         tables: {
           access: false,
           manage: false,
+          summary: false,
         },
       },
     });

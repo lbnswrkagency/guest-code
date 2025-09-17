@@ -2423,6 +2423,764 @@ const getAvailableTableLayouts = async (req, res) => {
   }
 };
 
+/**
+ * Generate a table summary PDF for multiple events
+ */
+const generateTableSummaryPDF = async (req, res) => {
+  try {
+    const { eventIds } = req.body;
+
+    if (!eventIds || !Array.isArray(eventIds) || eventIds.length === 0) {
+      return res.status(400).json({ message: "Event IDs array is required" });
+    }
+
+    // Check user permissions - require table summary permission
+    let hasSummaryPermission = false;
+    if (req.user) {
+      const Role = require("../models/roleModel");
+      const Brand = require("../models/brandModel");
+      const User = require("../models/User");
+
+      // Get the first event to determine brand and check permissions
+      const firstEvent = await Event.findById(eventIds[0]).populate("brand");
+      if (!firstEvent) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check if user is part of the brand team
+      const brand = await Brand.findById(firstEvent.brand._id);
+      const isTeamMember = brand && brand.team && brand.team.some(member => 
+        member.user.toString() === req.user.userId.toString()
+      );
+
+      // Check if user is the brand owner
+      const isBrandOwner = brand && brand.owner && brand.owner.toString() === req.user.userId.toString();
+
+      // Get user roles for this brand
+      let hasRolePermission = false;
+      const userDoc = await User.findById(req.user.userId);
+      
+      if (userDoc) {
+        const userRoleId = brand.team?.find(member => 
+          member.user.toString() === req.user.userId.toString()
+        )?.role;
+        
+        if (userRoleId) {
+          const userRole = await Role.findOne({
+            _id: userRoleId,
+            brandId: firstEvent.brand._id
+          });
+          
+          if (userRole && userRole.permissions && userRole.permissions.tables) {
+            hasRolePermission = userRole.permissions.tables.summary === true;
+          }
+        }
+      }
+
+      // Allow summary generation if user is team member, brand owner, or has role permission
+      hasSummaryPermission = isTeamMember || isBrandOwner || hasRolePermission;
+    }
+
+    if (!hasSummaryPermission) {
+      return res.status(403).json({ 
+        message: "You don't have permission to generate table summaries" 
+      });
+    }
+
+    // Fetch all events and their table data
+    const events = await Event.find({ _id: { $in: eventIds } })
+      .populate("brand", "name username logo")
+      .sort({ startDate: -1, date: -1 });
+
+    if (events.length === 0) {
+      return res.status(404).json({ message: "No events found" });
+    }
+
+    // Fetch table codes for all events (including weekly child events)
+    const allEventIds = [];
+    for (const event of events) {
+      allEventIds.push(event._id);
+      
+      // If this is a weekly event, also get child events
+      if (event.isWeekly) {
+        const childEvents = await Event.find({ parentEventId: event._id });
+        allEventIds.push(...childEvents.map(child => child._id));
+      }
+    }
+
+    const tableCodes = await TableCode.find({ 
+      event: { $in: allEventIds },
+      status: { $ne: "cancelled" } // Exclude cancelled reservations
+    }).populate("event", "title startDate date isWeekly weekNumber");
+
+    // Group table data by event
+    const eventTableData = {};
+    events.forEach(event => {
+      eventTableData[event._id.toString()] = {
+        event,
+        tables: [],
+        childEvents: {}
+      };
+    });
+
+    // Organize table codes by event
+    tableCodes.forEach(tableCode => {
+      const eventId = tableCode.event._id.toString();
+      const parentEventId = tableCode.event.parentEventId?.toString();
+      
+      if (parentEventId && eventTableData[parentEventId]) {
+        // This is a child event table - group under parent
+        const weekNumber = tableCode.event.weekNumber || 0;
+        if (!eventTableData[parentEventId].childEvents[weekNumber]) {
+          eventTableData[parentEventId].childEvents[weekNumber] = {
+            event: tableCode.event,
+            tables: []
+          };
+        }
+        eventTableData[parentEventId].childEvents[weekNumber].tables.push(tableCode);
+      } else if (eventTableData[eventId]) {
+        // This is a parent event table
+        eventTableData[eventId].tables.push(tableCode);
+      }
+    });
+
+    // Generate PDF summary
+    const pdfBuffer = await generateSummaryPDF(eventTableData);
+
+    // Set response headers for PDF download
+    const brandName = events[0]?.brand?.name || 'Brand';
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `${brandName}_Table_Summary_${date}.pdf`;
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error generating table summary PDF:", error);
+    res.status(500).json({
+      message: "Error generating table summary PDF",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Generate the actual PDF for table summary
+ */
+const generateSummaryPDF = async (eventTableData) => {
+  const primaryColor = "#4A1D96";
+  const accentColor = "#d4af37";
+  const darkColor = "#301568";
+
+  // Calculate enhanced summary statistics
+  let totalEvents = 0;
+  let totalTables = 0;
+  let totalPax = 0;
+  let totalCheckedInPax = 0;
+  let totalCheckedInTables = 0;
+  let totalRevenue = 0;
+  let publicRevenue = 0; // Track public request revenue separately
+  const statusCounts = { confirmed: 0, pending: 0, declined: 0 };
+  const hostStats = {}; // Track revenue by host
+
+  const eventSummaries = Object.values(eventTableData).map(eventData => {
+    const { event, tables, childEvents } = eventData;
+    totalEvents++;
+
+    let eventTables = tables.length;
+    let eventPax = tables.reduce((sum, table) => sum + (table.pax || 0), 0);
+    let eventCheckedInPax = tables.reduce((sum, table) => sum + (table.paxChecked || 0), 0);
+    let eventCheckedInTables = tables.filter(table => (table.paxChecked || 0) > 0).length;
+    let eventRevenue = eventCheckedInTables * 20; // 20€ per checked-in table
+
+    // Process parent event hosts
+    tables.forEach(table => {
+      statusCounts[table.status] = (statusCounts[table.status] || 0) + 1;
+      
+      if ((table.paxChecked || 0) > 0) {
+        if (table.isPublic) {
+          // Handle public requests separately
+          publicRevenue += 20;
+        } else {
+          const hostName = table.host || 'Unknown Host';
+          if (!hostStats[hostName]) {
+            hostStats[hostName] = { tables: 0, revenue: 0 };
+          }
+          hostStats[hostName].tables++;
+          hostStats[hostName].revenue += 20;
+        }
+      }
+    });
+
+    // Add child event data
+    const childEventSummaries = Object.entries(childEvents).map(([weekNumber, childData]) => {
+      const childTables = childData.tables.length;
+      const childPax = childData.tables.reduce((sum, table) => sum + (table.pax || 0), 0);
+      const childCheckedInPax = childData.tables.reduce((sum, table) => sum + (table.paxChecked || 0), 0);
+      const childCheckedInTables = childData.tables.filter(table => (table.paxChecked || 0) > 0).length;
+      const childRevenue = childCheckedInTables * 20;
+
+      // Update totals
+      eventTables += childTables;
+      eventPax += childPax;
+      eventCheckedInPax += childCheckedInPax;
+      eventCheckedInTables += childCheckedInTables;
+      eventRevenue += childRevenue;
+
+      // Process child event hosts
+      const childHostStats = {};
+      let childPublicRevenue = 0;
+      childData.tables.forEach(table => {
+        statusCounts[table.status] = (statusCounts[table.status] || 0) + 1;
+        
+        if ((table.paxChecked || 0) > 0) {
+          if (table.isPublic) {
+            // Handle public requests separately
+            publicRevenue += 20;
+            childPublicRevenue += 20;
+          } else {
+            const hostName = table.host || 'Unknown Host';
+            
+            // Update global host stats
+            if (!hostStats[hostName]) {
+              hostStats[hostName] = { tables: 0, revenue: 0 };
+            }
+            hostStats[hostName].tables++;
+            hostStats[hostName].revenue += 20;
+
+            // Update child host stats
+            if (!childHostStats[hostName]) {
+              childHostStats[hostName] = { tables: 0, revenue: 0 };
+            }
+            childHostStats[hostName].tables++;
+            childHostStats[hostName].revenue += 20;
+          }
+        }
+      });
+
+      return {
+        weekNumber: parseInt(weekNumber),
+        event: childData.event,
+        tables: childData.tables,
+        tableCount: childTables,
+        paxCount: childPax,
+        checkedInPax: childCheckedInPax,
+        checkedInTables: childCheckedInTables,
+        revenue: childRevenue,
+        hostStats: childHostStats,
+        publicRevenue: childPublicRevenue
+      };
+    }).sort((a, b) => a.weekNumber - b.weekNumber);
+
+    // Update global totals
+    totalTables += eventTables;
+    totalPax += eventPax;
+    totalCheckedInPax += eventCheckedInPax;
+    totalCheckedInTables += eventCheckedInTables;
+    totalRevenue += eventRevenue;
+
+    return {
+      event,
+      tables,
+      childEvents: childEventSummaries,
+      tableCount: eventTables,
+      paxCount: eventPax,
+      checkedInPax: eventCheckedInPax,
+      checkedInTables: eventCheckedInTables,
+      revenue: eventRevenue
+    };
+  }).sort((a, b) => {
+    const dateA = new Date(a.event.startDate || a.event.date);
+    const dateB = new Date(b.event.startDate || b.event.date);
+    return dateB - dateA;
+  });
+
+  // Generate HTML for the enhanced summary PDF
+  const htmlTemplate = `
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        @page {
+          margin: 30px;
+          size: A4;
+        }
+        body {
+          font-family: 'Arial', sans-serif;
+          margin: 0;
+          padding: 0;
+          color: #333;
+          line-height: 1.4;
+        }
+        .header {
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${darkColor} 100%);
+          color: white;
+          padding: 20px;
+          margin-bottom: 20px;
+          border-radius: 8px;
+        }
+        .header h1 {
+          margin: 0 0 10px 0;
+          font-size: 24px;
+          font-weight: bold;
+        }
+        .header .date {
+          font-size: 14px;
+          opacity: 0.9;
+        }
+        .summary-stats {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+        .stat-card {
+          background: #f8f9fa;
+          padding: 12px;
+          border-radius: 8px;
+          border-left: 4px solid ${accentColor};
+          text-align: center;
+        }
+        .stat-card.revenue {
+          border-left-color: #28a745;
+        }
+        .stat-number {
+          font-size: 20px;
+          font-weight: bold;
+          color: ${primaryColor};
+          margin-bottom: 5px;
+        }
+        .stat-number.revenue {
+          color: #28a745;
+        }
+        .stat-label {
+          font-size: 11px;
+          color: #666;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+        .host-summary {
+          background: #f8f9fa;
+          border: 1px solid #e1e5e9;
+          border-radius: 8px;
+          padding: 15px;
+          margin-bottom: 20px;
+        }
+        .host-summary h3 {
+          margin: 0 0 15px 0;
+          color: ${primaryColor};
+          font-size: 16px;
+        }
+        .host-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 10px;
+        }
+        .host-card {
+          background: white;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          padding: 10px;
+          font-size: 12px;
+        }
+        .host-name {
+          font-weight: bold;
+          color: ${primaryColor};
+          margin-bottom: 5px;
+        }
+        .host-stats {
+          color: #666;
+        }
+        .host-revenue {
+          color: #28a745;
+          font-weight: bold;
+        }
+        .event-section {
+          margin-bottom: 30px;
+          break-inside: avoid;
+        }
+        .event-header {
+          background: ${primaryColor};
+          color: white;
+          padding: 15px;
+          border-radius: 8px 8px 0 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .event-title {
+          font-size: 16px;
+          font-weight: bold;
+          margin: 0;
+        }
+        .event-meta {
+          font-size: 12px;
+          opacity: 0.9;
+        }
+        .event-stats {
+          background: #f8f9fa;
+          padding: 10px 15px;
+          border-radius: 0 0 8px 8px;
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 10px;
+          font-size: 12px;
+        }
+        .event-stat {
+          text-align: center;
+        }
+        .event-stat-number {
+          font-size: 16px;
+          font-weight: bold;
+          color: ${primaryColor};
+        }
+        .event-stat-number.revenue {
+          color: #28a745;
+        }
+        .event-stat-label {
+          color: #666;
+          margin-top: 2px;
+          font-size: 10px;
+        }
+        .tables-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 8px;
+          margin-top: 15px;
+        }
+        .table-card {
+          background: white;
+          border: 1px solid #e1e5e9;
+          border-radius: 6px;
+          padding: 10px;
+          font-size: 11px;
+        }
+        .table-card.confirmed {
+          border-left: 4px solid #28a745;
+        }
+        .table-card.pending {
+          border-left: 4px solid #ffc107;
+        }
+        .table-card.declined {
+          border-left: 4px solid #dc3545;
+        }
+        .table-card.checked-in {
+          background: #f8fff8;
+          border-left: 4px solid #28a745;
+        }
+        .table-card.public-request {
+          background: #fffbf0;
+          border-right: 3px solid #f39c12;
+        }
+        .table-card.public-request.checked-in {
+          background: #f8fff8;
+          border-left: 4px solid #28a745;
+          border-right: 3px solid #f39c12;
+        }
+        .table-number {
+          font-weight: bold;
+          font-size: 13px;
+          color: ${primaryColor};
+          margin-bottom: 4px;
+        }
+        .table-guest {
+          margin-bottom: 2px;
+          font-weight: 500;
+        }
+        .table-host {
+          color: #666;
+          font-size: 10px;
+          margin-bottom: 2px;
+        }
+        .table-pax {
+          color: #666;
+          font-size: 10px;
+        }
+        .table-pax.checked-in {
+          color: #28a745;
+          font-weight: bold;
+        }
+        .checked-in-badge {
+          background: #28a745;
+          color: white;
+          font-size: 9px;
+          padding: 2px 6px;
+          border-radius: 10px;
+          margin-top: 4px;
+          display: inline-block;
+        }
+        .child-event {
+          margin-top: 15px;
+          padding-left: 20px;
+          border-left: 3px solid ${accentColor};
+        }
+        .child-event-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+        .child-event-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: ${darkColor};
+        }
+        .child-event-stats {
+          display: flex;
+          gap: 15px;
+          font-size: 11px;
+          color: #666;
+        }
+        .child-host-summary {
+          background: #fff;
+          border: 1px solid #e1e5e9;
+          border-radius: 6px;
+          padding: 10px;
+          margin: 10px 0;
+          font-size: 11px;
+        }
+        .child-host-title {
+          font-weight: bold;
+          color: ${primaryColor};
+          margin-bottom: 8px;
+        }
+        .status-legend {
+          display: flex;
+          gap: 15px;
+          margin-top: 30px;
+          font-size: 12px;
+        }
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .legend-color {
+          width: 12px;
+          height: 12px;
+          border-radius: 2px;
+        }
+        .legend-color.confirmed { background: #28a745; }
+        .legend-color.pending { background: #ffc107; }
+        .legend-color.declined { background: #dc3545; }
+        .legend-color.checked-in { background: #d4edda; border: 1px solid #28a745; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Enhanced Table Summary Report</h1>
+        <div class="date">Generated on ${new Date().toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}</div>
+      </div>
+
+      <div class="summary-stats">
+        <div class="stat-card">
+          <div class="stat-number">${totalEvents}</div>
+          <div class="stat-label">Events</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${totalTables}</div>
+          <div class="stat-label">Total Tables</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${totalCheckedInTables}</div>
+          <div class="stat-label">Checked-In Tables</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${totalCheckedInPax}/${totalPax}</div>
+          <div class="stat-label">Checked-In/Total Guests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${statusCounts.confirmed || 0}</div>
+          <div class="stat-label">Confirmed</div>
+        </div>
+        <div class="stat-card revenue">
+          <div class="stat-number revenue">€${totalRevenue}</div>
+          <div class="stat-label">Total Revenue</div>
+        </div>
+      </div>
+
+      ${Object.keys(hostStats).length > 0 || publicRevenue > 0 ? `
+      <div class="host-summary">
+        <h3>Revenue Summary</h3>
+        <div class="host-grid">
+          ${publicRevenue > 0 ? `
+            <div class="host-card">
+              <div class="host-name" style="color: #f39c12;">Public Requests</div>
+              <div class="host-stats">${publicRevenue / 20} checked-in table${publicRevenue / 20 !== 1 ? 's' : ''}</div>
+              <div class="host-revenue">€${publicRevenue}</div>
+            </div>
+          ` : ''}
+          ${Object.entries(hostStats)
+            .sort((a, b) => b[1].revenue - a[1].revenue)
+            .map(([hostName, stats]) => `
+            <div class="host-card">
+              <div class="host-name">${hostName}</div>
+              <div class="host-stats">${stats.tables} checked-in table${stats.tables !== 1 ? 's' : ''}</div>
+              <div class="host-revenue">€${stats.revenue}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      ${eventSummaries.map(summary => `
+        <div class="event-section">
+          <div class="event-header">
+            <div>
+              <div class="event-title">${summary.event.title}</div>
+              <div class="event-meta">
+                ${formatCodeDate(summary.event.startDate || summary.event.date)}
+                ${summary.event.isWeekly ? ' • Weekly Series' : ''}
+              </div>
+            </div>
+          </div>
+          
+          <div class="event-stats">
+            <div class="event-stat">
+              <div class="event-stat-number">${summary.tableCount}</div>
+              <div class="event-stat-label">Tables</div>
+            </div>
+            <div class="event-stat">
+              <div class="event-stat-number">${summary.checkedInTables}</div>
+              <div class="event-stat-label">Checked-In</div>
+            </div>
+            <div class="event-stat">
+              <div class="event-stat-number">${summary.checkedInPax}/${summary.paxCount}</div>
+              <div class="event-stat-label">Guests (In/Total)</div>
+            </div>
+            <div class="event-stat">
+              <div class="event-stat-number">${summary.tables.filter(t => t.status === 'confirmed').length + summary.childEvents.reduce((sum, child) => sum + child.tables.filter(t => t.status === 'confirmed').length, 0)}</div>
+              <div class="event-stat-label">Confirmed</div>
+            </div>
+            <div class="event-stat">
+              <div class="event-stat-number revenue">€${summary.revenue}</div>
+              <div class="event-stat-label">Revenue</div>
+            </div>
+          </div>
+
+          ${summary.tables.length > 0 ? `
+          <div class="tables-grid">
+            ${summary.tables.map(table => `
+              <div class="table-card ${table.status} ${(table.paxChecked || 0) > 0 ? 'checked-in' : ''} ${table.isPublic ? 'public-request' : ''}">
+                <div class="table-number">Table ${table.tableNumber}</div>
+                <div class="table-guest">${table.name}</div>
+                <div class="table-host">${table.isPublic ? 'Public Request' : `Host: ${table.host}`}</div>
+                <div class="table-pax ${(table.paxChecked || 0) > 0 ? 'checked-in' : ''}">${table.paxChecked || 0}/${table.pax} guests</div>
+                ${(table.paxChecked || 0) > 0 ? '<div class="checked-in-badge">✓ CHECKED-IN</div>' : ''}
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          ${summary.childEvents.map(child => `
+            <div class="child-event">
+              <div class="child-event-header">
+                <div class="child-event-title">Week ${child.weekNumber} - ${formatCodeDate(child.event.startDate || child.event.date)}</div>
+                <div class="child-event-stats">
+                  <span>${child.checkedInTables}/${child.tableCount} checked-in</span>
+                  <span>${child.checkedInPax}/${child.paxCount} guests</span>
+                  <span style="color: #28a745; font-weight: bold;">€${child.revenue}</span>
+                </div>
+              </div>
+
+              ${Object.keys(child.hostStats || {}).length > 0 || (child.publicRevenue || 0) > 0 ? `
+              <div class="child-host-summary">
+                <div class="child-host-title">Week ${child.weekNumber} Revenue:</div>
+                ${[
+                  (child.publicRevenue || 0) > 0 ? `<span style="color: #f39c12;">Public: €${child.publicRevenue} (${child.publicRevenue / 20} table${child.publicRevenue / 20 !== 1 ? 's' : ''})</span>` : null,
+                  ...Object.entries(child.hostStats)
+                    .sort((a, b) => b[1].revenue - a[1].revenue)
+                    .map(([hostName, stats]) => `<span>${hostName}: €${stats.revenue} (${stats.tables} table${stats.tables !== 1 ? 's' : ''})</span>`)
+                ].filter(Boolean).join(' • ')}
+              </div>
+              ` : ''}
+
+              ${child.tables.length > 0 ? `
+              <div class="tables-grid">
+                ${child.tables.map(table => `
+                  <div class="table-card ${table.status} ${(table.paxChecked || 0) > 0 ? 'checked-in' : ''} ${table.isPublic ? 'public-request' : ''}">
+                    <div class="table-number">Table ${table.tableNumber}</div>
+                    <div class="table-guest">${table.name}</div>
+                    <div class="table-host">${table.isPublic ? 'Public Request' : `Host: ${table.host}`}</div>
+                    <div class="table-pax ${(table.paxChecked || 0) > 0 ? 'checked-in' : ''}">${table.paxChecked || 0}/${table.pax} guests</div>
+                    ${(table.paxChecked || 0) > 0 ? '<div class="checked-in-badge">✓ CHECKED-IN</div>' : ''}
+                  </div>
+                `).join('')}
+              </div>
+              ` : '<div style="font-style: italic; color: #666; margin-top: 10px;">No tables for this week</div>'}
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+
+      <div class="status-legend">
+        <div class="legend-item">
+          <div class="legend-color confirmed"></div>
+          <span>Confirmed</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color pending"></div>
+          <span>Pending</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color declined"></div>
+          <span>Declined</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color checked-in"></div>
+          <span>Checked-In (Revenue €20/table)</span>
+        </div>
+      </div>
+    </body>
+  </html>`;
+
+  // Generate PDF using puppeteer
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(htmlTemplate, {
+      waitUntil: "networkidle0",
+      timeout: 30000,
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+    });
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error("Error generating summary PDF:", error);
+    throw error;
+  } finally {
+    if (browser) {
+      await browser.close().catch((err) => {
+        console.error("Error closing browser:", err);
+      });
+    }
+  }
+};
+
 module.exports = {
   addTableCode,
   getTableCounts,
@@ -2435,4 +3193,5 @@ module.exports = {
   sendTableDeclinedEmail,
   sendTableUpdateEmail,
   getAvailableTableLayouts,
+  generateTableSummaryPDF,
 };

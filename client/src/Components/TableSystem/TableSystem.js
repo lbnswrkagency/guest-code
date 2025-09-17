@@ -11,7 +11,8 @@ import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 import TableBookingPopup from "../TableBookingPopup/TableBookingPopup";
-import { RiTableLine, RiRefreshLine, RiCloseLine } from "react-icons/ri";
+import TableSummary from "../TableSummary/TableSummary";
+import { RiTableLine, RiRefreshLine, RiCloseLine, RiFileChartLine } from "react-icons/ri";
 
 /**
  * TableSystem component for managing table reservations
@@ -56,6 +57,7 @@ function TableSystem({
   });
   const [isLoading, setIsLoading] = useState(!providedTableData);
   const [selectedVenue, setSelectedVenue] = useState("default");
+  const [showTableSummary, setShowTableSummary] = useState(false);
 
   // Dynamic table configuration
   const [layoutConfig, setLayoutConfig] = useState(null);
@@ -66,6 +68,7 @@ function TableSystem({
   const getTablePermissions = () => {
     let hasTableAccess = false;
     let hasTableManage = false;
+    let hasTableSummary = false;
 
     // Loop through all user roles to check table permissions
     userRoles.forEach((role) => {
@@ -76,12 +79,16 @@ function TableSystem({
         if (role.permissions.tables.manage === true) {
           hasTableManage = true;
         }
+        if (role.permissions.tables.summary === true) {
+          hasTableSummary = true;
+        }
       }
     });
 
     return {
       access: hasTableAccess,
       manage: hasTableManage,
+      summary: hasTableSummary,
     };
   };
 
@@ -596,6 +603,16 @@ function TableSystem({
                 )}
               </h1>
               <div className="header-actions">
+                {tablePermissions.summary && (
+                  <button
+                    className="summary-btn"
+                    onClick={() => setShowTableSummary(true)}
+                    disabled={isLoading}
+                    title="Table Summary Analysis"
+                  >
+                    <RiFileChartLine />
+                  </button>
+                )}
                 <button
                   className="refresh-btn"
                   onClick={handleRefresh}
@@ -689,6 +706,16 @@ function TableSystem({
       </div>
       {/* Only show Footer in non-public mode */}
       {!isPublic && <Footer />}
+      
+      {/* Table Summary Modal */}
+      {showTableSummary && (
+        <TableSummary
+          isOpen={showTableSummary}
+          onClose={() => setShowTableSummary(false)}
+          selectedEvent={selectedEvent}
+          selectedBrand={selectedBrand}
+        />
+      )}
     </div>
   );
 }

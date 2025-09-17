@@ -50,6 +50,7 @@ const RoleSetting = ({ brand, onClose }) => {
       tables: {
         access: false,
         manage: false,
+        summary: false,
       },
     },
   });
@@ -187,6 +188,7 @@ const RoleSetting = ({ brand, onClose }) => {
         tables: {
           access: false,
           manage: false,
+          summary: false,
         },
       },
     };
@@ -305,6 +307,7 @@ const RoleSetting = ({ brand, onClose }) => {
         tables: {
           access: role.permissions?.tables?.access || false,
           manage: role.permissions?.tables?.manage || false,
+          summary: role.permissions?.tables?.summary || false,
         },
       },
     };
@@ -641,6 +644,12 @@ const RoleSetting = ({ brand, onClose }) => {
                     "tables",
                     "manage",
                     newRole.permissions.tables.manage
+                  )}
+                  {renderPermissionItem(
+                    "Table Summary Analysis",
+                    "tables",
+                    "summary",
+                    newRole.permissions.tables.summary
                   )}
                 </div>
 
