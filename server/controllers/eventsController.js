@@ -2106,7 +2106,7 @@ exports.toggleEventLive = async (req, res) => {
 exports.favoriteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId;
 
     // Check if event exists
     const event = await Event.findById(eventId);
@@ -2140,7 +2140,7 @@ exports.favoriteEvent = async (req, res) => {
 exports.unfavoriteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId;
 
     // Remove event from both user's favorite events and event's favoritedBy
     await Promise.all([
@@ -2167,9 +2167,33 @@ exports.unfavoriteEvent = async (req, res) => {
 
 exports.getUserFavoriteEvents = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId;
 
-    const user = await User.findById(userId).populate({
+    if (!userId) {
+      return res.status(200).json({
+        message: "User ID not found",
+        favoriteEvents: []
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(200).json({ 
+        message: "User not found",
+        favoriteEvents: [] 
+      });
+    }
+
+    // Check if user has favoriteEvents field and if it's not empty
+    if (!user.favoriteEvents || user.favoriteEvents.length === 0) {
+      return res.status(200).json({
+        favoriteEvents: []
+      });
+    }
+
+    // Only populate if there are favorite events
+    const populatedUser = await User.findById(userId).populate({
       path: "favoriteEvents",
       populate: [
         { path: "brand", select: "name username logo" },
@@ -2179,7 +2203,7 @@ exports.getUserFavoriteEvents = async (req, res) => {
     });
 
     // Sort favorite events by date (newest first)
-    const sortedFavoriteEvents = (user.favoriteEvents || []).sort((a, b) => 
+    const sortedFavoriteEvents = (populatedUser.favoriteEvents || []).sort((a, b) => 
       new Date(b.startDate || b.date) - new Date(a.startDate || a.date)
     );
 
@@ -2187,6 +2211,10 @@ exports.getUserFavoriteEvents = async (req, res) => {
       favoriteEvents: sortedFavoriteEvents,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching favorite events" });
+    console.error("Error fetching favorite events:", error);
+    res.status(200).json({ 
+      message: "Error fetching favorite events",
+      favoriteEvents: [] 
+    });
   }
 };

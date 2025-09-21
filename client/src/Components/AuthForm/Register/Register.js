@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import { useToast } from "../../Toast/ToastContext";
 import "./Register.scss";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -18,17 +18,80 @@ function Register({ onRegisterSuccess }) {
   });
   const [isFormValid, setIsFormValid] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({
+    checking: false,
+    available: null,
+    message: "",
+  });
+  const [checkTimer, setCheckTimer] = useState(null);
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     const isValid = Object.values(formData).every(
       (value) => value.trim() !== ""
     );
-    setIsFormValid(isValid && formData.password === formData.confirmPassword);
-  }, [formData]);
+    setIsFormValid(
+      isValid && 
+      formData.password === formData.confirmPassword &&
+      usernameStatus.available === true
+    );
+  }, [formData, usernameStatus.available]);
+
+  // Check username availability
+  const checkUsername = useCallback(async (username) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message: username.length > 0 ? "Username must be at least 3 characters" : "",
+      });
+      return;
+    }
+
+    setUsernameStatus({
+      checking: true,
+      available: null,
+      message: "",
+    });
+
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/auth/check-username/${username}`
+      );
+
+      setUsernameStatus({
+        checking: false,
+        available: response.data.available,
+        message: response.data.message,
+      });
+    } catch (error) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message: "Error checking username",
+      });
+    }
+  }, []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Check username availability with debounce
+    if (name === "username") {
+      // Clear existing timer
+      if (checkTimer) {
+        clearTimeout(checkTimer);
+      }
+
+      // Set new timer for 500ms delay
+      const timer = setTimeout(() => {
+        checkUsername(value);
+      }, 500);
+
+      setCheckTimer(timer);
+    }
   };
 
   const handleRegister = async (e) => {
@@ -45,7 +108,7 @@ function Register({ onRegisterSuccess }) {
 
     if (formData.password !== formData.confirmPassword) {
       console.log('❌ Passwords do not match');
-      toast.error("Passwords do not match!");
+      showError("Passwords do not match!");
       return;
     }
 
@@ -67,9 +130,7 @@ function Register({ onRegisterSuccess }) {
 
       if (response.data.success) {
         setRegistrationComplete(true);
-        toast.success("Registration successful!", {
-          duration: 6000,
-        });
+        showSuccess("Registration successful!");
       }
     } catch (error) {
       console.log('❌ Registration error occurred:');
@@ -97,9 +158,7 @@ function Register({ onRegisterSuccess }) {
       }
       
       console.log('Final error message to display:', errorMessage);
-      toast.error(errorMessage, {
-        duration: 6000,
-      });
+      showError(errorMessage, { duration: 6000 });
       return;
     }
   };
@@ -134,7 +193,6 @@ function Register({ onRegisterSuccess }) {
 
   return (
     <div className="register">
-      <Toaster />
       <Navigation />
 
       <motion.div
@@ -170,8 +228,22 @@ function Register({ onRegisterSuccess }) {
                 onChange={handleChange}
                 required
               />
+              <div className="username-status">
+                {usernameStatus.checking && (
+                  <div className="status-checking">
+                    <span className="checking-spinner"></span>
+                  </div>
+                )}
+                {!usernameStatus.checking && formData.username && (
+                  <div className={`status-icon ${usernameStatus.available ? 'available' : 'unavailable'}`}>
+                    {usernameStatus.available ? '✓' : '×'}
+                  </div>
+                )}
+              </div>
             </div>
-            <p className="input-hint">This will be your unique identifier</p>
+            <p className={`input-hint ${usernameStatus.message && !usernameStatus.available ? 'error' : ''}`}>
+              {usernameStatus.message || "This will be your unique identifier"}
+            </p>
           </div>
 
           <div className="input-group">

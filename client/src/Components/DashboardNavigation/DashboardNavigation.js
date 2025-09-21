@@ -294,27 +294,18 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
               </motion.button>
             </div>
 
-            {/* Alpha Access Modal */}
-            {showAlphaAccess && (
-              <div className="dashNav-alphaModal">
-                <div className="dashNav-alphaModal-content">
-                  <button
-                    className="dashNav-alphaModal-close"
-                    onClick={handleCloseAlphaAccess}
-                  >
-                    <RiCloseLine />
-                  </button>
-                  <AlphaAccess
-                    user={currentUser}
-                    setUser={setUser}
-                    onSuccess={handleCloseAlphaAccess}
-                  />
-                </div>
-              </div>
-            )}
           </motion.div>
         </div>
       )}
+
+      {/* Alpha Access Modal - Now rendered outside the navigation */}
+      <AlphaAccess
+        user={currentUser}
+        setUser={setUser}
+        onSuccess={handleCloseAlphaAccess}
+        onClose={handleCloseAlphaAccess}
+        isOpen={showAlphaAccess}
+      />
     </AnimatePresence>
   );
 };

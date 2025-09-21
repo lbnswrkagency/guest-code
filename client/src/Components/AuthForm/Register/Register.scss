@@ -114,10 +114,45 @@ $breakpoints: (
             border: none;
             background: transparent;
             padding-left: 0;
+            flex: 1;
 
             &:focus {
               border: none;
               background: transparent;
+            }
+          }
+
+          .username-status {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding-right: 0.75rem;
+
+            .status-checking {
+              display: flex;
+              align-items: center;
+              
+              .checking-spinner {
+                width: 16px;
+                height: 16px;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-top-color: #ffc807;
+                border-radius: 50%;
+                animation: spin 0.6s linear infinite;
+              }
+            }
+
+            .status-icon {
+              font-size: 1.2rem;
+              font-weight: bold;
+              
+              &.available {
+                color: #4caf50;
+              }
+              
+              &.unavailable {
+                color: #f44336;
+              }
             }
           }
         }
@@ -127,6 +162,11 @@ $breakpoints: (
           color: rgba(255, 255, 255, 0.5);
           margin-top: 0.5rem;
           margin-left: 0.5rem;
+          transition: color 0.2s ease;
+
+          &.error {
+            color: #f44336;
+          }
         }
       }
 
@@ -350,6 +390,15 @@ $breakpoints: (
         grid-template-columns: 1fr;
       }
     }
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 

@@ -365,6 +365,7 @@ const EventForm = ({
           { id: "studio", name: "Studio", description: "Professional studio layout" },
           { id: "bolivar", name: "Bolivar", description: "Classic club layout" },
           { id: "venti", name: "Venti", description: "Modern garden-themed layout" },
+          { id: "harlem", name: "Harlem", description: "Urban upscale layout" },
         ]);
       }
     };
@@ -2184,6 +2185,36 @@ const EventForm = ({
                             </>
                           )}
                           {layout.id === "venti" && (
+                            <>
+                              {/* DJ Area (Red) */}
+                              <div className="mini-section dj-section-red">
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-table dj-table"></div>
+                                <div className="mini-columns"></div>
+                              </div>
+                              {/* Dance Floor */}
+                              <div className="mini-section dance-section">
+                                <div className="mini-floor dance-floor"></div>
+                              </div>
+                              {/* VIP Area (Green) */}
+                              <div className="mini-section vip-section-green">
+                                <div className="mini-table vip-table"></div>
+                                <div className="mini-table vip-table"></div>
+                              </div>
+                              {/* Stairs */}
+                              <div className="mini-section stairs-section">
+                                <div className="mini-stairs"></div>
+                              </div>
+                              {/* Upstairs (Purple) */}
+                              <div className="mini-section upstairs-section">
+                                <div className="mini-table upstairs-table"></div>
+                                <div className="mini-table upstairs-table"></div>
+                                <div className="mini-columns upstairs-columns"></div>
+                              </div>
+                            </>
+                          )}
+                          {layout.id === "harlem" && (
                             <>
                               {/* DJ Area (Red) */}
                               <div className="mini-section dj-section-red">

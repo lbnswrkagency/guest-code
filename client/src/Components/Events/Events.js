@@ -184,6 +184,9 @@ const Events = () => {
 
   // Use Redux brands and prepare them with role data + prioritization
   const prepareBrands = () => {
+    // Set brandsLoaded to true regardless of whether we have brands or not
+    setBrandsLoaded(true);
+    
     if (brands.length > 0) {
       const brandsWithData = brands.map(prepareBrandWithData);
 
@@ -209,22 +212,47 @@ const Events = () => {
       });
 
       setUserBrands(sortedBrands);
-      setBrandsLoaded(true);
       if (sortedBrands.length > 0 && !selectedBrand) {
         setSelectedBrand(sortedBrands[0]);
       }
+    } else {
+      // Clear userBrands if no brands are available
+      setUserBrands([]);
+      setSelectedBrand(null);
     }
   };
 
   useEffect(() => {
-    prepareBrands();
-  }, [brands, roles, userRoles, favoriteBrands, user]);
+    // Only run prepareBrands if we have the necessary data and haven't loaded brands yet
+    if (brands.length >= 0 && user?._id && !brandsLoaded) {
+      prepareBrands();
+    }
+  }, [brands, roles, userRoles, favoriteBrands, user, brandsLoaded]);
 
   useEffect(() => {
     if (user?._id) {
       fetchUserFavorites();
     }
   }, [user]);
+
+  // Sort events to prioritize favorites
+  const sortEvents = (eventsArray) => {
+    if (!eventsArray || eventsArray.length === 0) return eventsArray;
+
+    return eventsArray.sort((a, b) => {
+      const aIsFavorite = favoriteEvents.some((fav) => fav._id === a._id);
+      const bIsFavorite = favoriteEvents.some((fav) => fav._id === b._id);
+
+      // Favorite events first
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
+
+      // Among same priority (both favorite or both not), sort by date (newest first)
+      const aDate = new Date(a.startDate || a.date);
+      const bDate = new Date(b.startDate || b.date);
+      return bDate - aDate;
+    });
+  };
 
   const fetchEvents = async () => {
     if (!selectedBrand?._id) return;
@@ -233,7 +261,8 @@ const Events = () => {
       const response = await axiosInstance.get(
         `${process.env.REACT_APP_API_BASE_URL}/events/brand/${selectedBrand._id}`
       );
-      setEvents(response.data);
+      const sortedEvents = sortEvents(response.data);
+      setEvents(sortedEvents);
       setLoading(false);
     } catch (error) {
       toast.showError("Failed to load events");
@@ -253,6 +282,14 @@ const Events = () => {
       isMounted = false;
     };
   }, [selectedBrand?._id]);
+
+  // Re-sort events when favorite events change
+  useEffect(() => {
+    if (events.length > 0) {
+      const sortedEvents = sortEvents([...events]);
+      setEvents(sortedEvents);
+    }
+  }, [favoriteEvents]);
 
   const handleEventClick = (
     eventToEdit,
@@ -458,16 +495,16 @@ const Events = () => {
     try {
       if (isFavorited) {
         await axiosInstance.delete(`/events/${eventId}/favorite`);
-        setFavoriteEvents((prev) =>
-          prev.filter((event) => event._id !== eventId)
-        );
+        const newFavoriteEvents = favoriteEvents.filter((event) => event._id !== eventId);
+        setFavoriteEvents(newFavoriteEvents);
         toast.showSuccess("Event removed from favorites");
       } else {
         await axiosInstance.post(`/events/${eventId}/favorite`);
         // Add the event to favorites (we'll need to find it in events)
         const eventToAdd = events.find((e) => e._id === eventId);
         if (eventToAdd) {
-          setFavoriteEvents((prev) => [...prev, eventToAdd]);
+          const newFavoriteEvents = [...favoriteEvents, eventToAdd];
+          setFavoriteEvents(newFavoriteEvents);
         }
         toast.showSuccess("Event added to favorites");
       }
@@ -587,39 +624,14 @@ const Events = () => {
         {!loading && brandsLoaded && userBrands.length === 0 && (
           <div className="no-content-container">
             <div className="no-content-card">
-              <motion.div
-                className="icon-container"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <RiGroupLine className="icon" />
-              </motion.div>
-              <motion.h3
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-              >
-                No Brands Available
-              </motion.h3>
               <motion.p
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
+                className="minimalist-message"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
               >
-                You need to create or join a brand before you can manage events
+                Please create a Brand first.
               </motion.p>
-              <motion.button
-                className="primary-button"
-                onClick={() => navigate("/dashboard/brands/new")}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-              >
-                <RiAddLine /> Create Brand
-              </motion.button>
             </div>
           </div>
         )}

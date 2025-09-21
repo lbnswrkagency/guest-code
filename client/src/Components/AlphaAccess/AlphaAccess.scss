@@ -1,20 +1,65 @@
-.alpha-access {
+// Modal backdrop for centered popup
+.alpha-access-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 300px;
-  padding: 2rem;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.alpha-access {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+
+  &__close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    svg {
+      font-size: 1.2rem;
+    }
+  }
 
   &__container {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 2rem;
+    border-radius: 16px;
+    padding: 2.5rem;
     width: 100%;
-    max-width: 500px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
+    position: relative;
 
     h2 {
       color: #ffc807;
@@ -161,11 +206,25 @@
 
 // Responsive styles
 @media (max-width: 600px) {
-  .alpha-access {
-    padding: 1rem;
+  .alpha-access-modal {
+    padding: 0.5rem;
+  }
 
+  .alpha-access {
     &__container {
-      padding: 1.5rem;
+      padding: 2rem 1.5rem;
+      border-radius: 12px;
+    }
+
+    &__close-button {
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 32px;
+      height: 32px;
+
+      svg {
+        font-size: 1rem;
+      }
     }
 
     &__code-inputs {
@@ -178,4 +237,9 @@
       }
     }
   }
+}
+
+// Ensure modal always appears above everything
+.alpha-access-modal {
+  z-index: 9999 !important;
 }

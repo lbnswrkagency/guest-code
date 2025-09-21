@@ -1,24 +1,43 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import { RiCloseLine } from "react-icons/ri";
 import "./AlphaAccess.scss";
 import { store } from "../../redux/store";
 
-const AlphaAccess = ({ user, setUser, onSuccess }) => {
+const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
   const [code, setCode] = useState(["", "", "", ""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const inputRefs = useRef([]);
 
-  // Focus on first input when component mounts
+  // Focus on first input when component mounts and is open
   useEffect(() => {
-    if (inputRefs.current[0]) {
-      inputRefs.current[0].focus();
+    if (isOpen && inputRefs.current[0]) {
+      // Small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        inputRefs.current[0].focus();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isOpen]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape" && onClose) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscKey);
+      return () => document.removeEventListener("keydown", handleEscKey);
+    }
+  }, [isOpen, onClose]);
 
   // Handle input change
   const handleChange = (index, value) => {
@@ -146,6 +165,9 @@ const AlphaAccess = ({ user, setUser, onSuccess }) => {
             if (onSuccess) {
               onSuccess();
             }
+            if (onClose) {
+              onClose();
+            }
           }, 300);
         }
       }
@@ -172,71 +194,126 @@ const AlphaAccess = ({ user, setUser, onSuccess }) => {
     }
   };
 
+  // Handle backdrop click to close modal
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   // If user already has alpha access, show a success message
   if (user?.isAlpha) {
     return (
-      <div className="alpha-access alpha-access--success">
-        <div className="alpha-access__container">
-          <h2>Alpha Access Granted</h2>
-          <p>You already have alpha access to all features.</p>
-          {onSuccess && (
-            <button
-              className="alpha-access__submit"
-              onClick={onSuccess}
-              style={{ marginTop: "1.5rem" }}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="alpha-access-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={handleBackdropClick}
+          >
+            <motion.div
+              className="alpha-access alpha-access--success"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              Close
-            </button>
-          )}
-        </div>
-      </div>
+              {onClose && (
+                <button className="alpha-access__close-button" onClick={onClose}>
+                  <RiCloseLine />
+                </button>
+              )}
+              <div className="alpha-access__container">
+                <h2>Alpha Access Granted</h2>
+                <p>You already have alpha access to all features.</p>
+                {(onSuccess || onClose) && (
+                  <button
+                    className="alpha-access__submit"
+                    onClick={() => {
+                      if (onSuccess) onSuccess();
+                      if (onClose) onClose();
+                    }}
+                    style={{ marginTop: "1.5rem" }}
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 
   return (
-    <div className="alpha-access">
-      <motion.div
-        className="alpha-access__container"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2>Alpha Access</h2>
-        <p>Enter your 4-digit alpha code to unlock exclusive features</p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="alpha-access__code-inputs">
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={index === 0 ? handlePaste : null}
-                disabled={isSubmitting}
-                autoComplete="off"
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-            ))}
-          </div>
-
-          {error && <div className="alpha-access__error">{error}</div>}
-          {success && <div className="alpha-access__success">{success}</div>}
-
-          <button
-            type="submit"
-            className="alpha-access__submit"
-            disabled={isSubmitting || code.join("").length !== 4}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="alpha-access-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={handleBackdropClick}
+        >
+          <motion.div
+            className="alpha-access"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {isSubmitting ? "Verifying..." : "Verify Code"}
-          </button>
-        </form>
-      </motion.div>
-    </div>
+            {onClose && (
+              <button className="alpha-access__close-button" onClick={onClose}>
+                <RiCloseLine />
+              </button>
+            )}
+            <div className="alpha-access__container">
+              <h2>Alpha Access</h2>
+              <p>Enter your 4-digit alpha code to unlock exclusive features</p>
+
+              <form onSubmit={handleSubmit}>
+                <div className="alpha-access__code-inputs">
+                  {code.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : null}
+                      disabled={isSubmitting}
+                      autoComplete="off"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                    />
+                  ))}
+                </div>
+
+                {error && <div className="alpha-access__error">{error}</div>}
+                {success && <div className="alpha-access__success">{success}</div>}
+
+                <button
+                  type="submit"
+                  className="alpha-access__submit"
+                  disabled={isSubmitting || code.join("").length !== 4}
+                >
+                  {isSubmitting ? "Verifying..." : "Verify Code"}
+                </button>
+              </form>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

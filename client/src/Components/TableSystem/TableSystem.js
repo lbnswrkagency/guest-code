@@ -7,6 +7,7 @@ import "./TableSystem.scss";
 import TableLayoutStudio from "../TableLayoutStudio/TableLayoutStudio";
 import TableLayoutBolivar from "../TableLayoutBolivar/TableLayoutBolivar";
 import TableLayoutVenti from "../TableLayoutVenti/TableLayoutVenti";
+import TableLayoutHarlem from "../TableLayoutHarlem/TableLayoutHarlem";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
@@ -122,6 +123,12 @@ function TableSystem({
           vip: ["V1", "V2", "V3", "V4"],
           premium: ["P1", "P2", "P3"],
         };
+      case "harlem":
+        return {
+          djarea: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"],
+          vip: ["V1", "V2", "V3", "V4", "V5", "V6"],
+          upstairs: ["U1", "U2", "U3"],
+        };
       case "studio":
       default:
         return {
@@ -159,6 +166,8 @@ function TableSystem({
         return <TableLayoutBolivar {...layoutProps} />;
       case "venti":
         return <TableLayoutVenti {...layoutProps} />;
+      case "harlem":
+        return <TableLayoutHarlem {...layoutProps} />;
       case "studio":
         return <TableLayoutStudio {...layoutProps} />;
       default:

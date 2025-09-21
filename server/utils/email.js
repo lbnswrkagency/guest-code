@@ -24,11 +24,13 @@ const getBaseUrl = () => {
   return "http://localhost:9231";
 };
 
-const sendVerificationEmail = async (to, token) => {
+const sendVerificationEmail = async (to, token, user) => {
   try {
     console.debug("Preparing verification email...");
 
     const verificationLink = `${getBaseUrl()}/verify-email/${token}`;
+    const firstName = user?.firstName || "there";
+    const username = user?.username || "";
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: to }];
@@ -36,24 +38,33 @@ const sendVerificationEmail = async (to, token) => {
       name: "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject = "Welcome to GuestCode - Verify Your Email";
+    sendSmtpEmail.subject = `Welcome to GuestCode, ${firstName}! 🎉`;
 
-    // Create additional content with verification button
+    // Create additional content with verification button and personalized message
     const additionalContent = `
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${verificationLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email</a>
+      <div style="background-color: #f8f8f8; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <p style="font-size: 16px; margin: 0 0 10px;">Your account details:</p>
+        <p style="font-size: 18px; margin: 0; font-weight: bold;">@${username}</p>
       </div>
-      <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+      
+      <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">You're just one step away from discovering the best events in your city! Verify your email to get started:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationLink}" style="background: linear-gradient(314deg, #d1a300 0%, #ffc807 100%); color: #000; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">Verify My Email</a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
       <p style="color: #0066cc; font-size: 14px; word-break: break-all;">${verificationLink}</p>
-      <p style="color: #666; font-size: 14px; margin-top: 30px;">If you didn't create an account with us, please ignore this email.</p>
+
+      
+      <p style="color: #666; font-size: 13px; margin-top: 30px; font-style: italic;">This verification link will expire in 1 hour. If you didn't create this account, please ignore this email.</p>
     `;
 
     // Use the common email template with showEventDetails set to false
     sendSmtpEmail.htmlContent = createEventEmailTemplate({
-      recipientName: "New User",
-      eventTitle: "Welcome to GuestCode",
-      description:
-        "Thank you for joining GuestCode! To complete your registration and start creating amazing events, please verify your email address by clicking the button below:",
+      recipientName: firstName,
+      eventTitle: "Welcome to GuestCode! 🎉",
+      description: `Hey ${firstName}, we're thrilled to have you join the GuestCode community! Your username @${username} is ready to go.`,
       primaryColor: "#ffc807",
       additionalContent: additionalContent,
       footerText: "GuestCode - The Future of Event Management",

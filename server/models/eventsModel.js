@@ -160,7 +160,7 @@ const EventSchema = new Schema(
     // Table layout configuration
     tableLayout: {
       type: String,
-      enum: ["", "studio", "bolivar", "venti"],
+      enum: ["", "studio", "bolivar", "venti", "harlem"],
       default: "",
     },
 

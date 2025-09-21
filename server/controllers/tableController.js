@@ -2428,6 +2428,16 @@ const getAvailableTableLayouts = async (req, res) => {
         areas: ["Standard Tables", "DJ Area", "VIP Lounge", "Premium Suite"],
         previewImage: "/images/layouts/venti-preview.jpg",
       },
+      {
+        id: "harlem",
+        name: "Harlem Layout",
+        description:
+          "Urban upscale layout",
+        component: "TableLayoutHarlem",
+        totalTables: 18,
+        areas: ["Standard Tables", "DJ Area", "VIP Lounge", "Premium Suite"],
+        previewImage: "/images/layouts/harlem-preview.jpg",
+      },
     ];
 
     res.status(200).json({

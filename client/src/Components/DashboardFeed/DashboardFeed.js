@@ -378,7 +378,23 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   if (!eventData) {
     return (
       <div className="dashboardFeed-container dashboardFeed-empty">
-        <div className="dashboardFeed-empty-content"></div>
+        <div className="dashboardFeed-empty-content">
+          <motion.div 
+            className="empty-state-message"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <h2 className="empty-state-title">
+              {user?.isAlpha 
+                ? "Join or Create Events, to start your journey."
+                : "Join Events, to start your journey."}
+            </h2>
+            <p className="empty-state-subtitle">
+              Discover amazing experiences waiting for you
+            </p>
+          </motion.div>
+        </div>
       </div>
     );
   }

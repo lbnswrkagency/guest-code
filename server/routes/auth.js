@@ -15,6 +15,7 @@ const {
   forgotPassword,
   validateResetToken,
   resetPassword,
+  checkUsernameAvailability,
 } = require("../controllers/authController");
 
 router.use((req, res, next) => {
@@ -26,6 +27,9 @@ router.post("/refresh-token", refreshAccessToken);
 
 // Sync token from localStorage to cookies
 router.post("/sync-token", syncToken);
+
+// Check username availability
+router.get("/check-username/:username", checkUsernameAvailability);
 
 // Register route with validation
 router.post(

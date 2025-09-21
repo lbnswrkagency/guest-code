@@ -41,56 +41,74 @@
     width: 350px; // Reduced from 380px
   }
 
-  // Mobile optimization for ultra-compact height
+  // Mobile optimization for better readability and touch targets
   @media (max-width: 768px) {
-    max-height: 55vh; // Even smaller on mobile
-    padding: 0.5rem 0.5rem 0 0.5rem; // Ultra-minimal mobile padding
+    max-height: 70vh; // More space for content on mobile
+    padding: 0.75rem 0.75rem 0 0.75rem; // Better padding for mobile
+    width: 350px; // Wider for better mobile experience
     
     .popup-header {
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.6rem;
       
       h3 {
-        font-size: 1rem;
-        margin-bottom: 0.1rem;
+        font-size: 1.3rem; // Larger for mobile readability
+        margin-bottom: 0.3rem;
       }
       
       p {
-        font-size: 0.75rem;
-        line-height: 1.2;
+        font-size: 0.95rem; // Larger for mobile readability
+        line-height: 1.4;
       }
       
       .minimum-spend {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.4rem;
-        margin-top: 0.2rem;
+        font-size: 0.85rem; // Larger for mobile readability
+        padding: 0.4rem 0.6rem; // Better touch target
+        margin-top: 0.4rem;
       }
     }
     
     .popup-form {
-      gap: 0.25rem;
-      margin-bottom: 0.35rem;
+      gap: 0.6rem; // More space between fields
+      margin-bottom: 0.6rem;
     }
     
     .popup-field {
-      gap: 0.1rem;
+      gap: 0.3rem; // More space between label and input
       
       label {
-        font-size: 0.7rem;
+        font-size: 0.9rem; // Larger for mobile readability
+        font-weight: 600; // Bolder for better visibility
       }
     }
     
     .popup-input {
-      padding: 0.35rem 0.5rem;
-      font-size: 0.8rem;
+      padding: 0.75rem 0.8rem; // Better touch target
+      font-size: 1rem; // Larger for mobile readability and prevents zoom
+      min-height: 44px; // iOS recommended minimum touch target
+    }
+    
+    .popup-select {
+      padding: 0.75rem 0.8rem; // Better touch target
+      font-size: 1rem; // Larger for mobile readability
+      min-height: 44px; // iOS recommended minimum touch target
+      background-size: 0.8rem auto; // Larger dropdown arrow
     }
     
     .popup-footer {
-      padding: 0.4rem 0.5rem;
+      padding: 0.75rem;
     }
     
     .popup-button {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.8rem;
+      padding: 0.8rem 1rem; // Better touch target
+      font-size: 1rem; // Larger for mobile readability
+      min-height: 44px; // iOS recommended minimum touch target
+    }
+    
+    .popup-notice {
+      p {
+        font-size: 0.9rem; // Larger for mobile readability
+        line-height: 1.4;
+      }
     }
   }
 

@@ -107,8 +107,8 @@ exports.register = async (req, res) => {
     console.log('✅ Token generated successfully');
 
     console.log('📧 Sending verification email...');
-    // Send verification email without event details
-    await sendVerificationEmail(user.email, token);
+    // Send verification email with user details
+    await sendVerificationEmail(user.email, token, user);
     console.log('✅ Verification email sent successfully');
 
     console.log('🎉 Registration completed successfully!');
@@ -224,8 +224,10 @@ exports.login = async (req, res) => {
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Store refresh token hash in user document
+    // Store refresh token hash in user document and increment login count
     user.refreshToken = await bcrypt.hash(refreshToken, 10);
+    user.loginCount = (user.loginCount || 0) + 1;
+    user.lastLogin = new Date();
     await user.save();
 
     // Set cookies
@@ -373,14 +375,9 @@ exports.login = async (req, res) => {
       avatar: user.avatar,
       isVerified: user.isVerified,
       isAlpha: user.isAlpha,
-      isAdmin: user.isAdmin,
       isDeveloper: user.isDeveloper,
-      isScanner: user.isScanner,
-      isPromoter: user.isPromoter,
-      isStaff: user.isStaff,
-      isBackstage: user.isBackstage,
-      isSpitixBattle: user.isSpitixBattle,
-      isTable: user.isTable,
+      loginCount: user.loginCount,
+      lastLogin: user.lastLogin,
       brands: userBrands,
       roles: {
         allRoles: allRoles,
@@ -717,6 +714,53 @@ exports.resetPassword = async (req, res) => {
     console.error("Password reset error:", error);
     res.status(500).json({
       message: "Failed to reset password",
+    });
+  }
+};
+
+// Check username availability
+exports.checkUsernameAvailability = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Validate username format
+    if (!username || username.length < 3) {
+      return res.status(400).json({
+        available: false,
+        message: "Username must be at least 3 characters long",
+      });
+    }
+
+    // Check for invalid characters (only allow alphanumeric and underscore)
+    const validUsernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!validUsernameRegex.test(username)) {
+      return res.status(400).json({
+        available: false,
+        message: "Username can only contain letters, numbers, and underscores",
+      });
+    }
+
+    // Check if username exists (case-insensitive)
+    const existingUser = await User.findOne({
+      username: new RegExp(`^${username}$`, "i"),
+    });
+
+    if (existingUser) {
+      return res.status(200).json({
+        available: false,
+        message: "Username is already taken",
+      });
+    }
+
+    res.status(200).json({
+      available: true,
+      message: "Username is available",
+    });
+  } catch (error) {
+    console.error("Username check error:", error);
+    res.status(500).json({
+      available: false,
+      message: "Failed to check username availability",
     });
   }
 };
