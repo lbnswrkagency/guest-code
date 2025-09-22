@@ -87,6 +87,18 @@ $breakpoints: (
     .input-group {
       width: 100%;
 
+      .input-hint {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.5rem;
+        margin-left: 0.5rem;
+        transition: color 0.2s ease;
+
+        &.error {
+          color: #f44336;
+        }
+      }
+
       &.username-group {
         .username-wrapper {
           position: relative;
@@ -101,6 +113,11 @@ $breakpoints: (
             border-color: #ffc807;
             background: rgba(255, 255, 255, 0.08);
           }
+          
+          &:has(.error) {
+            border-color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+          }
 
           .username-prefix {
             color: #ffc807;
@@ -113,7 +130,7 @@ $breakpoints: (
           .username-input {
             border: none;
             background: transparent;
-            padding-left: 0;
+            padding-left: 0.5;
             flex: 1;
 
             &:focus {
@@ -131,7 +148,7 @@ $breakpoints: (
             .status-checking {
               display: flex;
               align-items: center;
-              
+
               .checking-spinner {
                 width: 16px;
                 height: 16px;
@@ -145,11 +162,11 @@ $breakpoints: (
             .status-icon {
               font-size: 1.2rem;
               font-weight: bold;
-              
+
               &.available {
                 color: #4caf50;
               }
-              
+
               &.unavailable {
                 color: #f44336;
               }
@@ -193,6 +210,7 @@ $breakpoints: (
             margin-bottom: 0.25rem;
             line-height: 1;
             user-select: none;
+            min-height: 0.8rem;
           }
 
           .register-input {
@@ -210,7 +228,7 @@ $breakpoints: (
 
             &[type="date"] {
               color: rgba(255, 255, 255, 0.9);
-              
+
               @media (max-width: 768px) {
                 color: rgba(255, 255, 255, 0.9);
                 padding-right: 0;
@@ -222,7 +240,7 @@ $breakpoints: (
                 cursor: pointer;
                 width: 16px;
                 height: 16px;
-                
+
                 @media (max-width: 768px) {
                   opacity: 1;
                   filter: invert(1) brightness(0.8);
@@ -232,7 +250,7 @@ $breakpoints: (
               &:invalid {
                 color: rgba(255, 255, 255, 0.5);
               }
-              
+
               &:valid {
                 color: rgba(255, 255, 255, 0.9);
               }
@@ -253,11 +271,27 @@ $breakpoints: (
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
+
+      .input-group {
+        width: 100%;
+
+        .input-hint {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 0.5rem;
+          transition: color 0.2s ease;
+
+          &.error {
+            color: #f44336;
+          }
+        }
+      }
     }
 
     .register-input {
       width: 100%;
       padding: 0.85rem 1rem;
+
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
@@ -275,8 +309,11 @@ $breakpoints: (
         background: rgba(255, 255, 255, 0.08);
       }
 
+      &.error {
+        border-color: #f44336;
+        background: rgba(244, 67, 54, 0.1);
+      }
     }
-
 
     .register-form-submit {
       margin-top: 1rem;
