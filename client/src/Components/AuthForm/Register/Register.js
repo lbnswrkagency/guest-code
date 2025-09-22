@@ -30,14 +30,17 @@ function Register({ onRegisterSuccess }) {
   const { showError, showSuccess } = useToast();
 
   useEffect(() => {
-    const isValid = Object.values(formData).every(
-      (value) => value.trim() !== ""
-    );
-    setIsFormValid(
-      isValid && 
+    const isValid = 
+      formData.username.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.firstName.trim() !== "" &&
+      formData.lastName.trim() !== "" &&
+      formData.birthday !== "" &&
+      formData.password.trim() !== "" &&
+      formData.confirmPassword.trim() !== "" &&
       formData.password === formData.confirmPassword &&
-      usernameStatus.available === true
-    );
+      (usernameStatus.available === true || usernameStatus.available === null);
+    setIsFormValid(isValid);
   }, [formData, usernameStatus.available]);
 
   // Check username availability
@@ -193,6 +196,27 @@ function Register({ onRegisterSuccess }) {
     console.log('Form data:', formData);
     console.log('API Base URL:', process.env.REACT_APP_API_BASE_URL);
     console.log('Is form valid:', isFormValid);
+    
+    // Mark all fields as touched to show errors
+    const allTouched = {
+      username: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      birthday: true,
+      password: true,
+      confirmPassword: true
+    };
+    setTouched(allTouched);
+    
+    // Validate all fields
+    const fieldErrors = {};
+    Object.keys(formData).forEach(field => {
+      const validationErrors = validateField(field, formData[field]);
+      if (validationErrors[field]) {
+        fieldErrors[field] = validationErrors[field];
+      }
+    });
     
     // Validate each field and collect missing ones
     const missingFields = [];
@@ -494,13 +518,10 @@ function Register({ onRegisterSuccess }) {
           </div>
 
           <motion.button
-            className={`register-form-submit ${
-              isFormValid ? "active" : "disabled"
-            }`}
+            className="register-form-submit active"
             type="submit"
-            disabled={!isFormValid}
-            whileHover={isFormValid ? { scale: 1.02 } : {}}
-            whileTap={isFormValid ? { scale: 0.98 } : {}}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             Create Account
           </motion.button>

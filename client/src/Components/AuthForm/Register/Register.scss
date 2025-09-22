@@ -202,6 +202,11 @@ $breakpoints: (
             border-color: #ffc807;
             background: rgba(255, 255, 255, 0.08);
           }
+          
+          &:has(.error) {
+            border-color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+          }
 
           .date-field-label {
             color: #ffc807;
