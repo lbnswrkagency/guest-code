@@ -433,6 +433,46 @@
         border-radius: 6px;
         border: 1px solid rgba(255, 215, 0, 0.2);
       }
+
+      // Full/closed category state
+      &.sold-out {
+        opacity: 0.7;
+        cursor: not-allowed;
+        background: rgba(255, 0, 0, 0.1);
+        border-color: rgba(255, 0, 0, 0.3);
+
+        &:hover {
+          transform: none;
+          background: rgba(255, 0, 0, 0.1);
+          border-color: rgba(255, 0, 0, 0.3);
+        }
+
+        input[type="radio"] {
+          cursor: not-allowed;
+          border-color: rgba(255, 255, 255, 0.3);
+          opacity: 0.5;
+        }
+
+        .category-label {
+          color: rgba(255, 255, 255, 0.6);
+          position: relative;
+        }
+
+        .sold-out-badge {
+          display: inline-block;
+          margin-left: 0.75rem;
+          padding: 0.25rem 0.75rem;
+          background: #ff4444;
+          color: #ffffff;
+          font-size: 0.8rem;
+          font-weight: 700;
+          border-radius: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          animation: pulse 2s infinite;
+          box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
+        }
+      }
     }
 
     input[type="text"],
@@ -709,6 +749,22 @@
         padding: 1rem;
         font-size: 1rem;
       }
+    }
+  }
+
+  // Pulse animation for sold out badge
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
     }
   }
 

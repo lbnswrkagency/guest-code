@@ -40,4 +40,7 @@ router.post("/reset/:id", authenticate, (req, res) => {
 router.get("/stats/:eventId", authenticate, battleSignController.getBattleStats);
 router.get("/config/:eventId", optionalAuthenticateToken, battleSignController.getBattleConfig);
 
+// Tournament bracket generation
+router.post("/generate-bracket", authenticate, battleSignController.generateTournamentBracket);
+
 module.exports = router;

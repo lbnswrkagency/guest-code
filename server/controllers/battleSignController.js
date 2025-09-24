@@ -1125,6 +1125,723 @@ const deleteBattleSignup = async (req, res) => {
   }
 };
 
+// Tournament bracket generation utilities
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+const getNextPowerOfTwo = (n) => {
+  return Math.pow(2, Math.ceil(Math.log2(n)));
+};
+
+const generateTournamentBracket = (participants) => {
+  // Handle edge cases
+  if (participants.length === 0) {
+    return { rounds: [], totalRounds: 0 };
+  }
+  
+  if (participants.length === 1) {
+    return {
+      rounds: [{
+        roundNumber: 1,
+        name: "Finals",
+        matches: [{ participant1: participants[0], participant2: null, winner: null }]
+      }],
+      totalRounds: 1
+    };
+  }
+
+  // Calculate bracket size and handle odd numbers
+  const bracketSize = getNextPowerOfTwo(participants.length);
+  const byeCount = bracketSize - participants.length;
+  
+  // Shuffle participants for random seeding, but handle special cases
+  let shuffledParticipants = shuffleArray(participants);
+  
+  // Special handling for Rania and Mpilex - put them in the last Pre Selection match
+  const raniaIndex = shuffledParticipants.findIndex(p => p.name.toLowerCase().includes('rania'));
+  const mpilexIndex = shuffledParticipants.findIndex(p => p.name.toLowerCase().includes('mpilex'));
+  
+  if (raniaIndex !== -1 && mpilexIndex !== -1) {
+    // Remove both from their current positions
+    const rania = shuffledParticipants[raniaIndex];
+    const mpilex = shuffledParticipants[mpilexIndex];
+    
+    shuffledParticipants = shuffledParticipants.filter((_, index) => 
+      index !== raniaIndex && index !== mpilexIndex
+    );
+    
+    // Add them to the last two positions (will be the last match in Pre Selection)
+    shuffledParticipants.push(rania, mpilex);
+  }
+  
+  // Add bye slots (empty spots for odd numbers)
+  const bracketParticipants = [...shuffledParticipants];
+  for (let i = 0; i < byeCount; i++) {
+    bracketParticipants.push({ name: "", isEmpty: true });
+  }
+  
+  // Generate all rounds
+  const rounds = [];
+  const totalRounds = Math.log2(bracketSize);
+  
+  // Create advancement mapping for random placement
+  const createRandomAdvancementMap = (currentRoundSize, nextRoundSize) => {
+    const sourceIndices = Array.from({ length: currentRoundSize }, (_, i) => i);
+    const targetIndices = Array.from({ length: nextRoundSize }, (_, i) => i);
+    const doubledTargets = [];
+    
+    // Each next round match gets 2 sources
+    targetIndices.forEach(targetIndex => {
+      doubledTargets.push(targetIndex, targetIndex);
+    });
+    
+    // Shuffle the target assignments randomly
+    const shuffledTargets = shuffleArray(doubledTargets);
+    
+    const advancementMap = {};
+    sourceIndices.forEach((sourceIndex, i) => {
+      advancementMap[sourceIndex] = shuffledTargets[i];
+    });
+    
+    return advancementMap;
+  };
+  
+  // Generate first round (preselection)
+  let currentParticipants = [...bracketParticipants];
+  let advancementMaps = {};
+  
+  // Pre-generate all advancement maps for random placement
+  for (let roundNum = 1; roundNum < totalRounds; roundNum++) {
+    const currentRoundMatches = bracketSize / Math.pow(2, roundNum);
+    const nextRoundMatches = bracketSize / Math.pow(2, roundNum + 1);
+    advancementMaps[roundNum] = createRandomAdvancementMap(currentRoundMatches, nextRoundMatches);
+  }
+  
+  for (let roundNum = 1; roundNum <= totalRounds; roundNum++) {
+    const matches = [];
+    const nextRoundParticipants = [];
+    
+    // Determine round name
+    let roundName;
+    if (roundNum === totalRounds) {
+      roundName = "Finals";
+    } else if (roundNum === totalRounds - 1) {
+      roundName = "Semi Finals";
+    } else if (roundNum === 1 && totalRounds > 2) {
+      roundName = "Pre Selection";
+    } else {
+      roundName = `Round ${roundNum}`;
+    }
+    
+    // Create matches for this round
+    for (let i = 0; i < currentParticipants.length; i += 2) {
+      const participant1 = currentParticipants[i];
+      const participant2 = currentParticipants[i + 1];
+      
+      let winner = null;
+      
+      // Handle empty spots automatically
+      if (participant1?.isEmpty && participant2?.isEmpty) {
+        // Both empty, advance empty slot
+        winner = { name: "", isEmpty: true };
+      } else if (participant1?.isEmpty) {
+        winner = participant2;
+      } else if (participant2?.isEmpty) {
+        winner = participant1;
+      } else {
+        // Regular match - winner to be determined (leave blank for writing)
+        winner = { name: "", isEmpty: true };
+      }
+      
+      const currentMatchIndex = matches.length;
+      const targetMatchIndex = advancementMaps[roundNum] ? advancementMaps[roundNum][currentMatchIndex] : null;
+
+      matches.push({
+        matchNumber: matches.length + 1,
+        participant1: participant1?.isEmpty ? null : participant1,
+        participant2: participant2?.isEmpty ? null : participant2,
+        winner: winner,
+        targetMatchIndex: targetMatchIndex,
+        roundNumber: roundNum,
+        totalRounds: totalRounds
+      });
+      
+      nextRoundParticipants.push(winner);
+    }
+    
+    rounds.push({
+      roundNumber: roundNum,
+      name: roundName,
+      matches: matches
+    });
+    
+    currentParticipants = nextRoundParticipants;
+  }
+  
+  return {
+    rounds: rounds,
+    totalRounds: totalRounds,
+    originalParticipants: participants.length,
+    bracketSize: bracketSize,
+    byeCount: byeCount
+  };
+};
+
+const generateTournamentBracketPDF = async (eventId, category) => {
+  let browser = null;
+  
+  try {
+    // Fetch confirmed participants for the category
+    const battleSignups = await BattleSign.find({
+      event: eventId,
+      status: "confirmed",
+      categories: { $in: [category] }
+    });
+    
+    // Get event details
+    const event = await Event.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+    
+    const categoryConfig = event.battleConfig.categories.find(cat => cat.name === category);
+    if (!categoryConfig) {
+      throw new Error("Category not found");
+    }
+    
+    // Transform signups to participants
+    const participants = battleSignups.map((signup, index) => ({
+      id: signup._id,
+      name: signup.name,
+      instagram: signup.instagram,
+      participants: signup.participants || [],
+      seedNumber: index + 1
+    }));
+    
+    // Generate bracket
+    const bracket = generateTournamentBracket(participants);
+    
+    // Launch puppeteer
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 1600 });
+    
+    // Create HTML for the tournament bracket
+    const html = generateTournamentBracketHTML(event, categoryConfig, bracket);
+    
+    await page.setContent(html, { waitUntil: 'networkidle2' });
+    
+    const pdf = await page.pdf({
+      format: 'A3',
+      orientation: 'landscape',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      }
+    });
+    
+    return pdf;
+    
+  } catch (error) {
+    console.error("Error generating tournament bracket PDF:", error);
+    throw error;
+  } finally {
+    if (browser) {
+      await browser.close().catch(err => {
+        console.error("Error closing browser:", err);
+      });
+    }
+  }
+};
+
+const generateTournamentBracketHTML = (event, categoryConfig, bracket) => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    return timeString;
+  };
+
+  // Generate matches HTML for each round
+  const generateRoundHTML = (round, allRounds) => {
+    const matchesHTML = round.matches.map((match, matchIndex) => {
+      // Find which matches from previous round feed into each participant position
+      let participant1SourceInfo = '';
+      let participant2SourceInfo = '';
+      let winnerDestinationInfo = '';
+      
+      if (round.roundNumber > 1) {
+        // Find the previous round
+        const previousRound = allRounds.find(r => r.roundNumber === round.roundNumber - 1);
+        if (previousRound) {
+          const previousRoundName = previousRound.name === 'Pre Selection' ? 'Pre Selection' : previousRound.name;
+          
+          // Find which matches from previous round feed into this match
+          const sourceMatches = previousRound.matches.filter(prevMatch => 
+            prevMatch.targetMatchIndex === matchIndex
+          );
+          
+          // Sort by match number to ensure consistent order
+          sourceMatches.sort((a, b) => a.matchNumber - b.matchNumber);
+          
+          if (sourceMatches.length >= 2) {
+            // Two matches feed into this one
+            participant1SourceInfo = `<div class="source-match-info">Winner of Match ${sourceMatches[0].matchNumber} ${previousRoundName}</div>`;
+            participant2SourceInfo = `<div class="source-match-info">Winner of Match ${sourceMatches[1].matchNumber} ${previousRoundName}</div>`;
+          } else if (sourceMatches.length === 1) {
+            // One match feeds into this position
+            participant1SourceInfo = `<div class="source-match-info">Winner of Match ${sourceMatches[0].matchNumber} ${previousRoundName}</div>`;
+          }
+        }
+      }
+      
+      // Show where this winner goes (except Finals winner - they've won!)
+      if (round.name !== 'Finals') {
+        // Find the next round
+        const nextRound = allRounds.find(r => r.roundNumber === round.roundNumber + 1);
+        if (nextRound) {
+          const nextRoundName = nextRound.name;
+          const targetMatchNumber = match.targetMatchIndex + 1; // Convert from 0-based to 1-based
+          winnerDestinationInfo = `<div class="destination-info">Goes to ${nextRoundName} Match ${targetMatchNumber}</div>`;
+        }
+      }
+      
+      return `
+      <div class="match">
+        <div class="match-header">Match ${match.matchNumber}</div>
+        <div class="participants">
+          <div class="participant-container">
+            <div class="participant ${!match.participant1 ? 'empty' : ''}">
+              ${match.participant1 ? match.participant1.name : ''}
+              ${match.participant1?.instagram ? `<span class="instagram">@${match.participant1.instagram}</span>` : ''}
+            </div>
+            ${!match.participant1 ? participant1SourceInfo : ''}
+          </div>
+          <div class="vs">VS</div>
+          <div class="participant-container">
+            <div class="participant ${!match.participant2 ? 'empty' : ''}">
+              ${match.participant2 ? match.participant2.name : ''}
+              ${match.participant2?.instagram ? `<span class="instagram">@${match.participant2.instagram}</span>` : ''}
+            </div>
+            ${!match.participant2 ? participant2SourceInfo : ''}
+          </div>
+        </div>
+        <div class="winner-section">
+          <div class="winner-label">Winner:</div>
+          <div class="winner-input-field"></div>
+          ${winnerDestinationInfo}
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+      <div class="round">
+        <h3 class="round-title">${round.name}</h3>
+        <div class="matches-container">
+          ${matchesHTML}
+        </div>
+      </div>
+    `;
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Tournament Bracket - ${categoryConfig.displayName}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: 'Arial', sans-serif;
+          background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+          color: #ffffff;
+          padding: 20px;
+          min-height: 100vh;
+        }
+
+        .tournament-header {
+          text-align: center;
+          margin: 0;
+          padding: 30px 40px 50px 40px;
+          height: calc(100vh - 50px);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          position: relative;
+          background: radial-gradient(circle at center, rgba(255, 200, 7, 0.15) 0%, transparent 70%);
+          page-break-after: always;
+          box-sizing: border-box;
+        }
+
+        .tournament-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 200, 7, 0.05) 20px,
+            rgba(255, 200, 7, 0.05) 40px
+          );
+        }
+
+        .event-title {
+          font-size: 2.5rem;
+          font-weight: 900;
+          margin-bottom: 10px;
+          background: linear-gradient(45deg, #ffc807, #ffed4a);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          text-shadow: 0 0 30px rgba(255, 200, 7, 0.5);
+          z-index: 2;
+          position: relative;
+        }
+
+        .category-title {
+          font-size: 1.8rem;
+          color: #ffc807;
+          margin-bottom: 20px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-weight: 700;
+          text-shadow: 0 0 20px rgba(255, 200, 7, 0.3);
+          z-index: 2;
+          position: relative;
+        }
+
+        .event-info {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+          margin-top: 15px;
+          font-size: 1rem;
+          z-index: 2;
+          position: relative;
+          max-width: 450px;
+          width: 100%;
+        }
+
+        .event-info-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.05);
+          padding: 12px;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 200, 7, 0.3);
+          backdrop-filter: blur(10px);
+        }
+
+        .event-info-label {
+          color: #ffc807;
+          font-size: 0.9rem;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-weight: 600;
+        }
+
+        .event-info-value {
+          color: #ffffff;
+          font-weight: bold;
+          font-size: 1.2rem;
+          text-align: center;
+        }
+
+        .bracket-info {
+          text-align: center;
+          margin-top: 20px;
+          font-size: 0.9rem;
+          z-index: 2;
+          position: relative;
+        }
+
+        .bracket-info span {
+          background: rgba(255, 200, 7, 0.1);
+          padding: 5px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 200, 7, 0.3);
+          margin: 0 6px;
+          font-weight: 600;
+          color: #ffffff;
+          display: inline-block;
+          margin-bottom: 6px;
+        }
+
+        .rounds-container {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+        }
+
+        .round {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 15px;
+          padding: 25px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+        }
+
+        .round-title {
+          font-size: 1.6rem;
+          text-align: center;
+          margin-bottom: 25px;
+          color: #ffc807;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border-bottom: 2px solid rgba(255, 200, 7, 0.3);
+          padding-bottom: 10px;
+        }
+
+        .matches-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 25px;
+        }
+
+        .match {
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          transition: transform 0.2s ease;
+        }
+
+        .match:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .match-header {
+          font-weight: bold;
+          text-align: center;
+          margin-bottom: 15px;
+          color: #ffc807;
+          font-size: 1.1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .participants {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          gap: 15px;
+        }
+
+        .participant-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .participant {
+          width: 100%;
+          text-align: center;
+          padding: 12px;
+          background: #ffffff;
+          color: #1a1a1a;
+          border-radius: 8px;
+          border: 2px solid #ffc807;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          min-height: 60px;
+          justify-content: center;
+          font-weight: 600;
+        }
+
+        .participant.empty {
+          background: #ffffff;
+          border: 2px dashed rgba(255, 200, 7, 0.5);
+          color: #666666;
+          font-style: italic;
+        }
+
+        .participant .instagram {
+          font-size: 0.8rem;
+          color: #666666;
+          margin-top: 4px;
+          font-weight: 400;
+        }
+
+        .vs {
+          font-weight: bold;
+          color: #ffc807;
+          font-size: 1.2rem;
+          text-shadow: 0 0 10px rgba(255, 200, 7, 0.5);
+        }
+
+        .winner-section {
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+          padding-top: 15px;
+          text-align: center;
+        }
+
+        .winner-label {
+          font-weight: bold;
+          color: #ffc807;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .winner-input-field {
+          background: #ffffff;
+          border: 2px solid #ffc807;
+          border-radius: 6px;
+          height: 35px;
+          margin: 8px 0;
+          position: relative;
+        }
+
+        .source-match-info {
+          font-size: 0.75rem;
+          color: #ffc807;
+          text-align: center;
+          margin-top: 5px;
+          font-weight: 500;
+          font-style: italic;
+          opacity: 0.8;
+        }
+
+        .destination-info {
+          font-size: 0.75rem;
+          color: #4caf50;
+          text-align: center;
+          margin-top: 5px;
+          font-weight: 600;
+          background: rgba(76, 175, 80, 0.1);
+          padding: 4px 8px;
+          border-radius: 10px;
+          border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        @media print {
+          body {
+            background: #1a1a1a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          .match {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          
+          .round {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          
+          .tournament-header {
+            page-break-after: always;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="tournament-header">
+        <h1 class="event-title">${event.title}</h1>
+        <h2 class="category-title">${categoryConfig.displayName}</h2>
+        <div class="event-info">
+          <div class="event-info-item">
+            <div class="event-info-label">Date</div>
+            <div class="event-info-value">${formatDate(event.startDate || event.date)}</div>
+          </div>
+          <div class="event-info-item">
+            <div class="event-info-label">Time</div>
+            <div class="event-info-value">${formatTime(event.startTime)}</div>
+          </div>
+          <div class="event-info-item">
+            <div class="event-info-label">Venue</div>
+            <div class="event-info-value">${event.location}</div>
+          </div>
+          ${categoryConfig.prizeMoney > 0 ? `
+          <div class="event-info-item">
+            <div class="event-info-label">Prize</div>
+            <div class="event-info-value">${categoryConfig.prizeMoney}€</div>
+          </div>
+          ` : ''}
+        </div>
+        <div class="bracket-info">
+          <span>Total Participants: ${bracket.originalParticipants}</span>
+          <span>Bracket Size: ${bracket.bracketSize}</span>
+          <span>Total Rounds: ${bracket.totalRounds}</span>
+        </div>
+      </div>
+
+      <div class="rounds-container">
+        ${bracket.rounds.map(round => generateRoundHTML(round, bracket.rounds)).join('')}
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+const generateTournamentBracketController = async (req, res) => {
+  try {
+    const { eventId, category } = req.body;
+    
+    if (!eventId || !category) {
+      return res.status(400).json({ error: "Event ID and category are required" });
+    }
+    
+    // Generate the PDF
+    const pdf = await generateTournamentBracketPDF(eventId, category);
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="tournament-bracket.pdf"');
+    res.setHeader('Content-Length', pdf.length);
+    
+    // Send the PDF
+    res.send(pdf);
+    
+  } catch (error) {
+    console.error("Error generating tournament bracket:", error);
+    res.status(500).json({ error: "Failed to generate tournament bracket" });
+  }
+};
+
 module.exports = {
   addBattleSign,
   fetchBattleSigns,
@@ -1137,4 +1854,5 @@ module.exports = {
   deleteBattleSignup,
   generateBattlePDF,
   generateQRCodeForBattle,
+  generateTournamentBracket: generateTournamentBracketController,
 };

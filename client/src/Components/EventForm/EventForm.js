@@ -292,12 +292,12 @@ const EventForm = ({
   });
 
   const [battleCategories, setBattleCategories] = useState([
-    { name: "allStyles", displayName: "All Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
-    { name: "afroStyles", displayName: "Afro Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
-    { name: "dancehall", displayName: "Dancehall", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 },
+    { name: "allStyles", displayName: "All Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
+    { name: "afroStyles", displayName: "Afro Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
+    { name: "dancehall", displayName: "Dancehall", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
   ]);
 
-  const [newBattleCategory, setNewBattleCategory] = useState({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+  const [newBattleCategory, setNewBattleCategory] = useState({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false });
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
 
   // Fetch genres for the brand
@@ -681,7 +681,8 @@ const EventForm = ({
               displayName: fullCat.displayName,
               prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
               maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
-              participantsPerSignup: fullCat.participantsPerSignup || 1
+              participantsPerSignup: fullCat.participantsPerSignup || 1,
+              signUpsDone: fullCat.signUpsDone || false
             };
           })
         };
@@ -784,7 +785,8 @@ const EventForm = ({
                 displayName: fullCat.displayName,
                 prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
                 maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
-                participantsPerSignup: fullCat.participantsPerSignup || 1
+                participantsPerSignup: fullCat.participantsPerSignup || 1,
+                signUpsDone: fullCat.signUpsDone || false
               };
             })
           };
@@ -1165,6 +1167,7 @@ const EventForm = ({
             prizeMoney: cat.prizeMoney || event.battleConfig.prizeMoney || 0,
             maxParticipants: cat.maxParticipants || event.battleConfig.maxParticipantsPerCategory || 16,
             participantsPerSignup: cat.participantsPerSignup || 1,
+            signUpsDone: cat.signUpsDone || false,
           })));
         }
       }
@@ -1448,7 +1451,7 @@ const EventForm = ({
     }
 
     setBattleCategories(prev => [...prev, { ...newBattleCategory }]);
-    setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+    setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false });
     setShowAddCategoryForm(false);
     toast.showSuccess("Battle category added");
   };
@@ -2383,6 +2386,17 @@ const EventForm = ({
                                     max="4"
                                   />
                                   <small>How many people per registration (e.g., 2 for 2vs2)</small>
+                                </div>
+                                <div className="input-group">
+                                  <label className="checkbox-label">
+                                    <input
+                                      type="checkbox"
+                                      checked={category.signUpsDone || false}
+                                      onChange={(e) => handleCategoryUpdate(category.name, 'signUpsDone', e.target.checked)}
+                                    />
+                                    <span>Sign Ups Done</span>
+                                  </label>
+                                  <small>Check this to close registrations for this category</small>
                                 </div>
                               </div>
                             </div>

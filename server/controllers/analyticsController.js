@@ -5,6 +5,8 @@ const Brand = require("../models/brandModel");
 const CodeSetting = require("../models/codeSettingsModel");
 const User = require("../models/userModel");
 const TicketSettings = require("../models/ticketSettingsModel");
+const BattleSign = require("../models/battleSignModel");
+const BattleCode = require("../models/battleModel");
 
 // Get analytics summary for a specific event
 exports.getAnalyticsSummary = async (req, res) => {
@@ -54,6 +56,12 @@ exports.getAnalyticsSummary = async (req, res) => {
     // Get detailed Tickets stats by category
     const ticketStats = await getDetailedTicketStats(eventId);
 
+    // Get battle analytics if battle is enabled for this event
+    let battleAnalytics = null;
+    if (event.battleConfig && event.battleConfig.isEnabled) {
+      battleAnalytics = await getBattleAnalytics(eventId);
+    }
+
     // Process custom code types from settings
     const customCodeTypes = [];
     const processedTypes = new Set(["guest"]); // Track already processed types
@@ -98,13 +106,19 @@ exports.getAnalyticsSummary = async (req, res) => {
       totalCheckedIn += type.stats.checkedIn;
     });
 
+    // Add battle participants to totals if battle is enabled
+    if (battleAnalytics) {
+      totalCapacity += battleAnalytics.totalParticipants;
+      totalCheckedIn += battleAnalytics.totalCheckedIn;
+    }
+
     const totals = {
       capacity: totalCapacity,
       checkedIn: totalCheckedIn,
     };
 
     // Return the compiled stats
-    res.status(200).json({
+    const response = {
       success: true,
       guestCodes,
       tickets: ticketStats,
@@ -115,7 +129,14 @@ exports.getAnalyticsSummary = async (req, res) => {
         date: event.startDate || event.date,
         location: event.location,
       },
-    });
+    };
+
+    // Include battle analytics if enabled
+    if (battleAnalytics) {
+      response.battle = battleAnalytics;
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Error in getAnalyticsSummary:", error);
     res.status(500).json({
@@ -337,6 +358,106 @@ async function getDetailedTicketStats(eventId) {
       totalRevenue: 0,
       categories: [],
       paymentMethod: "online", // Default fallback
+    };
+  }
+}
+
+// Helper function to get battle analytics
+async function getBattleAnalytics(eventId) {
+  try {
+    // Get all battle signups for this event
+    const battleSignups = await BattleSign.find({ event: eventId });
+    
+    // Get all battle codes for this event (for check-ins)
+    const battleCodes = await BattleCode.find({ event: eventId });
+
+    // Group by categories and calculate stats
+    const categoryStats = {};
+    let totalParticipants = 0;
+    let totalCheckedIn = 0;
+    
+    // Process battle signups
+    battleSignups.forEach((signup) => {
+      const participantCount = 1 + (signup.participants ? signup.participants.length : 0);
+      totalParticipants += participantCount;
+      
+      signup.categories.forEach((category) => {
+        if (!categoryStats[category]) {
+          categoryStats[category] = {
+            name: category,
+            pending: 0,
+            confirmed: 0,
+            declined: 0,
+            total: 0,
+            participants: 0,
+            checkedIn: 0,
+            signups: []
+          };
+        }
+        
+        categoryStats[category][signup.status] += 1;
+        categoryStats[category].total += 1;
+        categoryStats[category].participants += participantCount;
+        
+        // Add signup details to the category
+        categoryStats[category].signups.push({
+          _id: signup._id,
+          name: signup.name,
+          email: signup.email,
+          phone: signup.phone,
+          instagram: signup.instagram,
+          status: signup.status,
+          participants: signup.participants || [],
+          participantCount: participantCount,
+          checkedIn: 0, // Will be updated when processing battle codes
+          createdAt: signup.createdAt
+        });
+      });
+    });
+
+    // Process battle codes to get check-in stats
+    battleCodes.forEach((code) => {
+      const checkedInCount = code.paxChecked || 0;
+      totalCheckedIn += checkedInCount;
+      
+      code.categories.forEach((category) => {
+        if (categoryStats[category]) {
+          categoryStats[category].checkedIn += checkedInCount;
+          
+          // Find the corresponding signup by email or battleSignId and update check-in count
+          const correspondingSignup = categoryStats[category].signups.find(signup => 
+            signup.email === code.email || signup._id.toString() === code.battleSignId?.toString()
+          );
+          
+          if (correspondingSignup) {
+            correspondingSignup.checkedIn = checkedInCount;
+          }
+        }
+      });
+    });
+
+    // Calculate status distribution
+    const statusDistribution = {
+      pending: battleSignups.filter(s => s.status === 'pending').length,
+      confirmed: battleSignups.filter(s => s.status === 'confirmed').length,
+      declined: battleSignups.filter(s => s.status === 'declined').length
+    };
+
+    return {
+      totalSignups: battleSignups.length,
+      totalParticipants,
+      totalCheckedIn,
+      statusDistribution,
+      categories: Object.values(categoryStats)
+    };
+  } catch (error) {
+    console.error("Error getting battle analytics:", error);
+    return {
+      totalSignups: 0,
+      totalParticipants: 0,
+      totalCheckedIn: 0,
+      statusDistribution: { pending: 0, confirmed: 0, declined: 0 },
+      categories: []
     };
   }
 }

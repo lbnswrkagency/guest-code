@@ -240,17 +240,22 @@ const BattleSign = forwardRef(({ eventId, ...props }, ref) => {
         {battleConfig.categories && battleConfig.categories.length > 0 ? (
           <div className="battleSign-form-categories">
             {battleConfig.categories.map((category) => (
-              <label key={category.name} className="battleSign-form-category">
+              <label 
+                key={category.name} 
+                className={`battleSign-form-category ${category.signUpsDone ? 'sold-out' : ''}`}
+              >
                 <input
                   type="radio"
                   name="battleCategory"
                   checked={selectedCategories.includes(category.name)}
                   onChange={() => handleCategoryChange(category.name)}
+                  disabled={category.signUpsDone}
                 />
                 <span className="category-label">
                   {category.displayName || category.name}
+                  {category.signUpsDone && <span className="sold-out-badge">FULL</span>}
                 </span>
-                {category.prizeMoney > 0 && (
+                {category.prizeMoney > 0 && !category.signUpsDone && (
                   <span className="category-prize">
                     {category.prizeMoney} {battleConfig.currency || "€"}
                   </span>

@@ -5,6 +5,7 @@ import {
   RiCloseLine,
   RiRefreshLine,
   RiSwordLine,
+  RiFileDownloadLine,
 } from "react-icons/ri";
 import Navigation from "../Navigation/Navigation";
 import ActionButtons from "../ActionButtons/ActionButtons";
@@ -19,6 +20,7 @@ function SpitixBattle({ user, onClose, eventId, eventTitle, permissions = {} }) 
   const [error, setError] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [deleteModalSignup, setDeleteModalSignup] = useState(null);
+  const [showBracketModal, setShowBracketModal] = useState(false);
   const { showSuccess, showError, showLoading } = useToast();
 
   useEffect(() => {
@@ -194,6 +196,49 @@ function SpitixBattle({ user, onClose, eventId, eventTitle, permissions = {} }) 
     setDeleteModalSignup(null);
   };
 
+  const handleGenerateBracket = async (categoryName) => {
+    const loadingToast = showLoading("Generating tournament bracket...");
+    
+    try {
+      const response = await axiosInstance.post(
+        `/battleSign/generate-bracket`,
+        { 
+          eventId: eventId,
+          category: categoryName
+        },
+        { responseType: 'blob' }
+      );
+
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename
+      const eventName = eventTitle || 'Event';
+      const date = new Date().toISOString().split('T')[0];
+      const categoryDisplayName = battleConfig.categories.find(cat => cat.name === categoryName)?.displayName || categoryName;
+      link.setAttribute('download', `${eventName}_${categoryDisplayName}_Tournament_Bracket_${date}.pdf`);
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      loadingToast.dismiss();
+      showSuccess("Tournament bracket PDF generated successfully!");
+      setShowBracketModal(false);
+    } catch (error) {
+      loadingToast.dismiss();
+      console.error("Error generating bracket:", error);
+      showError("Failed to generate tournament bracket");
+    }
+  };
+
   // All state handling is now done in the return statement
 
   return (
@@ -213,6 +258,14 @@ function SpitixBattle({ user, onClose, eventId, eventTitle, permissions = {} }) 
           )}
         </h2>
         <div className="header-actions">
+          <button
+            className="pdf-btn"
+            title="Generate tournament bracket PDF"
+            onClick={() => setShowBracketModal(true)}
+            disabled={loading || !battleConfig || !battleConfig.categories || battleConfig.categories.length === 0}
+          >
+            <RiFileDownloadLine />
+          </button>
           <button
             className="refresh-btn"
             onClick={fetchBattleData}
@@ -371,6 +424,43 @@ function SpitixBattle({ user, onClose, eventId, eventTitle, permissions = {} }) 
         )}
       </div>
       
+      {/* Tournament Bracket Generation Modal */}
+      {showBracketModal && battleConfig && (
+        <div className="spitixBattle-bracket-modal">
+          <div className="modal-content">
+            <h3>Generate Tournament Bracket</h3>
+            <p>Select a category to generate the tournament bracket PDF:</p>
+            
+            <div className="category-selection">
+              {battleConfig.categories.map((category) => {
+                const signupCount = getCategoryCount(category.name);
+                const confirmedCount = getConfirmedCount(category.name);
+                
+                return (
+                  <button
+                    key={category.name}
+                    className={`category-option ${confirmedCount === 0 ? 'disabled' : ''}`}
+                    onClick={() => handleGenerateBracket(category.name)}
+                    disabled={confirmedCount === 0}
+                  >
+                    <span className="category-name">{category.displayName || category.name}</span>
+                    <span className="participant-count">
+                      {confirmedCount} confirmed participants
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowBracketModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteModalSignup && (
         <div className="spitixBattle-delete-modal">

@@ -6,6 +6,7 @@ import {
   RiFileChartLine,
   RiUserLine,
   RiTicket2Line,
+  RiSwordLine,
 } from "react-icons/ri";
 import "./Analytics.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -16,6 +17,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
+  const [expandedBattleCategory, setExpandedBattleCategory] = useState(null);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -403,6 +405,211 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     );
   };
 
+  // Render individual battle signup
+  const renderBattleSignup = (signup) => {
+    const firstName = signup.name.split(' ')[0];
+    const lastName = signup.name.split(' ').slice(1).join(' ');
+    
+    return (
+      <div key={signup._id} className="battle-signup-item">
+        <div className="signup-header">
+          <div className="signup-name">
+            <span className="first-name">{firstName}</span>
+            {lastName && <span className="last-name">{lastName}</span>}
+          </div>
+          <div className="signup-social">
+            {signup.instagram && (
+              <span className="instagram">@{signup.instagram.replace('@', '')}</span>
+            )}
+          </div>
+          <div className="signup-status">
+            <span className={`status-indicator ${signup.status}`}>
+              {signup.status}
+            </span>
+          </div>
+        </div>
+        
+        <div className="signup-details">
+          <div className="detail-item">
+            <span className="label">Participants:</span>
+            <span className="value">{signup.participantCount}</span>
+          </div>
+          <div className="detail-item">
+            <span className="label">Checked In:</span>
+            <span className="value">{signup.checkedIn}</span>
+          </div>
+          {signup.participants && signup.participants.length > 0 && (
+            <div className="team-members">
+              <span className="team-label">Team:</span>
+              <div className="team-list">
+                {signup.participants.map((participant, idx) => (
+                  <span key={idx} className="team-member">
+                    {participant.name}
+                    {participant.instagram && ` (@${participant.instagram.replace('@', '')})`}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render battle category card
+  const renderBattleCategory = (category) => {
+    const isExpanded = expandedBattleCategory === category.name;
+    
+    return (
+      <div key={category.name} className="battle-category">
+        <div 
+          className="category-header clickable"
+          onClick={() => setExpandedBattleCategory(isExpanded ? null : category.name)}
+        >
+          <div className="category-icon-wrapper">
+            <RiSwordLine className="category-icon" style={{ color: "#e91e63" }} />
+          </div>
+          <h4>{category.name}</h4>
+          <div className="status-badges">
+            <span className="status-badge confirmed">{category.confirmed} confirmed</span>
+            <span className="status-badge pending">{category.pending} pending</span>
+            {category.declined > 0 && (
+              <span className="status-badge declined">{category.declined} declined</span>
+            )}
+          </div>
+          <div className="expand-toggle">
+            <span className="toggle-icon">⌵</span>
+          </div>
+        </div>
+        
+        <div className="category-stats">
+          <div className="stat">
+            <span className="value">{category.total}</span>
+            <span className="label">Signups</span>
+          </div>
+          <div className="stat">
+            <span className="value">{category.checkedIn}</span>
+            <span className="label">Checked In</span>
+          </div>
+        </div>
+        
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${getPercentage(category.checkedIn, category.participants)}%`,
+                backgroundColor: "#e91e63",
+              }}
+            ></div>
+          </div>
+          <div className="progress-percentage">
+            {getPercentage(category.checkedIn, category.participants).toFixed(0)}%
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {isExpanded && category.signups && category.signups.length > 0 && (
+            <motion.div
+              className="battle-signups-list"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {category.signups.map((signup) => renderBattleSignup(signup))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  // Render battle section
+  const renderBattleSection = (battle) => {
+    return (
+      <div
+        className={`stat-card battle-card clickable ${
+          expandedCard === "battle" ? "expanded" : ""
+        }`}
+      >
+        <div
+          className="card-header"
+          onClick={() =>
+            setExpandedCard(expandedCard === "battle" ? null : "battle")
+          }
+        >
+          <div className="card-header-content">
+            <div className="card-icon-wrapper">
+              <RiSwordLine className="card-icon" />
+            </div>
+            <h3>Battle Signups</h3>
+            <div className="card-toggle">
+              <span className="toggle-icon">⌵</span>
+            </div>
+          </div>
+
+          <div className="stat-values">
+            <div className="stat-total">
+              <span className="value">{battle.totalSignups}</span>
+              <span className="label">Signups</span>
+            </div>
+            <div className="stat-checked">
+              <span className="value">{battle.totalCheckedIn}</span>
+              <span className="label">Checked In</span>
+            </div>
+          </div>
+          
+          <div className="battle-status-overview">
+            <div className="status-item">
+              <span className="status-value confirmed">{battle.statusDistribution.confirmed}</span>
+              <span className="status-label">Confirmed</span>
+            </div>
+            <div className="status-item">
+              <span className="status-value pending">{battle.statusDistribution.pending}</span>
+              <span className="status-label">Pending</span>
+            </div>
+            {battle.statusDistribution.declined > 0 && (
+              <div className="status-item">
+                <span className="status-value declined">{battle.statusDistribution.declined}</span>
+                <span className="status-label">Declined</span>
+              </div>
+            )}
+          </div>
+
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${getPercentage(battle.totalCheckedIn, battle.totalParticipants)}%`,
+                  backgroundColor: "#e91e63",
+                }}
+              ></div>
+            </div>
+            <div className="progress-percentage">
+              {getPercentage(battle.totalCheckedIn, battle.totalParticipants).toFixed(0)}%
+            </div>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {expandedCard === "battle" && battle.categories.length > 0 && (
+            <motion.div
+              className="battle-categories"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {battle.categories.map((category) => renderBattleCategory(category))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       className="analytics-container"
@@ -461,6 +668,9 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
             {/* Tickets with categories - only show if sold > 0 */}
             {stats.tickets && stats.tickets.totalSold > 0 && renderTicketsSection(stats.tickets)}
+
+            {/* Battle signups - only show if battle is enabled and has signups */}
+            {stats.battle && stats.battle.totalSignups > 0 && renderBattleSection(stats.battle)}
 
             {/* Dynamically render custom code types */}
             {stats.customCodeTypes &&

@@ -2,6 +2,7 @@ const FriendsCode = require("../models/FriendsCode");
 const BackstageCode = require("../models/BackstageCode");
 const GuestCode = require("../models/GuestCode");
 const TableCode = require("../models/TableCode");
+const BattleCode = require("../models/battleModel");
 const User = require("../models/User");
 const Code = require("../models/codesModel");
 const moment = require("moment-timezone");
@@ -196,7 +197,78 @@ const validateTicket = async (req, res) => {
       }
     }
     
-    // If not found in Code model, check TableCode
+    // If not found in Code model, check BattleCode model
+    if (!ticket && securityTokenToCheck) {
+      console.log(
+        "[QR Validate] Checking BattleCode by securityToken:",
+        securityTokenToCheck
+      );
+      
+      // Try by security token first
+      let battleCodeBySecurityToken = await BattleCode.findOne({
+        securityToken: securityTokenToCheck,
+      });
+      console.log(
+        `[QR Validate] Result from BattleCode (by securityToken): ${
+          battleCodeBySecurityToken ? battleCodeBySecurityToken._id : "null"
+        }`
+      );
+
+      // If not found by securityToken, try by code field
+      if (!battleCodeBySecurityToken) {
+        console.log(
+          "[QR Validate] Trying to find BattleCode by code field:",
+          securityTokenToCheck
+        );
+        battleCodeBySecurityToken = await BattleCode.findOne({ 
+          code: securityTokenToCheck 
+        });
+        console.log(
+          `[QR Validate] Result from BattleCode (by code): ${
+            battleCodeBySecurityToken ? battleCodeBySecurityToken._id : "null"
+          }`
+        );
+      }
+
+      if (battleCodeBySecurityToken) {
+        console.log(
+          "[QR Validate] Found match in BattleCode model, using it."
+        );
+        ticket = battleCodeBySecurityToken;
+        typeOfTicket = "Battle-Code";
+
+        // Get event information if available
+        if (ticket.event) {
+          eventId = ticket.event;
+          const Event = require("../models/eventsModel");
+          event = await Event.findById(ticket.event);
+          console.log(
+            "Found event for BattleCode:",
+            event ? event.title : "No event found"
+          );
+
+          // Check for event mismatch
+          if (
+            requestEventId &&
+            eventId &&
+            requestEventId !== eventId.toString()
+          ) {
+            console.log("Event mismatch detected for BattleCode");
+            wrongEventError = true;
+          }
+        }
+
+        // Get participant name as host name
+        hostName = ticket.name || "Battle Participant";
+        
+        // Add battle-specific info to the ticket for response
+        ticket.battleCategories = ticket.categories;
+        ticket.battleParticipants = ticket.participants;
+        ticket.battleStatus = ticket.status;
+      }
+    }
+    
+    // If not found in Code or BattleCode models, check TableCode
     if (!ticket && securityTokenToCheck) {
       console.log(
         "[QR Validate] Checking TableCode by securityToken:",
@@ -526,6 +598,24 @@ const validateTicket = async (req, res) => {
         codeColor: codeColor,
       },
     };
+
+    // Add battle-specific fields for Battle-Code types
+    if (typeOfTicket === "Battle-Code") {
+      response.battleInfo = {
+        categories: ticketData.categories || [],
+        participants: ticketData.participants || [],
+        status: ticketData.status || "pending",
+        email: ticketData.email,
+        phone: ticketData.phone,
+        instagram: ticketData.instagram,
+        message: ticketData.message
+      };
+      // Set a battle-specific color if no code setting color is found
+      if (!codeSetting?.color) {
+        response.codeColor = "#e91e63"; // Pink color for battle codes
+        response.metadata.codeColor = "#e91e63";
+      }
+    }
     
     // For tickets from ticketModel.js, ensure we don't include a 'type' field
     // as this is used by frontend to distinguish between Code model and Ticket model
@@ -585,6 +675,11 @@ const increasePax = async (req, res) => {
               ticket = await TableCode.findById(ticketId);
               if (ticket) {
                 model = TableCode;
+              } else {
+                ticket = await BattleCode.findById(ticketId);
+                if (ticket) {
+                  model = BattleCode;
+                }
               }
             }
           }
@@ -596,7 +691,37 @@ const increasePax = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Check if max capacity reached for the ticket
+    // Special handling for BattleCode
+    if (model === BattleCode) {
+      // For BattleCode, we don't use traditional pax system
+      // Instead we can use the participants count as max capacity
+      const maxPax = 1 + (ticket.participants ? ticket.participants.length : 0);
+      const currentPaxChecked = ticket.paxChecked || 0;
+      
+      if (currentPaxChecked >= maxPax) {
+        return res.status(400).json({
+          message: "All battle participants already checked in",
+        });
+      }
+
+      // Increment paxChecked for battle code
+      ticket.paxChecked = currentPaxChecked + 1;
+      await ticket.save();
+
+      return res.json({
+        _id: ticket._id,
+        paxChecked: ticket.paxChecked,
+        maxPax: maxPax,
+        message: "Battle participant checked in successfully",
+        battleInfo: {
+          categories: ticket.categories,
+          status: ticket.status,
+          totalParticipants: maxPax
+        }
+      });
+    }
+
+    // Check if max capacity reached for regular tickets
     const maxPax = ticket.maxPax || ticket.pax || 1;
     if (ticket.paxChecked >= maxPax) {
       return res.status(400).json({
@@ -656,6 +781,11 @@ const decreasePax = async (req, res) => {
               ticket = await TableCode.findById(ticketId);
               if (ticket) {
                 model = TableCode;
+              } else {
+                ticket = await BattleCode.findById(ticketId);
+                if (ticket) {
+                  model = BattleCode;
+                }
               }
             }
           }
@@ -667,7 +797,35 @@ const decreasePax = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Check if paxChecked is already 0
+    // Special handling for BattleCode
+    if (model === BattleCode) {
+      // Check if paxChecked is already 0
+      if (ticket.paxChecked <= 0) {
+        return res.status(400).json({
+          message: "No battle participants are checked in",
+        });
+      }
+
+      // Decrement paxChecked for battle code
+      ticket.paxChecked = Math.max(0, (ticket.paxChecked || 0) - 1);
+      await ticket.save();
+
+      const maxPax = 1 + (ticket.participants ? ticket.participants.length : 0);
+      
+      return res.json({
+        _id: ticket._id,
+        paxChecked: ticket.paxChecked,
+        maxPax: maxPax,
+        message: "Battle participant check-in reduced successfully",
+        battleInfo: {
+          categories: ticket.categories,
+          status: ticket.status,
+          totalParticipants: maxPax
+        }
+      });
+    }
+
+    // Check if paxChecked is already 0 for regular tickets
     if (ticket.paxChecked <= 0) {
       return res.status(400).json({
         message: "Pax count is already 0 for this ticket",

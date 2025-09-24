@@ -179,6 +179,7 @@ const EventSchema = new Schema(
         prizeMoney: { type: Number, default: 0 }, // Override global prize per category
         maxParticipants: { type: Number, default: 16 }, // Override global max per category
         participantsPerSignup: { type: Number, default: 1 }, // How many people per registration (e.g., 2 for 2vs2)
+        signUpsDone: { type: Boolean, default: false }, // When true, no more signups allowed for this category
       }],
       // Battle-specific event details that can override main event details
       battleDate: { type: Date }, // If different from main event

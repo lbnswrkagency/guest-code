@@ -1006,3 +1006,467 @@
     opacity: 0.7;
   }
 }
+
+// Battle Analytics Styles
+.battle-card {
+  .card-icon {
+    color: #e91e63;
+  }
+
+  .stat-participants {
+    .value {
+      color: #e91e63;
+      font-weight: 700;
+    }
+  }
+
+  .battle-status-overview {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 12px;
+      border-radius: 6px;
+      min-width: 60px;
+
+      .status-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 2px;
+
+        &.confirmed {
+          color: #4caf50;
+        }
+        &.pending {
+          color: #ff9800;
+        }
+        &.declined {
+          color: #f44336;
+        }
+      }
+
+      .status-label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+}
+
+.battle-categories {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  .battle-category {
+    background: rgba(21, 21, 21, 0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #e91e63;
+    transition: all 0.3s ease;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 8px;
+        margin: -8px;
+      }
+
+      .category-icon-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .category-icon {
+          font-size: 1.2rem;
+          color: #e91e63;
+        }
+      }
+
+      h4 {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .status-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.confirmed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+          }
+
+          &.pending {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+          }
+
+          &.declined {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+          }
+        }
+      }
+
+      .expand-toggle {
+        display: flex;
+        align-items: center;
+        
+        .toggle-icon {
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.5);
+          transform: rotate(0deg);
+          transition: transform 0.3s ease;
+        }
+      }
+
+      &.clickable:hover {
+        .expand-toggle .toggle-icon {
+          color: #e91e63;
+        }
+      }
+    }
+
+    .category-stats {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+
+      .stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .value {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #e91e63;
+          margin-bottom: 2px;
+        }
+
+        .label {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.6);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+
+    .progress-container {
+      .progress-bar {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+
+        .progress-fill {
+          height: 100%;
+          background: #e91e63;
+          transition: width 0.3s ease;
+        }
+      }
+
+      .progress-percentage {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: right;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .battle-signups-list {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border-top: 1px solid rgba(233, 30, 99, 0.2);
+
+    .battle-signup-item {
+      background: rgba(21, 21, 21, 0.6);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-left: 3px solid rgba(233, 30, 99, 0.5);
+      transition: all 0.2s ease;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      &:hover {
+        background: rgba(21, 21, 21, 0.8);
+        border-left-color: #e91e63;
+        transform: translateX(2px);
+      }
+
+      .signup-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .signup-name {
+          display: flex;
+          gap: 4px;
+
+          .first-name {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 1rem;
+          }
+
+          .last-name {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            font-size: 1rem;
+          }
+        }
+
+        .signup-social {
+          .instagram {
+            color: #e91e63;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: rgba(233, 30, 99, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(233, 30, 99, 0.2);
+          }
+        }
+
+        .signup-status {
+          .status-indicator {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+
+            &.confirmed {
+              background: rgba(76, 175, 80, 0.2);
+              color: #4caf50;
+              border: 1px solid rgba(76, 175, 80, 0.3);
+            }
+
+            &.pending {
+              background: rgba(255, 152, 0, 0.2);
+              color: #ff9800;
+              border: 1px solid rgba(255, 152, 0, 0.3);
+            }
+
+            &.declined {
+              background: rgba(244, 67, 54, 0.2);
+              color: #f44336;
+              border: 1px solid rgba(244, 67, 54, 0.3);
+            }
+          }
+        }
+      }
+
+      .signup-details {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .detail-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            font-weight: 500;
+          }
+
+          .value {
+            color: #e91e63;
+            font-weight: 600;
+            font-size: 0.9rem;
+          }
+        }
+
+        .team-members {
+          margin-top: 8px;
+          padding: 8px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 6px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+
+          .team-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .team-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            .team-member {
+              color: rgba(255, 255, 255, 0.8);
+              font-size: 0.85rem;
+              padding: 4px 0;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+              &:last-child {
+                border-bottom: none;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments for battle analytics
+@media (max-width: 768px) {
+  .battle-card {
+    .battle-status-overview {
+      justify-content: center;
+      gap: 8px;
+
+      .status-item {
+        min-width: 50px;
+        padding: 6px 10px;
+
+        .status-value {
+          font-size: 1rem;
+        }
+
+        .status-label {
+          font-size: 0.6rem;
+        }
+      }
+    }
+  }
+
+  .battle-categories {
+    padding: 0.75rem;
+
+    .battle-category {
+      padding: 0.75rem;
+
+      .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .status-badges {
+          justify-content: flex-start;
+        }
+      }
+
+      .category-stats {
+        gap: 1rem;
+
+        .stat {
+          .value {
+            font-size: 1.2rem;
+          }
+
+          .label {
+            font-size: 0.7rem;
+          }
+        }
+      }
+    }
+
+    .battle-signups-list {
+      padding: 0.75rem;
+
+      .battle-signup-item {
+        padding: 0.75rem;
+
+        .signup-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+
+          .signup-name {
+            .first-name, .last-name {
+              font-size: 0.9rem;
+            }
+          }
+
+          .signup-social .instagram {
+            font-size: 0.8rem;
+          }
+        }
+
+        .signup-details {
+          .detail-item {
+            .label, .value {
+              font-size: 0.8rem;
+            }
+          }
+
+          .team-members {
+            .team-label {
+              font-size: 0.7rem;
+            }
+
+            .team-list .team-member {
+              font-size: 0.8rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
