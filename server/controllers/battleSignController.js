@@ -1163,7 +1163,7 @@ const generateTournamentBracket = (participants) => {
   // Shuffle participants for random seeding, but handle special cases
   let shuffledParticipants = shuffleArray(participants);
   
-  // Special handling for Rania and Mpilex - put them in the last Pre Selection match
+  // Special handling for Rania and Mpilex - put them in different matches within the last 3 Pre Selection matches
   const raniaIndex = shuffledParticipants.findIndex(p => p.name.toLowerCase().includes('rania'));
   const mpilexIndex = shuffledParticipants.findIndex(p => p.name.toLowerCase().includes('mpilex'));
   
@@ -1176,8 +1176,19 @@ const generateTournamentBracket = (participants) => {
       index !== raniaIndex && index !== mpilexIndex
     );
     
-    // Add them to the last two positions (will be the last match in Pre Selection)
-    shuffledParticipants.push(rania, mpilex);
+    // Calculate positions for last 3 matches (6 positions total: 2 participants per match)
+    // We want to place them in different matches within these last 3 matches
+    const totalParticipants = shuffledParticipants.length + 2; // +2 for Rania and Mpilex
+    const lastSixPositions = Math.max(0, totalParticipants - 6); // Start of last 3 matches
+    
+    // Place Rania in the 3rd to last match (position -5 from end)
+    const raniaPosition = Math.max(0, totalParticipants - 5);
+    // Place Mpilex in the 2nd to last match (position -3 from end)  
+    const mpilexPosition = Math.max(0, totalParticipants - 3);
+    
+    // Insert them at their calculated positions
+    shuffledParticipants.splice(Math.min(raniaPosition, shuffledParticipants.length), 0, rania);
+    shuffledParticipants.splice(Math.min(mpilexPosition, shuffledParticipants.length), 0, mpilex);
   }
   
   // Add bye slots (empty spots for odd numbers)
