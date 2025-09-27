@@ -194,6 +194,37 @@ $breakpoints: (
         margin-bottom: 0.5rem;
         font-weight: 500;
       }
+      
+      .date-input-wrapper {
+        position: relative;
+        width: 100%;
+        
+        .date-placeholder-text {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: rgba(255, 255, 255, 0.5);
+          pointer-events: none;
+          font-size: 0.95rem;
+          
+          @media (max-width: 768px) {
+            font-size: 16px;
+          }
+        }
+        
+        .register-input.empty {
+          color: transparent;
+          
+          &:focus {
+            color: #fff;
+            
+            & ~ .date-placeholder-text {
+              display: none;
+            }
+          }
+        }
+      }
 
       .input-hint {
         font-size: 0.85rem;

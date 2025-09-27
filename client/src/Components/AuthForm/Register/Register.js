@@ -464,17 +464,22 @@ function Register({ onRegisterSuccess }) {
 
           <div className="input-group">
             <label className="input-label">Birthday</label>
-            <input
-              className={`register-input ${touched.birthday && errors.birthday ? 'error' : ''}`}
-              type="date"
-              name="birthday"
-              value={formData.birthday}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
-              min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
-            />
+            <div className="date-input-wrapper">
+              <input
+                className={`register-input ${touched.birthday && errors.birthday ? 'error' : ''} ${!formData.birthday ? 'empty' : ''}`}
+                type="date"
+                name="birthday"
+                value={formData.birthday}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+              />
+              {!formData.birthday && (
+                <span className="date-placeholder-text">DD.MM.YYYY</span>
+              )}
+            </div>
             {touched.birthday && errors.birthday && (
               <p className="input-hint error">{errors.birthday}</p>
             )}
