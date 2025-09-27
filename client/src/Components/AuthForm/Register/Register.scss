@@ -187,88 +187,13 @@ $breakpoints: (
         }
       }
 
-      &.date-input-group {
-        .date-input-wrapper {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          transition: all 0.2s ease;
-          padding: 0.5rem 1rem 0.25rem;
+      // Remove the complex date-input-group styling since we simplified the structure
 
-          &:focus-within {
-            border-color: #ffc807;
-            background: rgba(255, 255, 255, 0.08);
-          }
-          
-          &:has(.error) {
-            border-color: #f44336;
-            background: rgba(244, 67, 54, 0.1);
-          }
-
-          .date-field-label {
-            color: #ffc807;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-            line-height: 1;
-            user-select: none;
-            min-height: 0.8rem;
-          }
-
-          .register-input {
-            border: none;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            min-height: auto;
-
-            &:focus {
-              border: none;
-              background: transparent;
-              outline: none;
-            }
-
-            &[type="date"] {
-              color: rgba(255, 255, 255, 0.9);
-
-              @media (max-width: 768px) {
-                color: rgba(255, 255, 255, 0.9);
-                padding-right: 0;
-                background-image: none;
-              }
-
-              &::-webkit-calendar-picker-indicator {
-                filter: invert(1) brightness(0.8);
-                cursor: pointer;
-                width: 16px;
-                height: 16px;
-
-                @media (max-width: 768px) {
-                  opacity: 1;
-                  filter: invert(1) brightness(0.8);
-                }
-              }
-
-              &:invalid {
-                color: rgba(255, 255, 255, 0.5);
-              }
-
-              &:valid {
-                color: rgba(255, 255, 255, 0.9);
-              }
-            }
-          }
-        }
-
-        .input-hint {
-          font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
-          margin-top: 0.5rem;
-          margin-left: 0.5rem;
-        }
+      .input-hint {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.5rem;
+        margin-left: 0.5rem;
       }
     }
 
@@ -317,6 +242,37 @@ $breakpoints: (
       &.error {
         border-color: #f44336;
         background: rgba(244, 67, 54, 0.1);
+      }
+
+      // Date input specific styling
+      &[type="date"] {
+        padding-right: 0.5rem;
+        
+        @media (max-width: 768px) {
+          // Ensure minimum height for tap targets
+          min-height: 44px;
+          font-size: 16px; // Prevents zoom on iOS
+        }
+        
+        &::-webkit-calendar-picker-indicator {
+          filter: invert(1) brightness(0.8);
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          margin-left: 0.5rem;
+          
+          @media (max-width: 768px) {
+            width: 24px;
+            height: 24px;
+            margin-right: 0.25rem;
+          }
+        }
+        
+        // Firefox
+        &::-moz-calendar-picker-indicator {
+          filter: invert(1) brightness(0.8);
+          cursor: pointer;
+        }
       }
     }
 
