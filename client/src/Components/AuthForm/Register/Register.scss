@@ -187,29 +187,12 @@ $breakpoints: (
         }
       }
 
-      &.date-input-group {
-        .date-input-container {
-          position: relative;
-          width: 100%;
-          
-          .date-placeholder {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.5);
-            pointer-events: none;
-            font-size: 0.95rem;
-            
-            @media (max-width: 768px) {
-              font-size: 16px;
-            }
-          }
-          
-          &.has-value .date-placeholder {
-            display: none;
-          }
-        }
+      .input-label {
+        display: block;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
       }
 
       .input-hint {
@@ -267,41 +250,17 @@ $breakpoints: (
         background: rgba(244, 67, 54, 0.1);
       }
 
-      // Date input specific styling
+      // Date input specific styling - keep it simple
       &[type="date"] {
-        // Match other input styling
-        width: 100%;
-        padding: 0.85rem 2.5rem 0.85rem 1rem; // Extra padding right for calendar icon
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        color: #fff;
-        font-size: 0.95rem;
-        
         @media (max-width: 768px) {
-          // Ensure minimum height for tap targets
-          min-height: 44px;
-          font-size: 16px; // Prevents zoom on iOS
-          padding: 0.85rem 2.5rem 0.85rem 1rem;
+          // Prevent zoom on iOS
+          font-size: 16px;
         }
         
         &::-webkit-calendar-picker-indicator {
           filter: invert(1) brightness(0.8);
           cursor: pointer;
-          width: 20px;
-          height: 20px;
           opacity: 1;
-          position: absolute;
-          right: 1rem;
-          
-          @media (max-width: 768px) {
-            width: 24px;
-            height: 24px;
-            opacity: 1;
-            display: block;
-            position: absolute;
-            right: 1rem;
-          }
         }
         
         // Firefox
@@ -309,15 +268,6 @@ $breakpoints: (
           filter: invert(1) brightness(0.8);
           cursor: pointer;
           opacity: 1;
-        }
-        
-        // Show placeholder-like text when empty
-        &:invalid {
-          color: rgba(255, 255, 255, 0.5);
-        }
-        
-        &:valid {
-          color: rgba(255, 255, 255, 0.9);
         }
       }
     }
