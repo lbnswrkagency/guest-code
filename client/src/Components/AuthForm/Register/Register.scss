@@ -187,7 +187,30 @@ $breakpoints: (
         }
       }
 
-      // Remove the complex date-input-group styling since we simplified the structure
+      &.date-input-group {
+        .date-input-container {
+          position: relative;
+          width: 100%;
+          
+          .date-placeholder {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            font-size: 0.95rem;
+            
+            @media (max-width: 768px) {
+              font-size: 16px;
+            }
+          }
+          
+          &.has-value .date-placeholder {
+            display: none;
+          }
+        }
+      }
 
       .input-hint {
         font-size: 0.85rem;
@@ -246,12 +269,20 @@ $breakpoints: (
 
       // Date input specific styling
       &[type="date"] {
-        padding-right: 0.5rem;
+        // Match other input styling
+        width: 100%;
+        padding: 0.85rem 2.5rem 0.85rem 1rem; // Extra padding right for calendar icon
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
         
         @media (max-width: 768px) {
           // Ensure minimum height for tap targets
           min-height: 44px;
           font-size: 16px; // Prevents zoom on iOS
+          padding: 0.85rem 2.5rem 0.85rem 1rem;
         }
         
         &::-webkit-calendar-picker-indicator {
@@ -259,12 +290,17 @@ $breakpoints: (
           cursor: pointer;
           width: 20px;
           height: 20px;
-          margin-left: 0.5rem;
+          opacity: 1;
+          position: absolute;
+          right: 1rem;
           
           @media (max-width: 768px) {
             width: 24px;
             height: 24px;
-            margin-right: 0.25rem;
+            opacity: 1;
+            display: block;
+            position: absolute;
+            right: 1rem;
           }
         }
         
@@ -272,6 +308,16 @@ $breakpoints: (
         &::-moz-calendar-picker-indicator {
           filter: invert(1) brightness(0.8);
           cursor: pointer;
+          opacity: 1;
+        }
+        
+        // Show placeholder-like text when empty
+        &:invalid {
+          color: rgba(255, 255, 255, 0.5);
+        }
+        
+        &:valid {
+          color: rgba(255, 255, 255, 0.9);
         }
       }
     }
