@@ -188,6 +188,19 @@ const BrandProfile = () => {
     cleanUsername = brandUsername.replace(/^@/, "");
   }
 
+  // Extract date hint from URL (DDMMYY or DDMMYYYY format)
+  let initialDateHint = null;
+  if (location.pathname.includes("/@")) {
+    const pathParts = location.pathname.split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    
+    // Check if last part is a date format (6 or 8 digits)
+    const dateRegex = /^(\d{6}|\d{8})$/;
+    if (dateRegex.test(lastPart)) {
+      initialDateHint = lastPart;
+    }
+  }
+
   // Skip fetching if this is the user's own profile
   useEffect(() => {
     // Extract brandUsername from URL path
@@ -1312,6 +1325,7 @@ const BrandProfile = () => {
           brand={brand} 
           onEventChange={handleEventChange}
           onEventsLoaded={handleEventsLoaded}
+          initialDateHint={initialDateHint}
         />
       </div>
 

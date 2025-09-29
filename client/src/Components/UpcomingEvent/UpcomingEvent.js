@@ -64,6 +64,7 @@ const UpcomingEvent = ({
   hideTableBooking = false,
   onEventsLoaded = () => {},
   onEventChange = () => {},
+  initialDateHint = null,
 }) => {
   const [events, setEvents] = useState(
     providedEvents ? [...providedEvents] : []
@@ -739,12 +740,48 @@ const UpcomingEvent = ({
       onEventsLoaded(upcomingEvents.length);
 
       if (upcomingEvents.length > 0) {
-        // Set the first event as the current event (unless we're planning to navigate from URL)
-        setCurrentIndex(0);
-
-        // Preload the first event's image if available
-        if (upcomingEvents[0].flyer) {
-          preloadEventImage(upcomingEvents[0]);
+        let targetIndex = 0; // Default to first event
+        
+        // Handle date navigation if we have a date hint and haven't processed it yet
+        if (initialDateHint && !hasNavigatedFromURL) {
+          // Parse the date hint
+          let targetDate = null;
+          if (initialDateHint.length === 6) { // DDMMYY format
+            const day = parseInt(initialDateHint.substring(0, 2));
+            const month = parseInt(initialDateHint.substring(2, 4)) - 1;
+            const year = parseInt("20" + initialDateHint.substring(4, 6));
+            targetDate = new Date(year, month, day);
+          } else if (initialDateHint.length === 8) { // DDMMYYYY format
+            const day = parseInt(initialDateHint.substring(0, 2));
+            const month = parseInt(initialDateHint.substring(2, 4)) - 1;
+            const year = parseInt(initialDateHint.substring(4, 8));
+            targetDate = new Date(year, month, day);
+          }
+          
+          if (targetDate && !isNaN(targetDate.getTime())) {
+            const matchingEventIndex = upcomingEvents.findIndex(event => {
+              const eventDate = event.calculatedStartDate || new Date(event.startDate || event.date);
+              if (!eventDate) return false;
+              
+              const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+              const targetDateOnly = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+              
+              return eventDateOnly.getTime() === targetDateOnly.getTime();
+            });
+            
+            if (matchingEventIndex !== -1) {
+              targetIndex = matchingEventIndex;
+            }
+          }
+          
+          setHasNavigatedFromURL(true); // Mark as processed
+        }
+        
+        setCurrentIndex(targetIndex);
+        
+        // Preload the selected event's image if available
+        if (upcomingEvents[targetIndex].flyer) {
+          preloadEventImage(upcomingEvents[targetIndex]);
         }
       } else {
         setCurrentIndex(-1);
@@ -760,6 +797,7 @@ const UpcomingEvent = ({
       setLoading(false);
     }
   };
+
 
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
