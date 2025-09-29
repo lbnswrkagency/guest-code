@@ -50,6 +50,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const memberController = require("./controllers/memberController");
 const memberRoutes = require("./routes/api/memberRoutes");
 const allRoutes = require("./routes/allRoutes");
+const coHostRoutes = require("./routes/coHostRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -282,6 +283,7 @@ app.use("/api/genres", genreRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/all", allRoutes);
+app.use("/api/co-hosts", coHostRoutes);
 
 // MongoDB connection
 mongoose

@@ -37,16 +37,21 @@ exports.getUpcomingEventData = async (req, res) => {
     }
 
 
-    // Step 2: SIMPLIFIED EVENT QUERY - Get all events for brand, filter logic will be in JavaScript
+    // Step 2: SIMPLIFIED EVENT QUERY - Get all events for brand AND co-hosted events
 
     // Get all parent events for the brand (we'll filter in JavaScript for better control)
     const parentEvents = await Event.find({
-      brand: targetBrandId,
+      $or: [
+        { brand: targetBrandId },
+        { coHosts: targetBrandId }
+      ],
       parentEventId: { $exists: false }
     })
     .sort({ startDate: 1, date: 1 })
-    .limit(parseInt(limit))
-    .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
+    .limit(parseInt(limit) * 2) // Increase limit since we're fetching from multiple sources
+    .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
+    .populate("brand", "name username logo")
+    .populate("coHosts", "name username logo")
     .populate("user", "username firstName lastName avatar")
     .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
     .populate("genres", "name description color")
@@ -63,7 +68,9 @@ exports.getUpcomingEventData = async (req, res) => {
       const childEvents = await Event.find({
         parentEventId: { $in: weeklyParents.map(p => p._id) }
       })
-      .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
+      .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
+      .populate("brand", "name username logo")
+      .populate("coHosts", "name username logo")
       .populate("user", "username firstName lastName avatar")
       .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
       .populate("genres", "name description color")
@@ -109,11 +116,15 @@ exports.getUpcomingEventData = async (req, res) => {
         status = "past";
       }
 
+      // Check if this is a co-hosted event
+      const isCoHosted = event.brand._id.toString() !== targetBrandId.toString();
+
       return {
         ...event,
         calculatedStartDate: startDate,
         calculatedEndDate: endDate,
         status,
+        isCoHosted,
       };
     });
 

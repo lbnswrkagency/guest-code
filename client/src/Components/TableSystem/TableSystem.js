@@ -13,15 +13,20 @@ import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
 import TableBookingPopup from "../TableBookingPopup/TableBookingPopup";
 import TableSummary from "../TableSummary/TableSummary";
-import { RiTableLine, RiRefreshLine, RiCloseLine, RiFileChartLine } from "react-icons/ri";
+import {
+  RiTableLine,
+  RiRefreshLine,
+  RiCloseLine,
+  RiFileChartLine,
+} from "react-icons/ri";
 
 /**
  * TableSystem component for managing table reservations
- * 
+ *
  * HYBRID COMPONENT: Can work in two modes:
  * 1. Standalone mode (DashboardMenu): Fetches its own table data via API calls
  * 2. Optimized mode (UpcomingEvent): Uses pre-fetched table data from comprehensive endpoint
- * 
+ *
  * @param {Object} props
  * @param {Object} props.user - Current user object
  * @param {Array} props.userRoles - User's roles for permissions
@@ -52,10 +57,12 @@ function TableSystem({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
-  const [tableData, setTableData] = useState(providedTableData || {
-    tableCounts: [],
-    totalCount: 0,
-  });
+  const [tableData, setTableData] = useState(
+    providedTableData || {
+      tableCounts: [],
+      totalCount: 0,
+    }
+  );
   const [isLoading, setIsLoading] = useState(!providedTableData);
   const [selectedVenue, setSelectedVenue] = useState("default");
   const [showTableSummary, setShowTableSummary] = useState(false);
@@ -437,7 +444,6 @@ function TableSystem({
         isPublic: isPublic, // Flag to identify public requests
       };
 
-
       // Use different endpoint for public vs. authenticated requests
       const endpoint = isPublic ? `/table/public/add` : `/table/add`;
 
@@ -505,7 +511,7 @@ function TableSystem({
 
   const handleRefresh = () => {
     setIsSpinning(true);
-    
+
     // If we have provided data, don't set refresh trigger as it won't refetch
     // Instead, just show the spinning animation and reset it
     if (providedTableData) {
@@ -585,13 +591,13 @@ function TableSystem({
       }
     >
       <div className="table-system-wrapper">
-        <Navigation
+        {/* <Navigation
           onBack={onClose}
           // Menu click is handled through global events - we don't need a local handler
           onMenuClick={() => {
             // The global event is dispatched in Navigation component
           }}
-        />
+        /> */}
 
         <div className="table-system-content">
           {isPublic ? (
@@ -715,7 +721,7 @@ function TableSystem({
       </div>
       {/* Only show Footer in non-public mode */}
       {!isPublic && <Footer />}
-      
+
       {/* Table Summary Modal */}
       {showTableSummary && (
         <TableSummary

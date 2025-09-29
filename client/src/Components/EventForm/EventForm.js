@@ -38,6 +38,7 @@ import { BiTime } from "react-icons/bi";
 import LineUp from "../LineUp/LineUp";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import GenreSelector from "../GenreSelector/GenreSelector";
+import CoHost from "../CoHost/CoHost";
 
 const FLYER_TYPES = [
   {
@@ -274,6 +275,9 @@ const EventForm = ({
 
   // Add a new state to track genre IDs that need to be selected
   const [genreIdsToSelect, setGenreIdsToSelect] = useState([]);
+
+  // Add state for co-hosts
+  const [selectedCoHosts, setSelectedCoHosts] = useState([]);
 
   // Battle configuration states
   const [battleConfig, setBattleConfig] = useState({
@@ -668,6 +672,20 @@ const EventForm = ({
         );
       }
 
+      // Add selected co-hosts to the form data
+      console.log("🔍 [EventForm] Current selectedCoHosts:", selectedCoHosts);
+      if (selectedCoHosts.length > 0) {
+        const coHostIds = selectedCoHosts.map((coHost) => coHost._id);
+        console.log("✅ [EventForm] Adding coHosts to FormData:", coHostIds);
+        dataToSend.append(
+          "coHosts",
+          JSON.stringify(coHostIds)
+        );
+      } else {
+        console.log("ℹ️ [EventForm] No coHosts to add to FormData - adding empty array");
+        dataToSend.append("coHosts", JSON.stringify([]));
+      }
+
       // Add battle configuration
       if (battleConfig.isEnabled) {
         const battleData = {
@@ -770,6 +788,11 @@ const EventForm = ({
         // Add selected genres to the update data (not as a stringified array)
         if (selectedGenres.length > 0) {
           updateData.genres = selectedGenres.map((genre) => genre._id);
+        }
+
+        // Add selected co-hosts to the update data
+        if (selectedCoHosts.length > 0) {
+          updateData.coHosts = selectedCoHosts.map((coHost) => coHost._id);
         }
 
         // Add battle configuration for updates
@@ -1187,6 +1210,13 @@ const EventForm = ({
       } else {
         setSelectedLineups([]);
       }
+
+      // Populate selected co-hosts
+      if (Array.isArray(event.coHosts)) {
+        setSelectedCoHosts(event.coHosts);
+      } else {
+        setSelectedCoHosts([]);
+      }
     }
     // For non-created child events - if event has no ID but we have parentEventData and it's a child/weekly event
     else if (
@@ -1521,6 +1551,22 @@ const EventForm = ({
                 />
               </div>
             </div>
+
+            {/* Co-Hosts section */}
+            <div className="form-section">
+              <h3>Co-Hosts</h3>
+              <p className="form-section-description">
+                Add other brands as co-hosts for this event
+              </p>
+              <CoHost
+                selectedCoHosts={selectedCoHosts}
+                onUpdate={setSelectedCoHosts}
+                currentBrandId={selectedBrand?._id}
+                eventId={event?._id}
+                eventCodeSettings={[]}
+              />
+            </div>
+
             <div className="form-section">
               <h3>{isChildEvent ? "Time" : "Date & Time"}</h3>
 

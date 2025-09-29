@@ -376,7 +376,7 @@ const Navigation = ({ onBack, onLogout }) => {
       className={`appNav ${!isMobile ? "appNav-sidebar-active" : ""}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.1 }}
     >
       {isMobile ? renderTopNav() : renderSidebar()}
 

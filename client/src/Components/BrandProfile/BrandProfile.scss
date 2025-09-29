@@ -1,7 +1,7 @@
 @import "../../_variables";
 
 .brand-profile {
-  // max-width: 1200px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
   position: relative;
@@ -557,7 +557,7 @@
     background: #151515;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem;
-    z-index: 100;
+    z-index: 999;
 
     .menu-items {
       max-width: 600px;
@@ -1074,184 +1074,6 @@
     @media (max-width: 768px) {
       margin: 0.75rem 0;
       padding: 0 0.25rem;
-    }
-
-    // Sticky state
-    &.sticky {
-      position: fixed;
-      top: 56px; // Navigation height
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 1200px; // Match parent max-width
-      z-index: 1000;
-      margin: 0;
-      padding: 0.6rem 1.2rem;
-      background: rgba(21, 21, 21, 0.96);
-      backdrop-filter: blur(16px);
-      border-radius: 50px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-      
-      // Change to horizontal layout for sticky
-      flex-direction: row;
-      gap: 0.75rem;
-      justify-content: center;
-      align-items: center;
-      box-sizing: border-box;
-
-      @media (max-width: 768px) {
-        gap: 0.6rem;
-        padding: 0.5rem 1rem;
-        width: calc(100% - 1.5rem); // Account for parent padding
-      }
-
-      .event-action-button {
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
-        min-width: 120px;
-        width: auto;
-        flex: 1; // Allow buttons to grow/shrink to fit container
-        max-width: 200px; // Prevent buttons from getting too wide
-        
-        .button-content {
-          .button-icon {
-            width: 24px; // Reduced from 32px
-            height: 24px; // Reduced from 32px  
-            margin-right: 0.4rem; // Reduced margin
-            background: none; // Remove background for minimalistic look
-            border-radius: 4px; // Smaller radius
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            svg {
-              font-size: 0.9rem; // Reduced from 1rem
-              opacity: 0.9;
-            }
-          }
-
-          .button-text {
-            // Default: show full text, hide short text
-            .button-text-full {
-              display: inline;
-              font-size: 0.85rem;
-            }
-            
-            .button-text-short {
-              display: none;
-              font-size: 0.85rem;
-            }
-            
-            span:not(.button-text-full):not(.button-text-short) {
-              font-size: 0.85rem;
-            }
-          }
-
-          .button-arrow {
-            width: 20px;
-            height: 20px;
-
-            svg {
-              font-size: 0.9rem;
-            }
-          }
-        }
-      }
-
-      @media (max-width: 768px) {
-        .event-action-button {
-          padding: 0.35rem 0.7rem; // Further reduced padding
-          min-width: 80px; // Further reduced min-width for mobile
-          flex: 1; // Allow equal distribution
-          max-width: 120px; // Prevent buttons from getting too wide on mobile
-
-          .button-content {
-            .button-icon {
-              width: 20px; // Further reduced for mobile
-              height: 20px; // Further reduced for mobile
-              margin-right: 0.3rem; // Reduced margin
-              background: none; // Remove background
-
-              svg {
-                font-size: 0.8rem; // Smaller icon
-                opacity: 0.9;
-              }
-            }
-
-            .button-text {
-              // On small screens: hide full text, show short text
-              .button-text-full {
-                display: none;
-              }
-              
-              .button-text-short {
-                display: inline;
-                font-size: 0.75rem; // Smaller font for compact look
-              }
-              
-              span:not(.button-text-full):not(.button-text-short) {
-                font-size: 0.75rem;
-              }
-            }
-
-            .button-arrow {
-              width: 16px; // Further reduced
-              height: 16px; // Further reduced
-
-              svg {
-                font-size: 0.7rem; // Smaller arrow
-                opacity: 0.8;
-              }
-            }
-          }
-        }
-        
-        // For slightly larger mobile screens (iPhone Pro Max, etc.) but still small
-        @media (min-width: 400px) and (max-width: 768px) {
-          .event-action-button {
-            min-width: 95px; // Reduced for better fit
-            padding: 0.4rem 0.75rem;
-            
-            .button-content {
-              .button-icon {
-                width: 22px;
-                height: 22px;
-                margin-right: 0.35rem;
-              }
-              
-              .button-text {
-                .button-text-full {
-                  display: none;
-                }
-                
-                .button-text-short {
-                  display: inline;
-                  font-size: 0.78rem; // Slightly larger than smallest screens
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // For iPad mini and larger screens: show full text
-      @media (min-width: 769px) {
-        .event-action-button {
-          min-width: 140px;
-          
-          .button-content .button-text {
-            .button-text-full {
-              display: inline;
-              font-size: 0.85rem;
-            }
-            
-            .button-text-short {
-              display: none;
-            }
-          }
-        }
-      }
     }
 
     .event-action-button {

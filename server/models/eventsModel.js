@@ -46,6 +46,32 @@ const EventSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
+    coHosts: [{ type: Schema.Types.ObjectId, ref: "Brand" }], // Array of co-host brand IDs
+    coHostRolePermissions: [{
+      brandId: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
+      rolePermissions: [{
+        roleId: { type: Schema.Types.ObjectId, ref: "Role", required: true },
+        permissions: {
+          analytics: {
+            view: { type: Boolean, default: false },
+          },
+          codes: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+          scanner: {
+            use: { type: Boolean, default: false },
+          },
+          tables: {
+            access: { type: Boolean, default: false },
+            manage: { type: Boolean, default: false },
+            summary: { type: Boolean, default: false },
+          },
+          battles: {
+            view: { type: Boolean, default: false },
+            edit: { type: Boolean, default: false },
+            delete: { type: Boolean, default: false },
+          },
+        }
+      }]
+    }],
     title: { type: String, required: true },
     subTitle: { type: String },
     description: { type: String },

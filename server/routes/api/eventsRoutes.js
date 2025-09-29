@@ -124,7 +124,8 @@ router.get(
           path: "codeSettings",
           model: "CodeSettings",
         })
-        .populate("genres");
+        .populate("genres")
+        .populate("coHosts", "name username logo");
 
 
       res.status(200).json(events);

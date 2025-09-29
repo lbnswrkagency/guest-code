@@ -22,24 +22,14 @@ const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded }) => {
       {/* Upcoming Events Section */}
       <div className="feed-section upcoming-events">
         <div className="events-list">
-          {isAuthenticated ? (
-            <UpcomingEvent
-              brandId={brand?._id}
-              brandUsername={brand?.username}
-              limit={5}
-              seamless={true}
-              onEventsLoaded={handleEventsLoaded}
-              onEventChange={onEventChange}
-            />
-          ) : (
-            <UpcomingEvent
-              brandUsername={brand?.username}
-              limit={5}
-              seamless={true}
-              onEventsLoaded={handleEventsLoaded}
-              onEventChange={onEventChange}
-            />
-          )}
+          <UpcomingEvent
+            brandId={isAuthenticated ? brand?._id : null}
+            brandUsername={brand?.username}
+            limit={5}
+            seamless={true}
+            onEventsLoaded={handleEventsLoaded}
+            onEventChange={onEventChange}
+          />
         </div>
       </div>
 

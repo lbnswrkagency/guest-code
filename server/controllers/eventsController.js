@@ -102,6 +102,9 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       genres: templateEvent.genres || [],
       // Copy the lineups array from sequential template event
       lineups: templateEvent.lineups || [],
+      // Copy co-host data from sequential template event
+      coHosts: templateEvent.coHosts || [],
+      coHostRolePermissions: templateEvent.coHostRolePermissions || [],
       // Copy legacy code settings for backward compatibility from sequential template event
       guestCode: templateEvent.guestCode,
       friendsCode: templateEvent.friendsCode,
@@ -190,7 +193,9 @@ const findSequentialTemplateEvent = async (parentEvent, weekNumber) => {
         { _id: parentEvent._id, weekNumber: { $lte: weekNumber } }, // Include parent (week 0) if it qualifies
         { parentEventId: parentEvent._id, weekNumber: { $lte: weekNumber } } // Include qualifying child events
       ]
-    }).sort({ weekNumber: -1 }); // Sort by highest week number first
+    })
+    .populate('coHosts', 'name username logo') // Populate co-host data for inheritance
+    .sort({ weekNumber: -1 }); // Sort by highest week number first
 
     // Use the event with the highest week number <= target week as template
     return existingEvents[0] || parentEvent;
@@ -301,6 +306,16 @@ exports.createEvent = async (req, res) => {
       }
     }
 
+    // Parse coHosts if they exist
+    let coHosts = [];
+    if (req.body.coHosts) {
+      try {
+        coHosts = JSON.parse(req.body.coHosts);
+      } catch (e) {
+        // Error parsing coHosts
+      }
+    }
+
     // Extract event data from request body
     const {
       title,
@@ -346,6 +361,7 @@ exports.createEvent = async (req, res) => {
       flyer: {},
       lineups: lineups,
       genres: genres,
+      coHosts: coHosts,
       guestCode: guestCode,
       friendsCode: friendsCode,
       ticketCode: ticketCode,
@@ -482,7 +498,8 @@ exports.getBrandEvents = async (req, res) => {
       .sort({ date: -1 })
       .populate("user", "username firstName lastName avatar")
       .populate("lineups")
-      .populate("genres");
+      .populate("genres")
+      .populate("coHosts", "name username logo");
 
     res.status(200).json(events);
   } catch (error) {
@@ -530,12 +547,18 @@ exports.getAllEvents = async (req, res) => {
 
     const brandIds = sortedBrands.map((brand) => brand._id);
 
-    // Get events from all these brands
-    const events = await Event.find({ brand: { $in: brandIds } })
+    // Get events from all these brands and also events where user's brands are co-hosts
+    const events = await Event.find({ 
+      $or: [
+        { brand: { $in: brandIds } },
+        { coHosts: { $in: brandIds } }
+      ]
+    })
       .sort({ date: -1 })
       .populate("brand", "name username logo")
       .populate("user", "username firstName lastName avatar")
-      .populate("genres");
+      .populate("genres")
+      .populate("coHosts", "name username logo");
 
     res.status(200).json(events);
   } catch (error) {
@@ -596,6 +619,25 @@ exports.editEvent = async (req, res) => {
       }
     }
 
+    // Handle coHosts if they exist
+    console.log("🔍 [Backend] Raw coHosts from request:", req.body.coHosts, typeof req.body.coHosts);
+    if (req.body.coHosts) {
+      // If coHosts is a string (from FormData), parse it
+      if (typeof req.body.coHosts === "string") {
+        try {
+          req.body.coHosts = JSON.parse(req.body.coHosts);
+          console.log("✅ [Backend] Parsed coHosts successfully:", req.body.coHosts);
+        } catch (e) {
+          console.error("❌ [Backend] Failed to parse coHosts:", e.message);
+          delete req.body.coHosts;
+        }
+      } else if (Array.isArray(req.body.coHosts)) {
+        console.log("✅ [Backend] coHosts already an array:", req.body.coHosts);
+      }
+    } else {
+      console.log("ℹ️ [Backend] No coHosts field in request body");
+    }
+
     // Find event and check permissions
     const event = await Event.findById(eventId);
     if (!event) {
@@ -639,6 +681,14 @@ exports.editEvent = async (req, res) => {
     // Update lineups if provided
     if (req.body.lineups) {
       event.lineups = req.body.lineups;
+    }
+
+    // Update co-hosts if provided
+    if (req.body.coHosts !== undefined) {
+      event.coHosts = Array.isArray(req.body.coHosts) ? req.body.coHosts : [];
+    }
+    if (req.body.coHostRolePermissions !== undefined) {
+      event.coHostRolePermissions = req.body.coHostRolePermissions || [];
     }
 
     // Check if this is a child event being edited directly
@@ -818,6 +868,14 @@ exports.editEvent = async (req, res) => {
             typeof lineupsBody === "string"
               ? JSON.parse(lineupsBody)
               : lineupsBody.map((l) => l._id || l);
+        }
+
+        // Handle co-hosts if provided in the request body
+        if (req.body.coHosts !== undefined) {
+          childEvent.coHosts = Array.isArray(req.body.coHosts) ? req.body.coHosts : [];
+        }
+        if (req.body.coHostRolePermissions !== undefined) {
+          childEvent.coHostRolePermissions = req.body.coHostRolePermissions || [];
         }
 
         // Align legacy date field
@@ -1327,7 +1385,8 @@ exports.getEvent = async (req, res) => {
     const eventData = await Event.findById(req.params.eventId)
       .populate("lineups")
       .populate("brand") // Populate the brand to get brand data including colors
-      .populate("genres");
+      .populate("genres")
+      .populate("coHosts", "name username logo");
 
     if (!eventData) {
       return res
@@ -1352,7 +1411,8 @@ exports.getEventPage = async (req, res) => {
   try {
     const eventData = await Event.findById(req.params.eventId)
       .populate("lineups")
-      .populate("genres");
+      .populate("genres")
+      .populate("coHosts", "name username logo");
     if (!eventData) {
       return res
         .status(404)
