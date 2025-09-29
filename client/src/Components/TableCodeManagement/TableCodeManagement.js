@@ -612,10 +612,19 @@ function TableCodeManagement({
         (code) => getCategoryForTable(code.tableNumber) === category
       ) || [];
 
-    // Find the correct tableCategories key for this display category
+    // Calculate total tables for this category
     let totalTablesInCategory = 0;
     
-    if (tableCategories) {
+    // If we have layoutConfig, count tables from the dynamic configuration
+    if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
+      // Count tables in layoutConfig that belong to this category
+      Object.entries(layoutConfig.tableConfig).forEach(([tableNumber, tableInfo]) => {
+        if (tableInfo.category && layoutConfig.categoryAreaNames[tableInfo.category] === category) {
+          totalTablesInCategory++;
+        }
+      });
+    } else if (tableCategories) {
+      // Fallback to static tableCategories
       // Map display names back to tableCategories keys
       const categoryKey = (() => {
         // Direct key match first

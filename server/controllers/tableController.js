@@ -199,8 +199,17 @@ const addTableCode = async (req, res) => {
         }
       }
 
-      // Allow table management if user is team member, brand owner, or has role permission
-      hasTableManage = isTeamMember || isBrandOwner || hasRolePermission;
+      // Log for debugging
+      console.log("🔍 [TableController] Permission check:");
+      console.log("  - isTeamMember:", isTeamMember);
+      console.log("  - isBrandOwner:", isBrandOwner);
+      console.log("  - hasRolePermission:", hasRolePermission);
+      
+      // Only allow table management if user has explicit role permission or is the brand owner
+      // Being a team member alone should NOT grant table management rights
+      hasTableManage = isBrandOwner || hasRolePermission;
+      
+      console.log("  - Final hasTableManage:", hasTableManage);
     }
 
     // Use the already fetched event details for email
@@ -477,8 +486,17 @@ const getTableCounts = async (req, res) => {
         }
       }
 
-      // Allow table management if user is team member, brand owner, or has role permission
-      hasTableManage = isTeamMember || isBrandOwner || hasRolePermission;
+      // Log for debugging
+      console.log("🔍 [TableController] Permission check:");
+      console.log("  - isTeamMember:", isTeamMember);
+      console.log("  - isBrandOwner:", isBrandOwner);
+      console.log("  - hasRolePermission:", hasRolePermission);
+      
+      // Only allow table management if user has explicit role permission or is the brand owner
+      // Being a team member alone should NOT grant table management rights
+      hasTableManage = isBrandOwner || hasRolePermission;
+      
+      console.log("  - Final hasTableManage:", hasTableManage);
 
       // Debug log to help understand permission issues
       console.log("TableCounts Debug:", {

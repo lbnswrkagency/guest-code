@@ -24,14 +24,6 @@ const TableLayoutHarlem = ({
 
   // Table configuration with minimum spend and max persons - Harlem layout
   const tableConfig = {
-    // D tables (DJ area) - €200 minimum, 6 persons max
-    D3: { minSpend: 200, maxPersons: 6, category: "D" },
-    D4: { minSpend: 200, maxPersons: 6, category: "D" },
-    D5: { minSpend: 200, maxPersons: 6, category: "D" },
-    D6: { minSpend: 200, maxPersons: 6, category: "D" },
-    D7: { minSpend: 200, maxPersons: 6, category: "D" },
-    D8: { minSpend: 200, maxPersons: 6, category: "D" },
-
     // V tables (VIP area) - €300 minimum, 6-8 persons max
     V1: { minSpend: 300, maxPersons: 8, category: "V" },
     V2: { minSpend: 300, maxPersons: 8, category: "V" },
@@ -70,7 +62,6 @@ const TableLayoutHarlem = ({
 
   // Categorize tables for the parent components to use
   const tableCategories = {
-    djarea: ["D3", "D4", "D5", "D6", "D7", "D8"],
     vip: [
       "V1",
       "V2",
