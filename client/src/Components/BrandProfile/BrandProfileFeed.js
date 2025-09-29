@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { RiCalendarEventLine } from "react-icons/ri";
 import UpcomingEvent from "../UpcomingEvent";
 import { useAuth } from "../../contexts/AuthContext";
@@ -39,4 +39,4 @@ const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHin
   );
 };
 
-export default BrandProfileFeed;
+export default memo(BrandProfileFeed);

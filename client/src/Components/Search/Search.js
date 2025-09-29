@@ -80,41 +80,19 @@ const Search = ({ isOpen, onClose }) => {
     performSearch(searchQuery);
   }, [searchQuery, performSearch]);
 
-  // Debug function to check results
-  useEffect(() => {
-    if (results.length > 0) {
-      console.log("[Search] Results:", results);
-      console.log("[Search] Active tab:", activeTab);
-      console.log(
-        "[Search] Filtered results:",
-        results.filter((item) => activeTab === "all" || item.type === activeTab)
-      );
-    }
-  }, [results, activeTab]);
-
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
   };
 
   const handleResultClick = (item) => {
-    console.log("[Search] Handling result click:", {
-      type: item.type,
-      id: item._id,
-      username: item.username,
-      name: item.name,
-      isAuthenticated: !!user,
-    });
-
     onClose(); // Close the search overlay
 
     switch (item.type) {
       case "user":
         if (!item.username) {
-          console.error("[Search] User username is missing:", item);
           toast.showError("Unable to navigate to user profile");
           return;
         }
-        console.log("[Search] Navigating to user:", `/@${item.username}`);
         navigate(`/@${item.username}`);
         break;
       case "brand":
@@ -128,13 +106,11 @@ const Search = ({ isOpen, onClose }) => {
           // For authenticated users, use full URL and force a page reload
           // to ensure proper route resolution
           const brandPath = `/@${user.username}/@${item.username}`;
-          console.log("[Search] Navigating to brand (with reload):", brandPath);
           // Use window.location.href to force a full page reload
           window.location.href = brandPath;
         } else {
           // For non-authenticated users, client-side navigation works fine
           const brandPath = `/@${item.username}`;
-          console.log("[Search] Navigating to brand:", brandPath);
           navigate(brandPath);
         }
         break;
@@ -225,7 +201,6 @@ const Search = ({ isOpen, onClose }) => {
         break;
       */
       default:
-        console.log("[Search] Unhandled item type:", item.type);
     }
   };
 

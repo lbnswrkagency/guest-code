@@ -99,7 +99,7 @@ const BrandProfile = () => {
   const actionButtonsStickyPosRef = useRef(null);
   const brandProfileRef = useRef(null);
 
-  // Handler for when events are loaded from UpcomingEvent
+  // Handler for when events are loaded from UpcomingEvent - memoized to prevent re-renders
   const handleEventsLoaded = useCallback((count) => {
     setLoadingProgress(prev => ({ 
       ...prev, 
@@ -114,59 +114,26 @@ const BrandProfile = () => {
     return totalProgress >= 100;
   }, [totalProgress]);
 
-  // Update main loading state when all data is ready
+  // Update main loading state - show feed after brand loads to allow events to load
   useEffect(() => {
-    if (allDataLoaded && loading) {
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
+    // Show the feed once brand is loaded (so events can start loading)
+    if (loadingProgress.brand === 100 && loading) {
+      setLoading(false);
     }
-  }, [allDataLoaded, loading]);
+  }, [loadingProgress.brand, loading, totalProgress]);
 
-  // Progressive loading simulation with realistic timings
+  // Real loading progress tracking - no artificial simulation
   useEffect(() => {
-    if (!loading) return;
-
-    // Simulate progressive loading for better UX
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        const newProgress = { ...prev };
-        
-        // Brand loading simulation (fastest)
-        if (newProgress.brand < 100 && newProgress.brand < 80) {
-          newProgress.brand = Math.min(100, newProgress.brand + Math.random() * 15 + 5);
-        }
-        
-        // Events loading simulation (medium speed, starts after brand reaches 30%)
-        if (newProgress.brand > 30 && newProgress.events < 100 && newProgress.events < 90) {
-          newProgress.events = Math.min(100, newProgress.events + Math.random() * 8 + 2);
-        }
-        
-        // Tickets loading simulation (starts after events reach 60%)
-        if (newProgress.events > 60 && newProgress.tickets < 100 && newProgress.tickets < 95) {
-          newProgress.tickets = Math.min(100, newProgress.tickets + Math.random() * 12 + 3);
-        }
-        
-        return newProgress;
-      });
-    }, 150);
-
-    // Cleanup interval
-    return () => clearInterval(progressInterval);
+    if (!loading) {
+      // When loading is done, ensure all progress is 100
+      setLoadingProgress({ brand: 100, events: 100, tickets: 100 });
+    } else {
+      // When loading starts, reset progress
+      setLoadingProgress({ brand: 0, events: 0, tickets: 0 });
+    }
   }, [loading]);
 
-  // Fallback timeout to prevent infinite loading
-  useEffect(() => {
-    const fallbackTimeout = setTimeout(() => {
-      if (loading) {
-        // Force completion after 8 seconds
-        setLoadingProgress({ brand: 100, events: 100, tickets: 100 });
-      }
-    }, 8000);
-
-    return () => clearTimeout(fallbackTimeout);
-  }, [loading]);
+  // Removed fallback timeout - no longer needed with simplified loading
 
   // Clean username for API calls - handle both param and direct path extraction
   let cleanUsername;
@@ -188,54 +155,24 @@ const BrandProfile = () => {
     cleanUsername = brandUsername.replace(/^@/, "");
   }
 
-  // Extract date hint from URL (DDMMYY or DDMMYYYY format)
-  let initialDateHint = null;
-  if (location.pathname.includes("/@")) {
-    const pathParts = location.pathname.split("/");
-    const lastPart = pathParts[pathParts.length - 1];
-    
-    // Check if last part is a date format (6 or 8 digits)
-    const dateRegex = /^(\d{6}|\d{8})$/;
-    if (dateRegex.test(lastPart)) {
-      initialDateHint = lastPart;
+  // Extract date hint from URL (DDMMYY or DDMMYYYY format) - MEMOIZED
+  const initialDateHint = useMemo(() => {
+    if (location.pathname.includes("/@")) {
+      const pathParts = location.pathname.split("/");
+      const lastPart = pathParts[pathParts.length - 1];
+      
+      // Check if last part is a date format (6 or 8 digits)
+      const dateRegex = /^(\d{6}|\d{8})$/;
+      if (dateRegex.test(lastPart)) {
+        return lastPart;
+      }
     }
-  }
+    return null;
+  }, [location.pathname]);
 
-  // Skip fetching if this is the user's own profile
-  useEffect(() => {
-    // Extract brandUsername from URL path
-    const pathMatch = location.pathname.match(/\/@([^\/]+)/);
-    const brandUsername = pathMatch ? pathMatch[1] : null;
-
-    // Skip fetching if this might be the user's profile and we have a user
-    if (user && brandUsername && user.username === brandUsername) {
-      return; // Don't proceed with the fetch
-    }
-
-    if (cleanUsername) {
-      fetchBrand();
-    }
-  }, [cleanUsername, user, location.pathname]); // Add user and location.pathname as dependencies
-
-  useEffect(() => {
-    if (cleanUsername) {
-      fetchBrand();
-    } else {
-      toast.showError("Invalid brand profile");
-      navigate("/");
-    }
-  }, [cleanUsername, user]);
-
-  useEffect(() => {
-    if (brand?.userStatus) {
-      setIsFollowing(brand.userStatus.isFollowing || false);
-      setIsMember(brand.userStatus.isMember || false);
-      setIsFavorited(brand.userStatus.isFavorited || false);
-      setJoinRequestStatus(brand.userStatus.joinRequestStatus || null);
-    }
-  }, [brand?.userStatus]);
-
-  const fetchBrand = async () => {
+  // Single useEffect to handle brand fetching - with memoized dependencies
+  // Define fetchBrand first before it's used
+  const fetchBrand = useCallback(async () => {
     try {
       setLoading(true);
       setLoadingProgress({ brand: 0, events: 0, tickets: 0 });
@@ -277,7 +214,36 @@ const BrandProfile = () => {
         setLoading(false);
       }
     }
-  };
+  }, [cleanUsername, user, toast, navigate, location.pathname]);
+
+  const shouldSkipFetch = useMemo(() => {
+    // Never skip fetching - always load brand profile data
+    // This ensures both authenticated and unauthenticated users can view brand profiles
+    return false;
+  }, []);
+
+  useEffect(() => {
+    if (!cleanUsername) {
+      toast.showError("Invalid brand profile");
+      navigate("/");
+      return;
+    }
+
+    if (shouldSkipFetch) {
+      return; // Don't proceed with the fetch
+    }
+
+    fetchBrand();
+  }, [cleanUsername, shouldSkipFetch, fetchBrand]);
+
+  useEffect(() => {
+    if (brand?.userStatus) {
+      setIsFollowing(brand.userStatus.isFollowing || false);
+      setIsMember(brand.userStatus.isMember || false);
+      setIsFavorited(brand.userStatus.isFavorited || false);
+      setJoinRequestStatus(brand.userStatus.joinRequestStatus || null);
+    }
+  }, [brand?.userStatus]);
 
   const handleBack = () => {
     navigate(-1);
@@ -1000,7 +966,7 @@ const BrandProfile = () => {
                 <div className="button-text">
                   <span className="button-text-full">Guest Code</span>
                   <span className="button-text-short">Codes</span>
-                  {!isActionButtonsSticky && <p>Free entry with code</p>}
+                  {!isActionButtonsSticky && <p>{codeSettings.find(setting => setting.type === 'guest')?.condition || 'Free entry with code'}</p>}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />

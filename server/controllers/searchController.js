@@ -10,11 +10,7 @@ exports.search = async (req, res) => {
       return res.json([]);
     }
 
-    console.log("[SearchController] Searching:", {
-      query,
-      type,
-      timestamp: new Date().toISOString(),
-    });
+    // Search initiated
 
     let results = [];
     const searchRegex = new RegExp(query, "i");
@@ -45,7 +41,6 @@ exports.search = async (req, res) => {
       //       type: "user",
       //     }));
       //   } catch (error) {
-      //     console.error("[SearchController] User search error:", error);
       //     results = [];
       //   }
       //   break;
@@ -72,7 +67,7 @@ exports.search = async (req, res) => {
             type: "brand",
           }));
         } catch (error) {
-          console.error("[SearchController] Brand search error:", error);
+          // Brand search error
           results = [];
         }
         break;
@@ -82,9 +77,7 @@ exports.search = async (req, res) => {
           // Get current date and time for proper comparison
           const now = new Date();
 
-          console.log("[SearchController] Events search using date filter:", {
-            currentDateTime: now.toISOString(),
-          });
+          // Using date filter for events search
 
           // Find events that are not in the past, considering endDate and endTime
           results = await Event.find({
@@ -142,14 +135,7 @@ exports.search = async (req, res) => {
               }
             }
 
-            // Debug the date comparison
-            console.log(
-              `[SearchController] Event ${
-                event.title
-              } - end date: ${eventEndDate.toISOString()}, now: ${now.toISOString()}, is future: ${
-                eventEndDate > now
-              }`
-            );
+            // Check if event is in the future
 
             // Keep the event if end date/time is in the future
             return eventEndDate > now;
@@ -165,19 +151,7 @@ exports.search = async (req, res) => {
           // Limit to 10 after filtering
           results = results.slice(0, 10);
 
-          // Add debug info about found events
-          console.log(
-            "[SearchController] Events found after filtering:",
-            results.map((event) => ({
-              id: event._id,
-              title: event.title,
-              date: event.date,
-              startDate: event.startDate,
-              endDate: event.endDate,
-              startTime: event.startTime,
-              endTime: event.endTime,
-            }))
-          );
+          // Events filtered and sorted
 
           results = results.map((event) => ({
             _id: event._id,
@@ -198,7 +172,6 @@ exports.search = async (req, res) => {
             type: "event",
           }));
         } catch (error) {
-          console.error("[SearchController] Event search error:", error);
           results = [];
         }
         break;
@@ -209,9 +182,7 @@ exports.search = async (req, res) => {
           // Get current date and time for proper comparison
           const now = new Date();
 
-          console.log("[SearchController] All search using date filter:", {
-            currentDateTime: now.toISOString(),
-          });
+          // Search all types
 
           const [brands, allEvents] = await Promise.all([
             // Brand search remains the same
@@ -226,10 +197,6 @@ exports.search = async (req, res) => {
               .limit(5)
               .lean()
               .catch((err) => {
-                console.error(
-                  "[SearchController] Brand search error in all:",
-                  err
-                );
                 return [];
               }),
 
@@ -252,10 +219,6 @@ exports.search = async (req, res) => {
               .limit(25)
               .lean()
               .catch((err) => {
-                console.error(
-                  "[SearchController] Event search error in all:",
-                  err
-                );
                 return [];
               }),
           ]);
@@ -338,43 +301,18 @@ exports.search = async (req, res) => {
             })),
           ];
 
-          // Debug info about found events
-          console.log(
-            "[SearchController] Events found after filtering in 'all' search:",
-            events.map((event) => ({
-              id: event._id,
-              title: event.title,
-              date: event.date,
-              endDate: event.endDate,
-              endTime: event.endTime,
-            }))
-          );
+          // Events processed for combined search
         } catch (error) {
-          console.error("[SearchController] Combined search error:", error);
           results = [];
         }
         break;
     }
 
-    console.log("[SearchController] Search results:", {
-      count: results.length,
-      type,
-      results: results.map((r) => ({
-        id: r._id,
-        name: r.name,
-        type: r.type,
-        date: r.date ? new Date(r.date).toISOString() : null,
-        startDate: r.startDate ? new Date(r.startDate).toISOString() : null,
-        endDate: r.endDate ? new Date(r.endDate).toISOString() : null,
-      })),
-    });
+    // Search completed
 
     res.json(results);
   } catch (error) {
-    console.error("[SearchController] Error:", {
-      message: error.message,
-      stack: error.stack,
-    });
+    // Error occurred in search
     res.status(500).json({
       message: "Error performing search",
       error: error.message,
