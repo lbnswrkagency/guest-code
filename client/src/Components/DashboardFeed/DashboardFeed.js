@@ -46,6 +46,13 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
   // Effect to use event data from Redux props
   useEffect(() => {
+    console.log(`[CoHost Debug] DashboardFeed - Processing event data:`, {
+      selectedEvent: selectedEvent?.title,
+      isCoHosted: selectedEvent?.isCoHosted,
+      selectedBrand: selectedBrand?.name,
+      brandEventsCount: selectedBrand?.events?.length
+    });
+    
     // If we have a selected event, use it directly
     if (selectedEvent) {
       // Check if the event has lineups data
@@ -140,6 +147,13 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
         ) {
           brandEvents = selectedBrand.events.items;
         }
+
+        console.log(`[CoHost Debug] DashboardFeed - Brand events for date search:`, {
+          brandName: selectedBrand.name,
+          totalEvents: brandEvents.length,
+          coHostedEvents: brandEvents.filter(e => e.isCoHosted).length,
+          selectedDate: selectedDate
+        });
 
         // Find events for the selected date
         const eventsForDate = brandEvents.filter((event) => {

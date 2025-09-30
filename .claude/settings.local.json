@@ -27,7 +27,8 @@
       "mcp__filesystem__read_file",
       "Bash(npm start:*)",
       "Bash(npx sass:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

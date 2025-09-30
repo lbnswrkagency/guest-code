@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import Navigation from "../Navigation/Navigation";
 import Footer from "./Footer/Footer";
 import ContactSection from "./ContactSection/ContactSection";
-import HomeHeader from "../HomeHeader/HomeHeader";
+import EventOverview from "../EventOverview/EventOverview";
 import "./Home.scss";
 
 const Home = () => {
@@ -15,16 +15,8 @@ const Home = () => {
       <Navigation />
 
       <header className="home-header">
-        {/* 3D Background Layer */}
-        <div className="home-header-three-d-layer">
-          <HomeHeader />
-        </div>
-
-        {/* Reduced opacity for the animated background */}
-        <div
-          className="home-header-animated-background"
-          style={{ opacity: 0.7 }}
-        >
+        {/* Minimalistic animated background */}
+        <div className="home-header-animated-background">
           {/* Nebula effects */}
           <div className="home-header-nebula-container">
             <div className="home-header-nebula"></div>
@@ -137,6 +129,9 @@ const Home = () => {
           </Link>
         </div>
       </header>
+
+      {/* Event Overview Section */}
+      <EventOverview />
 
       {/* Contact Section */}
       <ContactSection />

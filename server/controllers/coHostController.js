@@ -47,22 +47,78 @@ exports.searchBrands = async (req, res) => {
 exports.getCoHostedEvents = async (req, res) => {
   try {
     const { brandId } = req.params;
+    console.log(`[CoHost Backend] Fetching co-hosted events for brandId: ${brandId}`);
 
-    // Find events where the brand is a co-host
+    // Find events where the brand is a co-host - use the exact same population as regular events
     const coHostedEvents = await Event.find({
       coHosts: brandId,
       parentEventId: { $exists: false } // Only get parent events
     })
-      .populate("brand", "name username logo")
+      .populate("brand", "name username logo colors") // Include brand colors for UI
       .populate("coHosts", "name username logo")
       .populate("user", "username firstName lastName avatar")
-      .populate("lineups")
-      .populate("genres")
-      .sort({ startDate: -1 });
+      .populate("lineups") // Full lineup population like regular events
+      .populate("genres") // Full genre population like regular events
+      .sort({ date: -1 }); // Use same sort field as regular events
 
-    res.status(200).json(coHostedEvents);
+    console.log(`[CoHost Backend] Found ${coHostedEvents.length} co-hosted events`);
+
+    // For each co-hosted event, fetch and attach code settings AND ensure complete data structure
+    const eventsWithFullData = await Promise.all(
+      coHostedEvents.map(async (event) => {
+        try {
+          // Get code settings for this event (this is what regular events get from Redux)
+          const eventCodeSettings = await CodeSettings.find({
+            eventId: event._id
+          });
+
+          console.log(`[CoHost Backend] Event ${event.title} has ${eventCodeSettings.length} code settings`);
+
+          // Convert event to plain object to ensure consistent structure
+          const eventObj = event.toObject();
+          
+          // Attach code settings (regular events get this from Redux store)
+          eventObj.codeSettings = eventCodeSettings;
+          
+          // Ensure all required date fields are present and properly formatted
+          if (!eventObj.date && eventObj.startDate) {
+            eventObj.date = eventObj.startDate; // Ensure backward compatibility
+          }
+          
+          if (!eventObj.startDate && eventObj.date) {
+            eventObj.startDate = eventObj.date; // Ensure forward compatibility
+          }
+
+          // Ensure flyer object exists (even if empty) for consistent structure
+          if (!eventObj.flyer) {
+            eventObj.flyer = {};
+          }
+
+          // Ensure arrays exist for consistent structure
+          if (!eventObj.lineups) eventObj.lineups = [];
+          if (!eventObj.genres) eventObj.genres = [];
+          if (!eventObj.coHosts) eventObj.coHosts = [];
+
+          // Ensure string fields exist
+          if (!eventObj.title) eventObj.title = '';
+          if (!eventObj.description) eventObj.description = '';
+          if (!eventObj.location) eventObj.location = '';
+          
+          return eventObj;
+        } catch (error) {
+          console.error(`[CoHost Backend] Error processing event ${event._id}:`, error);
+          // Return basic event structure if processing fails
+          const eventObj = event.toObject();
+          eventObj.codeSettings = [];
+          return eventObj;
+        }
+      })
+    );
+
+    console.log(`[CoHost Backend] Returning ${eventsWithFullData.length} events with complete data structure`);
+    res.status(200).json(eventsWithFullData);
   } catch (error) {
-    console.error("Error fetching co-hosted events:", error);
+    console.error("[CoHost Backend] Error fetching co-hosted events:", error);
     res.status(500).json({ message: "Error fetching co-hosted events" });
   }
 };

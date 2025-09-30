@@ -26,6 +26,7 @@ import Analytics from "../Analytics/Analytics";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
 import { motion } from "framer-motion";
 import { RiArrowUpSLine } from "react-icons/ri";
+import axiosInstance from "../../utils/axiosConfig";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +40,9 @@ const Dashboard = () => {
   const codeSettings = useSelector(selectAllCodeSettings);
   const lineups = useSelector(selectAllLineups);
   const userRoles = useSelector((state) => state.roles?.userRoles || {});
+
+  // State for co-hosted events
+  const [coHostedEvents, setCoHostedEvents] = useState([]);
 
   // State for selected brand and date
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -68,6 +72,40 @@ const Dashboard = () => {
     setIsNavigationOpen(isOpen);
   };
 
+  // Function to fetch co-hosted events for all user's brands
+  const fetchCoHostedEvents = async () => {
+    if (!user || !brands || brands.length === 0) {
+      return;
+    }
+
+    try {
+      const allCoHostedEvents = [];
+
+      // Fetch co-hosted events for each brand the user is part of
+      for (const brand of brands) {
+        try {
+          const response = await axiosInstance.get(`/co-hosts/brand/${brand._id}/events`);
+          
+          if (response.data && Array.isArray(response.data)) {
+            // Mark these events as co-hosted and add brand info
+            const coHostedEventsForBrand = response.data.map(event => ({
+              ...event,
+              isCoHosted: true,
+              coHostBrand: brand, // The brand that is co-hosting (our user's brand)
+            }));
+            allCoHostedEvents.push(...coHostedEventsForBrand);
+          }
+        } catch (error) {
+          // Silent fail for individual brand co-hosted events
+        }
+      }
+
+      setCoHostedEvents(allCoHostedEvents);
+    } catch (error) {
+      // Silent fail for co-hosted events fetching
+    }
+  };
+
   useEffect(() => {
     // Check if user is logged in
     if (!user) {
@@ -80,6 +118,14 @@ const Dashboard = () => {
       hasLoggedStore.current = true;
     }
   }, [user, brands, events, roles, codeSettings, navigate]);
+
+  // Fetch co-hosted events when brands are available
+  useEffect(() => {
+    if (brands && brands.length > 0) {
+      fetchCoHostedEvents();
+    }
+  }, [brands]);
+
 
   // Listen for alpha access granted event
   useEffect(() => {
@@ -132,7 +178,9 @@ const Dashboard = () => {
 
   // Find the next upcoming event date or the most recent past event if no upcoming events
   const findNextUpcomingEventDate = (brandEvents) => {
-    if (!brandEvents || brandEvents.length === 0) return null;
+    if (!brandEvents || brandEvents.length === 0) {
+      return null;
+    }
 
     const now = new Date();
 
@@ -411,7 +459,6 @@ const Dashboard = () => {
 
         return eventDateStr === formattedDate;
       });
-
       setSelectedEvent(eventForDate || null);
     } else {
       setSelectedEvent(null);
@@ -424,8 +471,17 @@ const Dashboard = () => {
     const userRoleId = userRoles[brand._id];
     const userRole = roles.find((role) => role._id === userRoleId);
 
-    // Get events for this brand
+    // Get events for this brand (owned events)
     const brandEvents = events.filter((event) => event.brand === brand._id);
+
+    // Get co-hosted events where this brand is a co-host
+    const brandCoHostedEvents = coHostedEvents.filter((event) => {
+      const match = event.coHostBrand && event.coHostBrand._id === brand._id;
+      return match;
+    });
+
+    // Combine owned and co-hosted events
+    const allBrandEvents = [...brandEvents, ...brandCoHostedEvents];
 
     // Get lineups for this brand
     const brandLineups = lineups.filter(
@@ -438,7 +494,7 @@ const Dashboard = () => {
     return {
       ...brand,
       role: userRole,
-      events: brandEvents,
+      events: allBrandEvents,
       lineups: brandLineups,
       teamSize,
     };
@@ -469,9 +525,45 @@ const Dashboard = () => {
     );
   };
 
-  // Get user's role permissions for the selected brand
+  // Get user's role permissions for the selected brand or co-hosted event
   const getUserRolePermissions = () => {
-    if (!selectedBrand || !selectedBrand.role) return null;
+    if (!selectedBrand || !selectedEvent) {
+      return null;
+    }
+
+    // Check if this is a co-hosted event
+    if (selectedEvent.isCoHosted && selectedEvent.coHostRolePermissions) {
+      // Find co-host permissions for our brand
+      const coHostPermission = selectedEvent.coHostRolePermissions.find(
+        (permission) => permission.brandId.toString() === selectedBrand._id.toString()
+      );
+
+      if (coHostPermission && selectedBrand.role) {
+        // Find permissions for our specific role
+        const rolePermission = coHostPermission.rolePermissions.find(
+          (rp) => rp.roleId.toString() === selectedBrand.role._id.toString()
+        );
+
+        if (rolePermission) {
+          return rolePermission.permissions;
+        }
+      }
+
+      // If no specific co-host permissions found, return empty permissions
+      return {
+        analytics: { view: false },
+        codes: {},
+        scanner: { use: false },
+        tables: { access: false, manage: false, summary: false },
+        battles: { view: false, edit: false, delete: false },
+      };
+    }
+
+    // For regular events, use brand role permissions
+    if (!selectedBrand.role) {
+      return null;
+    }
+    
     return selectedBrand.role.permissions;
   };
 
@@ -480,8 +572,16 @@ const Dashboard = () => {
     const permissions = getUserRolePermissions();
     if (!permissions || !permissions.codes) return [];
 
-    // Convert the codes Map to an array of objects
-    return Object.entries(permissions.codes).map(([name, permission]) => ({
+    // Handle both Map (co-host) and object (regular) permissions
+    let codesPermissions = permissions.codes;
+    
+    // If it's a Map, convert to object
+    if (codesPermissions instanceof Map) {
+      codesPermissions = Object.fromEntries(codesPermissions);
+    }
+
+    // Convert the codes to an array of objects
+    return Object.entries(codesPermissions).map(([name, permission]) => ({
       name,
       type: name,
       generate: permission.generate || false,
@@ -495,14 +595,33 @@ const Dashboard = () => {
     const permissions = getUserRolePermissions();
     if (!permissions) return {};
 
+    let canCreateCodes = false;
+
+    if (permissions.codes) {
+      let codesPermissions = permissions.codes;
+      
+      // Handle both Map (co-host) and object (regular) permissions
+      if (codesPermissions instanceof Map) {
+        codesPermissions = Object.fromEntries(codesPermissions);
+      }
+
+      canCreateCodes = Object.values(codesPermissions).some((p) => p.generate);
+    }
+
     return {
-      canCreateCodes:
-        permissions.codes &&
-        Object.values(permissions.codes).some((p) => p.generate),
+      canCreateCodes,
       canReadCodes: true, // Assuming read access is always granted if they have any code permissions
       canEditCodes: false, // These would need to be determined based on your app's logic
       canDeleteCodes: false,
     };
+  };
+
+  // Prepare user roles for the selected brand (handles both regular and co-hosted events)
+  const prepareUserRolesForSelectedBrand = () => {
+    if (!selectedBrand?.role) return [];
+    
+    // For consistency with existing code, return an array with the user's role
+    return [selectedBrand.role];
   };
 
   // Prepare all brands with data
@@ -613,10 +732,8 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  // Get the user's role for the selected brand
-  const userRoleForSelectedBrand = selectedBrand?.role
-    ? [selectedBrand.role]
-    : [];
+  // Get the user's role for the selected brand (handles co-hosted events)
+  const userRoleForSelectedBrand = prepareUserRolesForSelectedBrand();
   const brandCodeSettings = getCodeSettingsForBrand();
   const codePermissions = prepareCodePermissions();
   const accessSummary = prepareAccessSummary();
@@ -747,6 +864,7 @@ const Dashboard = () => {
               codeSettings={brandCodeSettings}
               codePermissions={codePermissions}
               accessSummary={accessSummary}
+              effectivePermissions={getUserRolePermissions()} // Pass effective permissions for co-hosted events
               setShowStatistic={setShowStatistic}
               setShowScanner={setShowScanner}
               setCodeType={setCodeType}

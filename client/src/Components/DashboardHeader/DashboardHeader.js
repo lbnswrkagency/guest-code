@@ -253,30 +253,32 @@ const DashboardHeader = ({
           {brandDropdown && (
             <div className="dashboardHeader-event-options">
               {brands && brands.length > 0 ? (
-                brands.map((brand) => (
-                  <div
-                    key={brand._id}
-                    className="dashboardHeader-event-options-option"
-                    onClick={() => handleSelectBrand(brand)}
-                  >
-                    <div className="dashboardHeader-event-options-option-logo">
-                      {brand?.logo?.medium || brand?.logo?.thumbnail ? (
-                        <img
-                          src={brand.logo.medium || brand.logo.thumbnail}
-                          alt={brand.name}
-                          className="dashboardHeader-event-options-option-logo-image"
-                        />
-                      ) : (
-                        <div className="dashboardHeader-event-options-option-logo-initial">
-                          {brand.name.charAt(0)}
-                        </div>
-                      )}
+                brands.map((brand) => {
+                  return (
+                    <div
+                      key={brand._id}
+                      className="dashboardHeader-event-options-option"
+                      onClick={() => handleSelectBrand(brand)}
+                    >
+                      <div className="dashboardHeader-event-options-option-logo">
+                        {brand?.logo?.medium || brand?.logo?.thumbnail ? (
+                          <img
+                            src={brand.logo.medium || brand.logo.thumbnail}
+                            alt={brand.name}
+                            className="dashboardHeader-event-options-option-logo-image"
+                          />
+                        ) : (
+                          <div className="dashboardHeader-event-options-option-logo-initial">
+                            {brand.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="dashboardHeader-event-options-option-name">
+                        {brand.name}
+                      </div>
                     </div>
-                    <div className="dashboardHeader-event-options-option-name">
-                      {brand.name}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="dashboardHeader-event-options-empty">
                   No brands available

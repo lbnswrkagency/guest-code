@@ -50,8 +50,6 @@ export const getEventDate = (event) => {
 export const getEventUrl = (event, user = null) => {
   if (
     !event ||
-    !event.title ||
-    !event.date ||
     !event.brand ||
     !event.brand.username
   ) {
@@ -59,13 +57,12 @@ export const getEventUrl = (event, user = null) => {
     return null;
   }
 
+  // Use the existing format: /@brandUsername/DDMMYY
   const dateSlug = formatDateForUrl(new Date(getEventDate(event)));
-  const titleSlug = generateSlug(event.title);
   const brandUsername = event.brand.username;
 
-  return user
-    ? `/@${user.username}/@${brandUsername}/e/${dateSlug}/${titleSlug}`
-    : `/@${brandUsername}/e/${dateSlug}/${titleSlug}`;
+  // Simple format that works with existing BrandProfile routing
+  return `/@${brandUsername}/${dateSlug}`;
 };
 
 /**

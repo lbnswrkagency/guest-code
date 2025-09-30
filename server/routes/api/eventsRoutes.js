@@ -66,6 +66,22 @@ const {
   getUserFavoriteEvents,
 } = require("../../controllers/eventsController");
 
+// Import public events controller
+const {
+  getPublicEvents,
+  getFeaturedEvents,
+  getEventsByCity,
+  getEventCategories,
+  getCitiesWithEvents,
+} = require("../../controllers/eventsPublicController");
+
+// Public events routes (no authentication required)
+router.get("/public", getPublicEvents);
+router.get("/public/featured", getFeaturedEvents);
+router.get("/public/categories", getEventCategories);
+router.get("/public/cities", getCitiesWithEvents);
+router.get("/public/city/:city", getEventsByCity);
+
 // Brand-specific event routes
 router.get("/brand/:brandId", optionalAuthenticateToken, getBrandEvents);
 router.post(

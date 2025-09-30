@@ -46,6 +46,9 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
       logo: brand.logo || null,
       coverImage: brand.coverImage || null,
       roles: [],
+      // Keep the join settings that are actually used by the component
+      autoJoinEnabled: brand.settings?.autoJoinEnabled || false,
+      defaultRole: brand.settings?.defaultRole || "Member",
     });
 
     fetchRoles();
@@ -130,17 +133,21 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
 
   const handleJoinToggle = async () => {
     try {
+      // Keep the current defaultRole when toggling autoJoinEnabled
+      const newAutoJoinEnabled = !settings.autoJoinEnabled;
+      
       const response = await axiosInstance.put(
         `/brands/${brand._id}/settings`,
         {
-          autoJoinEnabled: !settings.autoJoinEnabled,
-          defaultRole: settings.defaultRole,
+          autoJoinEnabled: newAutoJoinEnabled,
+          defaultRole: settings.defaultRole, // Preserve current defaultRole
         }
       );
 
       setSettings((prev) => ({
         ...prev,
-        autoJoinEnabled: !prev.autoJoinEnabled,
+        autoJoinEnabled: newAutoJoinEnabled,
+        // Don't change defaultRole - keep it as is
       }));
 
       showSuccess("Join settings updated successfully");
@@ -323,7 +330,6 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave }) => {
               <select
                 value={settings.defaultRole}
                 onChange={handleRoleChange}
-                disabled={!settings.autoJoinEnabled}
                 className="role-select"
               >
                 {roles.length > 0 ? (

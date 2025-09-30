@@ -19,6 +19,7 @@ const DashboardMenu = ({
   codeSettings = [],
   codePermissions = [],
   accessSummary = {},
+  effectivePermissions = null, // For co-hosted events, pass pre-calculated permissions
   setShowStatistic,
   setShowScanner,
   setCodeType,
@@ -70,6 +71,40 @@ const DashboardMenu = ({
 
   useEffect(() => {
     if (selectedBrand && user) {
+      // If effectivePermissions are provided (for co-hosted events), use them directly
+      if (effectivePermissions) {
+        // Build permissions object using effective permissions
+        const calculatedPermissions = {
+          analytics: {
+            view: effectivePermissions.analytics?.view || false,
+          },
+          scanner: {
+            use: effectivePermissions.scanner?.use || false,
+          },
+          tables: {
+            access: effectivePermissions.tables?.access || false,
+            manage: effectivePermissions.tables?.manage || false,
+          },
+          battles: {
+            view: effectivePermissions.battles?.view || false,
+            edit: effectivePermissions.battles?.edit || false,
+            delete: effectivePermissions.battles?.delete || false,
+          },
+          codes: {
+            canGenerateAny: accessSummary.canCreateCodes || false,
+            canReadAny: accessSummary.canReadCodes || false,
+            canEditAny: accessSummary.canEditCodes || false,
+            canDeleteAny: accessSummary.canDeleteCodes || false,
+            settings: codeSettings || [],
+            permissions: codePermissions || [],
+          },
+        };
+
+        setPermissions(calculatedPermissions);
+        return;
+      }
+
+      // Fallback to original logic for regular events
       // Check user role permissions directly
       let hasAnalyticsPermission = false;
       let hasScannerPermission = false;
@@ -125,7 +160,7 @@ const DashboardMenu = ({
       });
 
       // Build permissions object
-      const effectivePermissions = {
+      const calculatedPermissions = {
         analytics: {
           view: hasAnalyticsPermission,
         },
@@ -151,7 +186,7 @@ const DashboardMenu = ({
         },
       };
 
-      setPermissions(effectivePermissions);
+      setPermissions(calculatedPermissions);
     }
   }, [
     selectedBrand,
@@ -160,6 +195,7 @@ const DashboardMenu = ({
     codeSettings,
     codePermissions,
     userRoles,
+    effectivePermissions, // Add this dependency
   ]);
 
   const handleMenuClick = () => {
