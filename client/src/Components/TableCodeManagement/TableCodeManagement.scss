@@ -46,6 +46,125 @@
     }
   }
 
+  // Filter bar styling
+  .category-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    align-items: center;
+
+    .filter-button {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      outline: none;
+      font-family: inherit;
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255, 255, 255, 0.7);
+      position: relative;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        font-weight: 600;
+        
+        &:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.1);
+        }
+      }
+
+      &.inactive {
+        opacity: 0.6;
+        
+        &:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+      }
+
+      &.only-visible {
+        transform: translateY(-1px);
+        
+        &:hover {
+          transform: translateY(-2px);
+        }
+      }
+
+      .filter-count {
+        background: rgba(255, 255, 255, 0.9);
+        color: #000;
+        border-radius: 8px;
+        padding: 1px 5px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        min-width: 14px;
+        text-align: center;
+        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 14px;
+      }
+
+      // Special styling for "All" button
+      &:first-child {
+        border-color: rgba(255, 255, 255, 0.2);
+        
+        &.active {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.4);
+        }
+      }
+
+      // Special styling for reload button
+      &.reload-button {
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        svg {
+          transition: transform 0.6s ease;
+        }
+
+        &.spinning svg,
+        svg.spinning {
+          animation: spin 1s linear infinite;
+        }
+      }
+    }
+  }
+
+  // Spinning animation keyframes
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .table-category {
     margin-bottom: 2rem;
 

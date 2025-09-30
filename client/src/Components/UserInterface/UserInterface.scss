@@ -88,6 +88,7 @@
 
   .members-list {
     flex: 1;
+    overflow: auto;
     overflow-y: auto;
     margin: 0 -1.5rem;
     padding: 0 1.5rem;
@@ -298,6 +299,7 @@
     .members-list {
       margin: 0 -1rem;
       padding: 0 1rem;
+      overflow: auto;
 
       .member-item {
         flex-direction: column;

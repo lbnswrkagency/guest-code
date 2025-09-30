@@ -1,8 +1,9 @@
 // TableCodeManagement.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
+import { RiRefreshLine } from "react-icons/ri";
 import "./TableCodeManagement.scss";
 
 function TableCodeManagement({
@@ -34,17 +35,32 @@ function TableCodeManagement({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [cancelCodeId, setCancelCodeId] = useState(null);
+  const [visibleCategories, setVisibleCategories] = useState(new Set());
+  const [isSpinning, setIsSpinning] = useState(false);
 
   // Dynamic color mapping for categories based on layout config
   const getTableColors = () => {
+    if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
+      // Use theme colors from layout configuration
+      const colors = {};
+      Object.entries(layoutConfig.categoryAreaNames).forEach(([categoryCode, areaName]) => {
+        const themeColor = layoutConfig.categoryThemeColors[categoryCode];
+        if (themeColor) {
+          // Use the accent color as the primary display color
+          colors[areaName] = themeColor.accent;
+        }
+      });
+      return colors;
+    }
+    
+    // Legacy dynamic layout configuration for other layouts
     if (layoutConfig?.tableConfig) {
-      // Use dynamic layout configuration
       const colors = {};
       Object.values(layoutConfig.tableConfig).forEach((tableInfo) => {
         if (tableInfo.category) {
           const areaName = layoutConfig.categoryAreaNames?.[tableInfo.category];
           if (areaName) {
-            // Map category to appropriate color
+            // Map category to appropriate color for legacy layouts
             switch (tableInfo.category) {
               case "D": // DJ Area in Venti
                 colors[areaName] = "#ffd700";
@@ -70,6 +86,12 @@ function TableCodeManagement({
       backstage: "#80221c", // Rich red for backstage/dancefloor
       vip: "#1b5e20", // Green for VIP
       premium: "#4a90e2", // Blue for premium/front row
+      standing: "#0f3460", // Blue for standing tables
+      "Standing": "#0f3460", // Blue for standing tables
+      "Standing Backstage": "#b8860b", // Orange for standing backstage
+      "VIP": "#b8860b", // Gold for VIP
+      "Backstage": "#d4af37", // Gold for backstage
+      "Exclusive Backstage": "#ffd700", // Bright gold for exclusive
     };
   };
 
@@ -114,8 +136,8 @@ function TableCodeManagement({
 
   const tablePermissions = getTablePermissions();
 
-  // Dynamic category mapping function
-  const getCategoryForTable = (tableNumber) => {
+  // Dynamic category mapping function - wrapped in useCallback for stability
+  const getCategoryForTable = useCallback((tableNumber) => {
     if (!tableNumber) return "unknown";
 
     // If we have layout configuration, use it for categorization
@@ -153,6 +175,20 @@ function TableCodeManagement({
     if (prefix === "K") return "Premium";
 
     return "General"; // Default
+  }, [layoutConfig, tableCategories]);
+
+  // Toggle category visibility - show ONLY the selected category
+  const toggleCategoryVisibility = (category) => {
+    const isCurrentlyVisible = visibleCategories.has(category);
+    const isOnlyVisible = visibleCategories.size === 1 && visibleCategories.has(category);
+    
+    if (isOnlyVisible) {
+      // If this is the only visible category, show all categories
+      setVisibleCategories(new Set(categoryOrder));
+    } else {
+      // Show only this category
+      setVisibleCategories(new Set([category]));
+    }
   };
 
   // Get display name for category
@@ -190,7 +226,14 @@ function TableCodeManagement({
     }, {});
 
     setCodesByCategory(groupedCodes);
-  }, [counts, refreshTrigger, layoutConfig]);
+  }, [counts, refreshTrigger, layoutConfig, categoryOrder, getCategoryForTable]);
+
+  // Initialize all categories as visible only once when categoryOrder first loads
+  useEffect(() => {
+    if (categoryOrder.length > 0 && visibleCategories.size === 0) {
+      setVisibleCategories(new Set(categoryOrder));
+    }
+  }, [categoryOrder, visibleCategories.size]);
 
   const allCodes = counts?.tableCounts || [];
   const activeTableCodes = allCodes.filter(
@@ -670,24 +713,85 @@ function TableCodeManagement({
     const counts = getCategoryCounts(category);
     const displayName = getCategoryDisplayName(category);
 
+    // Get theme colors for this category if available
+    const getThemeColorsForCategory = () => {
+      if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
+        // Find the category code for this area name
+        const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
+          .find(([code, name]) => name === category)?.[0];
+        
+        if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
+          return layoutConfig.categoryThemeColors[categoryCode];
+        }
+      }
+      return null;
+    };
+
+    const themeColors = getThemeColorsForCategory();
+    const primaryColor = tableColors[category] || "#4a90e2";
+
     return (
-      <div className="category-header">
+      <div 
+        className="category-header"
+        style={themeColors ? {
+          background: `linear-gradient(135deg, ${themeColors.primary}22, ${themeColors.accent}11)`,
+          borderLeft: `3px solid ${themeColors.accent}`,
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '0.5rem'
+        } : undefined}
+      >
         <h3>
-          <span style={{ color: tableColors[category] }}>{displayName}</span>
+          <span 
+            style={{ 
+              color: themeColors?.accent || primaryColor,
+              textShadow: themeColors ? `0 0 8px ${themeColors.accent}33` : undefined,
+              fontWeight: '600'
+            }}
+          >
+            {displayName}
+          </span>
           <div className="category-counts">
             {tablePermissions.manage ? (
               <>
                 {counts.pending > 0 && (
-                  <span className="count-pending">
+                  <span 
+                    className="count-pending"
+                    style={themeColors ? {
+                      color: themeColors.text,
+                      backgroundColor: `${themeColors.accent}20`,
+                      border: `1px solid ${themeColors.accent}50`,
+                      borderRadius: '12px',
+                      padding: '2px 8px'
+                    } : undefined}
+                  >
                     {counts.pending} Pending
                   </span>
                 )}
-                <span className="count-total">
+                <span 
+                  className="count-total"
+                  style={themeColors ? {
+                    color: themeColors.text,
+                    backgroundColor: `${themeColors.primary}40`,
+                    border: `1px solid ${themeColors.border}`,
+                    borderRadius: '12px',
+                    padding: '2px 8px'
+                  } : undefined}
+                >
                   {counts.accepted}/{counts.total} Reserved
                 </span>
               </>
             ) : (
-              <span className="count-total">
+              <span 
+                className="count-total"
+                style={themeColors ? {
+                  color: themeColors.text,
+                  backgroundColor: `${themeColors.primary}40`,
+                  border: `1px solid ${themeColors.border}`,
+                  borderRadius: '12px',
+                  padding: '2px 8px'
+                } : undefined}
+              >
                 {counts.accepted}/{counts.total} Confirmed
               </span>
             )}
@@ -702,6 +806,22 @@ function TableCodeManagement({
     const borderColor = tableColors[category] || "#ccc";
     const isEditing = editCodeId === code._id;
     const isPublicRequest = code.isPublic === true; // Check if this is a public request
+
+    // Get theme colors for this category if available
+    const getThemeColorsForCategory = () => {
+      if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
+        // Find the category code for this area name
+        const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
+          .find(([code, name]) => name === category)?.[0];
+        
+        if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
+          return layoutConfig.categoryThemeColors[categoryCode];
+        }
+      }
+      return null;
+    };
+
+    const themeColors = getThemeColorsForCategory();
 
     // Get table config for maximum persons setting
     let maxPersons = 10; // default fallback
@@ -723,7 +843,7 @@ function TableCodeManagement({
         } ${isEditing ? "editing" : ""} ${
           isPublicRequest ? "public-request" : ""
         }`}
-        style={{ borderLeft: `4px solid ${borderColor}` }}
+        style={{ borderLeft: `4px solid ${themeColors?.accent || borderColor}` }}
       >
         <div className="reservation-details">
           <div className="reservation-info">
@@ -732,7 +852,15 @@ function TableCodeManagement({
                 isEditing ? "editing-dropdown" : ""
               }`}
               style={{
-                background: `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
+                background: themeColors 
+                  ? `linear-gradient(45deg, ${themeColors.accent}, ${themeColors.primary}dd)`
+                  : `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
+                boxShadow: themeColors 
+                  ? `0 0 12px ${themeColors.accent}40`
+                  : undefined,
+                border: themeColors 
+                  ? `1px solid ${themeColors.border}`
+                  : undefined,
               }}
             >
               {isEditing ? (
@@ -1032,6 +1160,146 @@ function TableCodeManagement({
     );
   };
 
+  // Show all categories
+  const showAllCategories = () => {
+    setVisibleCategories(new Set(categoryOrder));
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    setIsSpinning(true);
+    triggerRefresh();
+    setTimeout(() => {
+      setIsSpinning(false);
+    }, 1000);
+  };
+
+  // Render the filter bar
+  const renderFilterBar = () => {
+    const allVisible = categoryOrder.every(cat => visibleCategories.has(cat));
+    const totalReservations = categoryOrder.reduce((sum, category) => {
+      const counts = getCategoryCounts(category);
+      return sum + counts.accepted + counts.pending;
+    }, 0);
+
+    return (
+      <div className="category-filter-bar">
+        {/* All button */}
+        <button
+          className={`filter-button ${allVisible ? 'active' : 'inactive'} ${allVisible ? 'only-visible' : ''}`}
+          onClick={showAllCategories}
+          style={{
+            borderColor: allVisible 
+              ? 'rgba(255, 255, 255, 0.5)'
+              : 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: allVisible 
+              ? 'rgba(255, 255, 255, 0.12)'
+              : 'rgba(255, 255, 255, 0.05)',
+            color: allVisible 
+              ? '#fff'
+              : 'rgba(255, 255, 255, 0.7)',
+            fontWeight: allVisible ? '600' : '500'
+          }}
+        >
+          <span>All</span>
+          {totalReservations > 0 && (
+            <span 
+              className="filter-count"
+              style={{
+                backgroundColor: allVisible 
+                  ? '#fff'
+                  : 'rgba(255, 255, 255, 0.6)',
+                color: allVisible ? '#000' : '#000'
+              }}
+            >
+              {totalReservations}
+            </span>
+          )}
+        </button>
+
+        {categoryOrder.map((category) => {
+          const counts = getCategoryCounts(category);
+          const displayName = getCategoryDisplayName(category);
+          const isVisible = visibleCategories.has(category);
+          const primaryColor = tableColors[category] || "#4a90e2";
+          
+          // Get theme colors for this category if available
+          const getThemeColorsForCategory = () => {
+            if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
+              const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
+                .find(([code, name]) => name === category)?.[0];
+              
+              if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
+                return layoutConfig.categoryThemeColors[categoryCode];
+              }
+            }
+            return null;
+          };
+
+          const themeColors = getThemeColorsForCategory();
+          const totalCount = counts.accepted + counts.pending;
+
+          const isOnlyVisible = visibleCategories.size === 1 && isVisible;
+
+          return (
+            <button
+              key={category}
+              className={`filter-button ${isVisible ? 'active' : 'inactive'} ${isOnlyVisible ? 'only-visible' : ''}`}
+              onClick={() => toggleCategoryVisibility(category)}
+              style={{
+                borderColor: isVisible 
+                  ? `${themeColors?.accent || primaryColor}60`
+                  : `rgba(255, 255, 255, 0.1)`,
+                backgroundColor: isVisible 
+                  ? `${themeColors?.accent || primaryColor}15`
+                  : `rgba(255, 255, 255, 0.05)`,
+                color: isVisible 
+                  ? `${themeColors?.accent || primaryColor}`
+                  : `rgba(255, 255, 255, 0.7)`,
+                boxShadow: isOnlyVisible 
+                  ? `0 0 0 2px ${themeColors?.accent || primaryColor}40, 0 2px 8px rgba(0,0,0,0.3)`
+                  : undefined
+              }}
+            >
+              <span>{displayName}</span>
+              {totalCount > 0 && (
+                <span 
+                  className="filter-count"
+                  style={{
+                    backgroundColor: isVisible 
+                      ? (themeColors?.accent || primaryColor)
+                      : 'rgba(255, 255, 255, 0.6)',
+                    color: isVisible ? '#fff' : '#000'
+                  }}
+                >
+                  {totalCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        
+        {/* Reload button */}
+        <button
+          className={`filter-button reload-button ${isSpinning ? 'spinning' : ''}`}
+          onClick={handleRefresh}
+          disabled={isSpinning}
+          title="Refresh Data"
+          style={{
+            marginLeft: '0.5rem',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            color: 'rgba(255, 255, 255, 0.7)',
+            minWidth: '40px',
+            justifyContent: 'center'
+          }}
+        >
+          <RiRefreshLine className={isSpinning ? 'spinning' : ''} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="table-code-management">
       {showPngModal && (
@@ -1142,18 +1410,22 @@ function TableCodeManagement({
           <p>Create a new reservation by selecting a table above.</p>
         </div>
       ) : (
-        <div className="reservations-list">
-          {categoryOrder.map((category) => {
-            const categoryItems = codesByCategory[category];
+        <>
+          {renderFilterBar()}
+          <div className="reservations-list">
+            {categoryOrder.map((category) => {
+              const categoryItems = codesByCategory[category];
+              const isVisible = visibleCategories.has(category);
 
-            return categoryItems?.length > 0 ? (
-              <div key={category} className="table-category">
-                {renderCategoryTitle(category)}
-                {categoryItems.map((code) => renderCodeItem(code))}
-              </div>
-            ) : null;
-          })}
-        </div>
+              return categoryItems?.length > 0 && isVisible ? (
+                <div key={category} className="table-category">
+                  {renderCategoryTitle(category)}
+                  {categoryItems.map((code) => renderCodeItem(code))}
+                </div>
+              ) : null;
+            })}
+          </div>
+        </>
       )}
     </div>
   );

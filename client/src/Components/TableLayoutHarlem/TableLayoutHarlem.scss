@@ -14,6 +14,16 @@ $silver-border: #e6e6e6; // Lighter silver for border
 $purple-premium: #663399; // Purple for P tables
 $purple-border: #9966cc; // Lighter purple for border
 
+// Updated colors for harmonious look
+$area-03-bg: #2a2a3e; // Deep purple-grey for area 03
+$area-02-bg: #1f1f2e; // Slightly darker blue-grey for area 02
+$vip-extension-bg: #1f1f2e; // Same as area 02
+$bronze-table-bg: #1f1f2e; // Same as area 02
+
+// Unified style for DJ, Bar, and WC
+$service-area-bg: #262626; // Dark grey
+$service-area-accent: #3a3a3a; // Lighter grey accent
+
 $dj-area-color: #ffd700; // Premium gold color
 $dj-area-glow: rgba(255, 215, 0, 0.3);
 
@@ -28,8 +38,8 @@ $anthracite-hover: #252525;
   position: relative;
   width: 100%;
   padding-bottom: 3rem;
-  grid-template-columns: repeat(3, minmax(min-content, max-content));
-  grid-template-rows: repeat(2, minmax(min-content, max-content));
+  grid-template-columns: 5rem 15rem 7.5rem;
+  grid-template-rows: 10rem 25rem;
   transform-origin: center top;
   transition: transform 0.3s ease;
   transform: scale(1); // Explicitly set normal scale for larger screens
@@ -55,39 +65,6 @@ $anthracite-hover: #252525;
     );
     border-radius: inherit;
     pointer-events: none;
-  }
-
-  // Optional hover effect
-  &:hover {
-    transform: scale(1) translateY(-2px);
-    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15),
-      0 3px 6px -2px rgba(0, 0, 0, 0.1),
-      inset 0 1px 2px rgba(255, 255, 255, 0.15);
-
-    // Maintain scaling on hover for small screens
-    @media (max-width: 475px) {
-      transform: scale(0.8) translateY(-2px);
-    }
-  }
-
-  // Optional modern edge glow
-  &::after {
-    content: "";
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    width: calc(100% + 2px);
-    height: calc(100% + 2px);
-    border-radius: inherit;
-    background: linear-gradient(
-      45deg,
-      rgba(184, 134, 11, 0.1),
-      transparent 30%,
-      transparent 70%,
-      rgba(184, 134, 11, 0.1)
-    );
-    pointer-events: none;
-    z-index: -1;
   }
 
   // Floating guide message
@@ -250,1148 +227,17 @@ $anthracite-hover: #252525;
 
   &-01 {
     display: grid;
-    grid-gap: 10px !important;
-    grid-template-columns: repeat(3, 35px);
-    grid-template-rows: repeat(3, 35px);
-
     grid-column: 1/2;
     grid-row: 2/3;
     position: relative;
+    width: 5rem;
 
-    // .d1 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 10/11;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
+    background: linear-gradient(135deg, #1a1a1a 0%, #222222 50%, #2a2a2a 100%);
 
-    // .d2 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 9/10;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d3 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 8/9;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d4 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 7/8;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d5 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 4/5;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d6 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 3/4;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d7 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 2/3;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    // .d8 {
-    //   align-self: center;
-    //   z-index: 15;
-    //   grid-row: 1/2;
-    //   grid-column: 1/3;
-    //   margin-left: 0.75rem;
-    //   box-shadow:
-    //     /* Elevated table shadows - refined */ 0 5px 18px
-    //       rgba(0, 0, 0, 0.55),
-    //     0 2px 8px rgba(0, 0, 0, 0.45), 0 10px 35px rgba(0, 0, 0, 0.35),
-    //     0 18px 55px rgba(0, 0, 0, 0.25),
-    //     /* Perfect table highlight */ inset 0 2px 3px rgba(255, 255, 255, 0.35),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-    //   transform: translateY(-3px) scale(1.05) translateZ(8px);
-    //   filter: brightness(1.12) contrast(1.08);
-    // }
-
-    .table-main-floor {
-      background: linear-gradient(
-        135deg,
-        rgba(220, 20, 60, 0.5),
-        rgba(255, 69, 0, 0.6),
-        rgba(255, 140, 0, 0.4)
-      );
-      height: 100%;
-      width: 100%;
-      grid-column: 1/4;
-      grid-row: 1/4; /* Extended to fill bottom properly */
-      border-radius: 12px;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
-        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
-        inset 0 3px 8px rgba(255, 69, 0, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 69, 0, 0.5);
-
-      /* Premium DJ floor pattern - hexagonal stage tiles */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-          /* Hexagonal stage pattern */ radial-gradient(
-            circle at 25% 25%,
-            rgba(255, 69, 0, 0.1) 6px,
-            transparent 6px
-          ),
-          radial-gradient(
-            circle at 75% 25%,
-            rgba(220, 20, 60, 0.08) 5px,
-            transparent 5px
-          ),
-          radial-gradient(
-            circle at 50% 75%,
-            rgba(255, 140, 0, 0.12) 7px,
-            transparent 7px
-          ),
-          /* DJ booth line patterns */
-            repeating-linear-gradient(
-              120deg,
-              transparent 0px,
-              transparent 15px,
-              rgba(255, 255, 255, 0.06) 15px,
-              rgba(255, 255, 255, 0.06) 17px
-            ),
-          /* Premium grid */
-            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 30px 30px, 25px 25px, 35px 35px, 20px 20px, 10px 10px,
-          10px 10px;
-        z-index: 0;
-      }
-
-      /* Enhanced DJ lighting */
-      &::after {
-        content: "";
-        position: absolute;
-        width: 120%;
-        height: 120%;
-        top: -10%;
-        left: -10%;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(255, 69, 0, 0.2) 0%,
-          rgba(220, 20, 60, 0.15) 30%,
-          rgba(255, 140, 0, 0.1) 60%,
-          transparent 80%
-        );
-        z-index: 1;
-        animation: gentleBreeze 6s ease-in-out infinite;
-      }
-    }
-
-    /* Top steps element - 15% spacing */
-    .top-steps {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 20px;
-      height: 10%;
-
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.7) 0px,
-        rgba(255, 255, 255, 0.7) 2px,
-        rgba(240, 240, 240, 0.6) 2px,
-        rgba(240, 240, 240, 0.6) 4px,
-        transparent 4px,
-        transparent 8px
-      );
-      border-radius: 0 3px 3px 0;
-      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
-      z-index: 12;
-    }
-
-    .right-steps {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 20px;
-      height: 10%;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.7) 0px,
-        rgba(255, 255, 255, 0.7) 2px,
-        rgba(240, 240, 240, 0.6) 2px,
-        rgba(240, 240, 240, 0.6) 4px,
-        transparent 4px,
-        transparent 8px
-      );
-      border-radius: 0 3px 3px 0;
-      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
-      z-index: 12;
-    }
-
-    /* Bottom steps element - aligned to right line */
-    // .bottom-steps {
-    //   position: absolute;
-    //   bottom: 0;
-    //   right: 0;
-    //   width: 25px;
-    //   height: 10%;
-    //   background: repeating-linear-gradient(
-    //     to bottom,
-    //     rgba(255, 255, 255, 0.7) 0px,
-    //     rgba(255, 255, 255, 0.7) 2px,
-    //     rgba(240, 240, 240, 0.6) 2px,
-    //     rgba(240, 240, 240, 0.6) 4px,
-    //     transparent 4px,
-    //     transparent 8px
-    //   );
-    //   border-radius: 0 3px 3px 0;
-    //   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
-    //   z-index: 12;
-    // }
-
-    /* Right columns (säulen) - ONLY on right border with 6 capitals */
-    // .right-columns {
-    //   position: absolute;
-    //   top: 15%;
-    //   right: -7px;
-    //   width: 7px;
-    //   height: 75%;
-    //   margin-right: 2rem;
-    //   background:
-    //     /* Fine column fluting */ repeating-linear-gradient(
-    //       90deg,
-    //       rgba(255, 255, 255, 0.95) 0px,
-    //       rgba(248, 248, 248, 0.9) 0.8px,
-    //       rgba(240, 240, 240, 0.85) 1.5px,
-    //       rgba(248, 248, 248, 0.9) 2.2px,
-    //       rgba(255, 255, 255, 0.95) 3px
-    //     ),
-    //     /* Elegant column segments */
-    //       repeating-linear-gradient(
-    //         to bottom,
-    //         rgba(250, 250, 250, 0.95) 0px,
-    //         rgba(245, 245, 245, 0.9) 15px,
-    //         rgba(235, 235, 235, 0.85) 17px,
-    //         rgba(225, 225, 225, 0.8) 19px,
-    //         rgba(235, 235, 235, 0.85) 21px,
-    //         rgba(245, 245, 245, 0.9) 23px,
-    //         rgba(250, 250, 250, 0.95) 38px
-    //       );
-    //   border-radius: 0 4px 4px 0;
-    //   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6),
-    //     inset 0 -1px 2px rgba(0, 0, 0, 0.05), 2px 0 8px rgba(0, 0, 0, 0.15),
-    //     1px 0 4px rgba(0, 0, 0, 0.08);
-    //   z-index: 12;
-    //   border: 1px solid rgba(255, 255, 255, 0.8);
-    //   border-left: none;
-
-    //   /* 6 Column capitals */
-    //   &::before {
-    //     content: "";
-    //     position: absolute;
-    //     top: -2px;
-    //     right: -5px;
-    //     width: 100%;
-    //     height: calc(100% + 4px);
-    //     background-image:
-    //       /* 6 evenly spaced capitals */ radial-gradient(
-    //         circle at right 12%,
-    //         rgba(255, 255, 255, 0.9) 0px,
-    //         rgba(250, 250, 250, 0.8) 4px,
-    //         rgba(240, 240, 240, 0.6) 6px,
-    //         transparent 8px
-    //       ),
-    //       radial-gradient(
-    //         circle at right 28%,
-    //         rgba(255, 255, 255, 0.85) 0px,
-    //         rgba(245, 245, 245, 0.7) 3px,
-    //         rgba(235, 235, 235, 0.5) 5px,
-    //         transparent 7px
-    //       ),
-    //       radial-gradient(
-    //         circle at right 44%,
-    //         rgba(255, 255, 255, 0.9) 0px,
-    //         rgba(250, 250, 250, 0.8) 4px,
-    //         rgba(240, 240, 240, 0.6) 6px,
-    //         transparent 8px
-    //       ),
-    //       radial-gradient(
-    //         circle at right 56%,
-    //         rgba(255, 255, 255, 0.85) 0px,
-    //         rgba(245, 245, 245, 0.7) 3px,
-    //         rgba(235, 235, 235, 0.5) 5px,
-    //         transparent 7px
-    //       ),
-    //       radial-gradient(
-    //         circle at right 72%,
-    //         rgba(255, 255, 255, 0.9) 0px,
-    //         rgba(250, 250, 250, 0.8) 4px,
-    //         rgba(240, 240, 240, 0.6) 6px,
-    //         transparent 8px
-    //       ),
-    //       radial-gradient(
-    //         circle at right 88%,
-    //         rgba(255, 255, 255, 0.85) 0px,
-    //         rgba(245, 245, 245, 0.7) 3px,
-    //         rgba(235, 235, 235, 0.5) 5px,
-    //         transparent 7px
-    //       );
-    //     border-radius: 0 6px 6px 0;
-    //     box-shadow: 1px 0 6px rgba(0, 0, 0, 0.08),
-    //       inset 1px 0 2px rgba(255, 255, 255, 0.5);
-    //     z-index: 1;
-    //   }
-    // }
-  }
-
-  &-02 {
-    display: grid;
-    grid-gap: 10px !important;
-    grid-template-columns: repeat(3, 35px);
-    grid-template-rows: repeat(8, 35px);
-    justify-self: center;
-    align-self: start;
-    position: relative;
-    background: linear-gradient(
-      45deg,
-      rgba(64, 64, 64, 0.4),
-      rgba(96, 96, 96, 0.5)
-    );
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
-    grid-column: 2/3;
-    grid-row: 2/3;
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
-
-    /* WC area at top - centered */
-    .wc-area {
-      grid-row: 7/9;
-      grid-column: 1/2;
-
-      width: 35px; /* 70% width */
-      height: 75px; /* 16% height to match entrance area */
-      background: linear-gradient(
-        135deg,
-        rgb(220, 220, 220),
-        rgb(240, 240, 240),
-        rgb(200, 200, 200)
-      );
-      border: 2px solid rgb(255, 255, 255);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 12px rgb(200, 200, 200), 0 0 6px rgb(180, 180, 180),
-        inset 0 2px 4px rgba(255, 255, 255, 0.4),
-        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
-      z-index: 20;
-
-      p {
-        color: rgb(80, 80, 80);
-        font-weight: bold;
-        margin: 0;
-        letter-spacing: 1px;
-        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-        font-size: 0.7rem;
-        z-index: 2;
-      }
-
-      /* WC icon pattern */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          /* WC symbol patterns */ radial-gradient(
-            circle at 25% 50%,
-            rgba(100, 100, 100, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            circle at 75% 50%,
-            rgba(100, 100, 100, 0.3) 1px,
-            transparent 1px
-          ),
-          /* Facility lines */
-            repeating-linear-gradient(
-              90deg,
-              transparent 0px,
-              transparent 4px,
-              rgba(255, 255, 255, 0.2) 4px,
-              rgba(255, 255, 255, 0.2) 6px
-            );
-        z-index: 1;
-        border-radius: 6px;
-      }
-    }
-
-    .dj-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid rgb(128, 128, 128);
-      border-radius: 8px;
-      position: relative;
-      justify-self: center;
-      align-self: stretch;
-      height: 35px;
-      width: 75px;
-      margin-left: 0.5rem;
-
-      background: linear-gradient(
-        135deg,
-        rgb(140, 140, 140),
-        rgb(160, 160, 160),
-        rgb(120, 120, 120)
-      );
-      box-shadow: 0 0 20px rgb(100, 100, 100), 0 0 12px rgb(140, 140, 140),
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        inset 0 -1px 3px rgba(0, 0, 0, 0.25);
-      z-index: 25;
-
-      overflow: hidden;
-      grid-row: 1/2;
-      grid-column: 1/4;
-
-      /* Clean DJ area pattern - like entrance style */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          /* Clean DJ equipment lines - no dots over text */ repeating-linear-gradient(
-            90deg,
-            transparent 0px,
-            transparent 8px,
-            rgba(255, 255, 255, 0.15) 8px,
-            rgba(255, 255, 255, 0.15) 10px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 6px,
-            rgba(128, 128, 128, 0.2) 6px,
-            rgba(128, 128, 128, 0.2) 8px
-          );
-        z-index: 1;
-        border-radius: 6px;
-      }
-
-      p {
-        color: rgb(255, 255, 255);
-        font-weight: 700; /* Bold but readable */
-        margin: 0;
-        letter-spacing: 3px;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7),
-          0 2px 6px rgba(64, 64, 64, 0.6), 0 0 15px rgba(192, 192, 192, 0.4);
-        font-size: 1.1rem;
-        z-index: 2;
-      }
-    }
-
-    .bar-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background: linear-gradient(
-        135deg,
-        rgb(110, 110, 110),
-        rgb(130, 130, 130),
-        rgb(90, 90, 90)
-      );
-      border: 2px solid rgb(150, 150, 150);
-      border-radius: 1.2rem;
-      grid-row: 3/8;
-      grid-column: 1/3;
-      height: 150px;
-      width: 45px;
-      justify-self: start;
-      box-shadow: 0 0 15px rgb(90, 90, 90), 0 0 8px rgb(130, 130, 130),
-        inset 0 2px 4px rgba(255, 255, 255, 0.2),
-        inset 0 -1px 3px rgba(0, 0, 0, 0.25);
-      position: relative;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      overflow: hidden;
-      z-index: 20;
-
-      p {
-        color: rgb(255, 255, 255);
-        font-weight: bold;
-        margin: 0;
-        letter-spacing: 2px;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-        font-size: 0.9rem;
-        z-index: 2;
-        transform: rotate(180deg);
-      }
-
-      /* Enhanced bar texture with bottles/glasses */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          /* Bottle shapes */ radial-gradient(
-            ellipse at 25% 15%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            ellipse at 75% 25%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            ellipse at 25% 40%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            ellipse at 75% 55%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            ellipse at 25% 70%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          radial-gradient(
-            ellipse at 75% 85%,
-            rgba(255, 255, 255, 0.3) 1px,
-            transparent 1px
-          ),
-          /* Bar counter lines */
-            repeating-linear-gradient(
-              0deg,
-              transparent 0px,
-              transparent 4px,
-              rgba(255, 255, 255, 0.15) 4px,
-              rgba(255, 255, 255, 0.15) 6px
-            );
-        z-index: 1;
-      }
-    }
-
-    .dancefloor-area {
-      background: linear-gradient(
-        135deg,
-        rgba(48, 48, 48, 0.6),
-        rgba(64, 64, 64, 0.7),
-        rgba(32, 32, 32, 0.5)
-      );
-      height: 100%;
-      width: 100%;
-      grid-column: 1/4;
-      grid-row: 1/9; /* Extended to fill properly */
-      border-radius: 12px;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
-        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
-        inset 0 3px 8px rgba(64, 64, 64, 0.4), 0 3px 12px rgba(0, 0, 0, 0.5);
-      z-index: 1;
-      border: 1px solid rgba(96, 96, 96, 0.5);
-
-      /* Enhanced premium dancefloor pattern */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-          /* Premium disco floor tiles - larger and more defined */ repeating-linear-gradient(
-            45deg,
-            transparent 0px,
-            transparent 12px,
-            rgba(255, 255, 255, 0.08) 12px,
-            rgba(255, 255, 255, 0.08) 24px
-          ),
-          repeating-linear-gradient(
-            -45deg,
-            transparent 0px,
-            transparent 12px,
-            rgba(96, 96, 96, 0.12) 12px,
-            rgba(96, 96, 96, 0.12) 24px
-          ),
-          /* Dance floor parquet effect */
-            repeating-linear-gradient(
-              90deg,
-              rgba(80, 80, 80, 0.1) 0px,
-              rgba(80, 80, 80, 0.1) 2px,
-              transparent 2px,
-              transparent 20px
-            ),
-          /* Fine grid for premium finish */
-            linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-        background-size: 32px 32px, 32px 32px, 22px 22px, 16px 16px, 16px 16px;
-        z-index: 0;
-      }
-
-      /* Enhanced premium lighting with dance floor glow */
-      &::after {
-        content: "";
-        position: absolute;
-        width: 120%;
-        height: 120%;
-        top: -10%;
-        left: -10%;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(64, 64, 64, 0.25) 0%,
-          rgba(96, 96, 96, 0.2) 30%,
-          rgba(48, 48, 48, 0.15) 60%,
-          transparent 80%
-        );
-        z-index: 1;
-        animation: gentleBreeze 8s ease-in-out infinite;
-      }
-    }
-
-    /* Entrance area at bottom - aligned left */
-    .entrance-area {
-      position: absolute;
-      bottom: 0;
-      left: 1rem;
-      width: 60%; /* 60% width */
-      height: 10%; /* Same height as WC */
-      background: linear-gradient(
-        135deg,
-        rgba(80, 80, 80, 0.95),
-        rgba(96, 96, 96, 0.9),
-        rgba(64, 64, 64, 0.95)
-      );
-      border: 2px solid rgba(96, 96, 96, 0.8);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 12px rgba(80, 80, 80, 0.6), 0 0 6px rgba(96, 96, 96, 0.4),
-        inset 0 2px 4px rgba(255, 255, 255, 0.4),
-        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
-      z-index: 20;
-
-      p {
-        color: rgba(255, 255, 255, 0.98);
-        font-weight: bold;
-        margin: 0;
-        letter-spacing: 1px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        font-size: 0.6rem;
-        z-index: 2;
-      }
-
-      /* Entrance pattern */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: 
-          /* Door/entrance patterns */ repeating-linear-gradient(
-            90deg,
-            transparent 0px,
-            transparent 8px,
-            rgba(255, 255, 255, 0.2) 8px,
-            rgba(255, 255, 255, 0.2) 10px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 4px,
-            rgba(128, 128, 128, 0.3) 4px,
-            rgba(128, 128, 128, 0.3) 6px
-          );
-        z-index: 1;
-        border-radius: 6px;
-      }
-    }
-  }
-
-  &-03 {
-    display: grid;
-
-    grid-gap: 8px;
-    grid-template-columns: repeat(3, 35px);
-    grid-template-rows: repeat(10, 35px);
-    justify-self: start;
-    background: linear-gradient(
-      135deg,
-      rgba(205, 127, 50, 0.5),
-      rgba(184, 115, 51, 0.6),
-      rgba(160, 100, 40, 0.4)
-    );
-    border-radius: 12px;
-    grid-column: 3/4;
-    grid-row: 2/3;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
-      inset 0 -3px 8px rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.2);
-    position: relative;
-    transform: translateY(-2px); /* Slightly higher than 02 */
-    border: 1px solid rgba(218, 165, 32, 0.4);
-
-    /* Bottom left steps at 10% */
-    // &::before {
-    //   content: "";
-    //   position: absolute;
-    //   bottom: 10%;
-    //   left: 0;
-    //   width: 6px;
-    //   height: 15%;
-    //   background: repeating-linear-gradient(
-    //     to bottom,
-    //     rgba(255, 255, 255, 0.6) 0px,
-    //     rgba(255, 255, 255, 0.6) 2px,
-    //     rgba(240, 240, 240, 0.5) 2px,
-    //     rgba(240, 240, 240, 0.5) 4px,
-    //     transparent 4px,
-    //     transparent 8px
-    //   );
-    //   border-radius: 0 3px 3px 0;
-    //   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
-    //   z-index: 10;
-    // }
-
-    .v1 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 2/3;
-      grid-column: 1/3;
-    }
-
-    .v2 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 2/3;
-      grid-column: 2/4;
-    }
-
-    .v3 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 3/4;
-      grid-column: 1/3;
-    }
-
-    .v4 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 3/4;
-      grid-column: 2/4;
-    }
-
-    .v5 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 4/5;
-      grid-column: 1/3;
-    }
-
-    .v6 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 4/5;
-      grid-column: 2/4;
-    }
-
-    .v7 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 5/6;
-      grid-column: 1/3;
-    }
-
-    .v8 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 5/6;
-      grid-column: 2/4;
-    }
-
-    .v9 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 6/7;
-      grid-column: 1/3;
-    }
-
-    .v10 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 6/7;
-      grid-column: 2/4;
-    }
-
-    .v11 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 7/8;
-      grid-column: 1/3;
-    }
-
-    .v12 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 7/8;
-      grid-column: 2/4;
-    }
-
-    .v13 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 8/9;
-      grid-column: 1/3;
-    }
-
-    .v14 {
-      justify-self: center;
-      align-self: center;
-      z-index: 15;
-      grid-row: 8/9;
-      grid-column: 2/4;
-    }
-
-    .vip-background {
-      background: linear-gradient(
-        135deg,
-        rgba(205, 127, 50, 0.6),
-        rgba(184, 115, 51, 0.7),
-        rgba(160, 100, 40, 0.5)
-      );
-      height: 100%;
-      width: 100%;
-      grid-column: 1/4;
-      grid-row: 1/12;
-      border-radius: 12px;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
-        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
-        inset 0 3px 8px rgba(205, 127, 50, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
-      z-index: 1;
-      border: 1px solid rgba(218, 165, 32, 0.5);
-
-      /* Premium VIP lounge pattern - unique bronze luxury design */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-          /* Bronze crystal texture pattern */ radial-gradient(
-            ellipse at 25% 25%,
-            rgba(205, 127, 50, 0.15) 8px,
-            transparent 8px
-          ),
-          radial-gradient(
-            ellipse at 75% 75%,
-            rgba(184, 115, 51, 0.12) 6px,
-            transparent 6px
-          ),
-          radial-gradient(
-            ellipse at 50% 50%,
-            rgba(160, 100, 40, 0.1) 10px,
-            transparent 10px
-          ),
-          /* VIP geometric bronze pattern */
-            repeating-linear-gradient(
-              60deg,
-              transparent 0px,
-              transparent 12px,
-              rgba(205, 127, 50, 0.08) 12px,
-              rgba(205, 127, 50, 0.08) 15px
-            ),
-          /* Bronze border accent */
-            repeating-linear-gradient(
-              120deg,
-              transparent 0px,
-              transparent 20px,
-              rgba(255, 255, 255, 0.04) 20px,
-              rgba(255, 255, 255, 0.04) 22px
-            );
-        background-size: 35px 35px, 30px 30px, 40px 40px, 25px 25px, 25px 25px;
-        z-index: 0;
-      }
-
-      /* Enhanced VIP luxury glow - bronze theme */
-      &::after {
-        content: "";
-        position: absolute;
-        width: 120%;
-        height: 120%;
-        top: -10%;
-        left: -10%;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(205, 127, 50, 0.25) 0%,
-          rgba(184, 115, 51, 0.2) 30%,
-          rgba(160, 100, 40, 0.15) 60%,
-          transparent 80%
-        );
-        z-index: 1;
-        animation: moonGlow 6s ease-in-out infinite;
-      }
-    }
-  }
-
-  &-025 {
-    display: grid;
-
-    grid-gap: 8px;
-    grid-template-columns: repeat(3, 35px);
-    grid-template-rows: repeat(2, 35px);
-    justify-self: start;
-    align-self: end;
-    background: linear-gradient(
-      135deg,
-      rgba(205, 127, 50, 0.5),
-      rgba(184, 115, 51, 0.6),
-      rgba(160, 100, 40, 0.4)
-    );
-    border-radius: 12px;
-    grid-column: 2/3;
-    grid-row: 2/3;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
-      inset 0 -3px 8px rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.2);
-    position: relative;
-    transform: translateY(-2px); /* Slightly higher than 02 */
-    border: 1px solid rgba(218, 165, 32, 0.4);
-
-    .vip-corner-background {
-      background: linear-gradient(
-        135deg,
-        rgba(205, 127, 50, 0.1),
-        rgba(184, 115, 51, 0.7),
-        rgba(160, 100, 40, 0.5)
-      );
-
-      height: 100%;
-      width: 100%;
-      grid-column: 1/4;
-      grid-row: 1/4;
-      border-radius: 12px;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7),
-        inset 0 -4px 10px rgba(255, 255, 255, 0.15),
-        inset 0 3px 8px rgba(205, 127, 50, 0.3), 0 3px 12px rgba(0, 0, 0, 0.4);
-      z-index: 99;
-      border: 1px solid rgba(218, 165, 32, 0.5);
-
-      /* Premium VIP lounge pattern - unique bronze luxury design */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-          /* Bronze crystal texture pattern */ radial-gradient(
-            ellipse at 25% 25%,
-            rgba(205, 127, 50, 0.15) 8px,
-            transparent 8px
-          ),
-          radial-gradient(
-            ellipse at 75% 75%,
-            rgba(184, 115, 51, 0.12) 6px,
-            transparent 6px
-          ),
-          radial-gradient(
-            ellipse at 50% 50%,
-            rgba(160, 100, 40, 0.1) 10px,
-            transparent 10px
-          ),
-          /* VIP geometric bronze pattern */
-            repeating-linear-gradient(
-              60deg,
-              transparent 0px,
-              transparent 12px,
-              rgba(205, 127, 50, 0.08) 12px,
-              rgba(205, 127, 50, 0.08) 15px
-            ),
-          /* Bronze border accent */
-            repeating-linear-gradient(
-              120deg,
-              transparent 0px,
-              transparent 20px,
-              rgba(255, 255, 255, 0.04) 20px,
-              rgba(255, 255, 255, 0.04) 22px
-            );
-        background-size: 35px 35px, 30px 30px, 40px 40px, 25px 25px, 25px 25px;
-        z-index: 0;
-      }
-
-      /* Enhanced VIP luxury glow - bronze theme */
-      &::after {
-        content: "";
-        position: absolute;
-        width: 120%;
-        height: 120%;
-        top: -10%;
-        left: -10%;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(205, 127, 50, 0.25) 0%,
-          rgba(184, 115, 51, 0.2) 30%,
-          rgba(160, 100, 40, 0.15) 60%,
-          transparent 80%
-        );
-        z-index: 1;
-        animation: moonGlow 6s ease-in-out infinite;
-      }
-    }
-  }
-
-  &-04 {
-    display: grid;
-    grid-gap: 6px;
-    grid-template-columns: repeat(3, 35px);
-    grid-template-rows: repeat(8, 35px);
-    justify-self: start;
-    background: linear-gradient(
-      135deg,
-      rgba(70, 70, 70, 0.7),
-      rgba(45, 45, 45, 0.9)
-    );
-    border-radius: 8px;
-    grid-column: 1/2;
-    grid-row: 2/3;
-    align-self: flex-end;
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6),
-      0 -3px 10px rgba(0, 0, 0, 0.4);
-    position: relative;
-    z-index: 3;
-    transform: perspective(200px) rotateX(8deg) translateY(-2px);
+    overflow: hidden;
 
     .staircase-area {
       background: linear-gradient(
@@ -1404,15 +250,14 @@ $anthracite-hover: #252525;
         rgba(25, 25, 25, 0.95) 85%,
         rgba(20, 20, 20, 0.95) 100%
       );
-      height: 100%;
+      height: 80%;
       width: 100%;
       grid-column: 1/4;
       grid-row: 1/9;
       border-radius: 8px;
       position: relative;
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      align-self: end;
       padding-top: 6px;
       overflow: hidden;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8),
@@ -1583,77 +428,756 @@ $anthracite-hover: #252525;
     }
   }
 
+  &-02 {
+    display: grid;
+    height: 100%;
+    width: 100%;
+
+    grid-template-columns: repeat(5, 3rem);
+    grid-template-rows: repeat(10, 2.5rem);
+    justify-self: center;
+    align-self: start;
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      #0a0a0a 0%,
+      #141414 25%,
+      #1a1a1a 50%,
+      #141414 75%,
+      #0a0a0a 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    grid-column: 2/3;
+    grid-row: 2/3;
+    overflow: hidden;
+
+    /* Dance floor pulse effect */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle at center,
+        transparent 0%,
+        rgba(255, 255, 255, 0.02) 30%,
+        transparent 60%
+      );
+      transform: translate(-50%, -50%);
+      animation: danceFloorPulse 4s ease-in-out infinite;
+    }
+
+    /* Dance floor grid pattern */
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.02) 1px,
+          transparent 1px
+        ),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    .standing-table {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      justify-self: center;
+      align-self: center;
+
+      width: 2rem !important;
+      height: 2rem !important;
+      border-radius: 50%;
+      cursor: pointer;
+      background: linear-gradient(145deg, #222222, #2e2e2e);
+      border: 1.5px solid rgba(147, 112, 219, 0.4);
+      color: rgba(147, 112, 219, 0.95);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-shadow: 0 0 5px rgba(147, 112, 219, 0.5);
+      box-shadow: 0 0 12px rgba(147, 112, 219, 0.2);
+      z-index: 99;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: linear-gradient(145deg, #2e2e2e, #3a3a3a);
+        border-color: rgba(147, 112, 219, 0.6);
+        box-shadow: 0 0 20px rgba(147, 112, 219, 0.35);
+        transform: scale(1.1);
+      }
+    }
+
+    .s1 {
+      grid-column: 5/6;
+      grid-row: 5/6;
+    }
+
+    .s2 {
+      grid-column: 5/6;
+      grid-row: 6/7;
+    }
+
+    .s3 {
+      grid-column: 5/6;
+      grid-row: 7/8;
+    }
+
+    .s4 {
+      grid-column: 5/6;
+      grid-row: 8/9;
+      align-self: start;
+      justify-self: start;
+    }
+
+    .s5 {
+      grid-column: 4/5;
+      grid-row: 8/9;
+      align-self: end;
+      justify-self: center;
+    }
+
+    .s6 {
+      grid-column: 3/4;
+      grid-row: 8/9;
+      align-self: end;
+      justify-self: center;
+    }
+
+    .vip-extension-area {
+      width: 15rem;
+      height: 5rem;
+      background: linear-gradient(
+        135deg,
+        #1a1a2e 0%,
+        #16213e 30%,
+        #0f3460 60%,
+        #16213e 100%
+      );
+      border-top: 1px solid rgba(184, 134, 11, 0.15);
+      border-bottom: 1px solid rgba(184, 134, 11, 0.15);
+
+      box-shadow: inset 0 2px 6px rgba(184, 134, 11, 0.1),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+
+      grid-row: 9/11;
+      position: relative;
+      overflow: hidden;
+      z-index: 100;
+      isolation: isolate;
+
+      /* VIP shimmer effect - same as area-03 */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(184, 134, 11, 0.08) 50%,
+          transparent 100%
+        );
+        animation: vipShimmer 6s infinite;
+        z-index: 1;
+      }
+    }
+
+    /* Simple Stair Module */
+    .stair-modul {
+      background: linear-gradient(
+        135deg,
+        #1a1a1a 0%,
+        #262626 50%,
+        #1a1a1a 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      z-index: 99;
+      height: 4rem;
+      width: 2rem;
+
+      position: absolute;
+      /* Horizontal stairs */
+      // &::before {
+      //   content: "";
+      //   position: absolute;
+      //   top: 0;
+      //   left: 0;
+      //   right: 0;
+      //   bottom: 0;
+      //   background-image: linear-gradient(
+      //       to bottom,
+      //       transparent 15%,
+      //       rgba(255, 255, 255, 0.1) 15%,
+      //       rgba(255, 255, 255, 0.05) 17%,
+      //       rgba(0, 0, 0, 0.3) 17%,
+      //       transparent 19%
+      //     ),
+      //     linear-gradient(
+      //       to bottom,
+      //       transparent 35%,
+      //       rgba(255, 255, 255, 0.1) 35%,
+      //       rgba(255, 255, 255, 0.05) 37%,
+      //       rgba(0, 0, 0, 0.3) 37%,
+      //       transparent 39%
+      //     ),
+      //     linear-gradient(
+      //       to bottom,
+      //       transparent 55%,
+      //       rgba(255, 255, 255, 0.1) 55%,
+      //       rgba(255, 255, 255, 0.05) 57%,
+      //       rgba(0, 0, 0, 0.3) 57%,
+      //       transparent 59%
+      //     ),
+      //     linear-gradient(
+      //       to bottom,
+      //       transparent 75%,
+      //       rgba(255, 255, 255, 0.1) 75%,
+      //       rgba(255, 255, 255, 0.05) 77%,
+      //       rgba(0, 0, 0, 0.3) 77%,
+      //       transparent 79%
+      //     );
+      // }
+
+      /* Vertical stairs - UNCOMMENT TO USE */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: linear-gradient(
+            to right,
+            transparent 15%,
+            rgba(255, 255, 255, 0.1) 15%,
+            rgba(255, 255, 255, 0.05) 17%,
+            rgba(0, 0, 0, 0.3) 17%,
+            transparent 19%
+          ),
+          linear-gradient(
+            to right,
+            transparent 35%,
+            rgba(255, 255, 255, 0.1) 35%,
+            rgba(255, 255, 255, 0.05) 37%,
+            rgba(0, 0, 0, 0.3) 37%,
+            transparent 39%
+          ),
+          linear-gradient(
+            to right,
+            transparent 55%,
+            rgba(255, 255, 255, 0.1) 55%,
+            rgba(255, 255, 255, 0.05) 57%,
+            rgba(0, 0, 0, 0.3) 57%,
+            transparent 59%
+          ),
+          linear-gradient(
+            to right,
+            transparent 75%,
+            rgba(255, 255, 255, 0.1) 75%,
+            rgba(255, 255, 255, 0.05) 77%,
+            rgba(0, 0, 0, 0.3) 77%,
+            transparent 79%
+          );
+      }
+
+      // Change grid-row/grid-column above to position anywhere in area-02
+      // Example positions:
+      // grid-row: 3/5; grid-column: 2/3; - middle area
+      // grid-row: 6/8; grid-column: 4/5; - bottom right
+
+      // To switch to vertical stairs:
+      // Comment out the "Horizontal stairs" &::before block above
+      // Uncomment the "Vertical stairs" &::before block
+    }
+
+    /* WC area at top - centered */
+    .wc-area {
+      grid-row: 7/9;
+      grid-column: 1/2;
+      align-self: center;
+      width: 2rem; /* 70% width */
+      height: 4rem; /* 16% height to match entrance area */
+      background: $service-area-bg;
+      border: 1px solid $service-area-accent;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 99;
+
+      p {
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 0.5px;
+        font-size: 0.7rem;
+        z-index: 2;
+      }
+    }
+
+    .dj-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: $service-area-bg;
+      border: 1px solid $service-area-accent;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+      position: relative;
+      justify-self: center;
+      height: 3rem;
+      width: 6rem;
+      margin-left: 0.5rem;
+      grid-column: 2/5;
+      grid-row: 1/2;
+      z-index: 25;
+      overflow: hidden;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          45deg,
+          transparent 40%,
+          rgba(255, 255, 255, 0.03) 50%,
+          transparent 60%
+        );
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 1.5px;
+        font-size: 0.9rem;
+        z-index: 2;
+        text-transform: uppercase;
+      }
+    }
+
+    .bar-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: $service-area-bg;
+      border: 1px solid $service-area-accent;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+      border-radius: 1.2rem;
+      grid-row: 3/7;
+      grid-column: 1/3;
+      height: 10rem;
+      width: 4.5rem;
+      justify-self: center;
+      writing-mode: vertical-rl;
+      overflow: hidden;
+      z-index: 20;
+      position: relative;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03) 0%,
+          transparent 50%,
+          rgba(0, 0, 0, 0.1) 100%
+        );
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: 2px;
+        font-size: 0.9rem;
+        z-index: 2;
+        transform: rotate(180deg);
+        text-transform: uppercase;
+      }
+    }
+
+    /* Entrance area at bottom - aligned left */
+    .entrance-area {
+      position: absolute;
+      bottom: 0;
+      left: 1rem;
+      width: 60%; /* 60% width */
+      height: 10%; /* Same height as WC */
+      background: linear-gradient(
+        135deg,
+        rgba(80, 80, 80, 0.95),
+        rgba(96, 96, 96, 0.9),
+        rgba(64, 64, 64, 0.95)
+      );
+      border: 2px solid rgba(96, 96, 96, 0.8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(80, 80, 80, 0.6), 0 0 6px rgba(96, 96, 96, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.15);
+      z-index: 20;
+
+      p {
+        color: rgba(255, 255, 255, 0.98);
+        font-weight: bold;
+        margin: 0;
+        letter-spacing: 1px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        font-size: 0.6rem;
+        z-index: 2;
+      }
+
+      /* Entrance pattern */
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          /* Door/entrance patterns */ repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 8px,
+            rgba(255, 255, 255, 0.2) 8px,
+            rgba(255, 255, 255, 0.2) 10px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 4px,
+            rgba(128, 128, 128, 0.3) 4px,
+            rgba(128, 128, 128, 0.3) 6px
+          );
+        z-index: 1;
+        border-radius: 6px;
+      }
+    }
+  }
+
+  &-03 {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(3, 2.5rem);
+    grid-template-rows: repeat(10, 2.5rem);
+
+    justify-self: start;
+    background: linear-gradient(
+      135deg,
+      #1a1a2e 0%,
+      #16213e 30%,
+      #0f3460 60%,
+      #16213e 100%
+    );
+    border-right: 1px solid rgba(184, 134, 11, 0.15);
+    border-bottom: 1px solid rgba(184, 134, 11, 0.15);
+
+    box-shadow: inset 0 2px 6px rgba(184, 134, 11, 0.1),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    grid-column: 3/4;
+    grid-row: 2/3;
+    position: relative;
+    transform: translateY(-2px); /* Slightly higher than 02 */
+    // overflow: hidden;
+
+    /* VIP shimmer effect - REMOVED due to overflow issues */
+    // &::before {
+    //   content: "";
+    //   position: absolute;
+    //   top: 0;
+    //   left: -100%;
+    //   width: 100%;
+    //   height: 100%;
+    //   background: linear-gradient(
+    //     90deg,
+    //     transparent 0%,
+    //     rgba(184, 134, 11, 0.08) 50%,
+    //     transparent 100%
+    //   );
+    //   animation: vipShimmer 6s infinite;
+    // }
+
+    .v1 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 1/3;
+      grid-column: 1/3;
+    }
+
+    .v2 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 1/3;
+      grid-column: 3/5;
+    }
+
+    .v3 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 2/4;
+      grid-column: 1/3;
+    }
+
+    .v4 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 2/4;
+      grid-column: 3/5;
+    }
+
+    .v5 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 5/6;
+      grid-column: 1/3;
+    }
+
+    .v6 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 5/6;
+      grid-column: 3/5;
+    }
+
+    .v7 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 6/7;
+      grid-column: 1/3;
+    }
+
+    .v8 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 6/7;
+      grid-column: 3/5;
+    }
+
+    .v9 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 7/8;
+      grid-column: 1/3;
+    }
+
+    .v10 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 7/8;
+      grid-column: 3/5;
+    }
+
+    .v11 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 8/9;
+      grid-column: 1/3;
+    }
+
+    .v12 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 8/9;
+      grid-column: 3/5;
+    }
+
+    .v13 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 9/10;
+      grid-column: 1/3;
+    }
+
+    .v14 {
+      justify-self: center;
+      align-self: center;
+      z-index: 15;
+      grid-row: 9/10;
+      grid-column: 3/5;
+    }
+
+    /* VIP table styles - only for area-03 */
+    .vip-table {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      cursor: pointer;
+      background: linear-gradient(145deg, #1e2a4a, #2a3a5a);
+      border: 1.5px solid rgba(184, 134, 11, 0.35);
+      color: rgba(184, 134, 11, 0.95);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-shadow: 0 0 5px rgba(184, 134, 11, 0.4);
+      box-shadow: 0 0 10px rgba(184, 134, 11, 0.15);
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      &:hover {
+        background: linear-gradient(145deg, #2a3a5a, #364a6a);
+        border-color: rgba(184, 134, 11, 0.5);
+        box-shadow: 0 0 16px rgba(184, 134, 11, 0.25);
+        transform: scale(1.1);
+      }
+    }
+  }
+
   &-05 {
     display: grid;
-    grid-gap: 6px;
-    grid-template-columns: repeat(9, 35px);
-    grid-template-rows: repeat(5, 20px);
+    grid-template-columns: repeat(11, 2.5rem);
+    grid-template-rows: repeat(5, 2rem);
     justify-self: start;
     width: 100%;
+    height: 100%;
     background: linear-gradient(
-      45deg,
-      rgba(184, 134, 11, 0.6),
-      rgba(218, 165, 32, 0.7)
+      135deg,
+      #2a2822 0%,
+      #3a3628 25%,
+      #4a4230 50%,
+      #3a3628 75%,
+      #2a2822 100%
     );
     border-radius: 12px;
     grid-column: 1/4;
     grid-row: 1/2;
-    box-shadow: 
-      /* Contained elevation shadows */ inset 0 0 25px
-        rgba(0, 0, 0, 0.5),
-      inset 0 -6px 15px rgba(255, 255, 255, 0.2),
-      inset 0 3px 8px rgba(218, 165, 32, 0.3),
-      /* Reduced shadows to prevent overflow */ 0 4px 12px rgba(0, 0, 0, 0.4),
-      0 8px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 2px 8px rgba(212, 175, 55, 0.15),
+      inset 0 -2px 8px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.5);
     position: relative;
-    z-index: 5; /* Reduced from 15 to prevent overlap */
-    transform: translateY(-8px) perspective(300px) rotateX(-3deg) scale(1.02)
-      translateZ(8px); /* Reduced transforms to contain within bounds */
-    filter: brightness(1.05) contrast(1.05);
-    border: 2px solid rgba(218, 165, 32, 0.4);
-    overflow: hidden; /* Prevent pseudo-elements from extending beyond bounds */
+    z-index: 5;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    overflow: hidden;
+
+    /* Exclusive gold shimmer effect */
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(212, 175, 55, 0.1) 0%,
+        rgba(212, 175, 55, 0.05) 25%,
+        transparent 50%
+      );
+      animation: shimmer 8s ease-in-out infinite;
+    }
+
+    /* Subtle exclusive pattern overlay */
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(
+          45deg,
+          transparent 48%,
+          rgba(212, 175, 55, 0.03) 49%,
+          rgba(212, 175, 55, 0.03) 51%,
+          transparent 52%
+        ),
+        linear-gradient(
+          -45deg,
+          transparent 48%,
+          rgba(212, 175, 55, 0.03) 49%,
+          rgba(212, 175, 55, 0.03) 51%,
+          transparent 52%
+        );
+      background-size: 20px 20px;
+    }
 
     .e1 {
       justify-self: center;
       align-self: end;
       z-index: 16;
       grid-row: 2/4;
-
+      height: 4rem;
+      width: 2.5rem;
       grid-column: 1/2;
+    }
+
+    .e2 {
+      justify-self: center;
+      z-index: 16;
+      grid-row: 1/2;
+      align-self: end;
+      grid-column: 2/4;
+      height: 2rem;
+      width: 5rem;
+    }
+
+    .e3 {
+      justify-self: center;
+      z-index: 16;
+      grid-row: 2/4;
+      height: 4rem;
+      width: 2.5rem;
+      align-self: end;
+      grid-column: 4/5;
     }
 
     .d1 {
       justify-self: center;
       z-index: 16;
 
-      align-self: end;
+      align-self: center;
       grid-row: 2/4;
-      grid-column: 4/6;
+      grid-column: 5/7;
     }
 
     .d2 {
       justify-self: center;
-      align-self: end;
+      align-self: center;
       z-index: 16;
       grid-row: 2/4;
-      grid-column: 6/7;
-    }
-
-    .e2 {
-      justify-self: center;
-
-      z-index: 16;
-      grid-row: 1/3;
-      align-self: end;
-      grid-column: 2/3;
-    }
-
-    .e3 {
-      justify-self: center;
-      z-index: 16;
-      grid-row: 1/4;
-      align-self: end;
-      grid-column: 3/4;
+      grid-column: 6/8;
     }
 
     .b1 {
@@ -1662,7 +1186,7 @@ $anthracite-hover: #252525;
       z-index: 16;
       grid-row: 4/6;
       align-self: center;
-      grid-column: 2/3;
+      grid-column: 4/5;
     }
 
     .b2 {
@@ -1670,7 +1194,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 3/4;
+      grid-column: 5/6;
     }
 
     .b3 {
@@ -1678,7 +1202,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 4/5;
+      grid-column: 6/7;
     }
 
     .b4 {
@@ -1686,7 +1210,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 5/6;
+      grid-column: 7/8;
     }
 
     .b5 {
@@ -1694,7 +1218,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 6/7;
+      grid-column: 8/9;
     }
 
     .b6 {
@@ -1702,7 +1226,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 7/8;
+      grid-column: 9/10;
     }
 
     .b7 {
@@ -1710,7 +1234,7 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 3/5;
-      grid-column: 8/9;
+      grid-column: 10/11;
     }
 
     .b8 {
@@ -1718,109 +1242,58 @@ $anthracite-hover: #252525;
       align-self: center;
       z-index: 16;
       grid-row: 4/6;
-      grid-column: 9/10;
+      grid-column: 11/12;
     }
 
-    .backstage-background {
-      // background: linear-gradient(
-      //   45deg,
-      //   rgba(184, 134, 11, 0.5),
-      //   rgba(218, 165, 32, 0.6)
-      // );
-      height: 100%;
-      width: 100%;
-      grid-column: 1/10;
-      grid-row: 1/6;
-      border-radius: 8px;
-      // position: relative;
+    /* Backstage table styles - only for area-05 */
+    .backstage-table {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      cursor: pointer;
+      background: linear-gradient(145deg, #3a3a44, #4a4a54);
+      border: 1.5px solid rgba(212, 175, 55, 0.4);
+      color: rgba(212, 175, 55, 1);
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-shadow: 0 0 6px rgba(212, 175, 55, 0.5);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
+      transition: all 0.3s ease;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
 
-      z-index: 1;
-      // border: 1px solid rgba(218, 165, 32, 0.3);
-      /* Add dark base platform */
-      &::after {
-        content: "";
-        position: absolute;
-        bottom: -8px;
-        left: -4px;
-        right: -4px;
-        height: 8px;
-        // background: linear-gradient(
-        //   to bottom,
-        //   rgba(50, 50, 50, 0.7) 0%,
-        //   rgba(35, 35, 35, 0.8) 50%,
-        //   rgba(20, 20, 20, 0.9) 100%
-        // );
-        border-radius: 0 0 12px 12px;
-        // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6),
-        //   inset 0 1px 2px rgba(255, 255, 255, 0.05);
-        // z-index: -1;
+      &:hover {
+        background: linear-gradient(145deg, #4a4a54, #5a5a64);
+        border-color: rgba(212, 175, 55, 0.6);
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.35);
+        transform: scale(1.1);
       }
+    }
 
-      /* Elevated floor pattern */
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-          /* Premium backstage luxury pattern - unique from area -02 */ radial-gradient(
-            circle at 30% 30%,
-            rgba(218, 165, 32, 0.18) 12px,
-            transparent 12px
-          ),
-          radial-gradient(
-            circle at 70% 70%,
-            rgba(184, 134, 11, 0.15) 10px,
-            transparent 10px
-          ),
-          /* Luxury carpet texture */
-            repeating-linear-gradient(
-              45deg,
-              transparent 0px,
-              transparent 8px,
-              rgba(218, 165, 32, 0.1) 8px,
-              rgba(218, 165, 32, 0.1) 16px
-            ),
-          /* Premium parquet floor - different from dancefloor */
-            repeating-linear-gradient(
-              0deg,
-              rgba(255, 255, 255, 0.04) 0px,
-              rgba(255, 255, 255, 0.04) 2px,
-              transparent 2px,
-              transparent 18px
-            ),
-          repeating-linear-gradient(
-            90deg,
-            rgba(184, 134, 11, 0.08) 0px,
-            rgba(184, 134, 11, 0.08) 1px,
-            transparent 1px,
-            transparent 30px
-          );
-        background-size: 40px 40px, 35px 35px, 20px 20px, 22px 22px, 32px 32px;
-        z-index: 0;
-      }
+    /* Backstage stand tables - only for area-05 */
+    .backstage-stand {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      cursor: pointer;
+      background: linear-gradient(145deg, #32323a, #42424a);
+      border: 1.5px solid rgba(184, 134, 11, 0.3);
+      color: rgba(184, 134, 11, 0.95);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-shadow: 0 0 4px rgba(184, 134, 11, 0.4);
+      box-shadow: 0 0 8px rgba(184, 134, 11, 0.15);
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
 
-      /* Upstairs luxury glow */
-      &::after {
-        content: "";
-        position: absolute;
-        width: 120%;
-        height: 120%;
-        top: -10%;
-        left: -10%;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(218, 165, 32, 0.2) 0%,
-          rgba(184, 134, 11, 0.15) 30%,
-          transparent 60%
-        );
-        z-index: 0;
+      &:hover {
+        background: linear-gradient(145deg, #42424a, #52525a);
+        border-color: rgba(184, 134, 11, 0.5);
+        box-shadow: 0 0 15px rgba(184, 134, 11, 0.25);
+        transform: scale(1.08);
       }
     }
   }
@@ -1866,8 +1339,8 @@ $anthracite-hover: #252525;
 
 .table-round {
   display: grid;
-  width: 35px !important;
-  height: 35px !important;
+  width: 2rem !important;
+  height: 2rem !important;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -1919,19 +1392,7 @@ $anthracite-hover: #252525;
   }
 }
 
-.bronze-table {
-  background: linear-gradient(145deg, #cd7f32, #b87333);
-  border: 2px solid #daa520;
-  color: #ffffff;
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
-  box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
-
-  &:hover {
-    background: linear-gradient(145deg, #b87333, #cd7f32);
-    box-shadow: 0 0 15px rgba(205, 127, 50, 0.4);
-  }
-}
+// Removed bronze-table class - replaced with vip-table in area-03
 
 .orange-table {
   background: linear-gradient(145deg, #ff8c00, #ffa500);
@@ -1962,56 +1423,76 @@ $anthracite-hover: #252525;
 }
 
 .golden-table {
-  background: linear-gradient(
-    145deg,
-    rgba(184, 134, 11, 0.8),
-    rgba(218, 165, 32, 0.7)
-  );
-  border: 2px solid rgba(255, 215, 0, 0.5);
-  color: #ffffff;
-  font-weight: normal;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-  box-shadow: 0 0 8px rgba(184, 134, 11, 0.3);
+  background: linear-gradient(145deg, #5a5a7e, #6a6a8e);
+  border: 1.5px solid rgba(255, 215, 0, 0.3);
+  color: rgba(255, 215, 0, 0.95);
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+  transition: all 0.3s ease;
 
   &:hover {
-    background: linear-gradient(
-      145deg,
-      rgba(218, 165, 32, 0.8),
-      rgba(184, 134, 11, 0.7)
-    );
-    box-shadow: 0 0 12px rgba(184, 134, 11, 0.4);
+    background: linear-gradient(145deg, #6a6a8e, #7a7a9e);
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.25);
+    transform: scale(1.05);
   }
 }
 
-.exclusive-table {
-  background: linear-gradient(145deg, #d4af37, #ffd700, #b8860b);
-  border: 2px solid #ffd700;
-  color: #2d2d2d;
-  font-weight: normal;
-  text-shadow: none;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+/* Exclusive tables for area-05 only */
+.table-layout-harlem-05 .exclusive-table {
+  background: linear-gradient(145deg, #4a4a54, #5a5a64);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  color: rgba(255, 215, 0, 1);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3),
+    inset 0 1px 3px rgba(255, 255, 255, 0.15);
+  text-align: center;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 45%,
+      rgba(255, 215, 0, 0.1) 50%,
+      transparent 55%
+    );
+    animation: exclusiveGlow 3s linear infinite;
+  }
 
   &:hover {
-    background: linear-gradient(145deg, #ffd700, #d4af37, #daa520);
-    box-shadow: 0 0 12px rgba(212, 175, 55, 0.4),
-      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(145deg, #5a5a64, #6a6a74);
+    border-color: rgba(255, 215, 0, 0.7);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+    transform: scale(1.05);
   }
 }
 
 .stand-table {
-  background: linear-gradient(145deg, #cd853f, #daa520, #b8860b);
-  border: 2px solid #daa520;
-  color: #2d2d2d;
-  font-weight: normal;
-  text-shadow: none;
-  box-shadow: 0 0 8px rgba(205, 133, 63, 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, #5e5e82, #6e6e92);
+  border: 1.5px solid rgba(218, 165, 32, 0.25);
+  color: rgba(218, 165, 32, 0.95);
+  font-weight: 600;
+  text-shadow: 0 0 4px rgba(218, 165, 32, 0.35);
+  box-shadow: 0 0 8px rgba(218, 165, 32, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
 
   &:hover {
-    background: linear-gradient(145deg, #daa520, #cd853f, #b8860b);
-    box-shadow: 0 0 12px rgba(205, 133, 63, 0.4),
-      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(145deg, #6e6e92, #7e7ea2);
+    border-color: rgba(218, 165, 32, 0.35);
+    box-shadow: 0 0 12px rgba(218, 165, 32, 0.25);
+    transform: scale(1.05);
   }
 }
 
@@ -2128,5 +1609,44 @@ $anthracite-hover: #252525;
   100% {
     opacity: 0.3;
     transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes exclusiveGlow {
+  0% {
+    transform: translateX(-100%) translateY(-100%);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%);
+  }
+}
+
+@keyframes vipShimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+@keyframes danceFloorPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.2);
   }
 }

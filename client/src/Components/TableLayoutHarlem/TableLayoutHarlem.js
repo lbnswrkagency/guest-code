@@ -40,6 +40,14 @@ const TableLayoutHarlem = ({
     V13: { minSpend: 300, maxPersons: 8, category: "V" },
     V14: { minSpend: 300, maxPersons: 8, category: "V" },
 
+    // S tables (Standing) - €120 minimum, 4 persons max
+    S1: { minSpend: 120, maxPersons: 4, category: "S" },
+    S2: { minSpend: 120, maxPersons: 4, category: "S" },
+    S3: { minSpend: 120, maxPersons: 4, category: "S" },
+    S4: { minSpend: 120, maxPersons: 4, category: "S" },
+    S5: { minSpend: 120, maxPersons: 4, category: "S" },
+    S6: { minSpend: 120, maxPersons: 4, category: "S" },
+
     // B tables (Backstage) - €500 minimum, 8 persons max
     B1: { minSpend: 500, maxPersons: 8, category: "B" },
     B2: { minSpend: 500, maxPersons: 8, category: "B" },
@@ -50,7 +58,7 @@ const TableLayoutHarlem = ({
     B7: { minSpend: 500, maxPersons: 8, category: "B" },
     B8: { minSpend: 500, maxPersons: 8, category: "B" },
 
-    // D tables (Backstage Stand) - €300 minimum, 4 persons max
+    // D tables (Standing Backstage) - €300 minimum, 4 persons max
     D1: { minSpend: 300, maxPersons: 4, category: "D" },
     D2: { minSpend: 300, maxPersons: 4, category: "D" },
 
@@ -78,6 +86,14 @@ const TableLayoutHarlem = ({
       "V13",
       "V14",
     ],
+    standing: [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+    ],
     backstage: [
       "B1",
       "B2",
@@ -97,10 +113,45 @@ const TableLayoutHarlem = ({
 
   // Category to area name mapping
   const categoryAreaNames = {
-    D: "Backstage Stand",
-    V: "VIP Area",
+    S: "Standing",
+    D: "Standing Backstage",
+    V: "VIP",
     B: "Backstage",
-    E: "Backstage Exclusive",
+    E: "Exclusive Backstage",
+  };
+
+  // Theme colors for each category (extracted from SCSS styling)
+  const categoryThemeColors = {
+    S: {
+      primary: "#1a1a2e",    // Dark blue-grey from dance floor
+      accent: "#0f3460",     // Deeper blue accent
+      text: "#ffffff",       // White text
+      border: "#2a2f3e",     // Border color
+    },
+    V: {
+      primary: "#184134",    // VIP gold primary
+      accent: "#b8860b",     // Gold accent  
+      text: "#b8860b",       // Gold text
+      border: "rgba(184, 134, 11, 0.35)", // Gold border
+    },
+    B: {
+      primary: "#2a2822",    // Warm backstage primary
+      accent: "#d4af37",     // Gold accent
+      text: "#d4af37",       // Gold text
+      border: "rgba(212, 175, 55, 0.2)", // Gold border
+    },
+    D: {
+      primary: "#32323a",    // Dark grey primary
+      accent: "#b8860b",     // Orange/gold accent
+      text: "#b8860b",       // Orange/gold text  
+      border: "rgba(184, 134, 11, 0.3)", // Orange border
+    },
+    E: {
+      primary: "#4a4a54",    // Premium grey primary
+      accent: "#ffd700",     // Bright gold accent
+      text: "#ffd700",       // Bright gold text
+      border: "rgba(255, 215, 0, 0.5)", // Bright gold border
+    },
   };
 
   // Extract tableCounts from the counts object
@@ -122,6 +173,7 @@ const TableLayoutHarlem = ({
         tableConfig,
         tableCategories,
         categoryAreaNames,
+        categoryThemeColors,
         totalTables: Object.values(tableCategories).flat().length,
       };
       onConfigurationLoaded(config);
@@ -177,19 +229,53 @@ const TableLayoutHarlem = ({
     <div className="table-layout-harlem">
       {/* Table Layout 01 - DJ Area with D Tables */}
       <div className="tables table-layout-harlem-01">
-        {/* <div className="entrance-area">
-          <p>ENTRANCE</p>
-        </div> */}
-
-        <div className="table-main-floor"></div>
-        {/* <div className="top-steps"></div> */}
-        {/* <div className="right-steps"></div> */}
-        {/* <div className="bottom-steps"></div>
-        <div className="right-columns"></div> */}
+        <div className="staircase-area"></div>
+        {/* <div className="table-main-floor"></div> */}
       </div>
 
       {/* Table Layout 02 - Dancefloor */}
       <div className="tables table-layout-harlem-02">
+        <div
+          className={getClass("S1", " standing-table s1")}
+          onClick={(e) => handleTableClick("S1", e)}
+        >
+          S1
+        </div>
+        <div
+          className={getClass("S2", " standing-table s2")}
+          onClick={(e) => handleTableClick("S2", e)}
+        >
+          S2
+        </div>
+
+        <div
+          className={getClass("S3", " standing-table s3")}
+          onClick={(e) => handleTableClick("S3", e)}
+        >
+          S3
+        </div>
+
+        <div
+          className={getClass("S4", " standing-table s4")}
+          onClick={(e) => handleTableClick("S4", e)}
+        >
+          S4
+        </div>
+
+        <div
+          className={getClass("S5", " standing-table s5")}
+          onClick={(e) => handleTableClick("S5", e)}
+        >
+          S5
+        </div>
+
+        <div
+          className={getClass("S6", " standing-table s6")}
+          onClick={(e) => handleTableClick("S6", e)}
+        >
+          S6
+        </div>
+
         <div className="dj-area">
           <p>DJ</p>
         </div>
@@ -201,214 +287,201 @@ const TableLayoutHarlem = ({
           <p>WC</p>
         </div>
 
-        <div className="dancefloor-area"></div>
-      </div>
-
-      <div className="table-layout-harlem-025">
-        <div className="vip-corner-background"></div>
+        <div className="vip-extension-area"></div>
+        {/* 
+        <div className="stair-modul"></div> */}
       </div>
 
       {/* Table Layout 03 - VIP Area */}
       <div className="table-layout-harlem-03">
         <div
-          className={getClass("V1", "table-round bronze-table v1")}
+          className={getClass("V1", "vip-table v1")}
           onClick={(e) => handleTableClick("V1", e)}
         >
           V1
         </div>
         <div
-          className={getClass("V2", "table-round bronze-table v2")}
+          className={getClass("V2", "vip-table v2")}
           onClick={(e) => handleTableClick("V2", e)}
         >
           V2
         </div>
 
         <div
-          className={getClass("V3", "table-round bronze-table v3")}
+          className={getClass("V3", "vip-table v3")}
           onClick={(e) => handleTableClick("V3", e)}
         >
           V3
         </div>
 
         <div
-          className={getClass("V4", "table-round bronze-table v4")}
+          className={getClass("V4", "vip-table v4")}
           onClick={(e) => handleTableClick("V4", e)}
         >
           V4
         </div>
 
         <div
-          className={getClass("V5", "table-round bronze-table v5")}
+          className={getClass("V5", "vip-table v5")}
           onClick={(e) => handleTableClick("V5", e)}
         >
           V5
         </div>
 
         <div
-          className={getClass("V6", "table-round bronze-table v6")}
+          className={getClass("V6", "vip-table v6")}
           onClick={(e) => handleTableClick("V6", e)}
         >
           V6
         </div>
 
         <div
-          className={getClass("V7", "table-round bronze-table v7")}
+          className={getClass("V7", "vip-table v7")}
           onClick={(e) => handleTableClick("V7", e)}
         >
           V7
         </div>
 
         <div
-          className={getClass("V8", "table-round bronze-table v8")}
+          className={getClass("V8", "vip-table v8")}
           onClick={(e) => handleTableClick("V8", e)}
         >
           V8
         </div>
 
         <div
-          className={getClass("V9", "table-round bronze-table v9")}
+          className={getClass("V9", "vip-table v9")}
           onClick={(e) => handleTableClick("V9", e)}
         >
           V9
         </div>
 
         <div
-          className={getClass("V10", "table-round bronze-table v10")}
+          className={getClass("V10", "vip-table v10")}
           onClick={(e) => handleTableClick("V10", e)}
         >
           V10
         </div>
 
         <div
-          className={getClass("V11", "table-round bronze-table v11")}
+          className={getClass("V11", "vip-table v11")}
           onClick={(e) => handleTableClick("V11", e)}
         >
           V11
         </div>
 
         <div
-          className={getClass("V12", "table-round bronze-table v12")}
+          className={getClass("V12", "vip-table v12")}
           onClick={(e) => handleTableClick("V12", e)}
         >
           V12
         </div>
 
         <div
-          className={getClass("V13", "table-round bronze-table v13")}
+          className={getClass("V13", "vip-table v13")}
           onClick={(e) => handleTableClick("V13", e)}
         >
           V13
         </div>
 
         <div
-          className={getClass("V14", "table-round bronze-table v14")}
+          className={getClass("V14", "vip-table v14")}
           onClick={(e) => handleTableClick("V14", e)}
         >
           V14
         </div>
-
-        <div className="vip-background"></div>
-      </div>
-
-      {/* Table Layout 04 - Staircase */}
-      <div className="table-layout-harlem-04">
-        <div className="staircase-area"></div>
       </div>
 
       {/* Table Layout 05 - Backstage */}
       <div className="table-layout-harlem-05">
         <div
-          className={getClass("E1", "table-round exclusive-table e1")}
+          className={getClass("E1", " exclusive-table e1")}
           onClick={(e) => handleTableClick("E1", e)}
         >
           E1
         </div>
 
         <div
-          className={getClass("E2", "table-round exclusive-table e2")}
+          className={getClass("E2", " exclusive-table e2")}
           onClick={(e) => handleTableClick("E2", e)}
         >
           E2
         </div>
         <div
-          className={getClass("E3", "table-round exclusive-table e3")}
+          className={getClass("E3", " exclusive-table e3")}
           onClick={(e) => handleTableClick("E3", e)}
         >
           E3
         </div>
 
         <div
-          className={getClass("D1", "table-round stand-table d1")}
+          className={getClass("D1", "backstage-stand d1")}
           onClick={(e) => handleTableClick("D1", e)}
         >
           D1
         </div>
 
         <div
-          className={getClass("D2", "table-round stand-table d2")}
+          className={getClass("D2", "backstage-stand d2")}
           onClick={(e) => handleTableClick("D2", e)}
         >
           D2
         </div>
 
         <div
-          className={getClass("B1", "table-round golden-table b1")}
+          className={getClass("B1", "backstage-table b1")}
           onClick={(e) => handleTableClick("B1", e)}
         >
           B1
         </div>
         <div
-          className={getClass("B2", "table-round golden-table b2")}
+          className={getClass("B2", "backstage-table b2")}
           onClick={(e) => handleTableClick("B2", e)}
         >
           B2
         </div>
 
         <div
-          className={getClass("B3", "table-round golden-table b3")}
+          className={getClass("B3", "backstage-table b3")}
           onClick={(e) => handleTableClick("B3", e)}
         >
           B3
         </div>
 
         <div
-          className={getClass("B4", "table-round golden-table b4")}
+          className={getClass("B4", "backstage-table b4")}
           onClick={(e) => handleTableClick("B4", e)}
         >
           B4
         </div>
 
         <div
-          className={getClass("B5", "table-round golden-table b5")}
+          className={getClass("B5", "backstage-table b5")}
           onClick={(e) => handleTableClick("B5", e)}
         >
           B5
         </div>
 
         <div
-          className={getClass("B6", "table-round golden-table b6")}
+          className={getClass("B6", "backstage-table b6")}
           onClick={(e) => handleTableClick("B6", e)}
         >
           B6
         </div>
 
         <div
-          className={getClass("B7", "table-round golden-table b7")}
+          className={getClass("B7", "backstage-table b7")}
           onClick={(e) => handleTableClick("B7", e)}
         >
           B7
         </div>
 
         <div
-          className={getClass("B8", "table-round golden-table b8")}
+          className={getClass("B8", "backstage-table b8")}
           onClick={(e) => handleTableClick("B8", e)}
         >
           B8
         </div>
-
-        <div className="backstage-background"></div>
-        <div className="terrace-edge"></div>
-        <div className="column-capitals"></div>
       </div>
     </div>
   );
