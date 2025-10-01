@@ -1,5 +1,5 @@
 // TableSystem.js
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
@@ -147,11 +147,14 @@ function TableSystem({
     }
   };
 
-  const defaultTableCategories = getDefaultTableCategories();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const defaultTableCategories = useMemo(() => getDefaultTableCategories(), [selectedLayout]);
 
-  // Use dynamic table categories from layout if available
-  const tableCategories =
-    layoutConfig?.tableCategories || defaultTableCategories;
+  // Use dynamic table categories from layout if available - memoize to prevent re-creation
+  const tableCategories = useMemo(() => 
+    layoutConfig?.tableCategories || defaultTableCategories,
+    [layoutConfig, defaultTableCategories]
+  );
 
   // Function to render the appropriate table layout component
   const renderTableLayout = () => {
@@ -186,11 +189,14 @@ function TableSystem({
   const handleConfigurationLoaded = useCallback(
     (config) => {
       // Only update if the config is different to prevent render loops
-      if (JSON.stringify(layoutConfig) !== JSON.stringify(config)) {
-        setLayoutConfig(config);
-      }
+      setLayoutConfig((prevConfig) => {
+        if (JSON.stringify(prevConfig) !== JSON.stringify(config)) {
+          return config;
+        }
+        return prevConfig;
+      });
     },
-    [layoutConfig]
+    [] // No dependencies needed when using functional setState
   );
 
   // Reset config loaded flag when event changes
@@ -210,6 +216,7 @@ function TableSystem({
     if (selectedEvent && selectedEvent._id) {
       fetchTableCounts(selectedEvent._id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent, refreshTrigger, providedTableData]);
 
   // Handle changes to providedTableData prop
@@ -241,20 +248,50 @@ function TableSystem({
   const fetchTableCounts = async (eventId) => {
     setIsLoading(true);
     try {
-      // Use different endpoint for public vs. authenticated requests
-      const endpoint = isPublic
+      // Check if this is a co-hosted event where we need all table data for visualization
+      const isCoHostedEvent = selectedEvent?.isCoHosted || selectedEvent?.coHostBrandInfo;
+      
+      // For public requests (guest-facing), use the public endpoint
+      // For co-hosted events, use authenticated endpoint with special flag
+      // For regular authenticated requests, use normal authenticated endpoint
+      const endpoint = isPublic 
         ? `/table/public/counts/${eventId}`
         : `/table/counts/${eventId}`;
 
-      // Use axiosInstance with token refresh interceptors for authenticated requests
-      // Keep direct axios for public requests
+      // Add query parameter for co-hosted events to signal backend to return all data
+      const fullEndpoint = isCoHostedEvent && !isPublic
+        ? `${endpoint}?coHosted=true`
+        : endpoint;
+
+      // Use appropriate axios instance based on authentication needs
       const response = isPublic
-        ? await axios.get(`${process.env.REACT_APP_API_BASE_URL}${endpoint}`)
-        : await axiosInstance.get(endpoint);
+        ? await axios.get(`${process.env.REACT_APP_API_BASE_URL}${fullEndpoint}`)
+        : await axiosInstance.get(fullEndpoint);
 
       // Expecting response format { tableCounts: [], totalCount: 0 }
       if (response.data && Array.isArray(response.data.tableCounts)) {
         const { tableCounts, totalCount } = response.data;
+        
+        // 🚨 DEBUG: Log table data for co-hosted events
+        console.log("🔍 [TableSystem] Table data received:");
+        console.log("  - isCoHostedEvent:", isCoHostedEvent);
+        console.log("  - isPublic:", isPublic);
+        console.log("  - endpoint used:", fullEndpoint);
+        console.log("  - tableCounts length:", tableCounts.length);
+        console.log("  - tableCounts data:", tableCounts);
+        console.log("  - selectedEvent.coHostBrandInfo:", selectedEvent?.coHostBrandInfo);
+        
+        // Log specific table bookings for debugging
+        const bookedTableNumbers = tableCounts
+          .filter(code => code.status !== "declined" && code.status !== "cancelled")
+          .map(code => ({
+            table: code.tableNumber || code.table,
+            status: code.status,
+            host: code.host,
+            hostId: code.hostId
+          }));
+        console.log("  - booked table numbers:", bookedTableNumbers);
+        
         setTableData({ tableCounts, totalCount });
       } else {
         setTableData({ tableCounts: [], totalCount: 0 });
@@ -300,28 +337,29 @@ function TableSystem({
   const remainingTables = totalTables - uniqueBookedTableNumbers.length;
 
   // Dynamic function to get table type based on active layout
-  const getTableType = (table) => {
-    if (!table) return "";
+  // Commented out as it's not currently used but may be needed in the future
+  // const getTableType = (table) => {
+  //   if (!table) return "";
 
-    // First check if we have layout configuration
-    if (
-      layoutConfig &&
-      layoutConfig.tableConfig &&
-      layoutConfig.categoryAreaNames
-    ) {
-      const tableInfo = layoutConfig.tableConfig[table];
-      if (tableInfo) {
-        return layoutConfig.categoryAreaNames[tableInfo.category] || "";
-      }
-    }
+  //   // First check if we have layout configuration
+  //   if (
+  //     layoutConfig &&
+  //     layoutConfig.tableConfig &&
+  //     layoutConfig.categoryAreaNames
+  //   ) {
+  //     const tableInfo = layoutConfig.tableConfig[table];
+  //     if (tableInfo) {
+  //       return layoutConfig.categoryAreaNames[tableInfo.category] || "";
+  //     }
+  //   }
 
-    // Fallback to category-based mapping
-    if (tableCategories.backstage.includes(table)) return "Backstage";
-    if (tableCategories.vip.includes(table)) return "VIP";
-    if (tableCategories.premium.includes(table)) return "Premium";
-    if (tableCategories.djarea.includes(table)) return "DJ Area";
-    return "General"; // Fallback category if needed
-  };
+  //   // Fallback to category-based mapping
+  //   if (tableCategories.backstage.includes(table)) return "Backstage";
+  //   if (tableCategories.vip.includes(table)) return "VIP";
+  //   if (tableCategories.premium.includes(table)) return "Premium";
+  //   if (tableCategories.djarea.includes(table)) return "DJ Area";
+  //   return "General"; // Fallback category if needed
+  // };
 
   const handleTableSelection = (table, position) => {
     setSelectedTable(table);
@@ -528,9 +566,10 @@ function TableSystem({
   };
 
   // Function to toggle between venues/layouts
-  const toggleVenue = (venue) => {
-    setSelectedVenue(venue);
-  };
+  // Commented out as it's not currently used but may be needed in the future
+  // const toggleVenue = (venue) => {
+  //   setSelectedVenue(venue);
+  // };
 
   // Add effect to ensure navigation menu works properly from this component
   useEffect(() => {
@@ -561,10 +600,11 @@ function TableSystem({
   }, []);
 
   // Enhance the back button to ensure it communicates with Dashboard
-  const handleBack = () => {
-    // Call the provided onClose handler directly without custom event
-    if (onClose) onClose();
-  };
+  // Commented out as it's not currently used but may be needed in the future
+  // const handleBack = () => {
+  //   // Call the provided onClose handler directly without custom event
+  //   if (onClose) onClose();
+  // };
 
   if (!selectedEvent) {
     return (

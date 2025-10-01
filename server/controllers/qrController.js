@@ -573,6 +573,86 @@ const validateTicket = async (req, res) => {
       typeOfTicket
     );
 
+    // Check scanner permissions before allowing ticket validation
+    if (requestBrandId && event) {
+      const Brand = require("../models/brandModel");
+      
+      // First check if user has permission for the main brand
+      const brand = await Brand.findOne({
+        _id: requestBrandId,
+        $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
+      });
+
+      // If user is not a member of the main brand, check co-host permissions
+      let hasCoHostPermission = false;
+      if (!brand) {
+        // Check if this event has co-hosts and if user's brand is a co-host
+        if (event.coHosts && event.coHosts.length > 0) {
+          // Find all brands where the user is a team member or owner
+          const userBrands = await Brand.find({
+            $or: [
+              { owner: req.user.userId },
+              { "team.user": req.user.userId }
+            ]
+          });
+
+          // Check if any of the user's brands are co-hosts for this event
+          for (const userBrand of userBrands) {
+            const isCoHost = event.coHosts.some(
+              coHostId => coHostId.toString() === userBrand._id.toString()
+            );
+
+            if (isCoHost) {
+              // Check co-host permissions for this brand/role combination
+              const coHostPermissions = event.coHostRolePermissions || [];
+              const brandPermissions = coHostPermissions.find(
+                cp => cp.brandId.toString() === userBrand._id.toString()
+              );
+
+              if (brandPermissions) {
+                // Find the user's role in this co-host brand
+                const userRoleInCoHostBrand = userBrand.team?.find(
+                  member => member.user.toString() === req.user.userId.toString()
+                )?.role;
+
+                // Check if user is owner of co-host brand
+                const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+
+                if (userRoleInCoHostBrand || isCoHostBrandOwner) {
+                  // Find permissions for this specific role (or use owner permissions)
+                  let rolePermission;
+                  if (isCoHostBrandOwner) {
+                    // Owners get the permissions of any admin role with scanner access
+                    rolePermission = brandPermissions.rolePermissions.find(rp => {
+                      return rp.permissions && rp.permissions.scanner && rp.permissions.scanner.use === true;
+                    });
+                  } else {
+                    rolePermission = brandPermissions.rolePermissions.find(
+                      rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
+                    );
+                  }
+
+                  if (rolePermission && rolePermission.permissions && rolePermission.permissions.scanner) {
+                    hasCoHostPermission = rolePermission.permissions.scanner.use === true;
+                    
+                    if (hasCoHostPermission) {
+                      break; // Found permission, no need to check other brands
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!brand && !hasCoHostPermission) {
+        return res.status(403).json({
+          message: "You do not have permission to scan codes for this event",
+        });
+      }
+    }
+
     // Prepare the response with all necessary fields
     const response = {
       ...ticketData,

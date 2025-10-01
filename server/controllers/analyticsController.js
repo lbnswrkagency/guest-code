@@ -21,29 +21,105 @@ exports.getAnalyticsSummary = async (req, res) => {
       });
     }
 
+    // First get the event to check co-hosts
+    let event = await Event.findOne({
+      _id: eventId,
+      brand: brandId,
+    });
+
+    if (!event) {
+      // Check if this is a co-hosted event (event belongs to different brand but user's brand is co-host)
+      const coHostedEvent = await Event.findOne({
+        _id: eventId,
+        coHosts: { $in: [brandId] }
+      });
+      
+      if (!coHostedEvent) {
+        return res.status(404).json({
+          success: false,
+          message: "Event not found or does not belong to this brand",
+        });
+      }
+      
+      // Use the co-hosted event for further processing
+      event = coHostedEvent;
+    }
+
     // Check if user has permission to view analytics for this brand
     const brand = await Brand.findOne({
       _id: brandId,
       $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
     });
 
+    // If user is not a member of the main brand, check co-host permissions
+    let hasCoHostPermission = false;
     if (!brand) {
+      // Check if this event has co-hosts and if user's brand is a co-host
+      if (event.coHosts && event.coHosts.length > 0) {
+        // Find all brands where the user is a team member or owner
+        const userBrands = await Brand.find({
+          $or: [
+            { owner: req.user.userId },
+            { "team.user": req.user.userId }
+          ]
+        });
+
+        // Check if any of the user's brands are co-hosts for this event
+        for (const userBrand of userBrands) {
+          const isCoHost = event.coHosts.some(
+            coHostId => coHostId.toString() === userBrand._id.toString()
+          );
+
+          if (isCoHost) {
+            // Check co-host permissions for this brand/role combination
+            const coHostPermissions = event.coHostRolePermissions || [];
+            const brandPermissions = coHostPermissions.find(
+              cp => cp.brandId.toString() === userBrand._id.toString()
+            );
+
+            if (brandPermissions) {
+              // Find the user's role in this co-host brand
+              const userRoleInCoHostBrand = userBrand.team?.find(
+                member => member.user.toString() === req.user.userId.toString()
+              )?.role;
+
+              // Check if user is owner of co-host brand
+              const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+
+              if (userRoleInCoHostBrand || isCoHostBrandOwner) {
+                // Find permissions for this specific role (or use owner permissions)
+                let rolePermission;
+                if (isCoHostBrandOwner) {
+                  // Owners get the permissions of any admin role
+                  rolePermission = brandPermissions.rolePermissions.find(rp => {
+                    // Find a role with analytics permissions (checking for analytics.access)
+                    return rp.permissions && rp.permissions.analytics && rp.permissions.analytics.access === true;
+                  });
+                } else {
+                  rolePermission = brandPermissions.rolePermissions.find(
+                    rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
+                  );
+                }
+
+                if (rolePermission && rolePermission.permissions && rolePermission.permissions.analytics) {
+                  // Check both 'access' and 'view' for analytics permissions
+                  hasCoHostPermission = rolePermission.permissions.analytics.access === true || rolePermission.permissions.analytics.view === true;
+                  
+                  if (hasCoHostPermission) {
+                    break; // Found permission, no need to check other brands
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!brand && !hasCoHostPermission) {
       return res.status(403).json({
         success: false,
         message: "You do not have permission to view analytics for this brand",
-      });
-    }
-
-    // Verify event belongs to the brand
-    const event = await Event.findOne({
-      _id: eventId,
-      brand: brandId,
-    });
-
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event not found or does not belong to this brand",
       });
     }
 

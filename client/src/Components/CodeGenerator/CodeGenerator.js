@@ -37,8 +37,25 @@ function CodeGenerator({
   useEffect(() => {
     // Initialize component with settings and user permissions
 
-    // Get user role permissions from selectedBrand
-    const userPermissions = selectedBrand?.role?.permissions?.codes || {};
+    // Get user role permissions from selectedBrand or co-host permissions
+    let userPermissions = {};
+    
+    // Check if this is a co-hosted event with effective permissions
+    if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
+      userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+      
+      // Handle Map to object conversion if needed
+      if (userPermissions instanceof Map) {
+        userPermissions = Object.fromEntries(userPermissions);
+      }
+    } else if (selectedBrand?.role?.permissions?.codes) {
+      userPermissions = selectedBrand.role.permissions.codes;
+      
+      // Handle Map to object conversion if needed
+      if (userPermissions instanceof Map) {
+        userPermissions = Object.fromEntries(userPermissions);
+      }
+    }
 
     // Filter for custom codes (isEditable: true) that are also enabled (isEnabled: true)
     const customCodeSettings = codeSettings.filter(
@@ -65,8 +82,6 @@ function CodeGenerator({
       return hasPermission;
     });
 
-    // Settings filtered based on user permissions
-
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
 
@@ -82,7 +97,7 @@ function CodeGenerator({
       setIcon(defaultSetting.icon || "RiCodeLine");
       updateMaxPeopleOptions(defaultSetting);
     }
-  }, [selectedBrand, codeSettings]);
+  }, [selectedBrand, codeSettings, selectedEvent]);
 
   // Fetch user-specific codes for the selected event
   useEffect(() => {
@@ -204,11 +219,26 @@ function CodeGenerator({
 
   // Find the active permission for the selected code type
   const getActivePermission = () => {
-    if (!selectedCodeType || !selectedBrand?.role?.permissions?.codes)
-      return null;
+    if (!selectedCodeType) return null;
 
-    // Get permissions directly from the brand role
-    const userPermissions = selectedBrand.role.permissions.codes;
+    // Get permissions from co-host or regular brand role
+    let userPermissions = {};
+    
+    if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
+      userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+      // Handle Map to object conversion if needed
+      if (userPermissions instanceof Map) {
+        userPermissions = Object.fromEntries(userPermissions);
+      }
+    } else if (selectedBrand?.role?.permissions?.codes) {
+      userPermissions = selectedBrand.role.permissions.codes;
+      // Handle Map to object conversion if needed
+      if (userPermissions instanceof Map) {
+        userPermissions = Object.fromEntries(userPermissions);
+      }
+    } else {
+      return null;
+    }
     const permission = userPermissions[selectedCodeType];
 
     if (!permission) return null;
@@ -300,8 +330,6 @@ function CodeGenerator({
       const hostName = user?.firstName || user?.username || "Unknown";
       const hostUsername = user?.username || "unknown";
 
-      // Ensure we have the user ID and username for code generation
-
       // Prepare the code data with the verified username
       const codeData = {
         eventId: selectedEvent._id,
@@ -333,8 +361,6 @@ function CodeGenerator({
         status: "active",
         isDynamic: true,
       };
-
-      // Generate code with user data
 
       const response = await axiosInstance.post(
         `/codes/create-dynamic`,

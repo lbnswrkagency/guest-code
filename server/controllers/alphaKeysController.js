@@ -5,7 +5,7 @@ const User = require("../models/User");
 const verifyAlphaKey = async (req, res) => {
   try {
     const { code } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     if (!code || code.length !== 4) {
       return res.status(400).json({

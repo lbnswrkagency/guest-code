@@ -47,7 +47,47 @@ exports.searchBrands = async (req, res) => {
 exports.getCoHostedEvents = async (req, res) => {
   try {
     const { brandId } = req.params;
-    console.log(`[CoHost Backend] Fetching co-hosted events for brandId: ${brandId}`);
+    const userId = req.user.userId;
+
+    // First, find the user's role in the co-hosting brand
+    const coHostBrand = await Brand.findById(brandId).populate({
+      path: 'team.role',
+      model: 'Role'
+    });
+
+    if (!coHostBrand) {
+      return res.status(404).json({ message: "Co-host brand not found" });
+    }
+
+    // Find user's role in this brand
+    let userRoleInCoHostBrand = null;
+    
+    // Check if user is the owner
+    if (coHostBrand.owner.toString() === userId.toString()) {
+      // Find the founder role for this brand
+      const Role = require("../models/roleModel");
+      const founderRole = await Role.findOne({ 
+        brandId: brandId, 
+        isFounder: true 
+      });
+      userRoleInCoHostBrand = founderRole;
+    } else {
+      // Check if user is in the team
+      const teamMember = coHostBrand.team.find(member => 
+        member.user.toString() === userId.toString()
+      );
+      
+      if (teamMember) {
+        userRoleInCoHostBrand = teamMember.role;
+      } else {
+        return res.status(403).json({ message: "User is not a member of this co-host brand" });
+      }
+    }
+
+    if (!userRoleInCoHostBrand) {
+      return res.status(403).json({ message: "No role found for user in co-host brand" });
+    }
+
 
     // Find events where the brand is a co-host - use the exact same population as regular events
     const coHostedEvents = await Event.find({
@@ -61,7 +101,6 @@ exports.getCoHostedEvents = async (req, res) => {
       .populate("genres") // Full genre population like regular events
       .sort({ date: -1 }); // Use same sort field as regular events
 
-    console.log(`[CoHost Backend] Found ${coHostedEvents.length} co-hosted events`);
 
     // For each co-hosted event, fetch and attach code settings AND ensure complete data structure
     const eventsWithFullData = await Promise.all(
@@ -72,7 +111,6 @@ exports.getCoHostedEvents = async (req, res) => {
             eventId: event._id
           });
 
-          console.log(`[CoHost Backend] Event ${event.title} has ${eventCodeSettings.length} code settings`);
 
           // Convert event to plain object to ensure consistent structure
           const eventObj = event.toObject();
@@ -103,10 +141,53 @@ exports.getCoHostedEvents = async (req, res) => {
           if (!eventObj.title) eventObj.title = '';
           if (!eventObj.description) eventObj.description = '';
           if (!eventObj.location) eventObj.location = '';
+
+          // Attach co-host information
+          eventObj.coHostBrandInfo = {
+            brandId: brandId,
+            brandName: coHostBrand.name,
+            userRole: {
+              _id: userRoleInCoHostBrand._id,
+              name: userRoleInCoHostBrand.name,
+              isFounder: userRoleInCoHostBrand.isFounder,
+              permissions: userRoleInCoHostBrand.permissions
+            }
+          };
+
+          // Find co-host permissions for this specific event and brand/role combination
+          const coHostPermissions = eventObj.coHostRolePermissions || [];
+          const brandPermissions = coHostPermissions.find(
+            cp => cp.brandId.toString() === brandId.toString()
+          );
+
+          if (brandPermissions) {
+            // Find permissions for this specific role
+            const rolePermission = brandPermissions.rolePermissions.find(
+              rp => rp.roleId.toString() === userRoleInCoHostBrand._id.toString()
+            );
+
+            if (rolePermission) {
+              // Deep clone the permissions object to avoid modifying the original
+              const permissions = JSON.parse(JSON.stringify(rolePermission.permissions.toObject ? rolePermission.permissions.toObject() : rolePermission.permissions));
+              
+              // Ensure codes is a proper object (Maps don't serialize to JSON)
+              if (rolePermission.permissions.codes && rolePermission.permissions.codes instanceof Map) {
+                permissions.codes = Object.fromEntries(rolePermission.permissions.codes);
+              } else if (rolePermission.permissions.codes && typeof rolePermission.permissions.codes.toObject === 'function') {
+                // Handle Mongoose Map type
+                permissions.codes = rolePermission.permissions.codes.toObject();
+              }
+              
+              eventObj.coHostBrandInfo.effectivePermissions = permissions;
+            } else {
+              eventObj.coHostBrandInfo.effectivePermissions = null;
+            }
+          } else {
+            eventObj.coHostBrandInfo.effectivePermissions = null;
+          }
           
           return eventObj;
         } catch (error) {
-          console.error(`[CoHost Backend] Error processing event ${event._id}:`, error);
           // Return basic event structure if processing fails
           const eventObj = event.toObject();
           eventObj.codeSettings = [];
@@ -115,10 +196,8 @@ exports.getCoHostedEvents = async (req, res) => {
       })
     );
 
-    console.log(`[CoHost Backend] Returning ${eventsWithFullData.length} events with complete data structure`);
     res.status(200).json(eventsWithFullData);
   } catch (error) {
-    console.error("[CoHost Backend] Error fetching co-hosted events:", error);
     res.status(500).json({ message: "Error fetching co-hosted events" });
   }
 };
@@ -259,11 +338,9 @@ exports.removeCoHost = async (req, res) => {
 exports.getCoHostRoles = async (req, res) => {
   try {
     const { brandId } = req.params;
-    console.log("🔍 [Backend] Getting co-host roles for brandId:", brandId);
 
     // Validate brandId
     if (!brandId || !mongoose.Types.ObjectId.isValid(brandId)) {
-      console.error("❌ [Backend] Invalid brand ID:", brandId);
       return res.status(400).json({ message: "Invalid brand ID" });
     }
 
@@ -272,17 +349,9 @@ exports.getCoHostRoles = async (req, res) => {
       brandId: brandId
     }).select("name description permissions isFounder isDefault");
 
-    console.log("✅ [Backend] Found", roles.length, "roles for brand:", brandId);
-    console.log("📝 [Backend] Roles data:", roles.map(r => ({ 
-      id: r._id, 
-      name: r.name, 
-      isFounder: r.isFounder,
-      isDefault: r.isDefault 
-    })));
 
     res.status(200).json(roles);
   } catch (error) {
-    console.error("❌ [Backend] Error fetching co-host roles:", error);
     res.status(500).json({ message: "Error fetching co-host roles" });
   }
 };
@@ -291,42 +360,26 @@ exports.getCoHostRoles = async (req, res) => {
 exports.getMainHostCustomCodes = async (req, res) => {
   try {
     const { eventId } = req.params;
-    console.log("🔍 [Backend] Getting main host custom codes for eventId:", eventId);
 
     // Validate eventId parameter
     if (!eventId || eventId === 'undefined' || !mongoose.Types.ObjectId.isValid(eventId)) {
-      console.error("❌ [Backend] Invalid or missing event ID:", eventId);
       return res.status(400).json({ message: "Invalid or missing event ID" });
     }
 
     // Validate event exists
     const event = await Event.findById(eventId);
     if (!event) {
-      console.error("❌ [Backend] Event not found for ID:", eventId);
       return res.status(404).json({ message: "Event not found" });
     }
 
-    console.log("✅ [Backend] Event found:", { 
-      eventId: event._id, 
-      title: event.title,
-      brand: event.brand 
-    });
 
     // Get custom code settings for this event from the CodeSettings collection
-    console.log("🔍 [Backend] Searching for custom codes in CodeSettings...");
     const codeSettings = await CodeSettings.find({
       eventId: eventId,
       type: "custom", // Only get custom codes
       isEnabled: true // Only get enabled codes
     }).select("name type color limit maxPax condition icon");
 
-    console.log("✅ [Backend] Found", codeSettings.length, "custom codes");
-    console.log("🎯 [Backend] Custom codes raw data:", codeSettings.map(c => ({
-      id: c._id,
-      name: c.name,
-      type: c.type,
-      isEnabled: c.isEnabled
-    })));
 
     // Format the codes similar to how RoleSetting.js does it
     const formattedCodes = codeSettings.map(code => ({
@@ -342,10 +395,8 @@ exports.getMainHostCustomCodes = async (req, res) => {
       isCustom: true
     }));
 
-    console.log("📦 [Backend] Sending formatted codes:", formattedCodes);
     res.status(200).json(formattedCodes);
   } catch (error) {
-    console.error("❌ [Backend] Error fetching main host custom codes:", error);
     res.status(500).json({ message: "Error fetching main host custom codes" });
   }
 };

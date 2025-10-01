@@ -84,11 +84,13 @@ const Dashboard = () => {
       // Fetch co-hosted events for each brand the user is part of
       for (const brand of brands) {
         try {
-          const response = await axiosInstance.get(`/co-hosts/brand/${brand._id}/events`);
-          
+          const response = await axiosInstance.get(
+            `/co-hosts/brand/${brand._id}/events`
+          );
+
           if (response.data && Array.isArray(response.data)) {
             // Mark these events as co-hosted and add brand info
-            const coHostedEventsForBrand = response.data.map(event => ({
+            const coHostedEventsForBrand = response.data.map((event) => ({
               ...event,
               isCoHosted: true,
               coHostBrand: brand, // The brand that is co-hosting (our user's brand)
@@ -125,7 +127,6 @@ const Dashboard = () => {
       fetchCoHostedEvents();
     }
   }, [brands]);
-
 
   // Listen for alpha access granted event
   useEffect(() => {
@@ -442,29 +443,6 @@ const Dashboard = () => {
     }
   }, [brands]);
 
-  // Update selected event when brand or date changes
-  useEffect(() => {
-    if (selectedBrand && selectedDate) {
-      // Find event for the selected date
-      const brandEvents = selectedBrand.events || [];
-      const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
-
-      const eventForDate = brandEvents.find((event) => {
-        if (!event.startDate && !event.date) return false;
-
-        // Format date for comparison - prioritize startDate
-        const eventDateStr = event.startDate
-          ? new Date(event.startDate).toISOString().split("T")[0]
-          : new Date(event.date).toISOString().split("T")[0];
-
-        return eventDateStr === formattedDate;
-      });
-      setSelectedEvent(eventForDate || null);
-    } else {
-      setSelectedEvent(null);
-    }
-  }, [selectedBrand, selectedDate]);
-
   // Prepare brand with events and role data
   const prepareBrandWithData = (brand) => {
     // Get user's role for this brand
@@ -500,6 +478,36 @@ const Dashboard = () => {
     };
   };
 
+  // Prepare all brands with data (moved after function definition)
+  const brandsWithData = brands.map(prepareBrandWithData);
+
+  // Update selected event when brand or date changes
+  useEffect(() => {
+    if (selectedBrand && selectedDate) {
+      // Use enhancedSelectedBrand which includes co-hosted events
+      const enhancedBrand =
+        brandsWithData.find((b) => b._id === selectedBrand._id) ||
+        selectedBrand;
+      const brandEvents = enhancedBrand.events || [];
+      const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
+
+      const eventForDate = brandEvents.find((event) => {
+        if (!event.startDate && !event.date) return false;
+
+        // Format date for comparison - prioritize startDate
+        const eventDateStr = event.startDate
+          ? new Date(event.startDate).toISOString().split("T")[0]
+          : new Date(event.date).toISOString().split("T")[0];
+
+        return eventDateStr === formattedDate;
+      });
+
+      setSelectedEvent(eventForDate || null);
+    } else {
+      setSelectedEvent(null);
+    }
+  }, [selectedBrand, selectedDate, coHostedEvents]);
+
   // Get code settings for the selected brand
   const getCodeSettingsForBrand = () => {
     if (!selectedBrand) return [];
@@ -509,6 +517,12 @@ const Dashboard = () => {
 
     // Get all code settings for these events
     const brandCodeSettings = brandEvents.flatMap((event) => {
+      // Check if this event has embedded code settings (co-hosted case)
+      if (event.codeSettings && Array.isArray(event.codeSettings)) {
+        return event.codeSettings;
+      }
+
+      // For regular events, filter from Redux store
       return codeSettings.filter((setting) => setting.eventId === event._id);
     });
 
@@ -519,7 +533,15 @@ const Dashboard = () => {
   const getCodeSettingsForSelectedEvent = () => {
     if (!selectedEvent) return [];
 
-    // Filter code settings for the selected event
+    // Check if this is a co-hosted event with embedded code settings
+    if (
+      selectedEvent.codeSettings &&
+      Array.isArray(selectedEvent.codeSettings)
+    ) {
+      return selectedEvent.codeSettings;
+    }
+
+    // For regular events, filter code settings from Redux store
     return codeSettings.filter(
       (setting) => setting.eventId === selectedEvent._id
     );
@@ -531,11 +553,21 @@ const Dashboard = () => {
       return null;
     }
 
-    // Check if this is a co-hosted event
+    // Check if this is a co-hosted event with coHostBrandInfo
+    if (
+      selectedEvent.coHostBrandInfo &&
+      selectedEvent.coHostBrandInfo.effectivePermissions
+    ) {
+      // Use the pre-calculated effective permissions from the backend
+      return selectedEvent.coHostBrandInfo.effectivePermissions;
+    }
+
+    // Check if this is a co-hosted event with legacy structure
     if (selectedEvent.isCoHosted && selectedEvent.coHostRolePermissions) {
       // Find co-host permissions for our brand
       const coHostPermission = selectedEvent.coHostRolePermissions.find(
-        (permission) => permission.brandId.toString() === selectedBrand._id.toString()
+        (permission) =>
+          permission.brandId.toString() === selectedBrand._id.toString()
       );
 
       if (coHostPermission && selectedBrand.role) {
@@ -563,7 +595,7 @@ const Dashboard = () => {
     if (!selectedBrand.role) {
       return null;
     }
-    
+
     return selectedBrand.role.permissions;
   };
 
@@ -574,20 +606,31 @@ const Dashboard = () => {
 
     // Handle both Map (co-host) and object (regular) permissions
     let codesPermissions = permissions.codes;
-    
+
     // If it's a Map, convert to object
     if (codesPermissions instanceof Map) {
       codesPermissions = Object.fromEntries(codesPermissions);
+    } else if (
+      typeof codesPermissions === "object" &&
+      codesPermissions !== null
+    ) {
+      // Already an object, use as is
+    } else {
+      return [];
     }
 
     // Convert the codes to an array of objects
-    return Object.entries(codesPermissions).map(([name, permission]) => ({
-      name,
-      type: name,
-      generate: permission.generate || false,
-      limit: permission.limit || 0,
-      unlimited: permission.unlimited || false,
-    }));
+    return Object.entries(codesPermissions)
+      .filter(
+        ([name, permission]) => permission !== null && permission !== undefined
+      )
+      .map(([name, permission]) => ({
+        name,
+        type: name,
+        generate: permission.generate || false,
+        limit: permission.limit || 0,
+        unlimited: permission.unlimited || false,
+      }));
   };
 
   // Prepare access summary for the DashboardMenu
@@ -599,13 +642,21 @@ const Dashboard = () => {
 
     if (permissions.codes) {
       let codesPermissions = permissions.codes;
-      
+
       // Handle both Map (co-host) and object (regular) permissions
       if (codesPermissions instanceof Map) {
         codesPermissions = Object.fromEntries(codesPermissions);
+      } else if (
+        typeof codesPermissions === "object" &&
+        codesPermissions !== null
+      ) {
+        // Already an object, use as is
       }
 
-      canCreateCodes = Object.values(codesPermissions).some((p) => p.generate);
+      // Check if any code type has generate permission
+      canCreateCodes = Object.values(codesPermissions).some(
+        (p) => p && p.generate === true
+      );
     }
 
     return {
@@ -619,13 +670,15 @@ const Dashboard = () => {
   // Prepare user roles for the selected brand (handles both regular and co-hosted events)
   const prepareUserRolesForSelectedBrand = () => {
     if (!selectedBrand?.role) return [];
-    
+
     // For consistency with existing code, return an array with the user's role
     return [selectedBrand.role];
   };
 
-  // Prepare all brands with data
-  const brandsWithData = brands.map(prepareBrandWithData);
+  // Get the enhanced selectedBrand from brandsWithData (includes co-hosted events)
+  const enhancedSelectedBrand = selectedBrand
+    ? brandsWithData.find((b) => b._id === selectedBrand._id) || selectedBrand
+    : null;
 
   const handleLogout = () => {
     logout();
@@ -669,7 +722,13 @@ const Dashboard = () => {
   // Add effect to handle component transitions
   useEffect(() => {
     // When any of these states change, it means we're switching views
-    if (codeType || showScanner || showStatistic || showTableSystem || showSpitixBattle) {
+    if (
+      codeType ||
+      showScanner ||
+      showStatistic ||
+      showTableSystem ||
+      showSpitixBattle
+    ) {
       // If a new component is shown and navigation was open, ensure it stays open
       if (isNavigationOpen) {
         // Short delay to ensure state propagation
@@ -678,7 +737,14 @@ const Dashboard = () => {
         }, 100);
       }
     }
-  }, [codeType, showScanner, showStatistic, showTableSystem, showSpitixBattle, isNavigationOpen]);
+  }, [
+    codeType,
+    showScanner,
+    showStatistic,
+    showTableSystem,
+    showSpitixBattle,
+    isNavigationOpen,
+  ]);
 
   // Add global navigation event handlers
   useEffect(() => {
@@ -821,7 +887,6 @@ const Dashboard = () => {
             }}
             selectedEvent={selectedEvent}
             selectedBrand={selectedBrand}
-            counts={{ tableCounts: [] }}
           />
         ) : showSpitixBattle ? (
           <SpitixBattle
@@ -837,9 +902,15 @@ const Dashboard = () => {
             permissions={{
               battles: {
                 view: true, // Already checked in menu visibility
-                edit: userRoleForSelectedBrand?.some(role => role.permissions?.battles?.edit) || false,
-                delete: userRoleForSelectedBrand?.some(role => role.permissions?.battles?.delete) || false,
-              }
+                edit:
+                  userRoleForSelectedBrand?.some(
+                    (role) => role.permissions?.battles?.edit
+                  ) || false,
+                delete:
+                  userRoleForSelectedBrand?.some(
+                    (role) => role.permissions?.battles?.delete
+                  ) || false,
+              },
             }}
           />
         ) : (
@@ -851,7 +922,7 @@ const Dashboard = () => {
               brandsCount={brands.length}
               eventsCount={events.length}
               brands={brandsWithData}
-              selectedBrand={selectedBrand}
+              selectedBrand={enhancedSelectedBrand}
               setSelectedBrand={handleSelectBrand}
               selectedDate={selectedDate}
               setSelectedDate={handleSelectDate}
@@ -859,12 +930,12 @@ const Dashboard = () => {
             <DashboardMenu
               userRoles={userRoleForSelectedBrand}
               user={user}
-              selectedBrand={selectedBrand}
+              selectedBrand={enhancedSelectedBrand}
               selectedEvent={selectedEvent}
               codeSettings={brandCodeSettings}
               codePermissions={codePermissions}
               accessSummary={accessSummary}
-              effectivePermissions={getUserRolePermissions()} // Pass effective permissions for co-hosted events
+              effectivePermissions={getUserRolePermissions()} // Pass the properly calculated permissions
               setShowStatistic={setShowStatistic}
               setShowScanner={setShowScanner}
               setCodeType={setCodeType}
@@ -875,7 +946,7 @@ const Dashboard = () => {
               isOnline={true}
             />
             <DashboardFeed
-              selectedBrand={selectedBrand}
+              selectedBrand={enhancedSelectedBrand}
               selectedDate={selectedDate}
               selectedEvent={selectedEvent}
             />

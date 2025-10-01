@@ -446,7 +446,7 @@ const getTableCounts = async (req, res) => {
         return res.status(404).json({ message: "Event not found" });
       }
 
-      // First check if user is part of the brand team
+      // First check if user is part of the brand team (main event permissions)
       const brand = await Brand.findById(eventDetails.brand._id);
       const isTeamMember =
         brand &&
@@ -461,7 +461,7 @@ const getTableCounts = async (req, res) => {
         brand.owner &&
         brand.owner.toString() === req.user.userId.toString();
 
-      // Get user roles for this brand
+      // Get user roles for this brand (main event permissions)
       let hasRolePermission = false;
 
       // Since JWT only contains userId, we need to fetch the user's roles from database
@@ -486,15 +486,94 @@ const getTableCounts = async (req, res) => {
         }
       }
 
+      // Check co-host permissions - always check regardless of main brand membership
+      let hasCoHostPermission = false;
+      
+      console.log("🔍 [TableController] Co-host check conditions:");
+      console.log("  - !isTeamMember:", !isTeamMember);
+      console.log("  - !isBrandOwner:", !isBrandOwner);
+      console.log("  - !hasRolePermission:", !hasRolePermission);
+      console.log("  - Will check co-host logic:", true); // Always check now
+      
+      // Check if this event has co-hosts and if user's brand is a co-host
+      if (eventDetails.coHosts && eventDetails.coHosts.length > 0) {
+          console.log("🔍 [TableController] Co-host detection started:");
+          console.log("  - eventDetails.coHosts:", eventDetails.coHosts);
+          
+          // Find all brands where the user is a team member or owner
+          const userBrands = await Brand.find({
+            $or: [
+              { owner: req.user.userId },
+              { "team.user": req.user.userId }
+            ]
+          });
+
+          console.log("  - userBrands found:", userBrands.map(b => ({
+            id: b._id.toString(),
+            name: b.name,
+            username: b.username
+          })));
+
+          // Check if any of the user's brands are co-hosts for this event
+          for (const userBrand of userBrands) {
+            const isCoHost = eventDetails.coHosts.some(
+              coHostId => coHostId.toString() === userBrand._id.toString()
+            );
+
+            console.log(`  - Checking brand ${userBrand.name} (${userBrand._id}): isCoHost = ${isCoHost}`);
+
+            if (isCoHost) {
+              // Check co-host permissions for this brand/role combination
+              const coHostPermissions = eventDetails.coHostRolePermissions || [];
+              const brandPermissions = coHostPermissions.find(
+                cp => cp.brandId.toString() === userBrand._id.toString()
+              );
+
+              if (brandPermissions) {
+                // Find the user's role in this co-host brand
+                const userRoleInCoHostBrand = userBrand.team?.find(
+                  member => member.user.toString() === req.user.userId.toString()
+                )?.role;
+
+                // Check if user is owner of co-host brand
+                const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+
+                if (userRoleInCoHostBrand || isCoHostBrandOwner) {
+                  // Find permissions for this specific role (or use owner permissions)
+                  let rolePermission;
+                  if (isCoHostBrandOwner) {
+                    // Owners get the permissions of any admin role
+                    rolePermission = brandPermissions.rolePermissions.find(rp => {
+                      // Find a role with table management permissions
+                      return rp.permissions && rp.permissions.tables && rp.permissions.tables.manage === true;
+                    });
+                  } else {
+                    rolePermission = brandPermissions.rolePermissions.find(
+                      rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
+                    );
+                  }
+
+                  if (rolePermission && rolePermission.permissions && rolePermission.permissions.tables) {
+                    hasCoHostPermission = rolePermission.permissions.tables.manage === true || rolePermission.permissions.tables.access === true;
+                    if (hasCoHostPermission) {
+                      break; // Found permission, no need to check other brands
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
       // Log for debugging
       console.log("🔍 [TableController] Permission check:");
       console.log("  - isTeamMember:", isTeamMember);
       console.log("  - isBrandOwner:", isBrandOwner);
       console.log("  - hasRolePermission:", hasRolePermission);
+      console.log("  - hasCoHostPermission:", hasCoHostPermission);
       
-      // Only allow table management if user has explicit role permission or is the brand owner
-      // Being a team member alone should NOT grant table management rights
-      hasTableManage = isBrandOwner || hasRolePermission;
+      // Allow table management if user has explicit role permission, is the brand owner, or has co-host permissions
+      hasTableManage = isBrandOwner || hasRolePermission || hasCoHostPermission;
       
       console.log("  - Final hasTableManage:", hasTableManage);
 
@@ -505,6 +584,7 @@ const getTableCounts = async (req, res) => {
         isTeamMember,
         isBrandOwner,
         hasRolePermission,
+        hasCoHostPermission,
         hasTableManage,
         userRoleId: brand.team?.find(
           (member) => member.user.toString() === req.user.userId.toString()
@@ -515,16 +595,29 @@ const getTableCounts = async (req, res) => {
         })),
       });
 
+      // Check if this is a co-hosted event visualization request
+      const isCoHostedVisualization = req.query.coHosted === 'true' && hasCoHostPermission;
+
+      // 🚨 DEBUG: Log co-hosted logic
+      console.log("🔍 [TableController] Co-hosted visualization check:");
+      console.log("  - req.query.coHosted:", req.query.coHosted);
+      console.log("  - hasCoHostPermission:", hasCoHostPermission);
+      console.log("  - isCoHostedVisualization:", isCoHostedVisualization);
+      console.log("  - hasTableManage:", hasTableManage);
+      console.log("  - Will return ALL tables:", hasTableManage || isCoHostedVisualization);
+
       // Fetch table codes based on permissions
-      if (hasTableManage) {
-        // Users with manage permission can see ALL table codes for this event
+      if (hasTableManage || isCoHostedVisualization) {
+        // Users with manage permission OR co-host users requesting visualization can see ALL table codes for this event
         tableCounts = await TableCode.find({ event: eventId });
+        console.log("  - Returning ALL table codes count:", tableCounts.length);
       } else {
         // Users with only access permission can only see their own table codes
         tableCounts = await TableCode.find({
           event: eventId,
           hostId: req.user.userId,
         });
+        console.log("  - Returning only user's table codes count:", tableCounts.length);
       }
     } else {
       // For public requests (no authentication), return empty array

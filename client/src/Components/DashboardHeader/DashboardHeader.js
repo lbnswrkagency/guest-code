@@ -69,6 +69,7 @@ const DashboardHeader = ({
     }
   }, [brands, selectedBrand, propSetSelectedBrand]);
 
+
   // Update currentUser when user prop changes
   useEffect(() => {
     setCurrentUser(user);
@@ -444,6 +445,13 @@ const DashboardHeader = ({
                   // Combine and sort the final set of dates
                   return [...pastDate, ...limitedActiveFutureDates].map(
                     (item) => {
+                      // Check if this date has any co-hosted events
+                      const dateEvents = eventsWithEndDates.filter(
+                        (e) => e.startDate.toISOString().split("T")[0] === item.dateStr
+                      );
+                      const hasCoHostedEvents = dateEvents.some(e => e.event.coHostBrandInfo);
+                      const isOnlyCoHosted = dateEvents.length > 0 && dateEvents.every(e => e.event.coHostBrandInfo);
+
                       return (
                         <div
                           key={item.dateStr}
@@ -451,14 +459,17 @@ const DashboardHeader = ({
                             selectedDate === item.dateStr
                               ? "dashboardHeader-date-options-option-selected"
                               : ""
-                          }`}
+                          } ${isOnlyCoHosted ? "co-hosted-only" : hasCoHostedEvents ? "has-co-hosted" : ""}`}
                           onClick={() => handleSelectDate(item.dateStr)}
                         >
-                          {item.date.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          <span className="date-text">
+                            {item.date.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                          {isOnlyCoHosted && <span className="co-host-indicator">Co-hosting</span>}
                         </div>
                       );
                     }

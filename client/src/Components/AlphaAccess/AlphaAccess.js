@@ -81,12 +81,16 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
 
   // Submit the code
   const handleSubmit = async (e) => {
+    console.log("[AlphaAccess] handleSubmit called");
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to backdrop handler
 
     const fullCode = code.join("");
+    console.log("[AlphaAccess] Code to submit:", fullCode);
 
     // Validate code
     if (fullCode.length !== 4 || !/^\d{4}$/.test(fullCode)) {
+      console.log("[AlphaAccess] Invalid code format");
       setError("Please enter a valid 4-digit code");
       return;
     }
@@ -278,7 +282,7 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
               <h2>Alpha Access</h2>
               <p>Enter your 4-digit alpha code to unlock exclusive features</p>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
                 <div className="alpha-access__code-inputs">
                   {code.map((digit, index) => (
                     <input
@@ -305,6 +309,7 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
                   type="submit"
                   className="alpha-access__submit"
                   disabled={isSubmitting || code.join("").length !== 4}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {isSubmitting ? "Verifying..." : "Verify Code"}
                 </button>

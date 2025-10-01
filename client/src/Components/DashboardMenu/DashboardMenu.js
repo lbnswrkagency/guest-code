@@ -71,6 +71,8 @@ const DashboardMenu = ({
 
   useEffect(() => {
     if (selectedBrand && user) {
+      // Log what DashboardMenu receives for debugging
+
       // If effectivePermissions are provided (for co-hosted events), use them directly
       if (effectivePermissions) {
         // Build permissions object using effective permissions
@@ -91,7 +93,21 @@ const DashboardMenu = ({
             delete: effectivePermissions.battles?.delete || false,
           },
           codes: {
-            canGenerateAny: accessSummary.canCreateCodes || false,
+            canGenerateAny: (() => {
+              // Check if effectivePermissions.codes exists and has any generate permissions
+              if (effectivePermissions.codes) {
+                // Handle Map or object
+                const codesObj =
+                  effectivePermissions.codes instanceof Map
+                    ? Object.fromEntries(effectivePermissions.codes)
+                    : effectivePermissions.codes;
+
+                return Object.values(codesObj).some(
+                  (p) => p && p.generate === true
+                );
+              }
+              return accessSummary.canCreateCodes || false;
+            })(),
             canReadAny: accessSummary.canReadCodes || false,
             canEditAny: accessSummary.canEditCodes || false,
             canDeleteAny: accessSummary.canDeleteCodes || false,
@@ -245,7 +261,11 @@ const DashboardMenu = ({
   };
 
   // Helper to determine if menu should be disabled
-  const isMenuDisabled = !selectedEvent || !selectedBrand;
+  // For co-hosted events, check if we have effective permissions even without selectedEvent
+  const hasCoHostPermissions =
+    effectivePermissions && Object.keys(effectivePermissions).length > 0;
+  const isMenuDisabled =
+    !selectedBrand || (!selectedEvent && !hasCoHostPermissions);
 
   // Don't render menu if user has no brands
   if (!selectedBrand) return null;

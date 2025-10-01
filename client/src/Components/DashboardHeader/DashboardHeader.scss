@@ -426,6 +426,9 @@
         cursor: pointer;
         transition: all 0.2s ease;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
 
         &:last-child {
           border-bottom: none;
@@ -434,6 +437,30 @@
         &:hover,
         &.active {
           background: rgba(255, 255, 255, 0.1);
+        }
+
+        // Co-hosting indicators
+        &.co-hosted-only {
+          border-left: 3px solid rgba(255, 140, 0, 0.8);
+          background: rgba(255, 140, 0, 0.05);
+        }
+
+        &.has-co-hosted {
+          border-left: 3px solid rgba(255, 140, 0, 0.4);
+        }
+
+        .date-text {
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .co-host-indicator {
+          font-size: 0.7rem;
+          color: rgba(255, 140, 0, 0.9);
+          background: rgba(255, 140, 0, 0.1);
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-weight: 500;
         }
 
         &-active {

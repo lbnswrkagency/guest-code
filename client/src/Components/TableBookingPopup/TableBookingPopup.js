@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { X } from "lucide-react";
 import "./TableBookingPopup.scss";
 
@@ -14,11 +15,10 @@ const TableBookingPopup = ({
 }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [name, setName] = useState(""); // For non-public facing forms
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pax, setPax] = useState(1);
-  const popupRef = useRef(null);
 
   // Determine if advanced form is needed (for public facing pages)
   const showAdvancedForm = isPublic || position?.showAdvancedForm;
@@ -34,10 +34,19 @@ const TableBookingPopup = ({
       setEmail("");
       setPhone("");
       setPax(1);
+      
+      // Lock body scroll when popup is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore scroll when popup closes
+      document.body.style.overflow = '';
     }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = () => {
     if (useSimplifiedForm) {
@@ -84,15 +93,6 @@ const TableBookingPopup = ({
   const tableName = position?.displayName || tableNumber;
   const minSpend = position?.minSpend ? `${position.minSpend}€` : "100€";
   const maxPersons = position?.maxPersons || 10;
-  const tableCategory = position?.category || "";
-
-  // Get area name based on category
-  let areaName = position?.areaName || "";
-  if (!areaName) {
-    if (tableCategory === "D") areaName = "Dancefloor";
-    if (tableCategory === "V") areaName = "VIP Booth";
-    if (tableCategory === "F") areaName = "Front Row";
-  }
 
   // Determine if the form has all required fields filled
   const isFormValid = () => {
@@ -120,7 +120,10 @@ const TableBookingPopup = ({
     }
   };
 
-  return (
+  if (!isOpen) return null;
+
+  // Create portal to render popup at document body level
+  return ReactDOM.createPortal(
     <div
       className="popup-overlay"
       onClick={(e) => {
@@ -128,8 +131,12 @@ const TableBookingPopup = ({
       }}
     >
       <div className={`popup-container ${isPublic ? "public-form" : ""}`}>
-        <button className="popup-close" onClick={onClose}>
-          <X size={20} />
+        <button 
+          className="popup-close" 
+          onClick={onClose}
+          aria-label="Close popup"
+        >
+          <X size={24} />
         </button>
 
         <div className="popup-header">
@@ -244,7 +251,8 @@ const TableBookingPopup = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -11,6 +11,54 @@
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
+  // Co-hosting indicator
+  .co-hosting-indicator {
+    background: rgba(255, 140, 0, 0.08);
+    border-bottom: 1px solid rgba(255, 140, 0, 0.15);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+
+    .co-hosting-badge {
+      background: rgba(255, 140, 0, 0.2);
+      color: rgba(255, 140, 0, 1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .co-hosting-logo {
+      height: 32px;
+      width: auto;
+      max-width: 60px;
+      object-fit: contain;
+      background: transparent !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      outline: none !important;
+    }
+
+    .co-hosting-logo-initial {
+      height: 32px;
+      width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgba(255, 140, 0, 1);
+      background: none !important;
+      border: 1px solid rgba(255, 140, 0, 0.3);
+      border-radius: 4px;
+    }
+  }
+
   &.dashboardFeed-loading,
   &.dashboardFeed-error,
   &.dashboardFeed-empty {

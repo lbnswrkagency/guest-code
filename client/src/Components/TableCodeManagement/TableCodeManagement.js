@@ -1,5 +1,5 @@
 // TableCodeManagement.js
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
@@ -97,8 +97,8 @@ function TableCodeManagement({
 
   const tableColors = getTableColors();
 
-  // Dynamic category order based on layout config
-  const getCategoryOrder = () => {
+  // Dynamic category order based on layout config - memoized to prevent re-calculation
+  const categoryOrder = useMemo(() => {
     if (layoutConfig?.categoryAreaNames) {
       return Object.values(layoutConfig.categoryAreaNames);
     }
@@ -107,26 +107,33 @@ function TableCodeManagement({
     }
     // Fallback to default order
     return ["djarea", "backstage", "vip", "premium"];
-  };
-
-  const categoryOrder = getCategoryOrder();
+  }, [layoutConfig, tableCategories]);
 
   // Calculate table permissions from user roles
   const getTablePermissions = () => {
     let hasTableAccess = false;
     let hasTableManage = false;
 
-    // Loop through all user roles to check table permissions
-    userRoles.forEach((role) => {
-      if (role.permissions && role.permissions.tables) {
-        if (role.permissions.tables.access === true) {
-          hasTableAccess = true;
-        }
-        if (role.permissions.tables.manage === true) {
-          hasTableManage = true;
-        }
+    // Check if this is a co-hosted event with effective permissions
+    if (selectedEvent?.coHostBrandInfo?.effectivePermissions) {
+      const effectivePermissions = selectedEvent.coHostBrandInfo.effectivePermissions;
+      if (effectivePermissions.tables) {
+        hasTableAccess = effectivePermissions.tables.access === true;
+        hasTableManage = effectivePermissions.tables.manage === true;
       }
-    });
+    } else {
+      // For regular events, loop through all user roles to check table permissions
+      userRoles.forEach((role) => {
+        if (role.permissions && role.permissions.tables) {
+          if (role.permissions.tables.access === true) {
+            hasTableAccess = true;
+          }
+          if (role.permissions.tables.manage === true) {
+            hasTableManage = true;
+          }
+        }
+      });
+    }
 
     return {
       access: hasTableAccess,
@@ -136,45 +143,47 @@ function TableCodeManagement({
 
   const tablePermissions = getTablePermissions();
 
-  // Dynamic category mapping function - wrapped in useCallback for stability
-  const getCategoryForTable = useCallback((tableNumber) => {
-    if (!tableNumber) return "unknown";
+  // Dynamic category mapping function - memoized to prevent re-creation
+  const getCategoryForTable = useMemo(() => {
+    return (tableNumber) => {
+      if (!tableNumber) return "unknown";
 
-    // If we have layout configuration, use it for categorization
-    if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
-      const tableInfo = layoutConfig.tableConfig[tableNumber];
+      // If we have layout configuration, use it for categorization
+      if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
+        const tableInfo = layoutConfig.tableConfig[tableNumber];
 
-      if (tableInfo && tableInfo.category) {
-        // Return the actual area name from the layout configuration
-        const areaName = layoutConfig.categoryAreaNames[tableInfo.category];
-        if (areaName) {
-          return areaName;
+        if (tableInfo && tableInfo.category) {
+          // Return the actual area name from the layout configuration
+          const areaName = layoutConfig.categoryAreaNames[tableInfo.category];
+          if (areaName) {
+            return areaName;
+          }
         }
       }
-    }
 
-    // Fallback: check if we have tableCategories prop
-    if (tableCategories) {
-      for (const [category, tables] of Object.entries(tableCategories)) {
-        if (tables.includes(tableNumber)) {
-          return category;
+      // Fallback: check if we have tableCategories prop
+      if (tableCategories) {
+        for (const [category, tables] of Object.entries(tableCategories)) {
+          if (tables.includes(tableNumber)) {
+            return category;
+          }
         }
       }
-    }
 
-    // Final fallback to checking first character of table number
-    const prefix = tableNumber.charAt(0);
+      // Final fallback to checking first character of table number
+      const prefix = tableNumber.charAt(0);
 
-    // Handle common layouts
-    if (prefix === "D") return "DJ Area"; // DJ Area tables
-    if (prefix === "V") return "VIP Lounge"; // VIP tables
-    if (prefix === "U") return "Upstairs"; // Upstairs tables
-    if (prefix === "B") return "DJ Area"; // DJ Area tables (alternate)
-    if (prefix === "A" || prefix === "R") return "VIP";
-    if (prefix === "F") return "Premium";
-    if (prefix === "K") return "Premium";
+      // Handle common layouts
+      if (prefix === "D") return "DJ Area"; // DJ Area tables
+      if (prefix === "V") return "VIP Lounge"; // VIP tables
+      if (prefix === "U") return "Upstairs"; // Upstairs tables
+      if (prefix === "B") return "DJ Area"; // DJ Area tables (alternate)
+      if (prefix === "A" || prefix === "R") return "VIP";
+      if (prefix === "F") return "Premium";
+      if (prefix === "K") return "Premium";
 
-    return "General"; // Default
+      return "General"; // Default
+    };
   }, [layoutConfig, tableCategories]);
 
   // Toggle category visibility - show ONLY the selected category
@@ -226,14 +235,14 @@ function TableCodeManagement({
     }, {});
 
     setCodesByCategory(groupedCodes);
-  }, [counts, refreshTrigger, layoutConfig, categoryOrder, getCategoryForTable]);
+  }, [counts, refreshTrigger, categoryOrder, getCategoryForTable]);
 
-  // Initialize all categories as visible only once when categoryOrder first loads
+  // Initialize all categories as visible when categoryOrder loads
   useEffect(() => {
-    if (categoryOrder.length > 0 && visibleCategories.size === 0) {
+    if (categoryOrder.length > 0) {
       setVisibleCategories(new Set(categoryOrder));
     }
-  }, [categoryOrder, visibleCategories.size]);
+  }, [categoryOrder]);
 
   const allCodes = counts?.tableCounts || [];
   const activeTableCodes = allCodes.filter(

@@ -61,8 +61,6 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
     setError(null);
 
     try {
-      // Remove console.log
-
       const response = await axiosInstance.get("/analytics/summary", {
         params: {
           brandId: selectedBrand._id,
@@ -72,7 +70,6 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
       // Process the response data
       const data = response.data;
-      // Remove console.log
 
       // If there are ticket categories, ensure each has a paymentMethod
       if (data.tickets && data.tickets.categories) {
@@ -102,8 +99,16 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
       setStats(data);
     } catch (err) {
-      // Remove console.error
-      setError("Failed to load analytics data. Please try again.");
+      // Set more specific error message based on status code
+      if (err.response?.status === 403) {
+        setError("Access denied. You don't have permission to view analytics for this event.");
+      } else if (err.response?.status === 404) {
+        setError("Event not found or does not belong to this brand.");
+      } else if (err.response?.data?.message) {
+        setError(`Failed to load analytics: ${err.response.data.message}`);
+      } else {
+        setError("Failed to load analytics data. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
