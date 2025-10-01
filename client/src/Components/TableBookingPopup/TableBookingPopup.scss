@@ -30,7 +30,7 @@
 
   // Styles for public form
   &.public-form {
-    width: 420px;
+    width: 400px;
   }
 
   // Scrollbar styling for container
@@ -74,12 +74,12 @@
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #ffc807;
-    border-radius: 16px 16px 0 0;
-    opacity: 0.8;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #ffc807, transparent);
+    border-radius: 2px;
   }
 }
 
@@ -109,23 +109,72 @@
 .popup-header {
   margin-bottom: 1.5rem;
   padding-right: 3rem;
+  text-align: center;
 
-  h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    color: #fff;
+  .table-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: nowrap;
+    
+    .table-area {
+      font-size: 1.125rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.9);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    
+    .table-separator {
+      width: 4px;
+      height: 4px;
+      background: #ffc807;
+      border-radius: 50%;
+      flex-shrink: 0;
+      position: relative;
+      
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: rgba(255, 200, 7, 0.4);
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      
+      &::before {
+        right: 8px;
+      }
+      
+      &::after {
+        left: 8px;
+      }
+    }
+    
+    .table-number {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #ffc807;
+      letter-spacing: 0.02em;
+    }
   }
 
   .minimum-spend {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: #ffc807;
-    background: rgba(255, 200, 7, 0.1);
-    border: 1px solid rgba(255, 200, 7, 0.2);
+    color: rgba(255, 200, 7, 0.8);
+    background: rgba(255, 200, 7, 0.08);
+    border: 1px solid rgba(255, 200, 7, 0.15);
     display: inline-block;
-    padding: 0.375rem 0.75rem;
-    border-radius: 8px;
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
 }
 

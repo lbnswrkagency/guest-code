@@ -90,9 +90,47 @@ const TableBookingPopup = ({
   };
 
   // Get table information from position data
-  const tableName = position?.displayName || tableNumber;
+  const tableRawName = position?.displayName || tableNumber;
   const minSpend = position?.minSpend ? `${position.minSpend}€` : "100€";
   const maxPersons = position?.maxPersons || 10;
+  
+  // Format the table name for better display
+  const formatTableName = (rawName) => {
+    if (!rawName) return { area: "", table: "" };
+    
+    // Extract area name and table number using regex
+    // Match patterns like "VIP V9", "Standing S1", "Exclusive Backstage E2", etc.
+    const match = rawName.match(/^([A-Za-z\s]+)\s+([A-Z]\d+)$/);
+    if (match) {
+      const [, area, tableNum] = match;
+      return { area: area.trim(), table: tableNum };
+    }
+    
+    // Alternative pattern for just table codes like "V9", "S1", etc.
+    const tableCodeMatch = rawName.match(/^([A-Z])(\d+)$/);
+    if (tableCodeMatch) {
+      const [, letter, number] = tableCodeMatch;
+      const areaNames = {
+        'V': 'VIP',
+        'S': 'Standing', 
+        'B': 'Backstage',
+        'D': 'Standing',
+        'E': 'Exclusive',
+        'P': 'Premium',
+        'A': 'Main Floor',
+        'F': 'Front Row',
+        'K': 'Lounge',
+        'R': 'Reserved'
+      };
+      const area = areaNames[letter] || letter;
+      return { area, table: `${letter}${number}` };
+    }
+    
+    // If no pattern matches, return the original as area
+    return { area: rawName, table: "" };
+  };
+  
+  const tableInfo = formatTableName(tableRawName);
 
   // Determine if the form has all required fields filled
   const isFormValid = () => {
@@ -140,7 +178,15 @@ const TableBookingPopup = ({
         </button>
 
         <div className="popup-header">
-          <h3>{tableName}</h3>
+          <div className="table-title">
+            <span className="table-area">{tableInfo.area}</span>
+            {tableInfo.table && (
+              <>
+                <span className="table-separator"></span>
+                <span className="table-number">{tableInfo.table}</span>
+              </>
+            )}
+          </div>
           <div className="minimum-spend">Minimum Spend: {minSpend}</div>
         </div>
 
