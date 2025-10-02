@@ -194,7 +194,7 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="dashNav-wrapper">
+        <div className="dashNav-wrapper" key="dashNav-wrapper">
           {/* Backdrop with blur effect */}
           <motion.div
             className="dashNav-backdrop"
@@ -299,13 +299,16 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       )}
 
       {/* Alpha Access Modal - Now rendered outside the navigation */}
-      <AlphaAccess
-        user={currentUser}
-        setUser={setUser}
-        onSuccess={handleCloseAlphaAccess}
-        onClose={handleCloseAlphaAccess}
-        isOpen={showAlphaAccess}
-      />
+      {showAlphaAccess && (
+        <AlphaAccess
+          key="alpha-access-modal"
+          user={currentUser}
+          setUser={setUser}
+          onSuccess={handleCloseAlphaAccess}
+          onClose={handleCloseAlphaAccess}
+          isOpen={showAlphaAccess}
+        />
+      )}
     </AnimatePresence>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -48,8 +47,17 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
     newCode[index] = value;
     setCode(newCode);
 
-    // Auto-focus to next input
-    if (value && index < 3 && inputRefs.current[index + 1]) {
+    // Check if all 4 digits are entered
+    if (value && index === 3 && newCode.every(digit => digit !== "")) {
+      // Auto-submit after a slight delay to allow state to update
+      setTimeout(() => {
+        const form = inputRefs.current[0]?.closest('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 100);
+    } else if (value && index < 3 && inputRefs.current[index + 1]) {
+      // Auto-focus to next input
       inputRefs.current[index + 1].focus();
     }
   };
@@ -72,19 +80,36 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
       const newCode = pastedData.split("");
       setCode(newCode);
 
-      // Focus on last input
-      if (inputRefs.current[3]) {
-        inputRefs.current[3].focus();
-      }
+      // Auto-submit after paste since we have all 4 digits
+      setTimeout(() => {
+        const form = inputRefs.current[0]?.closest('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 100);
     }
   };
 
-  // Submit the code
-  const handleSubmit = async (e) => {
-    console.log("[AlphaAccess] handleSubmit called");
-    e.preventDefault();
-    e.stopPropagation(); // Prevent event bubbling to backdrop handler
 
+  // Handle backdrop click to close modal - more restrictive approach
+  const handleBackdropClick = (e) => {
+    // Only close if clicking directly on the backdrop, not on any child elements
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
+  // Prevent modal content clicks from bubbling to backdrop
+  const handleModalContentClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // Handle form submission without closing modal
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const fullCode = code.join("");
     console.log("[AlphaAccess] Code to submit:", fullCode);
 
@@ -198,11 +223,17 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
     }
   };
 
-  // Handle backdrop click to close modal
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget && onClose) {
-      onClose();
-    }
+  // Handle input interactions
+  const handleInputClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // Handle button clicks
+  const handleButtonClick = (e, callback) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (callback) callback();
   };
 
   // If user already has alpha access, show a success message
@@ -224,20 +255,29 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleModalContentClick}
             >
               {onClose && (
-                <button className="alpha-access__close-button" onClick={onClose}>
+                <button 
+                  className="alpha-access__close-button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                >
                   <RiCloseLine />
                 </button>
               )}
-              <div className="alpha-access__container">
+              <div className="alpha-access__container" onClick={handleModalContentClick}>
                 <h2>Alpha Access Granted</h2>
                 <p>You already have alpha access to all features.</p>
                 {(onSuccess || onClose) && (
                   <button
                     className="alpha-access__submit"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       if (onSuccess) onSuccess();
                       if (onClose) onClose();
                     }}
@@ -271,19 +311,26 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleModalContentClick}
           >
             {onClose && (
-              <button className="alpha-access__close-button" onClick={onClose}>
+              <button 
+                className="alpha-access__close-button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                }}
+              >
                 <RiCloseLine />
               </button>
             )}
-            <div className="alpha-access__container">
+            <div className="alpha-access__container" onClick={handleModalContentClick}>
               <h2>Alpha Access</h2>
               <p>Enter your 4-digit alpha code to unlock exclusive features</p>
 
-              <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-                <div className="alpha-access__code-inputs">
+              <form onSubmit={handleFormSubmit} onClick={handleModalContentClick}>
+                <div className="alpha-access__code-inputs" onClick={handleModalContentClick}>
                   {code.map((digit, index) => (
                     <input
                       key={index}
@@ -294,6 +341,8 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : null}
+                      onFocus={handleInputClick}
+                      onClick={handleInputClick}
                       disabled={isSubmitting}
                       autoComplete="off"
                       inputMode="numeric"
@@ -302,14 +351,13 @@ const AlphaAccess = ({ user, setUser, onSuccess, onClose, isOpen = true }) => {
                   ))}
                 </div>
 
-                {error && <div className="alpha-access__error">{error}</div>}
-                {success && <div className="alpha-access__success">{success}</div>}
+                {error && <div className="alpha-access__error" onClick={handleModalContentClick}>{error}</div>}
+                {success && <div className="alpha-access__success" onClick={handleModalContentClick}>{success}</div>}
 
                 <button
                   type="submit"
                   className="alpha-access__submit"
                   disabled={isSubmitting || code.join("").length !== 4}
-                  onClick={(e) => e.stopPropagation()}
                 >
                   {isSubmitting ? "Verifying..." : "Verify Code"}
                 </button>

@@ -594,6 +594,36 @@
     }
   }
 
+  &.no-permission-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 500px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: default;
+
+    .no-permission-icon {
+      font-size: 3rem;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .no-permission-text {
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 0 1rem;
+    }
+  }
+
   &.child-event {
     .week-indicator {
       display: none;

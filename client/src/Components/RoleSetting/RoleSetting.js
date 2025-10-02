@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RiAddLine,
@@ -14,8 +14,10 @@ import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import { toast } from "react-toastify";
+import AuthContext from "../../contexts/AuthContext";
 
 const RoleSetting = ({ brand, onClose }) => {
+  const { user } = useContext(AuthContext);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -24,6 +26,13 @@ const RoleSetting = ({ brand, onClose }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [codeSettings, setCodeSettings] = useState([]);
   const [loadingCodeSettings, setLoadingCodeSettings] = useState(true);
+
+  // Check if the current user is the brand owner
+  const isBrandOwner = () => {
+    if (!user || !brand) return false;
+    const ownerId = typeof brand.owner === "object" ? brand.owner._id : brand.owner;
+    return ownerId === user._id;
+  };
 
   const [newRole, setNewRole] = useState({
     name: "",
@@ -509,15 +518,17 @@ const RoleSetting = ({ brand, onClose }) => {
           >
             <div className="role-name">{role.name}</div>
             <div className="role-actions">
-              {/* Show edit button for all roles including founder roles */}
-              <motion.button
-                className="action-btn edit"
-                onClick={() => handleStartEdit(role)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <RiEditLine />
-              </motion.button>
+              {/* Show edit button: for founder roles only if user is brand owner, for all other roles always */}
+              {(role.isFounder ? isBrandOwner() : true) && (
+                <motion.button
+                  className="action-btn edit"
+                  onClick={() => handleStartEdit(role)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+              )}
               {/* Only show delete button for non-default and non-founder roles */}
               {!role.isDefault && !role.isFounder && (
                 <motion.button

@@ -25,33 +25,114 @@ import DashboardNavigation from "../DashboardNavigation/DashboardNavigation";
 import AuthContext from "../../contexts/AuthContext";
 import { motion } from "framer-motion";
 import ProgressiveImage from "../ProgressiveImage/ProgressiveImage";
+import { useSelector } from "react-redux";
+import { selectAllBrands } from "../../redux/brandSlice";
+import { selectAllRoles } from "../../redux/rolesSlice";
 
-// Helper function to check if a user has permissions to edit a brand
-const hasBrandPermissions = (brand, user) => {
+// Helper function to check if a user can access brand settings (team management or owner)
+const hasBrandSettingsPermissions = (brand, user) => {
   // If no user or brand, permission denied
   if (!user || !brand) return false;
 
   // If user is the brand owner, they have permission
-  if (
-    brand.owner === user._id ||
-    (typeof brand.owner === "object" && brand.owner._id === user._id)
-  ) {
+  const ownerId = typeof brand.owner === "object" ? brand.owner._id : brand.owner;
+  const userId = user._id;
+
+  if (ownerId === userId) {
     return true;
   }
 
-  // If user is a team member, check their permissions
+  // Check if the brand has the user's role attached (from Redux resolution)
+  if (brand.role && brand.role.permissions) {
+    // Use the resolved role permissions for team management
+    const hasTeamManagePermission = brand.role.permissions.team?.manage === true;
+    return hasTeamManagePermission;
+  }
+
+  // Fallback to the original logic for backward compatibility
+  if (brand.team && Array.isArray(brand.team)) {
+    const teamMember = brand.team.find((member) => {
+      const memberId = typeof member.user === "object" ? member.user._id : member.user;
+      return memberId === userId;
+    });
+
+    if (teamMember) {
+      // Parse permissions if they're a string
+      let parsedPermissions = teamMember.permissions;
+
+      if (typeof teamMember.permissions === "string") {
+        try {
+          parsedPermissions = JSON.parse(teamMember.permissions);
+        } catch (error) {
+          parsedPermissions = {};
+        }
+      }
+
+      // Check the permissions object
+      if (parsedPermissions) {
+        const hasTeamManagePermission = parsedPermissions?.team?.manage === true;
+        return hasTeamManagePermission;
+      }
+    }
+  }
+  return false;
+};
+
+// Helper function to check if a user can edit the brand itself (owner only)
+const hasBrandEditPermissions = (brand, user) => {
+  // If no user or brand, permission denied
+  if (!user || !brand) return false;
+
+  // Only brand owners can edit the brand itself
+  const ownerId = typeof brand.owner === "object" ? brand.owner._id : brand.owner;
+  const userId = user._id;
+
+  return ownerId === userId;
+};
+
+// Helper function to get user permissions for a brand (like Events.js)
+const getUserBrandPermissions = (brand, user) => {
+  // If no user or brand, return empty permissions
+  if (!user || !brand) return {};
+
+  // If user is the brand owner, they have all permissions
+  const ownerId = typeof brand.owner === "object" ? brand.owner._id : brand.owner;
+  const userId = user._id;
+
+  if (ownerId === userId) {
+    return {
+      isOwner: true,
+      team: { manage: true },
+      events: { create: true, edit: true, delete: true },
+      analytics: { view: true },
+      settings: { manage: true }
+    };
+  }
+
+  // Check if the brand has the user's role attached (from Redux resolution)
+  if (brand.role && brand.role.permissions) {
+    return brand.role.permissions;
+  }
+
+  // Fallback to team member permissions
   const teamMember = brand.team?.find(
     (member) =>
       member.user === user._id ||
       (typeof member.user === "object" && member.user._id === user._id)
   );
 
-  if (teamMember) {
-    // Check if the team member has management permissions
-    return teamMember.permissions?.team?.manage === true;
+  if (teamMember && teamMember.permissions) {
+    if (typeof teamMember.permissions === "string") {
+      try {
+        return JSON.parse(teamMember.permissions);
+      } catch (error) {
+        return {};
+      }
+    }
+    return teamMember.permissions;
   }
 
-  return false;
+  return {};
 };
 
 const SocialIcon = ({ platform, url }) => {
@@ -87,7 +168,13 @@ const ContactInfo = ({ type, value, icon: Icon }) => (
 const Brands = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [brands, setBrands] = useState([]);
+  
+  // Get Redux store data
+  const reduxBrands = useSelector(selectAllBrands);
+  const roles = useSelector(selectAllRoles);
+  const userRoles = useSelector((state) => state.roles?.userRoles || {});
+  
+  const [userBrands, setUserBrands] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -97,53 +184,35 @@ const Brands = () => {
     useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    fetchBrands();
-  }, []);
+  // Prepare brand with role data (copied from Events.js)
+  const prepareBrandWithData = (brand) => {
+    // Get user's role for this brand
+    const userRoleId = userRoles[brand._id];
+    const userRole = roles.find((role) => role._id === userRoleId);
 
-  const fetchBrands = async () => {
-    const loadingToast = toast.showLoading("Loading brands...");
-    try {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        toast.showError("Authentication required");
-        setLoading(false);
-        setBrands([]);
-        return;
-      }
-
-      const url = `${process.env.REACT_APP_API_BASE_URL}/brands`;
-      const config = {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      };
-
-      const response = await axios.get(url, config);
-
-      if (Array.isArray(response.data)) {
-        setBrands(response.data);
-      } else {
-        setBrands([]);
-      }
-
-      setLoading(false);
-    } catch (error) {
-      if (error.response?.status === 401) {
-        toast.showError("Session expired. Please log in again.");
-      } else {
-        toast.showError("Failed to load brands");
-      }
-
-      setLoading(false);
-      setBrands([]);
-    } finally {
-      loadingToast.dismiss();
-    }
+    return {
+      ...brand,
+      role: userRole,
+    };
   };
+
+  // Use Redux brands and prepare them with role data
+  const prepareBrands = () => {
+    if (reduxBrands.length > 0) {
+      const brandsWithData = reduxBrands.map(prepareBrandWithData);
+      setUserBrands(brandsWithData);
+    } else {
+      setUserBrands([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Only run prepareBrands if we have the necessary data
+    if (reduxBrands.length >= 0 && user?._id) {
+      prepareBrands();
+    }
+  }, [reduxBrands, roles, userRoles, user]);
 
   const handleBrandClick = (brand) => {
     setSelectedBrand(brand);
@@ -157,7 +226,9 @@ const Brands = () => {
 
   const handleSave = async (brandData) => {
     try {
-      setBrands((prev) => {
+      // The brand data will be updated in Redux by the BrandForm component
+      // We just need to update our local state
+      setUserBrands((prev) => {
         const updatedBrands = selectedBrand
           ? prev.map((b) => (b._id === selectedBrand._id ? brandData : b))
           : [...prev, brandData];
@@ -191,7 +262,7 @@ const Brands = () => {
       });
 
       toast.showSuccess("Brand deleted successfully!");
-      fetchBrands();
+      prepareBrands();
       loadingToast.dismiss();
     } catch (error) {
       toast.showError("Failed to delete brand");
@@ -205,8 +276,8 @@ const Brands = () => {
   const handleSettingsClick = (brand) => {
     // Check if this is a deletion result from BrandCard
     if (brand && brand.action === "deleted") {
-      // Remove the deleted brand from the brands array
-      setBrands((prev) => prev.filter((b) => b._id !== brand.brandId));
+      // Remove the deleted brand from the userBrands array
+      setUserBrands((prev) => prev.filter((b) => b._id !== brand.brandId));
       toast.showSuccess("Brand successfully deleted");
       return;
     }
@@ -255,7 +326,8 @@ const Brands = () => {
       );
 
       toast.showSuccess("Brand settings updated successfully");
-      fetchBrands();
+      // The brands will be updated via Redux, so we just need to trigger a re-preparation
+      prepareBrands();
     } catch (error) {
       toast.showError("Failed to update brand settings");
     }
@@ -283,9 +355,9 @@ const Brands = () => {
         <div className="brands-grid">
           {loading ? (
             <div className="loading-state">Loading brands...</div>
-          ) : brands.length > 0 ? (
+          ) : userBrands.length > 0 ? (
             <>
-              {brands.map((brand) => (
+              {userBrands.map((brand) => (
                 <BrandCard
                   key={brand._id}
                   brand={brand}
@@ -339,8 +411,14 @@ const BrandCard = ({
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const { user } = useContext(AuthContext); // Get current user
 
-  // Check if the user has permission to edit this brand
-  const hasPermission = hasBrandPermissions(brand, user);
+  // Check if the user has permission to access brand settings (team management or owner)
+  const hasSettingsPermission = hasBrandSettingsPermissions(brand, user);
+  
+  // Check if the user can edit the brand itself (owner only)
+  const hasEditPermission = hasBrandEditPermissions(brand, user);
+  
+  // Get the user's specific permissions for this brand
+  const userPermissions = getUserBrandPermissions(brand, user);
 
   const getImageUrl = (imageObj) => {
     if (!imageObj) return null;
@@ -363,7 +441,6 @@ const BrandCard = ({
       imageObj.original
     );
   };
-
 
   const coverImageUrl = getImageUrl(brand.coverImage);
   const logoUrl = getImageUrl(brand.logo);
@@ -408,25 +485,27 @@ const BrandCard = ({
           )}
         </div>
         <div className="card-actions">
-          {hasPermission && (
-            <>
-              <motion.button
-                className="action-button edit"
-                onClick={handleEditClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <RiEditLine />
-              </motion.button>
-              <motion.button
-                className="action-button settings"
-                onClick={handleSettingsClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <RiSettings4Line />
-              </motion.button>
-            </>
+          {/* Edit button - only for brand owners */}
+          {hasEditPermission && (
+            <motion.button
+              className="action-button edit"
+              onClick={handleEditClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiEditLine />
+            </motion.button>
+          )}
+          {/* Settings button - for team managers and owners */}
+          {hasSettingsPermission && (
+            <motion.button
+              className="action-button settings"
+              onClick={handleSettingsClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiSettings4Line />
+            </motion.button>
           )}
         </div>
       </div>
@@ -483,11 +562,12 @@ const BrandCard = ({
     </motion.div>
     
     {/* Settings Popup Modal */}
-    {showSettingsPopup && hasPermission && (
+    {showSettingsPopup && hasSettingsPermission && (
       <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
         <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <BrandSettings
             brand={brand}
+            userPermissions={userPermissions}
             onClose={(result) => {
               setShowSettingsPopup(false);
               // If this was a deletion, notify the parent via onSettingsClick callback
@@ -503,12 +583,12 @@ const BrandCard = ({
     )}
     
     {/* No Permission Modal */}
-    {showSettingsPopup && !hasPermission && (
+    {showSettingsPopup && !hasSettingsPermission && (
       <div className="settings-popup-overlay" onClick={() => setShowSettingsPopup(false)}>
         <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
           <div className="no-permission-message">
             <h3>Access Restricted</h3>
-            <p>You don't have permission to modify this brand.</p>
+            <p>You don't have permission to access brand settings.</p>
             <button className="back-button" onClick={() => setShowSettingsPopup(false)}>
               Close
             </button>

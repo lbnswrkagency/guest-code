@@ -524,6 +524,29 @@ const Events = () => {
     return favoriteEvents.some((event) => event._id === eventId);
   };
 
+  // Check if user can create events for the selected brand
+  const canCreateEvents = () => {
+    if (!user || !selectedBrand) return false;
+
+    // If user is the brand owner, they can create events
+    const ownerId =
+      typeof selectedBrand.owner === "object"
+        ? selectedBrand.owner._id
+        : selectedBrand.owner;
+    const userId = user._id;
+
+    if (ownerId === userId) {
+      return true;
+    }
+
+    // Check if the brand has the user's role attached with event edit permissions
+    if (selectedBrand.role && selectedBrand.role.permissions) {
+      return selectedBrand.role.permissions.events?.edit === true;
+    }
+
+    return false;
+  };
+
   return (
     <div className="page-wrapper">
       <Navigation
@@ -652,21 +675,29 @@ const Events = () => {
                     isEventFavorited={isEventFavorited}
                   />
                 ))}
-                <div
-                  className="event-card add-card"
-                  onClick={() => setShowForm(true)}
-                >
-                  <RiAddCircleLine className="add-icon" />
-                  <p>Create New Event</p>
-                </div>
+                {canCreateEvents() ? (
+                  <div
+                    className="event-card add-card"
+                    onClick={() => setShowForm(true)}
+                  >
+                    <RiAddCircleLine className="add-icon" />
+                    <p>Create New Event</p>
+                  </div>
+                ) : null}
               </>
-            ) : (
+            ) : canCreateEvents() ? (
               <div
                 className="event-card add-card"
                 onClick={() => setShowForm(true)}
               >
                 <RiAddCircleLine className="add-icon" />
                 <p>No events found. Create your first event!</p>
+              </div>
+            ) : (
+              <div className="event-card no-permission-card">
+                <RiCalendarEventLine className="no-permission-icon" />
+                <p>No events found</p>
+                <span className="no-permission-text">You don't have permission to create events for this brand</span>
               </div>
             )}
           </div>

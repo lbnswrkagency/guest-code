@@ -757,8 +757,27 @@ exports.updateMemberRole = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check if user has permission to update roles
-    if (!brand.owner.equals(req.user._id)) {
+    // Check if user has permission to update roles (owner or team manager)
+    const isOwner = brand.owner.equals(req.user._id);
+    let hasTeamManagePermission = false;
+
+    if (!isOwner) {
+      // Check if user is a team member with team management permissions
+      const teamMember = brand.team.find(
+        (member) => member.user.toString() === req.user._id.toString()
+      );
+
+      if (teamMember && teamMember.role) {
+        // Get the role and check permissions
+        const Role = require("../models/roleModel");
+        const userRole = await Role.findById(teamMember.role);
+        if (userRole && userRole.permissions?.team?.manage === true) {
+          hasTeamManagePermission = true;
+        }
+      }
+    }
+
+    if (!isOwner && !hasTeamManagePermission) {
       return res
         .status(403)
         .json({ message: "Not authorized to update roles" });
@@ -808,8 +827,27 @@ exports.removeMember = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check if user has permission to remove members
-    if (!brand.owner.equals(req.user.userId)) {
+    // Check if user has permission to remove members (owner or team manager)
+    const isOwner = brand.owner.equals(req.user.userId);
+    let hasTeamManagePermission = false;
+
+    if (!isOwner) {
+      // Check if user is a team member with team management permissions
+      const teamMember = brand.team.find(
+        (member) => member.user.toString() === req.user.userId.toString()
+      );
+
+      if (teamMember && teamMember.role) {
+        // Get the role and check permissions
+        const Role = require("../models/roleModel");
+        const userRole = await Role.findById(teamMember.role);
+        if (userRole && userRole.permissions?.team?.manage === true) {
+          hasTeamManagePermission = true;
+        }
+      }
+    }
+
+    if (!isOwner && !hasTeamManagePermission) {
       return res
         .status(403)
         .json({ message: "Not authorized to remove members" });
@@ -834,8 +872,27 @@ exports.banMember = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check if user has permission to ban members
-    if (!brand.owner.equals(req.user.userId)) {
+    // Check if user has permission to ban members (owner or team manager)
+    const isOwner = brand.owner.equals(req.user.userId);
+    let hasTeamManagePermission = false;
+
+    if (!isOwner) {
+      // Check if user is a team member with team management permissions
+      const teamMember = brand.team.find(
+        (member) => member.user.toString() === req.user.userId.toString()
+      );
+
+      if (teamMember && teamMember.role) {
+        // Get the role and check permissions
+        const Role = require("../models/roleModel");
+        const userRole = await Role.findById(teamMember.role);
+        if (userRole && userRole.permissions?.team?.manage === true) {
+          hasTeamManagePermission = true;
+        }
+      }
+    }
+
+    if (!isOwner && !hasTeamManagePermission) {
       return res.status(403).json({ message: "Not authorized to ban members" });
     }
 
