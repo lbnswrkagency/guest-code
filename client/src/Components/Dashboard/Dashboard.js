@@ -534,7 +534,9 @@ const Dashboard = () => {
     if (!selectedEvent) return [];
 
     // Check if this is a co-hosted event with embedded code settings
+    // ONLY use embedded settings for actual co-hosted events
     if (
+      selectedEvent.coHostBrandInfo &&
       selectedEvent.codeSettings &&
       Array.isArray(selectedEvent.codeSettings)
     ) {
