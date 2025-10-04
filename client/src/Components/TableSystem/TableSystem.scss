@@ -771,6 +771,12 @@
   margin: 0 auto;
   display: flex;
   justify-content: center;
+  overflow-x: auto; // Allow horizontal scroll if needed on very small screens
+
+  // Responsive adjustments for mobile
+  @media (max-width: 475px) {
+    padding: 0 0.5rem;
+  }
 
   svg {
     max-width: 100%;
