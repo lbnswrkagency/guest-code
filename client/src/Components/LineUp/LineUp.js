@@ -60,10 +60,8 @@ function LineUp({
   const eventId = event?._id;
 
   // Get token and brandId from localStorage at component mount
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
-  const [brandId, setBrandId] = useState(
-    () => selectedBrand?._id || localStorage.getItem("selectedBrandId")
-  );
+  const [token, setToken] = useState(null);
+  const [brandId, setBrandId] = useState(null);
 
   // Get user from localStorage for the userId
   const [user, setUser] = useState(() => {
@@ -85,13 +83,8 @@ function LineUp({
     const currentBrandId =
       selectedBrand?._id || localStorage.getItem("selectedBrandId");
 
-    if (currentToken !== token) {
-      setToken(currentToken);
-    }
-
-    if (currentBrandId !== brandId) {
-      setBrandId(currentBrandId);
-    }
+    setToken(currentToken);
+    setBrandId(currentBrandId);
   }, [selectedBrand]);
 
   useEffect(() => {

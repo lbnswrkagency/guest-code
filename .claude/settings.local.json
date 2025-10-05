@@ -28,7 +28,11 @@
       "Bash(npm start:*)",
       "Bash(npx sass:*)",
       "Bash(npm run build:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Read(//var/folders/rj/vwn5tdcj5wdflckwfzr4jtwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_BCl956/**)",
+      "Read(//var/folders/rj/vwn5tdcj5wdflckwfzr4jtwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_OtKQfw/**)",
+      "Read(//var/folders/rj/vwn5tdcj5wdflckwfzr4jtwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_PxYrls/**)",
+      "Read(//var/folders/rj/vwn5tdcj5wdflckwfzr4jtwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_xGvDkJ/**)"
     ],
     "deny": []
   }

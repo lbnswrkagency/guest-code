@@ -424,24 +424,66 @@ const Dashboard = () => {
     return { brand: nextEventBrand, date: nextEventDate };
   };
 
+  // Track if this is the initial load and co-hosted events loading state
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [coHostedEventsLoadingStarted, setCoHostedEventsLoadingStarted] = useState(false);
+
+  // Track when co-hosted events loading has started
+  useEffect(() => {
+    if (brands.length > 0 && !coHostedEventsLoadingStarted) {
+      setCoHostedEventsLoadingStarted(true);
+
+      // Set a timeout to proceed even if co-hosted events don't load
+      const timeoutId = setTimeout(() => {
+        if (isInitialLoad) {
+          // Force selection after 500ms even if no co-hosted events
+          setIsInitialLoad(false);
+        }
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [brands, coHostedEventsLoadingStarted, isInitialLoad]);
+
   // Set initial selected brand when brands are loaded
   useEffect(() => {
-    if (brands.length > 0 && !selectedBrand) {
+    if (brands.length > 0) {
+      // On initial load, wait briefly for co-hosted events, but don't block forever
+      // Only wait if we haven't waited yet and co-hosted events are still loading
+      if (isInitialLoad && coHostedEventsLoadingStarted && coHostedEvents.length === 0) {
+        // Co-hosted events are being fetched, wait a bit (timeout above will unblock)
+        return;
+      }
+
       // Find the brand with the next upcoming event
       const { brand, date } = findBrandWithNextEvent();
 
       if (brand) {
-        setSelectedBrand(brand);
-        if (date) {
-          setSelectedDate(date);
+        // Update if we don't have a selected brand yet
+        if (!selectedBrand) {
+          setSelectedBrand(brand);
+          if (date) {
+            setSelectedDate(date);
+          }
+          setIsInitialLoad(false);
         }
-      } else {
+        // Also update if date changed (co-hosted events arrived with earlier date)
+        // This can happen after timeout if co-hosted events load late
+        else if (date && selectedDate && date !== selectedDate && date < selectedDate) {
+          setSelectedBrand(brand);
+          if (date) {
+            setSelectedDate(date);
+          }
+          setIsInitialLoad(false);
+        }
+      } else if (!selectedBrand) {
         // Fallback to first brand if no brand with events found
         const firstBrand = prepareBrandWithData(brands[0]);
         setSelectedBrand(firstBrand);
+        setIsInitialLoad(false);
       }
     }
-  }, [brands]);
+  }, [brands, coHostedEvents, isInitialLoad, coHostedEventsLoadingStarted]);
 
   // Prepare brand with events and role data
   const prepareBrandWithData = (brand) => {

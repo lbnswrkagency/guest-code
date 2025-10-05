@@ -38,14 +38,6 @@ $text-gray: #cccccc;
   }
 }
 
-@keyframes glow {
-  0%, 100% {
-    text-shadow: 0 0 20px rgba($primary-gold, 0.3);
-  }
-  50% {
-    text-shadow: 0 0 30px rgba($primary-gold, 0.6);
-  }
-}
 
 .home {
   min-height: 100vh;
@@ -133,14 +125,18 @@ $text-gray: #cccccc;
 
 .brand-title {
   font-size: clamp(3rem, 8vw, 6rem);
-  font-weight: 300;
+  font-weight: 700;
   letter-spacing: 0.1em;
   margin: 0 0 2rem 0;
   background: linear-gradient(135deg, $text-white 0%, $primary-gold 50%, $text-white 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: glow 3s ease-in-out infinite;
+  color: transparent;
+  display: inline-block;
+  padding: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .subtitle-container {
@@ -186,7 +182,6 @@ $text-gray: #cccccc;
 .alpha-link {
   display: inline-block;
   text-decoration: none;
-  animation: float 3s ease-in-out infinite;
 }
 
 .alpha-badge {

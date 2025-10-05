@@ -271,27 +271,6 @@ function TableSystem({
       // Expecting response format { tableCounts: [], totalCount: 0 }
       if (response.data && Array.isArray(response.data.tableCounts)) {
         const { tableCounts, totalCount } = response.data;
-        
-        // 🚨 DEBUG: Log table data for co-hosted events
-        console.log("🔍 [TableSystem] Table data received:");
-        console.log("  - isCoHostedEvent:", isCoHostedEvent);
-        console.log("  - isPublic:", isPublic);
-        console.log("  - endpoint used:", fullEndpoint);
-        console.log("  - tableCounts length:", tableCounts.length);
-        console.log("  - tableCounts data:", tableCounts);
-        console.log("  - selectedEvent.coHostBrandInfo:", selectedEvent?.coHostBrandInfo);
-        
-        // Log specific table bookings for debugging
-        const bookedTableNumbers = tableCounts
-          .filter(code => code.status !== "declined" && code.status !== "cancelled")
-          .map(code => ({
-            table: code.tableNumber || code.table,
-            status: code.status,
-            host: code.host,
-            hostId: code.hostId
-          }));
-        console.log("  - booked table numbers:", bookedTableNumbers);
-        
         setTableData({ tableCounts, totalCount });
       } else {
         setTableData({ tableCounts: [], totalCount: 0 });
