@@ -10,12 +10,13 @@ import eventsReducer from "./eventsSlice";
 import rolesReducer from "./rolesSlice";
 import codeSettingsReducer from "./codeSettingsSlice";
 import lineupReducer from "./lineupSlice";
+import coHostedEventsReducer from "./coHostedEventsSlice";
 
 // Configure persist for specific reducers
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["user", "brand", "events", "roles", "codeSettings", "lineup"], // Persist all data
+  whitelist: ["user", "brand", "events", "roles", "codeSettings", "lineup", "coHostedEvents"], // Persist all data
 };
 
 const rootReducer = combineReducers({
@@ -26,6 +27,7 @@ const rootReducer = combineReducers({
   roles: rolesReducer,
   codeSettings: codeSettingsReducer,
   lineup: lineupReducer,
+  coHostedEvents: coHostedEventsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

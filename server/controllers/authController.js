@@ -365,6 +365,131 @@ exports.login = async (req, res) => {
       })
     );
 
+    // STEP 6: Fetch co-hosted events for all user's brands
+    const allCoHostedEvents = [];
+    await Promise.all(
+      userBrands.map(async (brand) => {
+        try {
+          // Find user's role in this brand (same logic as in co-host controller)
+          let userRoleInBrand = null;
+
+          // Check if user is the owner
+          if (brand.owner && brand.owner.toString() === user._id.toString()) {
+            const founderRole = await Role.findOne({
+              brandId: brand._id,
+              isFounder: true
+            }).lean();
+            userRoleInBrand = founderRole;
+          } else if (brand.team && Array.isArray(brand.team)) {
+            // Find user in team
+            const teamMember = brand.team.find(
+              (m) => m.user && m.user.toString() === user._id.toString()
+            );
+            if (teamMember && teamMember.role) {
+              userRoleInBrand = allRoles.find(
+                (r) => r._id.toString() === teamMember.role.toString()
+              );
+            }
+          }
+
+          if (!userRoleInBrand) return;
+
+          // Find events where this brand is a co-host
+          const coHostedEvents = await Event.find({
+            coHosts: brand._id,
+            parentEventId: { $exists: false } // Only parent events
+          })
+            .populate("brand", "name username logo colors")
+            .populate("coHosts", "name username logo")
+            .populate("user", "username firstName lastName avatar")
+            .populate("lineups")
+            .populate("genres")
+            .lean();
+
+          // Process each co-hosted event
+          for (const event of coHostedEvents) {
+            try {
+              // Get code settings
+              const eventCodeSettings = await CodeSetting.find({
+                eventId: event._id
+              }).lean();
+
+              // Attach code settings
+              event.codeSettings = eventCodeSettings;
+
+              // Ensure date fields
+              if (!event.date && event.startDate) {
+                event.date = event.startDate;
+              }
+              if (!event.startDate && event.date) {
+                event.startDate = event.date;
+              }
+
+              // Ensure required fields exist
+              event.flyer = event.flyer || {};
+              event.lineups = event.lineups || [];
+              event.genres = event.genres || [];
+              event.coHosts = event.coHosts || [];
+              event.title = event.title || '';
+              event.description = event.description || '';
+              event.location = event.location || '';
+
+              // Attach co-host information
+              event.coHostBrandInfo = {
+                brandId: brand._id.toString(),
+                brandName: brand.name,
+                userRole: {
+                  _id: userRoleInBrand._id,
+                  name: userRoleInBrand.name,
+                  isFounder: userRoleInBrand.isFounder,
+                  permissions: userRoleInBrand.permissions
+                }
+              };
+
+              // Add co-host brand reference for filtering
+              event.coHostBrand = {
+                _id: brand._id.toString(),
+                name: brand.name
+              };
+
+              // Find co-host permissions
+              const coHostPermissions = event.coHostRolePermissions || [];
+              const brandPermissions = coHostPermissions.find(
+                cp => cp.brandId.toString() === brand._id.toString()
+              );
+
+              if (brandPermissions) {
+                const rolePermission = brandPermissions.rolePermissions.find(
+                  rp => rp.roleId.toString() === userRoleInBrand._id.toString()
+                );
+
+                if (rolePermission) {
+                  const permissions = JSON.parse(JSON.stringify(rolePermission.permissions));
+
+                  // Handle Map types for codes
+                  if (rolePermission.permissions.codes instanceof Map) {
+                    permissions.codes = Object.fromEntries(rolePermission.permissions.codes);
+                  }
+
+                  event.coHostBrandInfo.effectivePermissions = permissions;
+                } else {
+                  event.coHostBrandInfo.effectivePermissions = null;
+                }
+              } else {
+                event.coHostBrandInfo.effectivePermissions = null;
+              }
+
+              allCoHostedEvents.push(event);
+            } catch (error) {
+              // Skip this event if processing fails
+            }
+          }
+        } catch (error) {
+          // Skip this brand if processing fails
+        }
+      })
+    );
+
     // Return user data and tokens
     const userData = {
       _id: user._id,
@@ -386,6 +511,7 @@ exports.login = async (req, res) => {
       events: allEvents,
       codeSettings: allCodeSettings,
       lineups: allLineUps,
+      coHostedEvents: allCoHostedEvents,
     };
 
     res.json({

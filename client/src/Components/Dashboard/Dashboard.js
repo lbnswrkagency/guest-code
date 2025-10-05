@@ -12,6 +12,7 @@ import {
   selectCodeSettingsByEventId,
 } from "../../redux/codeSettingsSlice";
 import { selectAllLineups } from "../../redux/lineupSlice";
+import { selectAllCoHostedEvents } from "../../redux/coHostedEventsSlice";
 import { store } from "../../redux/store";
 import { logout } from "../AuthForm/Login/LoginFunction";
 import Navigation from "../Navigation/Navigation";
@@ -26,7 +27,6 @@ import Analytics from "../Analytics/Analytics";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
 import { motion } from "framer-motion";
 import { RiArrowUpSLine } from "react-icons/ri";
-import axiosInstance from "../../utils/axiosConfig";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -39,10 +39,8 @@ const Dashboard = () => {
   const roles = useSelector(selectAllRoles);
   const codeSettings = useSelector(selectAllCodeSettings);
   const lineups = useSelector(selectAllLineups);
+  const coHostedEvents = useSelector(selectAllCoHostedEvents);
   const userRoles = useSelector((state) => state.roles?.userRoles || {});
-
-  // State for co-hosted events
-  const [coHostedEvents, setCoHostedEvents] = useState([]);
 
   // State for selected brand and date
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -72,41 +70,6 @@ const Dashboard = () => {
     setIsNavigationOpen(isOpen);
   };
 
-  // Function to fetch co-hosted events for all user's brands
-  const fetchCoHostedEvents = async () => {
-    if (!user || !brands || brands.length === 0) {
-      return;
-    }
-
-    try {
-      const allCoHostedEvents = [];
-
-      // Fetch co-hosted events for each brand the user is part of
-      for (const brand of brands) {
-        try {
-          const response = await axiosInstance.get(
-            `/co-hosts/brand/${brand._id}/events`
-          );
-
-          if (response.data && Array.isArray(response.data)) {
-            // Mark these events as co-hosted and add brand info
-            const coHostedEventsForBrand = response.data.map((event) => ({
-              ...event,
-              isCoHosted: true,
-              coHostBrand: brand, // The brand that is co-hosting (our user's brand)
-            }));
-            allCoHostedEvents.push(...coHostedEventsForBrand);
-          }
-        } catch (error) {
-          // Silent fail for individual brand co-hosted events
-        }
-      }
-
-      setCoHostedEvents(allCoHostedEvents);
-    } catch (error) {
-      // Silent fail for co-hosted events fetching
-    }
-  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -120,13 +83,6 @@ const Dashboard = () => {
       hasLoggedStore.current = true;
     }
   }, [user, brands, events, roles, codeSettings, navigate]);
-
-  // Fetch co-hosted events when brands are available
-  useEffect(() => {
-    if (brands && brands.length > 0) {
-      fetchCoHostedEvents();
-    }
-  }, [brands]);
 
   // Listen for alpha access granted event
   useEffect(() => {
@@ -424,66 +380,24 @@ const Dashboard = () => {
     return { brand: nextEventBrand, date: nextEventDate };
   };
 
-  // Track if this is the initial load and co-hosted events loading state
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [coHostedEventsLoadingStarted, setCoHostedEventsLoadingStarted] = useState(false);
-
-  // Track when co-hosted events loading has started
-  useEffect(() => {
-    if (brands.length > 0 && !coHostedEventsLoadingStarted) {
-      setCoHostedEventsLoadingStarted(true);
-
-      // Set a timeout to proceed even if co-hosted events don't load
-      const timeoutId = setTimeout(() => {
-        if (isInitialLoad) {
-          // Force selection after 500ms even if no co-hosted events
-          setIsInitialLoad(false);
-        }
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [brands, coHostedEventsLoadingStarted, isInitialLoad]);
-
   // Set initial selected brand when brands are loaded
   useEffect(() => {
-    if (brands.length > 0) {
-      // On initial load, wait briefly for co-hosted events, but don't block forever
-      // Only wait if we haven't waited yet and co-hosted events are still loading
-      if (isInitialLoad && coHostedEventsLoadingStarted && coHostedEvents.length === 0) {
-        // Co-hosted events are being fetched, wait a bit (timeout above will unblock)
-        return;
-      }
-
+    if (brands.length > 0 && !selectedBrand) {
       // Find the brand with the next upcoming event
       const { brand, date } = findBrandWithNextEvent();
 
       if (brand) {
-        // Update if we don't have a selected brand yet
-        if (!selectedBrand) {
-          setSelectedBrand(brand);
-          if (date) {
-            setSelectedDate(date);
-          }
-          setIsInitialLoad(false);
+        setSelectedBrand(brand);
+        if (date) {
+          setSelectedDate(date);
         }
-        // Also update if date changed (co-hosted events arrived with earlier date)
-        // This can happen after timeout if co-hosted events load late
-        else if (date && selectedDate && date !== selectedDate && date < selectedDate) {
-          setSelectedBrand(brand);
-          if (date) {
-            setSelectedDate(date);
-          }
-          setIsInitialLoad(false);
-        }
-      } else if (!selectedBrand) {
+      } else {
         // Fallback to first brand if no brand with events found
         const firstBrand = prepareBrandWithData(brands[0]);
         setSelectedBrand(firstBrand);
-        setIsInitialLoad(false);
       }
     }
-  }, [brands, coHostedEvents, isInitialLoad, coHostedEventsLoadingStarted]);
+  }, [brands]);
 
   // Prepare brand with events and role data
   const prepareBrandWithData = (brand) => {

@@ -12,6 +12,7 @@ import { setEvents } from "../../../redux/eventsSlice";
 import { setRoles, setUserRole } from "../../../redux/rolesSlice";
 import { setCodeSettings } from "../../../redux/codeSettingsSlice";
 import { setLineups } from "../../../redux/lineupSlice";
+import { setCoHostedEvents } from "../../../redux/coHostedEventsSlice";
 import Maintenance from "../../Maintenance/Maintenance";
 import notificationManager from "../../../utils/notificationManager";
 
@@ -111,6 +112,11 @@ function Login() {
       // Store lineups if available
       if (fullUserData.lineups && Array.isArray(fullUserData.lineups)) {
         dispatch(setLineups(fullUserData.lineups));
+      }
+
+      // Store co-hosted events if available
+      if (fullUserData.coHostedEvents && Array.isArray(fullUserData.coHostedEvents)) {
+        dispatch(setCoHostedEvents(fullUserData.coHostedEvents));
       }
 
       // Determine where to navigate
