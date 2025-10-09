@@ -63,7 +63,9 @@ const CoHost = ({
       // Filter out already selected brands and the current brand
       const filteredResults = response.data.filter(
         (brand) =>
-          !selectedCoHosts.some((selected) => selected._id === brand._id) &&
+          !selectedCoHosts
+            .filter((selected) => selected && selected._id) // Filter out null/undefined co-hosts
+            .some((selected) => selected._id === brand._id) &&
           brand._id !== currentBrandId
       );
 
@@ -134,7 +136,9 @@ const CoHost = ({
       <AnimatePresence>
         {selectedCoHosts.length > 0 && (
           <div className="selected-co-hosts">
-            {selectedCoHosts.map((brand) => (
+            {selectedCoHosts
+              .filter((brand) => brand && brand._id) // Filter out null/undefined brands
+              .map((brand) => (
               <motion.div
                 key={brand._id}
                 className="co-host-item"
@@ -147,17 +151,17 @@ const CoHost = ({
                   {brand.logo?.thumbnail ? (
                     <img
                       src={brand.logo.thumbnail}
-                      alt={brand.name}
+                      alt={brand.name || 'Unknown Brand'}
                       className="co-host-logo"
                     />
                   ) : (
                     <div className="co-host-logo-placeholder">
-                      {brand.name.charAt(0).toUpperCase()}
+                      {brand.name ? brand.name.charAt(0).toUpperCase() : '?'}
                     </div>
                   )}
                   <div className="co-host-info">
-                    <span className="co-host-name">{brand.name}</span>
-                    <span className="co-host-username">@{brand.username}</span>
+                    <span className="co-host-name">{brand.name || 'Unknown Brand'}</span>
+                    <span className="co-host-username">@{brand.username || 'unknown'}</span>
                   </div>
                 </div>
                 <div className="co-host-actions">
@@ -165,7 +169,7 @@ const CoHost = ({
                     type="button"
                     className="settings-co-host"
                     onClick={() => handleOpenRoleSettings(brand)}
-                    aria-label={`Configure permissions for ${brand.name}`}
+                    aria-label={`Configure permissions for ${brand.name || 'Unknown Brand'}`}
                     title="Configure Permissions"
                   >
                     <RiSettings3Line />
@@ -174,7 +178,7 @@ const CoHost = ({
                     type="button"
                     className="remove-co-host"
                     onClick={() => handleRemoveCoHost(brand._id)}
-                    aria-label={`Remove ${brand.name} as co-host`}
+                    aria-label={`Remove ${brand.name || 'Unknown Brand'} as co-host`}
                     title="Remove Co-Host"
                   >
                     <RiCloseLine />
@@ -237,17 +241,17 @@ const CoHost = ({
                     {brand.logo?.thumbnail ? (
                       <img
                         src={brand.logo.thumbnail}
-                        alt={brand.name}
+                        alt={brand.name || 'Unknown Brand'}
                         className="result-logo"
                       />
                     ) : (
                       <div className="result-logo-placeholder">
-                        {brand.name.charAt(0).toUpperCase()}
+                        {brand.name ? brand.name.charAt(0).toUpperCase() : '?'}
                       </div>
                     )}
                     <div className="result-info">
-                      <span className="result-name">{brand.name}</span>
-                      <span className="result-username">@{brand.username}</span>
+                      <span className="result-name">{brand.name || 'Unknown Brand'}</span>
+                      <span className="result-username">@{brand.username || 'unknown'}</span>
                     </div>
                   </div>
                   <RiAddLine className="add-icon" />

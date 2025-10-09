@@ -674,8 +674,9 @@ const EventForm = ({
 
       // Add selected co-hosts to the form data
       console.log("🔍 [EventForm] Current selectedCoHosts:", selectedCoHosts);
-      if (selectedCoHosts.length > 0) {
-        const coHostIds = selectedCoHosts.map((coHost) => coHost._id);
+      const validCoHosts = selectedCoHosts.filter((coHost) => coHost && coHost._id);
+      if (validCoHosts.length > 0) {
+        const coHostIds = validCoHosts.map((coHost) => coHost._id);
         console.log("✅ [EventForm] Adding coHosts to FormData:", coHostIds);
         dataToSend.append(
           "coHosts",
@@ -791,8 +792,11 @@ const EventForm = ({
         }
 
         // Add selected co-hosts to the update data
-        if (selectedCoHosts.length > 0) {
-          updateData.coHosts = selectedCoHosts.map((coHost) => coHost._id);
+        const validCoHostsForUpdate = selectedCoHosts.filter((coHost) => coHost && coHost._id);
+        if (validCoHostsForUpdate.length > 0) {
+          updateData.coHosts = validCoHostsForUpdate.map((coHost) => coHost._id);
+        } else {
+          updateData.coHosts = []; // Explicitly set empty array if no valid co-hosts
         }
 
         // Add battle configuration for updates
@@ -1211,11 +1215,25 @@ const EventForm = ({
         setSelectedLineups([]);
       }
 
-      // Populate selected co-hosts
+      // Populate selected co-hosts (filter out null values)
+      console.log("🔍 [EventForm] Raw event.coHosts data:", event.coHosts);
       if (Array.isArray(event.coHosts)) {
-        setSelectedCoHosts(event.coHosts);
+        console.log("🔍 [EventForm] Co-hosts details:", event.coHosts.map((ch, i) => ({
+          index: i,
+          isNull: ch === null,
+          isUndefined: ch === undefined,
+          hasId: ch && ch._id,
+          hasName: ch && ch.name,
+          fullObject: ch
+        })));
+        
+        const validCoHosts = event.coHosts.filter((coHost) => coHost && coHost._id);
+        setSelectedCoHosts(validCoHosts);
+        console.log("✅ [EventForm] Loaded co-hosts with null filtering:", validCoHosts);
+        console.log("✅ [EventForm] Filtered out count:", event.coHosts.length - validCoHosts.length);
       } else {
         setSelectedCoHosts([]);
+        console.log("ℹ️ [EventForm] No co-hosts array found, setting empty array");
       }
     }
     // For non-created child events - if event has no ID but we have parentEventData and it's a child/weekly event

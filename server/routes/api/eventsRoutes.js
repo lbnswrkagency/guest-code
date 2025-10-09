@@ -168,7 +168,9 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
 
 
     // First, find the parent event
-    const parentEvent = await Event.findById(eventId).populate("lineups");
+    const parentEvent = await Event.findById(eventId)
+      .populate("lineups")
+      .populate("coHosts", "name username logo");
     if (!parentEvent) {
       return res.status(404).json({ message: "Event not found" });
     }
@@ -177,7 +179,9 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
     const childEvent = await Event.findOne({
       parentEventId: eventId,
       weekNumber: week,
-    }).populate("lineups");
+    })
+      .populate("lineups")
+      .populate("coHosts", "name username logo");
 
     if (!childEvent) {
       // Instead of returning a 404, find the highest existing week <= target week for sequential inheritance
@@ -188,7 +192,10 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
           { _id: eventId, weekNumber: { $lte: week } }, // Include parent (week 0) if it qualifies
           { parentEventId: eventId, weekNumber: { $lte: week } } // Include qualifying child events
         ]
-      }).sort({ weekNumber: -1 }).populate("lineups"); // Sort by highest week number first
+      })
+        .sort({ weekNumber: -1 })
+        .populate("lineups")
+        .populate("coHosts", "name username logo"); // Sort by highest week number first
 
       // Use the event with the highest week number <= target week as template
       const templateEvent = existingEvents[0] || parentEvent;

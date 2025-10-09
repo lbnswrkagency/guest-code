@@ -98,12 +98,15 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       weekNumber: weekNumber,
       isLive: false, // Default to not live
       flyer: templateEvent.flyer, // Inherit from sequential template event
-      // Copy the genres array from sequential template event
-      genres: templateEvent.genres || [],
-      // Copy the lineups array from sequential template event
-      lineups: templateEvent.lineups || [],
-      // Copy co-host data from sequential template event
-      coHosts: templateEvent.coHosts || [],
+      // Copy the genres array from sequential template event (extract IDs if populated)
+      genres: templateEvent.genres ? templateEvent.genres.map(g => g._id || g) : [],
+      // Copy the lineups array from sequential template event (extract IDs if populated)
+      lineups: templateEvent.lineups ? templateEvent.lineups.map(l => l._id || l) : [],
+      // Copy co-host data from sequential template event (extract IDs if populated, filter nulls)
+      coHosts: templateEvent.coHosts ? templateEvent.coHosts
+        .filter(c => c != null) // Filter out null/undefined co-hosts
+        .map(c => c._id || c)
+        .filter(id => id != null) : [], // Filter out any remaining null/undefined IDs
       coHostRolePermissions: templateEvent.coHostRolePermissions || [],
       // Copy legacy code settings for backward compatibility from sequential template event
       guestCode: templateEvent.guestCode,
@@ -195,6 +198,8 @@ const findSequentialTemplateEvent = async (parentEvent, weekNumber) => {
       ]
     })
     .populate('coHosts', 'name username logo') // Populate co-host data for inheritance
+    .populate('genres') // Populate genres for inheritance
+    .populate('lineups') // Populate lineups for inheritance
     .sort({ weekNumber: -1 }); // Sort by highest week number first
 
     // Use the event with the highest week number <= target week as template
@@ -211,14 +216,23 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
     const existingOccurrence = await Event.findOne({
       parentEventId: parentEvent._id,
       weekNumber: weekNumber,
-    });
+    })
+    .populate("coHosts", "name username logo")
+    .populate("genres")
+    .populate("lineups");
 
     if (existingOccurrence) {
       return existingOccurrence;
     }
 
     // If not found, create a new one using the most recent event as template
-    return await generateWeeklyOccurrences(parentEvent, weekNumber);
+    const newChildEvent = await generateWeeklyOccurrences(parentEvent, weekNumber);
+    
+    // Populate the newly created child event before returning
+    return await Event.findById(newChildEvent._id)
+      .populate("coHosts", "name username logo")
+      .populate("genres")
+      .populate("lineups");
   } catch (error) {
     throw error;
   }
@@ -685,10 +699,19 @@ exports.editEvent = async (req, res) => {
 
     // Update co-hosts if provided
     if (req.body.coHosts !== undefined) {
-      event.coHosts = Array.isArray(req.body.coHosts) ? req.body.coHosts : [];
+      // Ensure we store ObjectIds, not populated objects, and filter out null/undefined values
+      const coHostIds = Array.isArray(req.body.coHosts) 
+        ? req.body.coHosts
+            .filter(coHost => coHost != null) // Filter out null/undefined
+            .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
+            .filter(id => id != null) // Filter out any remaining null/undefined IDs
+        : [];
+      event.coHosts = coHostIds;
+      console.log('✅ [Backend] Updated parent event co-hosts:', coHostIds);
     }
     if (req.body.coHostRolePermissions !== undefined) {
       event.coHostRolePermissions = req.body.coHostRolePermissions || [];
+      console.log('✅ [Backend] Updated parent event co-host permissions:', req.body.coHostRolePermissions);
     }
 
     // Check if this is a child event being edited directly
@@ -716,6 +739,13 @@ exports.editEvent = async (req, res) => {
             } catch (e) {
               // Error parsing genres for child event
             }
+          } else if (key === "coHosts" && Array.isArray(updatedChildData[key])) {
+            // Ensure co-hosts are stored as ObjectIds and filter out null/undefined values
+            event[key] = updatedChildData[key]
+              .filter(coHost => coHost != null) // Filter out null/undefined
+              .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
+              .filter(id => id != null); // Filter out any remaining null/undefined IDs
+            console.log('✅ [Backend] Updated direct child event co-hosts:', event[key]);
           } else {
             event[key] = updatedChildData[key];
           }
@@ -793,7 +823,18 @@ exports.editEvent = async (req, res) => {
           }
         }
 
-        return res.status(200).json(event);
+        // Populate the child event before returning to ensure co-hosts are populated
+        const populatedEvent = await Event.findById(event._id)
+          .populate("coHosts", "name username logo")
+          .populate("genres")
+          .populate("lineups");
+
+        // Filter out any null co-hosts that might have been populated as null
+        if (populatedEvent.coHosts) {
+          populatedEvent.coHosts = populatedEvent.coHosts.filter(coHost => coHost != null);
+        }
+
+        return res.status(200).json(populatedEvent);
       } catch (error) {
         return res.status(500).json({
           message: "Error updating child event",
@@ -872,10 +913,19 @@ exports.editEvent = async (req, res) => {
 
         // Handle co-hosts if provided in the request body
         if (req.body.coHosts !== undefined) {
-          childEvent.coHosts = Array.isArray(req.body.coHosts) ? req.body.coHosts : [];
+          // Ensure we store ObjectIds, not populated objects, and filter out null/undefined values
+          const coHostIds = Array.isArray(req.body.coHosts) 
+            ? req.body.coHosts
+                .filter(coHost => coHost != null) // Filter out null/undefined
+                .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
+                .filter(id => id != null) // Filter out any remaining null/undefined IDs
+            : [];
+          childEvent.coHosts = coHostIds;
+          console.log('✅ [Backend] Updated child event co-hosts:', coHostIds);
         }
         if (req.body.coHostRolePermissions !== undefined) {
           childEvent.coHostRolePermissions = req.body.coHostRolePermissions || [];
+          console.log('✅ [Backend] Updated child event co-host permissions:', req.body.coHostRolePermissions);
         }
 
         // Align legacy date field
@@ -954,7 +1004,18 @@ exports.editEvent = async (req, res) => {
             }
           }
 
-          return res.status(200).json(childEvent);
+          // Populate the child event before returning to ensure co-hosts are populated
+          const populatedChildEvent = await Event.findById(childEvent._id)
+            .populate("coHosts", "name username logo")
+            .populate("genres")
+            .populate("lineups");
+
+          // Filter out any null co-hosts that might have been populated as null
+          if (populatedChildEvent.coHosts) {
+            populatedChildEvent.coHosts = populatedChildEvent.coHosts.filter(coHost => coHost != null);
+          }
+
+          return res.status(200).json(populatedChildEvent);
         } catch (error) {
           return res.status(500).json({
             message: "Error updating child event",
@@ -1400,6 +1461,18 @@ exports.getEvent = async (req, res) => {
       name: eventData.title, // Ensure name is set (using title as fallback)
       primaryColor: eventData.brand?.colors?.primary || "#ffc807", // Include primary color from brand
     };
+
+    // Filter out any null co-hosts that might have been populated as null
+    if (eventData.coHosts) {
+      eventData.coHosts = eventData.coHosts.filter(coHost => coHost != null);
+      responseData.coHosts = eventData.coHosts;
+    }
+
+    // Log for debugging child events
+    if (eventData.parentEventId) {
+      console.log(`🔍 [Backend] Fetched child event (week ${eventData.weekNumber}) with co-hosts:`, 
+        eventData.coHosts?.map(c => c.name || c) || []);
+    }
 
     res.status(200).json({ success: true, event: responseData });
   } catch (error) {

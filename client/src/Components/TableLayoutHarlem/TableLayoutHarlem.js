@@ -40,15 +40,28 @@ const TableLayoutHarlem = ({
     V13: { minSpend: 300, maxPersons: 8, category: "V" },
     V14: { minSpend: 300, maxPersons: 8, category: "V" },
 
-    // S tables (Standing) - €120 minimum, 4 persons max
-    S1: { minSpend: 120, maxPersons: 4, category: "S" },
-    S2: { minSpend: 120, maxPersons: 4, category: "S" },
-    S3: { minSpend: 120, maxPersons: 4, category: "S" },
-    S4: { minSpend: 120, maxPersons: 4, category: "S" },
-    S5: { minSpend: 120, maxPersons: 4, category: "S" },
-    S6: { minSpend: 120, maxPersons: 4, category: "S" },
+    // VS tables (VIP Standing) - €160 minimum, 6 persons max
+    VS1: { minSpend: 160, maxPersons: 6, category: "VS" },
+    VS2: { minSpend: 160, maxPersons: 6, category: "VS" },
+    VS3: { minSpend: 160, maxPersons: 6, category: "VS" },
+
+    // S tables (Standing) - €120 minimum, 6 persons max
+    S1: { minSpend: 120, maxPersons: 6, category: "S" },
+    S2: { minSpend: 120, maxPersons: 6, category: "S" },
+    S3: { minSpend: 120, maxPersons: 6, category: "S" },
+    S4: { minSpend: 120, maxPersons: 6, category: "S" },
+    S5: { minSpend: 120, maxPersons: 6, category: "S" },
+    S6: { minSpend: 120, maxPersons: 6, category: "S" },
+    S7: { minSpend: 120, maxPersons: 6, category: "S" },
+    S8: { minSpend: 120, maxPersons: 6, category: "S" },
+    S9: { minSpend: 120, maxPersons: 6, category: "S" },
+    S10: { minSpend: 120, maxPersons: 6, category: "S" },
+    S11: { minSpend: 120, maxPersons: 6, category: "S" },
+    S12: { minSpend: 120, maxPersons: 6, category: "S" },
+    S13: { minSpend: 120, maxPersons: 6, category: "S" },
 
     // B tables (Backstage) - €500 minimum, 8 persons max
+    B0: { minSpend: 500, maxPersons: 8, category: "B" },
     B1: { minSpend: 500, maxPersons: 8, category: "B" },
     B2: { minSpend: 500, maxPersons: 8, category: "B" },
     B3: { minSpend: 500, maxPersons: 8, category: "B" },
@@ -57,6 +70,7 @@ const TableLayoutHarlem = ({
     B6: { minSpend: 500, maxPersons: 8, category: "B" },
     B7: { minSpend: 500, maxPersons: 8, category: "B" },
     B8: { minSpend: 500, maxPersons: 8, category: "B" },
+    B9: { minSpend: 500, maxPersons: 8, category: "B" },
 
     // D tables (Standing Backstage) - €300 minimum, 4 persons max
     D1: { minSpend: 300, maxPersons: 4, category: "D" },
@@ -85,16 +99,13 @@ const TableLayoutHarlem = ({
       "V12",
       "V13",
       "V14",
+      "VS1",
+      "VS2",
+      "VS3",
     ],
-    standing: [
-      "S1",
-      "S2",
-      "S3",
-      "S4",
-      "S5",
-      "S6",
-    ],
+    standing: ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13"],
     backstage: [
+      "B0",
       "B1",
       "B2",
       "B3",
@@ -103,6 +114,7 @@ const TableLayoutHarlem = ({
       "B6",
       "B7",
       "B8",
+      "B9",
       "D1",
       "D2",
       "E1",
@@ -116,6 +128,7 @@ const TableLayoutHarlem = ({
     S: "Standing",
     D: "Standing Backstage",
     V: "VIP",
+    VS: "VIP Standing",
     B: "Backstage",
     E: "Exclusive Backstage",
   };
@@ -123,33 +136,39 @@ const TableLayoutHarlem = ({
   // Theme colors for each category (extracted from SCSS styling)
   const categoryThemeColors = {
     S: {
-      primary: "#1a1a2e",    // Dark blue-grey from dance floor
-      accent: "#0f3460",     // Deeper blue accent
-      text: "#ffffff",       // White text
-      border: "#2a2f3e",     // Border color
+      primary: "#1a1a2e", // Dark blue-grey from dance floor
+      accent: "#0f3460", // Deeper blue accent
+      text: "#ffffff", // White text
+      border: "#2a2f3e", // Border color
     },
     V: {
-      primary: "#184134",    // VIP gold primary
-      accent: "#b8860b",     // Gold accent  
-      text: "#b8860b",       // Gold text
+      primary: "#184134", // VIP gold primary
+      accent: "#b8860b", // Gold accent
+      text: "#b8860b", // Gold text
       border: "rgba(184, 134, 11, 0.35)", // Gold border
     },
+    VS: {
+      primary: "#1e4540", // VIP Standing primary
+      accent: "#c8960d", // Gold accent
+      text: "#c8960d", // Gold text
+      border: "rgba(200, 150, 13, 0.4)", // Gold border
+    },
     B: {
-      primary: "#2a2822",    // Warm backstage primary
-      accent: "#d4af37",     // Gold accent
-      text: "#d4af37",       // Gold text
+      primary: "#2a2822", // Warm backstage primary
+      accent: "#d4af37", // Gold accent
+      text: "#d4af37", // Gold text
       border: "rgba(212, 175, 55, 0.2)", // Gold border
     },
     D: {
-      primary: "#32323a",    // Dark grey primary
-      accent: "#b8860b",     // Orange/gold accent
-      text: "#b8860b",       // Orange/gold text  
+      primary: "#32323a", // Dark grey primary
+      accent: "#b8860b", // Orange/gold accent
+      text: "#b8860b", // Orange/gold text
       border: "rgba(184, 134, 11, 0.3)", // Orange border
     },
     E: {
-      primary: "#4a4a54",    // Premium grey primary
-      accent: "#ffd700",     // Bright gold accent
-      text: "#ffd700",       // Bright gold text
+      primary: "#4a4a54", // Premium grey primary
+      accent: "#ffd700", // Bright gold accent
+      text: "#ffd700", // Bright gold text
       border: "rgba(255, 215, 0, 0.5)", // Bright gold border
     },
   };
@@ -276,7 +295,93 @@ const TableLayoutHarlem = ({
           S6
         </div>
 
-        <div className="dj-area">
+        <div
+          className={getClass("S7", " standing-table s7")}
+          onClick={(e) => handleTableClick("S7", e)}
+        >
+          S7
+        </div>
+        <div
+          className={getClass("S8", " standing-table s8")}
+          onClick={(e) => handleTableClick("S8", e)}
+        >
+          S8
+        </div>
+        <div
+          className={getClass("S9", " standing-table s9")}
+          onClick={(e) => handleTableClick("S9", e)}
+        >
+          S9
+        </div>
+
+        <div
+          className={getClass("S10", " standing-table s10")}
+          onClick={(e) => handleTableClick("S10", e)}
+        >
+          S10
+        </div>
+
+        <div
+          className={getClass("S11", " standing-table s11")}
+          onClick={(e) => handleTableClick("S11", e)}
+        >
+          S11
+        </div>
+
+        <div
+          className={getClass("S12", " standing-table s12")}
+          onClick={(e) => handleTableClick("S12", e)}
+        >
+          S12
+        </div>
+
+        <div
+          className={getClass("S13", " standing-table s13")}
+          onClick={(e) => handleTableClick("S13", e)}
+        >
+          S13
+        </div>
+
+        <div
+          className={getClass("V11", "vip-table v11")}
+          onClick={(e) => handleTableClick("V11", e)}
+        >
+          V11
+        </div>
+
+        <div
+          className={getClass("V12", "vip-table v12")}
+          onClick={(e) => handleTableClick("V12", e)}
+        >
+          V12
+        </div>
+
+        <div
+          className={getClass("VS1", "vip-table vs1")}
+          onClick={(e) => handleTableClick("VS1", e)}
+        >
+          VS1
+        </div>
+
+        <div
+          className={getClass("VS2", "vip-table vs2")}
+          onClick={(e) => handleTableClick("VS2", e)}
+        >
+          VS2
+        </div>
+
+        <div
+          className={getClass("VS3", "vip-table vs3")}
+          onClick={(e) => handleTableClick("VS3", e)}
+        >
+          VS3
+        </div>
+
+        <div className="bar-area-vip">
+          <p>BAR</p>
+        </div>
+
+        <div className="dj-area-harlem">
           <p>DJ</p>
         </div>
         <div className="bar-area">
@@ -363,32 +468,8 @@ const TableLayoutHarlem = ({
           V10
         </div>
 
-        <div
-          className={getClass("V11", "vip-table v11")}
-          onClick={(e) => handleTableClick("V11", e)}
-        >
-          V11
-        </div>
-
-        <div
-          className={getClass("V12", "vip-table v12")}
-          onClick={(e) => handleTableClick("V12", e)}
-        >
-          V12
-        </div>
-
-        <div
-          className={getClass("V13", "vip-table v13")}
-          onClick={(e) => handleTableClick("V13", e)}
-        >
-          V13
-        </div>
-
-        <div
-          className={getClass("V14", "vip-table v14")}
-          onClick={(e) => handleTableClick("V14", e)}
-        >
-          V14
+        <div className="light-area-vip">
+          <p>LIGHT</p>
         </div>
       </div>
 
@@ -426,6 +507,13 @@ const TableLayoutHarlem = ({
           onClick={(e) => handleTableClick("D2", e)}
         >
           D2
+        </div>
+
+        <div
+          className={getClass("B0", "backstage-table b0")}
+          onClick={(e) => handleTableClick("B0", e)}
+        >
+          B0
         </div>
 
         <div
@@ -481,6 +569,21 @@ const TableLayoutHarlem = ({
           onClick={(e) => handleTableClick("B8", e)}
         >
           B8
+        </div>
+
+        <div
+          className={getClass("B9", "backstage-table b9")}
+          onClick={(e) => handleTableClick("B9", e)}
+        >
+          B9
+        </div>
+
+        <div className="wc-area-05">
+          <p>WC</p>
+        </div>
+
+        <div className="bar-area-05">
+          <p>BAR</p>
         </div>
       </div>
     </div>

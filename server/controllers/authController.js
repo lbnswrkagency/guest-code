@@ -294,6 +294,7 @@ exports.login = async (req, res) => {
           })
             .select("-__v")
             .populate("genres")
+            .populate("coHosts", "name username logo")
             .lean();
 
           // Get child events for weekly events
@@ -308,6 +309,8 @@ exports.login = async (req, res) => {
             })
               .select("-__v")
               .populate("genres")
+              .populate("coHosts", "name username logo")
+              .populate("lineups")
               .lean();
           }
 
@@ -395,7 +398,7 @@ exports.login = async (req, res) => {
           if (!userRoleInBrand) return;
 
           // Find events where this brand is a co-host
-          const coHostedEvents = await Event.find({
+          const coHostedParentEvents = await Event.find({
             coHosts: brand._id,
             parentEventId: { $exists: false } // Only parent events
           })
@@ -405,6 +408,21 @@ exports.login = async (req, res) => {
             .populate("lineups")
             .populate("genres")
             .lean();
+
+          // ALSO find child events where this brand is a co-host
+          const coHostedChildEvents = await Event.find({
+            coHosts: brand._id,
+            parentEventId: { $exists: true } // Only child events
+          })
+            .populate("brand", "name username logo colors")
+            .populate("coHosts", "name username logo")
+            .populate("user", "username firstName lastName avatar")
+            .populate("lineups")
+            .populate("genres")
+            .lean();
+
+          // Combine both parent and child co-hosted events
+          const coHostedEvents = [...coHostedParentEvents, ...coHostedChildEvents];
 
           // Process each co-hosted event
           for (const event of coHostedEvents) {
