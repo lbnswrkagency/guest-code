@@ -16,7 +16,7 @@ const checkTablePermissions = (requiredPermission) => {
       const Brand = require("../../models/brandModel");
       
       // Get event from request params or body
-      const eventId = req.params.eventId || req.body.event;
+      const eventId = req.params.eventId || req.body.event || req.body.eventId;
       if (!eventId) {
         return res.status(400).json({ message: "Event ID required" });
       }
@@ -367,6 +367,14 @@ router.post(
   "/summary/generate-pdf",
   authenticate,
   tableController.generateTableSummaryPDF
+);
+
+// POST route to generate a minimalistic table plan PDF for VIP staff
+router.post(
+  "/plan/generate-pdf",
+  authenticate,
+  checkTablePermissions("access"),
+  tableController.generateTablePlanPDF
 );
 
 module.exports = router;
