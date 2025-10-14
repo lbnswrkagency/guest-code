@@ -8,7 +8,7 @@ import {
   RiUserAddLine,
   RiBarChart2Line,
 } from "react-icons/ri";
-import UserInterface from "../UserInterface/UserInterface";
+import TeamManagement from "../TeamManagement/TeamManagement";
 import RoleSetting from "../RoleSetting/RoleSetting";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import "./BrandSettings.scss";
@@ -17,7 +17,7 @@ import { useToast } from "../Toast/ToastContext";
 import AuthContext from "../../contexts/AuthContext";
 
 const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) => {
-  const [showUserInterface, setShowUserInterface] = useState(false);
+  const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showRoleSettings, setShowRoleSettings] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [settings, setSettings] = useState({
@@ -309,7 +309,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
               <h3>Team Management</h3>
               <motion.button
                 className="settings-btn"
-                onClick={() => setShowUserInterface(true)}
+                onClick={() => setShowTeamManagement(true)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -501,26 +501,26 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
       </div>
 
       <AnimatePresence mode="wait">
-        {showUserInterface && (
+        {showTeamManagement && (
           <motion.div
-            className="user-interface-overlay"
+            className="team-management-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: "tween", duration: 0.3 }}
             style={{ zIndex: 1100 }}
-            onClick={() => setShowUserInterface(false)}
+            onClick={() => setShowTeamManagement(false)}
           >
             <motion.div
-              className="user-interface-modal"
+              className="team-management-modal"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <UserInterface
+              <TeamManagement
                 brand={brand}
-                onClose={() => setShowUserInterface(false)}
+                onClose={() => setShowTeamManagement(false)}
               />
             </motion.div>
           </motion.div>

@@ -26,9 +26,9 @@
   width: 100%;
   max-width: 800px;
   max-height: 90vh;
+  height: 90vh; // Set explicit height to enable proper flex calculation
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
   position: relative;
   z-index: 100000;
@@ -94,7 +94,9 @@
 .modal-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
+  min-height: 0; // Critical for flex children with overflow
 
   &::-webkit-scrollbar {
     width: 6px;
