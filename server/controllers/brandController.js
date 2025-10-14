@@ -1233,6 +1233,46 @@ exports.processJoinRequest = async (req, res) => {
 
     const joinRequest = await JoinRequest.findById(requestId).populate("user");
     if (!joinRequest) {
+      // The join request doesn't exist anymore - it might have been processed already
+      // Let's check if there are any notifications related to this request that were converted to "info" type
+      const relatedNotification = await Notification.findOne({
+        type: "info",
+        title: "Join Request Processed",
+        "metadata.processedRequestId": requestId, // Look for the stored original requestId
+      });
+
+      if (relatedNotification) {
+        // Request was already processed
+        // Update ALL remaining join_request notifications for this request to the processed state
+        // This handles cases where some team managers haven't seen the update yet
+        await Notification.updateMany(
+          {
+            type: "join_request",
+            requestId: requestId,
+          },
+          {
+            $set: {
+              type: "info",
+              title: "Join Request Processed",
+              message: relatedNotification.message,
+              requestId: null,
+              "metadata.processedRequestId": requestId,
+              "metadata.processedBy": relatedNotification.metadata?.processedBy,
+              "metadata.processedAction": relatedNotification.metadata?.processedAction,
+            }
+          }
+        );
+
+        // Return the info with what happened
+        return res.status(200).json({
+          message: relatedNotification.message,
+          alreadyProcessed: true,
+          action: relatedNotification.metadata?.processedAction,
+          processedBy: relatedNotification.metadata?.processedBy,
+        });
+      }
+
+      // If no related notification found, it's truly not found
       return res.status(404).json({ message: "Join request not found" });
     }
 
@@ -1284,6 +1324,27 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
 
+      // Update ALL notifications related to this join request to show it was accepted
+      const processorUser = await User.findById(req.user._id).select('username');
+      await Notification.updateMany(
+        {
+          type: "join_request",
+          requestId: requestId,
+          brandId: brand._id,
+        },
+        {
+          $set: {
+            type: "info",
+            title: "Join Request Processed",
+            message: `@${joinRequest.user.username}'s request to join was accepted by @${processorUser.username}`,
+            requestId: null, // Remove requestId to indicate it's been processed
+            "metadata.processedRequestId": requestId, // Store original requestId for tracking
+            "metadata.processedBy": processorUser.username,
+            "metadata.processedAction": "accepted",
+          }
+        }
+      );
+
       // Delete the request
       await JoinRequest.findByIdAndDelete(requestId);
 
@@ -1304,6 +1365,27 @@ exports.processJoinRequest = async (req, res) => {
         message: `Your request to join ${brand.name} has been rejected`,
         brandId: brand._id,
       });
+
+      // Update ALL notifications related to this join request to show it was rejected
+      const processorUser = await User.findById(req.user._id).select('username');
+      await Notification.updateMany(
+        {
+          type: "join_request",
+          requestId: requestId,
+          brandId: brand._id,
+        },
+        {
+          $set: {
+            type: "info",
+            title: "Join Request Processed",
+            message: `@${joinRequest.user.username}'s request to join was rejected by @${processorUser.username}`,
+            requestId: null, // Remove requestId to indicate it's been processed
+            "metadata.processedRequestId": requestId, // Store original requestId for tracking
+            "metadata.processedBy": processorUser.username,
+            "metadata.processedAction": "rejected",
+          }
+        }
+      );
 
       return res.status(200).json({
         message: "Join request rejected",

@@ -35,9 +35,25 @@ const NotificationPanel = ({ onClose }) => {
 
   const handleProcessJoinRequest = async (requestId, action) => {
     try {
-      await axiosInstance.post(`/brands/join-requests/${requestId}/process`, {
+      const response = await axiosInstance.post(`/brands/join-requests/${requestId}/process`, {
         action,
       });
+
+      // Check if the request was already processed
+      if (response.data.alreadyProcessed) {
+        // Show the message from the backend about what happened
+        toast.showInfo(response.data.message);
+
+        // Find and mark the current notification as read to remove it from the active list
+        const notification = notifications.find((n) => n.requestId === requestId);
+        if (notification) {
+          await markAsRead(notification._id);
+        }
+
+        // Force refresh notifications to show the updated state from the database
+        await fetchNotifications();
+        return;
+      }
 
       // Find the notification associated with this request
       const notification = notifications.find((n) => n.requestId === requestId);
@@ -59,7 +75,16 @@ const NotificationPanel = ({ onClose }) => {
         `[NotificationPanel] Error processing join request:`,
         error
       );
-      toast.showError(`Failed to ${action} join request`);
+
+      // Check if the error is because the request was already processed
+      const errorMessage = error.response?.data?.message || error.message || '';
+      if (errorMessage.includes('not found') || error.response?.status === 404) {
+        // Request was already processed, just refresh notifications
+        toast.showInfo('This request has already been processed');
+        fetchNotifications();
+      } else {
+        toast.showError(`Failed to ${action} join request`);
+      }
     }
   };
 
@@ -88,6 +113,8 @@ const NotificationPanel = ({ onClose }) => {
         return <RiUserFollowLine />;
       case "new_favorite":
         return <RiStarLine />;
+      case "info":
+        return <RiNotificationLine />;
       default:
         return <RiNotificationLine />;
     }
@@ -328,6 +355,10 @@ const NotificationPanel = ({ onClose }) => {
             </>
           );
           break;
+        case "info":
+          // For info type, just display the message as is (it's already formatted from backend)
+          messageContent = notification.message;
+          break;
         case "test":
           messageContent = notification.message;
           break;
@@ -380,6 +411,7 @@ const NotificationPanel = ({ onClose }) => {
             </span>
           </div>
           {type === "join_request" &&
+            requestId && // Only show buttons if requestId exists (not processed yet)
             !notification.read &&
             !notification.processed && (
               <div className="actions">
