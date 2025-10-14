@@ -266,11 +266,14 @@
         display: flex;
         align-items: center;
         gap: 1rem;
+        flex: 1;
+        min-width: 0; // Critical for proper text truncation in flex
 
         .member-avatar,
         .member-avatar-placeholder {
           width: 48px;
           height: 48px;
+          flex-shrink: 0; // Prevent avatar from shrinking
           border-radius: 50%;
           background: linear-gradient(
             45deg,
@@ -294,16 +297,24 @@
           display: flex;
           flex-direction: column;
           gap: 0.25rem;
+          flex: 1;
+          min-width: 0; // Critical for proper text truncation in flex
+          overflow: hidden; // Prevent overflow
 
           .member-name {
             font-weight: 600;
             color: #fff;
             font-size: 1rem;
+            word-break: break-word; // Break long names onto new lines
+            line-height: 1.3;
           }
 
           .member-username {
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
 
           .member-role {
@@ -342,6 +353,8 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        flex-shrink: 0; // Prevent actions from shrinking
+        margin-left: 1rem; // Add space between info and actions
 
         .role-select {
           padding: 0.5rem 1rem;
@@ -353,6 +366,7 @@
           outline: none;
           cursor: pointer;
           transition: all 0.2s ease;
+          min-width: 120px; // Ensure minimum width for dropdown
 
           &:hover {
             border-color: rgba(255, 200, 7, 0.3);
