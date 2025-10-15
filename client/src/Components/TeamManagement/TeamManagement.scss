@@ -1,0 +1,501 @@
+.team-management {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  padding: 1.5rem;
+  background: #151515;
+  position: relative;
+  max-height: 90vh;
+  overflow: hidden;
+
+  .interface-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+
+    h2 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+      background: linear-gradient(45deg, #fff, rgba(255, 200, 7, 0.8));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .close-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 200, 7, 0.2);
+        color: #ffc807;
+        transform: rotate(90deg);
+      }
+
+      svg {
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .filters-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    .search-bar {
+      position: relative;
+
+      .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.1rem;
+        pointer-events: none;
+      }
+
+      input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.3);
+          background: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 0 0 3px rgba(255, 200, 7, 0.1);
+        }
+      }
+    }
+
+    .compact-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+
+      .sort-control,
+      .role-filter-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .control-icon {
+          color: #ffc807;
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .control-select {
+          background: transparent;
+          border: none;
+          color: #fff;
+          font-size: 0.85rem;
+          outline: none;
+          cursor: pointer;
+          padding-right: 0.5rem;
+
+          option {
+            background: #151515;
+            color: #fff;
+          }
+        }
+      }
+
+      .active-filters {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-left: auto;
+
+        .filter-tag {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.35rem 0.65rem;
+          background: rgba(255, 200, 7, 0.15);
+          border: 1px solid rgba(255, 200, 7, 0.3);
+          border-radius: 6px;
+          color: #ffc807;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: rgba(255, 200, 7, 0.25);
+            border-color: rgba(255, 200, 7, 0.5);
+
+            .remove-icon {
+              opacity: 1;
+            }
+          }
+
+          .remove-icon {
+            opacity: 0.7;
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: opacity 0.2s ease;
+          }
+        }
+
+        .clear-all-btn {
+          padding: 0.35rem 0.65rem;
+          background: rgba(255, 68, 68, 0.1);
+          border: 1px solid rgba(255, 68, 68, 0.2);
+          border-radius: 6px;
+          color: #ff4444;
+          font-size: 0.75rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: rgba(255, 68, 68, 0.3);
+          }
+        }
+      }
+
+      .members-count-subtle {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .members-list {
+    flex: 1;
+    overflow: auto;
+    overflow-y: auto;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(255, 200, 7, 0.3);
+      }
+    }
+
+    .loading-state,
+    .empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.95rem;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      margin: 1rem 0;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        transform: translateY(-1px);
+        border-color: rgba(255, 200, 7, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .member-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        min-width: 0; // Critical for proper text truncation in flex
+
+        .member-avatar,
+        .member-avatar-placeholder {
+          width: 48px;
+          height: 48px;
+          flex-shrink: 0; // Prevent avatar from shrinking
+          border-radius: 50%;
+          background: linear-gradient(
+            45deg,
+            rgba(255, 200, 7, 0.1),
+            rgba(255, 200, 7, 0.2)
+          );
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffc807;
+          font-weight: 600;
+          font-size: 1.2rem;
+          border: 2px solid rgba(255, 200, 7, 0.3);
+        }
+
+        .member-avatar {
+          object-fit: cover;
+        }
+
+        .member-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          flex: 1;
+          min-width: 0; // Critical for proper text truncation in flex
+          overflow: hidden; // Prevent overflow
+
+          .member-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 1rem;
+            word-break: break-word; // Break long names onto new lines
+            line-height: 1.3;
+          }
+
+          .member-username {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .member-role {
+            font-size: 0.8rem;
+            color: rgba(255, 200, 7, 0.8);
+            text-transform: capitalize;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .member-avatar-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(
+          45deg,
+          rgba(255, 200, 7, 0.1),
+          rgba(255, 200, 7, 0.2)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffc807;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border: 2px solid rgba(255, 200, 7, 0.3);
+
+        .placeholder-icon {
+          font-size: 1.6rem;
+          color: #ffc807;
+        }
+      }
+
+      .member-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0; // Prevent actions from shrinking
+        margin-left: 1rem; // Add space between info and actions
+
+        .role-select {
+          padding: 0.5rem 1rem;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          font-size: 0.9rem;
+          outline: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-width: 120px; // Ensure minimum width for dropdown
+
+          &:hover {
+            border-color: rgba(255, 200, 7, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          &:focus {
+            border-color: rgba(255, 200, 7, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 200, 7, 0.1);
+          }
+
+          option {
+            background: #151515;
+            color: #fff;
+            padding: 8px;
+          }
+        }
+
+        .action-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          svg {
+            font-size: 1.15rem;
+          }
+
+          &.remove {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+
+            &:hover:not(:disabled) {
+              background: rgba(255, 68, 68, 0.2);
+              transform: scale(1.1);
+            }
+
+            &:active:not(:disabled) {
+              transform: scale(0.95);
+            }
+          }
+
+          &.ban {
+            background: rgba(255, 200, 7, 0.1);
+            color: #ffc807;
+
+            &:hover:not(:disabled) {
+              background: rgba(255, 200, 7, 0.2);
+              transform: scale(1.1);
+            }
+
+            &:active:not(:disabled) {
+              transform: scale(0.95);
+            }
+          }
+
+          &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .team-management {
+    padding: 1rem;
+
+    .filters-section {
+      .compact-controls {
+        flex-direction: column;
+        align-items: stretch;
+
+        .sort-control,
+        .role-filter-control {
+          width: 100%;
+        }
+
+        .active-filters {
+          margin-left: 0;
+          width: 100%;
+        }
+      }
+    }
+
+    .members-list {
+      margin: 0 -1rem;
+      padding: 0 1rem;
+      overflow: auto;
+
+      .member-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+
+        .member-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    }
+  }
+}
+
+// Add styling for the role badge
+.role-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &.founder {
+    background-color: rgba(255, 200, 7, 0.15);
+    color: #ffc807;
+    border: 1px solid rgba(255, 200, 7, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 200, 7, 0.15);
+
+    svg {
+      font-size: 1.1rem;
+    }
+  }
+}

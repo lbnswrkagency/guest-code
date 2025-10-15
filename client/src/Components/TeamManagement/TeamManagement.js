@@ -9,16 +9,20 @@ import {
   RiDeleteBin6Line,
   RiBanLine,
   RiUser3Line,
+  RiFilterLine,
+  RiArrowUpDownLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
-import "./UserInterface.scss";
+import "./TeamManagement.scss";
 
-const UserInterface = ({ brand, onClose }) => {
+const TeamManagement = ({ brand, onClose }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRoles, setSelectedRoles] = useState([]); // For multi-role filtering
+  const [sortBy, setSortBy] = useState("newest"); // Default to "newest"
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: "",
@@ -126,15 +130,60 @@ const UserInterface = ({ brand, onClose }) => {
     });
   };
 
-  const filteredMembers = members.filter(
-    (member) =>
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.username?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const toggleRoleFilter = (roleId) => {
+    setSelectedRoles((prev) =>
+      prev.includes(roleId)
+        ? prev.filter((id) => id !== roleId)
+        : [...prev, roleId]
+    );
+  };
+
+  const clearRoleFilters = () => {
+    setSelectedRoles([]);
+  };
+
+  // Filter and sort members
+  const getFilteredAndSortedMembers = () => {
+    let filtered = members;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (member) =>
+          member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          member.username?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply role filter
+    if (selectedRoles.length > 0) {
+      filtered = filtered.filter((member) =>
+        selectedRoles.includes(member.role)
+      );
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.joinedAt || b.createdAt) - new Date(a.joinedAt || a.createdAt);
+        case "oldest":
+          return new Date(a.joinedAt || a.createdAt) - new Date(b.joinedAt || b.createdAt);
+        case "name":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  };
+
+  const filteredMembers = getFilteredAndSortedMembers();
 
   return (
     <motion.div
-      className="user-interface"
+      className="team-management"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
@@ -146,14 +195,85 @@ const UserInterface = ({ brand, onClose }) => {
         </button>
       </div>
 
-      <div className="search-bar">
-        <RiSearchLine className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search team members..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="filters-section">
+        {/* Search Bar */}
+        <div className="search-bar">
+          <RiSearchLine className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search team members..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Compact Controls Row */}
+        <div className="compact-controls">
+          {/* Sort Dropdown */}
+          <div className="sort-control">
+            <RiArrowUpDownLine className="control-icon" />
+            <select
+              className="control-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name">Name (A-Z)</option>
+            </select>
+          </div>
+
+          {/* Role Filter Dropdown */}
+          <div className="role-filter-control">
+            <RiFilterLine className="control-icon" />
+            <select
+              className="control-select"
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  toggleRoleFilter(e.target.value);
+                }
+              }}
+            >
+              <option value="">Filter by Role</option>
+              {roles.map((role) => (
+                <option key={role._id} value={role._id}>
+                  {role.name}
+                  {selectedRoles.includes(role._id) ? " ✓" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Active Filters */}
+          {selectedRoles.length > 0 && (
+            <div className="active-filters">
+              {selectedRoles.map((roleId) => {
+                const role = roles.find((r) => r._id === roleId);
+                return role ? (
+                  <span
+                    key={roleId}
+                    className="filter-tag"
+                    onClick={() => toggleRoleFilter(roleId)}
+                  >
+                    {role.name}
+                    <span className="remove-icon">×</span>
+                  </span>
+                ) : null;
+              })}
+              <button className="clear-all-btn" onClick={clearRoleFilters}>
+                Clear All
+              </button>
+            </div>
+          )}
+
+          {/* Members Count - Subtle */}
+          {(searchQuery || selectedRoles.length > 0) && (
+            <span className="members-count-subtle">
+              {filteredMembers.length}/{members.length}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="members-list">
@@ -161,6 +281,8 @@ const UserInterface = ({ brand, onClose }) => {
           <div className="loading-state">Loading team members...</div>
         ) : members.length === 0 ? (
           <div className="empty-state">No team members yet</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="empty-state">No members match your filters</div>
         ) : (
           filteredMembers.map((member) => (
             <motion.div
@@ -250,4 +372,4 @@ const UserInterface = ({ brand, onClose }) => {
   );
 };
 
-export default UserInterface;
+export default TeamManagement;

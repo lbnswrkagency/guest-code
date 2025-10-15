@@ -10,6 +10,68 @@ const User = require("../models/User");
 const roleController = require("../controllers/roleController");
 const Role = require("../models/roleModel");
 
+// Helper function to check if user has team management permissions
+const hasTeamManagePermission = async (userId, brand) => {
+  try {
+    // Check if user is the brand owner
+    if (brand.owner.equals(userId)) {
+      return true;
+    }
+
+    // Find user in team
+    const teamMember = brand.team.find((member) =>
+      member.user.equals(userId)
+    );
+
+    if (!teamMember) {
+      return false;
+    }
+
+    // Get the user's role
+    const role = await Role.findById(teamMember.role);
+
+    if (!role) {
+      return false;
+    }
+
+    // Check if role has team.manage permission
+    return role.permissions?.team?.manage === true;
+  } catch (error) {
+    console.error("[hasTeamManagePermission] Error:", error);
+    return false;
+  }
+};
+
+// Helper function to get all users with team management permissions
+const getUsersWithTeamManagePermission = async (brand) => {
+  try {
+    const authorizedUsers = [];
+
+    // Always include the brand owner
+    authorizedUsers.push(brand.owner);
+
+    // Check each team member for team.manage permission
+    for (const teamMember of brand.team) {
+      // Skip if this is the owner (already added)
+      if (teamMember.user.equals(brand.owner)) {
+        continue;
+      }
+
+      // Get the team member's role
+      const role = await Role.findById(teamMember.role);
+
+      if (role && role.permissions?.team?.manage === true) {
+        authorizedUsers.push(teamMember.user);
+      }
+    }
+
+    return authorizedUsers;
+  } catch (error) {
+    console.error("[getUsersWithTeamManagePermission] Error:", error);
+    return [brand.owner]; // Fallback to just owner on error
+  }
+};
+
 // Create new brand
 exports.createBrand = async (req, res) => {
   try {
@@ -1109,27 +1171,34 @@ exports.requestJoin = async (req, res) => {
         requestedAt: new Date(),
       });
 
-      // Create notification for brand owner
-      await Notification.create({
-        userId: brand.owner,
-        type: "join_request",
-        title: "New Join Request",
-        message: `@${req.user.username} wants to join your brand`,
-        brandId: brand._id,
-        requestId: joinRequest._id,
-        metadata: {
-          user: {
-            id: userId,
-            username: req.user.username,
-            avatar: req.user.avatar,
+      // Get all users with team management permissions
+      const authorizedUsers = await getUsersWithTeamManagePermission(brand);
+
+      // Create notification for all authorized users (owner + team managers)
+      const notificationPromises = authorizedUsers.map((authorizedUserId) =>
+        Notification.create({
+          userId: authorizedUserId,
+          type: "join_request",
+          title: "New Join Request",
+          message: `@${req.user.username} wants to join your brand`,
+          brandId: brand._id,
+          requestId: joinRequest._id,
+          metadata: {
+            user: {
+              id: userId,
+              username: req.user.username,
+              avatar: req.user.avatar,
+            },
+            brand: {
+              id: brand._id,
+              username: brand.username,
+              name: brand.name,
+            },
           },
-          brand: {
-            id: brand._id,
-            username: brand.username,
-            name: brand.name,
-          },
-        },
-      });
+        })
+      );
+
+      await Promise.all(notificationPromises);
 
       return res.status(200).json({
         message: "Join request sent successfully",
@@ -1155,94 +1224,87 @@ exports.requestJoin = async (req, res) => {
 // Process join request (accept/reject)
 exports.processJoinRequest = async (req, res) => {
   try {
-    console.log("[DEBUG] processJoinRequest called with:", {
-      requestId: req.params.requestId,
-      action: req.body.action,
-      userId: req.user?._id,
-      userInfo: req.user ? { id: req.user._id, username: req.user.username } : "No user"
-    });
-
     const { requestId } = req.params;
     const { action } = req.body;
 
     if (!requestId || !action) {
-      console.log("[DEBUG] Missing required fields:", { requestId, action });
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    console.log("[DEBUG] Looking for join request with ID:", requestId);
     const joinRequest = await JoinRequest.findById(requestId).populate("user");
     if (!joinRequest) {
-      console.log("[DEBUG] Join request not found for ID:", requestId);
+      // The join request doesn't exist anymore - it might have been processed already
+      // Let's check if there are any notifications related to this request that were converted to "info" type
+      const relatedNotification = await Notification.findOne({
+        type: "info",
+        title: "Join Request Processed",
+        "metadata.processedRequestId": requestId, // Look for the stored original requestId
+      });
+
+      if (relatedNotification) {
+        // Request was already processed
+        // Update ALL remaining join_request notifications for this request to the processed state
+        // This handles cases where some team managers haven't seen the update yet
+        await Notification.updateMany(
+          {
+            type: "join_request",
+            requestId: requestId,
+          },
+          {
+            $set: {
+              type: "info",
+              title: "Join Request Processed",
+              message: relatedNotification.message,
+              requestId: null,
+              "metadata.processedRequestId": requestId,
+              "metadata.processedBy": relatedNotification.metadata?.processedBy,
+              "metadata.processedAction": relatedNotification.metadata?.processedAction,
+            }
+          }
+        );
+
+        // Return the info with what happened
+        return res.status(200).json({
+          message: relatedNotification.message,
+          alreadyProcessed: true,
+          action: relatedNotification.metadata?.processedAction,
+          processedBy: relatedNotification.metadata?.processedBy,
+        });
+      }
+
+      // If no related notification found, it's truly not found
       return res.status(404).json({ message: "Join request not found" });
     }
 
-    console.log("[DEBUG] Found join request:", {
-      id: joinRequest._id,
-      user: joinRequest.user?._id,
-      brand: joinRequest.brand,
-      status: joinRequest.status
-    });
-
-    console.log("[DEBUG] Looking for brand with ID:", joinRequest.brand);
     const brand = await Brand.findById(joinRequest.brand);
     if (!brand) {
-      console.log("[DEBUG] Brand not found for ID:", joinRequest.brand);
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    console.log("[DEBUG] Found brand:", {
-      id: brand._id,
-      name: brand.name,
-      owner: brand.owner,
-      teamCount: brand.team?.length || 0
-    });
+    // Check if user has permission to process requests (owner or team.manage permission)
+    const hasPermission = await hasTeamManagePermission(req.user._id, brand);
 
-    // Check if user has permission to process requests
-    console.log("[DEBUG] Checking permissions:", {
-      brandOwner: brand.owner,
-      currentUser: req.user._id,
-      isEqual: brand.owner.equals(req.user._id)
-    });
-
-    if (!brand.owner.equals(req.user._id)) {
-      console.log("[DEBUG] User not authorized - not brand owner");
+    if (!hasPermission) {
       return res
         .status(403)
-        .json({ message: "Not authorized to process requests" });
+        .json({ message: "Not authorized to process requests. You need team management permissions." });
     }
 
     if (action === "accept") {
-      console.log("[DEBUG] Processing ACCEPT action");
-      
       // Find the default role ID
       const defaultRoleName = brand.settings?.defaultRole || "Member";
-      console.log("[DEBUG] Looking for default role:", defaultRoleName);
-      
+
       const defaultRole = await Role.findOne({
         brandId: brand._id,
         name: defaultRoleName,
       });
 
-      console.log("[DEBUG] Default role search result:", {
-        found: !!defaultRole,
-        roleId: defaultRole?._id,
-        roleName: defaultRole?.name
-      });
-
       if (!defaultRole) {
-        console.log("[DEBUG] Default role not found, returning error");
         return res.status(500).json({
           message: "Default role not found",
           error: "Could not find the default role for this brand",
         });
       }
-
-      console.log("[DEBUG] Adding user to team:", {
-        userId: joinRequest.user._id,
-        roleId: defaultRole._id,
-        currentTeamSize: brand.team.length
-      });
 
       // Add user to team with role ID
       brand.team.push({
@@ -1250,11 +1312,9 @@ exports.processJoinRequest = async (req, res) => {
         role: defaultRole._id, // Use role ID instead of name
         joinedAt: new Date(),
       });
-      
-      console.log("[DEBUG] Saving brand with new team member");
+
       await brand.save();
 
-      console.log("[DEBUG] Creating notification for user");
       // Create notification for the user
       await Notification.create({
         userId: joinRequest.user._id,
@@ -1264,18 +1324,35 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
 
-      console.log("[DEBUG] Deleting join request");
+      // Update ALL notifications related to this join request to show it was accepted
+      const processorUser = await User.findById(req.user._id).select('username');
+      await Notification.updateMany(
+        {
+          type: "join_request",
+          requestId: requestId,
+          brandId: brand._id,
+        },
+        {
+          $set: {
+            type: "info",
+            title: "Join Request Processed",
+            message: `@${joinRequest.user.username}'s request to join was accepted by @${processorUser.username}`,
+            requestId: null, // Remove requestId to indicate it's been processed
+            "metadata.processedRequestId": requestId, // Store original requestId for tracking
+            "metadata.processedBy": processorUser.username,
+            "metadata.processedAction": "accepted",
+          }
+        }
+      );
+
       // Delete the request
       await JoinRequest.findByIdAndDelete(requestId);
 
-      console.log("[DEBUG] Join request processed successfully");
       return res.status(200).json({
         message: "Join request accepted",
         team: brand.team,
       });
     } else if (action === "reject") {
-      console.log("[DEBUG] Processing REJECT action");
-      
       // Update request status
       joinRequest.status = "rejected";
       await joinRequest.save();
@@ -1289,12 +1366,31 @@ exports.processJoinRequest = async (req, res) => {
         brandId: brand._id,
       });
 
-      console.log("[DEBUG] Join request rejected successfully");
+      // Update ALL notifications related to this join request to show it was rejected
+      const processorUser = await User.findById(req.user._id).select('username');
+      await Notification.updateMany(
+        {
+          type: "join_request",
+          requestId: requestId,
+          brandId: brand._id,
+        },
+        {
+          $set: {
+            type: "info",
+            title: "Join Request Processed",
+            message: `@${joinRequest.user.username}'s request to join was rejected by @${processorUser.username}`,
+            requestId: null, // Remove requestId to indicate it's been processed
+            "metadata.processedRequestId": requestId, // Store original requestId for tracking
+            "metadata.processedBy": processorUser.username,
+            "metadata.processedAction": "rejected",
+          }
+        }
+      );
+
       return res.status(200).json({
         message: "Join request rejected",
       });
     } else {
-      console.log("[DEBUG] Invalid action provided:", action);
       return res.status(400).json({ message: "Invalid action" });
     }
   } catch (error) {

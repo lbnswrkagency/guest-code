@@ -8,13 +8,15 @@ const BattleSignSchema = new Schema(
     phone: { type: String, required: true },
     email: { type: String, required: true },
     instagram: { type: String }, // Instagram username
-    
+
     // Additional participants for team battles (2vs2, crew battles, etc.)
-    participants: [{
-      name: { type: String, required: true },
-      instagram: { type: String },
-    }],
-    
+    participants: [
+      {
+        name: { type: String, required: true },
+        instagram: { type: String },
+      },
+    ],
+
     message: { type: String },
     // Link to the specific event this battle signup is for
     event: { type: Schema.Types.ObjectId, ref: "Event", required: true },

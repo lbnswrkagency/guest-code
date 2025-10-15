@@ -135,8 +135,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .roles-container {
@@ -154,7 +158,7 @@
 
 .role-header {
   margin-bottom: 1rem;
-  
+
   &.clickable {
     cursor: pointer;
     display: flex;
@@ -184,7 +188,7 @@
 
   .role-header-content {
     flex: 1;
-    
+
     h3 {
       margin: 0 0 0.25rem;
       font-size: 1.1rem;
@@ -216,7 +220,7 @@
   .role-toggle {
     color: rgba(255, 255, 255, 0.6);
     transition: color 0.2s ease;
-    
+
     svg {
       width: 20px;
       height: 20px;
@@ -525,22 +529,22 @@
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: rgba($primary-color, 0.2);
     border-color: rgba($primary-color, 0.5);
     transform: translateY(-1px);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
-  
+
   svg {
     width: 14px;
     height: 14px;
   }
-  
+
   span {
     white-space: nowrap;
   }

@@ -18,6 +18,7 @@ import {
   RiRefreshLine,
   RiCloseLine,
   RiFileChartLine,
+  RiPrinterLine,
 } from "react-icons/ri";
 
 /**
@@ -66,6 +67,7 @@ function TableSystem({
   const [isLoading, setIsLoading] = useState(!providedTableData);
   const [selectedVenue, setSelectedVenue] = useState("default");
   const [showTableSummary, setShowTableSummary] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   // Dynamic table configuration
   const [layoutConfig, setLayoutConfig] = useState(null);
@@ -544,6 +546,52 @@ function TableSystem({
     }
   };
 
+  const handleExportTablePlan = async () => {
+    if (!selectedEvent) {
+      toast.showError("No event selected");
+      return;
+    }
+
+    setIsGeneratingPlan(true);
+    const loadingToast = toast.showLoading("Generating table plan PDF...");
+
+    try {
+      const response = await axiosInstance.post(
+        '/table/plan/generate-pdf',
+        { eventId: selectedEvent._id },
+        { responseType: 'blob' }
+      );
+
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Generate filename with event name and date
+      const eventName = selectedEvent?.title || 'Event';
+      const date = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `${eventName}_Table_Plan_${date}.pdf`);
+
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      loadingToast.dismiss();
+      toast.showSuccess("Table plan PDF generated successfully!");
+    } catch (error) {
+      console.error("Error generating table plan:", error);
+      loadingToast.dismiss();
+      toast.showError("Failed to generate table plan PDF");
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  };
+
   // Function to toggle between venues/layouts
   // Commented out as it's not currently used but may be needed in the future
   // const toggleVenue = (venue) => {
@@ -637,7 +685,8 @@ function TableSystem({
                 )}
               </h1>
               <div className="header-actions">
-                {tablePermissions.summary && (
+                {/* Temporarily commented out - will bring back later */}
+                {/* {tablePermissions.summary && (
                   <button
                     className="summary-btn"
                     onClick={() => setShowTableSummary(true)}
@@ -645,6 +694,16 @@ function TableSystem({
                     title="Table Summary Analysis"
                   >
                     <RiFileChartLine />
+                  </button>
+                )} */}
+                {tablePermissions.manage && (
+                  <button
+                    className="export-plan-btn"
+                    onClick={handleExportTablePlan}
+                    disabled={isLoading || isGeneratingPlan}
+                    title="Export Table Plan PDF"
+                  >
+                    <RiPrinterLine />
                   </button>
                 )}
                 <button

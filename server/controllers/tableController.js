@@ -3261,6 +3261,336 @@ const generateSummaryPDF = async (eventTableData) => {
   }
 };
 
+/**
+ * Generate a minimalistic table plan PDF for VIP staff
+ * Shows tables organized by area with minimal styling to save ink
+ */
+const generateTablePlanPDF = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    // Permission check is handled by middleware (checkTablePermissions)
+    // Fetch event and table codes
+    const event = await Event.findById(eventId).populate("brand", "name");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Fetch confirmed and pending table codes for this event
+    const tableCodes = await TableCode.find({
+      event: eventId,
+      status: { $in: ["confirmed", "pending"] }
+    }).sort({ tableNumber: 1 });
+
+    // Get the table layout configuration dynamically based on event's tableLayout
+    const getLayoutConfig = (layoutName) => {
+      // Harlem layout configuration (matches frontend TableLayoutHarlem.js)
+      if (layoutName === "harlem") {
+        return {
+          tableConfig: {
+            V1: { minSpend: 300, category: "V" },
+            V2: { minSpend: 300, category: "V" },
+            V3: { minSpend: 300, category: "V" },
+            V4: { minSpend: 300, category: "V" },
+            V5: { minSpend: 300, category: "V" },
+            V6: { minSpend: 300, category: "V" },
+            V7: { minSpend: 300, category: "V" },
+            V8: { minSpend: 300, category: "V" },
+            V9: { minSpend: 300, category: "V" },
+            V10: { minSpend: 300, category: "V" },
+            V11: { minSpend: 300, category: "V" },
+            V12: { minSpend: 300, category: "V" },
+            V13: { minSpend: 300, category: "V" },
+            V14: { minSpend: 300, category: "V" },
+            VS1: { minSpend: 160, category: "VS" },
+            VS2: { minSpend: 160, category: "VS" },
+            VS3: { minSpend: 160, category: "VS" },
+            S1: { minSpend: 120, category: "S" },
+            S2: { minSpend: 120, category: "S" },
+            S3: { minSpend: 120, category: "S" },
+            S4: { minSpend: 120, category: "S" },
+            S5: { minSpend: 120, category: "S" },
+            S6: { minSpend: 120, category: "S" },
+            S7: { minSpend: 120, category: "S" },
+            S8: { minSpend: 120, category: "S" },
+            S9: { minSpend: 120, category: "S" },
+            S10: { minSpend: 120, category: "S" },
+            S11: { minSpend: 120, category: "S" },
+            S12: { minSpend: 120, category: "S" },
+            S13: { minSpend: 120, category: "S" },
+            B0: { minSpend: 500, category: "B" },
+            B1: { minSpend: 500, category: "B" },
+            B2: { minSpend: 500, category: "B" },
+            B3: { minSpend: 500, category: "B" },
+            B4: { minSpend: 500, category: "B" },
+            B5: { minSpend: 500, category: "B" },
+            B6: { minSpend: 500, category: "B" },
+            B7: { minSpend: 500, category: "B" },
+            B8: { minSpend: 500, category: "B" },
+            B9: { minSpend: 500, category: "B" },
+            D1: { minSpend: 300, category: "D" },
+            D2: { minSpend: 300, category: "D" },
+            E1: { minSpend: 1000, category: "E" },
+            E2: { minSpend: 1000, category: "E" },
+            E3: { minSpend: 1000, category: "E" },
+          },
+          categoryAreaNames: {
+            S: "Standing",
+            D: "Standing Backstage",
+            V: "VIP",
+            VS: "VIP Standing",
+            B: "Backstage",
+            E: "Exclusive Backstage",
+          }
+        };
+      }
+      // Add other layouts here (studio, bolivar, venti) when needed
+      // For now, return empty config for unknown layouts
+      return {
+        tableConfig: {},
+        categoryAreaNames: {}
+      };
+    };
+
+    // Get the layout configuration for this event
+    const layoutConfig = getLayoutConfig(event.tableLayout);
+    const { tableConfig, categoryAreaNames } = layoutConfig;
+
+    // Group tables by category/area using the dynamic configuration
+    const tablesByArea = {};
+
+    tableCodes.forEach(table => {
+      // Get table configuration
+      const config = tableConfig[table.tableNumber];
+
+      if (config && config.category) {
+        // Use the category to get the area name
+        const areaName = categoryAreaNames[config.category] || config.category;
+
+        if (!tablesByArea[areaName]) {
+          tablesByArea[areaName] = [];
+        }
+
+        tablesByArea[areaName].push(table);
+      } else {
+        // Fallback for tables not in configuration
+        const areaName = "Other";
+        if (!tablesByArea[areaName]) {
+          tablesByArea[areaName] = [];
+        }
+        tablesByArea[areaName].push(table);
+      }
+    });
+
+    // Sort tables within each area by minimum spend (highest to lowest)
+    Object.keys(tablesByArea).forEach(area => {
+      tablesByArea[area].sort((a, b) => {
+        const configA = tableConfig[a.tableNumber];
+        const configB = tableConfig[b.tableNumber];
+        const minSpendA = configA ? configA.minSpend : 0;
+        const minSpendB = configB ? configB.minSpend : 0;
+        return minSpendB - minSpendA; // Descending order (highest first)
+      });
+    });
+
+    // Sort areas for consistent display
+    const sortedAreas = Object.keys(tablesByArea).sort();
+
+    // Generate minimalistic PDF
+    const pdfBuffer = await generateMinimalisticPlanPDF(event, tablesByArea, sortedAreas);
+
+    // Set response headers
+    const eventDate = event.startDate || event.date;
+    const formattedDate = eventDate ? new Date(eventDate).toISOString().split('T')[0] : 'NoDate';
+    const filename = `Table_Plan_${event.title.replace(/\s+/g, '_')}_${formattedDate}.pdf`;
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error generating table plan PDF:", error);
+    res.status(500).json({
+      message: "Error generating table plan PDF",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Generate the minimalistic PDF for table plan
+ * Designed to minimize ink usage with white background and simple styling
+ */
+const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => {
+  const eventDate = event.startDate || event.date;
+  const formattedDate = eventDate ? formatCodeDate(eventDate) : 'No Date';
+  const totalTables = Object.values(tablesByArea).reduce((sum, tables) => sum + tables.length, 0);
+
+  // Minimalistic HTML template with very light styling
+  const htmlTemplate = `
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        @page {
+          margin: 20mm;
+          size: A4;
+        }
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          color: #000;
+          line-height: 1.4;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #000;
+        }
+        .header h1 {
+          font-size: 24px;
+          margin: 0 0 5px 0;
+          font-weight: bold;
+        }
+        .header p {
+          font-size: 12px;
+          margin: 3px 0;
+        }
+        .area-section {
+          margin-bottom: 20px;
+          page-break-inside: avoid;
+        }
+        .area-header {
+          background: #f5f5f5;
+          padding: 8px 10px;
+          margin-bottom: 10px;
+          border-left: 4px solid #000;
+        }
+        .area-title {
+          font-size: 14px;
+          font-weight: bold;
+          margin: 0;
+        }
+        .table-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+        .table-item {
+          border: 1px solid #ddd;
+          padding: 8px;
+          page-break-inside: avoid;
+        }
+        .table-number {
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 4px;
+        }
+        .table-guest {
+          font-size: 13px;
+          margin-bottom: 2px;
+        }
+        .table-pax {
+          font-size: 11px;
+          color: #666;
+        }
+        .status-badge {
+          display: inline-block;
+          font-size: 9px;
+          padding: 2px 6px;
+          border: 1px solid #999;
+          border-radius: 3px;
+          margin-left: 5px;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 10px;
+          color: #666;
+          border-top: 1px solid #ddd;
+          padding-top: 10px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${event.title || 'Event'}</h1>
+        <p>${formattedDate}</p>
+        <p>${event.location || ''} | Total Tables: ${totalTables}</p>
+      </div>
+
+      ${sortedAreas.map(area => {
+        const tables = tablesByArea[area];
+        return `
+          <div class="area-section">
+            <div class="area-header">
+              <h2 class="area-title">${area} (${tables.length} table${tables.length !== 1 ? 's' : ''})</h2>
+            </div>
+            <div class="table-grid">
+              ${tables.map(table => `
+                <div class="table-item">
+                  <div class="table-number">
+                    Table ${table.tableNumber}
+                    ${table.status === 'pending' ? '<span class="status-badge">PENDING</span>' : ''}
+                  </div>
+                  <div class="table-guest">${table.name}</div>
+                  <div class="table-pax">${table.pax} guest${table.pax !== 1 ? 's' : ''}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+
+      <div class="footer">
+        <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        <p>${event.brand?.name || ''}</p>
+      </div>
+    </body>
+  </html>`;
+
+  // Generate PDF using puppeteer
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(htmlTemplate, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        right: "20mm",
+        bottom: "20mm",
+        left: "20mm"
+      }
+    });
+
+    await browser.close();
+    return pdfBuffer;
+  } catch (error) {
+    if (browser) {
+      await browser.close();
+    }
+    throw error;
+  }
+};
+
 module.exports = {
   addTableCode,
   getTableCounts,
@@ -3274,4 +3604,5 @@ module.exports = {
   sendTableUpdateEmail,
   getAvailableTableLayouts,
   generateTableSummaryPDF,
+  generateTablePlanPDF,
 };
