@@ -1580,7 +1580,7 @@ const EventForm = ({
                 selectedCoHosts={selectedCoHosts}
                 onUpdate={setSelectedCoHosts}
                 currentBrandId={selectedBrand?._id}
-                eventId={event?._id}
+                eventId={event?.parentEventId || event?._id}
                 eventCodeSettings={[]}
               />
             </div>

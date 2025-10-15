@@ -372,10 +372,12 @@ exports.getMainHostCustomCodes = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
+    // Use parent event ID if this is a child event (for weekly events, codes belong to parent)
+    const effectiveEventId = event.parentEventId || eventId;
 
     // Get custom code settings for this event from the CodeSettings collection
     const codeSettings = await CodeSettings.find({
-      eventId: eventId,
+      eventId: effectiveEventId,
       type: "custom", // Only get custom codes
       isEnabled: true // Only get enabled codes
     }).select("name type color limit maxPax condition icon");

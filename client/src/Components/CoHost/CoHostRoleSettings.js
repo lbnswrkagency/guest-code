@@ -6,6 +6,7 @@ import {
   RiSettingsLine,
   RiArrowDownSLine,
   RiArrowRightSLine,
+  RiFileCopyLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
@@ -153,6 +154,26 @@ const CoHostRoleSettings = ({
     }));
   };
 
+  const handleInheritFromAbove = (currentRoleIndex) => {
+    if (currentRoleIndex === 0) return; // Can't inherit if it's the first role
+
+    const currentRoleId = roles[currentRoleIndex]._id;
+    const previousRoleId = roles[currentRoleIndex - 1]._id;
+    const previousPermissions = permissions[previousRoleId];
+
+    if (!previousPermissions) return;
+
+    // Deep copy the previous role's permissions
+    const inheritedPermissions = JSON.parse(JSON.stringify(previousPermissions));
+
+    setPermissions((prev) => ({
+      ...prev,
+      [currentRoleId]: inheritedPermissions,
+    }));
+
+    toast.showSuccess(`Inherited permissions from ${roles[currentRoleIndex - 1].name}`);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -212,7 +233,7 @@ const CoHostRoleSettings = ({
               </div>
             ) : (
               <div className="roles-container">
-                {roles.map((role) => (
+                {roles.map((role, roleIndex) => (
                   <div key={role._id} className="role-section">
                     <div
                       className={`role-header clickable ${
@@ -237,6 +258,24 @@ const CoHostRoleSettings = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Inherit from above button - only show if not the first role and role is expanded */}
+                    {roleIndex > 0 && expandedRoles[role._id] && (
+                      <div className="inherit-permissions-container">
+                        <button
+                          type="button"
+                          className="inherit-permissions-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleInheritFromAbove(roleIndex);
+                          }}
+                          title={`Copy all permissions from ${roles[roleIndex - 1].name}`}
+                        >
+                          <RiFileCopyLine />
+                          <span>Inherit from {roles[roleIndex - 1].name}</span>
+                        </button>
+                      </div>
+                    )}
 
                     <AnimatePresence>
                       {expandedRoles[role._id] && (

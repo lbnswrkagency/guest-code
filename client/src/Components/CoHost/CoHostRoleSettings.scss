@@ -504,3 +504,44 @@
     }
   }
 }
+
+// Inherit permissions button styles
+.inherit-permissions-container {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.inherit-permissions-button {
+  background: rgba($primary-color, 0.1);
+  border: 1px solid rgba($primary-color, 0.3);
+  color: $primary-color;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba($primary-color, 0.2);
+    border-color: rgba($primary-color, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  span {
+    white-space: nowrap;
+  }
+}
