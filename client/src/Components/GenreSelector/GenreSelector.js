@@ -60,12 +60,18 @@ const GenreSelector = ({
     setSelectedGenres((prev) => {
       // Check if already selected
       const isSelected = prev.some((g) => g._id === genre._id);
+      let newSelection;
 
       if (isSelected) {
-        return prev.filter((g) => g._id !== genre._id);
+        newSelection = prev.filter((g) => g._id !== genre._id);
       } else {
-        return [...prev, genre];
+        newSelection = [...prev, genre];
       }
+
+      // Update parent component immediately without closing
+      onSave(newSelection);
+      
+      return newSelection;
     });
   };
 
@@ -94,6 +100,9 @@ const GenreSelector = ({
       setShowNewGenreForm(false);
 
       toast.showSuccess("Genre created successfully");
+      
+      // Automatically save the updated genres to the parent without closing
+      onSave([...selectedGenres, response.data]);
     } catch (error) {
       console.error("Error creating genre:", error);
       toast.showError(

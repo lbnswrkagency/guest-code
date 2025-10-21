@@ -908,3 +908,137 @@ exports.checkUsernameAvailability = async (req, res) => {
     });
   }
 };
+
+// Resend verification email
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Find user by email (case-insensitive)
+    const user = await User.findOne({
+      email: new RegExp(`^${email}$`, "i"),
+    });
+
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return res.status(200).json({
+        success: true,
+        message: "If your email is registered and unverified, you will receive a new verification email.",
+      });
+    }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already verified. Please login.",
+      });
+    }
+
+    // Generate new verification token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, token, user);
+      
+      res.status(200).json({
+        success: true,
+        message: "Verification email has been sent. Please check your inbox.",
+      });
+    } catch (emailError) {
+      console.error("Error sending verification email:", emailError);
+      res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+      });
+    }
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred. Please try again later.",
+    });
+  }
+};
+
+// Update email for unverified users
+exports.updateUnverifiedEmail = async (req, res) => {
+  try {
+    const { oldEmail, newEmail } = req.body;
+
+    if (!oldEmail || !newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Both old and new email addresses are required",
+      });
+    }
+
+    // Validate new email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    // Find user by old email
+    const user = await User.findOne({
+      email: new RegExp(`^${oldEmail}$`, "i"),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No unverified account found with this email",
+      });
+    }
+
+    // Only allow email update for unverified users
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot update email for verified accounts. Please use account settings instead.",
+      });
+    }
+
+    // Check if new email is already in use
+    const existingUser = await User.findOne({
+      email: new RegExp(`^${newEmail}$`, "i"),
+      _id: { $ne: user._id }, // Exclude current user
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "This email is already registered",
+      });
+    }
+
+    // Update the email
+    user.email = newEmail.toLowerCase();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Email updated successfully",
+      newEmail: user.email,
+    });
+  } catch (error) {
+    console.error("Update email error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update email. Please try again.",
+    });
+  }
+};

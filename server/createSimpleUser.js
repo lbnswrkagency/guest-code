@@ -9,25 +9,19 @@ const User = require("./models/User");
 
 // Required user information - EDIT THESE VALUES
 const USER_DATA = {
-  username: "dazedboi", // Required: unique username
-  firstName: "Dazed", // Required: first name
-  lastName: "Boi", // Required: last name
-  email: "dazedboi@afrospiti.com", // Required: unique email address
-  password: "dazed101", // Required: minimum 6 characters
+  username: "miguel", // Required: unique username
+  firstName: "Miguel", // Required: first name
+  lastName: "Bautista", // Required: last name
+  email: "miguel@penelopeandjackson.com", // Required: unique email address
+  password: "miguel101", // Required: minimum 6 characters
   birthday: "1990-01-01", // Required: format YYYY-MM-DD
 };
 
 // Optional: Set to true any roles you want to assign
 const USER_ROLES = {
   isAdmin: false, // Administrative access
-  isScanner: false, // Can scan codes
-  isPromoter: false, // Promoter role
-  isStaff: false, // Staff member
   isDeveloper: false, // Developer access
-  isBackstage: false, // Backstage access
-  isSpitixBattle: false, // Spitix Battle access
-  isTable: false, // Table access
-  isAlpha: false, // Alpha access
+  isAlpha: true, // Alpha access
 };
 
 // ============================================================

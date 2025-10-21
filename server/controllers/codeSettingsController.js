@@ -376,8 +376,8 @@ const configureCodeSettings = async (req, res) => {
 
     await event.save();
 
-    // If this is a new code setting of type custom, update the founder role permissions
-    if (isNewCodeSetting && type === "custom") {
+    // If this is a new code setting (any type), update the founder role permissions
+    if (isNewCodeSetting) {
       try {
         // Find the brand associated with the event
         const brand = await Brand.findById(event.brand);
@@ -516,16 +516,13 @@ const deleteCodeSetting = async (req, res) => {
           isFounder: true,
         });
 
-        if (founderRole && founderRole.permissions) {
-          // Create permission key for this code setting
-          const permissionKey = `codeSetting:${codeSettingId}`;
+        if (founderRole && founderRole.permissions && founderRole.permissions.codes) {
+          // Remove the permission using the code setting's name
+          if (founderRole.permissions.codes[codeSetting.name]) {
+            const updatedCodes = { ...founderRole.permissions.codes };
+            delete updatedCodes[codeSetting.name];
 
-          // Remove the permission from the founder role
-          if (founderRole.permissions[permissionKey]) {
-            const updatedPermissions = { ...founderRole.permissions };
-            delete updatedPermissions[permissionKey];
-
-            founderRole.permissions = updatedPermissions;
+            founderRole.permissions.codes = updatedCodes;
             await founderRole.save();
             console.log(
               `Removed permission for deleted code setting from founder role: ${codeSetting.name}`

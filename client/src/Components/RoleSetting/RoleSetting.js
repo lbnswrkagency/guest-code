@@ -518,8 +518,17 @@ const RoleSetting = ({ brand, onClose }) => {
           >
             <div className="role-name">{role.name}</div>
             <div className="role-actions">
-              {/* Show edit button: for founder and default roles ONLY if user is a developer */}
-              {role.isFounder || role.isDefault ? (
+              {/* Show edit button: for founder roles, allow editing; for default roles, require developer permission */}
+              {role.isFounder ? (
+                <motion.button
+                  className="action-btn edit"
+                  onClick={() => handleStartEdit(role)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <RiEditLine />
+                </motion.button>
+              ) : role.isDefault ? (
                 user?.isDeveloper ? (
                   <motion.button
                     className="action-btn edit"

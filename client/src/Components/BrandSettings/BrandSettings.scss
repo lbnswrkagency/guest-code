@@ -472,6 +472,58 @@
   }
 }
 
+// Team Management Modal Styles
+.team-management-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.team-management-modal {
+  background: #151515;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+// Role Settings Modal Styles
+.role-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.role-settings-modal {
+  background: #151515;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
 // Mobile: Keep full screen for modal interfaces
 @media (max-width: 768px) {
   .user-interface-overlay {
@@ -506,6 +558,18 @@
         display: block;
       }
     }
+  }
+
+  .team-management-overlay {
+    padding: 0;
+  }
+
+  .team-management-modal {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
   }
 }
 

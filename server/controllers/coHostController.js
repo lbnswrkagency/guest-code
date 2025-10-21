@@ -513,3 +513,49 @@ exports.getCoHostPermissions = async (req, res) => {
     res.status(500).json({ message: "Error fetching co-host permissions" });
   }
 };
+
+// Get co-host brand's default role permissions (including custom codes for matching)
+exports.getCoHostDefaultPermissions = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Find all roles for the co-host brand
+    const roles = await Role.find({
+      brandId: brandId
+    }).select("name permissions isFounder isDefault");
+
+    // Format permissions for each role, including custom codes for potential matching
+    const rolesWithPermissions = roles.map(role => {
+      const permissions = role.permissions ? role.permissions.toObject() : {};
+      
+      // Create permissions object including codes for matching
+      const fullPermissions = {
+        analytics: permissions.analytics || { view: false },
+        scanner: permissions.scanner || { use: false },
+        tables: permissions.tables || { access: false, manage: false, summary: false },
+        battles: permissions.battles || { view: false, edit: false, delete: false },
+        codes: permissions.codes || {} // Include codes for name matching
+      };
+
+      // Convert codes Map to object if necessary
+      if (permissions.codes && permissions.codes instanceof Map) {
+        fullPermissions.codes = Object.fromEntries(permissions.codes);
+      } else if (permissions.codes && typeof permissions.codes.toObject === 'function') {
+        fullPermissions.codes = permissions.codes.toObject();
+      }
+
+      return {
+        roleId: role._id,
+        roleName: role.name,
+        isFounder: role.isFounder,
+        isDefault: role.isDefault,
+        permissions: fullPermissions
+      };
+    });
+
+    res.status(200).json(rolesWithPermissions);
+  } catch (error) {
+    console.error("Error fetching co-host default permissions:", error);
+    res.status(500).json({ message: "Error fetching co-host default permissions" });
+  }
+};

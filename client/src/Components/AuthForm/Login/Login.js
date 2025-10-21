@@ -15,6 +15,7 @@ import { setLineups } from "../../../redux/lineupSlice";
 import { setCoHostedEvents } from "../../../redux/coHostedEventsSlice";
 import Maintenance from "../../Maintenance/Maintenance";
 import notificationManager from "../../../utils/notificationManager";
+import EmailVerificationModal from "../../EmailVerification/EmailVerificationModal";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,8 @@ function Login() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -124,17 +127,36 @@ function Login() {
       navigate(redirectTo);
     } catch (error) {
       dispatch(setError(error.message || "Login failed"));
-      toast.showError(
-        error.response?.data?.message || "Login failed. Please try again."
-      );
+      
+      // Check if this is a verification error
+      if (error.response?.data?.isVerificationError) {
+        setVerificationEmail(formData.email);
+        setShowVerificationModal(true);
+      } else {
+        toast.showError(
+          error.response?.data?.message || "Login failed. Please try again."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCloseVerificationModal = () => {
+    setShowVerificationModal(false);
+    setVerificationEmail("");
+  };
+
   const loginContent = (
     <div className="login">
       <Navigation />
+      
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        onClose={handleCloseVerificationModal}
+        email={verificationEmail}
+      />
 
       <motion.div
         className="login-container"

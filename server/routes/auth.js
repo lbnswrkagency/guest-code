@@ -16,6 +16,8 @@ const {
   validateResetToken,
   resetPassword,
   checkUsernameAvailability,
+  resendVerificationEmail,
+  updateUnverifiedEmail,
 } = require("../controllers/authController");
 
 router.use((req, res, next) => {
@@ -48,6 +50,12 @@ router.post("/login", login);
 
 // Verify email route
 router.get("/verify-email/:token", verifyEmail);
+
+// Resend verification email route
+router.post("/resend-verification", resendVerificationEmail);
+
+// Update email for unverified users
+router.post("/update-unverified-email", updateUnverifiedEmail);
 
 // Get user data route (protected)
 router.get("/user", authenticate, getUserData);

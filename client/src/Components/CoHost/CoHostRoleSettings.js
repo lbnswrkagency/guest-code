@@ -7,6 +7,7 @@ import {
   RiArrowDownSLine,
   RiArrowRightSLine,
   RiFileCopyLine,
+  RiDownloadLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
@@ -27,6 +28,8 @@ const CoHostRoleSettings = ({
   const [saving, setSaving] = useState(false);
   const [expandedRoles, setExpandedRoles] = useState({}); // Track which roles are expanded
   const [mainHostCustomCodes, setMainHostCustomCodes] = useState([]); // Store custom codes from main host
+  const [inheritingFromCoHost, setInheritingFromCoHost] = useState(false); // Track inheritance loading
+  const [inheritingAllFromCoHost, setInheritingAllFromCoHost] = useState(false); // Track global inheritance loading
 
   // Fetch co-host brand's roles when modal opens
   useEffect(() => {
@@ -174,6 +177,208 @@ const CoHostRoleSettings = ({
     toast.showSuccess(`Inherited permissions from ${roles[currentRoleIndex - 1].name}`);
   };
 
+  const handleInheritFromCoHost = async (targetRoleIndex) => {
+    setInheritingFromCoHost(true);
+    
+    try {
+      // Fetch the co-host brand's default permissions
+      const response = await axiosInstance.get(
+        `/co-hosts/default-permissions/${coHostBrand._id}`
+      );
+      
+      const coHostDefaultPermissions = response.data;
+      const targetRole = roles[targetRoleIndex];
+      
+      if (!targetRole) {
+        toast.showError("Target role not found");
+        return;
+      }
+
+      // Find matching role from co-host by name or founder status
+      let matchingCoHostRole = null;
+      
+      // First try to match by exact name
+      matchingCoHostRole = coHostDefaultPermissions.find(
+        chRole => chRole.roleName.toLowerCase() === targetRole.name.toLowerCase()
+      );
+      
+      // If no exact match and target is founder, find co-host founder
+      if (!matchingCoHostRole && targetRole.isFounder) {
+        matchingCoHostRole = coHostDefaultPermissions.find(
+          chRole => chRole.isFounder
+        );
+      }
+      
+      // If still no match, try to find default role
+      if (!matchingCoHostRole) {
+        matchingCoHostRole = coHostDefaultPermissions.find(
+          chRole => chRole.isDefault
+        );
+      }
+      
+      // If still no match, use the first role
+      if (!matchingCoHostRole && coHostDefaultPermissions.length > 0) {
+        matchingCoHostRole = coHostDefaultPermissions[0];
+      }
+
+      if (!matchingCoHostRole) {
+        toast.showError("No matching role found in co-host brand");
+        return;
+      }
+
+      // Create new permissions object with intelligent code inheritance
+      const currentPermissions = permissions[targetRole._id] || {};
+      const existingCodes = currentPermissions.codes || {};
+      const coHostCodes = matchingCoHostRole.permissions.codes || {};
+      
+      // Merge codes: inherit matching names, preserve unmatched existing codes
+      const mergedCodes = { ...existingCodes };
+      
+      // Check each co-host code to see if we have a matching main host code
+      Object.keys(coHostCodes).forEach(coHostCodeName => {
+        // Check if main host has a custom code with the same name
+        const hasMatchingMainHostCode = mainHostCustomCodes.some(
+          mainCode => mainCode.name === coHostCodeName
+        );
+        
+        if (hasMatchingMainHostCode) {
+          // Inherit the co-host's permissions for this matching code
+          mergedCodes[coHostCodeName] = coHostCodes[coHostCodeName];
+        }
+        // If no match, don't add this co-host code (it doesn't exist in main host)
+      });
+      
+      const inheritedPermissions = {
+        ...matchingCoHostRole.permissions,
+        codes: mergedCodes // Use merged codes with intelligent inheritance
+      };
+
+      setPermissions((prev) => ({
+        ...prev,
+        [targetRole._id]: inheritedPermissions,
+      }));
+
+      // Count how many custom codes were inherited
+      const inheritedCodeCount = Object.keys(coHostCodes).filter(coHostCodeName =>
+        mainHostCustomCodes.some(mainCode => mainCode.name === coHostCodeName)
+      ).length;
+
+      let successMessage = `Inherited permissions from co-host role "${matchingCoHostRole.roleName}"`;
+      if (inheritedCodeCount > 0) {
+        successMessage += ` (including ${inheritedCodeCount} matching custom code${inheritedCodeCount > 1 ? 's' : ''})`;
+      }
+
+      toast.showSuccess(successMessage);
+      
+    } catch (error) {
+      console.error("Error inheriting from co-host:", error);
+      toast.showError("Failed to inherit permissions from co-host");
+    } finally {
+      setInheritingFromCoHost(false);
+    }
+  };
+
+  const handleInheritAllFromCoHost = async () => {
+    setInheritingAllFromCoHost(true);
+    
+    try {
+      // Fetch the co-host brand's default permissions
+      const response = await axiosInstance.get(
+        `/co-hosts/default-permissions/${coHostBrand._id}`
+      );
+      
+      const coHostDefaultPermissions = response.data;
+      
+      if (!coHostDefaultPermissions || coHostDefaultPermissions.length === 0) {
+        toast.showError("No roles found in co-host brand");
+        return;
+      }
+
+      const updatedPermissions = { ...permissions };
+      let totalInheritedRoles = 0;
+      let totalInheritedCodes = 0;
+
+      // Process each role
+      roles.forEach((targetRole) => {
+        // Find matching role from co-host by name or founder status
+        let matchingCoHostRole = null;
+        
+        // First try to match by exact name
+        matchingCoHostRole = coHostDefaultPermissions.find(
+          chRole => chRole.roleName.toLowerCase() === targetRole.name.toLowerCase()
+        );
+        
+        // If no exact match and target is founder, find co-host founder
+        if (!matchingCoHostRole && targetRole.isFounder) {
+          matchingCoHostRole = coHostDefaultPermissions.find(
+            chRole => chRole.isFounder
+          );
+        }
+        
+        // If still no match, try to find default role
+        if (!matchingCoHostRole) {
+          matchingCoHostRole = coHostDefaultPermissions.find(
+            chRole => chRole.isDefault
+          );
+        }
+        
+        // If still no match, use the first role
+        if (!matchingCoHostRole && coHostDefaultPermissions.length > 0) {
+          matchingCoHostRole = coHostDefaultPermissions[0];
+        }
+
+        if (matchingCoHostRole) {
+          // Create new permissions object with intelligent code inheritance
+          const currentPermissions = permissions[targetRole._id] || {};
+          const existingCodes = currentPermissions.codes || {};
+          const coHostCodes = matchingCoHostRole.permissions.codes || {};
+          
+          // Merge codes: inherit matching names, preserve unmatched existing codes
+          const mergedCodes = { ...existingCodes };
+          
+          // Check each co-host code to see if we have a matching main host code
+          Object.keys(coHostCodes).forEach(coHostCodeName => {
+            // Check if main host has a custom code with the same name
+            const hasMatchingMainHostCode = mainHostCustomCodes.some(
+              mainCode => mainCode.name === coHostCodeName
+            );
+            
+            if (hasMatchingMainHostCode) {
+              // Inherit the co-host's permissions for this matching code
+              mergedCodes[coHostCodeName] = coHostCodes[coHostCodeName];
+              totalInheritedCodes++;
+            }
+          });
+          
+          const inheritedPermissions = {
+            ...matchingCoHostRole.permissions,
+            codes: mergedCodes // Use merged codes with intelligent inheritance
+          };
+
+          updatedPermissions[targetRole._id] = inheritedPermissions;
+          totalInheritedRoles++;
+        }
+      });
+
+      // Update all permissions at once
+      setPermissions(updatedPermissions);
+
+      // Show comprehensive success message
+      let successMessage = `Inherited permissions for ${totalInheritedRoles} role${totalInheritedRoles > 1 ? 's' : ''} from ${coHostBrand.name}`;
+      if (totalInheritedCodes > 0) {
+        successMessage += ` (including ${totalInheritedCodes} matching custom code permission${totalInheritedCodes > 1 ? 's' : ''})`;
+      }
+
+      toast.showSuccess(successMessage);
+      
+    } catch (error) {
+      console.error("Error inheriting all from co-host:", error);
+      toast.showError("Failed to inherit all permissions from co-host");
+    } finally {
+      setInheritingAllFromCoHost(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -232,7 +437,24 @@ const CoHostRoleSettings = ({
                 <p>Loading roles...</p>
               </div>
             ) : (
-              <div className="roles-container">
+              <>
+                {/* Global Inherit All Button */}
+                <div className="global-inherit-container">
+                  <button
+                    type="button"
+                    className="global-inherit-button"
+                    onClick={handleInheritAllFromCoHost}
+                    disabled={inheritingAllFromCoHost || loading}
+                    title={`Copy all permissions from ${coHostBrand.name} to all roles (with matching custom codes)`}
+                  >
+                    <RiDownloadLine />
+                    <span>
+                      {inheritingAllFromCoHost ? "Inheriting All..." : `Inherit All from ${coHostBrand.name}`}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="roles-container">
                 {roles.map((role, roleIndex) => (
                   <div key={role._id} className="role-section">
                     <div
@@ -259,20 +481,40 @@ const CoHostRoleSettings = ({
                       </div>
                     </div>
 
-                    {/* Inherit from above button - only show if not the first role and role is expanded */}
-                    {roleIndex > 0 && expandedRoles[role._id] && (
+                    {/* Inherit buttons - only show if role is expanded */}
+                    {expandedRoles[role._id] && (
                       <div className="inherit-permissions-container">
+                        {/* Inherit from above button - only show if not the first role */}
+                        {roleIndex > 0 && (
+                          <button
+                            type="button"
+                            className="inherit-permissions-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInheritFromAbove(roleIndex);
+                            }}
+                            title={`Copy all permissions from ${roles[roleIndex - 1].name}`}
+                          >
+                            <RiFileCopyLine />
+                            <span>Inherit from {roles[roleIndex - 1].name}</span>
+                          </button>
+                        )}
+                        
+                        {/* Inherit from CoHost button */}
                         <button
                           type="button"
-                          className="inherit-permissions-button"
+                          className="inherit-permissions-button cohost-inherit"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleInheritFromAbove(roleIndex);
+                            handleInheritFromCoHost(roleIndex);
                           }}
-                          title={`Copy all permissions from ${roles[roleIndex - 1].name}`}
+                          disabled={inheritingFromCoHost}
+                          title={`Copy permissions from ${coHostBrand.name} (excluding custom codes)`}
                         >
-                          <RiFileCopyLine />
-                          <span>Inherit from {roles[roleIndex - 1].name}</span>
+                          <RiDownloadLine />
+                          <span>
+                            {inheritingFromCoHost ? "Loading..." : `Inherit from ${coHostBrand.name}`}
+                          </span>
                         </button>
                       </div>
                     )}
@@ -577,7 +819,8 @@ const CoHostRoleSettings = ({
                     </AnimatePresence>
                   </div>
                 ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
 

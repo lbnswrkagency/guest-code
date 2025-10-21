@@ -7,15 +7,18 @@ exports.getPublicEvents = async (req, res) => {
   try {
     const { limit = 20, offset = 0, category = null, location = null } = req.query;
     
-    // Get current date
+    // Get current date at start of day in UTC
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    // Set to start of current day in UTC
+    currentDate.setUTCHours(0, 0, 0, 0);
+    
+    console.log('Current date for event query:', currentDate.toISOString());
 
     // Build query
     const query = {
       isPublic: { $ne: false }, // Events are public by default unless explicitly set to false
       isLive: true, // Only show live events
-      parentEventId: { $exists: false }, // Only parent events, not weekly occurrences
+      // Remove the parentEventId filter to show all events (both parent and child)
       $or: [
         { startDate: { $gte: currentDate } },
         { date: { $gte: currentDate } }
@@ -55,6 +58,12 @@ exports.getPublicEvents = async (req, res) => {
 
     // Filter out events without brands (in case brand was deleted)
     const validEvents = events.filter(event => event.brand !== null);
+    
+    console.log('Total events found:', events.length);
+    console.log('Valid events after filtering:', validEvents.length);
+    if (validEvents.length > 0) {
+      console.log('First event date:', validEvents[0].startDate || validEvents[0].date);
+    }
 
     // Get total count for pagination
     const totalCount = await Event.countDocuments(query);
@@ -83,7 +92,7 @@ exports.getPublicEvents = async (req, res) => {
 exports.getFeaturedEvents = async (req, res) => {
   try {
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCHours(0, 0, 0, 0);
 
     // First get featured/verified brands
     const featuredBrands = await Brand.find({
@@ -101,7 +110,7 @@ exports.getFeaturedEvents = async (req, res) => {
       brand: { $in: featuredBrandIds },
       isPublic: { $ne: false },
       isLive: true,
-      parentEventId: { $exists: false },
+      // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
         { date: { $gte: currentDate } }
@@ -145,13 +154,13 @@ exports.getEventsByCity = async (req, res) => {
     const { limit = 20, offset = 0 } = req.query;
     
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCHours(0, 0, 0, 0);
 
     const events = await Event.find({
       city: new RegExp(city, 'i'),
       isPublic: { $ne: false },
       isLive: true,
-      parentEventId: { $exists: false },
+      // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
         { date: { $gte: currentDate } }
@@ -189,13 +198,13 @@ exports.getEventsByCity = async (req, res) => {
 exports.getEventCategories = async (req, res) => {
   try {
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCHours(0, 0, 0, 0);
 
     // Get all unique genres from upcoming events
     const upcomingEvents = await Event.find({
       isPublic: { $ne: false },
       isLive: true,
-      parentEventId: { $exists: false },
+      // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
         { date: { $gte: currentDate } }
@@ -241,7 +250,7 @@ exports.getEventCategories = async (req, res) => {
 exports.getCitiesWithEvents = async (req, res) => {
   try {
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCHours(0, 0, 0, 0);
 
     // Aggregate to get unique cities with event counts
     const cities = await Event.aggregate([
@@ -249,7 +258,7 @@ exports.getCitiesWithEvents = async (req, res) => {
         $match: {
           isPublic: { $ne: false },
           isLive: true,
-          parentEventId: { $exists: false },
+          // Remove the parentEventId filter to show all events
           city: { $exists: true, $ne: "" },
           $or: [
             { startDate: { $gte: currentDate } },

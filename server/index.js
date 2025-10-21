@@ -153,6 +153,8 @@ const corsOptions = {
           "http://localhost:9231",
           "http://127.0.0.1:9231",
           "http://localhost:5001",
+          "http://192.168.1.186:8081", // Expo dev server
+          "http://192.168.1.186:19006", // Expo web fallback
         ],
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
