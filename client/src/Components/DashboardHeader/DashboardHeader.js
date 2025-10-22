@@ -407,7 +407,10 @@ const DashboardHeader = ({
                     }
                   });
 
-                  // Separate past and active/future events based on end dates
+                  // Create cutoff time: current time - 12 hours for past events
+                  const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+
+                  // Separate past and active/future events based on end dates + 12 hour buffer
                   const pastDates = uniqueDates.filter((item) => {
                     // Find all events for this date
                     const dateEvents = eventsWithEndDates.filter(
@@ -415,8 +418,8 @@ const DashboardHeader = ({
                         e.startDate.toISOString().split("T")[0] === item.dateStr
                     );
 
-                    // Date is considered past only if ALL events on that date have ended
-                    return dateEvents.every((e) => e.endDate < now);
+                    // Date is considered past only if ALL events on that date have ended + 12 hours buffer
+                    return dateEvents.every((e) => e.endDate < twelveHoursAgo);
                   });
 
                   const activeFutureDates = uniqueDates.filter((item) => {
@@ -426,24 +429,18 @@ const DashboardHeader = ({
                         e.startDate.toISOString().split("T")[0] === item.dateStr
                     );
 
-                    // Date is active/future if ANY event on that date has not ended yet
-                    return dateEvents.some((e) => e.endDate >= now);
+                    // Date is active/future if ANY event on that date has not exceeded endDate + 12 hours
+                    return dateEvents.some((e) => e.endDate >= twelveHoursAgo);
                   });
 
-                  // Get at most 1 past date (the most recent one)
-                  const pastDate =
-                    pastDates.length > 0
-                      ? [pastDates[pastDates.length - 1]]
-                      : [];
-
-                  // Get at most 3 future/active dates
+                  // Don't show any past dates - only show active/future dates
                   const limitedActiveFutureDates = activeFutureDates.slice(
                     0,
-                    3
+                    4
                   );
 
-                  // Combine and sort the final set of dates
-                  return [...pastDate, ...limitedActiveFutureDates].map(
+                  // Only return active/future dates
+                  return limitedActiveFutureDates.map(
                     (item) => {
                       // Check if this date has any co-hosted events
                       const dateEvents = eventsWithEndDates.filter(

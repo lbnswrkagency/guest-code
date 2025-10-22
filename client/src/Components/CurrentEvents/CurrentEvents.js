@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCalendarAlt, FaMapMarkerAlt, FaClock } from "react-icons/fa";
+import {
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaClock,
+  FaTimes,
+  FaCalendarDay,
+  FaEye,
+  FaBolt,
+} from "react-icons/fa";
+import { RiCalendarEventLine } from "react-icons/ri";
 import "./CurrentEvents.scss";
 
 const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [filter, setFilter] = useState("all"); // 'all', 'active', 'upcoming', 'past'
+  const [filteredEvents, setFilteredEvents] = useState([]);
 
   useEffect(() => {
     if (isOpen && selectedBrand) {
@@ -14,15 +24,14 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
     }
   }, [isOpen, selectedBrand]);
 
-  // Handle screen size changes
+  // Filter events when filter changes
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (filter === "all") {
+      setFilteredEvents(events);
+    } else {
+      setFilteredEvents(events.filter((event) => event.status === filter));
+    }
+  }, [events, filter]);
 
   const loadEvents = () => {
     if (!selectedBrand) return;
@@ -180,46 +189,47 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
     }
   };
 
+  // Format time range
+  const formatTimeRange = (event) => {
+    if (!event.startTime) return null;
+    return event.endTime
+      ? `${event.startTime} - ${event.endTime}`
+      : event.startTime;
+  };
+
   // Get best date based on availability (startDate or date)
   const getEventDate = (event) => {
     return event.startDate || event.date;
   };
 
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
+  // Get event counts by status
+  const getEventCounts = () => {
+    const counts = {
+      all: events.length,
+      active: events.filter((e) => e.status === "active").length,
+      upcoming: events.filter((e) => e.status === "upcoming").length,
+      past: events.filter((e) => e.status === "past").length,
+    };
+    return counts;
   };
 
-  const menuVariants = {
-    hidden: { opacity: 0, scale: 0.9, y: -20 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        type: "spring",
-        damping: 25,
-        stiffness: 500,
-      },
-    },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
-  };
+  // No animation variants needed - using CSS animations
 
   const getEventImage = (event) => {
-    if (event.flyer && event.flyer.square && event.flyer.square.thumbnail) {
-      return event.flyer.square.thumbnail;
+    if (event.flyer && event.flyer.square && event.flyer.square.medium) {
+      return event.flyer.square.medium;
     } else if (
       event.flyer &&
       event.flyer.portrait &&
-      event.flyer.portrait.thumbnail
+      event.flyer.portrait.medium
     ) {
-      return event.flyer.portrait.thumbnail;
+      return event.flyer.portrait.medium;
     } else if (
       event.flyer &&
       event.flyer.landscape &&
-      event.flyer.landscape.thumbnail
+      event.flyer.landscape.medium
     ) {
-      return event.flyer.landscape.thumbnail;
+      return event.flyer.landscape.medium;
     } else if (event.flyer && typeof event.flyer === "string") {
       // Handle case where flyer might be a direct URL string
       return event.flyer;
@@ -232,153 +242,156 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
     onClose();
   };
 
-  const isEventLive = (event) => {
-    const now = new Date();
+  const counts = getEventCounts();
 
-    // Get start date (prioritize startDate over date)
-    const startDate = event.startDate
-      ? new Date(event.startDate)
-      : event.date
-      ? new Date(event.date)
-      : null;
-
-    if (!startDate) return false;
-
-    // Get end date (either endDate or calculated from startDate + endTime)
-    let endDate;
-
-    if (event.endDate) {
-      // If event has explicit end date, use it
-      endDate = new Date(event.endDate);
-
-      // If there's an endTime, set it on the end date
-      if (event.endTime) {
-        const [hours, minutes] = event.endTime.split(":").map(Number);
-        endDate.setHours(hours, minutes || 0, 0);
-      }
-    } else if (event.endTime && startDate) {
-      // If only endTime exists, calculate endDate based on startDate
-      endDate = new Date(startDate);
-      const [hours, minutes] = event.endTime.split(":").map(Number);
-
-      // If end time is earlier than start time, it means it ends the next day
-      if (event.startTime) {
-        const [startHours, startMinutes] = event.startTime
-          .split(":")
-          .map(Number);
-        if (
-          hours < startHours ||
-          (hours === startHours && minutes < startMinutes)
-        ) {
-          endDate.setDate(endDate.getDate() + 1);
-        }
-      }
-
-      endDate.setHours(hours, minutes || 0, 0);
-    } else {
-      // If no end date/time info, assume event ends same day at 23:59
-      endDate = new Date(startDate);
-      endDate.setHours(23, 59, 59);
-    }
-
-    // Apply start time if available
-    if (event.startTime && startDate) {
-      const [startHours, startMinutes] = event.startTime.split(":").map(Number);
-      startDate.setHours(startHours, startMinutes || 0, 0);
-    }
-
-    // Event is live if current time is between start and end
-    return now >= startDate && now <= endDate;
-  };
+  if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="current-events-backdrop"
-          variants={backdropVariants}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          onClick={onClose}
-        >
-          <motion.div
-            className="current-events-menu"
-            variants={menuVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="current-events-header">
-              <h3>Current Events</h3>
-              <button className="close-button" onClick={onClose}>
-                ×
-              </button>
-            </div>
+    <div className="current-events-backdrop" onClick={onClose}>
+      <div
+        className="current-events-container"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="current-events-header">
+          <h2>
+            <span className="brand-name">
+              {selectedBrand?.name + " " || "Brand "}
+            </span>
+            Events
+          </h2>
+          <div className="current-events-header-actions">
+            <button className="current-events-header-close" onClick={onClose}>
+              <FaTimes />
+            </button>
+          </div>
+        </div>
 
-            <div className="current-events-content">
-              {loading ? (
-                <div className="loading-state">Loading events...</div>
-              ) : events.length > 0 ? (
-                <div className="events-list">
-                  {(isMobile ? events.slice(0, 4) : events).map((event) => (
-                    <div
-                      key={event._id || event.id}
-                      className={`event-item ${
-                        event.status === "active" ? "active" : event.status
-                      }`}
-                      onClick={() => handleSelectEvent(event)}
-                    >
-                      <div className="event-image">
-                        {getEventImage(event) ? (
-                          <img src={getEventImage(event)} alt={event.title} />
-                        ) : (
-                          <div className="placeholder-image">
-                            {event.title ? event.title.charAt(0) : "E"}
-                          </div>
-                        )}
-                        {event.status === "active" && (
-                          <div className="active-badge">Active</div>
-                        )}
-                      </div>
-                      <div className="event-details">
-                        <h4 className="event-title">{event.title}</h4>
-                        <div className="event-info">
-                          <div className="event-date">
-                            <FaCalendarAlt />
-                            <span>{formatDate(getEventDate(event))}</span>
-                          </div>
-                          {event.location && (
-                            <div className="event-location">
-                              <FaMapMarkerAlt />
-                              <span>{event.location}</span>
-                            </div>
-                          )}
-                          {event.startTime && (
-                            <div className="event-time">
-                              <FaClock />
-                              <span>
-                                {event.startTime}
-                                {event.endTime && ` - ${event.endTime}`}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-events">
-                  <p>No events found for this brand.</p>
-                </div>
-              )}
+        {/* Filter chips */}
+        <div className="current-events-filters">
+          <button
+            className={`current-events-filters-chip ${
+              filter === "all" ? "active" : ""
+            }`}
+            onClick={() => setFilter("all")}
+          >
+            All
+            <span className="current-events-filters-chip-count">
+              ({counts.all})
+            </span>
+          </button>
+          <button
+            className={`current-events-filters-chip ${
+              filter === "active" ? "active" : ""
+            }`}
+            onClick={() => setFilter("active")}
+          >
+            Active
+            <span className="current-events-filters-chip-count">
+              ({counts.active})
+            </span>
+          </button>
+          <button
+            className={`current-events-filters-chip ${
+              filter === "upcoming" ? "active" : ""
+            }`}
+            onClick={() => setFilter("upcoming")}
+          >
+            Upcoming
+            <span className="current-events-filters-chip-count">
+              ({counts.upcoming})
+            </span>
+          </button>
+          <button
+            className={`current-events-filters-chip ${
+              filter === "past" ? "active" : ""
+            }`}
+            onClick={() => setFilter("past")}
+          >
+            Past
+            <span className="current-events-filters-chip-count">
+              ({counts.past})
+            </span>
+          </button>
+        </div>
+
+        <div className="current-events-content">
+          {loading ? (
+            <div className="current-events-loading">
+              <div className="current-events-loading-spinner" />
+              <span>Loading events...</span>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          ) : filteredEvents.length > 0 ? (
+            <div className="current-events-grid">
+              {filteredEvents.map((event) => (
+                <div
+                  key={event._id || event.id}
+                  className={`event-card status-${event.status}`}
+                  onClick={() => handleSelectEvent(event)}
+                >
+                  <div className="event-card-image">
+                    {getEventImage(event) ? (
+                      <img src={getEventImage(event)} alt={event.title} />
+                    ) : (
+                      <div className="event-card-image-placeholder">
+                        <span>{event.title?.charAt(0) || "E"}</span>
+                      </div>
+                    )}
+                    {event.status === "active" && (
+                      <div className="event-card-image-badge active">
+                        <FaBolt /> Active
+                      </div>
+                    )}
+                    {event.status === "upcoming" && (
+                      <div className="event-card-image-badge upcoming">
+                        Upcoming
+                      </div>
+                    )}
+                    {formatTimeRange(event) && (
+                      <div className="event-card-image-time">
+                        <FaClock />
+                        {formatTimeRange(event)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="event-card-content">
+                    <h3 className="event-card-title">{event.title}</h3>
+                    {event.subTitle && (
+                      <p className="event-card-subtitle">{event.subTitle}</p>
+                    )}
+                    <div className="event-card-meta">
+                      {event.location && (
+                        <div className="event-card-meta-item">
+                          <FaMapMarkerAlt />
+                          <span>{event.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="event-card-footer">
+                    <div className="event-card-footer-date">
+                      <RiCalendarEventLine />
+                      {formatDate(getEventDate(event))}
+                    </div>
+                    <button className="event-card-footer-action">Select</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="current-events-empty">
+              <div className="current-events-empty-icon">
+                <RiCalendarEventLine />
+              </div>
+              <p>
+                {filter === "all"
+                  ? "No events found for this brand."
+                  : `No ${filter} events found.`}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

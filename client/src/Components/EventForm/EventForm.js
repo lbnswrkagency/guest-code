@@ -584,7 +584,7 @@ const EventForm = ({
         endTime = `${endHours}:${endMinutes}`;
 
         // Add the formatted date and times to FormData
-        dataToSend.append("date", startDate.toISOString()); // For backward compatibility
+        // Remove legacy date field - we now use startDate and endDate
         dataToSend.append("startDate", startDate.toISOString());
         dataToSend.append("endDate", endDate.toISOString());
         dataToSend.append("startTime", startTime);
@@ -770,8 +770,9 @@ const EventForm = ({
         // Convert FormData to plain object for PUT request
         const updateData = {};
         for (const [key, value] of dataToSend.entries()) {
+          // Skip legacy date field
           if (key === "date") {
-            updateData[key] = new Date(value).toISOString();
+            continue;
           } else if (value === "true" || value === "false") {
             updateData[key] = value === "true";
           } else {
@@ -1149,7 +1150,7 @@ const EventForm = ({
         title: event.title || "",
         subTitle: event.subTitle || "",
         description: event.description || "",
-        date: event.date ? event.date.split("T")[0] : "", // Format date
+        // Remove legacy date field - we now use startDate and endDate
         startDate: parsedStartDate,
         endDate: parsedEndDate,
         startTime: event.startTime || "",

@@ -75,9 +75,9 @@ const EventSchema = new Schema(
     title: { type: String, required: true },
     subTitle: { type: String },
     description: { type: String },
-    date: { type: Date, required: true },
-    startDate: { type: Date },
-    endDate: { type: Date },
+    date: { type: Date }, // Legacy field, not required anymore
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     location: { type: String, required: true },
@@ -229,6 +229,46 @@ const EventSchema = new Schema(
 );
 
 // Add compound index for uniqueness
-EventSchema.index({ brand: 1, title: 1, date: 1 }, { unique: true });
+EventSchema.index({ brand: 1, title: 1, startDate: 1 }, { unique: true });
+
+// Pre-save hook to ensure startDate/endDate are set
+EventSchema.pre('save', function(next) {
+  // If we have a legacy date field but missing startDate/endDate, set them
+  if (this.date && (!this.startDate || !this.endDate)) {
+    // Set startDate from date if not set
+    if (!this.startDate) {
+      this.startDate = new Date(this.date);
+      if (this.startTime) {
+        const [hours, minutes] = this.startTime.split(':').map(Number);
+        this.startDate.setHours(hours, minutes, 0, 0);
+      }
+    }
+    
+    // Set endDate from date if not set
+    if (!this.endDate) {
+      this.endDate = new Date(this.date);
+      if (this.endTime) {
+        const [hours, minutes] = this.endTime.split(':').map(Number);
+        this.endDate.setHours(hours, minutes, 0, 0);
+        
+        // If end time is earlier than start time, it's the next day
+        if (this.endDate <= this.startDate) {
+          this.endDate.setDate(this.endDate.getDate() + 1);
+        }
+      } else {
+        // Default to 2 hours after startDate
+        this.endDate = new Date(this.startDate);
+        this.endDate.setHours(this.endDate.getHours() + 2);
+      }
+    }
+  }
+  
+  // If we have startDate but no legacy date field, set it for backward compatibility
+  if (this.startDate && !this.date) {
+    this.date = this.startDate;
+  }
+  
+  next();
+});
 
 module.exports = mongoose.model("Event", EventSchema);

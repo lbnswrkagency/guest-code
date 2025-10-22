@@ -843,6 +843,8 @@ const EventCard = ({
           _id: null, // NULL ID indicates it doesn't exist in DB yet
           parentEventId: event._id,
           weekNumber: currentWeek,
+          startDate: weekDate.toISOString(),
+          // Legacy date field - for backward compatibility
           date: weekDate.toISOString(),
           isLive: false,
           childExists: false, // Flag to indicate this is a calculated occurrence
@@ -943,7 +945,7 @@ const EventCard = ({
           ...prev,
           weekNumber: currentWeek,
           startDate: weekDate.toISOString(),
-          date: weekDate.toISOString(), // Update both date fields for compatibility
+          date: weekDate.toISOString(), // Keep legacy date field for compatibility
         }));
       } catch (error) {}
     }
@@ -1015,7 +1017,7 @@ const EventCard = ({
   };
 
   // Get the display date based on current event
-  const displayDate = currentEvent.date || currentEvent.startDate;
+  const displayDate = currentEvent.startDate || currentEvent.date;
 
   const handleGoLive = (e) => {
     e.stopPropagation();
@@ -1214,7 +1216,7 @@ const EventCard = ({
               ) : (
                 <div className="detail-item">
                   <RiCalendarEventLine />
-                  <span>{formatDate(currentEvent.date)}</span>
+                  <span>{formatDate(currentEvent.startDate || currentEvent.date)}</span>
                 </div>
               )}
               <div className="detail-item">

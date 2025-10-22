@@ -87,7 +87,7 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       title: templateEvent.title,
       subTitle: templateEvent.subTitle,
       description: templateEvent.description,
-      date: childStartDate, // Legacy 'date' field, align with startDate
+      // Don't set legacy date field anymore
       startDate: childStartDate, // Store full Date object (calculated from parent timing)
       endDate: childEndDate, // Store full Date object (calculated from parent timing)
       startTime: templateEvent.startTime, // Inherit from sequential template event
@@ -253,7 +253,7 @@ exports.createEvent = async (req, res) => {
     const existingEvent = await Event.findOne({
       brand: req.params.brandId,
       title: req.body.title,
-      date: req.body.date,
+      startDate: req.body.startDate || req.body.date,
     });
 
     if (existingEvent) {
@@ -262,7 +262,7 @@ exports.createEvent = async (req, res) => {
 
     // Check if the slug already exists for the brand on the same date
     // If it does, append a number to make it unique
-    const eventDate = new Date(req.body.date);
+    const eventDate = new Date(req.body.startDate || req.body.date);
     const startOfDay = new Date(
       eventDate.getFullYear(),
       eventDate.getMonth(),
@@ -282,7 +282,7 @@ exports.createEvent = async (req, res) => {
 
     const eventsWithSameSlug = await Event.find({
       brand: req.params.brandId,
-      date: { $gte: startOfDay, $lte: endOfDay },
+      startDate: { $gte: startOfDay, $lte: endOfDay },
       slug: new RegExp(`^${baseSlug}(-[0-9]+)?$`), // Match baseSlug or baseSlug-number
     }).sort({ slug: -1 });
 
@@ -359,7 +359,7 @@ exports.createEvent = async (req, res) => {
       title,
       subTitle,
       description,
-      date, // Keep for backward compatibility
+      // Remove date field - use startDate/endDate instead
       startDate: startDate || date, // Use startDate if provided, otherwise fall back to date
       endDate: endDate || date, // Use endDate if provided, otherwise fall back to date
       startTime,
@@ -407,7 +407,7 @@ exports.createEvent = async (req, res) => {
 
     eventData.startDate = finalStartDate;
     eventData.endDate = finalEndDate;
-    eventData.date = finalStartDate; // Align legacy date with the precise startDate
+    // Don't set legacy date field anymore
 
     // Create and save the event
     const event = new Event(eventData);
@@ -509,7 +509,7 @@ exports.getBrandEvents = async (req, res) => {
       brand: brandId,
       parentEventId: { $exists: false }, // Only get parent events
     })
-      .sort({ date: -1 })
+      .sort({ startDate: -1 })
       .populate("user", "username firstName lastName avatar")
       .populate("lineups")
       .populate("genres")
@@ -568,7 +568,7 @@ exports.getAllEvents = async (req, res) => {
         { coHosts: { $in: brandIds } }
       ]
     })
-      .sort({ date: -1 })
+      .sort({ startDate: -1 })
       .populate("brand", "name username logo")
       .populate("user", "username firstName lastName avatar")
       .populate("genres")
@@ -674,7 +674,7 @@ exports.editEvent = async (req, res) => {
     if (title) event.title = title;
     if (subTitle !== undefined) event.subTitle = subTitle;
     if (description !== undefined) event.description = description;
-    if (date) event.startDate = new Date(date);
+    // Don't update from legacy date field anymore
     if (startDate) event.startDate = new Date(startDate);
     if (endDate) event.endDate = new Date(endDate);
     if (startTime) event.startTime = startTime;
@@ -928,8 +928,7 @@ exports.editEvent = async (req, res) => {
           console.log('✅ [Backend] Updated child event co-host permissions:', req.body.coHostRolePermissions);
         }
 
-        // Align legacy date field
-        childEvent.date = childEvent.startDate;
+        // Don't set legacy date field anymore
 
         // These fields should not be changed for a child event from req.body directly
         // childEvent.isWeekly = true; // Already set by findOrCreateWeeklyOccurrence
@@ -1063,7 +1062,7 @@ exports.editEvent = async (req, res) => {
         req.body.endTime = endTime; // ensure it's in req.body
       }
       req.body.endDate = eventEndDate; // update req.body to reflect changes
-      req.body.date = eventStartDate; // Align legacy date
+      // Don't set legacy date field anymore
     }
 
     // For regular events or the parent weekly event (week 0)
