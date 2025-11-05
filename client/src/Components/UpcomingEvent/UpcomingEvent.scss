@@ -1184,6 +1184,26 @@
   }
 }
 
+// Gallery section
+.upcomingEvent-gallery-section {
+  width: 100%;
+  max-width: 100%;
+  margin: 2rem 0;
+  box-sizing: border-box;
+  scroll-margin-top: 80px;
+  position: relative;
+
+  &.highlight-section {
+    animation: highlight-pulse 1.5s ease;
+  }
+
+  .gallery-carousel {
+    // The gallery carousel component will handle its own internal styling
+    // This is just the container
+    width: 100%;
+  }
+}
+
 @keyframes highlight-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 200, 7, 0.4);
@@ -2406,3 +2426,4 @@
     }
   }
 }
+

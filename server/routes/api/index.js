@@ -7,6 +7,7 @@ const brandRoutes = require("./brandRoutes");
 const eventRoutes = require("./eventRoutes");
 const codesRoutes = require("./codesRoutes");
 const codeSettingsRoutes = require("./codeSettingsRoutes");
+const dropboxRoutes = require("./dropboxRoutes");
 
 // Register routes
 router.use("/users", userRoutes);
@@ -14,5 +15,6 @@ router.use("/brands", brandRoutes);
 router.use("/events", eventRoutes);
 router.use("/codes", codesRoutes);
 router.use("/code-settings", codeSettingsRoutes);
+router.use("/dropbox", dropboxRoutes);
 
 module.exports = router;

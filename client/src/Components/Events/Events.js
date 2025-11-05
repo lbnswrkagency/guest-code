@@ -706,6 +706,7 @@ const Events = () => {
         {showForm && (
           <EventForm
             event={selectedEvent}
+            events={events}
             onClose={handleClose}
             onSave={handleSave}
             selectedBrand={selectedBrand}

@@ -37,6 +37,7 @@ import {
   RiTableLine,
   RiArrowRightSLine,
   RiSwordLine,
+  RiImageLine,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
@@ -69,6 +70,10 @@ const BrandProfile = () => {
   const [currentEvent, setCurrentEvent] = useState(null);
   const [ticketSettings, setTicketSettings] = useState([]);
   const [codeSettings, setCodeSettings] = useState([]);
+  
+  // Brand gallery state
+  const [brandHasGalleries, setBrandHasGalleries] = useState(false);
+  const [checkingGalleries, setCheckingGalleries] = useState(false);
 
   // More granular loading progress tracking
   const [loadingProgress, setLoadingProgress] = useState({
@@ -114,6 +119,51 @@ const BrandProfile = () => {
     return totalProgress >= 100;
   }, [totalProgress]);
 
+  // Function to check if brand has any galleries available
+  const checkBrandGalleries = useCallback(async () => {
+    if (!brand?._id) {
+      console.log('⚠️ [BrandProfile] No brand ID available for gallery check');
+      return;
+    }
+    
+    console.log('🚀 [BrandProfile] Starting gallery check for brand:', brand._id);
+    setCheckingGalleries(true);
+    
+    try {
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/galleries/check`;
+      console.log('🔍 [BrandProfile] Making gallery check request to:', endpoint);
+      
+      const response = await axiosInstance.get(endpoint);
+      
+      console.log('✅ [BrandProfile] Brand galleries response:', response.data);
+      console.log('📊 [BrandProfile] Response details:');
+      console.log('  - success:', response.data?.success);
+      console.log('  - hasGalleries:', response.data?.hasGalleries);
+      console.log('  - totalEvents:', response.data?.totalEvents);
+      console.log('  - events found:', response.data?.events?.length || 0);
+      
+      if (response.data && response.data.success) {
+        setBrandHasGalleries(response.data.hasGalleries);
+        console.log('📸 [BrandProfile] Setting brandHasGalleries to:', response.data.hasGalleries);
+      } else {
+        console.log('❌ [BrandProfile] API response indicates failure:', response.data);
+        setBrandHasGalleries(false);
+      }
+    } catch (error) {
+      console.error("❌ [BrandProfile] Error checking brand galleries:", error);
+      console.error("❌ [BrandProfile] Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      setBrandHasGalleries(false);
+    } finally {
+      setCheckingGalleries(false);
+      console.log('🏁 [BrandProfile] Gallery check completed');
+    }
+  }, [brand?._id]);
+
   // Update main loading state - show feed after brand loads to allow events to load
   useEffect(() => {
     // Show the feed once brand is loaded (so events can start loading)
@@ -121,6 +171,13 @@ const BrandProfile = () => {
       setLoading(false);
     }
   }, [loadingProgress.brand, loading, totalProgress]);
+
+  // Effect to check brand galleries when brand is loaded
+  useEffect(() => {
+    if (brand && brand._id && !checkingGalleries) {
+      checkBrandGalleries();
+    }
+  }, [brand, checkBrandGalleries]);
 
   // Real loading progress tracking - no artificial simulation
   useEffect(() => {
@@ -709,6 +766,15 @@ const BrandProfile = () => {
     }
   }, []);
 
+  const scrollToGallery = useCallback((e) => {
+    e?.stopPropagation(); // Use optional chaining to handle cases where no event is passed
+    // Scroll to the gallery section in UpcomingEvent
+    const gallerySection = document.querySelector(".upcomingEvent-gallery-section");
+    if (gallerySection) {
+      gallerySection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   const scrollToTableBooking = useCallback((e) => {
     e.stopPropagation();
     const tableSection = document.querySelector(
@@ -906,10 +972,13 @@ const BrandProfile = () => {
     // For guest code, check if it's enabled - always show it if event exists
     const showGuestCode = !!currentEvent;
 
+    // For gallery, check if event has dropboxFolderPath
+    const showGallery = !!(currentEvent && currentEvent.dropboxFolderPath);
+
     // Determine what actions to show based on event configuration
 
     // Only render if any action is available
-    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode && !supportsBattlesForEvent) {
+    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode && !supportsBattlesForEvent && !showGallery) {
       return null;
     }
 
@@ -1015,6 +1084,41 @@ const BrandProfile = () => {
                   <span className="button-text-full">Join Battle</span>
                   <span className="button-text-short">Battle</span>
                   {!isActionButtonsSticky && <p>Sign up for battle</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Gallery button */}
+          {(() => {
+            console.log('🎭 [BrandProfile] Gallery button render check:', {
+              brandHasGalleries,
+              checkingGalleries,
+              brandId: brand?._id,
+              brandName: brand?.name
+            });
+            return brandHasGalleries;
+          })() && (
+            <motion.button
+              className="event-action-button gallery-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={() => {
+                console.log('🎨 [BrandProfile] Gallery button clicked!');
+                scrollToGallery();
+              }}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiImageLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Gallery</span>
+                  <span className="button-text-short">Photos</span>
+                  {!isActionButtonsSticky && <p>View event photos</p>}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />
@@ -1293,6 +1397,7 @@ const BrandProfile = () => {
           onEventsLoaded={handleEventsLoaded}
           initialDateHint={initialDateHint}
         />
+
       </div>
 
       <AnimatePresence mode="wait">

@@ -21,6 +21,8 @@ const {
   generateSignedUrl,
 } = require("../utils/s3Uploader");
 
+const { generateDropboxPath } = require("../utils/dropboxUtils");
+
 const fsPromises = require("fs").promises;
 const fs = require("fs");
 
@@ -350,6 +352,7 @@ exports.createEvent = async (req, res) => {
       friendsCode,
       ticketCode,
       tableCode,
+      dropboxFolderPath,
     } = req.body;
 
     // Create event object
@@ -380,6 +383,7 @@ exports.createEvent = async (req, res) => {
       friendsCode: friendsCode,
       ticketCode: ticketCode,
       tableCode: tableCode,
+      dropboxFolderPath: dropboxFolderPath || generateDropboxPath(brand.dropboxBaseFolder, startDate || date, brand.dropboxPathStructure),
     };
 
     // Calculate final startDate and endDate considering startTime and endTime for overnight events
@@ -607,6 +611,7 @@ exports.editEvent = async (req, res) => {
       ticketCode,
       tableCode,
       genres,
+      dropboxFolderPath,
     } = req.body;
 
     // Handle lineups if they exist
@@ -685,6 +690,7 @@ exports.editEvent = async (req, res) => {
     if (city !== undefined) event.city = city;
     if (music !== undefined) event.music = music;
     if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
+    if (dropboxFolderPath !== undefined) event.dropboxFolderPath = dropboxFolderPath;
 
     // Update the genres field if provided
     if (req.body.genres) {

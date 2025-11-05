@@ -63,7 +63,9 @@ const EventOverview = () => {
     events.forEach(event => {
       if (event.genres && Array.isArray(event.genres)) {
         event.genres.forEach(genre => {
-          if (genre?.name) categories.add(genre.name);
+          if (genre?.name) {
+            categories.add(genre.name);
+          }
         });
       }
     });
@@ -94,16 +96,6 @@ const EventOverview = () => {
   return (
     <section className="event-overview">
       <div className="container">
-        <motion.div 
-          className="section-header"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2>Upcoming Events</h2>
-          <p className="section-subtitle">Discover what's happening in your city</p>
-        </motion.div>
-
         {categories.length > 1 && (
           <motion.div 
             className="category-filter"

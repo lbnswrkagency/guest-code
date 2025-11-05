@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   RiUserLine,
   RiCloseLine,
@@ -7,369 +7,606 @@ import {
   RiShieldUserLine,
   RiSearchLine,
   RiDeleteBin6Line,
-  RiBanLine,
-  RiUser3Line,
   RiFilterLine,
   RiArrowUpDownLine,
+  RiUser3Line,
+  RiTeamLine,
+  RiMailLine,
+  RiCalendarLine,
+  RiSettings3Line,
+  RiEyeLine,
+  RiRefreshLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import { useToast } from "../Toast/ToastContext";
 import "./TeamManagement.scss";
 
-const TeamManagement = ({ brand, onClose }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [members, setMembers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRoles, setSelectedRoles] = useState([]); // For multi-role filtering
-  const [sortBy, setSortBy] = useState("newest"); // Default to "newest"
-  const [confirmDialog, setConfirmDialog] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmAction: null,
-  });
+// Memoized LoadingSpinner component
+const LoadingSpinner = React.memo(({ size = "default", color = "#d4af37" }) => {
+  const spinnerSize = size === "small" ? "16px" : "24px";
+  return (
+    <div
+      className="team-spinner"
+      style={{
+        width: spinnerSize,
+        height: spinnerSize,
+        borderColor: `${color}40`,
+        borderTopColor: color,
+      }}
+    />
+  );
+});
 
-  // Helper function to get the avatar URL from the avatar object
+// Memoized Member Avatar component
+const MemberAvatar = React.memo(({ avatar, name, size = "medium" }) => {
   const getAvatarUrl = (avatar) => {
     if (!avatar) return null;
     if (typeof avatar === "string") return avatar;
     return avatar.medium || avatar.full || avatar.thumbnail;
   };
 
-  useEffect(() => {
-    fetchTeamMembers();
-    fetchRoles();
-  }, [brand._id]);
+  const avatarUrl = getAvatarUrl(avatar);
+  const sizeClass = size === "small" ? "small" : size === "large" ? "large" : "medium";
 
-  const fetchRoles = async () => {
+  return avatarUrl ? (
+    <img
+      src={avatarUrl}
+      alt={name}
+      className={`member-avatar ${sizeClass}`}
+      loading="lazy"
+    />
+  ) : (
+    <div className={`member-avatar-placeholder ${sizeClass}`}>
+      <RiUser3Line />
+    </div>
+  );
+});
+
+/**
+ * TeamManagement component for managing brand team members
+ * @param {Object} props
+ * @param {Object} props.brand - Brand object with team data
+ * @param {Function} props.onClose - Callback to close the team management modal
+ */
+const TeamManagement = ({ brand, onClose }) => {
+  const toast = useToast();
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [members, setMembers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({});
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [sortBy, setSortBy] = useState("newest");
+  const [primaryColor] = useState("#d4af37");
+  
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmAction: null,
+    type: "warning",
+  });
+
+  // Memoized sort options for better performance
+  const sortOptions = useMemo(() => [
+    { value: "newest", label: "Newest Members" },
+    { value: "oldest", label: "Oldest Members" },
+    { value: "name", label: "Name (A-Z)" },
+    { value: "role", label: "Role" },
+  ], []);
+
+  // Fetch roles with error handling
+  const fetchRoles = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        `/roles/brands/${brand._id}/roles`
-      );
+      const response = await axiosInstance.get(`/roles/brands/${brand._id}/roles`);
       // Filter out the Founder role as it shouldn't be assignable
       setRoles(response.data.filter((role) => !role.isFounder));
     } catch (error) {
       console.error("Error fetching roles:", error);
+      toast.showError("Failed to load roles");
     }
-  };
+  }, [brand._id, toast]);
 
-  const fetchTeamMembers = async () => {
+  // Fetch team members with error handling (without roles dependency)
+  const fetchTeamMembers = useCallback(async (availableRoles = []) => {
     try {
+      setLoading(true);
       const response = await axiosInstance.get(`/brands/${brand._id}/members`);
-      // Filter out founder members - don't include them in the list at all
-      const nonFounderMembers = response.data.filter(
-        (member) => !member.isFounderRole
-      );
+      
+      // Filter out founder members and enhance with role names
+      const nonFounderMembers = response.data
+        .filter((member) => !member.isFounderRole)
+        .map((member) => ({
+          ...member,
+          // Find role name for display using provided roles or current roles state
+          roleName: member.roleName || 
+                    availableRoles.find(role => role._id === member.role)?.name || 
+                    "Member",
+        }));
+      
       setMembers(nonFounderMembers);
     } catch (error) {
       console.error("Error fetching team members:", error);
+      toast.showError("Failed to load team members");
     } finally {
       setLoading(false);
     }
-  };
+  }, [brand._id, toast]);
 
-  const handleRoleChange = (memberId, newRoleId) => {
-    // Find the role object by ID
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // First fetch roles
+        const response = await axiosInstance.get(`/roles/brands/${brand._id}/roles`);
+        const fetchedRoles = response.data.filter((role) => !role.isFounder);
+        setRoles(fetchedRoles);
+        
+        // Then fetch team members with the fetched roles
+        await fetchTeamMembers(fetchedRoles);
+      } catch (error) {
+        console.error("Error loading data:", error);
+        toast.showError("Failed to load team data");
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [brand._id, fetchTeamMembers, toast]);
+
+  // Handle role change with proper confirmation
+  const handleRoleChange = useCallback((memberId, newRoleId) => {
+    const member = members.find(m => m._id === memberId);
     const newRole = roles.find((role) => role._id === newRoleId);
 
+    if (!member || !newRole) return;
+
     setConfirmDialog({
       isOpen: true,
-      title: "Change Role",
-      message: `Are you sure you want to change this user's role to ${
-        newRole ? newRole.name : "the selected role"
-      }?`,
+      title: "Change Member Role",
+      message: `Change ${member.name}'s role to ${newRole.name}?`,
+      type: "warning",
       confirmAction: async () => {
         try {
+          setActionLoading(prev => ({ ...prev, [memberId]: true }));
+          
           await axiosInstance.put(
             `/brands/${brand._id}/members/${memberId}/role`,
-            { roleId: newRoleId } // Send roleId instead of role string
+            { roleId: newRoleId }
           );
-          await fetchTeamMembers();
+          
+          await fetchTeamMembers(roles);
+          toast.showSuccess(`${member.name}'s role updated successfully`);
         } catch (error) {
           console.error("Error updating member role:", error);
+          toast.showError("Failed to update member role");
+        } finally {
+          setActionLoading(prev => ({ ...prev, [memberId]: false }));
         }
       },
     });
-  };
+  }, [members, roles, brand._id, fetchTeamMembers, toast]);
 
-  const handleRemoveMember = (memberId) => {
+  // Handle member removal
+  const handleRemoveMember = useCallback((memberId) => {
+    const member = members.find(m => m._id === memberId);
+    if (!member) return;
+
     setConfirmDialog({
       isOpen: true,
-      title: "Remove Member",
-      message: "Are you sure you want to remove this member from the team?",
+      title: "Remove Team Member",
+      message: `Remove ${member.name} from the team? They will lose access to all brand features.`,
+      type: "danger",
       confirmAction: async () => {
         try {
-          await axiosInstance.delete(
-            `/brands/${brand._id}/members/${memberId}`
-          );
-          await fetchTeamMembers();
+          setActionLoading(prev => ({ ...prev, [memberId]: true }));
+          
+          await axiosInstance.delete(`/brands/${brand._id}/members/${memberId}`);
+          await fetchTeamMembers(roles);
+          toast.showSuccess(`${member.name} removed from team`);
         } catch (error) {
           console.error("Error removing team member:", error);
+          toast.showError("Failed to remove team member");
+        } finally {
+          setActionLoading(prev => ({ ...prev, [memberId]: false }));
         }
       },
     });
-  };
+  }, [members, brand._id, fetchTeamMembers, toast]);
 
-  const handleBanMember = (memberId) => {
+  // Handle member ban
+  const handleBanMember = useCallback((memberId) => {
+    const member = members.find(m => m._id === memberId);
+    if (!member) return;
+
     setConfirmDialog({
       isOpen: true,
-      title: "Ban Member",
-      message:
-        "Are you sure you want to ban this member? This action cannot be undone.",
+      title: "Ban Team Member",
+      message: `Ban ${member.name} from the brand? This action cannot be undone and they will be permanently blocked.`,
+      type: "danger",
       confirmAction: async () => {
         try {
-          await axiosInstance.post(
-            `/brands/${brand._id}/members/${memberId}/ban`
-          );
-          await fetchTeamMembers();
+          setActionLoading(prev => ({ ...prev, [memberId]: true }));
+          
+          await axiosInstance.post(`/brands/${brand._id}/members/${memberId}/ban`);
+          await fetchTeamMembers(roles);
+          toast.showSuccess(`${member.name} has been banned`);
         } catch (error) {
           console.error("Error banning member:", error);
+          toast.showError("Failed to ban member");
+        } finally {
+          setActionLoading(prev => ({ ...prev, [memberId]: false }));
         }
       },
     });
-  };
+  }, [members, brand._id, fetchTeamMembers, toast]);
 
-  const toggleRoleFilter = (roleId) => {
-    setSelectedRoles((prev) =>
+  // Role filter management
+  const toggleRoleFilter = useCallback((roleId) => {
+    setSelectedRoles(prev =>
       prev.includes(roleId)
-        ? prev.filter((id) => id !== roleId)
+        ? prev.filter(id => id !== roleId)
         : [...prev, roleId]
     );
-  };
+  }, []);
 
-  const clearRoleFilters = () => {
+  const clearRoleFilters = useCallback(() => {
     setSelectedRoles([]);
-  };
+  }, []);
 
-  // Filter and sort members
-  const getFilteredAndSortedMembers = () => {
-    let filtered = members;
+  // Memoized filtered and sorted members
+  const filteredAndSortedMembers = useMemo(() => {
+    let filtered = [...members];
 
     // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (member) =>
-          member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          member.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(member =>
+        member.name?.toLowerCase().includes(query) ||
+        member.username?.toLowerCase().includes(query) ||
+        member.email?.toLowerCase().includes(query)
       );
     }
 
     // Apply role filter
     if (selectedRoles.length > 0) {
-      filtered = filtered.filter((member) =>
-        selectedRoles.includes(member.role)
-      );
+      filtered = filtered.filter(member => {
+        // Handle both ObjectId and string role references
+        const memberRoleId = typeof member.role === 'object' ? member.role._id : member.role;
+        return selectedRoles.includes(memberRoleId);
+      });
     }
 
     // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
+    filtered.sort((a, b) => {
       switch (sortBy) {
         case "newest":
           return new Date(b.joinedAt || b.createdAt) - new Date(a.joinedAt || a.createdAt);
         case "oldest":
           return new Date(a.joinedAt || a.createdAt) - new Date(b.joinedAt || b.createdAt);
         case "name":
-          return a.name.localeCompare(b.name);
+          return a.name?.localeCompare(b.name) || 0;
+        case "role":
+          return (a.roleName || "").localeCompare(b.roleName || "");
         default:
           return 0;
       }
     });
 
-    return sorted;
-  };
+    return filtered;
+  }, [members, searchQuery, selectedRoles, sortBy]);
 
-  const filteredMembers = getFilteredAndSortedMembers();
+  // Memoized statistics
+  const memberStats = useMemo(() => {
+    const totalMembers = members.length;
+    const filteredCount = filteredAndSortedMembers.length;
+    const roleDistribution = {};
+    
+    members.forEach(member => {
+      const roleName = member.roleName || "Member";
+      roleDistribution[roleName] = (roleDistribution[roleName] || 0) + 1;
+    });
+
+    return { totalMembers, filteredCount, roleDistribution };
+  }, [members, filteredAndSortedMembers]);
+
+  if (loading) {
+    return (
+      <div className="team-management">
+        <div className="loading-container">
+          <LoadingSpinner color={primaryColor} />
+          <p>Loading team members...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <motion.div
-      className="team-management"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-    >
-      <div className="interface-header">
-        <h2>Team Management</h2>
-        <button className="close-btn" onClick={onClose}>
-          <RiCloseLine />
-        </button>
-      </div>
-
-      <div className="filters-section">
-        {/* Search Bar */}
-        <div className="search-bar">
-          <RiSearchLine className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search team members..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className="team-management">
+      {/* Header */}
+      <div className="team-header">
+        <div className="header-content">
+          <RiTeamLine className="header-icon" style={{ color: primaryColor }} />
+          <div className="header-text">
+            <h2>Team Management</h2>
+            <p>Manage team members and roles for {brand.name}</p>
+          </div>
+        </div>
+        
+        <div className="header-stats">
+          <div className="stat-item">
+            <span className="stat-number">{memberStats.totalMembers}</span>
+            <span className="stat-label">Members</span>
+          </div>
+          {memberStats.filteredCount !== memberStats.totalMembers && (
+            <div className="stat-item filtered">
+              <span className="stat-number">{memberStats.filteredCount}</span>
+              <span className="stat-label">Filtered</span>
+            </div>
+          )}
         </div>
 
-        {/* Compact Controls Row */}
-        <div className="compact-controls">
-          {/* Sort Dropdown */}
-          <div className="sort-control">
-            <RiArrowUpDownLine className="control-icon" />
+        <motion.button
+          className="close-btn"
+          onClick={onClose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <RiCloseLine />
+        </motion.button>
+      </div>
+
+      {/* Controls Section */}
+      <div className="team-controls">
+        <div className="search-section">
+          <div className="search-bar">
+            <RiSearchLine />
+            <input
+              type="text"
+              placeholder="Search by name, username, or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="filter-controls">
+          <div className="control-group">
+            <label className="control-label">
+              <RiArrowUpDownLine />
+              Sort by
+            </label>
             <select
-              className="control-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name">Name (A-Z)</option>
-            </select>
-          </div>
-
-          {/* Role Filter Dropdown */}
-          <div className="role-filter-control">
-            <RiFilterLine className="control-icon" />
-            <select
               className="control-select"
-              value=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  toggleRoleFilter(e.target.value);
-                }
-              }}
             >
-              <option value="">Filter by Role</option>
-              {roles.map((role) => (
-                <option key={role._id} value={role._id}>
-                  {role.name}
-                  {selectedRoles.includes(role._id) ? " ✓" : ""}
+              {sortOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Active Filters */}
-          {selectedRoles.length > 0 && (
-            <div className="active-filters">
+          <div className="control-group">
+            <label className="control-label">
+              <RiFilterLine />
+              Filter by role
+            </label>
+            <select
+              value=""
+              onChange={(e) => e.target.value && toggleRoleFilter(e.target.value)}
+              className="control-select"
+            >
+              <option value="">All Roles</option>
+              {roles.map((role) => (
+                <option key={role._id} value={role._id}>
+                  {role.name} {selectedRoles.includes(role._id) ? "✓" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <motion.button
+            className="refresh-btn"
+            onClick={async () => {
+              try {
+                setLoading(true);
+                // First fetch roles
+                const response = await axiosInstance.get(`/roles/brands/${brand._id}/roles`);
+                const fetchedRoles = response.data.filter((role) => !role.isFounder);
+                setRoles(fetchedRoles);
+                
+                // Then fetch team members with the fetched roles
+                await fetchTeamMembers(fetchedRoles);
+              } catch (error) {
+                console.error("Error refreshing data:", error);
+                toast.showError("Failed to refresh team data");
+                setLoading(false);
+              }
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title="Refresh data"
+          >
+            <RiRefreshLine />
+          </motion.button>
+        </div>
+
+        {/* Active Filters */}
+        {selectedRoles.length > 0 && (
+          <div className="active-filters">
+            <span className="filter-label">Active filters:</span>
+            <div className="filter-tags">
               {selectedRoles.map((roleId) => {
                 const role = roles.find((r) => r._id === roleId);
                 return role ? (
-                  <span
+                  <motion.span
                     key={roleId}
                     className="filter-tag"
                     onClick={() => toggleRoleFilter(roleId)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
                     {role.name}
-                    <span className="remove-icon">×</span>
-                  </span>
+                    <RiCloseLine />
+                  </motion.span>
                 ) : null;
               })}
-              <button className="clear-all-btn" onClick={clearRoleFilters}>
+              <motion.button
+                className="clear-filters-btn"
+                onClick={clearRoleFilters}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 Clear All
-              </button>
+              </motion.button>
             </div>
-          )}
-
-          {/* Members Count - Subtle */}
-          {(searchQuery || selectedRoles.length > 0) && (
-            <span className="members-count-subtle">
-              {filteredMembers.length}/{members.length}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="members-list">
-        {loading ? (
-          <div className="loading-state">Loading team members...</div>
-        ) : members.length === 0 ? (
-          <div className="empty-state">No team members yet</div>
-        ) : filteredMembers.length === 0 ? (
-          <div className="empty-state">No members match your filters</div>
-        ) : (
-          filteredMembers.map((member) => (
-            <motion.div
-              key={member._id}
-              className="member-item"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              layout
-            >
-              <div className="member-info">
-                {member.avatar && getAvatarUrl(member.avatar) ? (
-                  <img
-                    src={getAvatarUrl(member.avatar)}
-                    alt={member.name}
-                    className="member-avatar"
-                  />
-                ) : (
-                  <div className="member-avatar-placeholder">
-                    <RiUser3Line className="placeholder-icon" />
-                  </div>
-                )}
-                <div className="member-details">
-                  <span className="member-name">{member.name}</span>
-                  <span className="member-username">@{member.username}</span>
-                  <span className="member-role">{member.roleName}</span>
-                </div>
-              </div>
-
-              <div className="member-actions">
-                {member.isFounderRole ? (
-                  <div className="role-badge founder">
-                    <RiShieldUserLine />
-                    <span>Founder</span>
-                  </div>
-                ) : (
-                  <select
-                    className="role-select"
-                    value={member.role}
-                    onChange={(e) =>
-                      handleRoleChange(member._id, e.target.value)
-                    }
-                  >
-                    {roles.map((role) => (
-                      <option key={role._id} value={role._id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                <button
-                  className="action-btn remove"
-                  onClick={() => handleRemoveMember(member._id)}
-                  title="Remove member"
-                  disabled={member.isFounderRole}
-                >
-                  <RiDeleteBin6Line />
-                </button>
-
-                <button
-                  className="action-btn ban"
-                  onClick={() => handleBanMember(member._id)}
-                  title="Ban member"
-                  disabled={member.isFounderRole}
-                >
-                  <RiUserUnfollowLine />
-                </button>
-              </div>
-            </motion.div>
-          ))
+          </div>
         )}
       </div>
 
-      {confirmDialog.isOpen && (
-        <ConfirmDialog
-          isOpen={confirmDialog.isOpen}
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          onConfirm={async () => {
-            await confirmDialog.confirmAction();
-            setConfirmDialog({ ...confirmDialog, isOpen: false });
-          }}
-          onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        />
-      )}
-    </motion.div>
+      {/* Members List */}
+      <div className="members-container">
+        {members.length === 0 ? (
+          <div className="empty-state">
+            <RiTeamLine />
+            <h3>No Team Members</h3>
+            <p>Your brand doesn't have any team members yet.</p>
+          </div>
+        ) : filteredAndSortedMembers.length === 0 ? (
+          <div className="empty-state">
+            <RiSearchLine />
+            <h3>No Matching Members</h3>
+            <p>No team members match your current search and filters.</p>
+            {(searchQuery || selectedRoles.length > 0) && (
+              <motion.button
+                className="clear-search-btn"
+                onClick={() => {
+                  setSearchQuery("");
+                  clearRoleFilters();
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Clear Search & Filters
+              </motion.button>
+            )}
+          </div>
+        ) : (
+          <div className="members-grid">
+            <AnimatePresence mode="popLayout">
+              {filteredAndSortedMembers.map((member) => (
+                <motion.div
+                  key={member._id}
+                  className="member-card"
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="member-header">
+                    <MemberAvatar 
+                      avatar={member.avatar} 
+                      name={member.name}
+                      size="medium"
+                    />
+                    <div className="member-info">
+                      <h4 className="member-name">{member.name}</h4>
+                      <p className="member-username">@{member.username}</p>
+                      {member.email && (
+                        <p className="member-email">
+                          <RiMailLine />
+                          {member.email}
+                        </p>
+                      )}
+                      <div className="member-meta">
+                        <span className="join-date">
+                          <RiCalendarLine />
+                          Joined {new Date(member.joinedAt || member.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="member-role-section">
+                    <div className="role-info">
+                      <label className="role-label">Role</label>
+                      {member.isFounderRole ? (
+                        <div className="founder-badge">
+                          <RiShieldUserLine />
+                          <span>Founder</span>
+                        </div>
+                      ) : (
+                        <select
+                          className="role-select"
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member._id, e.target.value)}
+                          disabled={actionLoading[member._id]}
+                        >
+                          {roles.map((role) => (
+                            <option key={role._id} value={role._id}>
+                              {role.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="member-actions">
+                    <motion.button
+                      className="action-btn remove"
+                      onClick={() => handleRemoveMember(member._id)}
+                      disabled={member.isFounderRole || actionLoading[member._id]}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      title="Remove from team"
+                    >
+                      {actionLoading[member._id] ? <LoadingSpinner size="small" /> : <RiDeleteBin6Line />}
+                    </motion.button>
+
+                    <motion.button
+                      className="action-btn ban"
+                      onClick={() => handleBanMember(member._id)}
+                      disabled={member.isFounderRole || actionLoading[member._id]}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      title="Ban member"
+                    >
+                      {actionLoading[member._id] ? <LoadingSpinner size="small" /> : <RiUserUnfollowLine />}
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDialog.isOpen && (
+          <ConfirmDialog
+            title={confirmDialog.title}
+            message={confirmDialog.message}
+            confirmText={confirmDialog.type === "danger" ? "Confirm" : "Update"}
+            type={confirmDialog.type}
+            onConfirm={async () => {
+              await confirmDialog.confirmAction();
+              setConfirmDialog({ ...confirmDialog, isOpen: false });
+            }}
+            onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
-export default TeamManagement;
+// Memoize the entire component to prevent unnecessary re-renders
+export default React.memo(TeamManagement);

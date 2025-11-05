@@ -222,6 +222,9 @@ const EventSchema = new Schema(
     link: { type: String, required: true, unique: true },
     isPublic: { type: Boolean, default: true },
     favoritedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    
+    // Dropbox integration
+    dropboxFolderPath: { type: String, default: "" }, // e.g., "/events/2024/december/party-name"
   },
   {
     timestamps: true,

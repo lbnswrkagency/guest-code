@@ -458,9 +458,22 @@ exports.deleteRole = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    const isRoleAssigned = brand.team.some(
-      (member) => member.role.toString() === role._id.toString()
-    );
+    const isRoleAssigned = brand.team.some((member) => {
+      if (!member.role) return false;
+      
+      // Handle ObjectId comparison
+      if (mongoose.Types.ObjectId.isValid(member.role)) {
+        return member.role.toString() === role._id.toString();
+      }
+      
+      // Handle string comparison (backward compatibility)
+      if (typeof member.role === 'string') {
+        return member.role.toUpperCase() === role.name.toUpperCase();
+      }
+      
+      return false;
+    });
+    
     if (isRoleAssigned) {
       return res.status(400).json({
         message: "Cannot delete role that is assigned to team members",

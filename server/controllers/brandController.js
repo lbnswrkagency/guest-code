@@ -551,6 +551,14 @@ exports.updateBrand = async (req, res) => {
     const updateData = { ...req.body };
     delete updateData.logo;
     delete updateData.coverImage;
+    
+    // Handle Dropbox configuration fields
+    if (req.body.dropboxBaseFolder !== undefined) {
+      updateData.dropboxBaseFolder = req.body.dropboxBaseFolder;
+    }
+    if (req.body.dropboxPathStructure !== undefined) {
+      updateData.dropboxPathStructure = req.body.dropboxPathStructure;
+    }
 
     const updatedBrand = await Brand.findOneAndUpdate(
       { _id: req.params.brandId, owner: req.user._id },

@@ -61,6 +61,13 @@ const BrandSchema = new Schema(
     spotifyClientSecret: { type: String },
     spotifyPlaylistId: { type: String },
 
+    // Dropbox Integration
+    dropboxBaseFolder: { type: String }, // e.g., "/Afro Spiti"
+    dropboxPathStructure: { 
+      type: String, 
+      default: "/Events/{DDMMYY}/photos" 
+    }, // e.g., "/Events/{DDMMYY}/photos" or "/Galleries/{YYYY}/{MM}/Event-{DD}/media"
+
     // Content
     media: {
       photos: [{ type: String }],
