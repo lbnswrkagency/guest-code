@@ -521,7 +521,7 @@ const getCodePNG = async (req, res) => {
           <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">             
             <div>
               <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Location</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem; max-width: 6.5rem;">${
                 event?.location || event?.venue || ""
               }</p>
               <p style="margin: 0; font-weight: 500; font-size: 0.857em; line-height: 1.25rem;">${

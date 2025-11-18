@@ -68,7 +68,7 @@ const UpcomingEvent = ({
   initialDateHint = null,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
-  
+
   const [events, setEvents] = useState(
     providedEvents ? [...providedEvents] : []
   );
@@ -126,8 +126,11 @@ const UpcomingEvent = ({
   }, [ticketSettings]);
 
   // Memoize provided events to prevent unnecessary effect runs
-  const memoizedProvidedEvents = useMemo(() => providedEvents, [providedEvents]);
-  
+  const memoizedProvidedEvents = useMemo(
+    () => providedEvents,
+    [providedEvents]
+  );
+
   useEffect(() => {
     // If events are provided directly, use them
     if (memoizedProvidedEvents && memoizedProvidedEvents.length > 0) {
@@ -283,9 +286,10 @@ const UpcomingEvent = ({
 
   // Notify parent when current event changes (prevent callback loops)
   useEffect(() => {
-    const currentEvent = events.length > 0 && currentIndex >= 0 && currentIndex < events.length 
-      ? events[currentIndex] 
-      : null;
+    const currentEvent =
+      events.length > 0 && currentIndex >= 0 && currentIndex < events.length
+        ? events[currentIndex]
+        : null;
     onEventChange(currentEvent);
   }, [currentIndex, events]); // Removed onEventChange from deps to prevent loops
 
@@ -742,44 +746,56 @@ const UpcomingEvent = ({
 
       if (upcomingEvents.length > 0) {
         let targetIndex = 0; // Default to first event
-        
+
         // Handle date navigation if we have a date hint and haven't processed it yet
         if (initialDateHint && !hasNavigatedFromURL) {
           // Parse the date hint
           let targetDate = null;
-          if (initialDateHint.length === 6) { // DDMMYY format
+          if (initialDateHint.length === 6) {
+            // DDMMYY format
             const day = parseInt(initialDateHint.substring(0, 2));
             const month = parseInt(initialDateHint.substring(2, 4)) - 1;
             const year = parseInt("20" + initialDateHint.substring(4, 6));
             targetDate = new Date(year, month, day);
-          } else if (initialDateHint.length === 8) { // DDMMYYYY format
+          } else if (initialDateHint.length === 8) {
+            // DDMMYYYY format
             const day = parseInt(initialDateHint.substring(0, 2));
             const month = parseInt(initialDateHint.substring(2, 4)) - 1;
             const year = parseInt(initialDateHint.substring(4, 8));
             targetDate = new Date(year, month, day);
           }
-          
+
           if (targetDate && !isNaN(targetDate.getTime())) {
-            const matchingEventIndex = upcomingEvents.findIndex(event => {
-              const eventDate = event.calculatedStartDate || new Date(event.startDate || event.date);
+            const matchingEventIndex = upcomingEvents.findIndex((event) => {
+              const eventDate =
+                event.calculatedStartDate ||
+                new Date(event.startDate || event.date);
               if (!eventDate) return false;
-              
-              const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-              const targetDateOnly = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-              
+
+              const eventDateOnly = new Date(
+                eventDate.getFullYear(),
+                eventDate.getMonth(),
+                eventDate.getDate()
+              );
+              const targetDateOnly = new Date(
+                targetDate.getFullYear(),
+                targetDate.getMonth(),
+                targetDate.getDate()
+              );
+
               return eventDateOnly.getTime() === targetDateOnly.getTime();
             });
-            
+
             if (matchingEventIndex !== -1) {
               targetIndex = matchingEventIndex;
             }
           }
-          
+
           setHasNavigatedFromURL(true); // Mark as processed
         }
-        
+
         setCurrentIndex(targetIndex);
-        
+
         // Preload the selected event's image if available
         if (upcomingEvents[targetIndex].flyer) {
           preloadEventImage(upcomingEvents[targetIndex]);
@@ -797,7 +813,6 @@ const UpcomingEvent = ({
       setLoading(false);
     }
   };
-
 
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -1571,6 +1586,11 @@ const UpcomingEvent = ({
             </div>
           )}
 
+          {/* Lineup section - MOVED UP BEFORE TICKETS */}
+          {currentEvent.lineups && currentEvent.lineups.length > 0 && (
+            <LineUpView lineups={currentEvent.lineups} />
+          )}
+
           {/* Full-width sections that span both columns on desktop */}
           <div className="upcomingEvent-full-width-sections">
             {/* EventDetails Component with integrated action buttons */}
@@ -1606,11 +1626,6 @@ const UpcomingEvent = ({
                 hasBattles={supportsBattles(currentEvent)}
               />
             </div>
-
-            {/* Lineup section - MOVED UP BEFORE TICKETS */}
-            {currentEvent.lineups && currentEvent.lineups.length > 0 && (
-              <LineUpView lineups={currentEvent.lineups} />
-            )}
 
             {/* Content sections wrapper for responsive layout */}
             <div className="upcomingEvent-content-sections">
