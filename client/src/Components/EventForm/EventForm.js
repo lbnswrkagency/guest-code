@@ -370,6 +370,7 @@ const EventForm = ({
           { id: "bolivar", name: "Bolivar", description: "Classic club layout" },
           { id: "venti", name: "Venti", description: "Modern garden-themed layout" },
           { id: "harlem", name: "Harlem", description: "Urban upscale layout" },
+          { id: "amano", name: "Amano", description: "Hotel bar lounge layout" },
         ]);
       }
     };

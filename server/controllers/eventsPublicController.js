@@ -6,12 +6,17 @@ const mongoose = require("mongoose");
 exports.getPublicEvents = async (req, res) => {
   try {
     const { limit = 20, offset = 0, category = null, location = null } = req.query;
-    
-    // Get current date at start of day in UTC
-    const currentDate = new Date();
-    // Set to start of current day in UTC
-    currentDate.setUTCHours(0, 0, 0, 0);
-    
+
+    // Get current date at start of day in UTC (timezone-safe)
+    const now = new Date();
+    const currentDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
+
+    console.log('Server time:', now.toISOString());
     console.log('Current date for event query:', currentDate.toISOString());
 
     // Build query
@@ -91,8 +96,14 @@ exports.getPublicEvents = async (req, res) => {
 // Get featured events (events from verified/featured brands)
 exports.getFeaturedEvents = async (req, res) => {
   try {
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);
+    // Get current date at start of day in UTC (timezone-safe)
+    const now = new Date();
+    const currentDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
     // First get featured/verified brands
     const featuredBrands = await Brand.find({
@@ -152,9 +163,15 @@ exports.getEventsByCity = async (req, res) => {
   try {
     const { city } = req.params;
     const { limit = 20, offset = 0 } = req.query;
-    
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);
+
+    // Get current date at start of day in UTC (timezone-safe)
+    const now = new Date();
+    const currentDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
     const events = await Event.find({
       city: new RegExp(city, 'i'),
@@ -197,8 +214,14 @@ exports.getEventsByCity = async (req, res) => {
 // Get event categories (genres)
 exports.getEventCategories = async (req, res) => {
   try {
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);
+    // Get current date at start of day in UTC (timezone-safe)
+    const now = new Date();
+    const currentDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
     // Get all unique genres from upcoming events
     const upcomingEvents = await Event.find({
@@ -249,8 +272,14 @@ exports.getEventCategories = async (req, res) => {
 // Get cities with upcoming events
 exports.getCitiesWithEvents = async (req, res) => {
   try {
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);
+    // Get current date at start of day in UTC (timezone-safe)
+    const now = new Date();
+    const currentDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
     // Aggregate to get unique cities with event counts
     const cities = await Event.aggregate([

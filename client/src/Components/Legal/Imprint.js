@@ -5,41 +5,41 @@ const Imprint = () => {
     <div className="legal-content imprint">
       <h3>Company Information</h3>
       <p>
-        <strong>LBNSWRK LLC</strong>
+        <strong>LBNSWRK E.E.</strong>
         <br />
         dba GuestCode
         <br />
-        5830 E 2ND ST, STE 7000 #14531
+        Davaki Pindou 14
         <br />
-        CASPER, WYOMING 82609
+        15773 Zografou, Athens
         <br />
-        USA
+        Greece
       </p>
 
       <h3>Contact Information</h3>
       <p>
         <strong>Email:</strong>{" "}
         <a href="mailto:contact@guest-code.com">contact@guest-code.com</a>
-        <br />
-        <strong>Phone:</strong> 888-462-3453
       </p>
 
       <h3>Company Details</h3>
       <p>
-        <strong>EIN:</strong> 32-0758843
+        <strong>ΑΦΜ (VAT):</strong> 803058973
         <br />
-        <strong>Legal Form:</strong> Limited Liability Company
+        <strong>Tax Office:</strong> ΚΕΦΟΔΕ ΑΤΤΙΚΗΣ
         <br />
-        <strong>Registered in:</strong> Wyoming, USA
+        <strong>Γ.Ε.ΜΗ.:</strong> 188401803000
         <br />
-        <strong>Registered Agent:</strong> REPUBLIC REGISTERED AGENT LLC
+        <strong>Legal Form:</strong> Ετερόρρυθμη Εταιρεία (Limited Partnership)
+        <br />
+        <strong>Registered in:</strong> Athens, Greece
       </p>
 
-      <h3>Responsible for Content</h3>
+      <h3>Legal Representative</h3>
       <p>
-        ZAFER GUENEY
+        Zafer Gueney
         <br />
-        MEMBER
+        General Partner
       </p>
 
       <h3>Online Dispute Resolution</h3>

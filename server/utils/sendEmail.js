@@ -341,20 +341,25 @@ const generateTicketPDF = async (ticket) => {
   }
 };
 
-// US Company Information
+// Greek Company Information
 const COMPANY_INFO = {
-  name: "LBNSWRK LLC",
+  name: "LBNSWRK E.E.",
   dba: "GuestCode",
   address: {
-    line1: "5830 E 2ND ST, STE 7000 #14531",
-    city: "CASPER",
-    state: "WYOMING",
-    zip: "82609",
-    country: "USA",
+    line1: "Davaki Pindou 14",
+    city: "Athens",
+    postalCode: "15773",
+    country: "Greece",
   },
   email: "contact@guest-code.com",
-  phone: "888-462-3453",
-  ein: "32-0758843",
+  vat: "803058973",
+  taxOffice: "ΚΕΦΟΔΕ ΑΤΤΙΚΗΣ",
+  gemi: "188401803000",
+  bank: {
+    name: "Eurobank",
+    accountHolder: "Zafer Guney",
+    iban: "GR1502601020000160201252477",
+  },
 };
 
 const sendEmail = async (order) => {
@@ -414,7 +419,7 @@ const sendEmail = async (order) => {
       : "";
     const addressHTML = `
       <div style="margin-top: 20px;">
-        <p style="margin: 0 0 15px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #666; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Invoice To:</p>
+        <p style="margin: 0 0 15px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #666; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Receipt To:</p>
         <p style="margin: 0 0 5px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600; font-size: 15px;">${order.firstName} ${order.lastName}</p>
         <p style="margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.line1}</p>
         ${line2HTML}
@@ -604,20 +609,22 @@ const sendEmail = async (order) => {
 
             <div class="invoice-details">
               <div class="invoice-details-grid">
-                <span class="invoice-details-label">Invoice No.</span>
+                <span class="invoice-details-label">Receipt No.</span>
                 <span class="invoice-details-value" style="color: ${primaryColor};">${generateInvoiceNumber(
       order.stripeSessionId
     )}</span>
                 <span class="invoice-details-label">Date</span>
                 <span class="invoice-details-value">${formattedDate()}</span>
-                <span class="invoice-details-label">EIN</span>
-                <span class="invoice-details-value">${COMPANY_INFO.ein}</span>
+                <span class="invoice-details-label">ΑΦΜ</span>
+                <span class="invoice-details-value">${COMPANY_INFO.vat}</span>
+                <span class="invoice-details-label">MARK</span>
+                <span class="invoice-details-value" style="color: #999;">Pending</span>
               </div>
             </div>
           </div>
 
           <div class="invoice-title-section">
-            <h1 class="invoice-title">Invoice</h1>
+            <h1 class="invoice-title">Receipt</h1>
             ${
               brandLogoHtml
                 ? `<div class="brand-logo">${brandLogoHtml}</div>`
@@ -736,20 +743,17 @@ const sendEmail = async (order) => {
           <div class="footer-left">
             <p style="margin:0; font-weight: 600;">${COMPANY_INFO.name}</p>
             <p style="margin:2px 0 0;">${COMPANY_INFO.address.line1}</p>
-            <p style="margin:2px 0 0;">${COMPANY_INFO.address.city}, ${
-      COMPANY_INFO.address.state
-    } ${COMPANY_INFO.address.zip}</p>
+            <p style="margin:2px 0 0;">${COMPANY_INFO.address.postalCode} ${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.country}</p>
           </div>
 
           <div class="footer-center">
-            <p style="color: white; font-size: 0.8rem; margin: 0;">Powered by</p>
-            <p style="color: ${primaryColor}; font-weight: 600; font-size: 1rem; margin: 0;">${
-      COMPANY_INFO.dba
-    }</p>
+            <p style="color: white; font-size: 0.7rem; margin: 0;">ΑΦΜ: ${COMPANY_INFO.vat}</p>
+            <p style="color: white; font-size: 0.7rem; margin: 2px 0 0;">Γ.Ε.ΜΗ.: ${COMPANY_INFO.gemi}</p>
+            <p style="color: ${primaryColor}; font-weight: 600; font-size: 0.9rem; margin: 4px 0 0;">${COMPANY_INFO.dba}</p>
           </div>
 
           <div class="footer-right">
-            <p style="margin:0;">EIN: ${COMPANY_INFO.ein}</p>
+            <p style="margin:0;">IBAN: ${COMPANY_INFO.bank.iban.slice(0, 12)}...</p>
             <p style="margin:2px 0 0;">Email: ${COMPANY_INFO.email}</p>
             <p style="margin:2px 0 0;">Web: www.guest-code.com</p>
           </div>
@@ -859,12 +863,12 @@ const sendEmail = async (order) => {
     };
     sendSmtpEmail.subject = `${
       brand?.name || "GuestCode"
-    } - Your Invoice and Tickets`;
+    } - Your Receipt and Tickets`;
 
     // Create additional content specific to the order and tickets
     const additionalContent = `
       <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
-        <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
+        <p style="margin: 0; font-weight: 500;">Receipt Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
       order.stripeSessionId
     )}</span></p>
         <p style="margin: 8px 0 0;">Total Amount: <strong>${(
@@ -875,8 +879,8 @@ const sendEmail = async (order) => {
         }</strong></p>
         <p style="margin: 8px 0 0;">Payment Status: <strong>Successfully Processed</strong></p>
       </div>
-      
-      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your invoice and tickets are attached to this email. Please bring your tickets with you to the event.</p>
+
+      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your receipt and tickets are attached to this email. Please bring your tickets with you to the event.</p>
     `;
 
     // Use the common email template
@@ -891,7 +895,7 @@ const sendEmail = async (order) => {
       startTime: event?.startTime || "",
       endTime: event?.endTime || "",
       description:
-        "Thank you for your purchase. Your payment has been successfully processed, and your invoice and tickets are attached to this email.",
+        "Thank you for your purchase. Your payment has been successfully processed, and your receipt and tickets are attached to this email.",
       lineups: event?.lineups || [],
       primaryColor: brand?.colors?.primary || "#ffc807",
       additionalContent: additionalContent,

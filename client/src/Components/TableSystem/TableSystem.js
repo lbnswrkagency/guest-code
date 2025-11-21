@@ -8,6 +8,7 @@ import TableLayoutStudio from "../TableLayoutStudio/TableLayoutStudio";
 import TableLayoutBolivar from "../TableLayoutBolivar/TableLayoutBolivar";
 import TableLayoutVenti from "../TableLayoutVenti/TableLayoutVenti";
 import TableLayoutHarlem from "../TableLayoutHarlem/TableLayoutHarlem";
+import TableLayoutAmano from "../TableLayoutAmano/TableLayoutAmano";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
@@ -138,6 +139,10 @@ function TableSystem({
           vip: ["V1", "V2", "V3", "V4", "V5", "V6"],
           upstairs: ["U1", "U2", "U3"],
         };
+      case "amano":
+        return {
+          vip: ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"],
+        };
       case "studio":
       default:
         return {
@@ -180,6 +185,8 @@ function TableSystem({
         return <TableLayoutVenti {...layoutProps} />;
       case "harlem":
         return <TableLayoutHarlem {...layoutProps} />;
+      case "amano":
+        return <TableLayoutAmano {...layoutProps} />;
       case "studio":
         return <TableLayoutStudio {...layoutProps} />;
       default:

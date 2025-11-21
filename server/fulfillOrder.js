@@ -283,7 +283,7 @@ const fulfillOrder = async (session, billingAddress) => {
             fiscalYear,
             fiscalQuarter,
             fiscalMonth,
-            taxJurisdiction: "US", // LLC is US-based
+            taxJurisdiction: "GR", // Company is Greece-based
             taxRate: 0, // No tax on internal transfers
             notes: `Commission for order: ${order.invoiceNumber}, Rate: ${
               commission.commissionRate * 100
@@ -300,8 +300,8 @@ const fulfillOrder = async (session, billingAddress) => {
           await Commission.findByIdAndUpdate(commission._id, {
             fiscalYear,
             fiscalQuarter,
-            taxJurisdiction: "US", // LLC is US-based
-            taxLiability: commission.commissionAmount * 0.21, // Estimate 21% tax liability
+            taxJurisdiction: "GR", // Company is Greece-based
+            taxLiability: commission.commissionAmount * 0.22, // Estimate 22% tax liability (Greek corporate tax)
           });
         }
 
