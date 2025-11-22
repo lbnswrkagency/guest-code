@@ -3,9 +3,22 @@ FROM ghcr.io/puppeteer/puppeteer:21.5.2
 # Switch to root user to avoid permission issues
 USER root
 
-# Remove Google Chrome repository to avoid GPG key issues
+# Debug: List apt sources before cleanup
+RUN echo "=== APT sources BEFORE cleanup ===" \
+    && ls -la /etc/apt/sources.list.d/ || true \
+    && echo "=== Content of sources.list ===" \
+    && cat /etc/apt/sources.list || true
+
+# Remove ALL Google Chrome repository sources to avoid GPG key issues
 # (Chrome is already installed in the base image)
-RUN rm -f /etc/apt/sources.list.d/google-chrome.list
+RUN rm -f /etc/apt/sources.list.d/google-chrome.list \
+    && rm -f /etc/apt/sources.list.d/google*.list \
+    && rm -f /etc/apt/sources.list.d/*chrome*.list \
+    && rm -f /etc/apt/sources.list.d/*google*.list
+
+# Debug: List apt sources after cleanup
+RUN echo "=== APT sources AFTER cleanup ===" \
+    && ls -la /etc/apt/sources.list.d/ || true
 
 # Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \

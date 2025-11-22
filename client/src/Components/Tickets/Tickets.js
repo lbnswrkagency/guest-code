@@ -221,7 +221,8 @@ const Tickets = ({
             price: parseFloat(ticket.price) || 0,
             quantity: ticket.quantity || 0,
             available: ticket.available !== undefined ? ticket.available : true,
-            hasCountdown: !!ticket.endDate,
+            // Respect hasCountdown from DB, only default to true if not explicitly set
+            hasCountdown: ticket.hasCountdown !== undefined ? ticket.hasCountdown : !!ticket.endDate,
             endDate: ticket.endDate || null,
             ...ticket,
           };
@@ -229,17 +230,17 @@ const Tickets = ({
           return normalizedTicket;
         })
         .filter(Boolean)
-        // Filter out expired Early Bird tickets
+        // Filter out expired tickets that have countdown enabled
         .filter((ticket) => {
-          // If it's an early bird ticket with an end date
-          if (ticket.name.toLowerCase().includes("early") && ticket.endDate) {
-            // Check if the end date has passed
+          // Only filter by endDate if the ticket has countdown enabled (from DB)
+          // This respects the hasCountdown field set in the database
+          if (ticket.hasCountdown && ticket.endDate) {
             const now = new Date();
             const endDate = new Date(ticket.endDate);
             return endDate > now; // Only include if the end date is in the future
           }
 
-          // Keep all non-early bird tickets
+          // Keep tickets without countdown enabled
           return true;
         })
     );
@@ -290,6 +291,23 @@ const Tickets = ({
       );
     },
     [formatCountdown, primaryColor]
+  );
+
+  // Memoize renderLimitedBadge for limited quantity tickets
+  const renderLimitedBadge = useCallback(
+    (ticket) => {
+      if (!ticket.isLimited || !ticket.maxTickets) return null;
+
+      const remaining = ticket.maxTickets - (ticket.soldCount || 0);
+      if (remaining <= 0) return null;
+
+      return (
+        <div className="ticket-limited-badge" style={{ color: primaryColor }}>
+          <RiPriceTag3Line /> {remaining} left
+        </div>
+      );
+    },
+    [primaryColor]
   );
 
   // Memoize calculateRemainingTime
@@ -621,6 +639,7 @@ const Tickets = ({
         }}
       >
         {renderCountdown(ticket)}
+        {renderLimitedBadge(ticket)}
         {ticket.paxPerTicket > 1 && (
           <div className="ticket-group-badge">
             <FaUserFriends />
@@ -684,7 +703,7 @@ const Tickets = ({
         </div>
       </div>
     ),
-    [ticketQuantities, primaryColor, renderCountdown, handleQuantityChange]
+    [ticketQuantities, primaryColor, renderCountdown, renderLimitedBadge, handleQuantityChange]
   );
 
   // Helper function to calculate discount percentage
