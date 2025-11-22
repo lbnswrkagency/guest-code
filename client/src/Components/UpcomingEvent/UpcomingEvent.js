@@ -1675,13 +1675,18 @@ const UpcomingEvent = ({
               )}
             </div>
 
-            {/* GuestCode component section - MOVED AFTER TICKETS */}
-            <div
-              ref={guestCodeSectionRef}
-              className="upcomingEvent-guest-code-section"
-            >
-              {currentEvent && <GuestCode event={currentEvent} />}
-            </div>
+            {/* GuestCode component section - Only show if guest code is configured and enabled */}
+            {currentEvent &&
+              currentEvent.codeSettings?.find(
+                (cs) => cs.type === "guest" && cs.isEnabled
+              ) && (
+                <div
+                  ref={guestCodeSectionRef}
+                  className="upcomingEvent-guest-code-section"
+                >
+                  <GuestCode event={currentEvent} />
+                </div>
+              )}
 
             {/* Table booking section - Only shown if layout is configured */}
             {currentEvent &&

@@ -59,6 +59,8 @@ const createAadeReceipt = async (order, event) => {
       eventEndTime: event.endTime,
       eventLocation: event.location,
       orderId: order._id.toString(),
+      // Brand logo for receipt PDF
+      brandLogo: event.brand?.logo?.medium || event.brand?.logo?.full || null,
     };
 
     console.log("[FulfillOrder] Calling Accounty API with payload:", {
