@@ -498,10 +498,7 @@ const sendEmail = async (order, receiptInfo = null) => {
 
       ticketAttachments.push({
         content: pdfBuffer.toString("base64"),
-        name: `Ticket_${ticketName.replace(
-          /\s+/g,
-          "_"
-        )}_${representativeTicket.securityToken.slice(0, 8)}.pdf`,
+        name: `${ticketName.replace(/\s+/g, "_")}.pdf`,
         type: "application/pdf",
       });
     }
@@ -585,7 +582,7 @@ const sendEmail = async (order, receiptInfo = null) => {
 
             attachments.push({
               content: accountyPdfBuffer.toString("base64"),
-              name: `AADE_Receipt_${receiptInfo.mark || receiptInfo.receiptNumber}.pdf`,
+              name: `Receipt_Nr_${receiptInfo.receiptNumber}.pdf`,
               type: "application/pdf",
             });
 
