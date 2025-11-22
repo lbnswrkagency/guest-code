@@ -41,6 +41,12 @@ const checkOutSession = async (req, res) => {
     // Create the checkout session with absolute URLs
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
+      // Disable Link payment option to avoid confusion
+      payment_method_options: {
+        card: {
+          setup_future_usage: null,
+        },
+      },
       line_items,
       mode: "payment",
       success_url: `${CLIENT_URL}/paid?session_id={CHECKOUT_SESSION_ID}`,

@@ -70,10 +70,12 @@ const AfterPayment = () => {
 
   const handleContinue = async () => {
     const eventId = order?.eventId || searchParams.get("eventId");
+    console.log("[AfterPayment] handleContinue called with eventId:", eventId);
     if (eventId) {
       try {
-        // Fetch event data to create pretty URL
-        const { data } = await axiosInstance.get(`/events/${eventId}`);
+        // Fetch event data to create pretty URL - use profile endpoint (public)
+        const { data } = await axiosInstance.get(`/events/profile/${eventId}`);
+        console.log("[AfterPayment] Event data fetched:", data);
 
         if (data.success && data.event) {
           const event = data.event;
@@ -89,6 +91,7 @@ const AfterPayment = () => {
 
           // Get brand username
           const brandUsername = event.brand?.username;
+          console.log("[AfterPayment] Brand username:", brandUsername, "DateSlug:", dateSlug);
 
           if (brandUsername) {
             // Construct URL based on user authentication status with ultra-simplified format
@@ -96,12 +99,18 @@ const AfterPayment = () => {
               ? `/@${user.username}/@${brandUsername}/${dateSlug}`
               : `/@${brandUsername}/${dateSlug}`;
 
+            console.log("[AfterPayment] Navigating to:", eventPath);
             navigate(eventPath);
             return;
+          } else {
+            console.log("[AfterPayment] No brand username found, event.brand:", event.brand);
           }
+        } else {
+          console.log("[AfterPayment] No event data in response:", data);
         }
 
         // Fallback to old URL if any data is missing
+        console.log("[AfterPayment] Using fallback navigation to /events/${eventId}");
         navigate(`/events/${eventId}`);
       } catch (error) {
         console.error("[AfterPayment] Error fetching event data:", error);

@@ -43,7 +43,9 @@ const createAadeReceipt = async (order, event) => {
       items: order.tickets.map((ticket) => ({
         description: `${ticket.name} - ${event.title}`,
         quantity: ticket.quantity,
-        unitPrice: ticket.pricePerUnit,
+        // Convert gross price to net (customer pays gross, Accounty expects net)
+        // For 24% VAT: net = gross / 1.24
+        unitPrice: parseFloat((ticket.pricePerUnit / 1.24).toFixed(2)),
         vatCategory: "1", // 24% VAT
       })),
       payment: {
