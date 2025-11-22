@@ -34,7 +34,7 @@ import {
   FaCcAmex,
   FaShieldAlt,
   FaLock,
-  FaPercentage,
+  FaTag,
 } from "react-icons/fa";
 import { FaApple } from "react-icons/fa6";
 import axiosInstance from "../../utils/axiosConfig";
@@ -731,38 +731,20 @@ const Tickets = ({
                 </div>
               )}
 
-            {/* Exclusive Online Discount Banner - Show for online payments with door prices */}
+            {/* Online Savings Hint - Show for online payments with door prices */}
             {validatedTickets.length > 0 &&
               validatedTickets[0].paymentMethod === "online" &&
               validatedTickets.some((ticket) => ticket.doorPrice > ticket.price) && (
-                <motion.div
-                  className="exclusive-online-discount"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <div className="discount-content">
-                    <div className="discount-icon">
-                      <FaShieldAlt />
-                    </div>
-                    <div className="discount-details">
-                      <h3>🎯 Exclusive Online Discount</h3>
-                      <p>
-                        Save up to{" "}
-                        {Math.max(
-                          ...validatedTickets.map(
-                            (ticket) =>
-                              calculateDiscountPercentage(
-                                ticket.doorPrice,
-                                ticket.price
-                              ) || 0
-                          )
-                        )}
-                        % compared to door prices!
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
+                <div className="online-savings-hint">
+                  <FaTag />
+                  <span>
+                    Door Price:{" "}
+                    {Math.max(
+                      ...validatedTickets.map((ticket) => ticket.doorPrice || 0)
+                    ).toFixed(2)}
+                    €
+                  </span>
+                </div>
               )}
 
             <div className="tickets-list">

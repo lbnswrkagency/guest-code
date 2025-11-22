@@ -78,12 +78,12 @@ const AfterPayment = () => {
         if (data.success && data.event) {
           const event = data.event;
 
-          // Format date for URL (MMDDYY)
+          // Format date for URL (DDMMYY)
           const eventDate = new Date(event.startDate);
-          const month = String(eventDate.getMonth() + 1).padStart(2, "0");
           const day = String(eventDate.getDate()).padStart(2, "0");
+          const month = String(eventDate.getMonth() + 1).padStart(2, "0");
           const year = String(eventDate.getFullYear()).slice(2);
-          const dateSlug = `${month}${day}${year}`;
+          const dateSlug = `${day}${month}${year}`;
 
           // No longer need a title slug, using ultra-simplified format
 

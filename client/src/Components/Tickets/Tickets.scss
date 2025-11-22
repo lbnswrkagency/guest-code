@@ -304,6 +304,30 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   }
 }
 
+// Online Savings Hint - minimalist version
+.online-savings-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 6px;
+  border-left: 2px solid rgba(212, 175, 55, 0.5);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+
+  svg {
+    color: $gold-medium;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  span {
+    line-height: 1.3;
+  }
+}
+
 .tickets-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

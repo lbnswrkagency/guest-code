@@ -1,312 +1,321 @@
-@import "../../_animations";
+// TicketCodeSettings - Clean, Minimalist Refactor
+// All class names preserved for JS compatibility
 
-// Define colors directly (based on previous usage)
-// $primary-color: #ffc807; // Example primary color
-// $primary-rgb: 255, 200, 7; // RGB for primary color
-// $background-dark: #121212;
-// $text-color: #ffffff;
-// $text-secondary: #aaaaaa;
-// $text-tertiary: #757575;
-// $error-color: #f44336;
-// $danger-color: #f44336;
-// $text-muted: #aaaaaa;
-
-// Fix for drag-and-drop nested scrollable container warnings
-.ticket-code-settings,
-.ticketCodeSettings-list {
-  overflow: visible !important;
+// CSS Custom Properties for theming
+:root {
+  --tcs-primary: #ffc807;
+  --tcs-primary-rgb: 255, 200, 7;
+  --tcs-bg-dark: #121212;
+  --tcs-bg-card: rgba(255, 255, 255, 0.04);
+  --tcs-bg-hover: rgba(255, 255, 255, 0.08);
+  --tcs-text: #ffffff;
+  --tcs-text-secondary: #aaaaaa;
+  --tcs-text-muted: #666666;
+  --tcs-border: rgba(255, 255, 255, 0.1);
+  --tcs-danger: #f44336;
+  --tcs-radius: 8px;
+  --tcs-radius-lg: 12px;
 }
 
-// Also make sure parent containers don't have overflow: auto or overflow: scroll
-.code-settings-section,
-.settings-panel-content,
-.settings-panel,
-.event-settings-content,
-.code-settings-container {
-  overflow: visible !important;
-}
-
-// Make the draggable container itself the only scrollable one if needed
-.ticketCodeSettings-container {
-  max-height: calc(100vh - 240px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
-}
-
+// Main container
 .ticket-code-settings {
   width: 100%;
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
+  padding: 1rem;
+}
+
+// Ticket list wrapper
+.ticketCodeSettings-list {
+  margin-top: 1rem;
+}
+
+// Scrollable container for drag-drop
+.ticketCodeSettings-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 12px;
+  gap: 0.75rem;
 }
 
-/* Global settings section styling */
+// ============================================
+// GLOBAL SETTINGS SECTION
+// ============================================
+
 .global-settings-section {
-  margin-bottom: 2rem;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: var(--tcs-bg-card);
+  border-radius: var(--tcs-radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
 
-  .global-settings-title {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    gap: 0.5rem;
+.global-settings-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tcs-text);
 
-    svg {
-      font-size: 1.25rem;
-      color: #ffc807;
-    }
-
-    span {
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-  }
-
-  .door-price-input {
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-
-    label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-
-      small {
-        opacity: 0.7;
-        font-weight: normal;
-      }
-    }
-
-    .input-with-icon {
-      position: relative;
-      margin-bottom: 0.5rem;
-
-      svg {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #ffc807;
-        font-size: 1.1rem;
-      }
-
-      input {
-        width: 100%;
-        max-width: 200px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        padding: 0.75rem 1rem 0.75rem 2.5rem;
-        color: #fff;
-        font-size: 1rem;
-        transition: all 0.2s;
-
-        &:focus {
-          outline: none;
-          background: rgba(255, 255, 255, 0.08);
-          border-color: #ffc807;
-          box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.15);
-        }
-
-        &::-webkit-outer-spin-button,
-        &::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-
-        /* Firefox */
-        -moz-appearance: textfield;
-      }
-    }
-  }
-
-  .door-price-note {
-    margin-top: 1rem;
-    padding: 0.8rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border-left: 3px solid #ffc807;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-
-    svg {
-      color: #ffc807;
-      font-size: 1.2rem;
-      margin-top: 0.1rem;
-    }
-
-    span {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-      line-height: 1.4;
-    }
-  }
-
-  label {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 12px;
-    color: #aaaaaa;
-  }
-
-  .help-text {
-    display: block;
-    font-size: 12px;
-    color: #757575;
-    margin-top: 8px;
+  svg {
+    color: var(--tcs-primary);
+    font-size: 1.1rem;
   }
 }
 
-/* Payment method selector */
+// Payment method selector
 .payment-method-selector {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
+  gap: 0.5rem;
 
-  @media (min-width: 576px) {
-    flex-direction: row;
+  @media (max-width: 480px) {
+    flex-direction: column;
   }
 }
 
 .payment-option {
+  flex: 1;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--tcs-border);
+  border-radius: var(--tcs-radius);
   cursor: pointer;
   transition: all 0.2s ease;
-  flex: 1;
+  font-size: 0.85rem;
+  color: var(--tcs-text-secondary);
 
   svg {
-    font-size: 18px;
-    margin-right: 10px;
-    color: #aaaaaa;
+    font-size: 1rem;
+    color: var(--tcs-text-muted);
+    transition: color 0.2s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   &.selected {
-    background: rgba(255, 200, 7, 0.1);
-    border-color: #ffc807;
+    background: rgba(var(--tcs-primary-rgb), 0.1);
+    border-color: var(--tcs-primary);
+    color: var(--tcs-text);
 
     svg {
-      color: #ffc807;
+      color: var(--tcs-primary);
     }
   }
 }
 
-/* Ticket list container */
-.ticketCodeSettings-list {
-  padding: 4px;
-  margin-top: 8px;
+// Door price input section
+.door-price-input {
+  margin-top: 1.25rem;
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--tcs-text-secondary);
+    margin-bottom: 0.5rem;
+
+    small {
+      opacity: 0.7;
+      margin-left: 0.25rem;
+    }
+  }
 }
 
-.ticketCodeSettings-container {
+.input-with-icon {
+  position: relative;
+  display: inline-block;
+
+  svg {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--tcs-primary);
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
+
+  input {
+    width: 140px;
+    padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--tcs-border);
+    border-radius: var(--tcs-radius);
+    color: var(--tcs-text);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--tcs-primary);
+      box-shadow: 0 0 0 2px rgba(var(--tcs-primary-rgb), 0.15);
+    }
+
+    // Hide number spinners
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+  }
+}
+
+.help-text {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--tcs-text-muted);
+  margin-top: 0.35rem;
+}
+
+.door-price-note {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--tcs-radius);
+  border-left: 3px solid var(--tcs-primary);
+
+  svg {
+    color: var(--tcs-primary);
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  span {
+    font-size: 0.8rem;
+    color: var(--tcs-text-secondary);
+    line-height: 1.4;
+  }
 }
 
-/* Ticket item styling */
+// ============================================
+// TICKET ITEM
+// ============================================
+
 .ticketCodeSettings-item {
   display: flex;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  align-items: stretch;
+  background: var(--tcs-bg-card);
+  border-radius: var(--tcs-radius-lg);
+  border-left: 4px solid var(--ticket-color, var(--tcs-primary));
   transition: all 0.2s ease;
-  border-left: 4px solid var(--ticket-color, #ffc807);
-  min-height: 135px;
-  position: relative;
+  overflow: hidden;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    background: var(--tcs-bg-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   &.is-dragging {
-    background: rgba(255, 200, 7, 0.1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background: rgba(var(--tcs-primary-rgb), 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  &.not-visible {
+    opacity: 0.5;
+    border-left-color: var(--tcs-text-muted);
+
+    .ticket-title-section h4 {
+      text-decoration: line-through;
+      color: var(--tcs-text-secondary);
+    }
+
+    .ticket-price-section {
+      opacity: 0.6;
+    }
+
+    &:hover {
+      opacity: 0.7;
+    }
   }
 }
 
+// Drag handle
 .ticketCodeSettings-drag-handle {
-  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 0.75rem;
   cursor: grab;
-  color: #757575;
-  background: rgba(0, 0, 0, 0.05);
+  color: var(--tcs-text-muted);
+  background: rgba(0, 0, 0, 0.1);
+  transition: color 0.2s ease;
 
   &:hover {
-    color: #aaaaaa;
+    color: var(--tcs-text-secondary);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 
   svg {
-    font-size: 20px;
+    font-size: 1rem;
   }
 }
 
-/* Ticket content area */
+// Content area
 .ticketCodeSettings-content {
   flex: 1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  justify-content: space-between;
+  padding: 1rem;
+  gap: 1rem;
+  min-width: 0;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
 }
 
 .ticket-main-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
+  gap: 0.5rem;
 }
 
 .ticket-title-section {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 0.5rem;
 
   h4 {
     margin: 0;
-    font-size: 16px;
+    font-size: 0.95rem;
     font-weight: 600;
+    color: var(--tcs-text);
   }
 }
 
 .ticket-group-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 200, 7, 0.15);
-  color: #ffc807;
-  border-radius: 20px;
-  padding: 4px 10px;
-  font-size: 12px;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(var(--tcs-primary-rgb), 0.15);
+  color: var(--tcs-primary);
+  border-radius: 1rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  white-space: nowrap;
 
   svg {
-    margin-right: 5px;
-    font-size: 14px;
+    font-size: 0.7rem;
   }
 }
 
@@ -314,140 +323,129 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 0.15rem;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
 
   .current-price {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--ticket-color);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ticket-color, var(--tcs-primary));
   }
 
   .original-price {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    color: var(--tcs-text-secondary);
     text-decoration: line-through;
-    color: rgba(255, 255, 255, 0.7);
   }
 
   .door-price {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.7rem;
+    color: var(--tcs-text-secondary);
     background: rgba(0, 0, 0, 0.3);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
-    margin-top: 0.3rem;
   }
 }
 
-/* Action buttons */
+// ============================================
+// ACTION BUTTONS
+// ============================================
+
 .ticketCodeSettings-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.4rem;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    align-self: flex-end;
+  }
 
   button {
-    background: rgba(255, 255, 255, 0.07);
-    border: none;
-    border-radius: 8px;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #aaaaaa;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 6px;
+    color: var(--tcs-text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-    }
-
-    &.edit-button:hover {
-      background: #ffc807;
-      color: white;
-    }
-
-    &.delete-button:hover {
-      background: #f44336;
-      color: white;
-    }
+    transition: all 0.15s ease;
 
     svg {
-      font-size: 16px;
+      font-size: 0.85rem;
     }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--tcs-text);
+    }
+  }
+
+  .visibility-button {
+    &.visible {
+      color: var(--tcs-text-secondary);
+    }
+
+    &.hidden {
+      color: var(--tcs-danger);
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .edit-button:hover {
+    background: var(--tcs-primary);
+    color: #000;
+  }
+
+  .delete-button:hover {
+    background: var(--tcs-danger);
+    color: var(--tcs-text);
   }
 }
 
-/* Add ticket button */
+// ============================================
+// ADD TICKET BUTTON
+// ============================================
+
 .add-ticket-button-container {
   display: flex;
   justify-content: center;
-  margin-top: 8px;
-  margin-bottom: 16px;
+  margin-top: 1rem;
 }
 
 .add-ticket-button {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(255, 200, 7, 0.1);
-  color: #ffc807;
-  border: 1px dashed #ffc807;
-  border-radius: 8px;
-  padding: 12px 24px;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: 1px dashed rgba(var(--tcs-primary-rgb), 0.5);
+  border-radius: var(--tcs-radius);
+  color: var(--tcs-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-weight: 500;
-
-  &:hover {
-    background: rgba(255, 200, 7, 0.2);
-    transform: translateY(-2px);
-  }
 
   svg {
-    font-size: 18px;
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 576px) {
-  .ticketCodeSettings-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .ticketCodeSettings-actions {
-    align-self: flex-end;
-  }
-}
-
-// Visibility button specific styles
-.visibility-button {
-  color: #aaaaaa;
-  &.hidden {
-    color: #f44336;
-  }
-  &:hover {
-    background-color: rgba(170, 170, 170, 0.1);
-  }
-}
-
-// Style for non-visible tickets
-.ticketCodeSettings-item.not-visible {
-  opacity: 0.6;
-  background-color: #1e1e1e;
-  border-left-color: #aaaaaa;
-
-  h4 {
-    color: #aaaaaa;
-    text-decoration: line-through;
-  }
-  .ticket-price-section {
-    opacity: 0.5;
+    font-size: 1rem;
   }
 
   &:hover {
-    opacity: 0.8;
-    background-color: #242424;
+    background: rgba(var(--tcs-primary-rgb), 0.1);
+    border-color: var(--tcs-primary);
+    transform: translateY(-1px);
   }
 }

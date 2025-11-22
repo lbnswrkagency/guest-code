@@ -3,8 +3,9 @@ FROM ghcr.io/puppeteer/puppeteer:21.5.2
 # Switch to root user to avoid permission issues
 USER root
 
-# Resolve potential duplicate source entries
-RUN sed -i '/google/d' /etc/apt/sources.list.d/google-chrome.list
+# Remove Google Chrome repository to avoid GPG key issues
+# (Chrome is already installed in the base image)
+RUN rm -f /etc/apt/sources.list.d/google-chrome.list
 
 # Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
