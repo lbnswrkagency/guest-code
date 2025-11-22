@@ -89,6 +89,7 @@ const EventSchema = new Schema(
     isWeekly: { type: Boolean, default: false },
     parentEventId: { type: Schema.Types.ObjectId, ref: "Event" },
     weekNumber: { type: Number, default: 0 },
+    sourceEventId: { type: Schema.Types.ObjectId, ref: "Event" }, // For non-weekly series: tracks which event this was created from
     isLive: { type: Boolean, default: false },
     lineups: [{ type: Schema.Types.ObjectId, ref: "LineUp" }],
     slug: { type: String }, // URL-friendly slug for the event

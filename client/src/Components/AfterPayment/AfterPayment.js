@@ -152,15 +152,6 @@ const AfterPayment = () => {
                   Amount: {order.originalAmount?.toFixed(2)}{" "}
                   {order.originalCurrency}
                 </p>
-                {order.conversionRate && order.conversionRate !== 1 && (
-                  <p className="conversion-info">
-                    ≈ {order.totalAmount?.toFixed(2)} USD (Rate:{" "}
-                    {order.conversionRate?.toFixed(4)})
-                    {order.isEstimatedRate && (
-                      <span className="estimated-rate">*estimated</span>
-                    )}
-                  </p>
-                )}
               </div>
             )}
             <motion.button

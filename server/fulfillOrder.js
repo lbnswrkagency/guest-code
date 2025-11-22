@@ -1,22 +1,113 @@
 const Order = require("./models/orderModel");
 const Event = require("./models/eventsModel");
 const TicketSettings = require("./models/ticketSettingsModel");
-const Commission = require("./models/commissionModel");
-const TransactionLedger = require("./models/transactionLedgerModel");
-const RevenueSharing = require("./models/revenueSharingModel");
 const { sendEmail } = require("./utils/sendEmail");
-const vatRates = require("./utils/vatRates");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
-// const { sendInvoice } = require("./sendInvoice");
 
-// Function to generate invoice number from session ID
-const generateInvoiceNumber = (sessionId) => {
-  if (!sessionId) return "INV-0000";
-  // Take the last 4 characters of the session ID
-  const shortCode = sessionId.slice(-4).toUpperCase();
-  return `INV-${shortCode}`;
+// Function to create AADE receipt via Accounty API
+const createAadeReceipt = async (order, event) => {
+  try {
+    console.log("[FulfillOrder] Creating AADE receipt via Accounty API");
+
+    const accountyUrl = process.env.ACCOUNTY_API_URL;
+    const accountyKey = process.env.ACCOUNTY_API_KEY;
+
+    // Debug: Log the actual values being used
+    console.log("[FulfillOrder] DEBUG - Accounty config:", {
+      url: accountyUrl,
+      keyLength: accountyKey?.length,
+      keyStart: accountyKey?.substring(0, 10),
+      keyEnd: accountyKey?.substring(accountyKey.length - 5),
+    });
+
+    if (!accountyUrl || !accountyKey) {
+      console.warn("[FulfillOrder] Accounty API credentials not configured");
+      return null;
+    }
+
+    // Build receipt payload
+    const receiptData = {
+      customer: {
+        email: order.email,
+        firstName: order.firstName,
+        lastName: order.lastName,
+        address: {
+          street: order.billingAddress?.line1 || "",
+          city: order.billingAddress?.city || "",
+          postalCode: order.billingAddress?.postal_code || "",
+          country: order.billingAddress?.country || "GR",
+        },
+      },
+      items: order.tickets.map((ticket) => ({
+        description: `${ticket.name} - ${event.title}`,
+        quantity: ticket.quantity,
+        unitPrice: ticket.pricePerUnit,
+        vatCategory: "1", // 24% VAT
+      })),
+      payment: {
+        method: "4", // Credit card
+        stripeSessionId: order.stripeSessionId,
+        totalAmount: order.originalAmount,
+      },
+      eventName: event.title,
+      eventDate: event.startDate || event.date,
+      eventTime: event.startTime,
+      eventEndTime: event.endTime,
+      eventLocation: event.location,
+      orderId: order._id.toString(),
+    };
+
+    console.log("[FulfillOrder] Calling Accounty API with payload:", {
+      customer: receiptData.customer.email,
+      itemCount: receiptData.items.length,
+      totalAmount: receiptData.payment.totalAmount,
+    });
+
+    const response = await fetch(`${accountyUrl}/external/receipts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": accountyKey,
+      },
+      body: JSON.stringify(receiptData),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log("[FulfillOrder] AADE receipt created successfully:", {
+        receiptNumber: result.receipt.receiptNumber,
+        mark: result.receipt.mark,
+        status: result.receipt.status,
+      });
+
+      return {
+        accountyId: result.receipt.id,
+        receiptNumber: result.receipt.receiptNumber,
+        mark: result.receipt.mark,
+        qrCode: result.receipt.qrCode,
+        status: result.receipt.status,
+        errors: result.receipt.errors || [],
+        createdAt: new Date(),
+      };
+    } else {
+      console.error("[FulfillOrder] Accounty API error:", result.message);
+      return {
+        status: "failed",
+        errors: [{ code: "API_ERROR", message: result.message }],
+        createdAt: new Date(),
+      };
+    }
+  } catch (error) {
+    console.error("[FulfillOrder] Error calling Accounty API:", error.message);
+    return {
+      status: "failed",
+      errors: [{ code: "NETWORK_ERROR", message: error.message }],
+      createdAt: new Date(),
+    };
+  }
 };
 
 const fulfillOrder = async (session, billingAddress) => {
@@ -47,28 +138,6 @@ const fulfillOrder = async (session, billingAddress) => {
       throw new Error(`Event with ID ${eventId} not found`);
     }
 
-    const brandId = event.brand?._id;
-    // Get user ID from either the owner field or the first team member
-    const userId =
-      event.brand?.owner ||
-      (event.brand?.team && event.brand.team.length > 0
-        ? event.brand.team[0].user
-        : null);
-
-    if (!brandId || !userId) {
-      console.warn(
-        "[FulfillOrder] Warning: Brand ID or User ID not found for event:",
-        {
-          eventId,
-          brandId: event.brand?._id,
-          brandOwner: event.brand?.owner,
-          teamUserFirst:
-            event.brand?.team && event.brand.team.length > 0
-              ? event.brand.team[0].user
-              : undefined,
-        }
-      );
-    }
 
     // Get customer email from session (try multiple possible locations)
     const email =
@@ -98,107 +167,41 @@ const fulfillOrder = async (session, billingAddress) => {
       );
     }
 
-    // Generate invoice number
-    const invoiceNumber = generateInvoiceNumber(session.id);
-    console.log("[FulfillOrder] Generated invoice number:", invoiceNumber);
-
-    // Get currency information and exchange rate
+    // Get currency information
     const originalCurrency = session.currency.toUpperCase(); // Should be "EUR"
-    const originalAmount = session.amount_total / 100; // Original EUR amount
+    const originalAmount = session.amount_total / 100; // Amount in EUR
 
-    // Get exchange rate from external API
-    let conversionRate = null;
-    let usdAmount = originalAmount; // Default if we can't get conversion
-    let isEstimatedRate = true; // Default to true until we get a real rate
+    console.log("[FulfillOrder] Payment amount:", {
+      currency: originalCurrency,
+      amount: originalAmount,
+    });
 
-    try {
-      console.log(
-        "[FulfillOrder] Fetching real-time exchange rate from external API"
-      );
-
-      // Using a free, no-auth required API for exchange rates
-      const response = await fetch(
-        `https://open.er-api.com/v6/latest/${originalCurrency}`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.rates && data.rates.USD) {
-          conversionRate = data.rates.USD;
-          usdAmount = originalAmount * conversionRate;
-          isEstimatedRate = false; // Using real rate from API
-
-          console.log("[FulfillOrder] Retrieved real-time exchange rate:", {
-            source: "open.er-api.com",
-            originalCurrency,
-            originalAmount,
-            conversionRate,
-            usdAmount,
-            timestamp: data.time_last_update_utc,
-          });
-        } else {
-          throw new Error("USD rate not found in API response");
-        }
-      } else {
-        throw new Error(`API responded with status: ${response.status}`);
-      }
-    } catch (apiError) {
-      console.error("[FulfillOrder] Error fetching exchange rate:", apiError);
-
-      // Use fallback exchange rate
-      conversionRate = 1.08; // Updated default as of 2024
-      usdAmount = originalAmount * conversionRate;
-      isEstimatedRate = true; // Using estimated fallback rate
-
-      console.log("[FulfillOrder] Using fallback exchange rate:", {
-        rate: conversionRate,
-        originalAmount,
-        usdAmount,
-      });
-    }
-
-    // Get country code from billing address for VAT calculation
+    // Get billing country
     const countryCode = billingAddress?.country || "";
-    console.log(
-      "[FulfillOrder] Customer country for VAT calculation:",
-      countryCode
-    );
 
-    // Validate the country code - ensure it's properly formatted
-    const validatedCountryCode = countryCode
-      ? countryCode.trim().toUpperCase()
-      : "";
-    if (validatedCountryCode && validatedCountryCode.length !== 2) {
-      console.warn(
-        `[FulfillOrder] Invalid country code format: ${countryCode}`
-      );
-    }
+    // Calculate platform fee and host earnings from env
+    const platformFeeRate = parseFloat(process.env.PLATFORM_FEE_RATE) || 0.039;
+    const platformFee = originalAmount * platformFeeRate;
+    const hostEarnings = originalAmount - platformFee;
 
-    // Get applicable VAT rate for the customer's country
-    const vatRate = vatRates.getVatRateForCountry(validatedCountryCode);
-    console.log(
-      `[FulfillOrder] Applied VAT rate for country ${validatedCountryCode}: ${vatRate}%`
-    );
+    console.log("[FulfillOrder] Commission calculation:", {
+      originalAmount,
+      platformFeeRate: `${platformFeeRate * 100}%`,
+      platformFee,
+      hostEarnings,
+    });
 
-    // Additional check: log if country and VAT seem mismatched (e.g., DE with non-German VAT)
-    if (validatedCountryCode === "DE" && vatRate !== 19) {
-      console.warn(
-        `[FulfillOrder] Possible VAT mismatch: Country is Germany but VAT is ${vatRate}%`
-      );
-    } else if (validatedCountryCode === "GR" && vatRate !== 24) {
-      console.warn(
-        `[FulfillOrder] Possible VAT mismatch: Country is Greece but VAT is ${vatRate}%`
-      );
-    }
+    // VAT rate - default to Greek 24% (event location based, not customer)
+    // TODO: When event.country field is added, use that instead
+    const vatRate = 24;
 
     console.log("[FulfillOrder] Creating order in database...");
-    // Create the order with both original and converted currency info
+    // Create the order with embedded commission
     const order = await Order.create({
       eventId,
       email,
       firstName,
       lastName,
-      invoiceNumber,
       tickets: tickets.map((ticket) => ({
         ticketId: ticket.ticketId,
         name: ticket.name,
@@ -207,9 +210,6 @@ const fulfillOrder = async (session, billingAddress) => {
       })),
       originalCurrency,
       originalAmount,
-      conversionRate,
-      vatRate,
-      totalAmount: usdAmount,
       stripeSessionId: session.id,
       billingAddress: {
         line1: billingAddress?.line1 || "",
@@ -219,217 +219,25 @@ const fulfillOrder = async (session, billingAddress) => {
         postal_code: billingAddress?.postal_code || "",
         country: countryCode,
       },
+      // Embedded commission
+      platformFeeRate,
+      platformFee,
+      hostEarnings,
+      hostPayoutStatus: "pending",
+      // VAT
+      vatRate,
+      // Status
       status: "completed",
       paymentStatus: "paid",
-      isEstimatedRate,
     });
 
-    // Create transaction ledger entries for the order
-    const createTransactionLedgerEntries = async (order, commission) => {
-      try {
-        console.log("[FulfillOrder] Creating transaction ledger entries");
-
-        const transactionDate = new Date();
-        const fiscalYear = transactionDate.getFullYear();
-        const fiscalMonth = transactionDate.getMonth() + 1;
-        const fiscalQuarter = Math.floor((fiscalMonth - 1) / 3) + 1;
-
-        // 1. Record the sale - customer payment received
-        const saleLedgerEntry = await TransactionLedger.create({
-          transactionDate,
-          transactionType: "sale",
-          description: `Ticket sale for event ${order.eventId}`,
-          debitAccount: "cash", // Money received
-          creditAccount: "revenue", // Revenue recognized
-          amount: order.totalAmount,
-          currency: "USD",
-          originalAmount: order.originalAmount,
-          originalCurrency: order.originalCurrency,
-          conversionRate: order.conversionRate,
-          orderId: order._id,
-          eventId: order.eventId,
-          userId: order.userId,
-          fiscalYear,
-          fiscalQuarter,
-          fiscalMonth,
-          taxJurisdiction: order.billingAddress?.country,
-          taxRate: order.vatRate / 100, // Convert percentage to decimal
-          taxAmount:
-            order.originalAmount -
-            order.originalAmount / (1 + order.vatRate / 100),
-          notes: `Invoice: ${order.invoiceNumber}, SessionID: ${order.stripeSessionId}`,
-          createdBy: "system",
-        });
-
-        console.log(
-          "[FulfillOrder] Created sale ledger entry:",
-          saleLedgerEntry._id
-        );
-
-        // 2. Record the commission earned
-        if (commission) {
-          const commissionLedgerEntry = await TransactionLedger.create({
-            transactionDate,
-            transactionType: "commission",
-            description: `Commission earned from ticket sale for event ${order.eventId}`,
-            debitAccount: "revenue", // Reduces total revenue
-            creditAccount: "accounts_payable", // We owe this to the event creator
-            amount: commission.commissionAmount,
-            currency: "USD",
-            commissionId: commission._id,
-            orderId: order._id,
-            eventId: order.eventId,
-            userId: commission.userId,
-            fiscalYear,
-            fiscalQuarter,
-            fiscalMonth,
-            taxJurisdiction: "GR", // Company is Greece-based
-            taxRate: 0, // No tax on internal transfers
-            notes: `Commission for order: ${order.invoiceNumber}, Rate: ${
-              commission.commissionRate * 100
-            }%`,
-            createdBy: "system",
-          });
-
-          console.log(
-            "[FulfillOrder] Created commission ledger entry:",
-            commissionLedgerEntry._id
-          );
-
-          // Update commission with fiscal data
-          await Commission.findByIdAndUpdate(commission._id, {
-            fiscalYear,
-            fiscalQuarter,
-            taxJurisdiction: "GR", // Company is Greece-based
-            taxLiability: commission.commissionAmount * 0.22, // Estimate 22% tax liability (Greek corporate tax)
-          });
-        }
-
-        return true;
-      } catch (ledgerError) {
-        console.error(
-          "[FulfillOrder] Error creating transaction ledger entries:",
-          ledgerError
-        );
-        // Don't throw error, non-critical for order fulfillment
-        return false;
-      }
-    };
-
-    // Create commission record if we have brand and user info
-    if (brandId && userId) {
-      try {
-        // Get commission rate from RevenueSharing model - no fallback defaults
-        let commissionRate;
-
-        // Try to find event-specific settings
-        let revenueSharing = await RevenueSharing.findOne({
-          eventId: eventId,
-          isActive: true,
-        });
-
-        // If no event-specific settings, try brand-specific settings
-        if (!revenueSharing) {
-          revenueSharing = await RevenueSharing.findOne({
-            brandId: brandId,
-            isActive: true,
-          });
-        }
-
-        // If still no settings, use global default
-        if (!revenueSharing) {
-          revenueSharing = await RevenueSharing.findOne({
-            eventId: null,
-            brandId: null,
-            isActive: true,
-          });
-        }
-
-        // Ensure we have revenue sharing settings
-        if (!revenueSharing) {
-          console.error(
-            "[FulfillOrder] No active revenue sharing settings found. Commission cannot be calculated."
-          );
-          throw new Error(
-            "Revenue sharing settings not found. Please set up commission rates in the database."
-          );
-        }
-
-        // Set commission rate from revenue sharing record
-        commissionRate = revenueSharing.platformCommissionRate / 100; // Convert from percentage to decimal
-        console.log(
-          `[FulfillOrder] Using commission rate from settings: ${
-            commissionRate * 100
-          }%`
-        );
-
-        // Calculate commission amount
-        const commissionAmount = usdAmount * commissionRate;
-
-        console.log("[FulfillOrder] Creating commission record with:", {
-          brandId,
-          userId,
-          eventId,
-          isGuestPurchase: !session.metadata.userId,
-          orderAmount: usdAmount,
-          rate: commissionRate,
-          commissionAmount: commissionAmount,
-        });
-
-        const commission = await Commission.create({
-          orderId: order._id,
-          eventId,
-          brandId,
-          userId,
-          isGuestPurchase: !session.metadata.userId,
-          orderAmount: usdAmount, // Use USD amount for commission
-          commissionRate: commissionRate,
-          commissionAmount: commissionAmount,
-          status: "pending",
-        });
-
-        // Update order with commission reference
-        await Order.findByIdAndUpdate(order._id, {
-          commissionId: commission._id,
-        });
-
-        console.log("[FulfillOrder] Commission record created successfully:", {
-          commissionId: commission._id,
-          amount: commission.commissionAmount,
-          currency: "USD",
-          status: commission.status,
-          isGuestPurchase: commission.isGuestPurchase,
-        });
-
-        // Create transaction ledger entries
-        await createTransactionLedgerEntries(order, commission);
-      } catch (commissionError) {
-        console.error(
-          "[FulfillOrder] Error creating commission record:",
-          commissionError,
-          {
-            error: commissionError.message,
-            stack: commissionError.stack,
-            code: commissionError.code,
-            brandId,
-            userId,
-            orderId: order._id,
-          }
-        );
-        // Don't throw error, as we still want to complete the order
-      }
-    } else {
-      console.log(
-        "[FulfillOrder] Skipping commission creation - missing brand or user info:",
-        {
-          brandId: brandId || "Missing",
-          userId: userId || "Missing",
-        }
-      );
-
-      // Still create transaction ledger entries even without commission
-      await createTransactionLedgerEntries(order, null);
-    }
+    console.log("[FulfillOrder] Order created with embedded commission:", {
+      orderId: order._id,
+      originalAmount,
+      platformFee,
+      hostEarnings,
+      currency: "EUR",
+    });
 
     console.log("[FulfillOrder] Updating ticket counts in TicketSettings...");
     // Update ticket counts in TicketSettings
@@ -460,10 +268,39 @@ const fulfillOrder = async (session, billingAddress) => {
       }
     }
 
+    // Create AADE receipt via Accounty
+    console.log("[FulfillOrder] Creating AADE receipt...");
+    let receiptInfo = null;
+    try {
+      receiptInfo = await createAadeReceipt(order, event);
+
+      if (receiptInfo) {
+        // Update order with receipt info
+        const receiptSent = receiptInfo.status === "transmitted";
+        await Order.findByIdAndUpdate(order._id, {
+          aadeReceipt: receiptInfo,
+          receiptSent: receiptSent,
+        });
+
+        console.log("[FulfillOrder] Order updated with AADE receipt:", {
+          receiptNumber: receiptInfo.receiptNumber,
+          mark: receiptInfo.mark,
+          status: receiptInfo.status,
+          receiptSent: receiptSent,
+        });
+      }
+    } catch (receiptError) {
+      console.error(
+        "[FulfillOrder] Error creating AADE receipt:",
+        receiptError
+      );
+      // Continue with order - receipt can be retried later
+    }
+
     // Send confirmation email
     console.log("[FulfillOrder] Sending confirmation email to customer...");
     try {
-      await sendEmail(order);
+      await sendEmail(order, receiptInfo);
       console.log("[FulfillOrder] Confirmation email sent successfully");
     } catch (emailError) {
       console.error(

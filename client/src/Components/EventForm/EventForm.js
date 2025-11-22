@@ -97,12 +97,14 @@ const EventForm = ({
   selectedBrand,
   weekNumber = 0,
   parentEventData,
+  templateEvent, // For creating related events from template (non-weekly series)
 }) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const isChildEvent =
     event?.parentEventId || (event?.isWeekly && weekNumber > 0);
   const isNewChildEvent = !event?._id && isChildEvent && parentEventData;
+  const isCreatingFromTemplate = !event && templateEvent && !parentEventData;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Parse event dates and times
@@ -146,15 +148,16 @@ const EventForm = ({
 
   const { startDate, endDate } = parseEventDateTime(event);
 
-  // Determine initial data based on whether it's a new child event
-  const initialData = isNewChildEvent
-    ? {
-        // Inherit from parent
+  // Determine initial data based on whether it's a new child event or creating from template
+  const getInitialData = () => {
+    if (isNewChildEvent) {
+      // Inherit from parent (for weekly child events)
+      return {
         title: parentEventData?.title || "",
         subTitle: parentEventData?.subTitle || "",
         description: parentEventData?.description || "",
-        startDate: startDate instanceof Date ? startDate : new Date(), // Ensure valid Date object
-        endDate: endDate instanceof Date ? endDate : new Date(), // Ensure valid Date object
+        startDate: startDate instanceof Date ? startDate : new Date(),
+        endDate: endDate instanceof Date ? endDate : new Date(),
         location: parentEventData?.location || "",
         street: parentEventData?.street || "",
         postalCode: parentEventData?.postalCode || "",
@@ -167,14 +170,39 @@ const EventForm = ({
         ticketCode: parentEventData?.ticketCode || false,
         tableCode: parentEventData?.tableCode || false,
         tableLayout: parentEventData?.tableLayout || "",
-      }
-    : {
-        // Use existing event data or defaults
+      };
+    } else if (isCreatingFromTemplate) {
+      // Inherit from template (for non-weekly event series)
+      // Determine parentEventId: if template has a parent, use that; otherwise template is the parent
+      const parentId = templateEvent?.parentEventId || templateEvent?._id || null;
+      return {
+        title: templateEvent?.title || "",
+        subTitle: templateEvent?.subTitle || "",
+        description: templateEvent?.description || "",
+        startDate: new Date(), // Clear date - user must select new date
+        endDate: new Date(), // Clear date - user must select new date
+        location: templateEvent?.location || "",
+        street: templateEvent?.street || "",
+        postalCode: templateEvent?.postalCode || "",
+        city: templateEvent?.city || "",
+        music: templateEvent?.music || "",
+        isWeekly: false, // Not a weekly event
+        flyer: null, // Will inherit flyers in useEffect
+        guestCode: templateEvent?.guestCode || false,
+        friendsCode: templateEvent?.friendsCode || false,
+        ticketCode: templateEvent?.ticketCode || false,
+        tableCode: templateEvent?.tableCode || false,
+        tableLayout: templateEvent?.tableLayout || "",
+        parentEventId: parentId, // Link to parent for series navigation
+      };
+    } else {
+      // Use existing event data or defaults
+      return {
         title: event?.title || "",
         subTitle: event?.subTitle || "",
         description: event?.description || "",
-        startDate: startDate instanceof Date ? startDate : new Date(), // Ensure valid Date object
-        endDate: endDate instanceof Date ? endDate : new Date(), // Ensure valid Date object
+        startDate: startDate instanceof Date ? startDate : new Date(),
+        endDate: endDate instanceof Date ? endDate : new Date(),
         location: event?.location || "",
         street: event?.street || "",
         postalCode: event?.postalCode || "",
@@ -188,6 +216,10 @@ const EventForm = ({
         tableCode: event?.tableCode || false,
         tableLayout: event?.tableLayout || "",
       };
+    }
+  };
+
+  const initialData = getInitialData();
 
   const [formData, setFormData] = useState(initialData);
 
@@ -1418,8 +1450,80 @@ const EventForm = ({
 
       // Call the async function
       fetchSequentialInheritanceData();
+    } else if (isCreatingFromTemplate && templateEvent) {
+      // Creating a related event from template (non-weekly series)
+      // Determine the parent: if templateEvent has a parent, use that; otherwise templateEvent is the parent
+      const parentId = templateEvent.parentEventId || templateEvent._id;
+
+      setFormData({
+        title: templateEvent.title || "",
+        subTitle: templateEvent.subTitle || "",
+        description: templateEvent.description || "",
+        date: "",
+        startDate: new Date(), // User must select new date
+        endDate: new Date(), // User must select new date
+        startTime: templateEvent.startTime || "",
+        endTime: templateEvent.endTime || "",
+        location: templateEvent.location || "",
+        street: templateEvent.street || "",
+        postalCode: templateEvent.postalCode || "",
+        city: templateEvent.city || "",
+        music: templateEvent.music || "",
+        isWeekly: false, // Not a weekly event but still a child
+        isLive: false,
+        flyer: templateEvent.flyer || null,
+        guestCode: templateEvent.guestCode || false,
+        friendsCode: templateEvent.friendsCode || false,
+        ticketCode: templateEvent.ticketCode || false,
+        tableCode: templateEvent.tableCode || false,
+        tableLayout: templateEvent.tableLayout || "",
+        parentEventId: parentId, // Make it a child event for navigation
+      });
+
+      // Copy template's lineups
+      if (Array.isArray(templateEvent.lineups)) {
+        setSelectedLineups(templateEvent.lineups);
+      } else {
+        setSelectedLineups([]);
+      }
+
+      // Copy template's genres
+      if (Array.isArray(templateEvent.genres) && templateEvent.genres.length > 0) {
+        if (typeof templateEvent.genres[0] === "object") {
+          setSelectedGenres(templateEvent.genres);
+        } else {
+          setGenreIdsToSelect(templateEvent.genres);
+        }
+      } else {
+        setSelectedGenres([]);
+      }
+
+      // Copy template's co-hosts
+      if (Array.isArray(templateEvent.coHosts)) {
+        const validCoHosts = templateEvent.coHosts.filter((coHost) => coHost && coHost._id);
+        setSelectedCoHosts(validCoHosts);
+      } else {
+        setSelectedCoHosts([]);
+      }
+
+      // Copy flyer previews from template
+      if (templateEvent.flyer) {
+        const previews = {};
+        Object.entries(templateEvent.flyer).forEach(([format, urls]) => {
+          if (urls) {
+            previews[format] = {
+              thumbnail: urls.thumbnail,
+              medium: urls.medium,
+              full: urls.full,
+              blur: urls.blur || urls.thumbnail,
+              isExisting: true,
+            };
+          }
+        });
+        setFlyerPreviews(previews);
+      }
     } else {
-      // Reset form for new events (non-child)
+      // Reset form for new events (non-child, non-template)
       setFormData({
         title: "",
         subTitle: "",
@@ -1444,9 +1548,10 @@ const EventForm = ({
       });
       setSelectedLineups([]);
       setSelectedGenres([]);
-      // ... reset other state ...
+      setSelectedCoHosts([]);
+      setFlyerPreviews({});
     }
-  }, [event, parentEventData, weekNumber]); // Add parentEventData and weekNumber to dependencies
+  }, [event, parentEventData, weekNumber, templateEvent, isCreatingFromTemplate]); // Add templateEvent to dependencies
 
   // Add effect to match genre IDs with full genre objects when allGenres changes
   useEffect(() => {

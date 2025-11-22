@@ -59,14 +59,15 @@ exports.getUpcomingEventData = async (req, res) => {
 
     
 
-    // Step 3: Smart child events fetching (only for relevant weekly parents)
+    // Step 3: Smart child events fetching (for all potential parents - weekly and non-weekly)
     let allEvents = [...parentEvents];
-    
-    const weeklyParents = parentEvents.filter(event => event.isWeekly);
-    if (weeklyParents.length > 0) {
-      
+
+    // Include all events that could be parents (events without a parentEventId)
+    const potentialParents = parentEvents.filter(event => !event.parentEventId);
+    if (potentialParents.length > 0) {
+
       const childEvents = await Event.find({
-        parentEventId: { $in: weeklyParents.map(p => p._id) }
+        parentEventId: { $in: potentialParents.map(p => p._id) }
       })
       .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
       .populate("brand", "name username logo")

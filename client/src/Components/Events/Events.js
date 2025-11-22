@@ -163,8 +163,10 @@ const Events = () => {
   const [isLive, setIsLive] = useState(false); // Track live status
   const [brandsLoaded, setBrandsLoaded] = useState(false);
   const [parentEventForForm, setParentEventForForm] = useState(null);
+  const [templateEvent, setTemplateEvent] = useState(null); // For creating related events from template
   const [favoriteBrands, setFavoriteBrands] = useState([]);
   const [favoriteEvents, setFavoriteEvents] = useState([]);
+  const [eventRefreshKey, setEventRefreshKey] = useState(0); // Key to force refresh of series events
 
   // Prepare brand with events and role data (copied from Dashboard.js)
   const prepareBrandWithData = (brand) => {
@@ -300,12 +302,23 @@ const Events = () => {
     // Store the parent event data if provided (for new child events)
     setParentEventForForm(parentEventData);
     setCurrentWeek(weekNumber);
+    setTemplateEvent(null); // Clear template event when editing
+    setShowForm(true);
+  };
+
+  // Handler for creating a related event (for non-weekly event series)
+  const handleCreateRelatedEvent = (sourceEvent) => {
+    setSelectedEvent(null); // This is a new event
+    setParentEventForForm(null); // Not a child event
+    setTemplateEvent(sourceEvent); // Use source event as template
+    setCurrentWeek(0);
     setShowForm(true);
   };
 
   const handleClose = () => {
     setShowForm(false);
     setSelectedEvent(null);
+    setTemplateEvent(null); // Clear template event
     // We don't reset currentWeek here to preserve the week navigation state
   };
 
@@ -408,6 +421,9 @@ const Events = () => {
 
       // After updating the events array, fetch all events again to ensure we have the latest data
       await fetchEvents();
+
+      // Increment refresh key to trigger series events re-fetch in EventCards
+      setEventRefreshKey(prev => prev + 1);
 
       toast.showSuccess(
         selectedEvent
@@ -666,13 +682,15 @@ const Events = () => {
               <>
                 {events.map((event) => (
                   <EventCard
-                    key={`${event._id}-${event.updatedAt || ""}`}
+                    key={`${event._id}-${event.updatedAt || ""}-${eventRefreshKey}`}
                     event={event}
                     onClick={handleEventClick}
                     onSettingsClick={handleSettingsClick}
+                    onCreateRelatedEvent={handleCreateRelatedEvent}
                     userBrands={userBrands}
                     onEventFavorite={handleEventFavorite}
                     isEventFavorited={isEventFavorited}
+                    refreshKey={eventRefreshKey}
                   />
                 ))}
                 {canCreateEvents() ? (
@@ -711,6 +729,7 @@ const Events = () => {
             selectedBrand={selectedBrand}
             weekNumber={currentWeek}
             parentEventData={parentEventForForm}
+            templateEvent={templateEvent}
           />
         )}
       </div>
@@ -722,9 +741,11 @@ const EventCard = ({
   event,
   onClick,
   onSettingsClick,
+  onCreateRelatedEvent,
   userBrands,
   onEventFavorite,
   isEventFavorited,
+  refreshKey,
 }) => {
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0); // Track current week for navigation
@@ -735,6 +756,10 @@ const EventCard = ({
   const toast = useToast(); // Add toast context
   const navigate = useNavigate();
   const { user } = useContext(AuthContext); // Get current user
+
+  // For non-weekly event series navigation
+  const [seriesEvents, setSeriesEvents] = useState([]); // All events in the series (parent + children)
+  const [seriesIndex, setSeriesIndex] = useState(0); // Current position in series
 
   // Check if the user has permission to edit this event
   const hasPermission = hasEventPermissions(event, user, userBrands);
@@ -795,7 +820,65 @@ const EventCard = ({
 
     // Reset the last fetch time
     setLastFetchTime(Date.now());
+
+    // Reset series state
+    setSeriesEvents([]);
+    setSeriesIndex(0);
   }, [event]);
+
+  // Fetch child events for non-weekly parent events (event series)
+  useEffect(() => {
+    const fetchSeriesEvents = async () => {
+      // Only fetch for non-weekly events that are not children themselves
+      if (event.isWeekly || event.parentEventId) {
+        return;
+      }
+
+      try {
+        // Fetch child events that have this event as their parent
+        const response = await axiosInstance.get(
+          `/events/children/${event._id}`
+        );
+
+        const children = response.data || [];
+
+        if (children.length > 0) {
+          // Combine parent with children and sort by date
+          const allSeriesEvents = [event, ...children].sort((a, b) => {
+            const dateA = new Date(a.startDate || a.date);
+            const dateB = new Date(b.startDate || b.date);
+            return dateA - dateB;
+          });
+
+          setSeriesEvents(allSeriesEvents);
+
+          // Find the index of the current event (parent is at index 0 after sorting by date)
+          const currentIndex = allSeriesEvents.findIndex(
+            (e) => e._id === event._id
+          );
+          setSeriesIndex(currentIndex >= 0 ? currentIndex : 0);
+        } else {
+          // No children, just the parent event
+          setSeriesEvents([event]);
+          setSeriesIndex(0);
+        }
+      } catch (error) {
+        // If fetch fails, just show the single event
+        setSeriesEvents([event]);
+        setSeriesIndex(0);
+      }
+    };
+
+    fetchSeriesEvents();
+  }, [event._id, event.isWeekly, event.parentEventId, refreshKey]);
+
+  // Update currentEvent when seriesIndex changes (for non-weekly event series)
+  useEffect(() => {
+    if (!event.isWeekly && seriesEvents.length > 0 && seriesEvents[seriesIndex]) {
+      setCurrentEvent(seriesEvents[seriesIndex]);
+      setIsLive(seriesEvents[seriesIndex].isLive || false);
+    }
+  }, [seriesIndex, seriesEvents, event.isWeekly]);
 
   // When navigating weeks, check if a child event exists for that week
   useEffect(() => {
@@ -926,6 +1009,30 @@ const EventCard = ({
     setCurrentWeek(newWeek);
   };
 
+  // Handle navigation to previous event in series (for non-weekly event series)
+  const handlePrevInSeries = (e) => {
+    e.stopPropagation();
+    if (seriesIndex > 0) {
+      setSeriesIndex(seriesIndex - 1);
+    }
+  };
+
+  // Handle navigation to next event in series (for non-weekly event series)
+  const handleNextInSeries = (e) => {
+    e.stopPropagation();
+    if (seriesIndex < seriesEvents.length - 1) {
+      setSeriesIndex(seriesIndex + 1);
+    }
+  };
+
+  // Handle creating a related event (for non-weekly event series)
+  const handleCreateRelated = (e) => {
+    e.stopPropagation();
+    if (onCreateRelatedEvent) {
+      onCreateRelatedEvent(currentEvent);
+    }
+  };
+
   // Update when currentWeek changes
   useEffect(() => {
     if (currentEvent.isWeekly && currentWeek > 0) {
@@ -1045,9 +1152,10 @@ const EventCard = ({
 
     // Call the API to toggle the live status
     // Include the current week number for weekly events
+    // For non-weekly events, use currentEvent._id to handle child events in series
     axiosInstance
       .patch(
-        `/events/${event._id}/toggle-live${
+        `/events/${event.isWeekly ? event._id : currentEvent._id}/toggle-live${
           event.isWeekly && weekToUse > 0 ? `?weekNumber=${weekToUse}` : ""
         }`
       )
@@ -1109,6 +1217,46 @@ const EventCard = ({
               >
                 <RiArrowRightSLine />
               </button>
+            </div>
+          )}
+
+          {/* Series Navigation for non-weekly events */}
+          {!event.isWeekly && !event.parentEventId && hasPermission && (
+            <div className="series-navigation">
+              {/* Left arrow - show when there are previous events */}
+              {seriesIndex > 0 && (
+                <button
+                  className="nav-arrow prev"
+                  onClick={handlePrevInSeries}
+                  title="Previous event in series"
+                >
+                  <RiArrowLeftSLine />
+                </button>
+              )}
+
+              {/* Spacer to push right button to the right when no left button */}
+              {seriesIndex === 0 && <div className="nav-spacer" />}
+
+              {/* Right side: either navigation arrow OR plus button */}
+              {seriesIndex < seriesEvents.length - 1 ? (
+                /* Right arrow - show when there are more events to navigate */
+                <button
+                  className="nav-arrow next"
+                  onClick={handleNextInSeries}
+                  title="Next event in series"
+                >
+                  <RiArrowRightSLine />
+                </button>
+              ) : (
+                /* Plus button - show at the end of series or when no children */
+                <button
+                  className="nav-arrow next create-related"
+                  onClick={handleCreateRelated}
+                  title="Add event to series"
+                >
+                  <RiAddLine />
+                </button>
+              )}
             </div>
           )}
 

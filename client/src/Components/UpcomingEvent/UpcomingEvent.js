@@ -543,7 +543,8 @@ const UpcomingEvent = ({
             }
 
             // If we have parent events, fetch their children too (optimized with Promise.all)
-            const parentEvents = events.filter((event) => event.isWeekly);
+            // Include both weekly events AND non-weekly events without a parentEventId (potential parents)
+            const parentEvents = events.filter((event) => event.isWeekly || !event.parentEventId);
 
             if (parentEvents.length > 0) {
               try {
@@ -600,7 +601,8 @@ const UpcomingEvent = ({
               events = response.data;
 
               // If we have parent events, fetch their children too
-              const parentEvents = events.filter((event) => event.isWeekly);
+              // Include both weekly events AND non-weekly events without a parentEventId (potential parents)
+              const parentEvents = events.filter((event) => event.isWeekly || !event.parentEventId);
 
               for (const parentEvent of parentEvents) {
                 try {

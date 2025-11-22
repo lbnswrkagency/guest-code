@@ -350,6 +350,7 @@ exports.createEvent = async (req, res) => {
       friendsCode,
       ticketCode,
       tableCode,
+      parentEventId,
     } = req.body;
 
     // Create event object
@@ -381,6 +382,12 @@ exports.createEvent = async (req, res) => {
       ticketCode: ticketCode,
       tableCode: tableCode,
     };
+
+    // Add parentEventId for non-weekly event series
+    if (parentEventId) {
+      eventData.parentEventId = parentEventId;
+      eventData.isLive = true; // Child events should be live by default
+    }
 
     // Calculate final startDate and endDate considering startTime and endTime for overnight events
     let finalStartDate = eventData.startDate
