@@ -23,7 +23,7 @@ const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHin
       <div className="feed-section upcoming-events">
         <div className="events-list">
           <UpcomingEvent
-            brandId={isAuthenticated ? brand?._id : null}
+            brandId={brand?._id}
             brandUsername={brand?.username}
             limit={5}
             seamless={true}

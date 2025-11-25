@@ -699,11 +699,11 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                       <div className="help-examples">
                         <h5>Examples:</h5>
                         <div className="example-item">
-                          <code>/Events/{DDMMYY}/photos</code>
+                          <code>/Events/{'{DDMMYY}'}/photos</code>
                           <span>→ /Events/271225/photos</span>
                         </div>
                         <div className="example-item">
-                          <code>/Galleries/{YYYY}/{MM}/Event-{DD}</code>
+                          <code>/Galleries/{'{YYYY}'}/{'{MM}'}/Event-{'{DD}'}</code>
                           <span>→ /Galleries/2025/12/Event-27</span>
                         </div>
                       </div>

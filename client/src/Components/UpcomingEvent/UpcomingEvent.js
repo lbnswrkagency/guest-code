@@ -838,7 +838,7 @@ const UpcomingEvent = ({
         // First get the brand by username to get the brandId
         const cleanUsername = brandUsername.replace(/^@/, "");
         console.log('🔍 [UpcomingEvent] Getting brand by username:', cleanUsername);
-        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brand/username/${cleanUsername}`);
+        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
         
         console.log('✅ [UpcomingEvent] Brand lookup response:', brandResponse.data);
         
@@ -907,7 +907,7 @@ const UpcomingEvent = ({
       } else if (brandUsername) {
         // Get brand ID from username
         const cleanUsername = brandUsername.replace(/^@/, "");
-        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brand/username/${cleanUsername}`);
+        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
         
         if (brandResponse.data && brandResponse.data._id) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/latest`;

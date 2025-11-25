@@ -88,7 +88,7 @@ const GalleryCarousel = ({
           // First get brand ID from username
           const cleanUsername = brandUsername.replace(/^@/, "");
           const brandResponse = await axiosInstance.get(
-            `${process.env.REACT_APP_API_BASE_URL}/brand/username/${cleanUsername}`
+            `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
           );
           if (brandResponse.data && brandResponse.data._id) {
             endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/latest`;
@@ -135,7 +135,7 @@ const GalleryCarousel = ({
         // First get brand ID from username
         const cleanUsername = brandUsername.replace(/^@/, "");
         const brandResponse = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/brand/username/${cleanUsername}`
+          `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
         );
         if (brandResponse.data?._id) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/dates`;
