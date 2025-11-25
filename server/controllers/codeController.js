@@ -1074,8 +1074,10 @@ const generateAndSendCode = async (req, res) => {
         return res.status(404).json({ message: "Code settings not found" });
       }
     } else {
-      // Find default settings for this type
-      codeSettings = await CodeSettings.findOne({ eventId, type });
+      // Find default settings for this type - resolve to parent for CodeSettings lookup
+      // CodeSettings only exist for parent events, but Code should keep the original eventId for scanning
+      const parentEventId = event.parentEventId || eventId;
+      codeSettings = await CodeSettings.findOne({ eventId: parentEventId, type });
     }
 
     // Generate a unique code

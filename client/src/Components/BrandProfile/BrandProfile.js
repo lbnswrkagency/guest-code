@@ -903,8 +903,9 @@ const BrandProfile = () => {
       currentEvent.ticketsAvailable !== false &&
       visibleTicketSettings.length > 0;
 
-    // For guest code, check if it's enabled - always show it if event exists
-    const showGuestCode = !!currentEvent;
+    // Check if guest code is enabled in code settings
+    const guestCodeSetting = codeSettings.find(setting => setting.type === 'guest');
+    const showGuestCode = currentEvent && guestCodeSetting && guestCodeSetting.isEnabled;
 
     // Determine what actions to show based on event configuration
 

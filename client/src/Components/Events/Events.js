@@ -1390,7 +1390,7 @@ const EventCard = ({
         >
           <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
             <EventSettings
-              event={event}
+              event={currentEvent._id ? currentEvent : event}
               onClose={(result) => {
                 setShowSettingsPopup(false);
                 // If this was a deletion, notify the parent via onSettingsClick callback

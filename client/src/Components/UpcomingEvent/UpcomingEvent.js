@@ -544,7 +544,9 @@ const UpcomingEvent = ({
 
             // If we have parent events, fetch their children too (optimized with Promise.all)
             // Include both weekly events AND non-weekly events without a parentEventId (potential parents)
-            const parentEvents = events.filter((event) => event.isWeekly || !event.parentEventId);
+            const parentEvents = events.filter(
+              (event) => event.isWeekly || !event.parentEventId
+            );
 
             if (parentEvents.length > 0) {
               try {
@@ -602,7 +604,9 @@ const UpcomingEvent = ({
 
               // If we have parent events, fetch their children too
               // Include both weekly events AND non-weekly events without a parentEventId (potential parents)
-              const parentEvents = events.filter((event) => event.isWeekly || !event.parentEventId);
+              const parentEvents = events.filter(
+                (event) => event.isWeekly || !event.parentEventId
+              );
 
               for (const parentEvent of parentEvents) {
                 try {
@@ -1675,7 +1679,6 @@ const UpcomingEvent = ({
               )}
             </div>
 
-            {/* GuestCode component section - Only show if guest code is configured and enabled */}
             {currentEvent &&
               currentEvent.codeSettings?.find(
                 (cs) => cs.type === "guest" && cs.isEnabled

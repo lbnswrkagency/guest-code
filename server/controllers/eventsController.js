@@ -126,60 +126,9 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
 
     await weeklyEvent.save();
 
-    // Initialize default code settings for the weekly event
-    try {
-      const { initializeDefaultSettings } = require("./codeSettingsController");
-      await initializeDefaultSettings(weeklyEvent._id);
-
-      // Copy code settings from sequential template event to child event
-      const templateCodeSettings = await CodeSettings.find({
-        eventId: templateEvent._id,
-      });
-      if (templateCodeSettings && templateCodeSettings.length > 0) {
-        // For each template code setting, create a corresponding child code setting
-        await Promise.all(
-          templateCodeSettings.map(async (templateSetting) => {
-            // Check if a setting of this type already exists for the child
-            const existingChildSetting = await CodeSettings.findOne({
-              eventId: weeklyEvent._id,
-              type: templateSetting.type,
-            });
-
-            if (existingChildSetting) {
-              // Update existing setting with template data
-              existingChildSetting.name = templateSetting.name;
-              existingChildSetting.condition = templateSetting.condition;
-              existingChildSetting.maxPax = templateSetting.maxPax;
-              existingChildSetting.limit = templateSetting.limit;
-              existingChildSetting.isEnabled = templateSetting.isEnabled;
-              existingChildSetting.isEditable = templateSetting.isEditable;
-              existingChildSetting.price = templateSetting.price;
-              existingChildSetting.tableNumber = templateSetting.tableNumber;
-
-              await existingChildSetting.save();
-            } else {
-              // Create new setting with template data
-              const newChildSetting = new CodeSettings({
-                eventId: weeklyEvent._id,
-                name: templateSetting.name,
-                type: templateSetting.type,
-                condition: templateSetting.condition,
-                maxPax: templateSetting.maxPax,
-                limit: templateSetting.limit,
-                isEnabled: templateSetting.isEnabled,
-                isEditable: templateSetting.isEditable,
-                price: templateSetting.price,
-                tableNumber: templateSetting.tableNumber,
-              });
-
-              await newChildSetting.save();
-            }
-          })
-        );
-      }
-    } catch (settingsError) {
-      // Continue even if code settings initialization fails
-    }
+    // NOTE: Do NOT create CodeSettings for child events!
+    // Child events should inherit CodeSettings from their parent event.
+    // The parent's CodeSettings are resolved via getParentEventId() in codeSettingsController.
 
     return weeklyEvent;
   } catch (error) {
@@ -1817,9 +1766,11 @@ exports.getEventProfile = async (req, res) => {
         eventId: eventId,
       }).sort({ price: 1 });
 
-      // Get code settings
+      // Get code settings - resolve to parent event for child events
+      // Child events should inherit CodeSettings from their parent
+      const eventForCodeSettings = event.parentEventId || event._id;
       const codeSettings = await CodeSettings.find({
-        eventId: eventId,
+        eventId: eventForCodeSettings,
       });
 
       // After finding the event and related data, prepare the response
