@@ -239,6 +239,11 @@ exports.getAllBrands = async (req, res) => {
           // Add the full role object if available
           if (memberRolesMap[roleId]) {
             brandObj.role = memberRolesMap[roleId];
+            console.log(`🔵 [brandController] Brand "${brand.name}" (team member) - attached role:`, {
+              roleId,
+              roleName: brandObj.role?.name,
+              codesPermissions: brandObj.role?.permissions?.codes,
+            });
           }
         }
       } else if (isOwner) {
@@ -247,6 +252,11 @@ exports.getAllBrands = async (req, res) => {
         if (founderRole) {
           brandObj.roleId = founderRole._id;
           brandObj.role = founderRole; // Include full role object
+          console.log(`🔵 [brandController] Brand "${brand.name}" (owner) - attached Founder role:`, {
+            roleId: founderRole._id,
+            roleName: founderRole.name,
+            codesPermissions: founderRole.permissions?.codes,
+          });
         }
         brandObj.isOwner = true;
       }

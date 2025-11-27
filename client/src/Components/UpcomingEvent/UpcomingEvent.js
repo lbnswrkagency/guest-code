@@ -68,6 +68,7 @@ const UpcomingEvent = ({
   onEventsLoaded = () => {},
   onEventChange = () => {},
   initialDateHint = null,
+  brandHasGalleries: brandHasGalleriesProp = null,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
   
@@ -96,7 +97,9 @@ const UpcomingEvent = ({
 
 
   // Brand gallery state
-  const [brandHasGalleries, setBrandHasGalleries] = useState(false);
+  // Use prop if provided (from BrandProfile), otherwise use internal state
+  const [brandHasGalleriesState, setBrandHasGalleries] = useState(false);
+  const brandHasGalleries = brandHasGalleriesProp !== null ? brandHasGalleriesProp : brandHasGalleriesState;
   const [checkingGalleries, setCheckingGalleries] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [selectedGalleryEventId, setSelectedGalleryEventId] = useState(null);
@@ -935,11 +938,18 @@ const UpcomingEvent = ({
   }, []);
 
   // Effect to check brand galleries when component mounts or brand changes
+  // Skip if brandHasGalleries prop is provided from parent (BrandProfile already checked)
   useEffect(() => {
+    if (brandHasGalleriesProp !== null) {
+      // Parent provided the value, skip checking
+      console.log('📸 [UpcomingEvent] Using brandHasGalleries from prop:', brandHasGalleriesProp);
+      setCheckingGalleries(false);
+      return;
+    }
     if ((brandId || brandUsername) && !checkingGalleries) {
       checkBrandGalleries();
     }
-  }, [brandId, brandUsername, checkBrandGalleries]);
+  }, [brandId, brandUsername, checkBrandGalleries, brandHasGalleriesProp]);
 
 
   const handlePrevEvent = () => {
@@ -1843,6 +1853,9 @@ const UpcomingEvent = ({
                 </div>
               )}
             
+            {/* DEBUG: Trace gallery render */}
+            {console.log('🔍 [UpcomingEvent] Gallery render check - brandHasGalleries:', brandHasGalleries, 'currentEvent:', currentEvent?._id)}
+
             {/* Gallery carousel section */}
             {brandHasGalleries && (
               <div

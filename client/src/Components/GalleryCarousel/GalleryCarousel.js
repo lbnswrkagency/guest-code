@@ -38,17 +38,18 @@ const LoadingSpinner = React.memo(({ size = "default", color = "#ffc807" }) => {
  * @param {Function} props.onImageClick - Callback for image click
  * @param {boolean} props.brandHasGalleries - Whether brand has galleries
  */
-const GalleryCarousel = ({ 
-  brandId, 
+const GalleryCarousel = ({
+  brandId,
   brandUsername,
   currentEvent,
   onImageClick,
-  brandHasGalleries 
+  brandHasGalleries
 }) => {
+  console.log('🖼️ [GalleryCarousel] Component rendered with props:', { brandId, brandUsername, brandHasGalleries, currentEventId: currentEvent?._id });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(!!brandHasGalleries); // Start with true only if galleries exist
   const [error, setError] = useState(null);
-  const [selectedEventId, setSelectedEventId] = useState(currentEvent?._id || 'latest');
+  const [selectedEventId, setSelectedEventId] = useState('latest');
   const [availableGalleries, setAvailableGalleries] = useState([]);
   const [showDateSelector, setShowDateSelector] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -103,18 +104,23 @@ const GalleryCarousel = ({
         throw new Error('Could not construct gallery endpoint');
       }
       
+      console.log('🖼️ [GalleryCarousel] Fetching from endpoint:', endpoint);
       const response = await axiosInstance.get(endpoint);
-      
+      console.log('🖼️ [GalleryCarousel] API response:', response.data);
+      console.log('🖼️ [GalleryCarousel] Photos array:', response.data?.media?.photos);
+
       if (response.data?.success && response.data?.media?.photos && Array.isArray(response.data.media.photos)) {
         // Take only the first batch of photos for carousel
         const photos = response.data.media.photos.slice(0, config.INITIAL_LOAD_COUNT);
+        console.log('🖼️ [GalleryCarousel] Setting images:', photos.length, 'photos');
         setImages(photos);
         setCurrentIndex(0); // Reset to first image
       } else {
+        console.log('🖼️ [GalleryCarousel] No valid photos found, setting empty array');
         setImages([]);
       }
     } catch (err) {
-      console.error("GalleryCarousel: Error fetching gallery:", err);
+      console.error("🖼️ [GalleryCarousel] Error fetching gallery:", err);
       setError("Failed to load gallery");
       setImages([]);
     } finally {
@@ -265,6 +271,7 @@ const GalleryCarousel = ({
 
   // No images state
   if (!images || images.length === 0) {
+    console.log('🖼️ [GalleryCarousel] No images to display, returning null. images:', images, 'loading:', loading);
     return null; // Don't show anything if no images
   }
 

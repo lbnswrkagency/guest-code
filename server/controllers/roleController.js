@@ -6,51 +6,24 @@ const mongoose = require("mongoose");
 // Create default roles for a brand
 exports.createDefaultRoles = async (brandId, userId) => {
   try {
-    // Prepare default code permissions
+    console.log('🟢 [roleController] createDefaultRoles called for brand:', brandId);
+
+    // Prepare default code permissions - only guest is static, all others are dynamically created
     const defaultCodePermissions = {
-      friends: {
-        generate: true,
-        limit: 0,
-        unlimited: true,
-      },
-      backstage: {
-        generate: true,
-        limit: 0,
-        unlimited: true,
-      },
-      table: {
-        generate: true,
-      },
-      ticket: {
-        generate: true,
-      },
       guest: {
         generate: true,
       },
     };
 
-    // Default limited permissions
+    // Default limited permissions for Members - no code generation by default
     const limitedCodePermissions = {
-      friends: {
-        generate: true,
-        limit: 10,
-        unlimited: false,
-      },
-      backstage: {
-        generate: false,
-        limit: 0,
-        unlimited: false,
-      },
-      table: {
-        generate: false,
-      },
-      ticket: {
-        generate: false,
-      },
       guest: {
         generate: false,
       },
     };
+
+    console.log('🟢 [roleController] Default Founder permissions:', defaultCodePermissions);
+    console.log('🟢 [roleController] Default Member permissions:', limitedCodePermissions);
 
     // Create Founder role (renamed from OWNER/FOUNDER)
     const founderRole = new Role({
@@ -189,6 +162,8 @@ exports.getUserRolesForBrand = async (req, res) => {
     const { brandId } = req.params;
     const userId = req.user._id;
 
+    console.log('🟢 [roleController] getUserRolesForBrand called:', { brandId, userId });
+
     if (!brandId) {
       return res.status(400).json({ message: "Brand ID is required" });
     }
@@ -196,20 +171,31 @@ exports.getUserRolesForBrand = async (req, res) => {
     // Find the brand to check if user is owner
     const brand = await Brand.findById(brandId);
     if (!brand) {
+      console.log('🔴 [roleController] Brand not found:', brandId);
       return res.status(404).json({ message: "Brand not found" });
     }
+
+    console.log('🟢 [roleController] Brand found:', { name: brand.name, owner: brand.owner });
 
     // Prepare roles array
     const userRoles = [];
 
     // Check if user is the owner
     const isOwner = brand.owner.toString() === userId.toString();
+    console.log('🟢 [roleController] isOwner:', isOwner);
+
     if (isOwner) {
       // Add Founder role
       const founderRole = await Role.findOne({
         brandId,
         isFounder: true,
         isDefault: true,
+      });
+
+      console.log('🟢 [roleController] Founder role found:', {
+        found: !!founderRole,
+        name: founderRole?.name,
+        permissions: founderRole?.permissions?.codes,
       });
 
       if (founderRole) {
@@ -274,9 +260,18 @@ exports.getUserRolesForBrand = async (req, res) => {
       userRoles.push(...customRoles);
     }
 
+    console.log('🟢 [roleController] RETURNING userRoles:', userRoles.length, 'roles');
+    userRoles.forEach((role, i) => {
+      console.log(`🟢 [roleController] Role ${i + 1}:`, {
+        name: role.name,
+        isFounder: role.isFounder,
+        codesPermissions: role.permissions?.codes,
+      });
+    });
+
     res.status(200).json(userRoles);
   } catch (error) {
-    console.error("[RoleController:getUserRolesForBrand] Error:", error);
+    console.error("🔴 [roleController] getUserRolesForBrand Error:", error);
     res.status(500).json({
       message: "Error fetching user roles",
       error: error.message,

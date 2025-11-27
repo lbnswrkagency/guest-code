@@ -1391,11 +1391,12 @@ const BrandProfile = () => {
           )}
         </div>
 
-        <BrandProfileFeed 
-          brand={brand} 
+        <BrandProfileFeed
+          brand={brand}
           onEventChange={handleEventChange}
           onEventsLoaded={handleEventsLoaded}
           initialDateHint={initialDateHint}
+          brandHasGalleries={brandHasGalleries}
         />
 
       </div>

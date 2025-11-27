@@ -1,1180 +1,910 @@
-@import "../../variables";
-
-// Enhanced color palette
-$primary-color: #ffc807;
-$primary-dark: #d9a916;
-$secondary-color: #222;
+// EventGallery - Clean, Minimalistic Styles
+$primary: #ffc807;
 $bg-dark: #151515;
-$bg-darker: #0d0d0d;
-$bg-input: rgba(255, 255, 255, 0.07);
-$border-light: rgba(255, 255, 255, 0.1);
-$text-light: rgba(255, 255, 255, 0.8);
-$text-muted: rgba(255, 255, 255, 0.5);
-$shadow-soft: 0 8px 16px rgba(0, 0, 0, 0.15);
-$shadow-strong: 0 12px 28px rgba(0, 0, 0, 0.25);
-$transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-@mixin focus-effect {
-  transition: all 0.2s ease;
-  &:focus {
-    outline: none;
-    border-color: rgba($primary-color, 0.5);
-    box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
-  }
-}
-
-@mixin hover-effect {
-  transition: $transition;
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: $shadow-soft;
-  }
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+$text-white: #fff;
+$text-muted: rgba(255, 255, 255, 0.6);
+$border: rgba(255, 255, 255, 0.1);
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
+// ============================================
+// OVERLAY - Simple fixed fullscreen
+// ============================================
 .event-gallery-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 10000;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
+// ============================================
+// MODAL CONTAINER
+// ============================================
 .event-gallery {
   background: $bg-dark;
   border-radius: 16px;
-  box-shadow: $shadow-strong;
   width: 100%;
-  max-width: 1200px;
-  max-height: 90vh;
+  max-width: 1100px;
+  max-height: 85vh;
   overflow: hidden;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  animation: fadeIn 0.3s ease-out;
   display: flex;
   flex-direction: column;
-
-  // Gold accent line
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, $primary-color, transparent);
-    border-radius: 2px;
-    z-index: 1;
-  }
-
-  .gallery-header {
-    padding: 2rem 2rem 1rem;
-    border-bottom: 1px solid $border-light;
-    background: rgba(255, 255, 255, 0.02);
-
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 2rem;
-
-      .title-section {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-
-        .gallery-icon {
-          font-size: 2rem;
-          color: $primary-color;
-        }
-
-        h2 {
-          color: white;
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-
-        p {
-          color: $text-muted;
-          margin: 0;
-          font-size: 0.9rem;
-        }
-      }
-
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-
-        .search-box {
-          position: relative;
-          display: flex;
-          align-items: center;
-
-          .search-icon {
-            position: absolute;
-            left: 12px;
-            color: $text-muted;
-            font-size: 1rem;
-          }
-
-          input {
-            background: $bg-input;
-            border: 1px solid $border-light;
-            border-radius: 8px;
-            padding: 0.6rem 0.6rem 0.6rem 2.5rem;
-            color: white;
-            font-size: 0.9rem;
-            width: 200px;
-            @include focus-effect;
-
-            &::placeholder {
-              color: $text-muted;
-            }
-          }
-        }
-
-        .selection-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.5rem 1rem;
-          background: rgba($primary-color, 0.1);
-          border: 1px solid rgba($primary-color, 0.2);
-          border-radius: 8px;
-
-          .selection-count {
-            color: $primary-color;
-            font-weight: 600;
-            font-size: 0.85rem;
-          }
-
-          .download-selected-btn {
-            background: $primary-color;
-            color: $bg-dark;
-            border: none;
-            border-radius: 6px;
-            padding: 0.4rem 0.8rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            @include hover-effect;
-
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-          }
-        }
-
-        .date-selector-btn {
-          background: rgba($primary-color, 0.1);
-          color: $primary-color;
-          border: 1px solid rgba($primary-color, 0.3);
-          border-radius: 8px;
-          padding: 0.6rem 1rem;
-          cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          @include hover-effect;
-
-          &:hover {
-            background: rgba($primary-color, 0.15);
-            border-color: rgba($primary-color, 0.4);
-          }
-        }
-
-        .select-all-btn {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          border: 1px solid $border-light;
-          border-radius: 8px;
-          padding: 0.6rem 1rem;
-          cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          @include hover-effect;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.2);
-          }
-        }
-
-        .close-btn {
-          background: transparent;
-          border: none;
-          color: $text-muted;
-          font-size: 1.5rem;
-          cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-
-          &:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-          }
-        }
-      }
-    }
-  }
-
-  // Date Selector Dropdown
-  .date-selector-dropdown {
-    border-bottom: 1px solid $border-light;
-    background: rgba(255, 255, 255, 0.02);
-    overflow: hidden;
-
-    .date-selector-content {
-      padding: 1.5rem 2rem;
-
-      h4 {
-        color: white;
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-      }
-
-      .loading-galleries {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        padding: 2rem;
-        color: $text-muted;
-
-        .spinner {
-          font-size: 1.5rem;
-          color: $primary-color;
-          animation: spin 1s linear infinite;
-        }
-      }
-
-      .no-galleries {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        padding: 2rem;
-        color: $text-muted;
-
-        svg {
-          font-size: 2rem;
-        }
-      }
-
-      .gallery-options {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        max-height: 300px;
-        overflow-y: auto;
-
-        // Scrollbar styling
-        &::-webkit-scrollbar {
-          width: 4px;
-        }
-        
-        &::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 2px;
-        }
-        
-        &::-webkit-scrollbar-thumb {
-          background: rgba($primary-color, 0.3);
-          border-radius: 2px;
-          
-          &:hover {
-            background: rgba($primary-color, 0.5);
-          }
-        }
-
-        .gallery-option {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: $transition;
-
-          &:hover {
-            border-color: rgba($primary-color, 0.3);
-            background: rgba(255, 255, 255, 0.05);
-          }
-
-          &.selected {
-            background: rgba($primary-color, 0.1);
-            border-color: rgba($primary-color, 0.4);
-
-            .gallery-option-info h5 {
-              color: $primary-color;
-            }
-          }
-
-          .gallery-option-info {
-            flex: 1;
-
-            h5 {
-              color: white;
-              margin: 0 0 0.25rem 0;
-              font-size: 0.95rem;
-              font-weight: 600;
-            }
-
-            p {
-              color: $text-light;
-              margin: 0 0 0.5rem 0;
-              font-size: 0.85rem;
-            }
-
-            .gallery-option-meta {
-              display: flex;
-              gap: 1rem;
-              font-size: 0.8rem;
-
-              .gallery-date {
-                color: $text-light;
-              }
-
-              .gallery-count {
-                color: $primary-color;
-                font-weight: 500;
-              }
-            }
-          }
-
-          .gallery-option-arrow {
-            color: $text-muted;
-            font-size: 1.2rem;
-            transition: all 0.2s ease;
-          }
-
-          &:hover .gallery-option-arrow {
-            color: $primary-color;
-            transform: translateX(2px);
-          }
-        }
-      }
-    }
-  }
-
-  .gallery-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
-
-    // Scrollbar styling
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: rgba($primary-color, 0.3);
-      border-radius: 3px;
-      
-      &:hover {
-        background: rgba($primary-color, 0.5);
-      }
-    }
-
-    .loading-state,
-    .error-state,
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
-      color: $text-muted;
-      text-align: center;
-
-      svg {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-
-      .spinner {
-        color: $primary-color;
-        animation: spin 1s linear infinite;
-      }
-
-      button {
-        margin-top: 1rem;
-        padding: 0.6rem 1.2rem;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid $border-light;
-        color: white;
-        border-radius: 8px;
-        cursor: pointer;
-        @include hover-effect;
-      }
-    }
-
-    .error-state svg {
-      color: #ff6b6b;
-    }
-
-    .media-section {
-      margin-bottom: 2rem;
-
-      .section-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-
-        svg {
-          color: $primary-color;
-        }
-      }
-
-      .media-grid {
-        display: grid;
-        gap: 1rem;
-
-        &.photos-grid {
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        }
-
-        .media-item {
-          position: relative;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: $transition;
-          border: 2px solid transparent;
-
-          &:hover {
-            transform: translateY(-4px);
-            box-shadow: $shadow-soft;
-            border-color: rgba($primary-color, 0.3);
-          }
-
-          &.selected {
-            border-color: $primary-color;
-            background: rgba($primary-color, 0.1);
-          }
-
-          .selection-checkbox {
-            position: absolute;
-            top: 0.5rem;
-            left: 0.5rem;
-            z-index: 2;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 4px;
-            padding: 0.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-
-            &:hover {
-              background: rgba(0, 0, 0, 0.8);
-            }
-
-            svg {
-              font-size: 1.2rem;
-              color: white;
-
-              &.selected {
-                color: $primary-color;
-              }
-            }
-          }
-
-          .media-wrapper {
-            position: relative;
-            aspect-ratio: 1;
-            cursor: pointer;
-
-            .media-loading {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              z-index: 1;
-
-              .spinner {
-                font-size: 2rem;
-                color: $primary-color;
-                animation: spin 1s linear infinite;
-              }
-            }
-
-            img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-              transition: all 0.3s ease;
-            }
-
-            .media-overlay {
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-              padding: 1rem;
-              transform: translateY(100%);
-              transition: all 0.3s ease;
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
-
-              .media-actions {
-                display: flex;
-                gap: 0.5rem;
-
-                .action-btn {
-                  background: rgba(255, 255, 255, 0.2);
-                  border: none;
-                  border-radius: 6px;
-                  padding: 0.5rem;
-                  color: white;
-                  cursor: pointer;
-                  font-size: 1rem;
-                  backdrop-filter: blur(4px);
-                  transition: all 0.2s ease;
-
-                  &:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: scale(1.1);
-                  }
-
-                  &.zoom-btn:hover {
-                    background: rgba($primary-color, 0.8);
-                    color: $bg-dark;
-                  }
-
-                  &.download-btn:hover {
-                    background: rgba(76, 175, 80, 0.8);
-                  }
-
-                  &:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                  }
-                }
-              }
-
-              .media-name {
-                color: white;
-                font-size: 0.8rem;
-                margin: 0;
-                max-width: 60%;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-              }
-            }
-          }
-
-          &:hover .media-overlay {
-            transform: translateY(0);
-          }
-        }
-      }
-    }
-  }
+  border: 1px solid $border;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
-// Enhanced Lightbox
-.lightbox-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 20000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+// ============================================
+// HEADER
+// ============================================
+.gallery-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid $border;
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 
-  .lightbox-content {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    max-width: 90vw;
-    max-height: 90vh;
+  .header-content {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
 
-    .nav-btn {
+  .title-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .gallery-icon {
+      font-size: 1.5rem;
+      color: $primary;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: $text-white;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: $text-muted;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    position: relative;
+
+    .search-icon {
       position: absolute;
+      left: 10px;
       top: 50%;
       transform: translateY(-50%);
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      color: white;
-      font-size: 1.5rem;
-      cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: all 0.3s ease;
-      z-index: 2;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-50%) scale(1.1);
-      }
-
-      &.prev-btn {
-        left: 2rem;
-      }
-
-      &.next-btn {
-        right: 2rem;
-      }
+      color: $text-muted;
+      font-size: 0.9rem;
     }
 
-    .lightbox-image-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      max-width: 100%;
-      max-height: calc(100% - 100px);
+    input {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid $border;
+      border-radius: 8px;
+      padding: 0.5rem 0.5rem 0.5rem 2.25rem;
+      color: $text-white;
+      font-size: 0.85rem;
+      width: 180px;
+      outline: none;
+      transition: border-color 0.2s;
 
-      .lightbox-image {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        border-radius: 8px;
-        box-shadow: $shadow-strong;
-      }
-
-      .video-placeholder-large {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        border: 2px dashed $border-light;
-
-        svg {
-          font-size: 4rem;
-          color: $primary-color;
-          margin-bottom: 1rem;
-        }
-
-        p {
-          color: $text-muted;
-          margin-bottom: 1.5rem;
-          font-size: 1.1rem;
-        }
-
-        .download-video-btn {
-          background: $primary-color;
-          color: $bg-dark;
-          border: none;
-          border-radius: 8px;
-          padding: 0.8rem 1.5rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          @include hover-effect;
-        }
-      }
-    }
-
-    .lightbox-controls {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
-      border-radius: 12px;
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-
-      .photo-counter {
-        color: white;
-        font-weight: 500;
-        font-size: 0.9rem;
-      }
-
-      .lightbox-actions {
-        display: flex;
-        gap: 1rem;
-
-        .lightbox-download-btn,
-        .lightbox-close-btn {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid $border-light;
-          border-radius: 8px;
-          padding: 0.6rem 1rem;
-          color: white;
-          cursor: pointer;
-          font-size: 0.85rem;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
-          }
-
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-        }
-
-        .lightbox-download-btn:hover {
-          background: rgba(76, 175, 80, 0.8);
-          border-color: rgba(76, 175, 80, 1);
-        }
-
-        .lightbox-close-btn:hover {
-          background: rgba(239, 68, 68, 0.8);
-          border-color: rgba(239, 68, 68, 1);
-        }
-      }
-    }
-  }
-}
-
-// Mobile responsiveness
-@media (max-width: 768px) {
-  .event-gallery-overlay {
-    padding: 10px;
-  }
-
-  .event-gallery {
-    .gallery-header {
-      padding: 1rem;
-
-      .header-content {
-        flex-direction: column;
-        gap: 1rem;
-
-        .header-actions {
-          flex-wrap: wrap;
-          gap: 0.5rem;
-
-          .search-box input {
-            width: 150px;
-            font-size: 0.85rem;
-          }
-
-          .selection-actions {
-            padding: 0.4rem 0.8rem;
-            
-            .selection-count {
-              font-size: 0.8rem;
-            }
-          }
-
-          .date-selector-btn {
-            padding: 0.5rem 0.8rem;
-            font-size: 0.8rem;
-          }
-
-          .select-all-btn {
-            padding: 0.5rem 0.8rem;
-            font-size: 0.8rem;
-          }
-        }
-      }
-    }
-
-    .date-selector-dropdown {
-      .date-selector-content {
-        padding: 1rem;
-
-        .gallery-options {
-          .gallery-option {
-            padding: 0.75rem;
-
-            .gallery-option-info {
-              h5 {
-                font-size: 0.9rem;
-              }
-
-              p {
-                font-size: 0.8rem;
-              }
-
-              .gallery-option-meta {
-                font-size: 0.75rem;
-                gap: 0.75rem;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .gallery-content {
-      padding: 1rem;
-
-      .media-section {
-        .media-grid {
-          gap: 0.75rem;
-
-          &.photos-grid {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          }
-
-          .media-item {
-            .media-overlay {
-              padding: 0.75rem;
-
-              .media-name {
-                font-size: 0.75rem;
-              }
-
-              .media-actions .action-btn {
-                padding: 0.4rem;
-                font-size: 0.9rem;
-              }
-            }
-          }
-        }
-      }
+      &::placeholder { color: $text-muted; }
+      &:focus { border-color: rgba($primary, 0.5); }
     }
   }
 
-  .lightbox-overlay {
-    padding: 1rem;
-
-    .lightbox-content {
-      .nav-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
-
-        &.prev-btn {
-          left: 1rem;
-        }
-
-        &.next-btn {
-          right: 1rem;
-        }
-      }
-
-      .lightbox-controls {
-        bottom: 1rem;
-        padding: 0.75rem 1rem;
-        gap: 1rem;
-
-        .photo-counter {
-          font-size: 0.8rem;
-        }
-
-        .lightbox-actions {
-          gap: 0.5rem;
-
-          .lightbox-download-btn,
-          .lightbox-close-btn {
-            padding: 0.5rem 0.8rem;
-            font-size: 0.8rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-// Show More section styles
-.show-more-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  .show-more-btn {
+  .selection-actions {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, $primary-color, $primary-dark);
-    color: $bg-dark;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: $transition;
-    box-shadow: $shadow-soft;
+    padding: 0.4rem 0.75rem;
+    background: rgba($primary, 0.1);
+    border: 1px solid rgba($primary, 0.25);
+    border-radius: 8px;
 
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: $shadow-strong;
-      background: linear-gradient(135deg, lighten($primary-color, 5%), $primary-color);
+    .selection-count {
+      color: $primary;
+      font-weight: 600;
+      font-size: 0.8rem;
     }
 
-    &:active {
-      transform: translateY(0);
-    }
+    .download-selected-btn {
+      background: $primary;
+      color: $bg-dark;
+      border: none;
+      border-radius: 6px;
+      padding: 0.35rem 0.7rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: opacity 0.2s;
 
-    &:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .spinner {
-      animation: spin 1s linear infinite;
-    }
-
-    svg {
-      font-size: 1.2rem;
+      &:hover { opacity: 0.9; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
     }
   }
 
-  .show-more-hint {
+  .date-selector-btn,
+  .select-all-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-white;
+    border: 1px solid $border;
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background 0.2s;
+
+    &:hover { background: rgba(255, 255, 255, 0.12); }
+  }
+
+  .date-selector-btn {
+    background: rgba($primary, 0.1);
+    color: $primary;
+    border-color: rgba($primary, 0.3);
+
+    &:hover { background: rgba($primary, 0.15); }
+  }
+
+  .close-btn {
+    background: transparent;
+    border: none;
     color: $text-muted;
-    font-size: 0.9rem;
-    margin: 0;
-    text-align: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      color: $text-white;
+      background: rgba(255, 255, 255, 0.1);
+    }
   }
 }
 
-// Thumbnail placeholder styles
+// ============================================
+// DATE SELECTOR DROPDOWN
+// ============================================
+.date-selector-dropdown {
+  border-bottom: 1px solid $border;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+
+  .date-selector-content {
+    padding: 1rem 1.5rem;
+
+    h4 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-white;
+    }
+
+    .loading-galleries,
+    .no-galleries {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      color: $text-muted;
+
+      .spinner {
+        font-size: 1.25rem;
+        color: $primary;
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    .gallery-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 250px;
+      overflow-y: auto;
+
+      .gallery-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba($primary, 0.2);
+        }
+
+        &.selected {
+          background: rgba($primary, 0.1);
+          border-color: rgba($primary, 0.3);
+
+          h5 { color: $primary; }
+        }
+
+        .gallery-option-info {
+          h5 {
+            margin: 0 0 0.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: $text-white;
+          }
+          p {
+            margin: 0 0 0.3rem;
+            font-size: 0.8rem;
+            color: $text-muted;
+          }
+          .gallery-option-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+
+            .gallery-date { color: $text-muted; }
+            .gallery-count { color: $primary; font-weight: 500; }
+          }
+        }
+
+        .gallery-option-arrow {
+          color: $text-muted;
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// GALLERY CONTENT
+// ============================================
+.gallery-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+  &::-webkit-scrollbar-thumb {
+    background: rgba($primary, 0.3);
+    border-radius: 3px;
+    &:hover { background: rgba($primary, 0.5); }
+  }
+}
+
+// States
+.loading-state,
+.error-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  color: $text-muted;
+  text-align: center;
+
+  svg {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .spinner {
+    color: $primary;
+    animation: spin 1s linear infinite;
+  }
+
+  button {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid $border;
+    color: $text-white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover { background: rgba(255, 255, 255, 0.15); }
+  }
+}
+
+.error-state svg { color: #ff6b6b; }
+
+// Media Section
+.media-section {
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-white;
+
+    svg { color: $primary; }
+  }
+}
+
+// Photo Grid
+.media-grid.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.media-item {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: rgba($primary, 0.3);
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    border-color: $primary;
+    background: rgba($primary, 0.1);
+  }
+
+  .selection-checkbox {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    padding: 0.2rem;
+    cursor: pointer;
+
+    svg {
+      font-size: 1.1rem;
+      color: $text-white;
+      &.selected { color: $primary; }
+    }
+  }
+
+  .media-wrapper {
+    aspect-ratio: 1;
+    cursor: pointer;
+    position: relative;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .media-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+
+      .spinner {
+        font-size: 1.5rem;
+        color: $primary;
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    .media-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      padding: 0.75rem;
+      transform: translateY(100%);
+      transition: transform 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+
+      .media-actions {
+        display: flex;
+        gap: 0.4rem;
+
+        .action-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          border-radius: 6px;
+          padding: 0.4rem;
+          color: $text-white;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+          }
+          &.zoom-btn:hover { background: rgba($primary, 0.8); color: $bg-dark; }
+          &.download-btn:hover { background: rgba(76, 175, 80, 0.8); }
+          &:disabled { opacity: 0.5; cursor: not-allowed; }
+        }
+      }
+
+      .media-name {
+        margin: 0;
+        font-size: 0.75rem;
+        color: $text-white;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  &:hover .media-overlay { transform: translateY(0); }
+}
+
+// Thumbnail Placeholder
 .thumbnail-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  min-height: 150px;
+  min-height: 140px;
   background: rgba(255, 255, 255, 0.05);
   color: $text-muted;
   border: 2px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  transition: $transition;
-  position: relative;
+  border-radius: 8px;
 
   .placeholder-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.4rem;
     opacity: 0.6;
   }
 
   span {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-align: center;
-    padding: 0 0.5rem;
-    margin-bottom: 1rem;
+    padding: 0 0.4rem;
+    margin-bottom: 0.75rem;
   }
 
   .placeholder-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     opacity: 0;
-    transition: $transition;
+    transition: opacity 0.2s;
   }
 
   .placeholder-action-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba($primary, 0.2);
+    border: 1px solid rgba($primary, 0.4);
+    border-radius: 6px;
+    color: $primary;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: rgba($primary-color, 0.2);
-    border: 1px solid rgba($primary-color, 0.4);
-    border-radius: 8px;
-    color: $primary-color;
-    cursor: pointer;
-    transition: $transition;
+    transition: all 0.2s;
 
     &:hover {
-      background: rgba($primary-color, 0.3);
-      border-color: $primary-color;
-      color: white;
+      background: rgba($primary, 0.3);
       transform: scale(1.1);
     }
 
-    svg {
-      font-size: 0.9rem;
-    }
+    svg { font-size: 0.85rem; }
   }
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba($primary-color, 0.3);
-    
-    .placeholder-icon {
-      color: $primary-color;
-      opacity: 0.8;
-    }
+  &:hover .placeholder-actions { opacity: 1; }
+}
 
-    .placeholder-actions {
-      opacity: 1;
+// Show More Section
+.show-more-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid $border;
+
+  .show-more-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: $primary;
+    color: $bg-dark;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
     }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .spinner { animation: spin 1s linear infinite; }
+    svg { font-size: 1.1rem; }
+  }
+
+  .show-more-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: $text-muted;
   }
 }
 
-// Enhanced media item hover effects
-.media-item {
-  &:hover {
-    .thumbnail-placeholder {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba($primary-color, 0.4);
-      
-      .placeholder-icon {
-        color: $primary-color;
-        opacity: 1;
-      }
-    }
-  }
+// ============================================
+// LIGHTBOX
+// ============================================
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.98);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
-// Responsive improvements
-@media (max-width: 768px) {
-  .show-more-section {
-    margin-top: 1.5rem;
-    padding: 1.5rem;
-
-    .show-more-btn {
-      padding: 0.875rem 1.5rem;
-      font-size: 0.9rem;
-    }
-  }
-
-  .thumbnail-placeholder {
-    min-height: 120px;
-
-    .placeholder-icon {
-      font-size: 1.5rem;
-    }
-
-    span {
-      font-size: 0.75rem;
-    }
-
-    .placeholder-action-btn {
-      width: 28px;
-      height: 28px;
-
-      svg {
-        font-size: 0.8rem;
-      }
-    }
-  }
-}
-
-// Lightbox no-thumbnail styles
-.lightbox-no-thumbnail {
+.lightbox-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 90vw;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 400px;
-  color: $text-light;
-  text-align: center;
 
-  .large-image-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.6;
-    color: $primary-color;
-  }
-
-  p {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    opacity: 0.8;
-  }
-
-  .view-full-btn {
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    color: $text-white;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, $primary-color, $primary-dark);
-    color: $bg-dark;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: $transition;
-    box-shadow: $shadow-soft;
+    justify-content: center;
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: $shadow-strong;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-50%) scale(1.05);
     }
 
-    svg {
+    &.prev-btn { left: 1.5rem; }
+    &.next-btn { right: 1.5rem; }
+  }
+
+  .lightbox-image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    max-height: calc(100% - 80px);
+
+    .lightbox-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .video-placeholder-large,
+    .lightbox-no-thumbnail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      border: 2px dashed $border;
+
+      svg {
+        font-size: 3.5rem;
+        color: $primary;
+        margin-bottom: 0.75rem;
+      }
+
+      p {
+        color: $text-muted;
+        margin-bottom: 1.25rem;
+        font-size: 1rem;
+      }
+
+      .download-video-btn,
+      .view-full-btn {
+        background: $primary;
+        color: $bg-dark;
+        border: none;
+        border-radius: 8px;
+        padding: 0.7rem 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: opacity 0.2s;
+
+        &:hover { opacity: 0.9; }
+      }
+    }
+  }
+
+  .lightbox-controls {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1px solid $border;
+
+    .photo-counter {
+      color: $text-white;
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+
+    .lightbox-actions {
+      display: flex;
+      gap: 0.75rem;
+
+      .lightbox-download-btn,
+      .lightbox-close-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid $border;
+        border-radius: 8px;
+        padding: 0.5rem 0.85rem;
+        color: $text-white;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+
+        &:hover { background: rgba(255, 255, 255, 0.2); }
+        &:disabled { opacity: 0.5; cursor: not-allowed; }
+      }
+
+      .lightbox-download-btn:hover {
+        background: rgba(76, 175, 80, 0.8);
+        border-color: rgba(76, 175, 80, 1);
+      }
+
+      .lightbox-close-btn:hover {
+        background: rgba(239, 68, 68, 0.8);
+        border-color: rgba(239, 68, 68, 1);
+      }
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE - Tablet
+// ============================================
+@media (max-width: 768px) {
+  .event-gallery-overlay {
+    padding: 12px;
+  }
+
+  .event-gallery {
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+
+  .gallery-header {
+    padding: 1rem;
+
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .search-box input { width: 140px; }
+  }
+
+  .gallery-content {
+    padding: 1rem;
+  }
+
+  .media-grid.photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .lightbox-overlay {
+    padding: 1rem;
+  }
+
+  .lightbox-content {
+    .nav-btn {
+      width: 40px;
+      height: 40px;
       font-size: 1.2rem;
+
+      &.prev-btn { left: 0.75rem; }
+      &.next-btn { right: 0.75rem; }
+    }
+
+    .lightbox-controls {
+      bottom: 1rem;
+      padding: 0.6rem 1rem;
+      gap: 1rem;
+
+      .photo-counter { font-size: 0.8rem; }
+
+      .lightbox-actions {
+        gap: 0.5rem;
+
+        .lightbox-download-btn,
+        .lightbox-close-btn {
+          padding: 0.4rem 0.7rem;
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE - Mobile
+// ============================================
+@media (max-width: 480px) {
+  .event-gallery-overlay {
+    padding: 0;
+  }
+
+  .event-gallery {
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .gallery-header {
+    padding: 0.75rem;
+
+    .title-section {
+      .gallery-icon { font-size: 1.25rem; }
+      h2 { font-size: 1.1rem; }
+    }
+
+    .header-actions {
+      .search-box { display: none; }
+
+      .date-selector-btn,
+      .select-all-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .gallery-content {
+    padding: 0.75rem;
+  }
+
+  .media-grid.photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .thumbnail-placeholder {
+    min-height: 100px;
+
+    .placeholder-icon { font-size: 1.5rem; }
+    span { font-size: 0.7rem; }
+  }
+
+  .lightbox-overlay {
+    padding: 0;
+  }
+
+  .lightbox-content {
+    .nav-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 1rem;
+
+      &.prev-btn { left: 0.5rem; }
+      &.next-btn { right: 0.5rem; }
+    }
+
+    .lightbox-controls {
+      bottom: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      gap: 0.75rem;
+      border-radius: 8px;
+
+      .photo-counter { font-size: 0.75rem; }
+
+      .lightbox-actions {
+        gap: 0.35rem;
+
+        .lightbox-download-btn,
+        .lightbox-close-btn {
+          padding: 0.35rem 0.5rem;
+          font-size: 0.7rem;
+        }
+      }
     }
   }
 }

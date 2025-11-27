@@ -35,7 +35,32 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
-    // Initialize component with settings and user permissions
+    // ===== DEBUG LOGGING START =====
+    console.log('🟡 [CodeGenerator] ========== INITIALIZATION ==========');
+    console.log('🟡 [CodeGenerator] selectedBrand:', {
+      id: selectedBrand?._id,
+      name: selectedBrand?.name,
+      hasRole: !!selectedBrand?.role,
+      roleName: selectedBrand?.role?.name,
+      roleId: selectedBrand?.roleId,
+    });
+    console.log('🟡 [CodeGenerator] selectedBrand.role:', selectedBrand?.role);
+    console.log('🟡 [CodeGenerator] selectedBrand.role.permissions:', selectedBrand?.role?.permissions);
+    console.log('🟡 [CodeGenerator] selectedBrand.role.permissions.codes:', selectedBrand?.role?.permissions?.codes);
+    console.log('🟡 [CodeGenerator] codeSettings received:', codeSettings?.length, 'settings');
+    console.log('🟡 [CodeGenerator] codeSettings details:', codeSettings?.map(s => ({
+      id: s._id,
+      name: s.name,
+      type: s.type,
+      isEnabled: s.isEnabled,
+      isEditable: s.isEditable,
+    })));
+    console.log('🟡 [CodeGenerator] selectedEvent:', {
+      id: selectedEvent?._id,
+      title: selectedEvent?.title,
+      hasCoHostInfo: !!selectedEvent?.coHostBrandInfo,
+    });
+    // ===== DEBUG LOGGING END =====
 
     // Get user role permissions from selectedBrand or co-host permissions
     let userPermissions = {};
@@ -43,24 +68,40 @@ function CodeGenerator({
     // Check if this is a co-hosted event with effective permissions
     if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
       userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+      console.log('🟡 [CodeGenerator] Using co-host permissions:', userPermissions);
 
       // Handle Map to object conversion if needed
       if (userPermissions instanceof Map) {
         userPermissions = Object.fromEntries(userPermissions);
+        console.log('🟡 [CodeGenerator] Converted Map to object:', userPermissions);
       }
     } else if (selectedBrand?.role?.permissions?.codes) {
       userPermissions = selectedBrand.role.permissions.codes;
+      console.log('🟡 [CodeGenerator] Using brand role permissions:', userPermissions);
 
       // Handle Map to object conversion if needed
       if (userPermissions instanceof Map) {
         userPermissions = Object.fromEntries(userPermissions);
+        console.log('🟡 [CodeGenerator] Converted Map to object:', userPermissions);
       }
+    } else {
+      console.log('🔴 [CodeGenerator] NO PERMISSIONS FOUND!', {
+        hasSelectedBrand: !!selectedBrand,
+        hasRole: !!selectedBrand?.role,
+        hasPermissions: !!selectedBrand?.role?.permissions,
+        hasCodes: !!selectedBrand?.role?.permissions?.codes,
+      });
     }
 
-    // Filter for custom codes (isEditable: true) that are also enabled (isEnabled: true)
+    console.log('🟡 [CodeGenerator] Final userPermissions:', userPermissions);
+    console.log('🟡 [CodeGenerator] userPermissions keys:', Object.keys(userPermissions));
+
+    // Filter for enabled code settings (isEnabled: true)
+    // Note: isEditable is no longer required - we show all enabled codes
     const customCodeSettings = codeSettings.filter(
-      (setting) => setting.isEditable === true && setting.isEnabled === true
+      (setting) => setting.isEnabled === true
     );
+    console.log('🟡 [CodeGenerator] Enabled codeSettings:', customCodeSettings.length, customCodeSettings.map(s => s.name));
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();
@@ -74,13 +115,23 @@ function CodeGenerator({
 
     // Convert map back to array
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
+    console.log('🟡 [CodeGenerator] Unique codeSettings:', uniqueCodeSettings.length);
 
     // Filter settings based on user permissions
+    // Permissions are ALWAYS stored by code NAME (e.g., 'Friends Code', 'Guest Code')
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
-      const permissionKey = setting.name;
+      const permissionKey = setting.name;  // Always use name - that's how permissions are stored
       const hasPermission = userPermissions[permissionKey]?.generate === true;
+      console.log(`🟡 [CodeGenerator] Permission check for "${setting.name}" (type: ${setting.type}):`, {
+        permissionKey,
+        permissionValue: userPermissions[permissionKey],
+        hasPermission,
+      });
       return hasPermission;
     });
+
+    console.log('🟡 [CodeGenerator] FINAL permittedSettings:', permittedSettings.length, permittedSettings.map(s => s.name));
+    console.log('🟡 [CodeGenerator] ========== END INITIALIZATION ==========');
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -239,7 +290,10 @@ function CodeGenerator({
     } else {
       return null;
     }
-    const permission = userPermissions[selectedCodeType];
+
+    // Permissions are stored by code NAME, and selectedCodeType IS the name
+    const permissionKey = selectedCodeType;
+    const permission = userPermissions[permissionKey];
 
     if (!permission) return null;
 

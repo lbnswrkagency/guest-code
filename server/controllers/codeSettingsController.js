@@ -76,6 +76,7 @@ const getCodeSettingsByBrand = async (req, res) => {
 const getCodeSettings = async (req, res) => {
   try {
     const { eventId } = req.params;
+    console.log('🟣 [codeSettingsController] getCodeSettings called for event:', eventId);
 
     // Find the event to verify it exists and populate the brand
     const event = await Event.findById(eventId).populate("brand");
@@ -148,6 +149,17 @@ const getCodeSettings = async (req, res) => {
       return settingObj;
     });
 
+    console.log('🟣 [codeSettingsController] RETURNING codeSettings:', formattedSettings.length);
+    formattedSettings.forEach((s, i) => {
+      console.log(`🟣 [codeSettingsController] Setting ${i + 1}:`, {
+        id: s._id,
+        name: s.name,
+        type: s.type,
+        isEnabled: s.isEnabled,
+        isEditable: s.isEditable,
+      });
+    });
+
     return res.status(200).json({
       codeSettings: formattedSettings,
       eventName: event.title, // Include event name
@@ -155,6 +167,7 @@ const getCodeSettings = async (req, res) => {
       primaryColor: primaryColor, // Include brand's primary color
     });
   } catch (error) {
+    console.error('🔴 [codeSettingsController] getCodeSettings Error:', error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -360,17 +373,17 @@ const configureCodeSettings = async (req, res) => {
         .json({ message: "Either codeSettingId or type must be provided" });
     }
 
-    // Update legacy fields in Event model (use the actual event, not parent)
-    if (type === "guest") event.guestCode = codeSetting.isEnabled;
-    if (type === "ticket") event.ticketCode = codeSetting.isEnabled;
+    // Update legacy fields in Event model (only guest code is still a static type)
+    if (type === "guest") {
+      event.guestCode = codeSetting.isEnabled;
 
-    // If this is a child event, update the parent event's legacy fields too
-    if (parentEventId !== eventId.toString()) {
-      const parentEvent = await Event.findById(parentEventId);
-      if (parentEvent) {
-        if (type === "guest") parentEvent.guestCode = codeSetting.isEnabled;
-        if (type === "ticket") parentEvent.ticketCode = codeSetting.isEnabled;
-        await parentEvent.save();
+      // If this is a child event, update the parent event's legacy fields too
+      if (parentEventId !== eventId.toString()) {
+        const parentEvent = await Event.findById(parentEventId);
+        if (parentEvent) {
+          parentEvent.guestCode = codeSetting.isEnabled;
+          await parentEvent.save();
+        }
       }
     }
 
@@ -399,8 +412,10 @@ const configureCodeSettings = async (req, res) => {
               founderRole.permissions.codes = {};
             }
 
-            // Set permissions for this specific code type by name
-            founderRole.permissions.codes[codeSetting.name] = {
+            // Set permissions for this specific code type
+            // Use type for default types (guest, ticket, etc.), use name for custom types
+            const permissionKey = codeSetting.type === 'custom' ? codeSetting.name : codeSetting.type;
+            founderRole.permissions.codes[permissionKey] = {
               generate: true,
               limit: 0,
               unlimited: true,
@@ -497,11 +512,11 @@ const deleteCodeSetting = async (req, res) => {
       return res.status(404).json({ message: "Code setting not found" });
     }
 
-    // Check if this is a default code type that shouldn't be deleted
-    if (["guest", "ticket"].includes(codeSetting.type)) {
+    // Check if this is the guest code type which shouldn't be deleted (flagship feature)
+    if (codeSetting.type === "guest") {
       return res.status(400).json({
         message:
-          "Cannot delete default code types. You can disable them instead.",
+          "Cannot delete the Guest Code type. You can disable it instead.",
       });
     }
 
@@ -517,15 +532,16 @@ const deleteCodeSetting = async (req, res) => {
         });
 
         if (founderRole && founderRole.permissions && founderRole.permissions.codes) {
-          // Remove the permission using the code setting's name
-          if (founderRole.permissions.codes[codeSetting.name]) {
+          // Remove the permission using the correct key (type for defaults, name for custom)
+          const permissionKey = codeSetting.type === 'custom' ? codeSetting.name : codeSetting.type;
+          if (founderRole.permissions.codes[permissionKey]) {
             const updatedCodes = { ...founderRole.permissions.codes };
-            delete updatedCodes[codeSetting.name];
+            delete updatedCodes[permissionKey];
 
             founderRole.permissions.codes = updatedCodes;
             await founderRole.save();
             console.log(
-              `Removed permission for deleted code setting from founder role: ${codeSetting.name}`
+              `Removed permission for deleted code setting from founder role: ${permissionKey}`
             );
           }
         }
@@ -551,56 +567,31 @@ const deleteCodeSetting = async (req, res) => {
 };
 
 // Initialize default code settings for an event
+// Only creates guest code - all other code types are dynamically created by hosts
 const initializeDefaultSettings = async (eventId) => {
   try {
-    // Check if any settings already exist for each type
+    // Check if guest setting already exists
     const existingGuestSetting = await CodeSettings.findOne({
       eventId,
       type: "guest",
     });
-    const existingTicketSetting = await CodeSettings.findOne({
-      eventId,
-      type: "ticket",
-    });
 
-    // Only create settings that don't exist
-    const settingsToCreate = [];
-
-    if (!existingGuestSetting) {
-      settingsToCreate.push({
-        name: "Guest Code",
-        type: "guest",
-        isEnabled: false,
-        isEditable: false,
-        requireEmail: true,
-        requirePhone: false,
-      });
-    }
-
-    if (!existingTicketSetting) {
-      settingsToCreate.push({
-        name: "Ticket Code",
-        type: "ticket",
-        isEnabled: false,
-        isEditable: false,
-      });
-    }
-
-    // If no new settings need to be created, return early
-    if (settingsToCreate.length === 0) {
+    // If guest setting already exists, no need to create anything
+    if (existingGuestSetting) {
       return true;
     }
 
-    // Create only the missing settings
-    await Promise.all(
-      settingsToCreate.map(async (setting) => {
-        const newSetting = new CodeSettings({
-          eventId,
-          ...setting,
-        });
-        await newSetting.save();
-      })
-    );
+    // Create only the guest code setting (the static flagship feature)
+    const newSetting = new CodeSettings({
+      eventId,
+      name: "Guest Code",
+      type: "guest",
+      isEnabled: false,
+      isEditable: false,
+      requireEmail: true,
+      requirePhone: false,
+    });
+    await newSetting.save();
 
     return true;
   } catch (error) {

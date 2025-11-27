@@ -258,6 +258,16 @@ const EventGallery = ({
     }
   }, [fetchGalleryMedia, fetchAvailableGalleries, isOpen, brandId, brandUsername]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
+
   // Keyboard navigation for lightbox
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -444,9 +454,10 @@ const EventGallery = ({
       >
         <motion.div
           className="event-gallery"
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Gallery Header */}

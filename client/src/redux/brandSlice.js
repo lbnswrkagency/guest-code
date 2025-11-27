@@ -38,25 +38,40 @@ const brandSlice = createSlice({
   initialState,
   reducers: {
     setBrands: (state, action) => {
-      // Store only brand data without nested events or roles
-      state.allBrands = action.payload.map((brand) => ({
-        _id: brand._id,
-        name: brand.name,
-        username: brand.username,
-        description: brand.description,
-        owner: brand.owner,
-        team: brand.team,
-        logo: brand.logo,
-        coverImage: brand.coverImage,
-        colors: brand.colors,
-        social: brand.social,
-        contact: brand.contact,
-        media: brand.media,
-        settings: brand.settings,
-        metrics: brand.metrics,
-        createdAt: brand.createdAt,
-        updatedAt: brand.updatedAt,
-      }));
+      // Store brand data INCLUDING role and roleId for permissions
+      console.log('🔵 [brandSlice] setBrands called with', action.payload?.length, 'brands');
+      state.allBrands = action.payload.map((brand) => {
+        // Log role data for debugging
+        console.log(`🔵 [brandSlice] Brand "${brand.name}" (${brand._id}):`, {
+          hasRole: !!brand.role,
+          roleId: brand.roleId,
+          roleName: brand.role?.name,
+          hasPermissions: !!brand.role?.permissions,
+          codesPermissions: brand.role?.permissions?.codes ? Object.keys(brand.role.permissions.codes) : 'none',
+        });
+
+        return {
+          _id: brand._id,
+          name: brand.name,
+          username: brand.username,
+          description: brand.description,
+          owner: brand.owner,
+          team: brand.team,
+          logo: brand.logo,
+          coverImage: brand.coverImage,
+          colors: brand.colors,
+          social: brand.social,
+          contact: brand.contact,
+          media: brand.media,
+          settings: brand.settings,
+          metrics: brand.metrics,
+          createdAt: brand.createdAt,
+          updatedAt: brand.updatedAt,
+          // FIXED: Include role and roleId for permissions
+          role: brand.role,
+          roleId: brand.roleId,
+        };
+      });
       state.loading = false;
       state.error = null;
     },
