@@ -427,9 +427,10 @@ exports.login = async (req, res) => {
           // Process each co-hosted event
           for (const event of coHostedEvents) {
             try {
-              // Get code settings
+              // Get code settings - use parent event ID for child events (weekly occurrences)
+              const effectiveEventId = event.parentEventId || event._id;
               const eventCodeSettings = await CodeSetting.find({
-                eventId: event._id
+                eventId: effectiveEventId
               }).lean();
 
               // Attach code settings
