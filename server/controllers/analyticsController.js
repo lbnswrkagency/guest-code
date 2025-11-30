@@ -124,7 +124,9 @@ exports.getAnalyticsSummary = async (req, res) => {
     }
 
     // Fetch all code settings for this event
-    const codeSettings = await CodeSetting.find({ eventId });
+    // For child events (weekly occurrences), use parent event's codeSettings
+    const effectiveEventId = event.parentEventId || eventId;
+    const codeSettings = await CodeSetting.find({ eventId: effectiveEventId });
 
     // Get Guest Codes stats (always present)
     const guestCodes = await getCodesStats(eventId, "guest");

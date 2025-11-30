@@ -35,8 +35,6 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
-    // Initialize component with settings and user permissions
-
     // Get user role permissions from selectedBrand or co-host permissions
     let userPermissions = {};
 
@@ -78,8 +76,7 @@ function CodeGenerator({
     // Filter settings based on user permissions
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
       const permissionKey = setting.name;
-      const hasPermission = userPermissions[permissionKey]?.generate === true;
-      return hasPermission;
+      return userPermissions[permissionKey]?.generate === true;
     });
 
     // Store the filtered settings for use in the component
