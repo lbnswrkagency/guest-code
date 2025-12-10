@@ -224,7 +224,8 @@ const EventSchema = new Schema(
     favoritedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
     
     // Dropbox integration
-    dropboxFolderPath: { type: String, default: "" }, // e.g., "/events/2024/december/party-name"
+    dropboxFolderPath: { type: String, default: "" }, // e.g., "/events/2024/december/party-name" for photos
+    dropboxVideoFolderPath: { type: String, default: "" }, // e.g., "/events/2024/december/party-name/videos" for videos
   },
   {
     timestamps: true,

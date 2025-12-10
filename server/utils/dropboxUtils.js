@@ -1,23 +1,27 @@
 /**
- * Generate Dropbox folder path based on brand base folder, path structure, and event date
- * Format: {brandDropboxBaseFolder}{pathStructure with replaced placeholders}
+ * Generate Dropbox folder path based on brand base folder, path structure, event date, and optional subfolder
+ * Format: {brandDropboxBaseFolder}{pathStructure with replaced placeholders}/{subfolder}
+ * @param {string} brandDropboxBaseFolder - Base folder path
+ * @param {Date|string} eventDate - Event date
+ * @param {string} pathStructure - Path structure with placeholders
+ * @param {string} subfolder - Optional subfolder to append at the end (e.g., "branded", "raw")
  */
-const generateDropboxPath = (brandDropboxBaseFolder, eventDate, pathStructure = "/Events/{DDMMYY}/photos") => {
+const generateDropboxPath = (brandDropboxBaseFolder, eventDate, pathStructure = "/{YYYYMMDD}/photos", subfolder = "") => {
   if (!brandDropboxBaseFolder || !eventDate) {
     return "";
   }
-  
+
   const date = new Date(eventDate);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = String(date.getFullYear());
   const year2 = String(date.getFullYear()).slice(-2);
-  
+
   // Ensure brandDropboxBaseFolder starts with /
-  const basePath = brandDropboxBaseFolder.startsWith('/') 
-    ? brandDropboxBaseFolder 
+  const basePath = brandDropboxBaseFolder.startsWith('/')
+    ? brandDropboxBaseFolder
     : `/${brandDropboxBaseFolder}`;
-  
+
   // Replace placeholders in the path structure
   let structurePath = pathStructure;
   structurePath = structurePath.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
@@ -29,15 +33,22 @@ const generateDropboxPath = (brandDropboxBaseFolder, eventDate, pathStructure = 
   structurePath = structurePath.replace(/{MM}/g, month);
   structurePath = structurePath.replace(/{DD}/g, day);
   structurePath = structurePath.replace(/{YY}/g, year2);
-  
+
   // Ensure structure path starts with /
   if (!structurePath.startsWith('/')) {
     structurePath = `/${structurePath}`;
   }
-  
-  // Always append /raw at the end for photo access
-  const finalPath = `${basePath}${structurePath}`;
-  return finalPath.endsWith('/raw') ? finalPath : `${finalPath}/raw`;
+
+  // Build final path
+  let finalPath = `${basePath}${structurePath}`;
+
+  // Append subfolder if provided
+  if (subfolder && subfolder.trim()) {
+    const cleanSubfolder = subfolder.trim().replace(/^\/+/, ''); // Remove leading slashes
+    finalPath = `${finalPath}/${cleanSubfolder}`;
+  }
+
+  return finalPath;
 };
 
 /**
@@ -158,17 +169,20 @@ const getAvailablePlaceholders = () => {
 };
 
 /**
- * Preview path structure with sample date
+ * Preview path structure with sample date and optional subfolder
+ * @param {string} pathStructure - Path structure with placeholders
+ * @param {Date} sampleDate - Date to use for preview
+ * @param {string} subfolder - Optional subfolder to append
  */
-const previewPathStructure = (pathStructure, sampleDate = new Date()) => {
+const previewPathStructure = (pathStructure, sampleDate = new Date(), subfolder = "") => {
   if (!pathStructure) return '';
-  
+
   const date = new Date(sampleDate);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = String(date.getFullYear());
   const year2 = String(date.getFullYear()).slice(-2);
-  
+
   let preview = pathStructure;
   preview = preview.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
   preview = preview.replace(/{DDMMYYYY}/g, `${day}${month}${year}`);
@@ -179,7 +193,13 @@ const previewPathStructure = (pathStructure, sampleDate = new Date()) => {
   preview = preview.replace(/{MM}/g, month);
   preview = preview.replace(/{DD}/g, day);
   preview = preview.replace(/{YY}/g, year2);
-  
+
+  // Append subfolder if provided
+  if (subfolder && subfolder.trim()) {
+    const cleanSubfolder = subfolder.trim().replace(/^\/+/, '');
+    preview = `${preview}/${cleanSubfolder}`;
+  }
+
   return preview;
 };
 

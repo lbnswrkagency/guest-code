@@ -212,6 +212,92 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       line-height: 1.4;
     }
 
+    // Dropbox path auto-generation styles - at form-section level
+    .dropbox-suggestion-banner {
+      background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
+      border: 1px solid rgba($primary-color, 0.2);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      animation: fadeIn 0.3s ease-out;
+
+      .suggestion-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+
+        .suggestion-text {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex: 1;
+          min-width: 0;
+
+          code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: $primary-color;
+            word-break: break-all;
+          }
+        }
+
+        .suggestion-actions {
+          display: flex;
+          gap: 0.5rem;
+          flex-shrink: 0;
+
+          .suggestion-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 0.4rem 0.8rem;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+
+            &.accept {
+              background: rgba(34, 197, 94, 0.2);
+              border-color: rgba(34, 197, 94, 0.4);
+              color: rgb(34, 197, 94);
+
+              &:hover {
+                background: rgba(34, 197, 94, 0.3);
+                border-color: rgba(34, 197, 94, 0.6);
+                transform: translateY(-1px);
+              }
+            }
+
+            &.reject {
+              background: rgba(239, 68, 68, 0.2);
+              border-color: rgba(239, 68, 68, 0.4);
+              color: rgb(239, 68, 68);
+
+              &:hover {
+                background: rgba(239, 68, 68, 0.3);
+                border-color: rgba(239, 68, 68, 0.6);
+                transform: translateY(-1px);
+              }
+            }
+
+            &:active {
+              transform: translateY(0);
+            }
+          }
+        }
+      }
+    }
+
     .form-group {
       margin-bottom: 1.5rem;
 
@@ -291,87 +377,6 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
           &:active {
             transform: translateY(-50%) scale(0.95);
-          }
-        }
-      }
-
-      // Dropbox path auto-generation styles
-      .dropbox-suggestion-banner {
-        background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
-        border: 1px solid rgba($primary-color, 0.2);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.75rem;
-        animation: fadeIn 0.3s ease-out;
-
-        .suggestion-content {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-
-          .suggestion-text {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-
-            code {
-              background: rgba(0, 0, 0, 0.3);
-              padding: 0.2rem 0.4rem;
-              border-radius: 4px;
-              font-family: 'Courier New', monospace;
-              font-size: 0.85rem;
-              color: $primary-color;
-            }
-          }
-
-          .suggestion-actions {
-            display: flex;
-            gap: 0.5rem;
-
-            .suggestion-btn {
-              background: rgba(255, 255, 255, 0.1);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 6px;
-              padding: 0.4rem 0.8rem;
-              color: rgba(255, 255, 255, 0.9);
-              cursor: pointer;
-              font-size: 0.8rem;
-              display: flex;
-              align-items: center;
-              gap: 0.3rem;
-              transition: all 0.2s ease;
-
-              &.accept {
-                background: rgba(34, 197, 94, 0.2);
-                border-color: rgba(34, 197, 94, 0.4);
-                color: rgb(34, 197, 94);
-
-                &:hover {
-                  background: rgba(34, 197, 94, 0.3);
-                  border-color: rgba(34, 197, 94, 0.6);
-                  transform: translateY(-1px);
-                }
-              }
-
-              &.reject {
-                background: rgba(239, 68, 68, 0.2);
-                border-color: rgba(239, 68, 68, 0.4);
-                color: rgb(239, 68, 68);
-
-                &:hover {
-                  background: rgba(239, 68, 68, 0.3);
-                  border-color: rgba(239, 68, 68, 0.6);
-                  transform: translateY(-1px);
-                }
-              }
-
-              &:active {
-                transform: translateY(0);
-              }
-            }
           }
         }
       }
@@ -2202,13 +2207,13 @@ input[type="checkbox"] {
 // Dropbox folder browser section
 .dropbox-browser-section {
   margin-top: 1rem;
-  
+
   .section-divider {
     display: flex;
     align-items: center;
     margin: 1rem 0;
     text-align: center;
-    
+
     &::before,
     &::after {
       content: '';
@@ -2216,7 +2221,7 @@ input[type="checkbox"] {
       height: 1px;
       background: rgba(255, 255, 255, 0.1);
     }
-    
+
     span {
       margin: 0 1rem;
       font-size: 0.85rem;
@@ -2226,27 +2231,162 @@ input[type="checkbox"] {
   }
 }
 
-// Regenerate path button
-.regenerate-path-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 200, 7, 0.1);
-  border: 1px solid rgba(255, 200, 7, 0.3);
-  color: #ffc807;
-  border-radius: 6px;
-  padding: 0.4rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(255, 200, 7, 0.2);
-    transform: translateY(-50%) scale(1.05);
+// Photo gallery section styling
+.photo-gallery-section {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #ffc807; // Yellow for photos
+    }
   }
-  
-  &:active {
-    transform: translateY(-50%) scale(0.95);
+
+  .input-with-icon {
+    position: relative;
+    margin-bottom: 0.75rem;
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 200, 7, 0.5);
+        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.15);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+        font-family: inherit;
+      }
+    }
+
+    svg {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 200, 7, 0.6);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+  }
+}
+
+// Video gallery section styling
+.video-gallery-section {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #64b5f6; // Blue for videos
+    }
+  }
+
+  .input-with-icon {
+    position: relative;
+    margin-bottom: 0.75rem;
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(100, 181, 246, 0.5);
+        box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.15);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+        font-family: inherit;
+      }
+    }
+
+    svg {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(100, 181, 246, 0.6);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+  }
+}
+
+// Folder path input with action buttons
+.folder-path-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  margin-bottom: 0.75rem;
+
+  .input-with-icon {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .path-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      &.regenerate {
+        color: #ffc807;
+        border-color: rgba(255, 200, 7, 0.3);
+
+        &:hover {
+          background: rgba(255, 200, 7, 0.15);
+          border-color: rgba(255, 200, 7, 0.5);
+        }
+      }
+
+      &.clear {
+        color: #ff6b6b;
+        border-color: rgba(255, 107, 107, 0.3);
+
+        &:hover {
+          background: rgba(255, 107, 107, 0.15);
+          border-color: rgba(255, 107, 107, 0.5);
+        }
+      }
+    }
   }
 }

@@ -21,6 +21,8 @@ import Spotify from "../Spotify/Spotify";
 import BattleSign from "../BattleSign/BattleSign";
 import EventGallery from "../EventGallery/EventGallery";
 import GalleryCarousel from "../GalleryCarousel/GalleryCarousel";
+import VideoCarousel from "../VideoCarousel/VideoCarousel";
+import VideoGallery from "../VideoGallery/VideoGallery";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -39,6 +41,7 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
   RiSwordLine,
+  RiFilmLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -69,6 +72,7 @@ const UpcomingEvent = ({
   onEventChange = () => {},
   initialDateHint = null,
   brandHasGalleries: brandHasGalleriesProp = null,
+  brandHasVideoGalleries: brandHasVideoGalleriesProp = null,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
   
@@ -96,13 +100,22 @@ const UpcomingEvent = ({
   const [showBattleSignup, setShowBattleSignup] = useState(false);
 
 
-  // Brand gallery state
+  // Brand gallery state (photos)
   // Use prop if provided (from BrandProfile), otherwise use internal state
   const [brandHasGalleriesState, setBrandHasGalleries] = useState(false);
   const brandHasGalleries = brandHasGalleriesProp !== null ? brandHasGalleriesProp : brandHasGalleriesState;
   const [checkingGalleries, setCheckingGalleries] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
-  const [selectedGalleryEventId, setSelectedGalleryEventId] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+
+  // Brand video gallery state
+  const [brandHasVideoGalleriesState, setBrandHasVideoGalleries] = useState(false);
+  const brandHasVideoGalleries = brandHasVideoGalleriesProp !== null ? brandHasVideoGalleriesProp : brandHasVideoGalleriesState;
+  const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
+  const [showVideoGallery, setShowVideoGallery] = useState(false);
+  const [videoGalleryVideos, setVideoGalleryVideos] = useState([]);
+  const [videoGalleryInitialIndex, setVideoGalleryInitialIndex] = useState(0);
 
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
@@ -813,128 +826,120 @@ const UpcomingEvent = ({
 
   // Function to check if brand has any galleries available
   const checkBrandGalleries = useCallback(async () => {
-    console.log('🚨🚨🚨 [UpcomingEvent] BRAND GALLERY CHECK START 🚨🚨🚨');
-    console.log('📍 [UpcomingEvent] Component props - brandId:', brandId);
-    console.log('📍 [UpcomingEvent] Component props - brandUsername:', brandUsername);
-    console.log('📍 [UpcomingEvent] Current events array:', events);
-    console.log('📍 [UpcomingEvent] Current index:', currentIndex);
-    console.log('📍 [UpcomingEvent] Current event:', events[currentIndex]);
-    console.log('📍 [UpcomingEvent] Current event brand:', events[currentIndex]?.brand);
-    
     if (!brandId && !brandUsername) {
-      console.log('⚠️ [UpcomingEvent] No brandId or brandUsername provided for gallery check');
       return;
     }
-    
-    console.log('🚀 [UpcomingEvent] Starting gallery check - brandId:', brandId, 'brandUsername:', brandUsername);
+
     setCheckingGalleries(true);
-    
+
     try {
       let endpoint = "";
       let finalBrandId = brandId;
-      
+
       if (brandId) {
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/galleries/check`;
-        console.log('🔍 [UpcomingEvent] Using brandId directly:', brandId);
-        console.log('🔗 [UpcomingEvent] Full endpoint URL:', endpoint);
       } else if (brandUsername) {
         // First get the brand by username to get the brandId
         const cleanUsername = brandUsername.replace(/^@/, "");
-        console.log('🔍 [UpcomingEvent] Getting brand by username:', cleanUsername);
         const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
-        
-        console.log('✅ [UpcomingEvent] Brand lookup response:', brandResponse.data);
-        
+
         if (brandResponse.data && brandResponse.data._id) {
           finalBrandId = brandResponse.data._id;
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${finalBrandId}/galleries/check`;
-          console.log('🎯 [UpcomingEvent] Resolved brandId:', finalBrandId);
-        } else {
-          console.log('❌ [UpcomingEvent] Failed to resolve brand from username:', cleanUsername);
         }
       }
-      
+
       if (endpoint) {
-        console.log('🔍 [UpcomingEvent] Making gallery check request to:', endpoint);
         const response = await axiosInstance.get(endpoint);
-        
-        console.log('✅ [UpcomingEvent] Brand galleries response:', response.data);
-        console.log('📊 [UpcomingEvent] Response details:');
-        console.log('  - success:', response.data?.success);
-        console.log('  - hasGalleries:', response.data?.hasGalleries);
-        console.log('  - totalEvents:', response.data?.totalEvents);
-        console.log('  - events found:', response.data?.events?.length || 0);
-        
+
         if (response.data && response.data.success) {
           setBrandHasGalleries(response.data.hasGalleries);
-          console.log('📸 [UpcomingEvent] Setting brandHasGalleries to:', response.data.hasGalleries);
-          
+
           // If brand has galleries, get the latest one to display by default
           if (response.data.hasGalleries) {
-            console.log('🎨 [UpcomingEvent] Brand has galleries, getting latest...');
             await getLatestBrandGallery();
-          } else {
-            console.log('📷 [UpcomingEvent] No galleries found for brand');
           }
         } else {
-          console.log('❌ [UpcomingEvent] API response indicates failure:', response.data);
           setBrandHasGalleries(false);
         }
-      } else {
-        console.log('❌ [UpcomingEvent] No endpoint could be constructed for gallery check');
       }
     } catch (error) {
-      console.error("❌ [UpcomingEvent] Error checking brand galleries:", error);
-      console.error("❌ [UpcomingEvent] Error details:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
       setBrandHasGalleries(false);
     } finally {
       setCheckingGalleries(false);
-      console.log('🏁 [UpcomingEvent] Gallery check completed');
     }
   }, [brandId, brandUsername]);
 
   // Function to get the latest brand gallery for display
   const getLatestBrandGallery = useCallback(async () => {
     if (!brandId && !brandUsername) return;
-    
+
     try {
       let endpoint = "";
-      
+
       if (brandId) {
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/galleries/latest`;
       } else if (brandUsername) {
         // Get brand ID from username
         const cleanUsername = brandUsername.replace(/^@/, "");
         const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
-        
+
         if (brandResponse.data && brandResponse.data._id) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/latest`;
         }
       }
-      
+
       if (endpoint) {
-        const response = await axiosInstance.get(endpoint);
-        
-        if (response.data && response.data.success && response.data.media.totalCount > 0) {
-          // Set the event ID of the gallery we want to show by default
-          // This could be extracted from the response or we can use the latest past event
-          setSelectedGalleryEventId('latest');
-        }
+        // Just verify the endpoint is reachable - GalleryCarousel handles its own data fetching
+        await axiosInstance.get(endpoint);
       }
     } catch (error) {
       console.error("Error getting latest brand gallery:", error);
     }
   }, [brandId, brandUsername]);
 
+  // Function to check if brand has any video galleries available
+  const checkBrandVideoGalleries = useCallback(async () => {
+    if (!brandId && !brandUsername) {
+      return;
+    }
+
+    setCheckingVideoGalleries(true);
+
+    try {
+      let endpoint = "";
+
+      if (brandId) {
+        endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/videos/check`;
+      } else if (brandUsername) {
+        // First get the brand by username to get the brandId
+        const cleanUsername = brandUsername.replace(/^@/, "");
+        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
+
+        if (brandResponse.data && brandResponse.data._id) {
+          endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/videos/check`;
+        }
+      }
+
+      if (endpoint) {
+        const response = await axiosInstance.get(endpoint);
+
+        if (response.data && response.data.success) {
+          setBrandHasVideoGalleries(response.data.hasVideoGalleries);
+        } else {
+          setBrandHasVideoGalleries(false);
+        }
+      }
+    } catch (error) {
+      setBrandHasVideoGalleries(false);
+    } finally {
+      setCheckingVideoGalleries(false);
+    }
+  }, [brandId, brandUsername]);
+
   // Simple image error handler for main event image
   const handleImageError = useCallback((e) => {
     // Could set a fallback image or just let the no-image placeholder show
-    console.log('Event image failed to load');
   }, []);
 
   // Effect to check brand galleries when component mounts or brand changes
@@ -942,7 +947,6 @@ const UpcomingEvent = ({
   useEffect(() => {
     if (brandHasGalleriesProp !== null) {
       // Parent provided the value, skip checking
-      console.log('📸 [UpcomingEvent] Using brandHasGalleries from prop:', brandHasGalleriesProp);
       setCheckingGalleries(false);
       return;
     }
@@ -951,6 +955,18 @@ const UpcomingEvent = ({
     }
   }, [brandId, brandUsername, checkBrandGalleries, brandHasGalleriesProp]);
 
+  // Effect to check brand video galleries when component mounts or brand changes
+  // Skip if brandHasVideoGalleries prop is provided from parent (BrandProfile already checked)
+  useEffect(() => {
+    if (brandHasVideoGalleriesProp !== null) {
+      // Parent provided the value, skip checking
+      setCheckingVideoGalleries(false);
+      return;
+    }
+    if ((brandId || brandUsername) && !checkingVideoGalleries) {
+      checkBrandVideoGalleries();
+    }
+  }, [brandId, brandUsername, checkBrandVideoGalleries, brandHasVideoGalleriesProp]);
 
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -1251,21 +1267,27 @@ const UpcomingEvent = ({
     setShowTableBooking(false); // Close table booking if open
   };
 
-  // Add function to handle gallery click
-  const handleGalleryClick = (event, e) => {
+  // Add function to handle gallery click - scrolls to gallery carousel section
+  const handleGalleryClick = (_event, e) => {
     if (e) {
       e.stopPropagation(); // Prevent the main event click handler from firing
     }
-    
-    // Open the EventGallery modal
-    setShowGallery(true);
-    // If a specific event is passed, set it as selected gallery event
-    if (event && event._id) {
-      setSelectedGalleryEventId(event._id);
-    } else {
-      setSelectedGalleryEventId('latest');
+
+    // Scroll to the gallery carousel section
+    if (gallerySectionRef.current) {
+      gallerySectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
     }
   };
+
+  // Handle video click - opens VideoGallery lightbox
+  const handleVideoClick = useCallback((videos, videoIndex) => {
+    setVideoGalleryVideos(videos);
+    setVideoGalleryInitialIndex(videoIndex);
+    setShowVideoGallery(true);
+  }, []);
 
   // Utility function to check if event supports table booking
   const supportsTableBooking = (event) => {
@@ -1853,9 +1875,6 @@ const UpcomingEvent = ({
                 </div>
               )}
             
-            {/* DEBUG: Trace gallery render */}
-            {console.log('🔍 [UpcomingEvent] Gallery render check - brandHasGalleries:', brandHasGalleries, 'currentEvent:', currentEvent?._id)}
-
             {/* Gallery carousel section */}
             {brandHasGalleries && (
               <div
@@ -1868,16 +1887,31 @@ const UpcomingEvent = ({
                   brandUsername={brandUsername}
                   currentEvent={currentEvent}
                   brandHasGalleries={brandHasGalleries}
-                  onImageClick={(eventId, imageIndex) => {
-                    // Open the EventGallery modal with the selected event and image
-                    setSelectedGalleryEventId(eventId);
+                  onImageClick={(images, imageIndex) => {
+                    // Open the lightbox with images and selected index
+                    setGalleryImages(images);
+                    setGalleryInitialIndex(imageIndex);
                     setShowGallery(true);
-                    // TODO: Pass imageIndex to EventGallery to show that specific image
                   }}
                 />
               </div>
             )}
-              
+
+            {/* Video carousel section */}
+            {brandHasVideoGalleries && (
+              <div
+                className="upcomingEvent-video-section"
+                id={`videos-${currentEvent?._id}`}
+              >
+                <VideoCarousel
+                  brandId={brandId}
+                  brandUsername={brandUsername}
+                  onVideoClick={handleVideoClick}
+                  brandHasVideoGalleries={brandHasVideoGalleries}
+                />
+              </div>
+            )}
+
           </div>
         </motion.div>
       </AnimatePresence>
@@ -1975,23 +2009,10 @@ const UpcomingEvent = ({
                       <span>Battle</span>
                     </div>
                   )}
-                  {(() => {
-                    console.log('🎭 [UpcomingEvent] Gallery button render check:', {
-                      brandHasGalleries,
-                      checkingGalleries,
-                      brandId,
-                      brandUsername,
-                      currentEventId: currentEvent?._id,
-                      currentEventTitle: currentEvent?.title
-                    });
-                    return brandHasGalleries;
-                  })() && (
+                  {brandHasGalleries && (
                     <div
                       className="meta-tag gallery"
-                      onClick={(e) => {
-                        console.log('🎨 [UpcomingEvent] Gallery button clicked!');
-                        handleGalleryClick(currentEvent, e);
-                      }}
+                      onClick={(e) => handleGalleryClick(currentEvent, e)}
                       style={{ cursor: "pointer" }}
                     >
                       <RiImageLine />
@@ -2018,21 +2039,21 @@ const UpcomingEvent = ({
         </div>
       </motion.div>
 
-      {/* EventGallery Modal */}
-      {currentEvent && (
-        <EventGallery
-          event={currentEvent}
-          isOpen={showGallery}
-          onClose={() => setShowGallery(false)}
-          eventTitle={currentEvent.title}
-          brandId={brandId}
-          brandUsername={brandUsername}
-          selectedEventId={selectedGalleryEventId}
-          onEventChange={(eventId) => {
-            setSelectedGalleryEventId(eventId);
-          }}
-        />
-      )}
+      {/* EventGallery Lightbox */}
+      <EventGallery
+        images={galleryImages}
+        initialIndex={galleryInitialIndex}
+        isOpen={showGallery}
+        onClose={() => setShowGallery(false)}
+      />
+
+      {/* VideoGallery Lightbox */}
+      <VideoGallery
+        videos={videoGalleryVideos}
+        initialIndex={videoGalleryInitialIndex}
+        isOpen={showVideoGallery}
+        onClose={() => setShowVideoGallery(false)}
+      />
     </div>
   );
 };

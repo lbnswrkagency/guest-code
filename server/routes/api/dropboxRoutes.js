@@ -4,14 +4,22 @@ const dropboxController = require("../../controllers/dropboxController");
 
 router.get("/folder", dropboxController.getFolderContents);
 
-// Brand gallery routes
+// Brand gallery routes (photos)
 router.get("/brand/:brandId/galleries/check", dropboxController.checkBrandGalleries);
 router.get("/brand/:brandId/galleries/dates", dropboxController.getBrandGalleryDates);
 router.get("/brand/:brandId/galleries/latest", dropboxController.getLatestBrandGallery);
 
-// Event gallery routes
+// Brand video gallery routes
+router.get("/brand/:brandId/videos/check", dropboxController.checkBrandVideoGalleries);
+router.get("/brand/:brandId/videos/dates", dropboxController.getBrandVideoGalleryDates);
+router.get("/brand/:brandId/videos/latest", dropboxController.getLatestBrandVideoGallery);
+
+// Event gallery routes (photos)
 router.get("/event/:eventId/gallery", dropboxController.getEventGalleryById);
 router.post("/event/:eventId/gallery/download-zip", dropboxController.downloadGalleryZip);
+
+// Event video gallery routes
+router.get("/event/:eventId/video-gallery", dropboxController.getEventVideoGalleryById);
 
 // Lazy loading routes
 router.post("/thumbnails/load", dropboxController.loadThumbnails);

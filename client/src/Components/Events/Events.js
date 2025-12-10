@@ -23,6 +23,8 @@ import {
   RiRepeatLine,
   RiStarLine,
   RiStarFill,
+  RiImageLine,
+  RiFilmLine,
 } from "react-icons/ri";
 import EventForm from "../EventForm/EventForm";
 import EventSettings from "../EventSettings/EventSettings";
@@ -1089,30 +1091,6 @@ const EventCard = ({
       >
         {/* Main card content */}
         <div className="card-content">
-          {/* Weekly Navigation */}
-          {event.isWeekly && (
-            <div className="weekly-navigation">
-              <button
-                className="nav-arrow prev"
-                onClick={
-                  hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
-                }
-                disabled={currentWeek === 0 || !hasPermission}
-              >
-                <RiArrowLeftLine />
-              </button>
-              <button
-                className="nav-arrow next"
-                onClick={
-                  hasPermission ? handleNextWeek : (e) => e.stopPropagation()
-                }
-                disabled={!hasPermission}
-              >
-                <RiArrowRightSLine />
-              </button>
-            </div>
-          )}
-
           {/* Title/Subtitle area */}
           <div className="event-card-title-area">
             <div className="title-with-favorite">
@@ -1179,6 +1157,31 @@ const EventCard = ({
             </div>
           </div>
 
+          {/* Weekly Navigation - positioned below flyer */}
+          {(event.isWeekly || currentEvent.isWeekly) && (
+            <div className="weekly-navigation">
+              <button
+                className="nav-arrow prev"
+                onClick={
+                  hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
+                }
+                disabled={currentWeek === 0 || !hasPermission}
+              >
+                <RiArrowLeftSLine />
+              </button>
+              <span className="week-indicator">Week {currentWeek + 1}</span>
+              <button
+                className="nav-arrow next"
+                onClick={
+                  hasPermission ? handleNextWeek : (e) => e.stopPropagation()
+                }
+                disabled={!hasPermission}
+              >
+                <RiArrowRightSLine />
+              </button>
+            </div>
+          )}
+
           {/* Content section now focuses on details */}
           <div className="event-card-content">
             {/* Move Go Live button here */}
@@ -1231,6 +1234,22 @@ const EventCard = ({
                 <span>{currentEvent.location}</span>
               </div>
             </div>
+
+            {/* Media badges - show if photos or videos configured */}
+            {(currentEvent.dropboxFolderPath || currentEvent.dropboxVideoFolderPath) && (
+              <div className="event-media-badges">
+                {currentEvent.dropboxFolderPath && (
+                  <span className="media-badge photos">
+                    <RiImageLine /> Photos
+                  </span>
+                )}
+                {currentEvent.dropboxVideoFolderPath && (
+                  <span className="media-badge videos">
+                    <RiFilmLine /> Videos
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

@@ -38,6 +38,7 @@ import {
   RiArrowRightSLine,
   RiSwordLine,
   RiImageLine,
+  RiFilmLine,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
@@ -71,9 +72,13 @@ const BrandProfile = () => {
   const [ticketSettings, setTicketSettings] = useState([]);
   const [codeSettings, setCodeSettings] = useState([]);
   
-  // Brand gallery state
+  // Brand gallery state (photos)
   const [brandHasGalleries, setBrandHasGalleries] = useState(false);
   const [checkingGalleries, setCheckingGalleries] = useState(false);
+
+  // Brand video gallery state
+  const [brandHasVideoGalleries, setBrandHasVideoGalleries] = useState(false);
+  const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
 
   // More granular loading progress tracking
   const [loadingProgress, setLoadingProgress] = useState({
@@ -164,6 +169,30 @@ const BrandProfile = () => {
     }
   }, [brand?._id]);
 
+  // Function to check if brand has any video galleries available
+  const checkBrandVideoGalleries = useCallback(async () => {
+    if (!brand?._id) {
+      return;
+    }
+
+    try {
+      setCheckingVideoGalleries(true);
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brands/${brand._id}/check-video-galleries`;
+      const response = await axiosInstance.get(endpoint);
+
+      if (response.data && response.data.success) {
+        setBrandHasVideoGalleries(response.data.hasVideoGalleries);
+      } else {
+        setBrandHasVideoGalleries(false);
+      }
+    } catch (error) {
+      console.error("Error checking brand video galleries:", error);
+      setBrandHasVideoGalleries(false);
+    } finally {
+      setCheckingVideoGalleries(false);
+    }
+  }, [brand?._id]);
+
   // Update main loading state - show feed after brand loads to allow events to load
   useEffect(() => {
     // Show the feed once brand is loaded (so events can start loading)
@@ -178,6 +207,13 @@ const BrandProfile = () => {
       checkBrandGalleries();
     }
   }, [brand, checkBrandGalleries]);
+
+  // Effect to check brand video galleries when brand is loaded
+  useEffect(() => {
+    if (brand && brand._id && !checkingVideoGalleries) {
+      checkBrandVideoGalleries();
+    }
+  }, [brand, checkBrandVideoGalleries]);
 
   // Real loading progress tracking - no artificial simulation
   useEffect(() => {
@@ -1092,33 +1128,51 @@ const BrandProfile = () => {
             </motion.button>
           )}
 
-          {/* Gallery button */}
-          {(() => {
-            console.log('🎭 [BrandProfile] Gallery button render check:', {
-              brandHasGalleries,
-              checkingGalleries,
-              brandId: brand?._id,
-              brandName: brand?.name
-            });
-            return brandHasGalleries;
-          })() && (
+          {/* Gallery button - dynamic based on content */}
+          {/* Only show after BOTH gallery checks complete to prevent "Photos" flashing when videos exist */}
+          {!checkingGalleries && !checkingVideoGalleries && (brandHasGalleries || brandHasVideoGalleries) && (
             <motion.button
               className="event-action-button gallery-button"
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
               onClick={() => {
-                console.log('🎨 [BrandProfile] Gallery button clicked!');
                 scrollToGallery();
               }}
             >
               <div className="button-content">
                 <div className="button-icon">
-                  <RiImageLine />
+                  {/* Show appropriate icon: video only = film, photos only or both = image */}
+                  {brandHasVideoGalleries && !brandHasGalleries ? (
+                    <RiFilmLine />
+                  ) : (
+                    <RiImageLine />
+                  )}
                 </div>
                 <div className="button-text">
-                  <span className="button-text-full">Gallery</span>
-                  <span className="button-text-short">Photos</span>
-                  {!isActionButtonsSticky && <p>View event photos</p>}
+                  {/* Dynamic text based on content type */}
+                  <span className="button-text-full">
+                    {brandHasGalleries && brandHasVideoGalleries
+                      ? "Gallery"
+                      : brandHasGalleries
+                      ? "Photos"
+                      : "Videos"}
+                  </span>
+                  <span className="button-text-short">
+                    {brandHasGalleries && brandHasVideoGalleries
+                      ? "Gallery"
+                      : brandHasGalleries
+                      ? "Photos"
+                      : "Videos"}
+                  </span>
+                  {!isActionButtonsSticky && (
+                    <p>
+                      {brandHasGalleries && brandHasVideoGalleries
+                        ? "View event media"
+                        : brandHasGalleries
+                        ? "View event photos"
+                        : "View event videos"}
+                    </p>
+                  )}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />

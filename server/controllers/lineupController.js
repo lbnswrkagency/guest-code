@@ -94,13 +94,16 @@ exports.createLineUp = async (req, res) => {
     // Use req.user.userId instead of req.user._id
     const userId = req.user.userId;
 
-    // Check permissions - Fix for the includes error by ensuring admins array exists
+    // Check permissions - owner, admin, or team member
     const isOwner = brand.owner.toString() === userId.toString();
     const isAdmin =
       Array.isArray(brand.admins) &&
       brand.admins.some((adminId) => adminId.toString() === userId.toString());
+    const isTeamMember =
+      Array.isArray(brand.team) &&
+      brand.team.some((member) => member.user && member.user.toString() === userId.toString());
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isTeamMember) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to add line-up to this brand",

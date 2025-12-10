@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import "./DropboxFolderBrowser.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { motion, AnimatePresence } from "framer-motion";
@@ -127,17 +128,21 @@ const DropboxFolderBrowser = ({
     } catch (err) {
       console.error("Failed to fetch folders:", err);
       let errorMessage = "Failed to load folders. Please check Dropbox connection.";
-      
-      if (err.response?.status === 404) {
+
+      if (err.response?.status === 409) {
+        // Path not found - common for auto-generated paths that don't exist yet
+        errorMessage = `Folder not found at this path. Navigate up to find existing folders.`;
+      } else if (err.response?.status === 404) {
         errorMessage = "Dropbox API endpoint not found. Please check server configuration.";
       } else if (err.response?.status === 401) {
         errorMessage = "Dropbox access token has expired. Please update your Dropbox API credentials in the server configuration.";
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       }
-      
+
       setError(errorMessage);
       setFolders([]);
+      // DON'T close modal - let user navigate or retry
     } finally {
       setLoading(false);
     }
@@ -182,28 +187,21 @@ const DropboxFolderBrowser = ({
   // Open browser and load root folders
   const openBrowser = () => {
     setIsOpen(true);
-    
-    // Priority: 1) selectedPath parent directory, 2) brand base folder, 3) root
+    setError(null); // Clear any previous errors
+
+    // Priority: 1) selectedPath (navigate to it directly), 2) brand base folder, 3) root
     let startPath = "";
-    
-    if (selectedPath) {
-      // If we have a selectedPath, try to navigate to its parent directory
-      // This allows the user to see the suggested folder immediately
-      const pathParts = selectedPath.split('/').filter(Boolean);
-      if (pathParts.length > 1) {
-        // Go to parent directory so user can see the suggested folder
-        pathParts.pop(); // Remove the last part
-        startPath = '/' + pathParts.join('/');
-      } else {
-        // If selectedPath is just one level, use brand base folder or root
-        startPath = brandDropboxBaseFolder || "";
-      }
-    } else if (brandDropboxBaseFolder) {
-      // Fallback to brand base folder
+
+    if (selectedPath && selectedPath.trim() !== "") {
+      // Start at the selectedPath itself so user sees current context
+      // If the path doesn't exist, they can navigate up from the error state
+      startPath = selectedPath;
+    } else if (brandDropboxBaseFolder && brandDropboxBaseFolder.trim() !== "") {
+      // No selected path - start at brand base folder
       startPath = brandDropboxBaseFolder;
     }
     // Final fallback is root (empty string)
-    
+
     setCurrentPath(startPath);
     fetchFolders(startPath);
   };
@@ -222,16 +220,17 @@ const DropboxFolderBrowser = ({
         <RiArrowRightSLine className={`expand-icon ${isOpen ? 'open' : ''}`} />
       </div>
 
-      {/* Folder Browser Modal */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="browser-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-          >
+      {/* Folder Browser Modal - rendered via portal to escape stacking context */}
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              className="browser-overlay dropbox-browser-portal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+            >
             <motion.div
               className="browser-modal"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -302,7 +301,29 @@ const DropboxFolderBrowser = ({
                   <div className="error-state">
                     <RiErrorWarningLine />
                     <span>{error}</span>
-                    <button onClick={() => fetchFolders(currentPath)}>Retry</button>
+                    <div className="error-actions">
+                      <button onClick={() => fetchFolders(currentPath)}>Retry</button>
+                      {currentPath && (
+                        <button
+                          className="go-up-btn"
+                          onClick={() => {
+                            // Navigate to parent directory
+                            const pathParts = currentPath.split('/').filter(Boolean);
+                            pathParts.pop();
+                            const parentPath = pathParts.length > 0 ? '/' + pathParts.join('/') : '';
+                            navigateToBreadcrumb(parentPath);
+                          }}
+                        >
+                          Go Up
+                        </button>
+                      )}
+                      <button
+                        className="go-root-btn"
+                        onClick={() => navigateToBreadcrumb('')}
+                      >
+                        Go to Root
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="folders-list">
@@ -346,7 +367,9 @@ const DropboxFolderBrowser = ({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

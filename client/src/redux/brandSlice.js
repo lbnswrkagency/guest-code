@@ -70,6 +70,17 @@ const brandSlice = createSlice({
           // FIXED: Include role and roleId for permissions
           role: brand.role,
           roleId: brand.roleId,
+          // Analytics configuration
+          metaPixelId: brand.metaPixelId,
+          // Dropbox configuration
+          dropboxBaseFolder: brand.dropboxBaseFolder,
+          dropboxDateFormat: brand.dropboxDateFormat,
+          dropboxPathStructure: brand.dropboxPathStructure,
+          dropboxVideoPathStructure: brand.dropboxVideoPathStructure,
+          // Spotify configuration
+          spotifyClientId: brand.spotifyClientId,
+          spotifyClientSecret: brand.spotifyClientSecret,
+          spotifyPlaylistId: brand.spotifyPlaylistId,
         };
       });
       state.loading = false;

@@ -1,43 +1,92 @@
 /**
- * Generate Dropbox folder path based on brand base folder, path structure, and event date
- * Format: {brandDropboxBaseFolder}{pathStructure with replaced placeholders}
+ * Format a date according to the specified format
  */
-export const generateDropboxPath = (brandDropboxBaseFolder, eventDate, pathStructure = "/Events/{DDMMYY}/photos") => {
-  if (!brandDropboxBaseFolder || !eventDate) {
-    return "";
-  }
-  
+export const formatDateByFormat = (eventDate, dateFormat = "DDMMYY") => {
   const date = new Date(eventDate);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = String(date.getFullYear());
   const year2 = String(date.getFullYear()).slice(-2);
-  
+
+  switch (dateFormat) {
+    case "YYYYMMDD":
+      return `${year}${month}${day}`;
+    case "DDMMYYYY":
+      return `${day}${month}${year}`;
+    case "DDMMYY":
+      return `${day}${month}${year2}`;
+    case "MMDDYYYY":
+      return `${month}${day}${year}`;
+    case "MMDDYY":
+      return `${month}${day}${year2}`;
+    default:
+      return `${day}${month}${year2}`;
+  }
+};
+
+/**
+ * Generate Dropbox folder path based on brand base folder, path structure, event date, and optional subfolder
+ * Format: {brandDropboxBaseFolder}{pathStructure with replaced placeholders}/{subfolder}
+ * If dateFormat is provided, it overrides the placeholder in pathStructure
+ * @param {string} brandDropboxBaseFolder - Base folder path
+ * @param {Date|string} eventDate - Event date
+ * @param {string} pathStructure - Path structure with placeholders
+ * @param {string} dateFormat - Optional date format override
+ * @param {string} subfolder - Optional subfolder to append at the end (e.g., "branded", "raw")
+ */
+export const generateDropboxPath = (brandDropboxBaseFolder, eventDate, pathStructure = "/{YYYYMMDD}/photos", dateFormat = null, subfolder = "") => {
+  if (!brandDropboxBaseFolder || !eventDate) {
+    return "";
+  }
+
+  const date = new Date(eventDate);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear());
+  const year2 = String(date.getFullYear()).slice(-2);
+
   // Ensure brandDropboxBaseFolder starts with /
-  const basePath = brandDropboxBaseFolder.startsWith('/') 
-    ? brandDropboxBaseFolder 
+  const basePath = brandDropboxBaseFolder.startsWith('/')
+    ? brandDropboxBaseFolder
     : `/${brandDropboxBaseFolder}`;
-  
-  // Replace placeholders in the path structure
+
   let structurePath = pathStructure;
-  structurePath = structurePath.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
-  structurePath = structurePath.replace(/{DDMMYYYY}/g, `${day}${month}${year}`);
-  structurePath = structurePath.replace(/{MMDDYY}/g, `${month}${day}${year2}`);
-  structurePath = structurePath.replace(/{MMDDYYYY}/g, `${month}${day}${year}`);
-  structurePath = structurePath.replace(/{YYYYMMDD}/g, `${year}${month}${day}`);
+
+  // If a specific dateFormat is provided, replace ANY date placeholder with that format's value
+  if (dateFormat) {
+    const formattedDate = formatDateByFormat(eventDate, dateFormat);
+    // Replace any date placeholder with the formatted date
+    structurePath = structurePath.replace(/{DDMMYY}|{DDMMYYYY}|{MMDDYY}|{MMDDYYYY}|{YYYYMMDD}/g, formattedDate);
+  } else {
+    // Replace placeholders in the path structure (original behavior)
+    structurePath = structurePath.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
+    structurePath = structurePath.replace(/{DDMMYYYY}/g, `${day}${month}${year}`);
+    structurePath = structurePath.replace(/{MMDDYY}/g, `${month}${day}${year2}`);
+    structurePath = structurePath.replace(/{MMDDYYYY}/g, `${month}${day}${year}`);
+    structurePath = structurePath.replace(/{YYYYMMDD}/g, `${year}${month}${day}`);
+  }
+
+  // Always replace these individual placeholders
   structurePath = structurePath.replace(/{YYYY}/g, year);
   structurePath = structurePath.replace(/{MM}/g, month);
   structurePath = structurePath.replace(/{DD}/g, day);
   structurePath = structurePath.replace(/{YY}/g, year2);
-  
+
   // Ensure structure path starts with /
   if (!structurePath.startsWith('/')) {
     structurePath = `/${structurePath}`;
   }
-  
-  // Always append /raw at the end for photo access
-  const finalPath = `${basePath}${structurePath}`;
-  return finalPath.endsWith('/raw') ? finalPath : `${finalPath}/raw`;
+
+  // Build final path
+  let finalPath = `${basePath}${structurePath}`;
+
+  // Append subfolder if provided
+  if (subfolder && subfolder.trim()) {
+    const cleanSubfolder = subfolder.trim().replace(/^\/+/, ''); // Remove leading slashes
+    finalPath = `${finalPath}/${cleanSubfolder}`;
+  }
+
+  return finalPath;
 };
 
 /**
@@ -158,28 +207,48 @@ export const getAvailablePlaceholders = () => {
 };
 
 /**
- * Preview path structure with sample date
+ * Preview path structure with sample date and optional subfolder
+ * @param {string} pathStructure - The path structure template
+ * @param {Date} sampleDate - The date to use for preview
+ * @param {string} dateFormat - Optional: Override date placeholder with this format (YYYYMMDD, DDMMYY, etc.)
+ * @param {string} subfolder - Optional subfolder to append at the end
  */
-export const previewPathStructure = (pathStructure, sampleDate = new Date()) => {
+export const previewPathStructure = (pathStructure, sampleDate = new Date(), dateFormat = null, subfolder = "") => {
   if (!pathStructure) return '';
-  
+
   const date = new Date(sampleDate);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = String(date.getFullYear());
   const year2 = String(date.getFullYear()).slice(-2);
-  
+
   let preview = pathStructure;
-  preview = preview.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
-  preview = preview.replace(/{DDMMYYYY}/g, `${day}${month}${year}`);
-  preview = preview.replace(/{MMDDYY}/g, `${month}${day}${year2}`);
-  preview = preview.replace(/{MMDDYYYY}/g, `${month}${day}${year}`);
-  preview = preview.replace(/{YYYYMMDD}/g, `${year}${month}${day}`);
+
+  // If dateFormat provided, replace ANY date placeholder with that format's value
+  if (dateFormat) {
+    const formattedDate = formatDateByFormat(date, dateFormat);
+    preview = preview.replace(/{DDMMYY}|{DDMMYYYY}|{MMDDYY}|{MMDDYYYY}|{YYYYMMDD}/g, formattedDate);
+  } else {
+    // Original behavior - replace each placeholder with its corresponding value
+    preview = preview.replace(/{DDMMYY}/g, `${day}${month}${year2}`);
+    preview = preview.replace(/{DDMMYYYY}/g, `${day}${month}${year}`);
+    preview = preview.replace(/{MMDDYY}/g, `${month}${day}${year2}`);
+    preview = preview.replace(/{MMDDYYYY}/g, `${month}${day}${year}`);
+    preview = preview.replace(/{YYYYMMDD}/g, `${year}${month}${day}`);
+  }
+
+  // Always replace individual placeholders
   preview = preview.replace(/{YYYY}/g, year);
   preview = preview.replace(/{MM}/g, month);
   preview = preview.replace(/{DD}/g, day);
   preview = preview.replace(/{YY}/g, year2);
-  
+
+  // Append subfolder if provided
+  if (subfolder && subfolder.trim()) {
+    const cleanSubfolder = subfolder.trim().replace(/^\/+/, '');
+    preview = `${preview}/${cleanSubfolder}`;
+  }
+
   return preview;
 };
 
@@ -279,35 +348,35 @@ export const replaceDateInPath = (originalPath, newDate) => {
 /**
  * Generate smart dropbox path suggestion based on previous events
  * Falls back to brand template if no previous events found
+ * @param {Array} brandEvents - Array of brand events to check for existing paths
+ * @param {Date|string} currentEventDate - The date of the current event
+ * @param {string} brandDropboxBaseFolder - The brand's base Dropbox folder
+ * @param {string} brandPathStructure - The path structure template
+ * @param {string} dateFormat - The user's preferred date format (YYYYMMDD, DDMMYY, etc.)
+ * @param {string} subfolder - Optional subfolder to append at the end (e.g., "branded", "raw")
  */
-export const generateSmartDropboxPath = (brandEvents = [], currentEventDate, brandDropboxBaseFolder, brandPathStructure) => {
+export const generateSmartDropboxPath = (brandEvents = [], currentEventDate, brandDropboxBaseFolder, brandPathStructure, dateFormat = null, subfolder = "") => {
   if (!currentEventDate) {
     return "";
   }
-  
+
   // Find the most recent event (excluding current one) that has a dropboxFolderPath
   const eventsWithDropboxPath = brandEvents
-    .filter(event => 
-      event.dropboxFolderPath && 
+    .filter(event =>
+      event.dropboxFolderPath &&
       event.dropboxFolderPath.trim() !== "" &&
       new Date(event.startDate || event.date) <= new Date() // Only past events
     )
     .sort((a, b) => new Date(b.startDate || b.date) - new Date(a.startDate || a.date));
-  
-  if (eventsWithDropboxPath.length > 0) {
+
+  if (eventsWithDropboxPath.length > 0 && !dateFormat && !subfolder) {
     // Use the most recent event's path as template and replace the date
+    // Only use smart path if no explicit dateFormat or subfolder is set
     const recentEvent = eventsWithDropboxPath[0];
     const smartPath = replaceDateInPath(recentEvent.dropboxFolderPath, currentEventDate);
-    console.log('🎯 Smart path generated from recent event:', {
-      recentEventPath: recentEvent.dropboxFolderPath,
-      recentEventDate: recentEvent.startDate || recentEvent.date,
-      currentEventDate: currentEventDate,
-      smartPath: smartPath
-    });
     return smartPath;
   }
-  
-  // Fallback to brand template method
-  console.log('📋 No previous events found, falling back to brand template');
-  return generateDropboxPath(brandDropboxBaseFolder, currentEventDate, brandPathStructure);
+
+  // Fallback to brand template method with dateFormat and subfolder
+  return generateDropboxPath(brandDropboxBaseFolder, currentEventDate, brandPathStructure, dateFormat, subfolder);
 };

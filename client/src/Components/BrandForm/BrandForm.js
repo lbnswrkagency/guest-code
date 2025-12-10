@@ -75,7 +75,7 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
     },
     dropbox: {
       baseFolder: brand?.dropboxBaseFolder || "",
-      pathStructure: brand?.dropboxPathStructure || "/Events/{DDMMYY}/photos",
+      pathStructure: brand?.dropboxPathStructure || "/{YYYYMMDD}/photos",
     },
   }));
 
@@ -632,7 +632,7 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                     <RiUpload2Line />
                     <input
                       type="text"
-                      placeholder="Path structure (e.g., /Events/{DDMMYY}/photos)"
+                      placeholder="Path structure (e.g., /{YYYYMMDD}/photos)"
                       value={formData.dropbox.pathStructure}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -699,8 +699,8 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                       <div className="help-examples">
                         <h5>Examples:</h5>
                         <div className="example-item">
-                          <code>/Events/{'{DDMMYY}'}/photos</code>
-                          <span>→ /Events/271225/photos</span>
+                          <code>/{'{YYYYMMDD}'}/photos</code>
+                          <span>→ /20251227/photos</span>
                         </div>
                         <div className="example-item">
                           <code>/Galleries/{'{YYYY}'}/{'{MM}'}/Event-{'{DD}'}</code>

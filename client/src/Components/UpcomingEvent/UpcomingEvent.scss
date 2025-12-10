@@ -43,6 +43,7 @@
   max-width: 100%;
   padding: 0.5rem; // Base padding for mobile
   contain: layout style; // Prevent layout shifts during load
+  overflow: hidden; // CRITICAL - prevent any child from stretching page
 
   @include mq(tablet) {
     padding: 0.75rem !important;
@@ -1188,19 +1189,41 @@
 .upcomingEvent-gallery-section {
   width: 100%;
   max-width: 100%;
+  min-width: 0; // Allow shrinking in flex containers
   margin: 2rem 0;
   box-sizing: border-box;
   scroll-margin-top: 80px;
   position: relative;
+  overflow: hidden; // Prevent carousel from stretching page
 
   &.highlight-section {
     animation: highlight-pulse 1.5s ease;
   }
 
   .gallery-carousel {
-    // The gallery carousel component will handle its own internal styling
-    // This is just the container
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+}
+
+// Video section
+.upcomingEvent-video-section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 2rem 0;
+  box-sizing: border-box;
+  scroll-margin-top: 80px;
+  position: relative;
+  overflow: hidden;
+
+  .video-carousel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 }
 
@@ -2152,10 +2175,19 @@
       grid-row: 4;
       grid-column: 1;
       width: 100%;
+      max-width: 100%;
+      min-width: 0; // Allow shrinking
       display: flex;
       flex-direction: column;
       gap: 2rem;
       margin-top: 2rem;
+      overflow: hidden; // Prevent gallery carousel from stretching
+
+      // All children should also be able to shrink
+      > * {
+        min-width: 0;
+        max-width: 100%;
+      }
 
       @media (min-width: 1024px) {
         grid-column: 1/3;

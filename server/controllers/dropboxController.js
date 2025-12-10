@@ -863,9 +863,10 @@ exports.getBrandGalleryDates = async (req, res) => {
       dropboxFolderPath: { $exists: true, $ne: null, $ne: "" }
     }).select('dropboxFolderPath title subTitle startDate date _id isWeekly weekNumber parentEventId')
     .sort({ startDate: -1, date: -1 });
-    
+
     // Process events to check if galleries actually exist
     const galleryOptions = [];
+    const skippedEvents = [];
     
     for (const event of eventsWithGalleries) {
       try {
@@ -906,15 +907,21 @@ exports.getBrandGalleryDates = async (req, res) => {
         }
       } catch (folderError) {
         // Skip events where folder doesn't exist or can't be accessed
-        console.log(`Skipping event ${event._id}: ${folderError.message}`);
+        skippedEvents.push({ title: event.title, reason: folderError.message });
       }
     }
-    
+
     res.json({
       success: true,
       brandName: brand.name,
       galleryOptions: galleryOptions,
-      totalGalleries: galleryOptions.length
+      totalGalleries: galleryOptions.length,
+      // Include debug info
+      debug: {
+        eventsChecked: eventsWithGalleries.length,
+        galleriesFound: galleryOptions.length,
+        skippedCount: skippedEvents.length
+      }
     });
     
   } catch (error) {
@@ -1145,6 +1152,459 @@ exports.getEventGalleryById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch event gallery",
+      error: error.message
+    });
+  }
+};
+
+// Get video gallery for a specific event
+exports.getEventVideoGalleryById = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Import models
+    const Event = require("../models/eventsModel");
+
+    // Find the event
+    const event = await Event.findById(eventId).select('dropboxFolderPath dropboxVideoFolderPath title startDate date');
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    // Use video folder path if set, otherwise fall back to main folder
+    const videoFolderPath = event.dropboxVideoFolderPath || event.dropboxFolderPath;
+
+    if (!videoFolderPath) {
+      return res.status(200).json({
+        success: true,
+        message: "No video gallery path set for this event",
+        media: {
+          videos: [],
+          totalCount: 0
+        }
+      });
+    }
+
+    // Initialize Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Ensure path starts with forward slash
+    const folderPath = videoFolderPath.startsWith("/")
+      ? videoFolderPath
+      : `/${videoFolderPath}`;
+
+    try {
+      const listFolderResponse = await withTokenRefresh(async function() {
+        return await this.dbx.filesListFolder({
+          path: folderPath,
+          recursive: false,
+          include_media_info: true,
+          include_mounted_folders: true
+        });
+      }.bind({ dbx }));
+
+      const entries = listFolderResponse.result.entries;
+
+      // Filter only video files
+      const videoFiles = entries.filter(file =>
+        file['.tag'] === 'file' && isVideo(file.name)
+      );
+
+      console.log(`🎬 [Dropbox Controller] Found ${videoFiles.length} videos in event "${event.title}"`);
+
+      // Process videos with thumbnails
+      const videos = [];
+      const MAX_CONCURRENT_VIDEO_THUMBNAILS = 4;
+      const VIDEO_THUMBNAIL_TIMEOUT = 5000;
+
+      // Helper function to get video thumbnail with caching
+      const getVideoThumbnailWithCache = async (file) => {
+        try {
+          const cacheKey = getCacheKey(file.path_lower, 'video-w256h256');
+
+          // Check cache first
+          const cachedThumbnail = getCachedThumbnail(cacheKey);
+          if (cachedThumbnail) {
+            return {
+              id: file.id,
+              name: file.name,
+              path: file.path_lower,
+              size: file.size,
+              modified: file.client_modified,
+              thumbnail: cachedThumbnail,
+              type: 'video',
+              extension: file.name.split('.').pop().toLowerCase(),
+              cached: true
+            };
+          }
+
+          // Generate new video thumbnail with timeout
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Video thumbnail timeout')), VIDEO_THUMBNAIL_TIMEOUT)
+          );
+
+          const thumbnailPromise = withTokenRefresh(async function() {
+            return await this.dbx.filesGetThumbnail({
+              path: file.path_lower,
+              size: { ".tag": "w256h256" },
+              format: { ".tag": "jpeg" }
+            });
+          }.bind({ dbx }));
+
+          const thumbnailResponse = await Promise.race([thumbnailPromise, timeoutPromise]);
+          const thumbnailBase64 = `data:image/jpeg;base64,${thumbnailResponse.result.fileBinary.toString("base64")}`;
+
+          // Save to cache (async, don't wait)
+          setImmediate(() => saveThumbnailToCache(cacheKey, thumbnailResponse.result.fileBinary));
+
+          return {
+            id: file.id,
+            name: file.name,
+            path: file.path_lower,
+            size: file.size,
+            modified: file.client_modified,
+            thumbnail: thumbnailBase64,
+            type: 'video',
+            extension: file.name.split('.').pop().toLowerCase(),
+            cached: false
+          };
+        } catch (thumbnailError) {
+          console.log(`⚠️ [Dropbox Controller] Video thumbnail failed for ${file.name}:`, thumbnailError.message);
+          // Return video without thumbnail
+          return {
+            id: file.id,
+            name: file.name,
+            path: file.path_lower,
+            size: file.size,
+            modified: file.client_modified,
+            thumbnail: null,
+            type: 'video',
+            extension: file.name.split('.').pop().toLowerCase()
+          };
+        }
+      };
+
+      // Process videos in batches for thumbnails
+      for (let i = 0; i < videoFiles.length; i += MAX_CONCURRENT_VIDEO_THUMBNAILS) {
+        const batch = videoFiles.slice(i, i + MAX_CONCURRENT_VIDEO_THUMBNAILS);
+        const batchResults = await Promise.all(
+          batch.map(file => getVideoThumbnailWithCache(file))
+        );
+        videos.push(...batchResults);
+        console.log(`🎬 [Dropbox Controller] Processed ${Math.min(i + MAX_CONCURRENT_VIDEO_THUMBNAILS, videoFiles.length)}/${videoFiles.length} video thumbnails`);
+      }
+
+      res.status(200).json({
+        success: true,
+        eventTitle: event.title,
+        eventDate: event.startDate || event.date,
+        folderPath: folderPath,
+        media: {
+          videos: videos,
+          totalCount: videos.length
+        }
+      });
+
+    } catch (dropboxError) {
+      if (dropboxError.status === 409) {
+        // Folder doesn't exist
+        return res.status(200).json({
+          success: true,
+          eventTitle: event.title,
+          eventDate: event.startDate || event.date,
+          folderPath: folderPath,
+          media: {
+            videos: [],
+            totalCount: 0
+          },
+          message: "Video gallery folder not found"
+        });
+      }
+      throw dropboxError;
+    }
+
+  } catch (error) {
+    console.error("Dropbox video gallery error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch video gallery",
+      error: error.message
+    });
+  }
+};
+
+// Get latest video gallery for a brand
+exports.getLatestBrandVideoGallery = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    console.log('🎬 [Dropbox Controller] getLatestBrandVideoGallery called for brandId:', brandId);
+
+    // Import models
+    const Brand = require("../models/brandModel");
+    const Event = require("../models/eventsModel");
+
+    // Find the brand
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    // Initialize Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Find events with video gallery paths
+    const now = new Date();
+
+    // Look for events with dropboxVideoFolderPath OR dropboxFolderPath
+    let eventsWithVideos = await Event.find({
+      brand: brandId,
+      $or: [
+        { startDate: { $lt: now } },
+        { date: { $lt: now } }
+      ],
+      $or: [
+        { dropboxVideoFolderPath: { $exists: true, $ne: null, $ne: "" } },
+        { dropboxFolderPath: { $exists: true, $ne: null, $ne: "" } }
+      ]
+    }).select('dropboxFolderPath dropboxVideoFolderPath title startDate date _id')
+    .sort({ startDate: -1, date: -1 })
+    .limit(5);
+
+    // Try to find one that actually has videos
+    for (const event of eventsWithVideos) {
+      try {
+        const videoFolderPath = event.dropboxVideoFolderPath || event.dropboxFolderPath;
+        if (!videoFolderPath) continue;
+
+        const folderPath = videoFolderPath.startsWith("/")
+          ? videoFolderPath
+          : `/${videoFolderPath}`;
+
+        const listFolderResponse = await withTokenRefresh(async function() {
+          return await dbx.filesListFolder({
+            path: folderPath,
+            recursive: false,
+            include_mounted_folders: true
+          });
+        });
+
+        const videoFiles = listFolderResponse.result.entries.filter(file =>
+          file['.tag'] === 'file' && isVideo(file.name)
+        );
+
+        if (videoFiles.length > 0) {
+          console.log(`✅ [Dropbox Controller] Found ${videoFiles.length} videos in event "${event.title}"`);
+          // Found videos, return this event's gallery
+          return await exports.getEventVideoGalleryById(
+            { params: { eventId: event._id } },
+            res
+          );
+        }
+      } catch (folderError) {
+        continue;
+      }
+    }
+
+    // No events with videos found
+    res.status(200).json({
+      success: true,
+      message: "No video galleries found for this brand",
+      eventTitle: "No Videos Available",
+      media: {
+        videos: [],
+        totalCount: 0
+      }
+    });
+
+  } catch (error) {
+    console.error("Error getting latest brand video gallery:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get latest video gallery",
+      error: error.message
+    });
+  }
+};
+
+// Check if a brand has any video galleries available
+exports.checkBrandVideoGalleries = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Import models
+    const Brand = require("../models/brandModel");
+    const Event = require("../models/eventsModel");
+
+    // Find the brand
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found",
+        hasVideoGalleries: false
+      });
+    }
+
+    // Initialize Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Find events with potential video galleries
+    const eventsWithPaths = await Event.find({
+      brand: brandId,
+      $or: [
+        { dropboxVideoFolderPath: { $exists: true, $ne: null, $ne: "" } },
+        { dropboxFolderPath: { $exists: true, $ne: null, $ne: "" } }
+      ]
+    }).select('dropboxFolderPath dropboxVideoFolderPath title _id').limit(10);
+
+    // Check each event for actual videos
+    for (const event of eventsWithPaths) {
+      try {
+        const videoFolderPath = event.dropboxVideoFolderPath || event.dropboxFolderPath;
+        if (!videoFolderPath) continue;
+
+        const folderPath = videoFolderPath.startsWith("/")
+          ? videoFolderPath
+          : `/${videoFolderPath}`;
+
+        const listFolderResponse = await withTokenRefresh(async function() {
+          return await dbx.filesListFolder({
+            path: folderPath,
+            recursive: false,
+            include_mounted_folders: true
+          });
+        });
+
+        const hasVideos = listFolderResponse.result.entries.some(file =>
+          file['.tag'] === 'file' && isVideo(file.name)
+        );
+
+        if (hasVideos) {
+          return res.json({
+            success: true,
+            hasVideoGalleries: true
+          });
+        }
+      } catch (folderError) {
+        continue;
+      }
+    }
+
+    res.json({
+      success: true,
+      hasVideoGalleries: false
+    });
+
+  } catch (error) {
+    console.error("Error checking brand video galleries:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check video galleries",
+      hasVideoGalleries: false,
+      error: error.message
+    });
+  }
+};
+
+// Get all available video gallery dates for a brand
+exports.getBrandVideoGalleryDates = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Import models
+    const Brand = require("../models/brandModel");
+    const Event = require("../models/eventsModel");
+
+    // Find the brand
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    // Initialize Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Find all events for this brand that have dropboxFolderPath
+    const eventsWithPaths = await Event.find({
+      brand: brandId,
+      $or: [
+        { dropboxVideoFolderPath: { $exists: true, $ne: null, $ne: "" } },
+        { dropboxFolderPath: { $exists: true, $ne: null, $ne: "" } }
+      ]
+    }).select('dropboxFolderPath dropboxVideoFolderPath title subTitle startDate date _id isWeekly weekNumber parentEventId')
+    .sort({ startDate: -1, date: -1 });
+
+    // Process events to check if they have videos
+    const videoGalleryOptions = [];
+
+    for (const event of eventsWithPaths) {
+      try {
+        const videoFolderPath = event.dropboxVideoFolderPath || event.dropboxFolderPath;
+        if (!videoFolderPath) continue;
+
+        const folderPath = videoFolderPath.startsWith("/")
+          ? videoFolderPath
+          : `/${videoFolderPath}`;
+
+        // Check if folder exists and has videos
+        const listFolderResponse = await withTokenRefresh(async function() {
+          return await this.dbx.filesListFolder({
+            path: folderPath,
+            recursive: false,
+            include_mounted_folders: true
+          });
+        }.bind({ dbx }));
+
+        const videoFiles = listFolderResponse.result.entries.filter(file =>
+          file['.tag'] === 'file' && isVideo(file.name)
+        );
+
+        if (videoFiles.length > 0) {
+          const eventDate = event.startDate || event.date;
+          const displayTitle = event.isWeekly && event.weekNumber > 0
+            ? `${event.title} - Week ${event.weekNumber}`
+            : event.title;
+
+          videoGalleryOptions.push({
+            eventId: event._id,
+            title: displayTitle,
+            subTitle: event.subTitle,
+            date: eventDate,
+            folderPath: videoFolderPath,
+            videoCount: videoFiles.length,
+            isWeekly: event.isWeekly,
+            weekNumber: event.weekNumber || 0,
+            parentEventId: event.parentEventId
+          });
+        }
+      } catch (folderError) {
+        // Skip events where folder doesn't exist or can't be accessed
+        continue;
+      }
+    }
+
+    res.json({
+      success: true,
+      brandName: brand.name,
+      galleryOptions: videoGalleryOptions,
+      totalGalleries: videoGalleryOptions.length
+    });
+
+  } catch (error) {
+    console.error("Error getting brand video gallery dates:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get video gallery dates",
       error: error.message
     });
   }

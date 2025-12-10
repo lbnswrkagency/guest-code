@@ -639,22 +639,15 @@ exports.editEvent = async (req, res) => {
     }
 
     // Handle coHosts if they exist
-    console.log("🔍 [Backend] Raw coHosts from request:", req.body.coHosts, typeof req.body.coHosts);
     if (req.body.coHosts) {
       // If coHosts is a string (from FormData), parse it
       if (typeof req.body.coHosts === "string") {
         try {
           req.body.coHosts = JSON.parse(req.body.coHosts);
-          console.log("✅ [Backend] Parsed coHosts successfully:", req.body.coHosts);
         } catch (e) {
-          console.error("❌ [Backend] Failed to parse coHosts:", e.message);
           delete req.body.coHosts;
         }
-      } else if (Array.isArray(req.body.coHosts)) {
-        console.log("✅ [Backend] coHosts already an array:", req.body.coHosts);
       }
-    } else {
-      console.log("ℹ️ [Backend] No coHosts field in request body");
     }
 
     // Find event and check permissions
@@ -713,11 +706,9 @@ exports.editEvent = async (req, res) => {
             .filter(id => id != null) // Filter out any remaining null/undefined IDs
         : [];
       event.coHosts = coHostIds;
-      console.log('✅ [Backend] Updated parent event co-hosts:', coHostIds);
     }
     if (req.body.coHostRolePermissions !== undefined) {
       event.coHostRolePermissions = req.body.coHostRolePermissions || [];
-      console.log('✅ [Backend] Updated parent event co-host permissions:', req.body.coHostRolePermissions);
     }
 
     // Check if this is a child event being edited directly
@@ -751,7 +742,6 @@ exports.editEvent = async (req, res) => {
               .filter(coHost => coHost != null) // Filter out null/undefined
               .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
               .filter(id => id != null); // Filter out any remaining null/undefined IDs
-            console.log('✅ [Backend] Updated direct child event co-hosts:', event[key]);
           } else {
             event[key] = updatedChildData[key];
           }
@@ -927,11 +917,9 @@ exports.editEvent = async (req, res) => {
                 .filter(id => id != null) // Filter out any remaining null/undefined IDs
             : [];
           childEvent.coHosts = coHostIds;
-          console.log('✅ [Backend] Updated child event co-hosts:', coHostIds);
         }
         if (req.body.coHostRolePermissions !== undefined) {
           childEvent.coHostRolePermissions = req.body.coHostRolePermissions || [];
-          console.log('✅ [Backend] Updated child event co-host permissions:', req.body.coHostRolePermissions);
         }
 
         // Don't set legacy date field anymore
@@ -1473,12 +1461,6 @@ exports.getEvent = async (req, res) => {
       responseData.coHosts = eventData.coHosts;
     }
 
-    // Log for debugging child events
-    if (eventData.parentEventId) {
-      console.log(`🔍 [Backend] Fetched child event (week ${eventData.weekNumber}) with co-hosts:`, 
-        eventData.coHosts?.map(c => c.name || c) || []);
-    }
-
     res.status(200).json({ success: true, event: responseData });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error." });
@@ -1568,7 +1550,7 @@ exports.getEventProfile = async (req, res) => {
       let eventsOnDate = await Event.find(query)
         .populate({
           path: "brand",
-          select: "name username logo description",
+          select: "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
         })
         .populate({
           path: "user",
@@ -1594,7 +1576,7 @@ exports.getEventProfile = async (req, res) => {
         eventsOnDate = await Event.find(broadQuery)
           .populate({
             path: "brand",
-            select: "name username logo description",
+            select: "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
           })
           .populate({
             path: "user",
@@ -1621,7 +1603,7 @@ exports.getEventProfile = async (req, res) => {
         eventsOnDate = await Event.find(monthQuery)
           .populate({
             path: "brand",
-            select: "name username logo description",
+            select: "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
           })
           .populate({
             path: "user",
@@ -1777,7 +1759,7 @@ exports.getEventProfile = async (req, res) => {
       event = await Event.findById(req.params.eventId)
         .populate({
           path: "brand",
-          select: "name username logo description",
+          select: "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
         })
         .populate({
           path: "user",

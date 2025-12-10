@@ -566,8 +566,20 @@ exports.updateBrand = async (req, res) => {
     if (req.body.dropboxBaseFolder !== undefined) {
       updateData.dropboxBaseFolder = req.body.dropboxBaseFolder;
     }
+    if (req.body.dropboxDateFormat !== undefined) {
+      updateData.dropboxDateFormat = req.body.dropboxDateFormat;
+    }
     if (req.body.dropboxPathStructure !== undefined) {
       updateData.dropboxPathStructure = req.body.dropboxPathStructure;
+    }
+    if (req.body.dropboxVideoPathStructure !== undefined) {
+      updateData.dropboxVideoPathStructure = req.body.dropboxVideoPathStructure;
+    }
+    if (req.body.dropboxPhotoSubfolder !== undefined) {
+      updateData.dropboxPhotoSubfolder = req.body.dropboxPhotoSubfolder;
+    }
+    if (req.body.dropboxVideoSubfolder !== undefined) {
+      updateData.dropboxVideoSubfolder = req.body.dropboxVideoSubfolder;
     }
 
     const updatedBrand = await Brand.findOneAndUpdate(

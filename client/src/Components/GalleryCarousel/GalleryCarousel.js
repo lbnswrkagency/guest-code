@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import "./GalleryCarousel.scss";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../utils/axiosConfig";
@@ -45,7 +46,6 @@ const GalleryCarousel = ({
   onImageClick,
   brandHasGalleries
 }) => {
-  console.log('🖼️ [GalleryCarousel] Component rendered with props:', { brandId, brandUsername, brandHasGalleries, currentEventId: currentEvent?._id });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(!!brandHasGalleries); // Start with true only if galleries exist
   const [error, setError] = useState(null);
@@ -54,18 +54,19 @@ const GalleryCarousel = ({
   const [showDateSelector, setShowDateSelector] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const carouselRef = useRef(null);
   const autoPlayIntervalRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
 
-  // Configuration constants - memoized to prevent recreation
+  // Configuration constants - synced with CSS values
   const config = useMemo(() => ({
     VISIBLE_IMAGES: 4, // Number of images visible at once
-    IMAGE_WIDTH: 280, // Width of each image
-    IMAGE_GAP: 16, // Gap between images
+    IMAGE_WIDTH: 240, // Width of each image (matches .carousel-item width in CSS)
+    IMAGE_GAP: 12, // Gap between images (matches .carousel-track gap in CSS)
     AUTO_SCROLL_DELAY: 3000, // 3 seconds
-    INITIAL_LOAD_COUNT: 12, // Load first 12 images
+    INITIAL_LOAD_COUNT: 10, // Load first 10 images
   }), []);
 
   // Memoize fetchGallery function to prevent recreation on each render
@@ -104,19 +105,14 @@ const GalleryCarousel = ({
         throw new Error('Could not construct gallery endpoint');
       }
       
-      console.log('🖼️ [GalleryCarousel] Fetching from endpoint:', endpoint);
       const response = await axiosInstance.get(endpoint);
-      console.log('🖼️ [GalleryCarousel] API response:', response.data);
-      console.log('🖼️ [GalleryCarousel] Photos array:', response.data?.media?.photos);
 
       if (response.data?.success && response.data?.media?.photos && Array.isArray(response.data.media.photos)) {
         // Take only the first batch of photos for carousel
         const photos = response.data.media.photos.slice(0, config.INITIAL_LOAD_COUNT);
-        console.log('🖼️ [GalleryCarousel] Setting images:', photos.length, 'photos');
         setImages(photos);
         setCurrentIndex(0); // Reset to first image
       } else {
-        console.log('🖼️ [GalleryCarousel] No valid photos found, setting empty array');
         setImages([]);
       }
     } catch (err) {
@@ -216,12 +212,12 @@ const GalleryCarousel = ({
     }, 5000);
   }, [images.length, config.VISIBLE_IMAGES]);
 
-  // Memoize image click handler
+  // Memoize image click handler - pass images array and clicked index
   const handleImageClick = useCallback((image, index) => {
     if (onImageClick) {
-      onImageClick(selectedEventId, index);
+      onImageClick(images, index);
     }
-  }, [onImageClick, selectedEventId]);
+  }, [onImageClick, images]);
 
   // Memoize event change handler
   const handleEventChange = useCallback((eventId) => {
@@ -242,14 +238,23 @@ const GalleryCarousel = ({
   }, []);
 
   // Memoize computed values
-  const maxIndex = useMemo(() => 
-    Math.max(0, images.length - config.VISIBLE_IMAGES), 
+  const maxIndex = useMemo(() =>
+    Math.max(0, images.length - config.VISIBLE_IMAGES),
     [images.length, config.VISIBLE_IMAGES]
   );
-  
-  const showNavigation = useMemo(() => 
-    images.length > config.VISIBLE_IMAGES, 
+
+  const showNavigation = useMemo(() =>
+    images.length > config.VISIBLE_IMAGES,
     [images.length, config.VISIBLE_IMAGES]
+  );
+
+  // Filter galleries by search query
+  const filteredGalleries = useMemo(() =>
+    availableGalleries.filter(g =>
+      g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      formatDate(g.date).toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [availableGalleries, searchQuery, formatDate]
   );
 
   // Don't render if no galleries
@@ -269,11 +274,8 @@ const GalleryCarousel = ({
     );
   }
 
-  // No images state
-  if (!images || images.length === 0) {
-    console.log('🖼️ [GalleryCarousel] No images to display, returning null. images:', images, 'loading:', loading);
-    return null; // Don't show anything if no images
-  }
+  // Check if we have images to show
+  const hasImages = images && images.length > 0;
 
   return (
     <div className="gallery-carousel">
@@ -295,136 +297,166 @@ const GalleryCarousel = ({
             </button>
           )}
           
-          {/* Date selector */}
-          {availableGalleries.length > 1 && (
+          {/* Date selector - Browse Events */}
+          {availableGalleries.length >= 1 && (
             <div className="date-selector">
               <button
                 className="date-selector-toggle"
                 onClick={() => setShowDateSelector(!showDateSelector)}
               >
                 <RiCalendarEventLine />
-                <span>
-                  {selectedEventId === 'latest' 
-                    ? 'Latest Gallery' 
-                    : availableGalleries.find(g => g.eventId === selectedEventId)?.title || 'Select Date'
-                  }
-                </span>
+                <span>Browse Events</span>
                 <RiArrowDownSLine className={showDateSelector ? 'rotated' : ''} />
               </button>
-              
-              <AnimatePresence>
-                {showDateSelector && (
-                  <motion.div 
-                    className="date-dropdown"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <div 
-                      className={`date-option ${selectedEventId === 'latest' ? 'active' : ''}`}
-                      onClick={() => handleEventChange('latest')}
-                    >
-                      <span className="option-title">Latest Gallery</span>
-                      <span className="option-date">Most Recent</span>
+
+              {/* Modal rendered via Portal */}
+              {showDateSelector && createPortal(
+                <div className="gallery-picker-overlay" onClick={() => { setShowDateSelector(false); setSearchQuery(''); }}>
+                  <div className="gallery-picker" onClick={(e) => e.stopPropagation()}>
+                    <div className="picker-header">
+                      <h4>Browse Galleries</h4>
+                      <button className="picker-close" onClick={() => { setShowDateSelector(false); setSearchQuery(''); }}>
+                        ×
+                      </button>
                     </div>
-                    {availableGalleries.map((gallery) => (
-                      <div
-                        key={gallery.eventId}
-                        className={`date-option ${selectedEventId === gallery.eventId ? 'active' : ''}`}
-                        onClick={() => handleEventChange(gallery.eventId)}
-                      >
-                        <span className="option-title">{gallery.title}</span>
-                        <span className="option-date">{formatDate(gallery.date)}</span>
-                        <span className="option-count">{gallery.mediaCount} items</span>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+                    <div className="picker-list">
+                      {/* Search Input */}
+                      <input
+                        type="text"
+                        placeholder="Search events..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="picker-search"
+                        autoFocus
+                      />
+
+                      {/* Latest Gallery */}
+                      {!searchQuery && (
+                        <div
+                          className={`picker-item featured ${selectedEventId === 'latest' ? 'active' : ''}`}
+                          onClick={() => handleEventChange('latest')}
+                        >
+                          <span className="item-title">Latest Gallery</span>
+                          <span className="item-sub">Most recent photos</span>
+                        </div>
+                      )}
+
+                      {/* Event Galleries */}
+                      {filteredGalleries.map((gallery) => (
+                        <div
+                          key={gallery.eventId}
+                          className={`picker-item ${selectedEventId === gallery.eventId ? 'active' : ''}`}
+                          onClick={() => handleEventChange(gallery.eventId)}
+                        >
+                          <span className="item-title">{gallery.title}</span>
+                          <span className="item-sub">{formatDate(gallery.date)} · {gallery.mediaCount} photos</span>
+                        </div>
+                      ))}
+
+                      {/* No results */}
+                      {searchQuery && filteredGalleries.length === 0 && (
+                        <div className="picker-empty">No events found</div>
+                      )}
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
             </div>
           )}
         </div>
       </div>
 
-      <div className="gallery-carousel-container">
-        {/* Navigation buttons */}
-        {showNavigation && (
-          <button
-            className={`nav-button nav-prev ${currentIndex === 0 ? 'disabled' : ''}`}
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-          >
-            <RiArrowLeftSLine />
-          </button>
-        )}
-
-        {/* Images container */}
-        <div className="carousel-viewport">
-          <motion.div
-            className="carousel-track"
-            animate={{
-              x: -currentIndex * (config.IMAGE_WIDTH + config.IMAGE_GAP)
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30
-            }}
-            onMouseEnter={() => setIsAutoPlaying(false)}
-            onMouseLeave={() => setIsAutoPlaying(true)}
-          >
-            {images.map((image, index) => (
-              <motion.div
-                key={image.id || index}
-                className="carousel-item"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => handleImageClick(image, index)}
+      {/* Show carousel OR empty state */}
+      {hasImages ? (
+        <>
+          <div className="gallery-carousel-container">
+            {/* Navigation buttons */}
+            {showNavigation && (
+              <button
+                className={`nav-button nav-prev ${currentIndex === 0 ? 'disabled' : ''}`}
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
               >
-                {image.thumbnail ? (
-                  <img
-                    src={image.thumbnail}
-                    alt={image.name}
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="image-placeholder">
-                    <RiImageLine />
-                  </div>
-                )}
+                <RiArrowLeftSLine />
+              </button>
+            )}
+
+            {/* Images container */}
+            <div className="carousel-viewport">
+              <motion.div
+                className="carousel-track"
+                animate={{
+                  x: -currentIndex * (config.IMAGE_WIDTH + config.IMAGE_GAP)
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+                onMouseEnter={() => setIsAutoPlaying(false)}
+                onMouseLeave={() => setIsAutoPlaying(true)}
+              >
+                {images.map((image, index) => (
+                  <motion.div
+                    key={image.id || index}
+                    className="carousel-item"
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => handleImageClick(image, index)}
+                  >
+                    {image.thumbnail ? (
+                      <img
+                        src={image.thumbnail}
+                        alt={image.name}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="image-placeholder">
+                        <RiImageLine />
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
+            </div>
 
-        {/* Navigation buttons */}
-        {showNavigation && (
-          <button
-            className={`nav-button nav-next ${currentIndex >= maxIndex ? 'disabled' : ''}`}
-            onClick={handleNext}
-            disabled={currentIndex >= maxIndex}
-          >
-            <RiArrowRightSLine />
-          </button>
-        )}
-      </div>
+            {/* Navigation buttons */}
+            {showNavigation && (
+              <button
+                className={`nav-button nav-next ${currentIndex >= maxIndex ? 'disabled' : ''}`}
+                onClick={handleNext}
+                disabled={currentIndex >= maxIndex}
+              >
+                <RiArrowRightSLine />
+              </button>
+            )}
+          </div>
 
-      {/* Progress dots */}
-      {showNavigation && (
-        <div className="carousel-dots">
-          {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-            <div
-              key={index}
-              className={`dot ${currentIndex === index ? 'active' : ''}`}
-              onClick={() => {
-                setCurrentIndex(index);
-                setIsAutoPlaying(false);
-                clearTimeout(scrollTimeoutRef.current);
-                scrollTimeoutRef.current = setTimeout(() => {
-                  setIsAutoPlaying(true);
-                }, 5000);
-              }}
-            />
-          ))}
+          {/* Progress dots */}
+          {showNavigation && (
+            <div className="carousel-dots">
+              {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`dot ${currentIndex === index ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentIndex(index);
+                    setIsAutoPlaying(false);
+                    clearTimeout(scrollTimeoutRef.current);
+                    scrollTimeoutRef.current = setTimeout(() => {
+                      setIsAutoPlaying(true);
+                    }, 5000);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="gallery-empty">
+          <RiImageLine />
+          <p>No images available for this event</p>
         </div>
       )}
     </div>
