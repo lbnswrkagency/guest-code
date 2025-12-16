@@ -36,7 +36,9 @@
       "Read(//var/folders/rj/vwn5tdcj5wdflckwfzr4jtwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_lg9YWN/**)",
       "Bash(npx create-expo-app:*)",
       "Bash(npm run lint)",
-      "WebFetch(domain:www.dropbox.com)"
+      "WebFetch(domain:www.dropbox.com)",
+      "Bash(brew upgrade:*)",
+      "Bash(brew reinstall:*)"
     ],
     "deny": []
   }

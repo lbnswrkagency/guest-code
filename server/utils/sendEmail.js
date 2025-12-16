@@ -341,23 +341,28 @@ const generateTicketPDF = async (ticket) => {
   }
 };
 
-// US Company Information
+// Greek Company Information
 const COMPANY_INFO = {
-  name: "LBNSWRK LLC",
+  name: "LBNSWRK E.E.",
   dba: "GuestCode",
   address: {
-    line1: "5830 E 2ND ST, STE 7000 #14531",
-    city: "CASPER",
-    state: "WYOMING",
-    zip: "82609",
-    country: "USA",
+    line1: "Davaki Pindou 14",
+    city: "Athens",
+    postalCode: "15773",
+    country: "Greece",
   },
   email: "contact@guest-code.com",
-  phone: "888-462-3453",
-  ein: "32-0758843",
+  vat: "803058973",
+  taxOffice: "ΚΕΦΟΔΕ ΑΤΤΙΚΗΣ",
+  gemi: "188401803000",
+  bank: {
+    name: "Eurobank",
+    accountHolder: "Zafer Guney",
+    iban: "GR1502601020000160201252477",
+  },
 };
 
-const sendEmail = async (order) => {
+const sendEmail = async (order, receiptInfo = null) => {
   try {
     // Fetch event and brand information
     const event = await Event.findById(order.eventId)
@@ -414,7 +419,7 @@ const sendEmail = async (order) => {
       : "";
     const addressHTML = `
       <div style="margin-top: 20px;">
-        <p style="margin: 0 0 15px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #666; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Invoice To:</p>
+        <p style="margin: 0 0 15px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #666; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Receipt To:</p>
         <p style="margin: 0 0 5px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; font-weight: 600; font-size: 15px;">${order.firstName} ${order.lastName}</p>
         <p style="margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #555; font-size: 13px;">${order.billingAddress.line1}</p>
         ${line2HTML}
@@ -423,355 +428,7 @@ const sendEmail = async (order) => {
       </div>
     `;
 
-    // Launch puppeteer to generate PDF with new headless mode
-    const browser = await puppeteer.launch({
-      headless: "new", // Use the new headless mode
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-    const page = await browser.newPage();
-
-    // Generate invoice HTML with improved styling
-    const invoiceHtml = `
-    <html>
-    <head>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-          font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          color: #333;
-          line-height: 1.4;
-          min-height: 100vh;
-        }
-        .invoice-container {
-          width: 100%;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        .header {
-          background-color: white;
-          padding: 2rem 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          border-bottom: 1px solid #eee;
-        }
-        .content {
-          padding: 2rem;
-          flex: 1;
-        }
-        .address-section {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          margin: 2rem 0;
-          gap: 2rem;
-        }
-        .company-info {
-          font-size: 12px;
-          color: #666;
-          margin: 0 0 20px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #eee;
-        }
-        .invoice-details {
-          text-align: right;
-        }
-        .invoice-details-grid {
-          display: inline-grid;
-          grid-template-columns: auto auto;
-          gap: 10px;
-          text-align: left;
-        }
-        .invoice-details-label {
-          color: #666;
-          font-size: 13px;
-          text-align: right;
-          padding-right: 15px;
-        }
-        .invoice-details-value {
-          color: #333;
-          font-size: 13px;
-          font-weight: 500;
-        }
-        .invoice-title-section {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: 1.5rem;
-          margin-bottom: 1rem;
-        }
-        .invoice-title {
-          font-size: 24px;
-          font-weight: 700;
-          color: #222;
-          margin: 0;
-        }
-        .brand-logo {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-        }
-        .event-info {
-          margin-bottom: 1rem;
-          padding: 0.8rem;
-          background-color: #f9f9f9;
-          border-radius: 4px;
-          border-left: 3px solid ${primaryColor};
-        }
-        .table-header {
-          height: 2.2rem;
-          width: 100%;
-          background-color: ${accentColor};
-          display: grid;
-          grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-          color: white;
-          align-items: center;
-          border-radius: 4px;
-          margin-bottom: 0.5rem;
-        }
-        .table-footer {
-          height: 2.2rem;
-          width: 100%;
-          background-color: ${accentColor};
-          display: grid;
-          grid-template-columns: 0.2fr 1fr 0.3fr 0.3fr 0.3fr;
-          color: white;
-          align-items: center;
-          border-radius: 4px;
-          margin-top: 0.5rem;
-        }
-        .footer-message {
-          margin-top: 1.5rem;
-          padding: 1rem;
-          background-color: #f9f9f9;
-          border-radius: 4px;
-          border-left: 3px solid ${primaryColor};
-        }
-        .footer {
-          background-color: ${accentColor};
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          margin-top: auto;
-          height: 5rem;
-          color: #b4b0b0;
-        }
-        .footer-left {
-          align-self: center;
-          padding-left: 2rem;
-          font-size: 0.7rem;
-        }
-        .footer-center {
-          justify-self: center;
-          align-self: center;
-        }
-        .footer-right {
-          align-self: center;
-          justify-self: end;
-          padding-right: 2rem;
-          font-size: 0.7rem;
-          text-align: right;
-        }
-        .invoice-number {
-          color: ${primaryColor};
-          font-weight: 600;
-        }
-        .total-amount {
-          font-weight: 700;
-          font-size: 1rem;
-        }
-        p {
-          margin: 0.2rem 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="invoice-container">
-        <div class="header">
-          ${logoHtml}
-        </div>
-
-        <div class="content">
-          <div class="address-section">
-            <div>
-              <div class="company-info">
-                ${COMPANY_INFO.dba} • ${COMPANY_INFO.email} • www.guest-code.com
-              </div>
-              ${addressHTML}
-            </div>
-
-            <div class="invoice-details">
-              <div class="invoice-details-grid">
-                <span class="invoice-details-label">Invoice No.</span>
-                <span class="invoice-details-value" style="color: ${primaryColor};">${generateInvoiceNumber(
-      order.stripeSessionId
-    )}</span>
-                <span class="invoice-details-label">Date</span>
-                <span class="invoice-details-value">${formattedDate()}</span>
-                <span class="invoice-details-label">EIN</span>
-                <span class="invoice-details-value">${COMPANY_INFO.ein}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="invoice-title-section">
-            <h1 class="invoice-title">Invoice</h1>
-            ${
-              brandLogoHtml
-                ? `<div class="brand-logo">${brandLogoHtml}</div>`
-                : ""
-            }
-          </div>
-          
-          ${
-            event
-              ? `
-          <div class="event-info">
-            <p style="font-weight: 600; margin: 0;">${
-              event.title || "Event"
-            }</p>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
-              <p style="margin: 3px 0 0; font-size: 0.9rem;">${
-                brand ? brand.name : ""
-              }</p>
-              ${
-                event.startDate
-                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${formatDateWithLeadingZeros(
-                      event.startDate
-                    )}</p>`
-                  : ""
-              }
-              ${
-                event.location
-                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${event.location}</p>`
-                  : ""
-              }
-              ${
-                event.startTime
-                  ? `<p style="margin: 3px 0 0; font-size: 0.9rem;">• ${
-                      event.startTime
-                    }${event.endTime ? ` - ${event.endTime}` : ""}</p>`
-                  : ""
-              }
-            </div>
-          </div>
-          `
-              : ""
-          }
-
-          <div class="table-header">
-            <p style="padding-left: 1rem; font-weight: 500; margin: 0;">Pos.</p>
-            <p style="font-weight: 500; margin: 0;">Description</p>
-            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Quantity</p>
-            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Unit Price</p>
-            <p style="justify-self: end; padding-right: 1rem; font-weight: 500; margin: 0;">Total</p>
-          </div>
-
-          ${ticketsHtml}
-
-          <div class="table-footer">
-            <p style="padding-left: 1rem; margin: 0;"></p>
-            <p style="font-weight: 500; margin: 0;">Total Amount</p>
-            <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
-            <p style="justify-self: end; padding-right: 1rem; margin: 0;"></p>
-            <p class="total-amount" style="justify-self: end; padding-right: 1rem; margin: 0;">${(
-              order.originalAmount || order.totalAmount
-            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
-          </div>
-
-          <!-- Tax Information -->
-          <div style="margin-top: 1rem; text-align: right; padding-right: 1rem;">
-            ${
-              order.vatRate > 0
-                ? `
-            <p style="margin: 0; font-size: 0.9rem;">Net Amount: ${(
-              (order.originalAmount || order.totalAmount) /
-              (1 + order.vatRate / 100)
-            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
-            <p style="margin: 0; font-size: 0.9rem;">VAT (${
-              order.vatRate
-            }%): ${(
-                    (order.originalAmount || order.totalAmount) -
-                    (order.originalAmount || order.totalAmount) /
-                      (1 + order.vatRate / 100)
-                  ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
-            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Gross Amount: ${(
-              order.originalAmount || order.totalAmount
-            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
-            `
-                : `
-            <p style="margin: 0; font-size: 0.9rem; font-weight: 600;">Total Amount: ${(
-              order.originalAmount || order.totalAmount
-            ).toFixed(2)} ${order.originalCurrency || "EUR"}</p>
-            <p style="margin: 0; font-size: 0.8rem; color: #666;">No VAT applicable</p>
-            `
-            }
-            ${
-              order.conversionRate && order.conversionRate !== 1
-                ? `<p style="margin: 5px 0 0; font-size: 0.8rem; color: #666;">
-                    Conversion to USD: ${order.totalAmount.toFixed(2)} USD 
-                    (Rate: ${order.conversionRate.toFixed(4)})
-                    ${
-                      order.isEstimatedRate
-                        ? '<span style="color: #999; font-style: italic;">*estimated</span>'
-                        : ""
-                    }
-                  </p>
-                  <p style="margin: 2px 0 0; font-size: 0.7rem; color: #888;">
-                    *Commission is calculated based on USD amount
-                  </p>`
-                : ""
-            }
-          </div>
-
-          <div class="footer-message">
-            <p style="margin: 0; font-weight: 500;">Payment has been processed successfully.</p>
-            <p style="margin: 3px 0 0 0;">Thank you for your purchase. We look forward to seeing you at the event!</p>
-          </div>
-        </div>
-
-        <div class="footer">
-          <div class="footer-left">
-            <p style="margin:0; font-weight: 600;">${COMPANY_INFO.name}</p>
-            <p style="margin:2px 0 0;">${COMPANY_INFO.address.line1}</p>
-            <p style="margin:2px 0 0;">${COMPANY_INFO.address.city}, ${
-      COMPANY_INFO.address.state
-    } ${COMPANY_INFO.address.zip}</p>
-          </div>
-
-          <div class="footer-center">
-            <p style="color: white; font-size: 0.8rem; margin: 0;">Powered by</p>
-            <p style="color: ${primaryColor}; font-weight: 600; font-size: 1rem; margin: 0;">${
-      COMPANY_INFO.dba
-    }</p>
-          </div>
-
-          <div class="footer-right">
-            <p style="margin:0;">EIN: ${COMPANY_INFO.ein}</p>
-            <p style="margin:2px 0 0;">Email: ${COMPANY_INFO.email}</p>
-            <p style="margin:2px 0 0;">Web: www.guest-code.com</p>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>`;
-
-    await page.setContent(invoiceHtml);
-    await page.emulateMediaType("screen");
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "0",
-        right: "0",
-        bottom: "0",
-        left: "0",
-      },
-    });
-
-    await browser.close();
+    // Old invoice PDF generation removed - now using Accounty AADE receipts
 
     // Generate tickets for the order - DIRECT IMPLEMENTATION
     // Instead of using createTicketsForOrder, we'll create tickets directly here
@@ -841,10 +498,7 @@ const sendEmail = async (order) => {
 
       ticketAttachments.push({
         content: pdfBuffer.toString("base64"),
-        name: `Ticket_${ticketName.replace(
-          /\s+/g,
-          "_"
-        )}_${representativeTicket.securityToken.slice(0, 8)}.pdf`,
+        name: `${ticketName.replace(/\s+/g, "_")}.pdf`,
         type: "application/pdf",
       });
     }
@@ -859,12 +513,12 @@ const sendEmail = async (order) => {
     };
     sendSmtpEmail.subject = `${
       brand?.name || "GuestCode"
-    } - Your Invoice and Tickets`;
+    } - Your Receipt and Tickets`;
 
     // Create additional content specific to the order and tickets
     const additionalContent = `
       <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
-        <p style="margin: 0; font-weight: 500;">Invoice Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
+        <p style="margin: 0; font-weight: 500;">Receipt Number: <span style="color: ${primaryColor};">${generateInvoiceNumber(
       order.stripeSessionId
     )}</span></p>
         <p style="margin: 8px 0 0;">Total Amount: <strong>${(
@@ -875,8 +529,8 @@ const sendEmail = async (order) => {
         }</strong></p>
         <p style="margin: 8px 0 0;">Payment Status: <strong>Successfully Processed</strong></p>
       </div>
-      
-      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your invoice and tickets are attached to this email. Please bring your tickets with you to the event.</p>
+
+      <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your receipt and tickets are attached to this email. Please bring your tickets with you to the event.</p>
     `;
 
     // Use the common email template
@@ -891,7 +545,7 @@ const sendEmail = async (order) => {
       startTime: event?.startTime || "",
       endTime: event?.endTime || "",
       description:
-        "Thank you for your purchase. Your payment has been successfully processed, and your invoice and tickets are attached to this email.",
+        "Thank you for your purchase. Your payment has been successfully processed, and your receipt and tickets are attached to this email.",
       lineups: event?.lineups || [],
       primaryColor: brand?.colors?.primary || "#ffc807",
       additionalContent: additionalContent,
@@ -899,15 +553,58 @@ const sendEmail = async (order) => {
         "This is an automated email. For any questions, please contact us at contact@guest-code.com.",
     });
 
-    // Prepare attachments
+    // Prepare attachments - only ticket PDFs (Accounty AADE receipt will be added below)
     const attachments = [
-      {
-        content: pdfBuffer.toString("base64"),
-        name: `${generateInvoiceNumber(order.stripeSessionId)}.pdf`,
-        type: "application/pdf",
-      },
       ...ticketAttachments,
     ];
+
+    // Add Accounty AADE receipt PDF if available
+    if (receiptInfo?.accountyId) {
+      try {
+        const accountyUrl = process.env.ACCOUNTY_API_URL;
+        const accountyKey = process.env.ACCOUNTY_API_KEY;
+
+        if (accountyUrl && accountyKey) {
+          // Fetch the receipt PDF from Accounty
+          const pdfResponse = await fetch(
+            `${accountyUrl}/external/receipts/${receiptInfo.accountyId}/pdf`,
+            {
+              method: "GET",
+              headers: {
+                "X-API-Key": accountyKey,
+              },
+            }
+          );
+
+          if (pdfResponse.ok) {
+            const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+            const accountyPdfBuffer = Buffer.from(pdfArrayBuffer);
+
+            attachments.push({
+              content: accountyPdfBuffer.toString("base64"),
+              name: `Receipt_Nr_${receiptInfo.receiptNumber}.pdf`,
+              type: "application/pdf",
+            });
+
+            console.log(
+              "[SendEmail] Attached Accounty AADE receipt PDF:",
+              receiptInfo.mark
+            );
+          } else {
+            console.warn(
+              "[SendEmail] Failed to fetch Accounty PDF:",
+              pdfResponse.status
+            );
+          }
+        }
+      } catch (accountyError) {
+        console.error(
+          "[SendEmail] Error fetching Accounty PDF:",
+          accountyError.message
+        );
+        // Continue without the Accounty PDF - the invoice still has the MARK and QR
+      }
+    }
 
     sendSmtpEmail.attachment = attachments;
 

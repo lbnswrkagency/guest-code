@@ -43,7 +43,10 @@ import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import GenreSelector from "../GenreSelector/GenreSelector";
 import CoHost from "../CoHost/CoHost";
 import DropboxFolderBrowser from "../DropboxFolderBrowser/DropboxFolderBrowser";
-import { generateDropboxPath, generateSmartDropboxPath } from "../../utils/dropboxUtils";
+import {
+  generateDropboxPath,
+  generateSmartDropboxPath,
+} from "../../utils/dropboxUtils";
 
 const FLYER_TYPES = [
   {
@@ -103,12 +106,14 @@ const EventForm = ({
   selectedBrand,
   weekNumber = 0,
   parentEventData,
+  templateEvent, // For creating related events from template (non-weekly series)
 }) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const isChildEvent =
     event?.parentEventId || (event?.isWeekly && weekNumber > 0);
   const isNewChildEvent = !event?._id && isChildEvent && parentEventData;
+  const isCreatingFromTemplate = !event && templateEvent && !parentEventData;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Parse event dates and times
@@ -152,15 +157,16 @@ const EventForm = ({
 
   const { startDate, endDate } = parseEventDateTime(event);
 
-  // Determine initial data based on whether it's a new child event
-  const initialData = isNewChildEvent
-    ? {
-        // Inherit from parent
+  // Determine initial data based on whether it's a new child event or creating from template
+  const getInitialData = () => {
+    if (isNewChildEvent) {
+      // Inherit from parent (for weekly child events)
+      return {
         title: parentEventData?.title || "",
         subTitle: parentEventData?.subTitle || "",
         description: parentEventData?.description || "",
-        startDate: startDate instanceof Date ? startDate : new Date(), // Ensure valid Date object
-        endDate: endDate instanceof Date ? endDate : new Date(), // Ensure valid Date object
+        startDate: startDate instanceof Date ? startDate : new Date(),
+        endDate: endDate instanceof Date ? endDate : new Date(),
         location: parentEventData?.location || "",
         street: parentEventData?.street || "",
         postalCode: parentEventData?.postalCode || "",
@@ -175,14 +181,40 @@ const EventForm = ({
         tableLayout: parentEventData?.tableLayout || "",
         dropboxFolderPath: parentEventData?.dropboxFolderPath || "",
         dropboxVideoFolderPath: parentEventData?.dropboxVideoFolderPath || "",
-      }
-    : {
-        // Use existing event data or defaults
+      };
+    } else if (isCreatingFromTemplate) {
+      // Inherit from template (for non-weekly event series)
+      // Determine parentEventId: if template has a parent, use that; otherwise template is the parent
+      const parentId =
+        templateEvent?.parentEventId || templateEvent?._id || null;
+      return {
+        title: templateEvent?.title || "",
+        subTitle: templateEvent?.subTitle || "",
+        description: templateEvent?.description || "",
+        startDate: new Date(), // Clear date - user must select new date
+        endDate: new Date(), // Clear date - user must select new date
+        location: templateEvent?.location || "",
+        street: templateEvent?.street || "",
+        postalCode: templateEvent?.postalCode || "",
+        city: templateEvent?.city || "",
+        music: templateEvent?.music || "",
+        isWeekly: false, // Not a weekly event
+        flyer: null, // Will inherit flyers in useEffect
+        guestCode: templateEvent?.guestCode || false,
+        friendsCode: templateEvent?.friendsCode || false,
+        ticketCode: templateEvent?.ticketCode || false,
+        tableCode: templateEvent?.tableCode || false,
+        tableLayout: templateEvent?.tableLayout || "",
+        parentEventId: parentId, // Link to parent for series navigation
+      };
+    } else {
+      // Use existing event data or defaults
+      return {
         title: event?.title || "",
         subTitle: event?.subTitle || "",
         description: event?.description || "",
-        startDate: startDate instanceof Date ? startDate : new Date(), // Ensure valid Date object
-        endDate: endDate instanceof Date ? endDate : new Date(), // Ensure valid Date object
+        startDate: startDate instanceof Date ? startDate : new Date(),
+        endDate: endDate instanceof Date ? endDate : new Date(),
         location: event?.location || "",
         street: event?.street || "",
         postalCode: event?.postalCode || "",
@@ -198,6 +230,10 @@ const EventForm = ({
         dropboxFolderPath: event?.dropboxFolderPath || "",
         dropboxVideoFolderPath: event?.dropboxVideoFolderPath || "",
       };
+    }
+  };
+
+  const initialData = getInitialData();
 
   const [formData, setFormData] = useState(initialData);
 
@@ -306,19 +342,50 @@ const EventForm = ({
   });
 
   const [battleCategories, setBattleCategories] = useState([
-    { name: "allStyles", displayName: "All Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
-    { name: "afroStyles", displayName: "Afro Styles", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
-    { name: "dancehall", displayName: "Dancehall", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false },
+    {
+      name: "allStyles",
+      displayName: "All Styles",
+      prizeMoney: 0,
+      maxParticipants: 16,
+      participantsPerSignup: 1,
+      signUpsDone: false,
+    },
+    {
+      name: "afroStyles",
+      displayName: "Afro Styles",
+      prizeMoney: 0,
+      maxParticipants: 16,
+      participantsPerSignup: 1,
+      signUpsDone: false,
+    },
+    {
+      name: "dancehall",
+      displayName: "Dancehall",
+      prizeMoney: 0,
+      maxParticipants: 16,
+      participantsPerSignup: 1,
+      signUpsDone: false,
+    },
   ]);
 
-  const [newBattleCategory, setNewBattleCategory] = useState({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false });
+  const [newBattleCategory, setNewBattleCategory] = useState({
+    name: "",
+    displayName: "",
+    prizeMoney: 0,
+    maxParticipants: 16,
+    participantsPerSignup: 1,
+    signUpsDone: false,
+  });
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
 
   // Dropbox auto-generation state
-  const [isDropboxPathAutoGenerated, setIsDropboxPathAutoGenerated] = useState(false);
+  const [isDropboxPathAutoGenerated, setIsDropboxPathAutoGenerated] =
+    useState(false);
   const [dropboxPathSuggestion, setDropboxPathSuggestion] = useState("");
-  const [isDropboxVideoPathAutoGenerated, setIsDropboxVideoPathAutoGenerated] = useState(false);
-  const [dropboxVideoPathSuggestion, setDropboxVideoPathSuggestion] = useState("");
+  const [isDropboxVideoPathAutoGenerated, setIsDropboxVideoPathAutoGenerated] =
+    useState(false);
+  const [dropboxVideoPathSuggestion, setDropboxVideoPathSuggestion] =
+    useState("");
 
   // Fetch genres for the brand
   useEffect(() => {
@@ -361,8 +428,7 @@ const EventForm = ({
               }
             );
             setSelectedGenres(response.data);
-          } catch (error) {
-          }
+          } catch (error) {}
         };
 
         fetchEventGenres();
@@ -382,10 +448,27 @@ const EventForm = ({
         console.error("Failed to fetch table layouts:", error);
         // Fallback to default layouts if API fails
         setAvailableTableLayouts([
-          { id: "studio", name: "Studio", description: "Professional studio layout" },
-          { id: "bolivar", name: "Bolivar", description: "Classic club layout" },
-          { id: "venti", name: "Venti", description: "Modern garden-themed layout" },
+          {
+            id: "studio",
+            name: "Studio",
+            description: "Professional studio layout",
+          },
+          {
+            id: "bolivar",
+            name: "Bolivar",
+            description: "Classic club layout",
+          },
+          {
+            id: "venti",
+            name: "Venti",
+            description: "Modern garden-themed layout",
+          },
           { id: "harlem", name: "Harlem", description: "Urban upscale layout" },
+          {
+            id: "amano",
+            name: "Amano",
+            description: "Hotel bar lounge layout",
+          },
         ]);
       }
     };
@@ -405,9 +488,13 @@ const EventForm = ({
 
   // Auto-generate Dropbox path when brand or start date changes
   useEffect(() => {
-    if (selectedBrand?.dropboxBaseFolder && formData.startDate && !isDropboxPathAutoGenerated) {
+    if (
+      selectedBrand?.dropboxBaseFolder &&
+      formData.startDate &&
+      !isDropboxPathAutoGenerated
+    ) {
       const generatedPath = generateSmartDropboxPath(
-        events,  // Pass brand events for smart suggestion
+        events, // Pass brand events for smart suggestion
         formData.startDate,
         selectedBrand.dropboxBaseFolder,
         selectedBrand.dropboxPathStructure,
@@ -418,12 +505,25 @@ const EventForm = ({
         setDropboxPathSuggestion(generatedPath);
       }
     }
-  }, [events, selectedBrand?.dropboxBaseFolder, selectedBrand?.dropboxPathStructure, selectedBrand?.dropboxDateFormat, selectedBrand?.dropboxPhotoSubfolder, formData.startDate, isDropboxPathAutoGenerated]);
+  }, [
+    events,
+    selectedBrand?.dropboxBaseFolder,
+    selectedBrand?.dropboxPathStructure,
+    selectedBrand?.dropboxDateFormat,
+    selectedBrand?.dropboxPhotoSubfolder,
+    formData.startDate,
+    isDropboxPathAutoGenerated,
+  ]);
 
   // Auto-generate Dropbox VIDEO path when brand or start date changes
   useEffect(() => {
-    if (selectedBrand?.dropboxBaseFolder && formData.startDate && !isDropboxVideoPathAutoGenerated) {
-      const videoPathStructure = selectedBrand.dropboxVideoPathStructure || "/{YYYYMMDD}/videos";
+    if (
+      selectedBrand?.dropboxBaseFolder &&
+      formData.startDate &&
+      !isDropboxVideoPathAutoGenerated
+    ) {
+      const videoPathStructure =
+        selectedBrand.dropboxVideoPathStructure || "/{YYYYMMDD}/videos";
       const generatedPath = generateSmartDropboxPath(
         events,
         formData.startDate,
@@ -436,29 +536,53 @@ const EventForm = ({
         setDropboxVideoPathSuggestion(generatedPath);
       }
     }
-  }, [events, selectedBrand?.dropboxBaseFolder, selectedBrand?.dropboxVideoPathStructure, selectedBrand?.dropboxDateFormat, selectedBrand?.dropboxVideoSubfolder, formData.startDate, isDropboxVideoPathAutoGenerated]);
+  }, [
+    events,
+    selectedBrand?.dropboxBaseFolder,
+    selectedBrand?.dropboxVideoPathStructure,
+    selectedBrand?.dropboxDateFormat,
+    selectedBrand?.dropboxVideoSubfolder,
+    formData.startDate,
+    isDropboxVideoPathAutoGenerated,
+  ]);
 
   // Auto-accept suggestion if no current path exists
   useEffect(() => {
-    if (dropboxPathSuggestion && !formData.dropboxFolderPath && !isDropboxPathAutoGenerated) {
-      setFormData(prev => ({
+    if (
+      dropboxPathSuggestion &&
+      !formData.dropboxFolderPath &&
+      !isDropboxPathAutoGenerated
+    ) {
+      setFormData((prev) => ({
         ...prev,
-        dropboxFolderPath: dropboxPathSuggestion
+        dropboxFolderPath: dropboxPathSuggestion,
       }));
       setIsDropboxPathAutoGenerated(true);
     }
-  }, [dropboxPathSuggestion, formData.dropboxFolderPath, isDropboxPathAutoGenerated]);
+  }, [
+    dropboxPathSuggestion,
+    formData.dropboxFolderPath,
+    isDropboxPathAutoGenerated,
+  ]);
 
   // Auto-accept video suggestion if no current path exists
   useEffect(() => {
-    if (dropboxVideoPathSuggestion && !formData.dropboxVideoFolderPath && !isDropboxVideoPathAutoGenerated) {
-      setFormData(prev => ({
+    if (
+      dropboxVideoPathSuggestion &&
+      !formData.dropboxVideoFolderPath &&
+      !isDropboxVideoPathAutoGenerated
+    ) {
+      setFormData((prev) => ({
         ...prev,
-        dropboxVideoFolderPath: dropboxVideoPathSuggestion
+        dropboxVideoFolderPath: dropboxVideoPathSuggestion,
       }));
       setIsDropboxVideoPathAutoGenerated(true);
     }
-  }, [dropboxVideoPathSuggestion, formData.dropboxVideoFolderPath, isDropboxVideoPathAutoGenerated]);
+  }, [
+    dropboxVideoPathSuggestion,
+    formData.dropboxVideoFolderPath,
+    isDropboxVideoPathAutoGenerated,
+  ]);
 
   // Cleanup function
   useEffect(() => {
@@ -505,9 +629,13 @@ const EventForm = ({
         const response = await axiosInstance.delete(
           `/events/${event._id}/flyer/${type}`
         );
-        
+
         if (response.status === 200) {
-          toast.showSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} flyer deleted successfully`);
+          toast.showSuccess(
+            `${
+              type.charAt(0).toUpperCase() + type.slice(1)
+            } flyer deleted successfully`
+          );
         }
       }
 
@@ -522,8 +650,8 @@ const EventForm = ({
         const newPreviews = { ...prev };
         // Revoke blob URLs to prevent memory leaks
         if (newPreviews[type]) {
-          Object.values(newPreviews[type]).forEach(url => {
-            if (typeof url === 'string' && url.startsWith('blob:')) {
+          Object.values(newPreviews[type]).forEach((url) => {
+            if (typeof url === "string" && url.startsWith("blob:")) {
               URL.revokeObjectURL(url);
             }
           });
@@ -534,11 +662,10 @@ const EventForm = ({
 
       // Reset file input
       if (fileInputRefs[type]?.current) {
-        fileInputRefs[type].current.value = '';
+        fileInputRefs[type].current.value = "";
       }
-
     } catch (error) {
-      toast.showError('Failed to delete flyer');
+      toast.showError("Failed to delete flyer");
     }
   };
 
@@ -605,13 +732,16 @@ const EventForm = ({
     const { name, value, type, checked } = e.target;
 
     // Special handling for dropboxFolderPath - mark as manually modified if user types
-    if (name === 'dropboxFolderPath' && value !== formData.dropboxFolderPath) {
+    if (name === "dropboxFolderPath" && value !== formData.dropboxFolderPath) {
       setIsDropboxPathAutoGenerated(false);
       setDropboxPathSuggestion(""); // Clear suggestion when manually modified
     }
 
     // Special handling for dropboxVideoFolderPath - mark as manually modified if user types
-    if (name === 'dropboxVideoFolderPath' && value !== formData.dropboxVideoFolderPath) {
+    if (
+      name === "dropboxVideoFolderPath" &&
+      value !== formData.dropboxVideoFolderPath
+    ) {
       setIsDropboxVideoPathAutoGenerated(false);
       setDropboxVideoPathSuggestion(""); // Clear suggestion when manually modified
     }
@@ -625,9 +755,9 @@ const EventForm = ({
   // Function to accept the auto-generated photo suggestion
   const acceptDropboxSuggestion = () => {
     if (dropboxPathSuggestion) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        dropboxFolderPath: dropboxPathSuggestion
+        dropboxFolderPath: dropboxPathSuggestion,
       }));
       setIsDropboxPathAutoGenerated(true);
       setDropboxPathSuggestion("");
@@ -637,9 +767,9 @@ const EventForm = ({
   // Function to accept the auto-generated video suggestion
   const acceptDropboxVideoSuggestion = () => {
     if (dropboxVideoPathSuggestion) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        dropboxVideoFolderPath: dropboxVideoPathSuggestion
+        dropboxVideoFolderPath: dropboxVideoPathSuggestion,
       }));
       setIsDropboxVideoPathAutoGenerated(true);
       setDropboxVideoPathSuggestion("");
@@ -648,9 +778,9 @@ const EventForm = ({
 
   // Handle Dropbox folder selection from browser
   const handleDropboxFolderSelect = (path) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      dropboxFolderPath: path
+      dropboxFolderPath: path,
     }));
     setIsDropboxPathAutoGenerated(false);
     setDropboxPathSuggestion(""); // Clear suggestion when manually selected
@@ -658,9 +788,9 @@ const EventForm = ({
 
   // Handle Dropbox video folder selection from browser
   const handleDropboxVideoFolderSelect = (path) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      dropboxVideoFolderPath: path
+      dropboxVideoFolderPath: path,
     }));
     setIsDropboxVideoPathAutoGenerated(false);
     setDropboxVideoPathSuggestion(""); // Clear suggestion when manually selected
@@ -668,12 +798,12 @@ const EventForm = ({
 
   // Function to clear dropbox paths
   const clearDropboxPath = (type) => {
-    if (type === 'photo') {
-      setFormData(prev => ({ ...prev, dropboxFolderPath: "" }));
+    if (type === "photo") {
+      setFormData((prev) => ({ ...prev, dropboxFolderPath: "" }));
       setIsDropboxPathAutoGenerated(false);
       setDropboxPathSuggestion("");
-    } else if (type === 'video') {
-      setFormData(prev => ({ ...prev, dropboxVideoFolderPath: "" }));
+    } else if (type === "video") {
+      setFormData((prev) => ({ ...prev, dropboxVideoFolderPath: "" }));
       setIsDropboxVideoPathAutoGenerated(false);
       setDropboxVideoPathSuggestion("");
     }
@@ -699,7 +829,7 @@ const EventForm = ({
   const regenerateDropboxPath = () => {
     if (selectedBrand?.dropboxBaseFolder && formData.startDate) {
       const generatedPath = generateSmartDropboxPath(
-        events,  // Pass brand events for smart suggestion
+        events, // Pass brand events for smart suggestion
         formData.startDate,
         selectedBrand.dropboxBaseFolder,
         selectedBrand.dropboxPathStructure,
@@ -764,7 +894,6 @@ const EventForm = ({
         dataToSend.append("endDate", endDate.toISOString());
         dataToSend.append("startTime", startTime);
         dataToSend.append("endTime", endTime);
-
       } catch (error) {
         toast.showError("Invalid date format");
         setIsSubmitting(false);
@@ -849,16 +978,17 @@ const EventForm = ({
 
       // Add selected co-hosts to the form data
       console.log("🔍 [EventForm] Current selectedCoHosts:", selectedCoHosts);
-      const validCoHosts = selectedCoHosts.filter((coHost) => coHost && coHost._id);
+      const validCoHosts = selectedCoHosts.filter(
+        (coHost) => coHost && coHost._id
+      );
       if (validCoHosts.length > 0) {
         const coHostIds = validCoHosts.map((coHost) => coHost._id);
         console.log("✅ [EventForm] Adding coHosts to FormData:", coHostIds);
-        dataToSend.append(
-          "coHosts",
-          JSON.stringify(coHostIds)
-        );
+        dataToSend.append("coHosts", JSON.stringify(coHostIds));
       } else {
-        console.log("ℹ️ [EventForm] No coHosts to add to FormData - adding empty array");
+        console.log(
+          "ℹ️ [EventForm] No coHosts to add to FormData - adding empty array"
+        );
         dataToSend.append("coHosts", JSON.stringify([]));
       }
 
@@ -866,23 +996,26 @@ const EventForm = ({
       if (battleConfig.isEnabled) {
         const battleData = {
           ...battleConfig,
-          categories: battleConfig.categories.filter(cat => 
-            battleCategories.some(bc => bc.name === cat)
-          ).map(catName => {
-            const fullCat = battleCategories.find(bc => bc.name === catName);
-            return {
-              name: fullCat.name,
-              displayName: fullCat.displayName,
-              prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
-              maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
-              participantsPerSignup: fullCat.participantsPerSignup || 1,
-              signUpsDone: fullCat.signUpsDone || false
-            };
-          })
+          categories: battleConfig.categories
+            .filter((cat) => battleCategories.some((bc) => bc.name === cat))
+            .map((catName) => {
+              const fullCat = battleCategories.find(
+                (bc) => bc.name === catName
+              );
+              return {
+                name: fullCat.name,
+                displayName: fullCat.displayName,
+                prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
+                maxParticipants:
+                  fullCat.maxParticipants ||
+                  battleConfig.maxParticipantsPerCategory,
+                participantsPerSignup: fullCat.participantsPerSignup || 1,
+                signUpsDone: fullCat.signUpsDone || false,
+              };
+            }),
         };
         dataToSend.append("battleConfig", JSON.stringify(battleData));
       }
-
 
       let eventResponse;
 
@@ -968,9 +1101,13 @@ const EventForm = ({
         }
 
         // Add selected co-hosts to the update data
-        const validCoHostsForUpdate = selectedCoHosts.filter((coHost) => coHost && coHost._id);
+        const validCoHostsForUpdate = selectedCoHosts.filter(
+          (coHost) => coHost && coHost._id
+        );
         if (validCoHostsForUpdate.length > 0) {
-          updateData.coHosts = validCoHostsForUpdate.map((coHost) => coHost._id);
+          updateData.coHosts = validCoHostsForUpdate.map(
+            (coHost) => coHost._id
+          );
         } else {
           updateData.coHosts = []; // Explicitly set empty array if no valid co-hosts
         }
@@ -979,19 +1116,23 @@ const EventForm = ({
         if (battleConfig.isEnabled) {
           const battleData = {
             ...battleConfig,
-            categories: battleConfig.categories.filter(cat => 
-              battleCategories.some(bc => bc.name === cat)
-            ).map(catName => {
-              const fullCat = battleCategories.find(bc => bc.name === catName);
-              return {
-                name: fullCat.name,
-                displayName: fullCat.displayName,
-                prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
-                maxParticipants: fullCat.maxParticipants || battleConfig.maxParticipantsPerCategory,
-                participantsPerSignup: fullCat.participantsPerSignup || 1,
-                signUpsDone: fullCat.signUpsDone || false
-              };
-            })
+            categories: battleConfig.categories
+              .filter((cat) => battleCategories.some((bc) => bc.name === cat))
+              .map((catName) => {
+                const fullCat = battleCategories.find(
+                  (bc) => bc.name === catName
+                );
+                return {
+                  name: fullCat.name,
+                  displayName: fullCat.displayName,
+                  prizeMoney: fullCat.prizeMoney || battleConfig.prizeMoney,
+                  maxParticipants:
+                    fullCat.maxParticipants ||
+                    battleConfig.maxParticipantsPerCategory,
+                  participantsPerSignup: fullCat.participantsPerSignup || 1,
+                  signUpsDone: fullCat.signUpsDone || false,
+                };
+              }),
           };
           updateData.battleConfig = battleData;
         } else {
@@ -1137,7 +1278,6 @@ const EventForm = ({
       setShowDeleteConfirm(false);
     }
   };
-
 
   // Add state and functions for genre selection
   const [genreSelection, setGenreSelection] = useState([]);
@@ -1320,7 +1460,6 @@ const EventForm = ({
       const { startDate: parsedStartDate, endDate: parsedEndDate } =
         parseEventDateTime(event);
 
-
       setFormData({
         title: event.title || "",
         subTitle: event.subTitle || "",
@@ -1352,28 +1491,45 @@ const EventForm = ({
         setBattleConfig({
           isEnabled: event.battleConfig.isEnabled || false,
           title: event.battleConfig.title || "Dance Battle",
-          subtitle: event.battleConfig.subtitle || "1 vs 1 Dance Battles - The crowd picks the winner!",
+          subtitle:
+            event.battleConfig.subtitle ||
+            "1 vs 1 Dance Battles - The crowd picks the winner!",
           description: event.battleConfig.description || "",
           prizeMoney: event.battleConfig.prizeMoney || 0,
           currency: event.battleConfig.currency || "€",
-          maxParticipantsPerCategory: event.battleConfig.maxParticipantsPerCategory || 16,
-          categories: event.battleConfig.categories?.map(cat => cat.name) || [],
-          registrationDeadline: event.battleConfig.registrationDeadline ? new Date(event.battleConfig.registrationDeadline) : null,
-          isRegistrationOpen: event.battleConfig.isRegistrationOpen !== undefined ? event.battleConfig.isRegistrationOpen : true,
+          maxParticipantsPerCategory:
+            event.battleConfig.maxParticipantsPerCategory || 16,
+          categories:
+            event.battleConfig.categories?.map((cat) => cat.name) || [],
+          registrationDeadline: event.battleConfig.registrationDeadline
+            ? new Date(event.battleConfig.registrationDeadline)
+            : null,
+          isRegistrationOpen:
+            event.battleConfig.isRegistrationOpen !== undefined
+              ? event.battleConfig.isRegistrationOpen
+              : true,
           battleRules: event.battleConfig.battleRules || "",
           additionalInfo: event.battleConfig.additionalInfo || "",
         });
 
         // Update battle categories with event-specific data
-        if (event.battleConfig.categories && event.battleConfig.categories.length > 0) {
-          setBattleCategories(event.battleConfig.categories.map(cat => ({
-            name: cat.name,
-            displayName: cat.displayName,
-            prizeMoney: cat.prizeMoney || event.battleConfig.prizeMoney || 0,
-            maxParticipants: cat.maxParticipants || event.battleConfig.maxParticipantsPerCategory || 16,
-            participantsPerSignup: cat.participantsPerSignup || 1,
-            signUpsDone: cat.signUpsDone || false,
-          })));
+        if (
+          event.battleConfig.categories &&
+          event.battleConfig.categories.length > 0
+        ) {
+          setBattleCategories(
+            event.battleConfig.categories.map((cat) => ({
+              name: cat.name,
+              displayName: cat.displayName,
+              prizeMoney: cat.prizeMoney || event.battleConfig.prizeMoney || 0,
+              maxParticipants:
+                cat.maxParticipants ||
+                event.battleConfig.maxParticipantsPerCategory ||
+                16,
+              participantsPerSignup: cat.participantsPerSignup || 1,
+              signUpsDone: cat.signUpsDone || false,
+            }))
+          );
         }
       }
 
@@ -1396,22 +1552,35 @@ const EventForm = ({
       // Populate selected co-hosts (filter out null values)
       console.log("🔍 [EventForm] Raw event.coHosts data:", event.coHosts);
       if (Array.isArray(event.coHosts)) {
-        console.log("🔍 [EventForm] Co-hosts details:", event.coHosts.map((ch, i) => ({
-          index: i,
-          isNull: ch === null,
-          isUndefined: ch === undefined,
-          hasId: ch && ch._id,
-          hasName: ch && ch.name,
-          fullObject: ch
-        })));
-        
-        const validCoHosts = event.coHosts.filter((coHost) => coHost && coHost._id);
+        console.log(
+          "🔍 [EventForm] Co-hosts details:",
+          event.coHosts.map((ch, i) => ({
+            index: i,
+            isNull: ch === null,
+            isUndefined: ch === undefined,
+            hasId: ch && ch._id,
+            hasName: ch && ch.name,
+            fullObject: ch,
+          }))
+        );
+
+        const validCoHosts = event.coHosts.filter(
+          (coHost) => coHost && coHost._id
+        );
         setSelectedCoHosts(validCoHosts);
-        console.log("✅ [EventForm] Loaded co-hosts with null filtering:", validCoHosts);
-        console.log("✅ [EventForm] Filtered out count:", event.coHosts.length - validCoHosts.length);
+        console.log(
+          "✅ [EventForm] Loaded co-hosts with null filtering:",
+          validCoHosts
+        );
+        console.log(
+          "✅ [EventForm] Filtered out count:",
+          event.coHosts.length - validCoHosts.length
+        );
       } else {
         setSelectedCoHosts([]);
-        console.log("ℹ️ [EventForm] No co-hosts array found, setting empty array");
+        console.log(
+          "ℹ️ [EventForm] No co-hosts array found, setting empty array"
+        );
       }
     }
     // For non-created child events - if event has no ID but we have parentEventData and it's a child/weekly event
@@ -1424,14 +1593,14 @@ const EventForm = ({
       const fetchSequentialInheritanceData = async () => {
         try {
           const weekNum = event?.weekNumber || weekNumber;
-          
+
           // Fetch the sequential inheritance data from the API
           const response = await axiosInstance.get(
             `/events/${parentEventData._id}/weekly/${weekNum}`
           );
-          
+
           const templateEvent = response.data;
-          
+
           // Calculate child's actual start date and time based on parent timing but using template data
           const parentStartDateObj = new Date(
             parentEventData.startDate || parentEventData.date
@@ -1441,27 +1610,36 @@ const EventForm = ({
           );
 
           let childEventStartDate = new Date(parentStartDateObj);
-          childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
+          childEventStartDate.setDate(
+            parentStartDateObj.getDate() + weekNum * 7
+          );
 
           // Use template event times if available, otherwise calculate from parent
           let childEventEndDate;
           if (templateEvent.startTime && templateEvent.endTime) {
             // Apply template times to the child event date
-            const [startHours, startMinutes] = templateEvent.startTime.split(':').map(Number);
-            const [endHours, endMinutes] = templateEvent.endTime.split(':').map(Number);
-            
+            const [startHours, startMinutes] = templateEvent.startTime
+              .split(":")
+              .map(Number);
+            const [endHours, endMinutes] = templateEvent.endTime
+              .split(":")
+              .map(Number);
+
             childEventStartDate.setHours(startHours, startMinutes, 0, 0);
             childEventEndDate = new Date(childEventStartDate);
             childEventEndDate.setHours(endHours, endMinutes, 0, 0);
-            
+
             // Check if it spans midnight
             if (childEventEndDate.getTime() <= childEventStartDate.getTime()) {
               childEventEndDate.setDate(childEventEndDate.getDate() + 1);
             }
           } else {
             // Fallback to parent duration calculation
-            const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
-            childEventEndDate = new Date(childEventStartDate.getTime() + duration);
+            const duration =
+              parentEndDateObj.getTime() - parentStartDateObj.getTime();
+            childEventEndDate = new Date(
+              childEventStartDate.getTime() + duration
+            );
           }
 
           // Set form data using template event (sequential inheritance) for content, but parent timing for dates
@@ -1496,7 +1674,10 @@ const EventForm = ({
           }
 
           // Copy template's genres
-          if (Array.isArray(templateEvent.genres) && templateEvent.genres.length > 0) {
+          if (
+            Array.isArray(templateEvent.genres) &&
+            templateEvent.genres.length > 0
+          ) {
             if (typeof templateEvent.genres[0] === "object") {
               setSelectedGenres(templateEvent.genres);
             } else {
@@ -1523,7 +1704,7 @@ const EventForm = ({
         } catch (error) {
           // Fallback to parent event data if API call fails
           const weekNum = event?.weekNumber || weekNumber;
-          
+
           const parentStartDateObj = new Date(
             parentEventData.startDate || parentEventData.date
           );
@@ -1532,10 +1713,15 @@ const EventForm = ({
           );
 
           let childEventStartDate = new Date(parentStartDateObj);
-          childEventStartDate.setDate(parentStartDateObj.getDate() + weekNum * 7);
+          childEventStartDate.setDate(
+            parentStartDateObj.getDate() + weekNum * 7
+          );
 
-          const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
-          let childEventEndDate = new Date(childEventStartDate.getTime() + duration);
+          const duration =
+            parentEndDateObj.getTime() - parentStartDateObj.getTime();
+          let childEventEndDate = new Date(
+            childEventStartDate.getTime() + duration
+          );
 
           // Fallback to parent event data
           setFormData({
@@ -1566,7 +1752,10 @@ const EventForm = ({
             setSelectedLineups(parentEventData.lineups);
           }
 
-          if (Array.isArray(parentEventData.genres) && parentEventData.genres.length > 0) {
+          if (
+            Array.isArray(parentEventData.genres) &&
+            parentEventData.genres.length > 0
+          ) {
             if (typeof parentEventData.genres[0] === "object") {
               setSelectedGenres(parentEventData.genres);
             } else {
@@ -1594,8 +1783,85 @@ const EventForm = ({
 
       // Call the async function
       fetchSequentialInheritanceData();
+    } else if (isCreatingFromTemplate && templateEvent) {
+      // Creating a related event from template (non-weekly series)
+      // Determine the parent: if templateEvent has a parent, use that; otherwise templateEvent is the parent
+      const parentId = templateEvent.parentEventId || templateEvent._id;
+
+      setFormData({
+        title: templateEvent.title || "",
+        subTitle: templateEvent.subTitle || "",
+        description: templateEvent.description || "",
+        date: "",
+        startDate: new Date(), // User must select new date
+        endDate: new Date(), // User must select new date
+        startTime: templateEvent.startTime || "",
+        endTime: templateEvent.endTime || "",
+        location: templateEvent.location || "",
+        street: templateEvent.street || "",
+        postalCode: templateEvent.postalCode || "",
+        city: templateEvent.city || "",
+        music: templateEvent.music || "",
+        isWeekly: false, // Not a weekly event but still a child
+        isLive: false,
+        flyer: templateEvent.flyer || null,
+        guestCode: templateEvent.guestCode || false,
+        friendsCode: templateEvent.friendsCode || false,
+        ticketCode: templateEvent.ticketCode || false,
+        tableCode: templateEvent.tableCode || false,
+        tableLayout: templateEvent.tableLayout || "",
+        parentEventId: parentId, // Make it a child event for navigation
+      });
+
+      // Copy template's lineups
+      if (Array.isArray(templateEvent.lineups)) {
+        setSelectedLineups(templateEvent.lineups);
+      } else {
+        setSelectedLineups([]);
+      }
+
+      // Copy template's genres
+      if (
+        Array.isArray(templateEvent.genres) &&
+        templateEvent.genres.length > 0
+      ) {
+        if (typeof templateEvent.genres[0] === "object") {
+          setSelectedGenres(templateEvent.genres);
+        } else {
+          setGenreIdsToSelect(templateEvent.genres);
+        }
+      } else {
+        setSelectedGenres([]);
+      }
+
+      // Copy template's co-hosts
+      if (Array.isArray(templateEvent.coHosts)) {
+        const validCoHosts = templateEvent.coHosts.filter(
+          (coHost) => coHost && coHost._id
+        );
+        setSelectedCoHosts(validCoHosts);
+      } else {
+        setSelectedCoHosts([]);
+      }
+
+      // Copy flyer previews from template
+      if (templateEvent.flyer) {
+        const previews = {};
+        Object.entries(templateEvent.flyer).forEach(([format, urls]) => {
+          if (urls) {
+            previews[format] = {
+              thumbnail: urls.thumbnail,
+              medium: urls.medium,
+              full: urls.full,
+              blur: urls.blur || urls.thumbnail,
+              isExisting: true,
+            };
+          }
+        });
+        setFlyerPreviews(previews);
+      }
     } else {
-      // Reset form for new events (non-child)
+      // Reset form for new events (non-child, non-template)
       setFormData({
         title: "",
         subTitle: "",
@@ -1620,9 +1886,16 @@ const EventForm = ({
       });
       setSelectedLineups([]);
       setSelectedGenres([]);
-      // ... reset other state ...
+      setSelectedCoHosts([]);
+      setFlyerPreviews({});
     }
-  }, [event, parentEventData, weekNumber]); // Add parentEventData and weekNumber to dependencies
+  }, [
+    event,
+    parentEventData,
+    weekNumber,
+    templateEvent,
+    isCreatingFromTemplate,
+  ]); // Add templateEvent to dependencies
 
   // Add effect to match genre IDs with full genre objects when allGenres changes
   useEffect(() => {
@@ -1640,53 +1913,63 @@ const EventForm = ({
 
   // Battle category management functions
   const handleBattleConfigChange = (field, value) => {
-    setBattleConfig(prev => ({
+    setBattleConfig((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleCategoryToggle = (categoryName) => {
-    setBattleConfig(prev => ({
+    setBattleConfig((prev) => ({
       ...prev,
       categories: prev.categories.includes(categoryName)
-        ? prev.categories.filter(cat => cat !== categoryName)
-        : [...prev.categories, categoryName]
+        ? prev.categories.filter((cat) => cat !== categoryName)
+        : [...prev.categories, categoryName],
     }));
   };
 
   const handleCategoryUpdate = (categoryName, field, value) => {
-    setBattleCategories(prev => 
-      prev.map(cat => 
-        cat.name === categoryName 
-          ? { ...cat, [field]: value }
-          : cat
+    setBattleCategories((prev) =>
+      prev.map((cat) =>
+        cat.name === categoryName ? { ...cat, [field]: value } : cat
       )
     );
   };
 
   const addBattleCategory = () => {
-    if (!newBattleCategory.name.trim() || !newBattleCategory.displayName.trim()) {
+    if (
+      !newBattleCategory.name.trim() ||
+      !newBattleCategory.displayName.trim()
+    ) {
       toast.showError("Category name and display name are required");
       return;
     }
 
-    if (battleCategories.some(cat => cat.name === newBattleCategory.name)) {
+    if (battleCategories.some((cat) => cat.name === newBattleCategory.name)) {
       toast.showError("Category with this name already exists");
       return;
     }
 
-    setBattleCategories(prev => [...prev, { ...newBattleCategory }]);
-    setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1, signUpsDone: false });
+    setBattleCategories((prev) => [...prev, { ...newBattleCategory }]);
+    setNewBattleCategory({
+      name: "",
+      displayName: "",
+      prizeMoney: 0,
+      maxParticipants: 16,
+      participantsPerSignup: 1,
+      signUpsDone: false,
+    });
     setShowAddCategoryForm(false);
     toast.showSuccess("Battle category added");
   };
 
   const removeBattleCategory = (categoryName) => {
-    setBattleCategories(prev => prev.filter(cat => cat.name !== categoryName));
-    setBattleConfig(prev => ({
+    setBattleCategories((prev) =>
+      prev.filter((cat) => cat.name !== categoryName)
+    );
+    setBattleConfig((prev) => ({
       ...prev,
-      categories: prev.categories.filter(cat => cat !== categoryName)
+      categories: prev.categories.filter((cat) => cat !== categoryName),
     }));
     toast.showSuccess("Battle category removed");
   };
@@ -2061,12 +2344,13 @@ const EventForm = ({
                   />
                 </div>
               </div>
-
             </div>
 
             {/* Photo Gallery Folder */}
             <div className="form-section photo-gallery-section">
-              <h3><RiImageLine /> Photo Gallery Folder</h3>
+              <h3>
+                <RiImageLine /> Photo Gallery Folder
+              </h3>
 
               {/* Show suggestion banner if there's a suggestion */}
               {dropboxPathSuggestion && (
@@ -2123,7 +2407,7 @@ const EventForm = ({
                     <button
                       type="button"
                       className="action-btn clear"
-                      onClick={() => clearDropboxPath('photo')}
+                      onClick={() => clearDropboxPath("photo")}
                       title="Clear path"
                     >
                       <RiCloseLine />
@@ -2144,7 +2428,9 @@ const EventForm = ({
 
             {/* Video Gallery Folder */}
             <div className="form-section video-gallery-section">
-              <h3><RiFilmLine /> Video Gallery Folder</h3>
+              <h3>
+                <RiFilmLine /> Video Gallery Folder
+              </h3>
 
               {/* Show suggestion banner if there's a video suggestion */}
               {dropboxVideoPathSuggestion && (
@@ -2201,7 +2487,7 @@ const EventForm = ({
                     <button
                       type="button"
                       className="action-btn clear"
-                      onClick={() => clearDropboxPath('video')}
+                      onClick={() => clearDropboxPath("video")}
                       title="Clear path"
                     >
                       <RiCloseLine />
@@ -2230,17 +2516,14 @@ const EventForm = ({
                     // Group lineups by category
                     const groupedByCategory = selectedLineups
                       .filter((lineup) => lineup && lineup.name) // Filter out null/undefined lineups
-                      .reduce(
-                        (groups, lineup) => {
-                          const category = lineup.category || "Uncategorized";
-                          if (!groups[category]) {
-                            groups[category] = [];
-                          }
-                          groups[category].push(lineup);
-                          return groups;
-                        },
-                        {}
-                      );
+                      .reduce((groups, lineup) => {
+                        const category = lineup.category || "Uncategorized";
+                        if (!groups[category]) {
+                          groups[category] = [];
+                        }
+                        groups[category].push(lineup);
+                        return groups;
+                      }, {});
 
                     // Create an array of JSX elements for each category
                     return Object.entries(groupedByCategory).map(
@@ -2532,7 +2815,8 @@ const EventForm = ({
                       onClick={() => {
                         setFormData((prev) => ({
                           ...prev,
-                          tableLayout: prev.tableLayout === layout.id ? "" : layout.id,
+                          tableLayout:
+                            prev.tableLayout === layout.id ? "" : layout.id,
                         }));
                       }}
                     >
@@ -2652,7 +2936,11 @@ const EventForm = ({
                         <h4>{layout.name}</h4>
                         <p>{layout.totalTables}</p>
                       </div>
-                      <div className={`selected-indicator ${formData.tableLayout === layout.id ? 'visible' : ''}`}>
+                      <div
+                        className={`selected-indicator ${
+                          formData.tableLayout === layout.id ? "visible" : ""
+                        }`}
+                      >
                         ✓
                       </div>
                     </div>
@@ -2660,10 +2948,14 @@ const EventForm = ({
                 </div>
                 {formData.tableLayout && (
                   <div className="layout-preview-info">
-                    {availableTableLayouts.find(layout => layout.id === formData.tableLayout)?.areas && (
+                    {availableTableLayouts.find(
+                      (layout) => layout.id === formData.tableLayout
+                    )?.areas && (
                       <div className="layout-areas">
                         <span>Areas: </span>
-                        {availableTableLayouts.find(layout => layout.id === formData.tableLayout).areas.join(", ")}
+                        {availableTableLayouts
+                          .find((layout) => layout.id === formData.tableLayout)
+                          .areas.join(", ")}
                       </div>
                     )}
                   </div>
@@ -2673,16 +2965,22 @@ const EventForm = ({
 
             {/* Battle Configuration section */}
             <div className="form-section">
-              <h3><RiSwordLine /> Battle Configuration</h3>
-              
+              <h3>
+                <RiSwordLine /> Battle Configuration
+              </h3>
+
               <div className="battle-toggle">
                 <label className="toggle-container">
                   <input
                     type="checkbox"
                     checked={battleConfig.isEnabled}
-                    onChange={(e) => handleBattleConfigChange('isEnabled', e.target.checked)}
+                    onChange={(e) =>
+                      handleBattleConfigChange("isEnabled", e.target.checked)
+                    }
                   />
-                  <span className="toggle-label">Enable Battle for this Event</span>
+                  <span className="toggle-label">
+                    Enable Battle for this Event
+                  </span>
                 </label>
               </div>
 
@@ -2696,7 +2994,9 @@ const EventForm = ({
                         <input
                           type="text"
                           value={battleConfig.title}
-                          onChange={(e) => handleBattleConfigChange('title', e.target.value)}
+                          onChange={(e) =>
+                            handleBattleConfigChange("title", e.target.value)
+                          }
                           placeholder="Dance Battle"
                         />
                       </div>
@@ -2705,7 +3005,9 @@ const EventForm = ({
                         <input
                           type="text"
                           value={battleConfig.subtitle}
-                          onChange={(e) => handleBattleConfigChange('subtitle', e.target.value)}
+                          onChange={(e) =>
+                            handleBattleConfigChange("subtitle", e.target.value)
+                          }
                           placeholder="1 vs 1 Dance Battles"
                         />
                       </div>
@@ -2715,7 +3017,12 @@ const EventForm = ({
                       <label>Battle Description</label>
                       <textarea
                         value={battleConfig.description}
-                        onChange={(e) => handleBattleConfigChange('description', e.target.value)}
+                        onChange={(e) =>
+                          handleBattleConfigChange(
+                            "description",
+                            e.target.value
+                          )
+                        }
                         placeholder="Describe the battle event..."
                         rows="2"
                       />
@@ -2724,7 +3031,9 @@ const EventForm = ({
 
                   {/* Categories */}
                   <div className="battle-section">
-                    <h4><RiTrophyLine /> Battle Categories</h4>
+                    <h4>
+                      <RiTrophyLine /> Battle Categories
+                    </h4>
                     <div className="battle-categories">
                       {battleCategories.map((category) => (
                         <div key={category.name} className="battle-category">
@@ -2732,21 +3041,29 @@ const EventForm = ({
                             <label className="category-checkbox">
                               <input
                                 type="checkbox"
-                                checked={battleConfig.categories.includes(category.name)}
-                                onChange={() => handleCategoryToggle(category.name)}
+                                checked={battleConfig.categories.includes(
+                                  category.name
+                                )}
+                                onChange={() =>
+                                  handleCategoryToggle(category.name)
+                                }
                               />
-                              <span className="category-name">{category.displayName}</span>
+                              <span className="category-name">
+                                {category.displayName}
+                              </span>
                             </label>
                             <button
                               type="button"
                               className="remove-category"
-                              onClick={() => removeBattleCategory(category.name)}
+                              onClick={() =>
+                                removeBattleCategory(category.name)
+                              }
                               title="Remove category"
                             >
                               <RiCloseLine />
                             </button>
                           </div>
-                          
+
                           {battleConfig.categories.includes(category.name) && (
                             <div className="category-details">
                               <div className="detail-inputs">
@@ -2755,20 +3072,40 @@ const EventForm = ({
                                   <div className="prize-input">
                                     <input
                                       type="number"
-                                      value={category.prizeMoney || battleConfig.prizeMoney}
-                                      onChange={(e) => handleCategoryUpdate(category.name, 'prizeMoney', parseInt(e.target.value) || 0)}
+                                      value={
+                                        category.prizeMoney ||
+                                        battleConfig.prizeMoney
+                                      }
+                                      onChange={(e) =>
+                                        handleCategoryUpdate(
+                                          category.name,
+                                          "prizeMoney",
+                                          parseInt(e.target.value) || 0
+                                        )
+                                      }
                                       placeholder={battleConfig.prizeMoney.toString()}
                                       min="0"
                                     />
-                                    <span className="currency">{battleConfig.currency}</span>
+                                    <span className="currency">
+                                      {battleConfig.currency}
+                                    </span>
                                   </div>
                                 </div>
                                 <div className="input-group">
                                   <label>Max Participants</label>
                                   <input
                                     type="number"
-                                    value={category.maxParticipants || battleConfig.maxParticipantsPerCategory}
-                                    onChange={(e) => handleCategoryUpdate(category.name, 'maxParticipants', parseInt(e.target.value) || 16)}
+                                    value={
+                                      category.maxParticipants ||
+                                      battleConfig.maxParticipantsPerCategory
+                                    }
+                                    onChange={(e) =>
+                                      handleCategoryUpdate(
+                                        category.name,
+                                        "maxParticipants",
+                                        parseInt(e.target.value) || 16
+                                      )
+                                    }
                                     placeholder={battleConfig.maxParticipantsPerCategory.toString()}
                                     min="1"
                                     max="32"
@@ -2779,23 +3116,41 @@ const EventForm = ({
                                   <input
                                     type="number"
                                     value={category.participantsPerSignup || 1}
-                                    onChange={(e) => handleCategoryUpdate(category.name, 'participantsPerSignup', parseInt(e.target.value) || 1)}
+                                    onChange={(e) =>
+                                      handleCategoryUpdate(
+                                        category.name,
+                                        "participantsPerSignup",
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
                                     placeholder="1"
                                     min="1"
                                     max="4"
                                   />
-                                  <small>How many people per registration (e.g., 2 for 2vs2)</small>
+                                  <small>
+                                    How many people per registration (e.g., 2
+                                    for 2vs2)
+                                  </small>
                                 </div>
                                 <div className="input-group">
                                   <label className="checkbox-label">
                                     <input
                                       type="checkbox"
                                       checked={category.signUpsDone || false}
-                                      onChange={(e) => handleCategoryUpdate(category.name, 'signUpsDone', e.target.checked)}
+                                      onChange={(e) =>
+                                        handleCategoryUpdate(
+                                          category.name,
+                                          "signUpsDone",
+                                          e.target.checked
+                                        )
+                                      }
                                     />
                                     <span>Sign Ups Done</span>
                                   </label>
-                                  <small>Check this to close registrations for this category</small>
+                                  <small>
+                                    Check this to close registrations for this
+                                    category
+                                  </small>
                                 </div>
                               </div>
                             </div>
@@ -2818,11 +3173,15 @@ const EventForm = ({
                               type="text"
                               placeholder="Display Name (e.g., Hip Hop)"
                               value={newBattleCategory.displayName}
-                              onChange={(e) => setNewBattleCategory(prev => ({ 
-                                ...prev, 
-                                displayName: e.target.value,
-                                name: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '')
-                              }))}
+                              onChange={(e) =>
+                                setNewBattleCategory((prev) => ({
+                                  ...prev,
+                                  displayName: e.target.value,
+                                  name: e.target.value
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]/g, ""),
+                                }))
+                              }
                             />
                             <div className="form-actions">
                               <button
@@ -2830,7 +3189,13 @@ const EventForm = ({
                                 className="cancel-btn"
                                 onClick={() => {
                                   setShowAddCategoryForm(false);
-                                  setNewBattleCategory({ name: "", displayName: "", prizeMoney: 0, maxParticipants: 16, participantsPerSignup: 1 });
+                                  setNewBattleCategory({
+                                    name: "",
+                                    displayName: "",
+                                    prizeMoney: 0,
+                                    maxParticipants: 16,
+                                    participantsPerSignup: 1,
+                                  });
                                 }}
                               >
                                 Cancel
@@ -2847,19 +3212,25 @@ const EventForm = ({
                         )}
                       </div>
                     </div>
-
                   </div>
 
                   {/* Additional Settings */}
                   <div className="battle-section">
-                    <h4><RiCalendarCheckLine /> Registration & Rules</h4>
-                    
+                    <h4>
+                      <RiCalendarCheckLine /> Registration & Rules
+                    </h4>
+
                     <div className="battle-settings-grid">
                       <div className="form-group">
                         <label>Registration Deadline</label>
                         <DatePicker
                           selected={battleConfig.registrationDeadline}
-                          onChange={(date) => handleBattleConfigChange('registrationDeadline', date)}
+                          onChange={(date) =>
+                            handleBattleConfigChange(
+                              "registrationDeadline",
+                              date
+                            )
+                          }
                           showTimeSelect
                           dateFormat="MMM d, yyyy h:mm aa"
                           className="date-picker"
@@ -2873,9 +3244,16 @@ const EventForm = ({
                           <input
                             type="checkbox"
                             checked={battleConfig.isRegistrationOpen}
-                            onChange={(e) => handleBattleConfigChange('isRegistrationOpen', e.target.checked)}
+                            onChange={(e) =>
+                              handleBattleConfigChange(
+                                "isRegistrationOpen",
+                                e.target.checked
+                              )
+                            }
                           />
-                          <span className="toggle-label">Registration Open</span>
+                          <span className="toggle-label">
+                            Registration Open
+                          </span>
                         </label>
                       </div>
                     </div>
@@ -2884,7 +3262,12 @@ const EventForm = ({
                       <label>Battle Rules</label>
                       <textarea
                         value={battleConfig.battleRules}
-                        onChange={(e) => handleBattleConfigChange('battleRules', e.target.value)}
+                        onChange={(e) =>
+                          handleBattleConfigChange(
+                            "battleRules",
+                            e.target.value
+                          )
+                        }
                         placeholder="Enter battle rules and regulations..."
                         rows="3"
                       />
@@ -2894,7 +3277,12 @@ const EventForm = ({
                       <label>Additional Information</label>
                       <textarea
                         value={battleConfig.additionalInfo}
-                        onChange={(e) => handleBattleConfigChange('additionalInfo', e.target.value)}
+                        onChange={(e) =>
+                          handleBattleConfigChange(
+                            "additionalInfo",
+                            e.target.value
+                          )
+                        }
                         placeholder="Any additional information for participants..."
                         rows="2"
                       />

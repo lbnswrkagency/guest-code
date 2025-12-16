@@ -71,7 +71,7 @@ const BrandProfile = () => {
   const [currentEvent, setCurrentEvent] = useState(null);
   const [ticketSettings, setTicketSettings] = useState([]);
   const [codeSettings, setCodeSettings] = useState([]);
-  
+
   // Brand gallery state (photos)
   const [brandHasGalleries, setBrandHasGalleries] = useState(false);
   const [checkingGalleries, setCheckingGalleries] = useState(false);
@@ -111,11 +111,11 @@ const BrandProfile = () => {
 
   // Handler for when events are loaded from UpcomingEvent - memoized to prevent re-renders
   const handleEventsLoaded = useCallback((count) => {
-    setLoadingProgress(prev => ({ 
-      ...prev, 
+    setLoadingProgress((prev) => ({
+      ...prev,
       events: 100,
       // If no events, also mark tickets as loaded since there's nothing to load
-      tickets: count === 0 ? 100 : prev.tickets
+      tickets: count === 0 ? 100 : prev.tickets,
     }));
   }, []);
 
@@ -127,31 +127,43 @@ const BrandProfile = () => {
   // Function to check if brand has any galleries available
   const checkBrandGalleries = useCallback(async () => {
     if (!brand?._id) {
-      console.log('⚠️ [BrandProfile] No brand ID available for gallery check');
+      console.log("⚠️ [BrandProfile] No brand ID available for gallery check");
       return;
     }
-    
-    console.log('🚀 [BrandProfile] Starting gallery check for brand:', brand._id);
+
+    console.log(
+      "🚀 [BrandProfile] Starting gallery check for brand:",
+      brand._id
+    );
     setCheckingGalleries(true);
-    
+
     try {
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/galleries/check`;
-      console.log('🔍 [BrandProfile] Making gallery check request to:', endpoint);
-      
+      console.log(
+        "🔍 [BrandProfile] Making gallery check request to:",
+        endpoint
+      );
+
       const response = await axiosInstance.get(endpoint);
-      
-      console.log('✅ [BrandProfile] Brand galleries response:', response.data);
-      console.log('📊 [BrandProfile] Response details:');
-      console.log('  - success:', response.data?.success);
-      console.log('  - hasGalleries:', response.data?.hasGalleries);
-      console.log('  - totalEvents:', response.data?.totalEvents);
-      console.log('  - events found:', response.data?.events?.length || 0);
-      
+
+      console.log("✅ [BrandProfile] Brand galleries response:", response.data);
+      console.log("📊 [BrandProfile] Response details:");
+      console.log("  - success:", response.data?.success);
+      console.log("  - hasGalleries:", response.data?.hasGalleries);
+      console.log("  - totalEvents:", response.data?.totalEvents);
+      console.log("  - events found:", response.data?.events?.length || 0);
+
       if (response.data && response.data.success) {
         setBrandHasGalleries(response.data.hasGalleries);
-        console.log('📸 [BrandProfile] Setting brandHasGalleries to:', response.data.hasGalleries);
+        console.log(
+          "📸 [BrandProfile] Setting brandHasGalleries to:",
+          response.data.hasGalleries
+        );
       } else {
-        console.log('❌ [BrandProfile] API response indicates failure:', response.data);
+        console.log(
+          "❌ [BrandProfile] API response indicates failure:",
+          response.data
+        );
         setBrandHasGalleries(false);
       }
     } catch (error) {
@@ -160,12 +172,12 @@ const BrandProfile = () => {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
-        data: error.response?.data
+        data: error.response?.data,
       });
       setBrandHasGalleries(false);
     } finally {
       setCheckingGalleries(false);
-      console.log('🏁 [BrandProfile] Gallery check completed');
+      console.log("🏁 [BrandProfile] Gallery check completed");
     }
   }, [brand?._id]);
 
@@ -253,7 +265,7 @@ const BrandProfile = () => {
     if (location.pathname.includes("/@")) {
       const pathParts = location.pathname.split("/");
       const lastPart = pathParts[pathParts.length - 1];
-      
+
       // Check if last part is a date format (6 or 8 digits)
       const dateRegex = /^(\d{6}|\d{8})$/;
       if (dateRegex.test(lastPart)) {
@@ -281,8 +293,8 @@ const BrandProfile = () => {
         setIsMember(response.data.userStatus?.isMember || false);
         setIsFavorited(response.data.userStatus?.isFavorited || false);
       }
-      
-      setLoadingProgress(prev => ({ ...prev, brand: 100 }));
+
+      setLoadingProgress((prev) => ({ ...prev, brand: 100 }));
     } catch (error) {
       // Check for authentication error - redirect to login instead of showing toast
       if (error.response?.status === 401) {
@@ -741,7 +753,7 @@ const BrandProfile = () => {
         setCurrentEvent(null);
         setTicketSettings([]);
         setCodeSettings([]);
-        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
+        setLoadingProgress((prev) => ({ ...prev, tickets: 100 }));
         return;
       }
 
@@ -768,14 +780,14 @@ const BrandProfile = () => {
 
         setTicketSettings(fetchedTicketSettings);
         setCodeSettings(codeSettings);
-        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
+        setLoadingProgress((prev) => ({ ...prev, tickets: 100 }));
 
         // Data fetched successfully
       } catch (error) {
         // Silent fail - just set empty arrays
         setTicketSettings([]);
         setCodeSettings([]);
-        setLoadingProgress(prev => ({ ...prev, tickets: 100 }));
+        setLoadingProgress((prev) => ({ ...prev, tickets: 100 }));
       }
     },
     [fetchTicketSettings]
@@ -805,7 +817,9 @@ const BrandProfile = () => {
   const scrollToGallery = useCallback((e) => {
     e?.stopPropagation(); // Use optional chaining to handle cases where no event is passed
     // Scroll to the gallery section in UpcomingEvent
-    const gallerySection = document.querySelector(".upcomingEvent-gallery-section");
+    const gallerySection = document.querySelector(
+      ".upcomingEvent-gallery-section"
+    );
     if (gallerySection) {
       gallerySection.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -823,14 +837,14 @@ const BrandProfile = () => {
 
   const scrollToBattleSignup = useCallback((e) => {
     e.stopPropagation();
-    
+
     // First trigger the battle signup to show (similar to handleBattleSignupClick in UpcomingEvent)
     // Find and click the battle meta-tag to trigger the form visibility
     const battleMetaTag = document.querySelector(".meta-tag.battle");
     if (battleMetaTag) {
       battleMetaTag.click();
     }
-    
+
     // Then scroll to the section after a short delay
     setTimeout(() => {
       const battleSection = document.querySelector(
@@ -849,7 +863,12 @@ const BrandProfile = () => {
 
   // Throttled scroll handler for sticky action buttons
   const handleActionButtonsScroll = useCallback(() => {
-    if (!actionButtonsRef.current || !actionButtonsStickyPosRef.current || !brandProfileRef.current) return;
+    if (
+      !actionButtonsRef.current ||
+      !actionButtonsStickyPosRef.current ||
+      !brandProfileRef.current
+    )
+      return;
 
     const scrollY = window.scrollY || window.pageYOffset;
 
@@ -1014,7 +1033,13 @@ const BrandProfile = () => {
     // Determine what actions to show based on event configuration
 
     // Only render if any action is available
-    if (!supportsTableBookingForEvent && !ticketsAvailable && !showGuestCode && !supportsBattlesForEvent && !showGallery) {
+    if (
+      !supportsTableBookingForEvent &&
+      !ticketsAvailable &&
+      !showGuestCode &&
+      !supportsBattlesForEvent &&
+      !showGallery
+    ) {
       return null;
     }
 
@@ -1071,7 +1096,12 @@ const BrandProfile = () => {
                 <div className="button-text">
                   <span className="button-text-full">Guest Code</span>
                   <span className="button-text-short">Codes</span>
-                  {!isActionButtonsSticky && <p>{codeSettings.find(setting => setting.type === 'guest')?.condition || 'Free entry with code'}</p>}
+                  {!isActionButtonsSticky && (
+                    <p>
+                      {codeSettings.find((setting) => setting.type === "guest")
+                        ?.condition || "Free entry with code"}
+                    </p>
+                  )}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />
@@ -1130,56 +1160,58 @@ const BrandProfile = () => {
 
           {/* Gallery button - dynamic based on content */}
           {/* Only show after BOTH gallery checks complete to prevent "Photos" flashing when videos exist */}
-          {!checkingGalleries && !checkingVideoGalleries && (brandHasGalleries || brandHasVideoGalleries) && (
-            <motion.button
-              className="event-action-button gallery-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={() => {
-                scrollToGallery();
-              }}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  {/* Show appropriate icon: video only = film, photos only or both = image */}
-                  {brandHasVideoGalleries && !brandHasGalleries ? (
-                    <RiFilmLine />
-                  ) : (
-                    <RiImageLine />
-                  )}
-                </div>
-                <div className="button-text">
-                  {/* Dynamic text based on content type */}
-                  <span className="button-text-full">
-                    {brandHasGalleries && brandHasVideoGalleries
-                      ? "Gallery"
-                      : brandHasGalleries
-                      ? "Photos"
-                      : "Videos"}
-                  </span>
-                  <span className="button-text-short">
-                    {brandHasGalleries && brandHasVideoGalleries
-                      ? "Gallery"
-                      : brandHasGalleries
-                      ? "Photos"
-                      : "Videos"}
-                  </span>
-                  {!isActionButtonsSticky && (
-                    <p>
+          {!checkingGalleries &&
+            !checkingVideoGalleries &&
+            (brandHasGalleries || brandHasVideoGalleries) && (
+              <motion.button
+                className="event-action-button gallery-button"
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                onClick={() => {
+                  scrollToGallery();
+                }}
+              >
+                <div className="button-content">
+                  <div className="button-icon">
+                    {/* Show appropriate icon: video only = film, photos only or both = image */}
+                    {brandHasVideoGalleries && !brandHasGalleries ? (
+                      <RiFilmLine />
+                    ) : (
+                      <RiImageLine />
+                    )}
+                  </div>
+                  <div className="button-text">
+                    {/* Dynamic text based on content type */}
+                    <span className="button-text-full">
                       {brandHasGalleries && brandHasVideoGalleries
-                        ? "View event media"
+                        ? "Gallery"
                         : brandHasGalleries
-                        ? "View event photos"
-                        : "View event videos"}
-                    </p>
-                  )}
+                        ? "Photos"
+                        : "Videos"}
+                    </span>
+                    <span className="button-text-short">
+                      {brandHasGalleries && brandHasVideoGalleries
+                        ? "Gallery"
+                        : brandHasGalleries
+                        ? "Photos"
+                        : "Videos"}
+                    </span>
+                    {!isActionButtonsSticky && (
+                      <p>
+                        {brandHasGalleries && brandHasVideoGalleries
+                          ? "View event media"
+                          : brandHasGalleries
+                          ? "View event photos"
+                          : "View event videos"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="button-arrow">
+                    <RiArrowRightSLine />
+                  </div>
                 </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
+              </motion.button>
+            )}
         </div>
       </>
     );
@@ -1236,36 +1268,66 @@ const BrandProfile = () => {
 
               {/* Loading bar with progress */}
               <div className="loading-bar">
-                <div 
+                <div
                   className="loading-progress"
                   style={{
-                    width: `${totalProgress}%`
+                    width: `${totalProgress}%`,
                   }}
                 ></div>
               </div>
 
               {/* Loading steps */}
               <div className="loading-steps">
-                <div className={`loading-step ${loadingProgress.brand >= 100 ? 'completed' : loadingProgress.brand > 0 ? 'active' : ''}`}>
+                <div
+                  className={`loading-step ${
+                    loadingProgress.brand >= 100
+                      ? "completed"
+                      : loadingProgress.brand > 0
+                      ? "active"
+                      : ""
+                  }`}
+                >
                   <div className="step-content">
                     <span className="step-indicator"></span>
                     <span className="step-text">Loading profile...</span>
                   </div>
-                  <span className="step-progress">{Math.round(loadingProgress.brand)}%</span>
+                  <span className="step-progress">
+                    {Math.round(loadingProgress.brand)}%
+                  </span>
                 </div>
-                <div className={`loading-step ${loadingProgress.events >= 100 ? 'completed' : loadingProgress.events > 0 ? 'active' : ''}`}>
+                <div
+                  className={`loading-step ${
+                    loadingProgress.events >= 100
+                      ? "completed"
+                      : loadingProgress.events > 0
+                      ? "active"
+                      : ""
+                  }`}
+                >
                   <div className="step-content">
                     <span className="step-indicator"></span>
                     <span className="step-text">Loading events...</span>
                   </div>
-                  <span className="step-progress">{Math.round(loadingProgress.events)}%</span>
+                  <span className="step-progress">
+                    {Math.round(loadingProgress.events)}%
+                  </span>
                 </div>
-                <div className={`loading-step ${loadingProgress.tickets >= 100 ? 'completed' : loadingProgress.tickets > 0 ? 'active' : ''}`}>
+                <div
+                  className={`loading-step ${
+                    loadingProgress.tickets >= 100
+                      ? "completed"
+                      : loadingProgress.tickets > 0
+                      ? "active"
+                      : ""
+                  }`}
+                >
                   <div className="step-content">
                     <span className="step-indicator"></span>
                     <span className="step-text">Preparing experience...</span>
                   </div>
-                  <span className="step-progress">{Math.round(loadingProgress.tickets)}%</span>
+                  <span className="step-progress">
+                    {Math.round(loadingProgress.tickets)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -1292,25 +1354,39 @@ const BrandProfile = () => {
               background: "rgba(21, 21, 21, 0.95)",
               borderRadius: "16px",
               border: "1px solid rgba(255, 255, 255, 0.1)",
-              backdropFilter: "blur(10px)"
+              backdropFilter: "blur(10px)",
             }}
           >
-            <div className="error-icon" style={{
-              fontSize: "3rem",
-              marginBottom: "1rem",
-              color: "#ffc807"
-            }}>🔍</div>
-            <h2 style={{
-              color: "#fff",
-              marginBottom: "0.5rem",
-              fontSize: "1.5rem",
-              fontWeight: "600"
-            }}>Something went wrong</h2>
-            <p style={{
-              color: "rgba(255, 255, 255, 0.7)",
-              marginBottom: "1.5rem",
-              lineHeight: "1.5"
-            }}>We couldn't find this profile. It might be private or temporarily unavailable.</p>
+            <div
+              className="error-icon"
+              style={{
+                fontSize: "3rem",
+                marginBottom: "1rem",
+                color: "#ffc807",
+              }}
+            >
+              🔍
+            </div>
+            <h2
+              style={{
+                color: "#fff",
+                marginBottom: "0.5rem",
+                fontSize: "1.5rem",
+                fontWeight: "600",
+              }}
+            >
+              Something went wrong
+            </h2>
+            <p
+              style={{
+                color: "rgba(255, 255, 255, 0.7)",
+                marginBottom: "1.5rem",
+                lineHeight: "1.5",
+              }}
+            >
+              We couldn't find this profile. It might be private or temporarily
+              unavailable.
+            </p>
             <motion.button
               onClick={() => navigate("/")}
               whileHover={{ scale: 1.05 }}
@@ -1325,7 +1401,7 @@ const BrandProfile = () => {
                 cursor: "pointer",
                 fontSize: "16px",
                 fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(255, 200, 7, 0.3)"
+                boxShadow: "0 4px 12px rgba(255, 200, 7, 0.3)",
               }}
             >
               Go to Home
@@ -1452,7 +1528,6 @@ const BrandProfile = () => {
           initialDateHint={initialDateHint}
           brandHasGalleries={brandHasGalleries}
         />
-
       </div>
 
       <AnimatePresence mode="wait">

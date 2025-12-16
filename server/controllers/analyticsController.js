@@ -31,16 +31,16 @@ exports.getAnalyticsSummary = async (req, res) => {
       // Check if this is a co-hosted event (event belongs to different brand but user's brand is co-host)
       const coHostedEvent = await Event.findOne({
         _id: eventId,
-        coHosts: { $in: [brandId] }
+        coHosts: { $in: [brandId] },
       });
-      
+
       if (!coHostedEvent) {
         return res.status(404).json({
           success: false,
           message: "Event not found or does not belong to this brand",
         });
       }
-      
+
       // Use the co-hosted event for further processing
       event = coHostedEvent;
     }
@@ -58,53 +58,66 @@ exports.getAnalyticsSummary = async (req, res) => {
       if (event.coHosts && event.coHosts.length > 0) {
         // Find all brands where the user is a team member or owner
         const userBrands = await Brand.find({
-          $or: [
-            { owner: req.user.userId },
-            { "team.user": req.user.userId }
-          ]
+          $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
         });
 
         // Check if any of the user's brands are co-hosts for this event
         for (const userBrand of userBrands) {
           const isCoHost = event.coHosts.some(
-            coHostId => coHostId.toString() === userBrand._id.toString()
+            (coHostId) => coHostId.toString() === userBrand._id.toString()
           );
 
           if (isCoHost) {
             // Check co-host permissions for this brand/role combination
             const coHostPermissions = event.coHostRolePermissions || [];
             const brandPermissions = coHostPermissions.find(
-              cp => cp.brandId.toString() === userBrand._id.toString()
+              (cp) => cp.brandId.toString() === userBrand._id.toString()
             );
 
             if (brandPermissions) {
               // Find the user's role in this co-host brand
               const userRoleInCoHostBrand = userBrand.team?.find(
-                member => member.user.toString() === req.user.userId.toString()
+                (member) =>
+                  member.user.toString() === req.user.userId.toString()
               )?.role;
 
               // Check if user is owner of co-host brand
-              const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+              const isCoHostBrandOwner =
+                userBrand.owner &&
+                userBrand.owner.toString() === req.user.userId.toString();
 
               if (userRoleInCoHostBrand || isCoHostBrandOwner) {
                 // Find permissions for this specific role (or use owner permissions)
                 let rolePermission;
                 if (isCoHostBrandOwner) {
                   // Owners get the permissions of any admin role
-                  rolePermission = brandPermissions.rolePermissions.find(rp => {
-                    // Find a role with analytics permissions (checking for analytics.access)
-                    return rp.permissions && rp.permissions.analytics && rp.permissions.analytics.access === true;
-                  });
+                  rolePermission = brandPermissions.rolePermissions.find(
+                    (rp) => {
+                      // Find a role with analytics permissions (checking for analytics.access)
+                      return (
+                        rp.permissions &&
+                        rp.permissions.analytics &&
+                        rp.permissions.analytics.access === true
+                      );
+                    }
+                  );
                 } else {
                   rolePermission = brandPermissions.rolePermissions.find(
-                    rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
+                    (rp) =>
+                      rp.roleId.toString() === userRoleInCoHostBrand.toString()
                   );
                 }
 
-                if (rolePermission && rolePermission.permissions && rolePermission.permissions.analytics) {
+                if (
+                  rolePermission &&
+                  rolePermission.permissions &&
+                  rolePermission.permissions.analytics
+                ) {
                   // Check both 'access' and 'view' for analytics permissions
-                  hasCoHostPermission = rolePermission.permissions.analytics.access === true || rolePermission.permissions.analytics.view === true;
-                  
+                  hasCoHostPermission =
+                    rolePermission.permissions.analytics.access === true ||
+                    rolePermission.permissions.analytics.view === true;
+
                   if (hasCoHostPermission) {
                     break; // Found permission, no need to check other brands
                   }
@@ -124,7 +137,9 @@ exports.getAnalyticsSummary = async (req, res) => {
     }
 
     // Fetch all code settings for this event
-    const codeSettings = await CodeSetting.find({ eventId });
+    // For child events (weekly occurrences), use parent event's codeSettings
+    const effectiveEventId = event.parentEventId || eventId;
+    const codeSettings = await CodeSetting.find({ eventId: effectiveEventId });
 
     // Get Guest Codes stats (always present)
     const guestCodes = await getCodesStats(eventId, "guest");
@@ -327,11 +342,14 @@ async function getDetailedTicketStats(eventId) {
 
     // Get all tickets for the event
     const tickets = await Ticket.find({ eventId });
-    
+
     console.log(`Found ${tickets.length} tickets for event ${eventId}`);
     if (tickets.length > 0) {
-      console.log('Sample ticket fields:', Object.keys(tickets[0].toObject()));
-      console.log('Sample ticket:', JSON.stringify(tickets[0].toObject(), null, 2));
+      console.log("Sample ticket fields:", Object.keys(tickets[0].toObject()));
+      console.log(
+        "Sample ticket:",
+        JSON.stringify(tickets[0].toObject(), null, 2)
+      );
     }
 
     // Initialize summary object
@@ -355,17 +373,19 @@ async function getDetailedTicketStats(eventId) {
     // Process each ticket setting
     for (const setting of ticketSettings) {
       console.log(`Processing setting: ${setting.name}`);
-      
+
       // Filter tickets for this category - try multiple field matches
       const categoryTickets = tickets.filter(
-        (ticket) => 
+        (ticket) =>
           ticket.ticketName === setting.name ||
           ticket.ticketType === setting.name ||
           ticket.ticketName === setting.type ||
           ticket.ticketType === setting.type
       );
-      
-      console.log(`Found ${categoryTickets.length} tickets for setting ${setting.name}`);
+
+      console.log(
+        `Found ${categoryTickets.length} tickets for setting ${setting.name}`
+      );
 
       // Calculate stats for this category
       const categorySold = categoryTickets.reduce(
@@ -377,7 +397,7 @@ async function getDetailedTicketStats(eventId) {
         0
       );
       const categoryRevenue = categoryTickets.reduce(
-        (sum, ticket) => sum + ((ticket.price || 0) * (ticket.pax || 1)),
+        (sum, ticket) => sum + (ticket.price || 0) * (ticket.pax || 1),
         0
       );
 
@@ -412,9 +432,13 @@ async function getDetailedTicketStats(eventId) {
         summary.totalCheckedIn += categoryCheckedIn;
         summary.totalRevenue += categoryRevenue;
       }
-      
+
       // Always add to totals even if category wasn't added to array
-      if (categorySold === 0 && (setting.isEnabled === false || !summary.categories.find(c => c.name === setting.name))) {
+      if (
+        categorySold === 0 &&
+        (setting.isEnabled === false ||
+          !summary.categories.find((c) => c.name === setting.name))
+      ) {
         // Still count tickets that exist but weren't added to categories
         summary.totalSold += categorySold;
         summary.totalCheckedIn += categoryCheckedIn;
@@ -443,7 +467,7 @@ async function getBattleAnalytics(eventId) {
   try {
     // Get all battle signups for this event
     const battleSignups = await BattleSign.find({ event: eventId });
-    
+
     // Get all battle codes for this event (for check-ins)
     const battleCodes = await BattleCode.find({ event: eventId });
 
@@ -451,12 +475,13 @@ async function getBattleAnalytics(eventId) {
     const categoryStats = {};
     let totalParticipants = 0;
     let totalCheckedIn = 0;
-    
+
     // Process battle signups
     battleSignups.forEach((signup) => {
-      const participantCount = 1 + (signup.participants ? signup.participants.length : 0);
+      const participantCount =
+        1 + (signup.participants ? signup.participants.length : 0);
       totalParticipants += participantCount;
-      
+
       signup.categories.forEach((category) => {
         if (!categoryStats[category]) {
           categoryStats[category] = {
@@ -467,14 +492,14 @@ async function getBattleAnalytics(eventId) {
             total: 0,
             participants: 0,
             checkedIn: 0,
-            signups: []
+            signups: [],
           };
         }
-        
+
         categoryStats[category][signup.status] += 1;
         categoryStats[category].total += 1;
         categoryStats[category].participants += participantCount;
-        
+
         // Add signup details to the category
         categoryStats[category].signups.push({
           _id: signup._id,
@@ -486,7 +511,7 @@ async function getBattleAnalytics(eventId) {
           participants: signup.participants || [],
           participantCount: participantCount,
           checkedIn: 0, // Will be updated when processing battle codes
-          createdAt: signup.createdAt
+          createdAt: signup.createdAt,
         });
       });
     });
@@ -495,16 +520,18 @@ async function getBattleAnalytics(eventId) {
     battleCodes.forEach((code) => {
       const checkedInCount = code.paxChecked || 0;
       totalCheckedIn += checkedInCount;
-      
+
       code.categories.forEach((category) => {
         if (categoryStats[category]) {
           categoryStats[category].checkedIn += checkedInCount;
-          
+
           // Find the corresponding signup by email or battleSignId and update check-in count
-          const correspondingSignup = categoryStats[category].signups.find(signup => 
-            signup.email === code.email || signup._id.toString() === code.battleSignId?.toString()
+          const correspondingSignup = categoryStats[category].signups.find(
+            (signup) =>
+              signup.email === code.email ||
+              signup._id.toString() === code.battleSignId?.toString()
           );
-          
+
           if (correspondingSignup) {
             correspondingSignup.checkedIn = checkedInCount;
           }
@@ -514,9 +541,9 @@ async function getBattleAnalytics(eventId) {
 
     // Calculate status distribution
     const statusDistribution = {
-      pending: battleSignups.filter(s => s.status === 'pending').length,
-      confirmed: battleSignups.filter(s => s.status === 'confirmed').length,
-      declined: battleSignups.filter(s => s.status === 'declined').length
+      pending: battleSignups.filter((s) => s.status === "pending").length,
+      confirmed: battleSignups.filter((s) => s.status === "confirmed").length,
+      declined: battleSignups.filter((s) => s.status === "declined").length,
     };
 
     return {
@@ -524,7 +551,7 @@ async function getBattleAnalytics(eventId) {
       totalParticipants,
       totalCheckedIn,
       statusDistribution,
-      categories: Object.values(categoryStats)
+      categories: Object.values(categoryStats),
     };
   } catch (error) {
     console.error("Error getting battle analytics:", error);
@@ -533,7 +560,7 @@ async function getBattleAnalytics(eventId) {
       totalParticipants: 0,
       totalCheckedIn: 0,
       statusDistribution: { pending: 0, confirmed: 0, declined: 0 },
-      categories: []
+      categories: [],
     };
   }
 }

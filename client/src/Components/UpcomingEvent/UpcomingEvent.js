@@ -75,7 +75,7 @@ const UpcomingEvent = ({
   brandHasVideoGalleries: brandHasVideoGalleriesProp = null,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
-  
+
   const [events, setEvents] = useState(
     providedEvents ? [...providedEvents] : []
   );
@@ -99,19 +99,25 @@ const UpcomingEvent = ({
   // Add state for battle signup
   const [showBattleSignup, setShowBattleSignup] = useState(false);
 
-
   // Brand gallery state (photos)
   // Use prop if provided (from BrandProfile), otherwise use internal state
   const [brandHasGalleriesState, setBrandHasGalleries] = useState(false);
-  const brandHasGalleries = brandHasGalleriesProp !== null ? brandHasGalleriesProp : brandHasGalleriesState;
+  const brandHasGalleries =
+    brandHasGalleriesProp !== null
+      ? brandHasGalleriesProp
+      : brandHasGalleriesState;
   const [checkingGalleries, setCheckingGalleries] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
   // Brand video gallery state
-  const [brandHasVideoGalleriesState, setBrandHasVideoGalleries] = useState(false);
-  const brandHasVideoGalleries = brandHasVideoGalleriesProp !== null ? brandHasVideoGalleriesProp : brandHasVideoGalleriesState;
+  const [brandHasVideoGalleriesState, setBrandHasVideoGalleries] =
+    useState(false);
+  const brandHasVideoGalleries =
+    brandHasVideoGalleriesProp !== null
+      ? brandHasVideoGalleriesProp
+      : brandHasVideoGalleriesState;
   const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
   const [showVideoGallery, setShowVideoGallery] = useState(false);
   const [videoGalleryVideos, setVideoGalleryVideos] = useState([]);
@@ -152,8 +158,11 @@ const UpcomingEvent = ({
   }, [ticketSettings]);
 
   // Memoize provided events to prevent unnecessary effect runs
-  const memoizedProvidedEvents = useMemo(() => providedEvents, [providedEvents]);
-  
+  const memoizedProvidedEvents = useMemo(
+    () => providedEvents,
+    [providedEvents]
+  );
+
   useEffect(() => {
     // If events are provided directly, use them
     if (memoizedProvidedEvents && memoizedProvidedEvents.length > 0) {
@@ -309,9 +318,10 @@ const UpcomingEvent = ({
 
   // Notify parent when current event changes (prevent callback loops)
   useEffect(() => {
-    const currentEvent = events.length > 0 && currentIndex >= 0 && currentIndex < events.length 
-      ? events[currentIndex] 
-      : null;
+    const currentEvent =
+      events.length > 0 && currentIndex >= 0 && currentIndex < events.length
+        ? events[currentIndex]
+        : null;
     onEventChange(currentEvent);
   }, [currentIndex, events]); // Removed onEventChange from deps to prevent loops
 
@@ -768,44 +778,56 @@ const UpcomingEvent = ({
 
       if (upcomingEvents.length > 0) {
         let targetIndex = 0; // Default to first event
-        
+
         // Handle date navigation if we have a date hint and haven't processed it yet
         if (initialDateHint && !hasNavigatedFromURL) {
           // Parse the date hint
           let targetDate = null;
-          if (initialDateHint.length === 6) { // DDMMYY format
+          if (initialDateHint.length === 6) {
+            // DDMMYY format
             const day = parseInt(initialDateHint.substring(0, 2));
             const month = parseInt(initialDateHint.substring(2, 4)) - 1;
             const year = parseInt("20" + initialDateHint.substring(4, 6));
             targetDate = new Date(year, month, day);
-          } else if (initialDateHint.length === 8) { // DDMMYYYY format
+          } else if (initialDateHint.length === 8) {
+            // DDMMYYYY format
             const day = parseInt(initialDateHint.substring(0, 2));
             const month = parseInt(initialDateHint.substring(2, 4)) - 1;
             const year = parseInt(initialDateHint.substring(4, 8));
             targetDate = new Date(year, month, day);
           }
-          
+
           if (targetDate && !isNaN(targetDate.getTime())) {
-            const matchingEventIndex = upcomingEvents.findIndex(event => {
-              const eventDate = event.calculatedStartDate || new Date(event.startDate || event.date);
+            const matchingEventIndex = upcomingEvents.findIndex((event) => {
+              const eventDate =
+                event.calculatedStartDate ||
+                new Date(event.startDate || event.date);
               if (!eventDate) return false;
-              
-              const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-              const targetDateOnly = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-              
+
+              const eventDateOnly = new Date(
+                eventDate.getFullYear(),
+                eventDate.getMonth(),
+                eventDate.getDate()
+              );
+              const targetDateOnly = new Date(
+                targetDate.getFullYear(),
+                targetDate.getMonth(),
+                targetDate.getDate()
+              );
+
               return eventDateOnly.getTime() === targetDateOnly.getTime();
             });
-            
+
             if (matchingEventIndex !== -1) {
               targetIndex = matchingEventIndex;
             }
           }
-          
+
           setHasNavigatedFromURL(true); // Mark as processed
         }
-        
+
         setCurrentIndex(targetIndex);
-        
+
         // Preload the selected event's image if available
         if (upcomingEvents[targetIndex].flyer) {
           preloadEventImage(upcomingEvents[targetIndex]);
@@ -841,7 +863,9 @@ const UpcomingEvent = ({
       } else if (brandUsername) {
         // First get the brand by username to get the brandId
         const cleanUsername = brandUsername.replace(/^@/, "");
-        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
+        const brandResponse = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+        );
 
         if (brandResponse.data && brandResponse.data._id) {
           finalBrandId = brandResponse.data._id;
@@ -882,7 +906,9 @@ const UpcomingEvent = ({
       } else if (brandUsername) {
         // Get brand ID from username
         const cleanUsername = brandUsername.replace(/^@/, "");
-        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
+        const brandResponse = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+        );
 
         if (brandResponse.data && brandResponse.data._id) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/latest`;
@@ -914,7 +940,9 @@ const UpcomingEvent = ({
       } else if (brandUsername) {
         // First get the brand by username to get the brandId
         const cleanUsername = brandUsername.replace(/^@/, "");
-        const brandResponse = await axiosInstance.get(`${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`);
+        const brandResponse = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+        );
 
         if (brandResponse.data && brandResponse.data._id) {
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/videos/check`;
@@ -966,7 +994,12 @@ const UpcomingEvent = ({
     if ((brandId || brandUsername) && !checkingVideoGalleries) {
       checkBrandVideoGalleries();
     }
-  }, [brandId, brandUsername, checkBrandVideoGalleries, brandHasVideoGalleriesProp]);
+  }, [
+    brandId,
+    brandUsername,
+    checkBrandVideoGalleries,
+    brandHasVideoGalleriesProp,
+  ]);
 
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -1202,7 +1235,6 @@ const UpcomingEvent = ({
     return "";
   };
 
-
   const handleTicketsClick = (event, e) => {
     e.stopPropagation(); // Prevent the main event click handler from firing
 
@@ -1276,8 +1308,8 @@ const UpcomingEvent = ({
     // Scroll to the gallery carousel section
     if (gallerySectionRef.current) {
       gallerySectionRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
+        behavior: "smooth",
+        block: "center",
       });
     }
   };
@@ -1850,7 +1882,6 @@ const UpcomingEvent = ({
               {currentEvent && <GuestCode event={currentEvent} />}
             </div>
 
-
             {/* Table booking section - Only shown if layout is configured */}
             {currentEvent &&
               !hideTableBooking &&
@@ -1874,7 +1905,7 @@ const UpcomingEvent = ({
                   </div>
                 </div>
               )}
-            
+
             {/* Gallery carousel section */}
             {brandHasGalleries && (
               <div
@@ -1911,7 +1942,6 @@ const UpcomingEvent = ({
                 />
               </div>
             )}
-
           </div>
         </motion.div>
       </AnimatePresence>

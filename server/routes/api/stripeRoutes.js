@@ -277,41 +277,18 @@ router.get("/verify-payment/:sessionId", async (req, res) => {
       const order = await Order.findOne({ stripeSessionId: sessionId });
 
       if (order) {
-        // Check if order has an associated commission
-        let commissionInfo = null;
-        if (order.commissionId) {
-          // Include basic commission info if present
-          try {
-            const Commission = require("../../models/commissionModel");
-            const commission = await Commission.findById(order.commissionId);
-            if (commission) {
-              commissionInfo = {
-                id: commission._id,
-                amount: commission.commissionAmount,
-                status: commission.status,
-                isGuestPurchase: commission.isGuestPurchase,
-              };
-            }
-          } catch (commissionError) {
-            console.error("Error retrieving commission:", commissionError);
-            // Continue even if commission lookup fails
-          }
-        }
-
         res.json({
           success: true,
           order: {
             _id: order._id,
             eventId: order.eventId,
-            totalAmount: order.totalAmount,
             originalAmount: order.originalAmount,
             originalCurrency: order.originalCurrency,
-            conversionRate: order.conversionRate,
+            platformFee: order.platformFee,
+            hostEarnings: order.hostEarnings,
             vatRate: order.vatRate,
             status: order.status,
-            invoiceNumber: order.invoiceNumber,
             stripeSessionId: order.stripeSessionId,
-            commission: commissionInfo,
           },
         });
       } else {

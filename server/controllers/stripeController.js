@@ -4,7 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY, {
 const Event = require("../models/eventsModel");
 
 // Get the client URL with fallback
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:9231";
+const CLIENT_URL = process.env.CLIENT_BASE_URL || "http://localhost:3000";
 
 const checkOutSession = async (req, res) => {
   try {
@@ -41,6 +41,12 @@ const checkOutSession = async (req, res) => {
     // Create the checkout session with absolute URLs
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
+      // Disable Link payment option to avoid confusion
+      payment_method_options: {
+        card: {
+          setup_future_usage: null,
+        },
+      },
       line_items,
       mode: "payment",
       success_url: `${CLIENT_URL}/paid?session_id={CHECKOUT_SESSION_ID}`,

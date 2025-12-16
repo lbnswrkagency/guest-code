@@ -214,7 +214,11 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
     // Dropbox path auto-generation styles - at form-section level
     .dropbox-suggestion-banner {
-      background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba($primary-color, 0.1) 0%,
+        rgba($primary-color, 0.05) 100%
+      );
       border: 1px solid rgba($primary-color, 0.2);
       border-radius: 8px;
       padding: 0.75rem 1rem;
@@ -241,7 +245,7 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             background: rgba(0, 0, 0, 0.3);
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            font-family: "Courier New", monospace;
             font-size: 0.85rem;
             color: $primary-color;
             word-break: break-all;
@@ -393,7 +397,7 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         color: rgba($primary-color, 0.8);
         margin-top: 0.3rem;
         display: block;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
 
         code {
           background: rgba($primary-color, 0.1);
@@ -1504,7 +1508,7 @@ input[type="checkbox"] {
     &.selected {
       border-color: $primary-color;
       background: rgba($primary-color, 0.05);
-      
+
       .selected-indicator {
         display: block;
       }
@@ -1533,7 +1537,7 @@ input[type="checkbox"] {
         position: absolute;
         border-radius: 1px;
       }
-      
+
       .mini-table {
         width: 2px;
         height: 2px;
@@ -1542,7 +1546,7 @@ input[type="checkbox"] {
         border: 0.2px solid rgba(255, 255, 255, 0.4);
         box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
       }
-      
+
       .mini-floor {
         border-radius: 1px;
         border: 0.3px solid rgba(255, 255, 255, 0.2);
@@ -1550,8 +1554,8 @@ input[type="checkbox"] {
 
       &.studio {
         background: linear-gradient(
-          145deg, 
-          #2d2d2d 0%, 
+          145deg,
+          #2d2d2d 0%,
           #1a1a2e 20%,
           rgba(255, 215, 0, 0.15) 40%,
           rgba(46, 139, 87, 0.15) 60%,
@@ -1559,10 +1563,8 @@ input[type="checkbox"] {
           #1a1a2e 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1574,11 +1576,26 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 20% 80%, rgba(255, 215, 0, 0.3) 0%, transparent 40%),
-            radial-gradient(ellipse at 80% 20%, rgba(46, 139, 87, 0.25) 0%, transparent 35%),
-            radial-gradient(ellipse at 50% 40%, rgba(239, 68, 68, 0.15) 0%, transparent 25%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+          background: radial-gradient(
+              ellipse at 20% 80%,
+              rgba(255, 215, 0, 0.3) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 80% 20%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 35%
+            ),
+            radial-gradient(
+              ellipse at 50% 40%,
+              rgba(239, 68, 68, 0.15) 0%,
+              transparent 25%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.02) 0%,
+              transparent 50%
+            );
           pointer-events: none;
         }
 
@@ -1607,10 +1624,8 @@ input[type="checkbox"] {
           #0f172a 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1622,11 +1637,26 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 50% 50%, rgba(33, 150, 243, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse at 15% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 85% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 50% 85%, rgba(225, 112, 85, 0.2) 0%, transparent 30%);
+          background: radial-gradient(
+              ellipse at 50% 50%,
+              rgba(33, 150, 243, 0.3) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              ellipse at 15% 50%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 85% 50%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 50% 85%,
+              rgba(225, 112, 85, 0.2) 0%,
+              transparent 30%
+            );
           pointer-events: none;
         }
 
@@ -1656,10 +1686,8 @@ input[type="checkbox"] {
           #166534 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1671,12 +1699,31 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 20% 80%, rgba(220, 53, 69, 0.3) 0%, transparent 35%),
-            radial-gradient(ellipse at 80% 20%, rgba(34, 197, 94, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 60% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 45%),
-            radial-gradient(ellipse at 30% 30%, rgba(168, 85, 247, 0.15) 0%, transparent 30%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+          background: radial-gradient(
+              ellipse at 20% 80%,
+              rgba(220, 53, 69, 0.3) 0%,
+              transparent 35%
+            ),
+            radial-gradient(
+              ellipse at 80% 20%,
+              rgba(34, 197, 94, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 60% 50%,
+              rgba(59, 130, 246, 0.2) 0%,
+              transparent 45%
+            ),
+            radial-gradient(
+              ellipse at 30% 30%,
+              rgba(168, 85, 247, 0.15) 0%,
+              transparent 30%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.03) 0%,
+              transparent 60%
+            );
           pointer-events: none;
         }
 
@@ -1697,14 +1744,14 @@ input[type="checkbox"] {
 
     .layout-info {
       text-align: center;
-      
+
       h4 {
         margin: 0 0 0.25rem 0;
         font-size: 0.9rem;
         color: white;
         font-weight: 600;
       }
-      
+
       p {
         margin: 0;
         font-size: 0.75rem;
@@ -1726,7 +1773,7 @@ input[type="checkbox"] {
       display: none;
       align-items: center;
       justify-content: center;
-      
+
       &.visible {
         display: flex;
       }
@@ -1739,11 +1786,11 @@ input[type="checkbox"] {
     background: rgba($primary-color, 0.05);
     border: 1px solid rgba($primary-color, 0.2);
     border-radius: 8px;
-    
+
     .layout-areas {
       font-size: 0.85rem;
       color: $text-light;
-      
+
       span {
         font-weight: 600;
         color: $primary-color;
@@ -1759,7 +1806,11 @@ input[type="checkbox"] {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba($primary-color, 0.1) 0%,
+      rgba($primary-color, 0.05) 100%
+    );
     border-radius: 8px;
     border: 1px solid rgba($primary-color, 0.2);
     margin-bottom: 1.5rem;
@@ -1785,10 +1836,10 @@ input[type="checkbox"] {
 
 .battle-configuration {
   animation: fadeIn 0.3s ease-out;
-  
+
   .battle-section {
     margin-bottom: 2rem;
-    
+
     h4 {
       color: white;
       font-size: 1rem;
@@ -1825,7 +1876,8 @@ input[type="checkbox"] {
         font-weight: 500;
       }
 
-      input, textarea {
+      input,
+      textarea {
         background: $bg-input;
         border: 1px solid $border-light;
         border-radius: 6px;
@@ -2023,7 +2075,8 @@ input[type="checkbox"] {
           }
         }
 
-        .cancel-btn, .add-btn {
+        .cancel-btn,
+        .add-btn {
           flex-shrink: 0;
           border: none;
           padding: 0.75rem 1rem;
@@ -2070,7 +2123,8 @@ input[type="checkbox"] {
           font-weight: 500;
         }
 
-        input, select {
+        input,
+        select {
           background: $bg-input;
           border: 1px solid $border-light;
           border-radius: 6px;
@@ -2121,7 +2175,9 @@ input[type="checkbox"] {
         font-weight: 500;
       }
 
-      input, textarea, .datetime-input {
+      input,
+      textarea,
+      .datetime-input {
         background: $bg-input;
         border: 1px solid $border-light;
         border-radius: 6px;
@@ -2216,7 +2272,7 @@ input[type="checkbox"] {
 
     &::before,
     &::after {
-      content: '';
+      content: "";
       flex: 1;
       height: 1px;
       background: rgba(255, 255, 255, 0.1);
@@ -2255,7 +2311,7 @@ input[type="checkbox"] {
       border-radius: 8px;
       color: white;
       font-size: 0.9rem;
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       transition: all 0.2s ease;
 
       &:focus {
@@ -2306,7 +2362,7 @@ input[type="checkbox"] {
       border-radius: 8px;
       color: white;
       font-size: 0.9rem;
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       transition: all 0.2s ease;
 
       &:focus {

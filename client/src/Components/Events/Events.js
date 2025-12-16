@@ -188,7 +188,7 @@ const Events = () => {
   const prepareBrands = () => {
     // Set brandsLoaded to true regardless of whether we have brands or not
     setBrandsLoaded(true);
-    
+
     if (brands.length > 0) {
       const brandsWithData = brands.map(prepareBrandWithData);
 
@@ -497,7 +497,9 @@ const Events = () => {
     try {
       if (isFavorited) {
         await axiosInstance.delete(`/events/${eventId}/favorite`);
-        const newFavoriteEvents = favoriteEvents.filter((event) => event._id !== eventId);
+        const newFavoriteEvents = favoriteEvents.filter(
+          (event) => event._id !== eventId
+        );
         setFavoriteEvents(newFavoriteEvents);
         toast.showSuccess("Event removed from favorites");
       } else {
@@ -699,7 +701,9 @@ const Events = () => {
               <div className="event-card no-permission-card">
                 <RiCalendarEventLine className="no-permission-icon" />
                 <p>No events found</p>
-                <span className="no-permission-text">You don't have permission to create events for this brand</span>
+                <span className="no-permission-text">
+                  You don't have permission to create events for this brand
+                </span>
               </div>
             )}
           </div>
@@ -1220,7 +1224,9 @@ const EventCard = ({
               ) : (
                 <div className="detail-item">
                   <RiCalendarEventLine />
-                  <span>{formatDate(currentEvent.startDate || currentEvent.date)}</span>
+                  <span>
+                    {formatDate(currentEvent.startDate || currentEvent.date)}
+                  </span>
                 </div>
               )}
               <div className="detail-item">
@@ -1236,7 +1242,8 @@ const EventCard = ({
             </div>
 
             {/* Media badges - show if photos or videos configured */}
-            {(currentEvent.dropboxFolderPath || currentEvent.dropboxVideoFolderPath) && (
+            {(currentEvent.dropboxFolderPath ||
+              currentEvent.dropboxVideoFolderPath) && (
               <div className="event-media-badges">
                 {currentEvent.dropboxFolderPath && (
                   <span className="media-badge photos">

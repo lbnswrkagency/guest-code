@@ -14,7 +14,6 @@ exports.getUpcomingEventData = async (req, res) => {
   try {
     const { brandId, brandUsername, limit = 10 } = req.query;
     const now = new Date();
-    
 
     // Step 1: Smart Brand + Events Query with pre-filtering
     let brand;
@@ -22,67 +21,79 @@ exports.getUpcomingEventData = async (req, res) => {
 
     if (brandId) {
       targetBrandId = brandId;
-      brand = await Brand.findById(brandId).select('name username logo description colors').lean();
+      brand = await Brand.findById(brandId)
+        .select("name username logo description colors")
+        .lean();
     } else if (brandUsername) {
       const cleanUsername = brandUsername.replace(/^@/, "");
-      brand = await Brand.findOne({ username: cleanUsername }).select('name username logo description colors').lean();
+      brand = await Brand.findOne({ username: cleanUsername })
+        .select("name username logo description colors")
+        .lean();
       targetBrandId = brand?._id;
     }
 
     if (!brand) {
       return res.status(404).json({
         success: false,
-        message: "Brand not found"
+        message: "Brand not found",
       });
     }
-
 
     // Step 2: SIMPLIFIED EVENT QUERY - Get all events for brand AND co-hosted events
 
     // Get all parent events for the brand (we'll filter in JavaScript for better control)
     const parentEvents = await Event.find({
-      $or: [
-        { brand: targetBrandId },
-        { coHosts: targetBrandId }
-      ],
-      parentEventId: { $exists: false }
+      $or: [{ brand: targetBrandId }, { coHosts: targetBrandId }],
+      parentEventId: { $exists: false },
     })
-    .sort({ startDate: 1, date: 1 })
-    .limit(parseInt(limit) * 2) // Increase limit since we're fetching from multiple sources
-    .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
-    .populate("brand", "name username logo")
-    .populate("coHosts", "name username logo")
-    .populate("user", "username firstName lastName avatar")
-    .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
-    .populate("genres", "name description color")
-    .lean();
-
-    
-
-    // Step 3: Smart child events fetching (only for relevant weekly parents)
-    let allEvents = [...parentEvents];
-    
-    const weeklyParents = parentEvents.filter(event => event.isWeekly);
-    if (weeklyParents.length > 0) {
-      
-      const childEvents = await Event.find({
-        parentEventId: { $in: weeklyParents.map(p => p._id) }
-      })
-      .select('title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig')
+      .sort({ startDate: 1, date: 1 })
+      .limit(parseInt(limit) * 2) // Increase limit since we're fetching from multiple sources
+      .select(
+        "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
+      )
       .populate("brand", "name username logo")
       .populate("coHosts", "name username logo")
       .populate("user", "username firstName lastName avatar")
-      .populate("lineups", "name avatar category subtitle events isActive sortOrder description socialLinks")
+      .populate(
+        "lineups",
+        "name avatar category subtitle events isActive sortOrder description socialLinks"
+      )
       .populate("genres", "name description color")
       .lean();
-      
+
+    // Step 3: Smart child events fetching (for all potential parents - weekly and non-weekly)
+    let allEvents = [...parentEvents];
+
+    // Include all events that could be parents (events without a parentEventId)
+    const potentialParents = parentEvents.filter(
+      (event) => !event.parentEventId
+    );
+    if (potentialParents.length > 0) {
+      const childEvents = await Event.find({
+        parentEventId: { $in: potentialParents.map((p) => p._id) },
+      })
+        .select(
+          "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
+        )
+        .populate("brand", "name username logo")
+        .populate("coHosts", "name username logo")
+        .populate("user", "username firstName lastName avatar")
+        .populate(
+          "lineups",
+          "name avatar category subtitle events isActive sortOrder description socialLinks"
+        )
+        .populate("genres", "name description color")
+        .lean();
+
       allEvents = [...allEvents, ...childEvents];
     }
 
     // Step 4: Quick event processing (minimal calculations since we pre-filtered)
     const processedEvents = allEvents.map((event) => {
-      const startDate = event.startDate ? new Date(event.startDate) : new Date(event.date);
-      
+      const startDate = event.startDate
+        ? new Date(event.startDate)
+        : new Date(event.date);
+
       let endDate;
       if (event.endDate) {
         endDate = new Date(event.endDate);
@@ -90,10 +101,15 @@ exports.getUpcomingEventData = async (req, res) => {
         endDate = new Date(startDate);
         const [hours, minutes] = event.endTime.split(":").map(Number);
         endDate.setHours(hours, minutes, 0, 0);
-        
+
         if (event.startTime) {
-          const [startHours, startMinutes] = event.startTime.split(":").map(Number);
-          if (hours < startHours || (hours === startHours && minutes < startMinutes)) {
+          const [startHours, startMinutes] = event.startTime
+            .split(":")
+            .map(Number);
+          if (
+            hours < startHours ||
+            (hours === startHours && minutes < startMinutes)
+          ) {
             endDate.setDate(endDate.getDate() + 1);
           }
         }
@@ -103,7 +119,9 @@ exports.getUpcomingEventData = async (req, res) => {
       }
 
       if (event.startTime) {
-        const [startHours, startMinutes] = event.startTime.split(":").map(Number);
+        const [startHours, startMinutes] = event.startTime
+          .split(":")
+          .map(Number);
         startDate.setHours(startHours, startMinutes || 0, 0);
       }
 
@@ -117,7 +135,8 @@ exports.getUpcomingEventData = async (req, res) => {
       }
 
       // Check if this is a co-hosted event
-      const isCoHosted = event.brand._id.toString() !== targetBrandId.toString();
+      const isCoHosted =
+        event.brand._id.toString() !== targetBrandId.toString();
 
       return {
         ...event,
@@ -147,8 +166,6 @@ exports.getUpcomingEventData = async (req, res) => {
       return event.status === "active" || event.status === "upcoming";
     });
 
-    
-
     // Step 6: Final sort (most should already be in good order)
     const sortedEvents = relevantEvents.sort((a, b) => {
       if (a.status !== b.status) {
@@ -157,7 +174,6 @@ exports.getUpcomingEventData = async (req, res) => {
       }
       return a.calculatedStartDate - b.calculatedStartDate;
     });
-
 
     if (sortedEvents.length === 0) {
       return res.status(200).json({
@@ -168,30 +184,28 @@ exports.getUpcomingEventData = async (req, res) => {
           ticketSettings: {},
           codeSettings: {},
           tableData: {},
-          totalEvents: 0
-        }
+          totalEvents: 0,
+        },
       });
     }
 
     // Step 7: BULK fetch related data (only for final relevant events)
-    const eventIds = sortedEvents.map(event => event._id);
+    const eventIds = sortedEvents.map((event) => event._id);
     const allEventIds = [...eventIds]; // Include parent IDs for inheritance
-    
+
     // Add parent IDs for inheritance lookup
-    sortedEvents.forEach(event => {
+    sortedEvents.forEach((event) => {
       if (event.parentEventId && !allEventIds.includes(event.parentEventId)) {
         allEventIds.push(event.parentEventId);
       }
     });
 
-
-    const [ticketSettingsArray, codeSettingsArray, tableDataArray] = await Promise.all([
-      TicketSettings.find({ eventId: { $in: allEventIds } }).lean(),
-      CodeSettings.find({ eventId: { $in: allEventIds } }).lean(), // Gets all fields by default
-      TableCode.find({ event: { $in: allEventIds } }).lean() // Gets all fields by default
-    ]);
-
-    
+    const [ticketSettingsArray, codeSettingsArray, tableDataArray] =
+      await Promise.all([
+        TicketSettings.find({ eventId: { $in: allEventIds } }).lean(),
+        CodeSettings.find({ eventId: { $in: allEventIds } }).lean(), // Gets all fields by default
+        TableCode.find({ event: { $in: allEventIds } }).lean(), // Gets all fields by default
+      ]);
 
     // Step 8: SMART data organization with inheritance handling
     const ticketSettingsByEvent = {};
@@ -225,13 +239,13 @@ exports.getUpcomingEventData = async (req, res) => {
     const finalCodeSettings = { ...codeSettingsByEvent };
     const finalTableData = { ...tableDataByEvent };
 
-    sortedEvents.forEach(event => {
+    sortedEvents.forEach((event) => {
       const eventId = event._id.toString();
-      
+
       // Smart inheritance: only inherit if child event has no data
       if (event.parentEventId) {
         const parentId = event.parentEventId.toString();
-        
+
         if (!finalTicketSettings[eventId] && ticketSettingsByEvent[parentId]) {
           finalTicketSettings[eventId] = ticketSettingsByEvent[parentId];
         }
@@ -245,16 +259,18 @@ exports.getUpcomingEventData = async (req, res) => {
     });
 
     // Step 10: Format table data to match TableSystem expectations
-    const formattedTableDataByEvent = Object.keys(finalTableData).reduce((acc, eventId) => {
-      const tableCodes = finalTableData[eventId];
-      // TableSystem expects { tableCounts: [], totalCount: 0 } format
-      acc[eventId] = {
-        tableCounts: tableCodes || [],
-        totalCount: tableCodes ? tableCodes.length : 0
-      };
-      return acc;
-    }, {});
-
+    const formattedTableDataByEvent = Object.keys(finalTableData).reduce(
+      (acc, eventId) => {
+        const tableCodes = finalTableData[eventId];
+        // TableSystem expects { tableCounts: [], totalCount: 0 } format
+        acc[eventId] = {
+          tableCounts: tableCodes || [],
+          totalCount: tableCodes ? tableCodes.length : 0,
+        };
+        return acc;
+      },
+      {}
+    );
 
     // Step 11: Return optimized response
     res.status(200).json({
@@ -275,16 +291,15 @@ exports.getUpcomingEventData = async (req, res) => {
           codeSettingsCount: Object.keys(finalCodeSettings).length,
           tableDataCount: Object.keys(formattedTableDataByEvent).length,
           optimized: true,
-          queryTime: req.startTime ? Date.now() - req.startTime : 0
-        }
-      }
+          queryTime: req.startTime ? Date.now() - req.startTime : 0,
+        },
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Failed to fetch upcoming event data",
-      error: error.message
+      error: error.message,
     });
   }
 };

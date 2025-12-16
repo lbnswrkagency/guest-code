@@ -43,8 +43,6 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const debugRoutes = require("./routes/api/debugRoutes");
 const alphaKeysRoutes = require("./routes/alphaKeysRoute");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const commissionRoutes = require("./routes/commissionRoutes");
-const adminFinanceRoutes = require("./routes/adminFinanceRoutes");
 const genreRoutes = require("./routes/genreRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const memberController = require("./controllers/memberController");
@@ -153,8 +151,6 @@ const corsOptions = {
           "http://localhost:9231",
           "http://127.0.0.1:9231",
           "http://localhost:5001",
-          "http://localhost:8080",
-          "http://127.0.0.1:8080",
           "http://192.168.1.186:8081", // Expo dev server
           "http://192.168.1.186:19006", // Expo web fallback
         ],
@@ -180,43 +176,9 @@ app.use(cors(corsOptions));
 // Enable pre-flight requests for all routes
 app.options("*", cors(corsOptions));
 
-// Request logging middleware with filtering
-app.use((req, res, next) => {
-  // Skip logging for frequently called endpoints
-  const skipPaths = [
-    '/api/events/profile/',
-    '/api/codes/counts/',
-    '/api/auth/ping',
-    '/api/notifications'
-  ];
-  
-  const shouldSkip = skipPaths.some(path => req.path.includes(path));
-  
-  if (!shouldSkip) {
-    console.log(`[Server] ${new Date().toISOString()} ${req.method} ${req.path} from ${req.headers.origin || 'no-origin'}`);
-  }
-  
-  next();
-});
-
 // Global middleware to ensure CORS headers are always set
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Skip CORS logging for frequent endpoints
-  const skipPaths = [
-    '/api/events/profile/',
-    '/api/codes/counts/',
-    '/api/auth/ping',
-    '/api/notifications'
-  ];
-  
-  const shouldSkipLog = skipPaths.some(path => req.path.includes(path));
-  
-  if (!shouldSkipLog) {
-    console.log(`[CORS] Request origin: ${origin}`);
-  }
-  
   if (
     origin &&
     (origin === "https://www.guest-code.com" ||
@@ -243,7 +205,6 @@ app.use((req, res, next) => {
 
   // Handle preflight
   if (req.method === "OPTIONS") {
-    console.log("[CORS] Handling preflight request");
     res.status(204).send();
     return;
   }
@@ -314,10 +275,8 @@ app.use("/api", searchRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/alpha-keys", alphaKeysRoutes);
-app.use("/api/commissions", commissionRoutes);
 app.use("/api", debugRoutes);
 app.use("/api/analytics", analyticsRoutes);
-app.use("/api/admin/finance", adminFinanceRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/members", memberRoutes);
@@ -348,20 +307,10 @@ app.set("io", io);
 
 // Start server
 const port = process.env.PORT || 5000;
-const host = process.env.HOST || 'localhost';
-
-console.log('\n[Server] Starting server...');
-console.log(`[Server] PORT from env: ${process.env.PORT}`);
-console.log(`[Server] Using port: ${port}`);
-console.log(`[Server] Using host: ${host}`);
-console.log(`[Server] NODE_ENV: ${process.env.NODE_ENV}`);
-
-server.listen(port, host, () => {
-  console.log(`\n[Server] ✅ Server is running!`);
-  console.log(`[Server] Listening on ${host}:${port}`);
-  console.log(`[Server] Access via http://${host}:${port}`);
+server.listen(port, () => {
+  console.log(`\n[Server] Running on port ${port}`);
+  console.log(`[Server] Access via http://localhost:${port}`);
   console.log(`[Server] CORS enabled for origins:`, corsOptions.origin);
-  console.log(`[Server] Waiting for requests...`);
 });
 
 // Error handling

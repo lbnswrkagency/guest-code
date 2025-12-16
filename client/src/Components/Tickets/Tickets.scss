@@ -247,8 +247,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
-      0 0 15px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(212, 175, 55, 0.2);
 
     &::before {
       opacity: 0.15;
@@ -279,8 +278,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     margin-right: 18px;
     font-size: 20px;
     transition: all 0.3s ease;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2),
-      0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(212, 175, 55, 0.2);
   }
 
   .discount-details {
@@ -301,6 +299,30 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
       color: rgba(255, 255, 255, 0.8);
       line-height: 1.5;
     }
+  }
+}
+
+// Online Savings Hint - minimalist version
+.online-savings-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 6px;
+  border-left: 2px solid rgba(212, 175, 55, 0.5);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+
+  svg {
+    color: $gold-medium;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  span {
+    line-height: 1.3;
   }
 }
 
@@ -500,6 +522,43 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
       font-size: 1rem;
       filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
     }
+  }
+
+  // Limited quantity badge - similar to countdown
+  .ticket-limited-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
+    color: var(--ticket-accent-color);
+    padding: 0.4rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+    // Metallic effect
+    background-image: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(30, 30, 30, 0.9) 50%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+
+    svg {
+      font-size: 1rem;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+    }
+  }
+
+  // Position limited badge below countdown if both exist
+  .ticket-countdown + .ticket-limited-badge {
+    top: 3.5rem;
   }
 
   // Discount badge - adjusted position

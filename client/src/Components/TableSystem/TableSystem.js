@@ -1,5 +1,11 @@
 // TableSystem.js
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
@@ -8,6 +14,7 @@ import TableLayoutStudio from "../TableLayoutStudio/TableLayoutStudio";
 import TableLayoutBolivar from "../TableLayoutBolivar/TableLayoutBolivar";
 import TableLayoutVenti from "../TableLayoutVenti/TableLayoutVenti";
 import TableLayoutHarlem from "../TableLayoutHarlem/TableLayoutHarlem";
+import TableLayoutAmano from "../TableLayoutAmano/TableLayoutAmano";
 import Navigation from "../Navigation/Navigation";
 import Footer from "../Footer/Footer";
 import TableCodeManagement from "../TableCodeManagement/TableCodeManagement";
@@ -138,6 +145,10 @@ function TableSystem({
           vip: ["V1", "V2", "V3", "V4", "V5", "V6"],
           upstairs: ["U1", "U2", "U3"],
         };
+      case "amano":
+        return {
+          vip: ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"],
+        };
       case "studio":
       default:
         return {
@@ -150,11 +161,14 @@ function TableSystem({
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const defaultTableCategories = useMemo(() => getDefaultTableCategories(), [selectedLayout]);
+  const defaultTableCategories = useMemo(
+    () => getDefaultTableCategories(),
+    [selectedLayout]
+  );
 
   // Use dynamic table categories from layout if available - memoize to prevent re-creation
-  const tableCategories = useMemo(() => 
-    layoutConfig?.tableCategories || defaultTableCategories,
+  const tableCategories = useMemo(
+    () => layoutConfig?.tableCategories || defaultTableCategories,
     [layoutConfig, defaultTableCategories]
   );
 
@@ -180,6 +194,8 @@ function TableSystem({
         return <TableLayoutVenti {...layoutProps} />;
       case "harlem":
         return <TableLayoutHarlem {...layoutProps} />;
+      case "amano":
+        return <TableLayoutAmano {...layoutProps} />;
       case "studio":
         return <TableLayoutStudio {...layoutProps} />;
       default:
@@ -251,23 +267,25 @@ function TableSystem({
     setIsLoading(true);
     try {
       // Check if this is a co-hosted event where we need all table data for visualization
-      const isCoHostedEvent = selectedEvent?.isCoHosted || selectedEvent?.coHostBrandInfo;
-      
+      const isCoHostedEvent =
+        selectedEvent?.isCoHosted || selectedEvent?.coHostBrandInfo;
+
       // For public requests (guest-facing), use the public endpoint
       // For co-hosted events, use authenticated endpoint with special flag
       // For regular authenticated requests, use normal authenticated endpoint
-      const endpoint = isPublic 
+      const endpoint = isPublic
         ? `/table/public/counts/${eventId}`
         : `/table/counts/${eventId}`;
 
       // Add query parameter for co-hosted events to signal backend to return all data
-      const fullEndpoint = isCoHostedEvent && !isPublic
-        ? `${endpoint}?coHosted=true`
-        : endpoint;
+      const fullEndpoint =
+        isCoHostedEvent && !isPublic ? `${endpoint}?coHosted=true` : endpoint;
 
       // Use appropriate axios instance based on authentication needs
       const response = isPublic
-        ? await axios.get(`${process.env.REACT_APP_API_BASE_URL}${fullEndpoint}`)
+        ? await axios.get(
+            `${process.env.REACT_APP_API_BASE_URL}${fullEndpoint}`
+          )
         : await axiosInstance.get(fullEndpoint);
 
       // Expecting response format { tableCounts: [], totalCount: 0 }
@@ -557,21 +575,21 @@ function TableSystem({
 
     try {
       const response = await axiosInstance.post(
-        '/table/plan/generate-pdf',
+        "/table/plan/generate-pdf",
         { eventId: selectedEvent._id },
-        { responseType: 'blob' }
+        { responseType: "blob" }
       );
 
       // Create blob URL and trigger download
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
 
       // Generate filename with event name and date
-      const eventName = selectedEvent?.title || 'Event';
-      const date = new Date().toISOString().split('T')[0];
-      link.setAttribute('download', `${eventName}_Table_Plan_${date}.pdf`);
+      const eventName = selectedEvent?.title || "Event";
+      const date = new Date().toISOString().split("T")[0];
+      link.setAttribute("download", `${eventName}_Table_Plan_${date}.pdf`);
 
       document.body.appendChild(link);
       link.click();

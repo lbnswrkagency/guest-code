@@ -1,7 +1,13 @@
 const mongoose = require("mongoose");
 
+/**
+ * Order Model - Tracks customer ticket purchases
+ * Includes embedded commission calculation for host payouts
+ * All amounts in EUR
+ */
 const orderSchema = new mongoose.Schema(
   {
+    // Core references
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Event",
@@ -10,12 +16,10 @@ const orderSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false, // Not required as guests can buy tickets
+      required: false, // Guests can buy tickets
     },
-    commissionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Commission",
-    },
+
+    // Customer info
     email: {
       type: String,
       required: true,
@@ -28,20 +32,8 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    invoiceNumber: {
-      type: String,
-      default: function () {
-        // Generate a default invoice number if not provided
-        if (this.stripeSessionId) {
-          const shortCode = this.stripeSessionId.slice(-4).toUpperCase();
-          return `INV-${shortCode}`;
-        }
-        return `INV-${Math.random()
-          .toString(36)
-          .substring(2, 6)
-          .toUpperCase()}`;
-      },
-    },
+
+    // Tickets purchased
     tickets: [
       {
         ticketId: {
@@ -54,35 +46,17 @@ const orderSchema = new mongoose.Schema(
         pricePerUnit: Number,
       },
     ],
+
+    // Payment details (EUR only)
     originalCurrency: {
       type: String,
       default: "EUR",
-      required: true,
+      immutable: true,
     },
     originalAmount: {
       type: Number,
       required: true,
-    },
-    conversionRate: {
-      type: Number,
-      default: 1.08, // Default fallback conversion rate if not available from Stripe
-    },
-    isEstimatedRate: {
-      type: Boolean,
-      default: false, // True if using fallback rate, false if using real-time rate
-    },
-    vatRate: {
-      type: Number,
-      default: 0, // Will be set based on customer's country
-    },
-    totalAmount: {
-      type: Number,
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: ["pending", "completed", "failed", "refunded"],
-      default: "pending",
+      description: "Total amount paid by customer in EUR",
     },
     stripeSessionId: {
       type: String,
@@ -96,13 +70,77 @@ const orderSchema = new mongoose.Schema(
       postal_code: String,
       country: String,
     },
+
+    // Order status
+    status: {
+      type: String,
+      enum: ["pending", "completed", "failed", "refunded"],
+      default: "pending",
+    },
     paymentStatus: {
       type: String,
       enum: ["paid", "unpaid", "refunded"],
       default: "unpaid",
     },
+
+    // Platform fee / Host earnings (embedded commission)
+    platformFeeRate: {
+      type: Number,
+      default: 0.039, // 3.9% from env
+    },
+    platformFee: {
+      type: Number,
+      description: "GuestCode's fee (3.9% of originalAmount)",
+    },
+    hostEarnings: {
+      type: Number,
+      description: "Amount owed to event host (96.1% of originalAmount)",
+    },
+    hostPayoutStatus: {
+      type: String,
+      enum: ["pending", "available", "paid"],
+      default: "pending",
+      description: "Status of payout to host",
+    },
+
+    // VAT (based on event country, not customer country)
+    vatRate: {
+      type: Number,
+      default: 24, // Greek VAT as default
+      description: "VAT rate based on event country",
+    },
+
+    // AADE Receipt (from Accounty)
+    aadeReceipt: {
+      accountyId: String,
+      receiptNumber: String,
+      mark: String,
+      qrCode: String,
+      status: {
+        type: String,
+        enum: ["pending", "transmitted", "failed"],
+        default: "pending",
+      },
+      errors: [
+        {
+          code: String,
+          message: String,
+        },
+      ],
+      createdAt: Date,
+    },
+    receiptSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
+
+// Indexes for efficient queries
+orderSchema.index({ eventId: 1 });
+orderSchema.index({ stripeSessionId: 1 }, { unique: true });
+orderSchema.index({ hostPayoutStatus: 1 });
+orderSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Order", orderSchema);

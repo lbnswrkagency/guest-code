@@ -14,9 +14,11 @@ const PrivacyPolicy = () => {
       </p>
 
       <p>
-        LBNSWRK LLC dba GuestCode ("we", "our", or "us") is committed to
+        LBNSWRK E.E. dba GuestCode ("we", "our", or "us") is committed to
         protecting your privacy. This Privacy Policy explains how your personal
-        information is collected, used, and disclosed by GuestCode.
+        information is collected, used, and disclosed by GuestCode in accordance
+        with the General Data Protection Regulation (GDPR) and applicable Greek
+        and European Union data protection laws.
       </p>
 
       <h3>Information We Collect</h3>
@@ -124,11 +126,31 @@ const PrivacyPolicy = () => {
 
       <h3>International Transfer</h3>
       <p>
-        We are based in the United States and the information we collect is
-        governed by U.S. law. If you are accessing our services from outside of
-        the U.S., please be aware that information collected through the
-        services may be transferred to, processed, stored, and used in the U.S.
-        and other jurisdictions.
+        We are based in Greece, European Union, and the information we collect
+        is governed by EU law, including the General Data Protection Regulation
+        (GDPR). Your data is primarily processed within the European Economic
+        Area (EEA). If data is transferred outside the EEA, we ensure
+        appropriate safeguards are in place in accordance with GDPR
+        requirements.
+      </p>
+
+      <h3>Your Rights Under GDPR</h3>
+      <p>
+        Under the GDPR, you have the following rights regarding your personal
+        data:
+      </p>
+      <ul>
+        <li>Right to access your personal data</li>
+        <li>Right to rectification of inaccurate data</li>
+        <li>Right to erasure ("right to be forgotten")</li>
+        <li>Right to restrict processing</li>
+        <li>Right to data portability</li>
+        <li>Right to object to processing</li>
+        <li>Right to withdraw consent at any time</li>
+      </ul>
+      <p>
+        To exercise any of these rights, please contact us at{" "}
+        <a href="mailto:contact@guest-code.com">contact@guest-code.com</a>.
       </p>
 
       <h3>Changes to This Privacy Policy</h3>

@@ -34,7 +34,7 @@ import {
   FaCcAmex,
   FaShieldAlt,
   FaLock,
-  FaPercentage,
+  FaTag,
 } from "react-icons/fa";
 import { FaApple } from "react-icons/fa6";
 import axiosInstance from "../../utils/axiosConfig";
@@ -76,7 +76,9 @@ const Tickets = ({
   event,
   ticketSettings: providedTicketSettings,
 }) => {
-  const [ticketSettings, setTicketSettings] = useState(providedTicketSettings || []);
+  const [ticketSettings, setTicketSettings] = useState(
+    providedTicketSettings || []
+  );
   const [loadingTickets, setLoadingTickets] = useState(!providedTicketSettings);
   const toast = useToast();
   const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
@@ -141,7 +143,7 @@ const Tickets = ({
     if (providedTicketSettings && providedTicketSettings.length > 0) {
       setTicketSettings(providedTicketSettings);
       setLoadingTickets(false);
-      
+
       // Set primary color from first ticket if available
       if (providedTicketSettings[0].color) {
         setPrimaryColor(providedTicketSettings[0].color);
@@ -190,9 +192,12 @@ const Tickets = ({
     if (providedTicketSettings) {
       setTicketSettings(providedTicketSettings);
       setLoadingTickets(false);
-      
+
       // Set primary color from first ticket if available
-      if (providedTicketSettings.length > 0 && providedTicketSettings[0].color) {
+      if (
+        providedTicketSettings.length > 0 &&
+        providedTicketSettings[0].color
+      ) {
         setPrimaryColor(providedTicketSettings[0].color);
         document.documentElement.style.setProperty(
           "--ticket-primary-color",
@@ -221,7 +226,11 @@ const Tickets = ({
             price: parseFloat(ticket.price) || 0,
             quantity: ticket.quantity || 0,
             available: ticket.available !== undefined ? ticket.available : true,
-            hasCountdown: !!ticket.endDate,
+            // Respect hasCountdown from DB, only default to true if not explicitly set
+            hasCountdown:
+              ticket.hasCountdown !== undefined
+                ? ticket.hasCountdown
+                : !!ticket.endDate,
             endDate: ticket.endDate || null,
             ...ticket,
           };
@@ -229,17 +238,17 @@ const Tickets = ({
           return normalizedTicket;
         })
         .filter(Boolean)
-        // Filter out expired Early Bird tickets
+        // Filter out expired tickets that have countdown enabled
         .filter((ticket) => {
-          // If it's an early bird ticket with an end date
-          if (ticket.name.toLowerCase().includes("early") && ticket.endDate) {
-            // Check if the end date has passed
+          // Only filter by endDate if the ticket has countdown enabled (from DB)
+          // This respects the hasCountdown field set in the database
+          if (ticket.hasCountdown && ticket.endDate) {
             const now = new Date();
             const endDate = new Date(ticket.endDate);
             return endDate > now; // Only include if the end date is in the future
           }
 
-          // Keep all non-early bird tickets
+          // Keep tickets without countdown enabled
           return true;
         })
     );
@@ -290,6 +299,23 @@ const Tickets = ({
       );
     },
     [formatCountdown, primaryColor]
+  );
+
+  // Memoize renderLimitedBadge for limited quantity tickets
+  const renderLimitedBadge = useCallback(
+    (ticket) => {
+      if (!ticket.isLimited || !ticket.maxTickets) return null;
+
+      const remaining = ticket.maxTickets - (ticket.soldCount || 0);
+      if (remaining <= 0) return null;
+
+      return (
+        <div className="ticket-limited-badge" style={{ color: primaryColor }}>
+          <RiPriceTag3Line /> {remaining} left
+        </div>
+      );
+    },
+    [primaryColor]
   );
 
   // Memoize calculateRemainingTime
@@ -621,6 +647,7 @@ const Tickets = ({
         }}
       >
         {renderCountdown(ticket)}
+        {renderLimitedBadge(ticket)}
         {ticket.paxPerTicket > 1 && (
           <div className="ticket-group-badge">
             <FaUserFriends />
@@ -684,7 +711,13 @@ const Tickets = ({
         </div>
       </div>
     ),
-    [ticketQuantities, primaryColor, renderCountdown, handleQuantityChange]
+    [
+      ticketQuantities,
+      primaryColor,
+      renderCountdown,
+      renderLimitedBadge,
+      handleQuantityChange,
+    ]
   );
 
   // Helper function to calculate discount percentage
@@ -731,38 +764,22 @@ const Tickets = ({
                 </div>
               )}
 
-            {/* Exclusive Online Discount Banner - Show for online payments with door prices */}
+            {/* Online Savings Hint - Show for online payments with door prices */}
             {validatedTickets.length > 0 &&
               validatedTickets[0].paymentMethod === "online" &&
-              validatedTickets.some((ticket) => ticket.doorPrice > ticket.price) && (
-                <motion.div
-                  className="exclusive-online-discount"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <div className="discount-content">
-                    <div className="discount-icon">
-                      <FaShieldAlt />
-                    </div>
-                    <div className="discount-details">
-                      <h3>🎯 Exclusive Online Discount</h3>
-                      <p>
-                        Save up to{" "}
-                        {Math.max(
-                          ...validatedTickets.map(
-                            (ticket) =>
-                              calculateDiscountPercentage(
-                                ticket.doorPrice,
-                                ticket.price
-                              ) || 0
-                          )
-                        )}
-                        % compared to door prices!
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
+              validatedTickets.some(
+                (ticket) => ticket.doorPrice > ticket.price
+              ) && (
+                <div className="online-savings-hint">
+                  <FaTag />
+                  <span>
+                    Door Price:{" "}
+                    {Math.max(
+                      ...validatedTickets.map((ticket) => ticket.doorPrice || 0)
+                    ).toFixed(2)}
+                    €
+                  </span>
+                </div>
               )}
 
             <div className="tickets-list">
