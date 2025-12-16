@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./EventSettings.scss";
 import { motion } from "framer-motion";
-import { RiInformationLine, RiCloseLine } from "react-icons/ri";
+import { RiInformationLine, RiCloseLine, RiCodeLine, RiDeleteBinLine } from "react-icons/ri";
 import EventCodeSettings from "../EventCodeSettings/EventCodeSettings";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import axiosInstance from "../../utils/axiosConfig";
@@ -103,8 +103,30 @@ const EventSettings = ({ event, onClose }) => {
         </motion.button>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="settings-tabs">
+        <motion.button
+          className={`tab-button ${activeTab === "codes" ? "active" : ""}`}
+          onClick={() => setActiveTab("codes")}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <RiCodeLine />
+          Code Settings
+        </motion.button>
+        <motion.button
+          className={`tab-button ${activeTab === "danger" ? "active" : ""}`}
+          onClick={() => setActiveTab("danger")}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <RiDeleteBinLine />
+          Danger Zone
+        </motion.button>
+      </div>
+
       <div className="settings-content">
-        {/* Code Settings Section */}
+        {/* Code Settings Tab */}
         {activeTab === "codes" && (
           <EventCodeSettings
             event={event}
@@ -114,29 +136,36 @@ const EventSettings = ({ event, onClose }) => {
           />
         )}
 
-        {/* Danger Zone Section */}
-        <div className="danger">
-          <div className="settings-item">
-            <div
-              className="item-icon"
-              style={{
-                backgroundColor: "rgba(244, 67, 54, 0.15)",
-                color: "#F44336",
-              }}
-            ></div>
 
-            <div className="item-actions">
-              <motion.button
-                className="delete-button"
-                onClick={handleDelete}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Delete Event
-              </motion.button>
+        {/* Danger Zone Tab */}
+        {activeTab === "danger" && (
+          <div className="danger-zone">
+            <div className="section-header">
+              <RiDeleteBinLine />
+              <h3>Danger Zone</h3>
+              <p>Irreversible and destructive actions</p>
+            </div>
+
+            <div className="danger-actions">
+              <div className="settings-item">
+                <div className="item-info">
+                  <h4>Delete Event</h4>
+                  <p>Permanently delete this event. This action cannot be undone.</p>
+                </div>
+                <div className="item-actions">
+                  <motion.button
+                    className="delete-button"
+                    onClick={handleDelete}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Delete Event
+                  </motion.button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Only render ConfirmDialog when showConfirmDialog is true */}

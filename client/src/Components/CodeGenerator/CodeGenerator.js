@@ -40,7 +40,8 @@ function CodeGenerator({
 
     // Check if this is a co-hosted event with effective permissions
     if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
-      userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+      userPermissions =
+        selectedEvent.coHostBrandInfo.effectivePermissions.codes;
 
       // Handle Map to object conversion if needed
       if (userPermissions instanceof Map) {
@@ -220,9 +221,10 @@ function CodeGenerator({
 
     // Get permissions from co-host or regular brand role
     let userPermissions = {};
-    
+
     if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
-      userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+      userPermissions =
+        selectedEvent.coHostBrandInfo.effectivePermissions.codes;
       // Handle Map to object conversion if needed
       if (userPermissions instanceof Map) {
         userPermissions = Object.fromEntries(userPermissions);

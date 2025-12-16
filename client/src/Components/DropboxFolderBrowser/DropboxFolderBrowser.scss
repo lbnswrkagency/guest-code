@@ -1,0 +1,547 @@
+@import "../../variables";
+
+.dropbox-folder-browser {
+  position: relative;
+  width: 100%;
+
+  .selected-path-display {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 50px;
+    position: relative;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    &:focus-within {
+      border-color: #ffc807;
+      box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.2);
+    }
+
+    .path-value {
+      flex: 1;
+      min-width: 0;
+
+      .path-text {
+        color: white;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        word-break: break-all;
+        overflow-wrap: anywhere;
+      }
+
+      .placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+    }
+
+    .expand-icon {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.2rem;
+      transition: transform 0.3s ease;
+
+      &.open {
+        transform: rotate(90deg);
+      }
+    }
+  }
+}
+
+// Portal-rendered modal styles (rendered at body level)
+.dropbox-browser-portal.browser-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  .browser-modal {
+    background: rgba(20, 20, 20, 0.98);
+    border-radius: 16px;
+    padding: 1.5rem;
+    width: 600px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow: visible; // Let browser-content handle scrolling
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 200, 7, 0.1);
+    position: relative;
+    animation: popupEnter 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+    z-index: 10000;
+
+    // Gold accent line like TableBookingPopup
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #ffc807, transparent);
+      border-radius: 2px;
+    }
+
+    // Scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 200, 7, 0.3);
+      border-radius: 3px;
+      
+      &:hover {
+        background: rgba(255, 200, 7, 0.5);
+      }
+    }
+
+    .browser-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-right: 3rem;
+      flex-shrink: 0;
+
+      h4 {
+        color: white;
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+
+        .refresh-btn, .close-btn {
+          background: transparent;
+          border: none;
+          border-radius: 8px;
+          color: rgba(255, 255, 255, 0.6);
+          padding: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
+
+        .spinning {
+          animation: spin 1s linear infinite;
+        }
+      }
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+      gap: 0.25rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      flex-shrink: 0;
+
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        font-size: 0.85rem;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        &.active {
+          color: #ffc807;
+          font-weight: 500;
+        }
+
+        svg {
+          font-size: 0.9rem;
+        }
+      }
+
+      .breadcrumb-separator {
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 0.8rem;
+      }
+    }
+
+    .current-selection {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      background: rgba(255, 200, 7, 0.05);
+      border: 1px solid rgba(255, 200, 7, 0.15);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      flex-shrink: 0;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+
+      .current-path {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+
+        code {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+          color: #ffc807;
+        }
+      }
+
+      .select-btn {
+        background: #ffc807;
+        color: #000;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+
+        &:hover {
+          background: #ffd740;
+          transform: translateY(-1px);
+        }
+      }
+    }
+
+    .browser-content {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0; // Critical for flex child to allow proper shrinking
+      padding-bottom: 1rem; // Buffer at bottom for visibility
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: rgba(255, 255, 255, 0.6);
+
+        .spinner {
+          font-size: 2rem;
+          color: #ffc807;
+          animation: spin 1s linear infinite;
+          margin-bottom: 1rem;
+        }
+      }
+
+      .error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+
+        svg {
+          font-size: 2rem;
+          color: #ff6b6b;
+          margin-bottom: 1rem;
+        }
+
+        .error-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: 1rem;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        button {
+          padding: 0.5rem 1rem;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: white;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.85rem;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+          }
+
+          &.go-up-btn {
+            background: rgba(255, 200, 7, 0.1);
+            border-color: rgba(255, 200, 7, 0.3);
+            color: #ffc807;
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.2);
+            }
+          }
+
+          &.go-root-btn {
+            background: rgba(100, 181, 246, 0.1);
+            border-color: rgba(100, 181, 246, 0.3);
+            color: #64b5f6;
+
+            &:hover {
+              background: rgba(100, 181, 246, 0.2);
+            }
+          }
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: rgba(255, 255, 255, 0.5);
+
+        svg {
+          font-size: 2rem;
+          margin-bottom: 1rem;
+        }
+      }
+
+      .folders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        padding: 0.5rem;
+
+        .folder-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          width: 100%;
+          background: rgba(255, 255, 255, 0.05);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+          }
+
+          &.suggested {
+            background: rgba(255, 200, 7, 0.1);
+            border-color: rgba(255, 200, 7, 0.3);
+            
+            &:hover {
+              background: rgba(255, 200, 7, 0.15);
+              border-color: rgba(255, 200, 7, 0.4);
+            }
+          }
+
+          &.date-match {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: rgba(76, 175, 80, 0.3);
+            
+            &:hover {
+              background: rgba(76, 175, 80, 0.15);
+              border-color: rgba(76, 175, 80, 0.4);
+            }
+          }
+
+          .folder-icon {
+            color: #ffc807;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+          }
+
+          .folder-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            
+            .folder-name {
+              color: white;
+              font-size: 0.9rem;
+            }
+
+            .suggested-badge, .date-badge {
+              font-size: 0.7rem;
+              padding: 0.15rem 0.4rem;
+              border-radius: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+
+            .suggested-badge {
+              background: rgba(255, 200, 7, 0.8);
+              color: #000;
+            }
+
+            .date-badge {
+              background: rgba(76, 175, 80, 0.8);
+              color: white;
+            }
+          }
+
+          .enter-icon {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 1rem;
+            flex-shrink: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes popupEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// Mobile responsiveness for portal-rendered modal
+@media (max-width: 768px) {
+  .dropbox-browser-portal.browser-overlay {
+    padding: 0.5rem;
+
+    .browser-modal {
+      padding: 1rem;
+      width: 100%;
+      max-height: calc(100vh - 1rem);
+
+      .browser-header {
+        margin-bottom: 1rem;
+
+        h4 {
+          font-size: 1rem;
+        }
+      }
+
+      .breadcrumbs {
+        padding: 0.5rem;
+
+        .breadcrumb {
+          padding: 0.25rem 0.375rem;
+          font-size: 0.8rem;
+        }
+      }
+
+      .current-selection {
+        padding: 0.75rem;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+
+        .current-path {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.25rem;
+
+          code {
+            word-break: break-all;
+            width: 100%;
+          }
+        }
+
+        .select-btn {
+          justify-content: center;
+          padding: 0.75rem;
+        }
+      }
+
+      .browser-content {
+        .folders-list .folder-item {
+          padding: 1rem 0.75rem;
+
+          .folder-content {
+            .folder-name {
+              font-size: 0.85rem;
+            }
+
+            .suggested-badge, .date-badge {
+              font-size: 0.65rem;
+              padding: 0.1rem 0.3rem;
+              letter-spacing: 0.3px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

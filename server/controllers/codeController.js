@@ -39,16 +39,18 @@ const addCode = async (req, res) => {
   try {
     let model;
     let initialStatus = "active";
-    
+
     // For table codes, check if user has management permissions
     if (type === "table") {
       const Role = require("../models/roleModel");
       const Event = require("../models/eventsModel");
-      
+
       if (!req.body.event) {
-        return res.status(400).json({ message: "Event ID required for table codes" });
+        return res
+          .status(400)
+          .json({ message: "Event ID required for table codes" });
       }
-      
+
       // Find the event to get its brand
       const event = await Event.findById(req.body.event).populate("brand");
       if (!event) {
@@ -58,20 +60,21 @@ const addCode = async (req, res) => {
       // Get user roles for this brand
       const userRoles = await Role.find({
         brandId: event.brand._id,
-        _id: { $in: req.user.roles || [] }
+        _id: { $in: req.user.roles || [] },
       });
 
       // Check if user has table management permission
-      const hasTableManage = userRoles.some(role => 
-        role.permissions && 
-        role.permissions.tables && 
-        role.permissions.tables.manage === true
+      const hasTableManage = userRoles.some(
+        (role) =>
+          role.permissions &&
+          role.permissions.tables &&
+          role.permissions.tables.manage === true
       );
-      
+
       // Set initial status based on permissions
       initialStatus = hasTableManage ? "confirmed" : "pending";
     }
-    
+
     const codeData = {
       ...req.body,
       hostId: req.user._id, // Use _id instead of userId
@@ -1077,7 +1080,10 @@ const generateAndSendCode = async (req, res) => {
       // Find default settings for this type - resolve to parent for CodeSettings lookup
       // CodeSettings only exist for parent events, but Code should keep the original eventId for scanning
       const parentEventId = event.parentEventId || eventId;
-      codeSettings = await CodeSettings.findOne({ eventId: parentEventId, type });
+      codeSettings = await CodeSettings.findOne({
+        eventId: parentEventId,
+        type,
+      });
     }
 
     // Generate a unique code

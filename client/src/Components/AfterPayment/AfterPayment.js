@@ -91,7 +91,12 @@ const AfterPayment = () => {
 
           // Get brand username
           const brandUsername = event.brand?.username;
-          console.log("[AfterPayment] Brand username:", brandUsername, "DateSlug:", dateSlug);
+          console.log(
+            "[AfterPayment] Brand username:",
+            brandUsername,
+            "DateSlug:",
+            dateSlug
+          );
 
           if (brandUsername) {
             // Construct URL based on user authentication status with ultra-simplified format
@@ -103,14 +108,19 @@ const AfterPayment = () => {
             navigate(eventPath);
             return;
           } else {
-            console.log("[AfterPayment] No brand username found, event.brand:", event.brand);
+            console.log(
+              "[AfterPayment] No brand username found, event.brand:",
+              event.brand
+            );
           }
         } else {
           console.log("[AfterPayment] No event data in response:", data);
         }
 
         // Fallback to old URL if any data is missing
-        console.log("[AfterPayment] Using fallback navigation to /events/${eventId}");
+        console.log(
+          "[AfterPayment] Using fallback navigation to /events/${eventId}"
+        );
         navigate(`/events/${eventId}`);
       } catch (error) {
         console.error("[AfterPayment] Error fetching event data:", error);

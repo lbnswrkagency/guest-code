@@ -5,19 +5,29 @@ const mongoose = require("mongoose");
 // Get upcoming public events
 exports.getPublicEvents = async (req, res) => {
   try {
-    const { limit = 20, offset = 0, category = null, location = null } = req.query;
+    const {
+      limit = 20,
+      offset = 0,
+      category = null,
+      location = null,
+    } = req.query;
 
     // Get current date at start of day in UTC (timezone-safe)
     const now = new Date();
-    const currentDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const currentDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
-    console.log('Server time:', now.toISOString());
-    console.log('Current date for event query:', currentDate.toISOString());
+    console.log("Server time:", now.toISOString());
+    console.log("Current date for event query:", currentDate.toISOString());
 
     // Build query
     const query = {
@@ -26,35 +36,35 @@ exports.getPublicEvents = async (req, res) => {
       // Remove the parentEventId filter to show all events (both parent and child)
       $or: [
         { startDate: { $gte: currentDate } },
-        { date: { $gte: currentDate } }
-      ]
+        { date: { $gte: currentDate } },
+      ],
     };
 
     // Add category filter if provided
-    if (category && category !== 'all') {
-      query['genres.name'] = category;
+    if (category && category !== "all") {
+      query["genres.name"] = category;
     }
 
     // Add location filter if provided
     if (location) {
-      query.city = new RegExp(location, 'i');
+      query.city = new RegExp(location, "i");
     }
 
     // Fetch events with populated data
     const events = await Event.find(query)
       .populate({
-        path: 'brand',
-        select: 'name username logo colors description',
-        match: { isActive: { $ne: false } } // Only include active brands
+        path: "brand",
+        select: "name username logo colors description",
+        match: { isActive: { $ne: false } }, // Only include active brands
       })
       .populate({
-        path: 'genres',
-        select: 'name color'
+        path: "genres",
+        select: "name color",
       })
       .populate({
-        path: 'lineups',
-        select: 'name avatar category',
-        options: { limit: 5 } // Limit lineups to reduce data size
+        path: "lineups",
+        select: "name avatar category",
+        options: { limit: 5 }, // Limit lineups to reduce data size
       })
       .sort({ startDate: 1, date: 1 }) // Sort by start date ascending
       .limit(parseInt(limit))
@@ -62,12 +72,15 @@ exports.getPublicEvents = async (req, res) => {
       .lean(); // Use lean() for better performance
 
     // Filter out events without brands (in case brand was deleted)
-    const validEvents = events.filter(event => event.brand !== null);
-    
-    console.log('Total events found:', events.length);
-    console.log('Valid events after filtering:', validEvents.length);
+    const validEvents = events.filter((event) => event.brand !== null);
+
+    console.log("Total events found:", events.length);
+    console.log("Valid events after filtering:", validEvents.length);
     if (validEvents.length > 0) {
-      console.log('First event date:', validEvents[0].startDate || validEvents[0].date);
+      console.log(
+        "First event date:",
+        validEvents[0].startDate || validEvents[0].date
+      );
     }
 
     // Get total count for pagination
@@ -80,15 +93,15 @@ exports.getPublicEvents = async (req, res) => {
         total: totalCount,
         limit: parseInt(limit),
         offset: parseInt(offset),
-        hasMore: totalCount > parseInt(offset) + validEvents.length
-      }
+        hasMore: totalCount > parseInt(offset) + validEvents.length,
+      },
     });
   } catch (error) {
     console.error("Error fetching public events:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching events",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -98,23 +111,25 @@ exports.getFeaturedEvents = async (req, res) => {
   try {
     // Get current date at start of day in UTC (timezone-safe)
     const now = new Date();
-    const currentDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const currentDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
     // First get featured/verified brands
     const featuredBrands = await Brand.find({
-      $or: [
-        { isVerified: true },
-        { isFeatured: true }
-      ],
-      isActive: { $ne: false }
-    }).select('_id');
+      $or: [{ isVerified: true }, { isFeatured: true }],
+      isActive: { $ne: false },
+    }).select("_id");
 
-    const featuredBrandIds = featuredBrands.map(brand => brand._id);
+    const featuredBrandIds = featuredBrands.map((brand) => brand._id);
 
     // Get events from featured brands
     const featuredEvents = await Event.find({
@@ -124,36 +139,36 @@ exports.getFeaturedEvents = async (req, res) => {
       // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
-        { date: { $gte: currentDate } }
-      ]
+        { date: { $gte: currentDate } },
+      ],
     })
-    .populate({
-      path: 'brand',
-      select: 'name username logo colors isVerified isFeatured'
-    })
-    .populate({
-      path: 'genres',
-      select: 'name color'
-    })
-    .populate({
-      path: 'lineups',
-      select: 'name avatar category',
-      options: { limit: 3 }
-    })
-    .sort({ startDate: 1, date: 1 })
-    .limit(10)
-    .lean();
+      .populate({
+        path: "brand",
+        select: "name username logo colors isVerified isFeatured",
+      })
+      .populate({
+        path: "genres",
+        select: "name color",
+      })
+      .populate({
+        path: "lineups",
+        select: "name avatar category",
+        options: { limit: 3 },
+      })
+      .sort({ startDate: 1, date: 1 })
+      .limit(10)
+      .lean();
 
     res.status(200).json({
       success: true,
-      events: featuredEvents
+      events: featuredEvents,
     });
   } catch (error) {
     console.error("Error fetching featured events:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching featured events",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -166,47 +181,52 @@ exports.getEventsByCity = async (req, res) => {
 
     // Get current date at start of day in UTC (timezone-safe)
     const now = new Date();
-    const currentDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const currentDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
     const events = await Event.find({
-      city: new RegExp(city, 'i'),
+      city: new RegExp(city, "i"),
       isPublic: { $ne: false },
       isLive: true,
       // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
-        { date: { $gte: currentDate } }
-      ]
+        { date: { $gte: currentDate } },
+      ],
     })
-    .populate({
-      path: 'brand',
-      select: 'name username logo',
-      match: { isActive: { $ne: false } }
-    })
-    .populate('genres', 'name')
-    .sort({ startDate: 1, date: 1 })
-    .limit(parseInt(limit))
-    .skip(parseInt(offset))
-    .lean();
+      .populate({
+        path: "brand",
+        select: "name username logo",
+        match: { isActive: { $ne: false } },
+      })
+      .populate("genres", "name")
+      .sort({ startDate: 1, date: 1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(offset))
+      .lean();
 
-    const validEvents = events.filter(event => event.brand !== null);
+    const validEvents = events.filter((event) => event.brand !== null);
 
     res.status(200).json({
       success: true,
       city,
-      events: validEvents
+      events: validEvents,
     });
   } catch (error) {
     console.error("Error fetching events by city:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching events by city",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -216,12 +236,17 @@ exports.getEventCategories = async (req, res) => {
   try {
     // Get current date at start of day in UTC (timezone-safe)
     const now = new Date();
-    const currentDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const currentDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
     // Get all unique genres from upcoming events
     const upcomingEvents = await Event.find({
@@ -230,23 +255,23 @@ exports.getEventCategories = async (req, res) => {
       // Remove the parentEventId filter to show all events
       $or: [
         { startDate: { $gte: currentDate } },
-        { date: { $gte: currentDate } }
-      ]
+        { date: { $gte: currentDate } },
+      ],
     })
-    .populate('genres', 'name color')
-    .select('genres')
-    .lean();
+      .populate("genres", "name color")
+      .select("genres")
+      .lean();
 
     // Extract unique genres
     const genresMap = new Map();
-    upcomingEvents.forEach(event => {
+    upcomingEvents.forEach((event) => {
       if (event.genres && Array.isArray(event.genres)) {
-        event.genres.forEach(genre => {
+        event.genres.forEach((genre) => {
           if (genre && genre._id && genre.name) {
             genresMap.set(genre._id.toString(), {
               _id: genre._id,
               name: genre.name,
-              color: genre.color
+              color: genre.color,
             });
           }
         });
@@ -257,14 +282,14 @@ exports.getEventCategories = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      categories
+      categories,
     });
   } catch (error) {
     console.error("Error fetching event categories:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching event categories",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -274,12 +299,17 @@ exports.getCitiesWithEvents = async (req, res) => {
   try {
     // Get current date at start of day in UTC (timezone-safe)
     const now = new Date();
-    const currentDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const currentDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
     // Aggregate to get unique cities with event counts
     const cities = await Event.aggregate([
@@ -291,38 +321,38 @@ exports.getCitiesWithEvents = async (req, res) => {
           city: { $exists: true, $ne: "" },
           $or: [
             { startDate: { $gte: currentDate } },
-            { date: { $gte: currentDate } }
-          ]
-        }
+            { date: { $gte: currentDate } },
+          ],
+        },
       },
       {
         $group: {
           _id: "$city",
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
-        $sort: { count: -1 }
+        $sort: { count: -1 },
       },
       {
         $project: {
           city: "$_id",
           eventCount: "$count",
-          _id: 0
-        }
-      }
+          _id: 0,
+        },
+      },
     ]);
 
     res.status(200).json({
       success: true,
-      cities
+      cities,
     });
   } catch (error) {
     console.error("Error fetching cities with events:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching cities",
-      error: error.message
+      error: error.message,
     });
   }
 };

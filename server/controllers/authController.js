@@ -41,36 +41,52 @@ const refreshTokenCookieOptions = {
 };
 
 exports.register = async (req, res) => {
-  console.log('=== REGISTRATION ATTEMPT ===');
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-  
+  console.log("=== REGISTRATION ATTEMPT ===");
+  console.log("Request body:", JSON.stringify(req.body, null, 2));
+  console.log("Content-Type:", req.headers["content-type"]);
+  console.log("Request headers:", JSON.stringify(req.headers, null, 2));
+
   // Check for validation errors first
   const errors = validationResult(req);
-  console.log('Validation errors:', errors.array());
-  
+  console.log("Validation errors:", errors.array());
+
   if (!errors.isEmpty()) {
-    console.log('❌ Validation failed:', errors.array());
+    console.log("❌ Validation failed:", errors.array());
     return res.status(400).json({
       success: false,
       message: "Validation failed",
       errors: errors.array(),
-      details: errors.array().map(err => err.msg).join(', ')
+      details: errors
+        .array()
+        .map((err) => err.msg)
+        .join(", "),
     });
   }
 
   const { username, email, password, firstName, lastName, birthday } = req.body;
-  console.log('✅ Validation passed');
-  console.log('Extracted fields:', { username, email, password: password ? '[HIDDEN]' : 'MISSING', firstName, lastName, birthday });
+  console.log("✅ Validation passed");
+  console.log("Extracted fields:", {
+    username,
+    email,
+    password: password ? "[HIDDEN]" : "MISSING",
+    firstName,
+    lastName,
+    birthday,
+  });
 
   try {
-    console.log('🔍 Checking for existing user...');
+    console.log("🔍 Checking for existing user...");
     let user = await User.findOne({ $or: [{ email }, { username }] });
-    console.log('Existing user check result:', user ? 'User found' : 'No existing user');
+    console.log(
+      "Existing user check result:",
+      user ? "User found" : "No existing user"
+    );
 
     if (user) {
-      console.log('❌ User already exists:', user.email === email ? 'Email taken' : 'Username taken');
+      console.log(
+        "❌ User already exists:",
+        user.email === email ? "Email taken" : "Username taken"
+      );
       return res.status(400).json({
         success: false,
         message: "Registration failed",
@@ -81,12 +97,12 @@ exports.register = async (req, res) => {
       });
     }
 
-    console.log('🔒 Hashing password...');
+    console.log("🔒 Hashing password...");
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log('✅ Password hashed successfully');
+    console.log("✅ Password hashed successfully");
 
-    console.log('👤 Creating new user...');
+    console.log("👤 Creating new user...");
     user = new User({
       username,
       firstName,
@@ -96,65 +112,67 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     });
 
-    console.log('💾 Saving user to database...');
+    console.log("💾 Saving user to database...");
     await user.save();
-    console.log('✅ User saved successfully with ID:', user._id);
+    console.log("✅ User saved successfully with ID:", user._id);
 
-    console.log('🔑 Generating verification token...');
+    console.log("🔑 Generating verification token...");
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log('✅ Token generated successfully');
+    console.log("✅ Token generated successfully");
 
-    console.log('📧 Sending verification email...');
+    console.log("📧 Sending verification email...");
     // Send verification email with user details
     await sendVerificationEmail(user.email, token, user);
-    console.log('✅ Verification email sent successfully');
+    console.log("✅ Verification email sent successfully");
 
-    console.log('🎉 Registration completed successfully!');
+    console.log("🎉 Registration completed successfully!");
     res.json({
       success: true,
       message: "Registration successful",
       details: "Please check your email for verification.",
     });
   } catch (error) {
-    console.log('❌ Registration error occurred:');
-    console.error('Error details:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
+    console.log("❌ Registration error occurred:");
+    console.error("Error details:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+
     // Check if it's a mongoose validation error
-    if (error.name === 'ValidationError') {
-      console.log('🚨 Mongoose validation error:');
-      Object.keys(error.errors).forEach(key => {
+    if (error.name === "ValidationError") {
+      console.log("🚨 Mongoose validation error:");
+      Object.keys(error.errors).forEach((key) => {
         console.log(`  - ${key}: ${error.errors[key].message}`);
       });
-      
+
       return res.status(400).json({
         success: false,
         message: "Validation failed",
-        details: Object.values(error.errors).map(e => e.message).join(', '),
-        validationErrors: error.errors
+        details: Object.values(error.errors)
+          .map((e) => e.message)
+          .join(", "),
+        validationErrors: error.errors,
       });
     }
-    
+
     // Check if it's a duplicate key error
     if (error.code === 11000) {
-      console.log('🚨 Duplicate key error:', error.keyPattern);
+      console.log("🚨 Duplicate key error:", error.keyPattern);
       return res.status(400).json({
         success: false,
         message: "Registration failed",
         details: "Email or username already exists.",
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: "Registration failed",
       details: "An unexpected error occurred. Please try again later.",
       errorType: error.name,
-      errorMessage: error.message
+      errorMessage: error.message,
     });
   }
 };
@@ -380,7 +398,7 @@ exports.login = async (req, res) => {
           if (brand.owner && brand.owner.toString() === user._id.toString()) {
             const founderRole = await Role.findOne({
               brandId: brand._id,
-              isFounder: true
+              isFounder: true,
             }).lean();
             userRoleInBrand = founderRole;
           } else if (brand.team && Array.isArray(brand.team)) {
@@ -400,7 +418,7 @@ exports.login = async (req, res) => {
           // Find events where this brand is a co-host
           const coHostedParentEvents = await Event.find({
             coHosts: brand._id,
-            parentEventId: { $exists: false } // Only parent events
+            parentEventId: { $exists: false }, // Only parent events
           })
             .populate("brand", "name username logo colors")
             .populate("coHosts", "name username logo")
@@ -412,7 +430,7 @@ exports.login = async (req, res) => {
           // ALSO find child events where this brand is a co-host
           const coHostedChildEvents = await Event.find({
             coHosts: brand._id,
-            parentEventId: { $exists: true } // Only child events
+            parentEventId: { $exists: true }, // Only child events
           })
             .populate("brand", "name username logo colors")
             .populate("coHosts", "name username logo")
@@ -422,7 +440,10 @@ exports.login = async (req, res) => {
             .lean();
 
           // Combine both parent and child co-hosted events
-          const coHostedEvents = [...coHostedParentEvents, ...coHostedChildEvents];
+          const coHostedEvents = [
+            ...coHostedParentEvents,
+            ...coHostedChildEvents,
+          ];
 
           // Process each co-hosted event
           for (const event of coHostedEvents) {
@@ -430,7 +451,7 @@ exports.login = async (req, res) => {
               // Get code settings - use parent event ID for child events (weekly occurrences)
               const effectiveEventId = event.parentEventId || event._id;
               const eventCodeSettings = await CodeSetting.find({
-                eventId: effectiveEventId
+                eventId: effectiveEventId,
               }).lean();
 
               // Attach code settings
@@ -449,9 +470,9 @@ exports.login = async (req, res) => {
               event.lineups = event.lineups || [];
               event.genres = event.genres || [];
               event.coHosts = event.coHosts || [];
-              event.title = event.title || '';
-              event.description = event.description || '';
-              event.location = event.location || '';
+              event.title = event.title || "";
+              event.description = event.description || "";
+              event.location = event.location || "";
 
               // Attach co-host information
               event.coHostBrandInfo = {
@@ -461,33 +482,38 @@ exports.login = async (req, res) => {
                   _id: userRoleInBrand._id,
                   name: userRoleInBrand.name,
                   isFounder: userRoleInBrand.isFounder,
-                  permissions: userRoleInBrand.permissions
-                }
+                  permissions: userRoleInBrand.permissions,
+                },
               };
 
               // Add co-host brand reference for filtering
               event.coHostBrand = {
                 _id: brand._id.toString(),
-                name: brand.name
+                name: brand.name,
               };
 
               // Find co-host permissions
               const coHostPermissions = event.coHostRolePermissions || [];
               const brandPermissions = coHostPermissions.find(
-                cp => cp.brandId.toString() === brand._id.toString()
+                (cp) => cp.brandId.toString() === brand._id.toString()
               );
 
               if (brandPermissions) {
                 const rolePermission = brandPermissions.rolePermissions.find(
-                  rp => rp.roleId.toString() === userRoleInBrand._id.toString()
+                  (rp) =>
+                    rp.roleId.toString() === userRoleInBrand._id.toString()
                 );
 
                 if (rolePermission) {
-                  const permissions = JSON.parse(JSON.stringify(rolePermission.permissions));
+                  const permissions = JSON.parse(
+                    JSON.stringify(rolePermission.permissions)
+                  );
 
                   // Handle Map types for codes
                   if (rolePermission.permissions.codes instanceof Map) {
-                    permissions.codes = Object.fromEntries(rolePermission.permissions.codes);
+                    permissions.codes = Object.fromEntries(
+                      rolePermission.permissions.codes
+                    );
                   }
 
                   event.coHostBrandInfo.effectivePermissions = permissions;
@@ -931,7 +957,8 @@ exports.resendVerificationEmail = async (req, res) => {
       // Don't reveal if email exists or not for security
       return res.status(200).json({
         success: true,
-        message: "If your email is registered and unverified, you will receive a new verification email.",
+        message:
+          "If your email is registered and unverified, you will receive a new verification email.",
       });
     }
 
@@ -951,7 +978,7 @@ exports.resendVerificationEmail = async (req, res) => {
     // Send verification email
     try {
       await sendVerificationEmail(user.email, token, user);
-      
+
       res.status(200).json({
         success: true,
         message: "Verification email has been sent. Please check your inbox.",
@@ -1009,7 +1036,8 @@ exports.updateUnverifiedEmail = async (req, res) => {
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
-        message: "Cannot update email for verified accounts. Please use account settings instead.",
+        message:
+          "Cannot update email for verified accounts. Please use account settings instead.",
       });
     }
 

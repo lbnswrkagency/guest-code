@@ -30,6 +30,11 @@ import ErrorBoundary from "../ErrorBoundary/ErrorBoundary";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import { useToast } from "../Toast/ToastContext";
 import axios from "axios";
+import { 
+  getAvailablePlaceholders, 
+  previewPathStructure, 
+  isValidPathStructure 
+} from "../../utils/dropboxUtils";
 
 const BrandFormContent = ({ brand, onClose, onSave }) => {
   const toast = useToast();
@@ -68,6 +73,10 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
       website: brand?.contact?.website || "",
       whatsapp: brand?.contact?.whatsapp || "",
     },
+    dropbox: {
+      baseFolder: brand?.dropboxBaseFolder || "",
+      pathStructure: brand?.dropboxPathStructure || "/{YYYYMMDD}/photos",
+    },
   }));
 
   const [processedFiles, setProcessedFiles] = useState({
@@ -85,6 +94,8 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [blobUrls, setBlobUrls] = useState(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDropboxHelp, setShowDropboxHelp] = useState(false);
+  const [pathStructureError, setPathStructureError] = useState("");
 
   const processQueue = useRef([]);
   const abortControllerRef = useRef(null);
@@ -232,6 +243,8 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
           {
             ...updatedFormData,
             username: updatedFormData.username.toLowerCase(),
+            dropboxBaseFolder: updatedFormData.dropbox.baseFolder,
+            dropboxPathStructure: updatedFormData.dropbox.pathStructure,
           },
           {
             withCredentials: true,
@@ -248,6 +261,8 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
           {
             ...updatedFormData,
             username: updatedFormData.username.toLowerCase(),
+            dropboxBaseFolder: updatedFormData.dropbox.baseFolder,
+            dropboxPathStructure: updatedFormData.dropbox.pathStructure,
           },
           {
             withCredentials: true,
@@ -588,6 +603,114 @@ const BrandFormContent = ({ brand, onClose, onSave }) => {
                   <RiArrowDownSLine />
                 </button>
               )}
+            </div>
+
+            <div className="form-section dropbox-section">
+              <h3>Dropbox Integration</h3>
+              <p className="section-description">
+                Configure your Dropbox folder structure for automatic event gallery path generation
+              </p>
+              
+              <div className="dropbox-config">
+                <div className="input-wrapper">
+                  <RiUpload2Line />
+                  <input
+                    type="text"
+                    placeholder="Base folder path (e.g., /Afro Spiti)"
+                    value={formData.dropbox.baseFolder}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        dropbox: { ...prev.dropbox, baseFolder: e.target.value },
+                      }));
+                    }}
+                  />
+                </div>
+                
+                <div className="path-structure-config">
+                  <div className="input-wrapper">
+                    <RiUpload2Line />
+                    <input
+                      type="text"
+                      placeholder="Path structure (e.g., /{YYYYMMDD}/photos)"
+                      value={formData.dropbox.pathStructure}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          dropbox: { ...prev.dropbox, pathStructure: value },
+                        }));
+                        
+                        // Validate path structure
+                        if (value && !isValidPathStructure(value)) {
+                          setPathStructureError("Invalid path structure. Must contain valid date placeholders.");
+                        } else {
+                          setPathStructureError("");
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="help-button"
+                      onClick={() => setShowDropboxHelp(!showDropboxHelp)}
+                      title="Show available placeholders"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  
+                  {pathStructureError && (
+                    <div className="error-message">{pathStructureError}</div>
+                  )}
+                  
+                  {/* Preview */}
+                  {formData.dropbox.baseFolder && formData.dropbox.pathStructure && (
+                    <div className="path-preview">
+                      <span className="preview-label">Preview: </span>
+                      <code>
+                        {formData.dropbox.baseFolder}
+                        {previewPathStructure(formData.dropbox.pathStructure)}
+                      </code>
+                    </div>
+                  )}
+                  
+                  {/* Help panel */}
+                  {showDropboxHelp && (
+                    <div className="dropbox-help-panel">
+                      <h4>Available Placeholders:</h4>
+                      <div className="placeholders-list">
+                        {getAvailablePlaceholders().map((item) => (
+                          <div key={item.placeholder} className="placeholder-item">
+                            <code onClick={() => {
+                              const currentValue = formData.dropbox.pathStructure;
+                              const newValue = currentValue + item.placeholder;
+                              setFormData((prev) => ({
+                                ...prev,
+                                dropbox: { ...prev.dropbox, pathStructure: newValue },
+                              }));
+                            }}>
+                              {item.placeholder}
+                            </code>
+                            <span className="placeholder-desc">{item.description}</span>
+                            <span className="placeholder-example">Example: {item.example}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="help-examples">
+                        <h5>Examples:</h5>
+                        <div className="example-item">
+                          <code>/{'{YYYYMMDD}'}/photos</code>
+                          <span>→ /20251227/photos</span>
+                        </div>
+                        <div className="example-item">
+                          <code>/Galleries/{'{YYYY}'}/{'{MM}'}/Event-{'{DD}'}</code>
+                          <span>→ /Galleries/2025/12/Event-27</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="form-section">

@@ -487,7 +487,16 @@ const Dashboard = () => {
 
   // Get code settings for the selected event
   const getCodeSettingsForSelectedEvent = () => {
-    if (!selectedEvent) return [];
+    console.log('🔵 [Dashboard] getCodeSettingsForSelectedEvent called');
+    console.log('🔵 [Dashboard] selectedEvent:', selectedEvent?._id, selectedEvent?.title);
+    console.log('🔵 [Dashboard] selectedEvent.coHostBrandInfo:', selectedEvent?.coHostBrandInfo);
+    console.log('🔵 [Dashboard] selectedEvent.codeSettings:', selectedEvent?.codeSettings);
+    console.log('🔵 [Dashboard] Redux codeSettings count:', codeSettings?.length);
+
+    if (!selectedEvent) {
+      console.log('🔵 [Dashboard] No selectedEvent, returning []');
+      return [];
+    }
 
     // Check if this is a co-hosted event with embedded code settings
     // ONLY use embedded settings for actual co-hosted events
@@ -496,13 +505,16 @@ const Dashboard = () => {
       selectedEvent.codeSettings &&
       Array.isArray(selectedEvent.codeSettings)
     ) {
+      console.log('🔵 [Dashboard] Using EMBEDDED codeSettings:', selectedEvent.codeSettings.length, selectedEvent.codeSettings);
       return selectedEvent.codeSettings;
     }
 
     // For regular events, filter code settings from Redux store
-    return codeSettings.filter(
+    const reduxSettings = codeSettings.filter(
       (setting) => setting.eventId === selectedEvent._id
     );
+    console.log('🔵 [Dashboard] Using REDUX codeSettings:', reduxSettings.length, 'for eventId:', selectedEvent._id);
+    return reduxSettings;
   };
 
   // Get user's role permissions for the selected brand or co-hosted event

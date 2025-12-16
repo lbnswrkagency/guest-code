@@ -129,13 +129,15 @@ const PrivacyPolicy = () => {
         We are based in Greece, European Union, and the information we collect
         is governed by EU law, including the General Data Protection Regulation
         (GDPR). Your data is primarily processed within the European Economic
-        Area (EEA). If data is transferred outside the EEA, we ensure appropriate
-        safeguards are in place in accordance with GDPR requirements.
+        Area (EEA). If data is transferred outside the EEA, we ensure
+        appropriate safeguards are in place in accordance with GDPR
+        requirements.
       </p>
 
       <h3>Your Rights Under GDPR</h3>
       <p>
-        Under the GDPR, you have the following rights regarding your personal data:
+        Under the GDPR, you have the following rights regarding your personal
+        data:
       </p>
       <ul>
         <li>Right to access your personal data</li>

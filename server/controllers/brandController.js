@@ -239,6 +239,11 @@ exports.getAllBrands = async (req, res) => {
           // Add the full role object if available
           if (memberRolesMap[roleId]) {
             brandObj.role = memberRolesMap[roleId];
+            console.log(`🔵 [brandController] Brand "${brand.name}" (team member) - attached role:`, {
+              roleId,
+              roleName: brandObj.role?.name,
+              codesPermissions: brandObj.role?.permissions?.codes,
+            });
           }
         }
       } else if (isOwner) {
@@ -247,6 +252,11 @@ exports.getAllBrands = async (req, res) => {
         if (founderRole) {
           brandObj.roleId = founderRole._id;
           brandObj.role = founderRole; // Include full role object
+          console.log(`🔵 [brandController] Brand "${brand.name}" (owner) - attached Founder role:`, {
+            roleId: founderRole._id,
+            roleName: founderRole.name,
+            codesPermissions: founderRole.permissions?.codes,
+          });
         }
         brandObj.isOwner = true;
       }
@@ -551,6 +561,26 @@ exports.updateBrand = async (req, res) => {
     const updateData = { ...req.body };
     delete updateData.logo;
     delete updateData.coverImage;
+    
+    // Handle Dropbox configuration fields
+    if (req.body.dropboxBaseFolder !== undefined) {
+      updateData.dropboxBaseFolder = req.body.dropboxBaseFolder;
+    }
+    if (req.body.dropboxDateFormat !== undefined) {
+      updateData.dropboxDateFormat = req.body.dropboxDateFormat;
+    }
+    if (req.body.dropboxPathStructure !== undefined) {
+      updateData.dropboxPathStructure = req.body.dropboxPathStructure;
+    }
+    if (req.body.dropboxVideoPathStructure !== undefined) {
+      updateData.dropboxVideoPathStructure = req.body.dropboxVideoPathStructure;
+    }
+    if (req.body.dropboxPhotoSubfolder !== undefined) {
+      updateData.dropboxPhotoSubfolder = req.body.dropboxPhotoSubfolder;
+    }
+    if (req.body.dropboxVideoSubfolder !== undefined) {
+      updateData.dropboxVideoSubfolder = req.body.dropboxVideoSubfolder;
+    }
 
     const updatedBrand = await Brand.findOneAndUpdate(
       { _id: req.params.brandId, owner: req.user._id },

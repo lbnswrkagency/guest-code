@@ -12,8 +12,23 @@ import {
  * EventDetails component for displaying event information in a clean, organized layout
  * @param {Object} props
  * @param {Object} props.event - The event object containing all event details
+ * @param {Function} props.scrollToGallery - Function to scroll to gallery section
+ * @param {boolean} props.brandHasGalleries - Whether the brand has galleries available
  */
-const EventDetails = ({ event }) => {
+const EventDetails = ({ 
+  event, 
+  scrollToTickets,
+  scrollToGuestCode,
+  scrollToTableBooking,
+  scrollToBattleSignup,
+  scrollToGallery,
+  brandHasGalleries,
+  hasTickets,
+  ticketPaymentMethod,
+  brandHasBattles,
+  supportsBattles,
+  supportsTableBooking
+}) => {
 
   if (!event) return null;
 

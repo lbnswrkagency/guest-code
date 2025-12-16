@@ -212,6 +212,96 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       line-height: 1.4;
     }
 
+    // Dropbox path auto-generation styles - at form-section level
+    .dropbox-suggestion-banner {
+      background: linear-gradient(
+        135deg,
+        rgba($primary-color, 0.1) 0%,
+        rgba($primary-color, 0.05) 100%
+      );
+      border: 1px solid rgba($primary-color, 0.2);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      animation: fadeIn 0.3s ease-out;
+
+      .suggestion-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+
+        .suggestion-text {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex: 1;
+          min-width: 0;
+
+          code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: "Courier New", monospace;
+            font-size: 0.85rem;
+            color: $primary-color;
+            word-break: break-all;
+          }
+        }
+
+        .suggestion-actions {
+          display: flex;
+          gap: 0.5rem;
+          flex-shrink: 0;
+
+          .suggestion-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 0.4rem 0.8rem;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+
+            &.accept {
+              background: rgba(34, 197, 94, 0.2);
+              border-color: rgba(34, 197, 94, 0.4);
+              color: rgb(34, 197, 94);
+
+              &:hover {
+                background: rgba(34, 197, 94, 0.3);
+                border-color: rgba(34, 197, 94, 0.6);
+                transform: translateY(-1px);
+              }
+            }
+
+            &.reject {
+              background: rgba(239, 68, 68, 0.2);
+              border-color: rgba(239, 68, 68, 0.4);
+              color: rgb(239, 68, 68);
+
+              &:hover {
+                background: rgba(239, 68, 68, 0.3);
+                border-color: rgba(239, 68, 68, 0.6);
+                transform: translateY(-1px);
+              }
+            }
+
+            &:active {
+              transform: translateY(0);
+            }
+          }
+        }
+      }
+    }
+
     .form-group {
       margin-bottom: 1.5rem;
 
@@ -267,6 +357,53 @@ $transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
           transform: translateY(-50%);
           color: rgba(255, 255, 255, 0.5);
           font-size: 1.2rem;
+        }
+
+        .regenerate-path-btn {
+          position: absolute;
+          right: 0.75rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba($primary-color, 0.1);
+          border: 1px solid rgba($primary-color, 0.3);
+          border-radius: 6px;
+          padding: 0.4rem 0.6rem;
+          color: $primary-color;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: rgba($primary-color, 0.2);
+            border-color: rgba($primary-color, 0.5);
+            transform: translateY(-50%) scale(1.05);
+          }
+
+          &:active {
+            transform: translateY(-50%) scale(0.95);
+          }
+        }
+      }
+
+      .input-hint {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 0.5rem;
+        display: block;
+      }
+
+      .path-structure-info {
+        font-size: 0.75rem;
+        color: rgba($primary-color, 0.8);
+        margin-top: 0.3rem;
+        display: block;
+        font-family: "Courier New", monospace;
+
+        code {
+          background: rgba($primary-color, 0.1);
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          color: $primary-color;
         }
       }
     }
@@ -1371,7 +1508,7 @@ input[type="checkbox"] {
     &.selected {
       border-color: $primary-color;
       background: rgba($primary-color, 0.05);
-      
+
       .selected-indicator {
         display: block;
       }
@@ -1400,7 +1537,7 @@ input[type="checkbox"] {
         position: absolute;
         border-radius: 1px;
       }
-      
+
       .mini-table {
         width: 2px;
         height: 2px;
@@ -1409,7 +1546,7 @@ input[type="checkbox"] {
         border: 0.2px solid rgba(255, 255, 255, 0.4);
         box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
       }
-      
+
       .mini-floor {
         border-radius: 1px;
         border: 0.3px solid rgba(255, 255, 255, 0.2);
@@ -1417,8 +1554,8 @@ input[type="checkbox"] {
 
       &.studio {
         background: linear-gradient(
-          145deg, 
-          #2d2d2d 0%, 
+          145deg,
+          #2d2d2d 0%,
           #1a1a2e 20%,
           rgba(255, 215, 0, 0.15) 40%,
           rgba(46, 139, 87, 0.15) 60%,
@@ -1426,10 +1563,8 @@ input[type="checkbox"] {
           #1a1a2e 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1441,11 +1576,26 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 20% 80%, rgba(255, 215, 0, 0.3) 0%, transparent 40%),
-            radial-gradient(ellipse at 80% 20%, rgba(46, 139, 87, 0.25) 0%, transparent 35%),
-            radial-gradient(ellipse at 50% 40%, rgba(239, 68, 68, 0.15) 0%, transparent 25%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+          background: radial-gradient(
+              ellipse at 20% 80%,
+              rgba(255, 215, 0, 0.3) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 80% 20%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 35%
+            ),
+            radial-gradient(
+              ellipse at 50% 40%,
+              rgba(239, 68, 68, 0.15) 0%,
+              transparent 25%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.02) 0%,
+              transparent 50%
+            );
           pointer-events: none;
         }
 
@@ -1474,10 +1624,8 @@ input[type="checkbox"] {
           #0f172a 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1489,11 +1637,26 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 50% 50%, rgba(33, 150, 243, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse at 15% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 85% 50%, rgba(46, 139, 87, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 50% 85%, rgba(225, 112, 85, 0.2) 0%, transparent 30%);
+          background: radial-gradient(
+              ellipse at 50% 50%,
+              rgba(33, 150, 243, 0.3) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              ellipse at 15% 50%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 85% 50%,
+              rgba(46, 139, 87, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 50% 85%,
+              rgba(225, 112, 85, 0.2) 0%,
+              transparent 30%
+            );
           pointer-events: none;
         }
 
@@ -1523,10 +1686,8 @@ input[type="checkbox"] {
           #166534 100%
         );
         border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1),
+          inset 0 -1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
         overflow: hidden;
 
@@ -1538,12 +1699,31 @@ input[type="checkbox"] {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(ellipse at 20% 80%, rgba(220, 53, 69, 0.3) 0%, transparent 35%),
-            radial-gradient(ellipse at 80% 20%, rgba(34, 197, 94, 0.25) 0%, transparent 40%),
-            radial-gradient(ellipse at 60% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 45%),
-            radial-gradient(ellipse at 30% 30%, rgba(168, 85, 247, 0.15) 0%, transparent 30%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+          background: radial-gradient(
+              ellipse at 20% 80%,
+              rgba(220, 53, 69, 0.3) 0%,
+              transparent 35%
+            ),
+            radial-gradient(
+              ellipse at 80% 20%,
+              rgba(34, 197, 94, 0.25) 0%,
+              transparent 40%
+            ),
+            radial-gradient(
+              ellipse at 60% 50%,
+              rgba(59, 130, 246, 0.2) 0%,
+              transparent 45%
+            ),
+            radial-gradient(
+              ellipse at 30% 30%,
+              rgba(168, 85, 247, 0.15) 0%,
+              transparent 30%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.03) 0%,
+              transparent 60%
+            );
           pointer-events: none;
         }
 
@@ -1560,116 +1740,18 @@ input[type="checkbox"] {
           pointer-events: none;
         }
       }
-
-      &.harlem {
-        background: linear-gradient(
-          145deg,
-          #1a1a1a 0%,
-          #2d2d2d 15%,
-          rgba(184, 134, 11, 0.25) 35%,
-          rgba(147, 112, 219, 0.2) 55%,
-          rgba(255, 215, 0, 0.15) 75%,
-          #0f0f23 85%,
-          #1a1a2e 100%
-        );
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow:
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
-        position: relative;
-        overflow: hidden;
-
-        // Harlem urban upscale overlay with gold and purple tones
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background:
-            radial-gradient(ellipse at 30% 70%, rgba(184, 134, 11, 0.35) 0%, transparent 40%),
-            radial-gradient(ellipse at 70% 30%, rgba(147, 112, 219, 0.3) 0%, transparent 35%),
-            radial-gradient(ellipse at 50% 50%, rgba(255, 215, 0, 0.2) 0%, transparent 45%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-          pointer-events: none;
-        }
-
-        // Add subtle text overlay
-        &::after {
-          content: "HARLEM";
-          position: absolute;
-          bottom: 4px;
-          right: 4px;
-          font-size: 6px;
-          color: rgba(255, 255, 255, 0.3);
-          font-weight: 600;
-          letter-spacing: 0.5px;
-          pointer-events: none;
-        }
-      }
-
-      &.amano {
-        background: linear-gradient(
-          145deg,
-          #0a0a0a 0%,
-          #141414 15%,
-          rgba(147, 112, 219, 0.25) 35%,
-          rgba(75, 0, 130, 0.2) 55%,
-          rgba(138, 43, 226, 0.15) 75%,
-          #1a1a1a 85%,
-          #0f0f0f 100%
-        );
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow:
-          inset 0 1px 2px rgba(255, 255, 255, 0.1),
-          inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-          0 4px 12px rgba(0, 0, 0, 0.5);
-        position: relative;
-        overflow: hidden;
-
-        // Amano hotel lounge overlay with purple sophisticated tones
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background:
-            radial-gradient(ellipse at 50% 40%, rgba(147, 112, 219, 0.35) 0%, transparent 45%),
-            radial-gradient(ellipse at 20% 70%, rgba(75, 0, 130, 0.25) 0%, transparent 35%),
-            radial-gradient(ellipse at 80% 80%, rgba(138, 43, 226, 0.2) 0%, transparent 30%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-          pointer-events: none;
-        }
-
-        // Add subtle text overlay
-        &::after {
-          content: "AMANO";
-          position: absolute;
-          bottom: 4px;
-          right: 4px;
-          font-size: 6px;
-          color: rgba(255, 255, 255, 0.3);
-          font-weight: 600;
-          letter-spacing: 0.5px;
-          pointer-events: none;
-        }
-      }
     }
 
     .layout-info {
       text-align: center;
-      
+
       h4 {
         margin: 0 0 0.25rem 0;
         font-size: 0.9rem;
         color: white;
         font-weight: 600;
       }
-      
+
       p {
         margin: 0;
         font-size: 0.75rem;
@@ -1691,7 +1773,7 @@ input[type="checkbox"] {
       display: none;
       align-items: center;
       justify-content: center;
-      
+
       &.visible {
         display: flex;
       }
@@ -1704,11 +1786,11 @@ input[type="checkbox"] {
     background: rgba($primary-color, 0.05);
     border: 1px solid rgba($primary-color, 0.2);
     border-radius: 8px;
-    
+
     .layout-areas {
       font-size: 0.85rem;
       color: $text-light;
-      
+
       span {
         font-weight: 600;
         color: $primary-color;
@@ -1724,7 +1806,11 @@ input[type="checkbox"] {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: linear-gradient(135deg, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba($primary-color, 0.1) 0%,
+      rgba($primary-color, 0.05) 100%
+    );
     border-radius: 8px;
     border: 1px solid rgba($primary-color, 0.2);
     margin-bottom: 1.5rem;
@@ -1750,10 +1836,10 @@ input[type="checkbox"] {
 
 .battle-configuration {
   animation: fadeIn 0.3s ease-out;
-  
+
   .battle-section {
     margin-bottom: 2rem;
-    
+
     h4 {
       color: white;
       font-size: 1rem;
@@ -1790,7 +1876,8 @@ input[type="checkbox"] {
         font-weight: 500;
       }
 
-      input, textarea {
+      input,
+      textarea {
         background: $bg-input;
         border: 1px solid $border-light;
         border-radius: 6px;
@@ -1988,7 +2075,8 @@ input[type="checkbox"] {
           }
         }
 
-        .cancel-btn, .add-btn {
+        .cancel-btn,
+        .add-btn {
           flex-shrink: 0;
           border: none;
           padding: 0.75rem 1rem;
@@ -2035,7 +2123,8 @@ input[type="checkbox"] {
           font-weight: 500;
         }
 
-        input, select {
+        input,
+        select {
           background: $bg-input;
           border: 1px solid $border-light;
           border-radius: 6px;
@@ -2086,7 +2175,9 @@ input[type="checkbox"] {
         font-weight: 500;
       }
 
-      input, textarea, .datetime-input {
+      input,
+      textarea,
+      .datetime-input {
         background: $bg-input;
         border: 1px solid $border-light;
         border-radius: 6px;
@@ -2163,6 +2254,193 @@ input[type="checkbox"] {
               white-space: nowrap;
             }
           }
+        }
+      }
+    }
+  }
+}
+
+// Dropbox folder browser section
+.dropbox-browser-section {
+  margin-top: 1rem;
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    margin: 1rem 0;
+    text-align: center;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    span {
+      margin: 0 1rem;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-style: italic;
+    }
+  }
+}
+
+// Photo gallery section styling
+.photo-gallery-section {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #ffc807; // Yellow for photos
+    }
+  }
+
+  .input-with-icon {
+    position: relative;
+    margin-bottom: 0.75rem;
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      font-family: "Courier New", monospace;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(255, 200, 7, 0.5);
+        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.15);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+        font-family: inherit;
+      }
+    }
+
+    svg {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 200, 7, 0.6);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+  }
+}
+
+// Video gallery section styling
+.video-gallery-section {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #64b5f6; // Blue for videos
+    }
+  }
+
+  .input-with-icon {
+    position: relative;
+    margin-bottom: 0.75rem;
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      font-family: "Courier New", monospace;
+      transition: all 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(100, 181, 246, 0.5);
+        box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.15);
+      }
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+        font-family: inherit;
+      }
+    }
+
+    svg {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(100, 181, 246, 0.6);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+  }
+}
+
+// Folder path input with action buttons
+.folder-path-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  margin-bottom: 0.75rem;
+
+  .input-with-icon {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .path-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      &.regenerate {
+        color: #ffc807;
+        border-color: rgba(255, 200, 7, 0.3);
+
+        &:hover {
+          background: rgba(255, 200, 7, 0.15);
+          border-color: rgba(255, 200, 7, 0.5);
+        }
+      }
+
+      &.clear {
+        color: #ff6b6b;
+        border-color: rgba(255, 107, 107, 0.3);
+
+        &:hover {
+          background: rgba(255, 107, 107, 0.15);
+          border-color: rgba(255, 107, 107, 0.5);
         }
       }
     }

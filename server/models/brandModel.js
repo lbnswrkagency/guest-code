@@ -61,6 +61,30 @@ const BrandSchema = new Schema(
     spotifyClientSecret: { type: String },
     spotifyPlaylistId: { type: String },
 
+    // Dropbox Integration
+    dropboxBaseFolder: { type: String }, // e.g., "/Afro Spiti"
+    dropboxDateFormat: {
+      type: String,
+      default: "YYYYMMDD",
+      enum: ["YYYYMMDD", "DDMMYYYY", "DDMMYY", "MMDDYYYY", "MMDDYY"]
+    }, // User's preferred date format for folder naming
+    dropboxPathStructure: {
+      type: String,
+      default: "/{YYYYMMDD}/photos"
+    }, // e.g., "/{YYYYMMDD}/photos" or "/Galleries/{YYYY}/{MM}/Event-{DD}/media"
+    dropboxVideoPathStructure: {
+      type: String,
+      default: "/{YYYYMMDD}/videos"
+    }, // Path structure for video galleries
+    dropboxPhotoSubfolder: {
+      type: String,
+      default: ""
+    }, // Last folder for photos (e.g., "branded", "raw")
+    dropboxVideoSubfolder: {
+      type: String,
+      default: ""
+    }, // Last folder for videos (e.g., "branded", "raw")
+
     // Content
     media: {
       photos: [{ type: String }],

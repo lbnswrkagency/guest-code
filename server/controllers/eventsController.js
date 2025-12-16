@@ -21,6 +21,8 @@ const {
   generateSignedUrl,
 } = require("../utils/s3Uploader");
 
+const { generateDropboxPath } = require("../utils/dropboxUtils");
+
 const fsPromises = require("fs").promises;
 const fs = require("fs");
 
@@ -52,7 +54,10 @@ const generateSlug = (text) => {
 const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
   try {
     // Find the highest existing week number <= weekNumber to inherit from (sequential inheritance)
-    const templateEvent = await findSequentialTemplateEvent(parentEvent, weekNumber);
+    const templateEvent = await findSequentialTemplateEvent(
+      parentEvent,
+      weekNumber
+    );
 
     // Calculate the date for this occurrence using the parent's original start/end dates for timing consistency
     const parentStartDateObj = new Date(parentEvent.startDate); // Use parent's actual startDate for date calculation
@@ -99,14 +104,20 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
       isLive: false, // Default to not live
       flyer: templateEvent.flyer, // Inherit from sequential template event
       // Copy the genres array from sequential template event (extract IDs if populated)
-      genres: templateEvent.genres ? templateEvent.genres.map(g => g._id || g) : [],
+      genres: templateEvent.genres
+        ? templateEvent.genres.map((g) => g._id || g)
+        : [],
       // Copy the lineups array from sequential template event (extract IDs if populated)
-      lineups: templateEvent.lineups ? templateEvent.lineups.map(l => l._id || l) : [],
+      lineups: templateEvent.lineups
+        ? templateEvent.lineups.map((l) => l._id || l)
+        : [],
       // Copy co-host data from sequential template event (extract IDs if populated, filter nulls)
-      coHosts: templateEvent.coHosts ? templateEvent.coHosts
-        .filter(c => c != null) // Filter out null/undefined co-hosts
-        .map(c => c._id || c)
-        .filter(id => id != null) : [], // Filter out any remaining null/undefined IDs
+      coHosts: templateEvent.coHosts
+        ? templateEvent.coHosts
+            .filter((c) => c != null) // Filter out null/undefined co-hosts
+            .map((c) => c._id || c)
+            .filter((id) => id != null)
+        : [], // Filter out any remaining null/undefined IDs
       coHostRolePermissions: templateEvent.coHostRolePermissions || [],
       // Copy legacy code settings for backward compatibility from sequential template event
       guestCode: templateEvent.guestCode,
@@ -143,13 +154,13 @@ const findSequentialTemplateEvent = async (parentEvent, weekNumber) => {
     const existingEvents = await Event.find({
       $or: [
         { _id: parentEvent._id, weekNumber: { $lte: weekNumber } }, // Include parent (week 0) if it qualifies
-        { parentEventId: parentEvent._id, weekNumber: { $lte: weekNumber } } // Include qualifying child events
-      ]
+        { parentEventId: parentEvent._id, weekNumber: { $lte: weekNumber } }, // Include qualifying child events
+      ],
     })
-    .populate('coHosts', 'name username logo') // Populate co-host data for inheritance
-    .populate('genres') // Populate genres for inheritance
-    .populate('lineups') // Populate lineups for inheritance
-    .sort({ weekNumber: -1 }); // Sort by highest week number first
+      .populate("coHosts", "name username logo") // Populate co-host data for inheritance
+      .populate("genres") // Populate genres for inheritance
+      .populate("lineups") // Populate lineups for inheritance
+      .sort({ weekNumber: -1 }); // Sort by highest week number first
 
     // Use the event with the highest week number <= target week as template
     return existingEvents[0] || parentEvent;
@@ -166,17 +177,20 @@ const findOrCreateWeeklyOccurrence = async (parentEvent, weekNumber) => {
       parentEventId: parentEvent._id,
       weekNumber: weekNumber,
     })
-    .populate("coHosts", "name username logo")
-    .populate("genres")
-    .populate("lineups");
+      .populate("coHosts", "name username logo")
+      .populate("genres")
+      .populate("lineups");
 
     if (existingOccurrence) {
       return existingOccurrence;
     }
 
     // If not found, create a new one using the most recent event as template
-    const newChildEvent = await generateWeeklyOccurrences(parentEvent, weekNumber);
-    
+    const newChildEvent = await generateWeeklyOccurrences(
+      parentEvent,
+      weekNumber
+    );
+
     // Populate the newly created child event before returning
     return await Event.findById(newChildEvent._id)
       .populate("coHosts", "name username logo")
@@ -299,6 +313,7 @@ exports.createEvent = async (req, res) => {
       friendsCode,
       ticketCode,
       tableCode,
+      dropboxFolderPath,
       parentEventId,
     } = req.body;
 
@@ -330,6 +345,13 @@ exports.createEvent = async (req, res) => {
       friendsCode: friendsCode,
       ticketCode: ticketCode,
       tableCode: tableCode,
+      dropboxFolderPath:
+        dropboxFolderPath ||
+        generateDropboxPath(
+          brand.dropboxBaseFolder,
+          startDate || date,
+          brand.dropboxPathStructure
+        ),
     };
 
     // Add parentEventId for non-weekly event series
@@ -483,23 +505,24 @@ exports.getBrandEvents = async (req, res) => {
 exports.getAllEvents = async (req, res) => {
   try {
     // Get user's favorite brands
-    const user = await User.findById(req.user.userId).select('favoriteBrands');
+    const user = await User.findById(req.user.userId).select("favoriteBrands");
     const favoriteBrandIds = user.favoriteBrands || [];
 
     // Get all brands where user is a team member or owner
-    const brands = await Brand.find({ 
-      $or: [
-        { "team.user": req.user.userId },
-        { owner: req.user.userId }
-      ]
+    const brands = await Brand.find({
+      $or: [{ "team.user": req.user.userId }, { owner: req.user.userId }],
     });
 
     // Sort brands by priority: owner first, then favorites, then alphabetical
     const sortedBrands = brands.sort((a, b) => {
       const aIsOwner = a.owner.toString() === req.user.userId.toString();
       const bIsOwner = b.owner.toString() === req.user.userId.toString();
-      const aIsFavorite = favoriteBrandIds.some(fav => fav.toString() === a._id.toString());
-      const bIsFavorite = favoriteBrandIds.some(fav => fav.toString() === b._id.toString());
+      const aIsFavorite = favoriteBrandIds.some(
+        (fav) => fav.toString() === a._id.toString()
+      );
+      const bIsFavorite = favoriteBrandIds.some(
+        (fav) => fav.toString() === b._id.toString()
+      );
 
       // Owner brands first
       if (aIsOwner && !bIsOwner) return -1;
@@ -518,11 +541,8 @@ exports.getAllEvents = async (req, res) => {
     const brandIds = sortedBrands.map((brand) => brand._id);
 
     // Get events from all these brands and also events where user's brands are co-hosts
-    const events = await Event.find({ 
-      $or: [
-        { brand: { $in: brandIds } },
-        { coHosts: { $in: brandIds } }
-      ]
+    const events = await Event.find({
+      $or: [{ brand: { $in: brandIds } }, { coHosts: { $in: brandIds } }],
     })
       .sort({ startDate: -1 })
       .populate("brand", "name username logo")
@@ -563,6 +583,7 @@ exports.editEvent = async (req, res) => {
       ticketCode,
       tableCode,
       genres,
+      dropboxFolderPath,
     } = req.body;
 
     // Handle lineups if they exist
@@ -590,22 +611,15 @@ exports.editEvent = async (req, res) => {
     }
 
     // Handle coHosts if they exist
-    console.log("🔍 [Backend] Raw coHosts from request:", req.body.coHosts, typeof req.body.coHosts);
     if (req.body.coHosts) {
       // If coHosts is a string (from FormData), parse it
       if (typeof req.body.coHosts === "string") {
         try {
           req.body.coHosts = JSON.parse(req.body.coHosts);
-          console.log("✅ [Backend] Parsed coHosts successfully:", req.body.coHosts);
         } catch (e) {
-          console.error("❌ [Backend] Failed to parse coHosts:", e.message);
           delete req.body.coHosts;
         }
-      } else if (Array.isArray(req.body.coHosts)) {
-        console.log("✅ [Backend] coHosts already an array:", req.body.coHosts);
       }
-    } else {
-      console.log("ℹ️ [Backend] No coHosts field in request body");
     }
 
     // Find event and check permissions
@@ -641,6 +655,8 @@ exports.editEvent = async (req, res) => {
     if (city !== undefined) event.city = city;
     if (music !== undefined) event.music = music;
     if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
+    if (dropboxFolderPath !== undefined)
+      event.dropboxFolderPath = dropboxFolderPath;
 
     // Update the genres field if provided
     if (req.body.genres) {
@@ -656,18 +672,18 @@ exports.editEvent = async (req, res) => {
     // Update co-hosts if provided
     if (req.body.coHosts !== undefined) {
       // Ensure we store ObjectIds, not populated objects, and filter out null/undefined values
-      const coHostIds = Array.isArray(req.body.coHosts) 
+      const coHostIds = Array.isArray(req.body.coHosts)
         ? req.body.coHosts
-            .filter(coHost => coHost != null) // Filter out null/undefined
-            .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
-            .filter(id => id != null) // Filter out any remaining null/undefined IDs
+            .filter((coHost) => coHost != null) // Filter out null/undefined
+            .map((coHost) =>
+              typeof coHost === "object" && coHost._id ? coHost._id : coHost
+            )
+            .filter((id) => id != null) // Filter out any remaining null/undefined IDs
         : [];
       event.coHosts = coHostIds;
-      console.log('✅ [Backend] Updated parent event co-hosts:', coHostIds);
     }
     if (req.body.coHostRolePermissions !== undefined) {
       event.coHostRolePermissions = req.body.coHostRolePermissions || [];
-      console.log('✅ [Backend] Updated parent event co-host permissions:', req.body.coHostRolePermissions);
     }
 
     // Check if this is a child event being edited directly
@@ -695,13 +711,17 @@ exports.editEvent = async (req, res) => {
             } catch (e) {
               // Error parsing genres for child event
             }
-          } else if (key === "coHosts" && Array.isArray(updatedChildData[key])) {
+          } else if (
+            key === "coHosts" &&
+            Array.isArray(updatedChildData[key])
+          ) {
             // Ensure co-hosts are stored as ObjectIds and filter out null/undefined values
             event[key] = updatedChildData[key]
-              .filter(coHost => coHost != null) // Filter out null/undefined
-              .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
-              .filter(id => id != null); // Filter out any remaining null/undefined IDs
-            console.log('✅ [Backend] Updated direct child event co-hosts:', event[key]);
+              .filter((coHost) => coHost != null) // Filter out null/undefined
+              .map((coHost) =>
+                typeof coHost === "object" && coHost._id ? coHost._id : coHost
+              )
+              .filter((id) => id != null); // Filter out any remaining null/undefined IDs
           } else {
             event[key] = updatedChildData[key];
           }
@@ -787,7 +807,9 @@ exports.editEvent = async (req, res) => {
 
         // Filter out any null co-hosts that might have been populated as null
         if (populatedEvent.coHosts) {
-          populatedEvent.coHosts = populatedEvent.coHosts.filter(coHost => coHost != null);
+          populatedEvent.coHosts = populatedEvent.coHosts.filter(
+            (coHost) => coHost != null
+          );
         }
 
         return res.status(200).json(populatedEvent);
@@ -870,18 +892,19 @@ exports.editEvent = async (req, res) => {
         // Handle co-hosts if provided in the request body
         if (req.body.coHosts !== undefined) {
           // Ensure we store ObjectIds, not populated objects, and filter out null/undefined values
-          const coHostIds = Array.isArray(req.body.coHosts) 
+          const coHostIds = Array.isArray(req.body.coHosts)
             ? req.body.coHosts
-                .filter(coHost => coHost != null) // Filter out null/undefined
-                .map(coHost => typeof coHost === 'object' && coHost._id ? coHost._id : coHost)
-                .filter(id => id != null) // Filter out any remaining null/undefined IDs
+                .filter((coHost) => coHost != null) // Filter out null/undefined
+                .map((coHost) =>
+                  typeof coHost === "object" && coHost._id ? coHost._id : coHost
+                )
+                .filter((id) => id != null) // Filter out any remaining null/undefined IDs
             : [];
           childEvent.coHosts = coHostIds;
-          console.log('✅ [Backend] Updated child event co-hosts:', coHostIds);
         }
         if (req.body.coHostRolePermissions !== undefined) {
-          childEvent.coHostRolePermissions = req.body.coHostRolePermissions || [];
-          console.log('✅ [Backend] Updated child event co-host permissions:', req.body.coHostRolePermissions);
+          childEvent.coHostRolePermissions =
+            req.body.coHostRolePermissions || [];
         }
 
         // Don't set legacy date field anymore
@@ -967,7 +990,9 @@ exports.editEvent = async (req, res) => {
 
           // Filter out any null co-hosts that might have been populated as null
           if (populatedChildEvent.coHosts) {
-            populatedChildEvent.coHosts = populatedChildEvent.coHosts.filter(coHost => coHost != null);
+            populatedChildEvent.coHosts = populatedChildEvent.coHosts.filter(
+              (coHost) => coHost != null
+            );
           }
 
           return res.status(200).json(populatedChildEvent);
@@ -1419,14 +1444,8 @@ exports.getEvent = async (req, res) => {
 
     // Filter out any null co-hosts that might have been populated as null
     if (eventData.coHosts) {
-      eventData.coHosts = eventData.coHosts.filter(coHost => coHost != null);
+      eventData.coHosts = eventData.coHosts.filter((coHost) => coHost != null);
       responseData.coHosts = eventData.coHosts;
-    }
-
-    // Log for debugging child events
-    if (eventData.parentEventId) {
-      console.log(`🔍 [Backend] Fetched child event (week ${eventData.weekNumber}) with co-hosts:`, 
-        eventData.coHosts?.map(c => c.name || c) || []);
     }
 
     res.status(200).json({ success: true, event: responseData });
@@ -1518,7 +1537,8 @@ exports.getEventProfile = async (req, res) => {
       let eventsOnDate = await Event.find(query)
         .populate({
           path: "brand",
-          select: "name username logo description",
+          select:
+            "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
         })
         .populate({
           path: "user",
@@ -1544,7 +1564,8 @@ exports.getEventProfile = async (req, res) => {
         eventsOnDate = await Event.find(broadQuery)
           .populate({
             path: "brand",
-            select: "name username logo description",
+            select:
+              "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
           })
           .populate({
             path: "user",
@@ -1571,7 +1592,8 @@ exports.getEventProfile = async (req, res) => {
         eventsOnDate = await Event.find(monthQuery)
           .populate({
             path: "brand",
-            select: "name username logo description",
+            select:
+              "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
           })
           .populate({
             path: "user",
@@ -1727,7 +1749,8 @@ exports.getEventProfile = async (req, res) => {
       event = await Event.findById(req.params.eventId)
         .populate({
           path: "brand",
-          select: "name username logo description",
+          select:
+            "name username logo description spotifyClientId spotifyClientSecret spotifyPlaylistId",
         })
         .populate({
           path: "user",
@@ -2215,7 +2238,7 @@ exports.favoriteEvent = async (req, res) => {
         eventId,
         { $addToSet: { favoritedBy: userId } },
         { new: true }
-      )
+      ),
     ]);
 
     res.status(200).json({
@@ -2243,7 +2266,7 @@ exports.unfavoriteEvent = async (req, res) => {
         eventId,
         { $pull: { favoritedBy: userId } },
         { new: true }
-      )
+      ),
     ]);
 
     res.status(200).json({
@@ -2262,23 +2285,23 @@ exports.getUserFavoriteEvents = async (req, res) => {
     if (!userId) {
       return res.status(200).json({
         message: "User ID not found",
-        favoriteEvents: []
+        favoriteEvents: [],
       });
     }
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: "User not found",
-        favoriteEvents: [] 
+        favoriteEvents: [],
       });
     }
 
     // Check if user has favoriteEvents field and if it's not empty
     if (!user.favoriteEvents || user.favoriteEvents.length === 0) {
       return res.status(200).json({
-        favoriteEvents: []
+        favoriteEvents: [],
       });
     }
 
@@ -2288,13 +2311,14 @@ exports.getUserFavoriteEvents = async (req, res) => {
       populate: [
         { path: "brand", select: "name username logo" },
         { path: "genres", select: "name" },
-        { path: "lineups", select: "name" }
-      ]
+        { path: "lineups", select: "name" },
+      ],
     });
 
     // Sort favorite events by date (newest first)
-    const sortedFavoriteEvents = (populatedUser.favoriteEvents || []).sort((a, b) => 
-      new Date(b.startDate || b.date) - new Date(a.startDate || a.date)
+    const sortedFavoriteEvents = (populatedUser.favoriteEvents || []).sort(
+      (a, b) =>
+        new Date(b.startDate || b.date) - new Date(a.startDate || a.date)
     );
 
     res.status(200).json({
@@ -2302,9 +2326,9 @@ exports.getUserFavoriteEvents = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching favorite events:", error);
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Error fetching favorite events",
-      favoriteEvents: [] 
+      favoriteEvents: [],
     });
   }
 };

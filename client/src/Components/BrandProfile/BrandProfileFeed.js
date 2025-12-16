@@ -3,7 +3,7 @@ import { RiCalendarEventLine } from "react-icons/ri";
 import UpcomingEvent from "../UpcomingEvent";
 import { useAuth } from "../../contexts/AuthContext";
 
-const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHint }) => {
+const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHint, brandHasGalleries }) => {
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const [eventCount, setEventCount] = useState(0);
@@ -23,13 +23,14 @@ const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHin
       <div className="feed-section upcoming-events">
         <div className="events-list">
           <UpcomingEvent
-            brandId={isAuthenticated ? brand?._id : null}
+            brandId={brand?._id}
             brandUsername={brand?.username}
             limit={5}
             seamless={true}
             onEventsLoaded={handleEventsLoaded}
             onEventChange={onEventChange}
             initialDateHint={initialDateHint}
+            brandHasGalleries={brandHasGalleries}
           />
         </div>
       </div>

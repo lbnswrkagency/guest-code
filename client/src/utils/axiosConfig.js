@@ -3,8 +3,12 @@ import tokenService from "./tokenService";
 import notificationManager from "./notificationManager";
 
 // Create axios instance with base URL
+const baseURL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5173/api";
+console.log("[axiosConfig] Using API base URL:", baseURL);
+console.log("[axiosConfig] Environment:", process.env.NODE_ENV);
+
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api",
+  baseURL: baseURL,
   timeout: 15000, // 15 seconds timeout (reasonable for production)
   withCredentials: true,
   // Add retry-specific config

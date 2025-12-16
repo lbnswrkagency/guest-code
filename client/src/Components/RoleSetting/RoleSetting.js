@@ -1,505 +1,406 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RiAddLine,
   RiCloseLine,
   RiDeleteBin6Line,
-  RiRepeatFill,
   RiEditLine,
   RiLockLine,
   RiTeamLine,
   RiCodeLine,
+  RiShieldCheckLine,
+  RiEyeLine,
+  RiSettings3Line,
+  RiTableLine,
+  RiSwordLine,
+  RiQrScanLine,
+  RiBarChartBoxLine,
+  RiSaveLine,
+  RiArrowDownSLine,
+  RiArrowUpSLine,
+  RiRepeatLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
-import { toast } from "react-toastify";
+import { useToast } from "../Toast/ToastContext";
 import AuthContext from "../../contexts/AuthContext";
 
+// Memoized LoadingSpinner component
+const LoadingSpinner = React.memo(({ size = "default", color = "#d4af37" }) => {
+  const spinnerSize = size === "small" ? "16px" : "24px";
+  return (
+    <div
+      className="role-spinner"
+      style={{
+        width: spinnerSize,
+        height: spinnerSize,
+        borderColor: `${color}40`,
+        borderTopColor: color,
+      }}
+    />
+  );
+});
+
+/**
+ * RoleSetting component for managing brand roles and permissions
+ * @param {Object} props
+ * @param {Object} props.brand - Brand object with team and permissions
+ * @param {Function} props.onClose - Callback to close the role settings
+ */
 const RoleSetting = ({ brand, onClose }) => {
   const { user } = useContext(AuthContext);
+  const toast = useToast();
+  
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [expandedRole, setExpandedRole] = useState(null);
   const [editingRole, setEditingRole] = useState(null);
   const [roleToDelete, setRoleToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [codeSettings, setCodeSettings] = useState([]);
-  const [loadingCodeSettings, setLoadingCodeSettings] = useState(true);
+  const [primaryColor, setPrimaryColor] = useState("#d4af37");
+  const [formErrors, setFormErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   // Check if the current user is the brand owner
-  const isBrandOwner = () => {
+  const isBrandOwner = useCallback(() => {
     if (!user || !brand) return false;
     const ownerId = typeof brand.owner === "object" ? brand.owner._id : brand.owner;
     return ownerId === user._id;
-  };
+  }, [user, brand]);
 
-  const [newRole, setNewRole] = useState({
+  // Memoize permission categories for better organization
+  const permissionCategories = useMemo(() => [
+    {
+      id: 'events',
+      title: 'Event Management',
+      icon: RiSettings3Line,
+      color: primaryColor,
+      permissions: [
+        { key: 'create', label: 'Create Events', description: 'Can create new events' },
+        { key: 'edit', label: 'Edit Events', description: 'Can modify existing events' },
+        { key: 'delete', label: 'Delete Events', description: 'Can delete events' },
+        { key: 'view', label: 'View Events', description: 'Can view event details' },
+      ]
+    },
+    {
+      id: 'team',
+      title: 'Team Management',
+      icon: RiTeamLine,
+      color: '#4ade80',
+      permissions: [
+        { key: 'manage', label: 'Manage Team', description: 'Can add/remove team members' },
+        { key: 'view', label: 'View Team', description: 'Can see team member list' },
+      ]
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics & Reports',
+      icon: RiBarChartBoxLine,
+      color: '#3b82f6',
+      permissions: [
+        { key: 'view', label: 'View Analytics', description: 'Can access analytics dashboard' },
+      ]
+    },
+    {
+      id: 'scanner',
+      title: 'Scanner Access',
+      icon: RiQrScanLine,
+      color: '#8b5cf6',
+      permissions: [
+        { key: 'use', label: 'Use Scanner', description: 'Can scan QR codes at events' },
+      ]
+    },
+    {
+      id: 'tables',
+      title: 'Table Management',
+      icon: RiTableLine,
+      color: '#f59e0b',
+      permissions: [
+        { key: 'access', label: 'Table Access', description: 'Can access table system' },
+        { key: 'manage', label: 'Manage Tables', description: 'Can manage table bookings' },
+        { key: 'summary', label: 'Table Reports', description: 'Can view table summaries' },
+      ]
+    },
+    {
+      id: 'battles',
+      title: 'Battle System',
+      icon: RiSwordLine,
+      color: '#ef4444',
+      permissions: [
+        { key: 'view', label: 'View Battles', description: 'Can view battle events' },
+        { key: 'edit', label: 'Edit Battles', description: 'Can modify battle settings' },
+        { key: 'delete', label: 'Delete Battles', description: 'Can remove battles' },
+      ]
+    }
+  ], [primaryColor]);
+
+  // Initial role template
+  const createInitialRole = useCallback(() => ({
     name: "",
     permissions: {
-      events: {
-        create: false,
-        edit: false,
-        delete: false,
-        view: true,
-      },
-      team: {
-        manage: false,
-        view: true,
-      },
-      analytics: {
-        view: false,
-      },
-      codes: {
-        // Will be populated with all code types
-      },
-      scanner: {
-        use: false,
-      },
-      tables: {
-        access: false,
-        manage: false,
-        summary: false,
-      },
-      battles: {
-        view: false,
-        edit: false,
-        delete: false,
-      },
+      events: { create: false, edit: false, delete: false, view: true },
+      team: { manage: false, view: true },
+      analytics: { view: false },
+      codes: {},
+      scanner: { use: false },
+      tables: { access: false, manage: false, summary: false },
+      battles: { view: false, edit: false, delete: false },
     },
-  });
+  }), []);
 
-  useEffect(() => {
-    fetchRoles();
-    fetchCodeSettings();
-  }, [brand._id]);
+  const [newRole, setNewRole] = useState(createInitialRole);
 
-  const fetchRoles = async () => {
+  // Fetch roles data
+  const fetchRoles = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        `/roles/brands/${brand._id}/roles`
-      );
+      setLoading(true);
+      const response = await axiosInstance.get(`/roles/brands/${brand._id}/roles`);
       setRoles(response.data);
-      setLoading(false);
     } catch (error) {
+      toast.showError("Failed to load roles");
+    } finally {
       setLoading(false);
     }
-  };
+  }, [brand._id, toast]);
 
-  // We're only interested in custom code types now
-  const fetchCodeSettings = async () => {
+  // Fetch code settings for custom codes
+  const fetchCodeSettings = useCallback(async () => {
     try {
-      setLoadingCodeSettings(true);
-
-      // Get events for this brand
-      const eventsResponse = await axiosInstance.get(
-        `/events/brand/${brand._id}`
-      );
-
-      // Initialize with empty array since we're only focusing on custom codes
-      let customCodeSettings = [];
-
-      if (eventsResponse.data && eventsResponse.data.length) {
-        // Use the first event to get code settings
+      const eventsResponse = await axiosInstance.get(`/events/brand/${brand._id}`);
+      
+      if (eventsResponse.data?.length > 0) {
         const eventId = eventsResponse.data[0]._id;
-
-        const codeResponse = await axiosInstance.get(
-          `/code-settings/events/${eventId}`
-        );
-
-        if (codeResponse.data && codeResponse.data.codeSettings) {
-          // Get only custom code types
-          customCodeSettings = codeResponse.data.codeSettings
-            .filter((code) => code.type === "custom")
-            .map((code) => ({
+        const codeResponse = await axiosInstance.get(`/code-settings/events/${eventId}`);
+        
+        if (codeResponse.data?.codeSettings) {
+          const customCodes = codeResponse.data.codeSettings
+            .filter(code => code.type === "custom")
+            .map(code => ({
               name: code.name,
-              displayName:
-                code.name.charAt(0).toUpperCase() + code.name.slice(1),
-              hasLimits: true, // Custom codes typically have limits
-              isCustom: true,
-              color: code.color || "#ffc807", // Use the code's color or default to yellow
-              maxLimit: code.limit || 999, // Use code's limit or default to a high value
+              displayName: code.name.charAt(0).toUpperCase() + code.name.slice(1),
+              color: code.color || primaryColor,
+              hasLimits: true,
+              maxLimit: code.limit || 999,
             }));
+          
+          setCodeSettings(customCodes);
+          initializeRoleWithCodePermissions(customCodes);
         }
       }
-
-      setCodeSettings(customCodeSettings);
-
-      // Initialize role with permissions for only custom code types
-      initializeRoleWithCodePermissions(customCodeSettings);
     } catch (error) {
-      // Silent fail for code settings fetch
-    } finally {
-      setLoadingCodeSettings(false);
+      // Silent fail for code settings
     }
-  };
+  }, [brand._id, primaryColor]);
 
-  // Initialize role with permissions for custom code types only
-  const initializeRoleWithCodePermissions = (codeTypes) => {
+  // Initialize role with code permissions
+  const initializeRoleWithCodePermissions = useCallback((codeTypes) => {
     const codePermissions = {};
-
-    codeTypes.forEach((code) => {
+    codeTypes.forEach(code => {
       codePermissions[code.name] = {
         generate: false,
-        ...(code.hasLimits ? { limit: 0, unlimited: false } : {}),
+        limit: 0,
+        unlimited: false,
       };
     });
-
-    setNewRole((prev) => ({
+    
+    setNewRole(prev => ({
       ...prev,
       permissions: {
         ...prev.permissions,
         codes: codePermissions,
       },
     }));
-  };
+  }, []);
 
-  const handleCreateRole = async () => {
-    if (!newRole.name.trim()) return;
+  // Load data on mount
+  useEffect(() => {
+    fetchRoles();
+    fetchCodeSettings();
+  }, [fetchRoles, fetchCodeSettings]);
 
+  // Validate form
+  const validateForm = useCallback(() => {
+    const errors = {};
+    
+    if (!newRole.name.trim()) {
+      errors.name = "Role name is required";
+    } else if (newRole.name.toUpperCase() === "FOUNDER" && !editingRole?.isFounder) {
+      errors.name = "Cannot create another Founder role";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [newRole.name, editingRole]);
+
+  // Handle role creation
+  const handleCreateRole = useCallback(async () => {
+    if (!validateForm()) return;
+    
     try {
-      const normalizedRole = {
-        ...newRole,
-        name: newRole.name.toUpperCase(),
-      };
-
+      setSaving(true);
       const response = await axiosInstance.post(
         `/roles/brands/${brand._id}/roles`,
-        normalizedRole
+        { ...newRole, name: newRole.name.toUpperCase() }
       );
-      setRoles([...roles, response.data]);
-
-      // Reset role with permissions for all code types
-      resetRoleForm();
-      setShowCreateForm(false);
+      
+      setRoles(prev => [...prev, response.data]);
+      setNewRole(createInitialRole());
+      setExpandedRole(null);
+      toast.showSuccess("Role created successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create role");
+      toast.showError(error.response?.data?.message || "Failed to create role");
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [validateForm, newRole, brand._id, createInitialRole, toast]);
 
-  const resetRoleForm = () => {
-    // Initialize base role structure
-    const resetRole = {
-      name: "",
-      permissions: {
-        events: {
-          create: false,
-          edit: false,
-          delete: false,
-          view: true,
-        },
-        team: {
-          manage: false,
-          view: true,
-        },
-        analytics: {
-          view: false,
-        },
-        codes: {},
-        scanner: {
-          use: false,
-        },
-        tables: {
-          access: false,
-          manage: false,
-          summary: false,
-        },
-      },
-    };
+  // Handle role update
+  const handleUpdateRole = useCallback(async () => {
+    if (!validateForm() || !editingRole) return;
+    
+    try {
+      setSaving(true);
+      const response = await axiosInstance.put(
+        `/roles/brands/${brand._id}/roles/${editingRole._id}`,
+        { ...newRole, name: newRole.name.toUpperCase() }
+      );
+      
+      setRoles(prev => prev.map(role => 
+        role._id === editingRole._id ? response.data : role
+      ));
+      
+      setEditingRole(null);
+      setExpandedRole(null);
+      setNewRole(createInitialRole());
+      toast.showSuccess("Role updated successfully");
+    } catch (error) {
+      toast.showError(error.response?.data?.message || "Failed to update role");
+    } finally {
+      setSaving(false);
+    }
+  }, [validateForm, editingRole, newRole, brand._id, createInitialRole, toast]);
 
-    // Add code permissions for all code types
-    codeSettings.forEach((code) => {
-      resetRole.permissions.codes[code.name] = {
-        generate: false,
-        ...(code.hasLimits ? { limit: 0, unlimited: false } : {}),
-      };
-    });
-
-    setNewRole(resetRole);
-  };
-
-  const handleDeleteClick = (role) => {
-    setRoleToDelete(role);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleDeleteRole = async () => {
+  // Handle role deletion
+  const handleDeleteRole = useCallback(async () => {
     if (!roleToDelete) return;
 
     try {
-      await axiosInstance.delete(
-        `/roles/brands/${brand._id}/roles/${roleToDelete._id}`
-      );
-      setRoles(roles.filter((role) => role._id !== roleToDelete._id));
-      toast.success("Role deleted successfully");
+      await axiosInstance.delete(`/roles/brands/${brand._id}/roles/${roleToDelete._id}`);
+      setRoles(prev => prev.filter(role => role._id !== roleToDelete._id));
+      toast.showSuccess("Role deleted successfully");
     } catch (error) {
       if (error.response?.data?.isAssigned) {
-        toast.error("Cannot delete role that is assigned to team members");
+        toast.showError("Cannot delete role that is assigned to team members");
       } else {
-        toast.error("Failed to delete role");
+        toast.showError("Failed to delete role");
       }
     } finally {
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
     }
-  };
+  }, [roleToDelete, brand._id, toast]);
 
-  const handlePermissionChange = (category, key, value) => {
-    setNewRole((prev) => ({
+  // Handle starting role edit
+  const handleStartEdit = useCallback((role) => {
+    setEditingRole(role);
+    
+    // Initialize edit form with existing role data
+    const editFormData = {
+      name: role.name,
+      permissions: {
+        events: { ...role.permissions?.events },
+        team: { ...role.permissions?.team },
+        analytics: { ...role.permissions?.analytics },
+        scanner: { ...role.permissions?.scanner },
+        tables: { ...role.permissions?.tables },
+        battles: { ...role.permissions?.battles },
+        codes: { ...role.permissions?.codes } || {},
+      },
+    };
+    
+    // Initialize custom code permissions
+    codeSettings.forEach(code => {
+      const existing = role.permissions?.codes?.[code.name] || {};
+      editFormData.permissions.codes[code.name] = {
+        generate: Boolean(existing.generate),
+        limit: parseInt(existing.limit) || 0,
+        unlimited: Boolean(existing.unlimited),
+      };
+    });
+    
+    setNewRole(editFormData);
+    setExpandedRole(role._id);
+  }, [codeSettings]);
+
+  // Handle permission changes
+  const handlePermissionChange = useCallback((category, key, value) => {
+    setNewRole(prev => ({
       ...prev,
       permissions: {
         ...prev.permissions,
         [category]: {
-          ...(prev.permissions[category] || {}),
+          ...prev.permissions[category],
           [key]: value,
         },
       },
     }));
-  };
+  }, []);
 
-  const handleCodePermissionChange = (codeType, changes) => {
-    // Find the code setting for this code type to get its maxLimit
-    const codeSetting = codeSettings.find((code) => code.name === codeType);
+  // Handle code permission changes
+  const handleCodePermissionChange = useCallback((codeType, changes) => {
+    const codeSetting = codeSettings.find(code => code.name === codeType);
     const maxLimit = codeSetting?.maxLimit || 999;
 
-    // If we're changing the limit, ensure it's within bounds
     if (changes.limit !== undefined) {
       changes.limit = Math.min(changes.limit, maxLimit);
     }
 
-    setNewRole((prev) => {
-      const updatedCodes = { ...prev.permissions.codes };
-
-      if (!updatedCodes[codeType]) {
-        updatedCodes[codeType] = {
-          generate: false,
-          limit: 0,
-          unlimited: false,
-        };
-      }
-
-      updatedCodes[codeType] = {
-        ...updatedCodes[codeType],
-        ...changes,
-      };
-
-      return {
-        ...prev,
-        permissions: {
-          ...prev.permissions,
-          codes: updatedCodes,
-        },
-      };
-    });
-  };
-
-  const handleStartEdit = (role) => {
-    // No check for isFounder here to allow editing founder roles
-    setEditingRole(role);
-
-    // Initialize role with basic permissions structure
-    const initialEditRole = {
-      name: role.name,
+    setNewRole(prev => ({
+      ...prev,
       permissions: {
-        events: {
-          create: role.permissions?.events?.create || false,
-          edit: role.permissions?.events?.edit || false,
-          delete: role.permissions?.events?.delete || false,
-          view: role.permissions?.events?.view || true,
-        },
-        team: {
-          manage: role.permissions?.team?.manage || false,
-          view: role.permissions?.team?.view || true,
-        },
-        analytics: {
-          view: role.permissions?.analytics?.view || false,
-        },
-        codes: {},
-        scanner: {
-          use: role.permissions?.scanner?.use || false,
-        },
-        tables: {
-          access: role.permissions?.tables?.access || false,
-          manage: role.permissions?.tables?.manage || false,
-          summary: role.permissions?.tables?.summary || false,
-        },
-        battles: {
-          view: role.permissions?.battles?.view || false,
-          edit: role.permissions?.battles?.edit || false,
-          delete: role.permissions?.battles?.delete || false,
+        ...prev.permissions,
+        codes: {
+          ...prev.permissions.codes,
+          [codeType]: {
+            ...prev.permissions.codes[codeType],
+            ...changes,
+          },
         },
       },
-    };
+    }));
+  }, [codeSettings]);
 
-    // Initialize custom code permissions only
-    const roleCodePermissions = role.permissions?.codes || {};
+  // Cancel editing
+  const handleCancel = useCallback(() => {
+    setEditingRole(null);
+    setExpandedRole(null);
+    setNewRole(createInitialRole());
+    setFormErrors({});
+  }, [createInitialRole]);
 
-    // Make sure we have entries for all custom code types
-    codeSettings.forEach((code) => {
-      const existingPermission = roleCodePermissions[code.name] || {};
-      initialEditRole.permissions.codes[code.name] = {
-        generate: Boolean(existingPermission.generate),
-        ...(code.hasLimits
-          ? {
-              limit: parseInt(existingPermission.limit) || 0,
-              unlimited: Boolean(existingPermission.unlimited),
-            }
-          : {}),
-      };
-    });
-
-    setNewRole(initialEditRole);
-    setShowCreateForm(true);
-  };
-
-  const handleUpdateRole = async () => {
-    if (!newRole.name.trim() || !editingRole) return;
-
-    try {
-      // Allow updating founder roles by not checking isFounder here
-      const normalizedRole = {
-        ...newRole,
-        name: newRole.name.toUpperCase(),
-      };
-
-      const response = await axiosInstance.put(
-        `/roles/brands/${brand._id}/roles/${editingRole._id}`,
-        normalizedRole
-      );
-
-      setRoles(
-        roles.map((role) =>
-          role._id === editingRole._id ? response.data : role
-        )
-      );
-      setShowCreateForm(false);
-      setEditingRole(null);
-      toast.success("Role updated successfully");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update role");
-    }
-  };
-
-  const renderPermissionItem = (title, category, key, checked) => (
-    <div className="permission-item">
-      <div className="permission-header">
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) =>
-              handlePermissionChange(category, key, e.target.checked)
-            }
-          />
-          <span className="slider"></span>
-        </label>
-        <span className="permission-title">{title}</span>
-      </div>
-    </div>
-  );
-
-  const renderCodePermission = (
-    displayName,
-    codeType,
-    hasLimits,
-    codeColor
-  ) => {
-    const permission = newRole.permissions.codes?.[codeType] || {
-      generate: false,
-      ...(hasLimits ? { limit: 0, unlimited: false } : {}),
-    };
-
-    // Find the code setting to get its maxLimit
-    const codeSetting = codeSettings.find((code) => code.name === codeType);
-    const maxLimit = codeSetting?.maxLimit || 999;
-
-    // Use the custom code color or default to the primary color
-    const borderColor = codeColor ? codeColor : "#ffc807";
-
+  if (loading) {
     return (
-      <div className="permission-item" style={{ borderLeftColor: borderColor }}>
-        <div className="permission-header">
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={permission.generate || false}
-              onChange={(e) =>
-                handleCodePermissionChange(codeType, {
-                  generate: e.target.checked,
-                })
-              }
-            />
-            <span
-              className="slider"
-              style={{
-                backgroundColor: permission.generate ? borderColor : "",
-              }}
-            ></span>
-          </label>
-          <span className="permission-title">{displayName}</span>
+      <div className="role-settings">
+        <div className="loading-container">
+          <LoadingSpinner color={primaryColor} />
+          <p>Loading roles...</p>
         </div>
-
-        {hasLimits && permission.generate && (
-          <div className="code-limit-section">
-            <div className="limit-input-wrapper">
-              <input
-                type="number"
-                min="0"
-                max={maxLimit}
-                value={permission.unlimited ? "∞" : permission.limit}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "") return;
-
-                  // Parse the value and ensure it doesn't exceed maxLimit
-                  const numValue = parseInt(value) || 0;
-                  const cappedValue = Math.min(numValue, maxLimit);
-
-                  handleCodePermissionChange(codeType, {
-                    limit: cappedValue,
-                    unlimited: false,
-                  });
-                }}
-                disabled={permission.unlimited}
-                className="limit-input"
-              />
-            </div>
-            <button
-              className={`unlimited-btn ${
-                permission.unlimited ? "active" : ""
-              }`}
-              style={{
-                backgroundColor: permission.unlimited
-                  ? `rgba(${parseInt(borderColor.slice(1, 3), 16)}, ${parseInt(
-                      borderColor.slice(3, 5),
-                      16
-                    )}, ${parseInt(borderColor.slice(5, 7), 16)}, 0.15)`
-                  : "",
-              }}
-              onClick={() =>
-                handleCodePermissionChange(codeType, {
-                  unlimited: !permission.unlimited,
-                  limit: !permission.unlimited ? 0 : permission.limit,
-                })
-              }
-            >
-              <RiRepeatFill />
-              <span>Maximum</span>
-            </button>
-          </div>
-        )}
       </div>
     );
-  };
-
-  if (loading || loadingCodeSettings) {
-    return <div className="role-settings loading">Loading...</div>;
   }
 
   return (
     <div className="role-settings">
-      <div className="header">
-        <h2>Role Settings</h2>
+      <div className="role-settings-header">
+        <div className="header-content">
+          <RiShieldCheckLine className="header-icon" style={{ color: primaryColor }} />
+          <div className="header-text">
+            <h2>Role Management</h2>
+            <p>Manage team roles and permissions for {brand.name}</p>
+          </div>
+        </div>
         <motion.button
           className="close-btn"
           onClick={onClose}
@@ -510,265 +411,414 @@ const RoleSetting = ({ brand, onClose }) => {
         </motion.button>
       </div>
 
-      <div className="roles-list">
-        {roles.map((role) => (
-          <div
-            key={role._id}
-            className={`role-item ${role.isFounder ? "owner" : ""}`}
-          >
-            <div className="role-name">{role.name}</div>
-            <div className="role-actions">
-              {/* Show edit button: for founder roles, allow editing; for default roles, require developer permission */}
-              {role.isFounder ? (
-                <motion.button
-                  className="action-btn edit"
-                  onClick={() => handleStartEdit(role)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiEditLine />
-                </motion.button>
-              ) : role.isDefault ? (
-                user?.isDeveloper ? (
+      <div className="roles-container">
+        {/* Existing Roles */}
+        <div className="roles-list">
+          {roles.map((role) => (
+            <motion.div
+              key={role._id}
+              className={`role-card ${role.isFounder ? "founder" : ""} ${
+                expandedRole === role._id ? "expanded" : ""
+              }`}
+              initial={false}
+              animate={{
+                backgroundColor: expandedRole === role._id ? 
+                  `${primaryColor}10` : "rgba(255, 255, 255, 0.05)",
+              }}
+            >
+              <div className="role-card-header">
+                <div className="role-info">
+                  <div className="role-name">
+                    {role.isFounder && <RiShieldCheckLine className="founder-icon" />}
+                    {role.name}
+                  </div>
+                  <div className="role-meta">
+                    {role.isDefault && <span className="default-badge">Default</span>}
+                    {role.isFounder && <span className="founder-badge">Founder</span>}
+                  </div>
+                </div>
+                
+                <div className="role-actions">
+                  {/* Edit button logic */}
+                  {(role.isFounder || !role.isDefault || user?.isDeveloper) && (
+                    <motion.button
+                      className="action-btn edit"
+                      onClick={() => handleStartEdit(role)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      disabled={expandedRole === role._id}
+                    >
+                      <RiEditLine />
+                    </motion.button>
+                  )}
+                  
+                  {role.isDefault && !user?.isDeveloper && (
+                    <motion.button
+                      className="action-btn locked"
+                      title="Only developers can edit default roles"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      <RiLockLine />
+                    </motion.button>
+                  )}
+                  
+                  {/* Delete button - only for non-default, non-founder roles */}
+                  {!role.isDefault && !role.isFounder && (
+                    <motion.button
+                      className="action-btn delete"
+                      onClick={() => {
+                        setRoleToDelete(role);
+                        setShowDeleteConfirm(true);
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <RiDeleteBin6Line />
+                    </motion.button>
+                  )}
+                  
+                  {/* Expand/collapse button */}
                   <motion.button
-                    className="action-btn edit"
-                    onClick={() => handleStartEdit(role)}
+                    className="action-btn expand"
+                    onClick={() => setExpandedRole(
+                      expandedRole === role._id ? null : role._id
+                    )}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                   >
-                    <RiEditLine />
+                    {expandedRole === role._id ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
                   </motion.button>
-                ) : (
-                  <motion.button
-                    className="action-btn lock"
-                    title="Only developers can edit default roles"
-                    whileHover={{ scale: 1.05 }}
+                </div>
+              </div>
+
+              {/* Role permissions preview */}
+              <AnimatePresence>
+                {expandedRole === role._id && (
+                  <motion.div
+                    className="role-permissions"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <RiLockLine />
-                  </motion.button>
-                )
-              ) : (
-                <motion.button
-                  className="action-btn edit"
-                  onClick={() => handleStartEdit(role)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiEditLine />
-                </motion.button>
-              )}
-              {/* Only show delete button for non-default and non-founder roles */}
-              {!role.isDefault && !role.isFounder && (
-                <motion.button
-                  className="action-btn delete"
-                  onClick={() => handleDeleteClick(role)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <RiDeleteBin6Line />
-                </motion.button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <motion.button
-        className="add-role-btn"
-        onClick={() => {
-          resetRoleForm();
-          setEditingRole(null); // Ensure we are creating, not editing
-          setShowCreateForm(true);
-        }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <RiAddLine />
-        <span>Add New Role</span>
-      </motion.button>
-
-      {/* Form is now rendered within the overlay conditionally */}
-      <AnimatePresence>
-        {showCreateForm && (
-          <motion.div
-            className="form-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div
-              className="create-role-form"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              transition={{ duration: 0.2, delay: 0.1 }}
-            >
-              <h3>{editingRole ? "Edit Role" : "Create New Role"}</h3>
-              <input
-                type="text"
-                placeholder="Role Name"
-                value={newRole.name}
-                onChange={(e) =>
-                  setNewRole({ ...newRole, name: e.target.value })
-                }
-              />
-
-              <div className="permissions-section">
-                <h4>Event Permissions</h4>
-                <div className="permission-group">
-                  {renderPermissionItem(
-                    "Create Events",
-                    "events",
-                    "create",
-                    newRole.permissions.events?.create || false
-                  )}
-                  {renderPermissionItem(
-                    "Edit Events",
-                    "events",
-                    "edit",
-                    newRole.permissions.events?.edit || false
-                  )}
-                  {renderPermissionItem(
-                    "Delete Events",
-                    "events",
-                    "delete",
-                    newRole.permissions.events?.delete || false
-                  )}
-                </div>
-
-                <h4>Team Permissions</h4>
-                <div className="permission-group">
-                  {renderPermissionItem(
-                    "Manage Team",
-                    "team",
-                    "manage",
-                    newRole.permissions.team?.manage || false
-                  )}
-                </div>
-
-                {/* Only render custom codes section if there are custom codes */}
-                {codeSettings.length > 0 && (
-                  <>
-                    <h4>Custom Codes</h4>
-                    <div className="permission-group">
-                      {codeSettings.map((code) => (
-                        <div
-                          key={code.name}
-                          className="permission-item custom-code-item"
-                          style={{ borderLeftColor: code.color || "#ffc807" }} // Apply color dynamically
-                        >
-                          {renderCodePermission(
-                            code.displayName,
-                            code.name,
-                            code.hasLimits,
-                            code.color
+                    {editingRole?._id === role._id ? (
+                      // Edit form
+                      <div className="role-edit-form">
+                        <div className="form-section">
+                          <label className="form-label">Role Name</label>
+                          <input
+                            type="text"
+                            value={newRole.name}
+                            onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
+                            className={formErrors.name ? "error" : ""}
+                            placeholder="Enter role name"
+                          />
+                          {formErrors.name && (
+                            <div className="error-message">{formErrors.name}</div>
                           )}
                         </div>
+
+                        {/* Permission Categories */}
+                        {permissionCategories.map((category) => (
+                          <div key={category.id} className="permission-category">
+                            <div className="category-header">
+                              <category.icon style={{ color: category.color }} />
+                              <span>{category.title}</span>
+                            </div>
+                            <div className="permissions-grid">
+                              {category.permissions.map((perm) => (
+                                <label key={perm.key} className="permission-item">
+                                  <input
+                                    type="checkbox"
+                                    checked={newRole.permissions[category.id]?.[perm.key] || false}
+                                    onChange={(e) => handlePermissionChange(
+                                      category.id, perm.key, e.target.checked
+                                    )}
+                                  />
+                                  <div className="permission-content">
+                                    <span className="permission-label">{perm.label}</span>
+                                    <span className="permission-description">{perm.description}</span>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Custom Codes Section */}
+                        {codeSettings.length > 0 && (
+                          <div className="permission-category">
+                            <div className="category-header">
+                              <RiCodeLine style={{ color: primaryColor }} />
+                              <span>Custom Codes</span>
+                            </div>
+                            <div className="codes-grid">
+                              {codeSettings.map((code) => {
+                                const permission = newRole.permissions.codes?.[code.name] || {};
+                                return (
+                                  <div key={code.name} className="code-permission-item">
+                                    <label className="code-toggle">
+                                      <input
+                                        type="checkbox"
+                                        checked={permission.generate || false}
+                                        onChange={(e) => handleCodePermissionChange(code.name, {
+                                          generate: e.target.checked,
+                                        })}
+                                      />
+                                      <span className="code-name" style={{ color: code.color }}>
+                                        {code.displayName}
+                                      </span>
+                                    </label>
+                                    
+                                    {permission.generate && code.hasLimits && (
+                                      <div className="code-limits">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max={code.maxLimit}
+                                          value={permission.unlimited ? "" : permission.limit}
+                                          onChange={(e) => handleCodePermissionChange(code.name, {
+                                            limit: parseInt(e.target.value) || 0,
+                                            unlimited: false,
+                                          })}
+                                          disabled={permission.unlimited}
+                                          placeholder="0"
+                                          className="limit-input"
+                                        />
+                                        <button
+                                          type="button"
+                                          className={`unlimited-btn ${permission.unlimited ? 'active' : ''}`}
+                                          onClick={() => handleCodePermissionChange(code.name, {
+                                            unlimited: !permission.unlimited,
+                                          })}
+                                        >
+                                          <RiRepeatLine />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="form-actions">
+                          <motion.button
+                            className="cancel-btn"
+                            onClick={handleCancel}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            disabled={saving}
+                          >
+                            Cancel
+                          </motion.button>
+                          <motion.button
+                            className="save-btn"
+                            onClick={handleUpdateRole}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            disabled={saving}
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            {saving ? <LoadingSpinner size="small" color="#000" /> : <RiSaveLine />}
+                            {saving ? "Saving..." : "Update Role"}
+                          </motion.button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View mode
+                      <div className="role-permissions-view">
+                        {permissionCategories.map((category) => {
+                          const categoryPerms = role.permissions?.[category.id];
+                          const hasAnyPermission = categoryPerms && 
+                            Object.values(categoryPerms).some(perm => perm === true);
+                          
+                          if (!hasAnyPermission && category.id !== 'events') return null;
+                          
+                          return (
+                            <div key={category.id} className="permission-summary">
+                              <category.icon style={{ color: category.color }} />
+                              <div className="permission-details">
+                                <span className="category-name">{category.title}</span>
+                                <div className="active-permissions">
+                                  {category.permissions
+                                    .filter(perm => categoryPerms?.[perm.key])
+                                    .map(perm => perm.label)
+                                    .join(", ") || "View only"
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Add New Role Button */}
+        <motion.button
+          className="add-role-btn"
+          onClick={() => {
+            setNewRole(createInitialRole());
+            setEditingRole(null);
+            setExpandedRole("new");
+          }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          style={{ 
+            borderColor: primaryColor,
+            color: primaryColor,
+          }}
+        >
+          <RiAddLine />
+          <span>Create New Role</span>
+        </motion.button>
+
+        {/* New Role Form */}
+        <AnimatePresence>
+          {expandedRole === "new" && (
+            <motion.div
+              className="role-card new-role"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="role-edit-form">
+                <div className="form-section">
+                  <label className="form-label">Role Name</label>
+                  <input
+                    type="text"
+                    value={newRole.name}
+                    onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
+                    className={formErrors.name ? "error" : ""}
+                    placeholder="Enter role name (e.g., Manager, Staff)"
+                  />
+                  {formErrors.name && (
+                    <div className="error-message">{formErrors.name}</div>
+                  )}
+                </div>
+
+                {/* Permission Categories */}
+                {permissionCategories.map((category) => (
+                  <div key={category.id} className="permission-category">
+                    <div className="category-header">
+                      <category.icon style={{ color: category.color }} />
+                      <span>{category.title}</span>
+                    </div>
+                    <div className="permissions-grid">
+                      {category.permissions.map((perm) => (
+                        <label key={perm.key} className="permission-item">
+                          <input
+                            type="checkbox"
+                            checked={newRole.permissions[category.id]?.[perm.key] || false}
+                            onChange={(e) => handlePermissionChange(
+                              category.id, perm.key, e.target.checked
+                            )}
+                          />
+                          <div className="permission-content">
+                            <span className="permission-label">{perm.label}</span>
+                            <span className="permission-description">{perm.description}</span>
+                          </div>
+                        </label>
                       ))}
                     </div>
-                  </>
-                )}
-                {/* Optional: Add a message if no custom codes */}
-                {/* {codeSettings.length === 0 && (
-                  <div className="permission-group">
-                      <h4>Custom Codes</h4>
-                      <div className="no-custom-codes">
-                          <RiCodeLine />
-                          <span>No custom codes defined for events in this brand.</span>
-                      </div>
                   </div>
-                )} */}
+                ))}
 
-                <h4>Table Permissions</h4>
-                <div className="permission-group">
-                  {renderPermissionItem(
-                    "Table Access",
-                    "tables",
-                    "access",
-                    newRole.permissions.tables?.access || false
-                  )}
-                  {renderPermissionItem(
-                    "Table Management",
-                    "tables",
-                    "manage",
-                    newRole.permissions.tables?.manage || false
-                  )}
+                {/* Custom Codes Section */}
+                {codeSettings.length > 0 && (
+                  <div className="permission-category">
+                    <div className="category-header">
+                      <RiCodeLine style={{ color: primaryColor }} />
+                      <span>Custom Codes</span>
+                    </div>
+                    <div className="codes-grid">
+                      {codeSettings.map((code) => {
+                        const permission = newRole.permissions.codes?.[code.name] || {};
+                        return (
+                          <div key={code.name} className="code-permission-item">
+                            <label className="code-toggle">
+                              <input
+                                type="checkbox"
+                                checked={permission.generate || false}
+                                onChange={(e) => handleCodePermissionChange(code.name, {
+                                  generate: e.target.checked,
+                                })}
+                              />
+                              <span className="code-name" style={{ color: code.color }}>
+                                {code.displayName}
+                              </span>
+                            </label>
+                            
+                            {permission.generate && code.hasLimits && (
+                              <div className="code-limits">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={code.maxLimit}
+                                  value={permission.unlimited ? "" : permission.limit}
+                                  onChange={(e) => handleCodePermissionChange(code.name, {
+                                    limit: parseInt(e.target.value) || 0,
+                                    unlimited: false,
+                                  })}
+                                  disabled={permission.unlimited}
+                                  placeholder="0"
+                                  className="limit-input"
+                                />
+                                <button
+                                  type="button"
+                                  className={`unlimited-btn ${permission.unlimited ? 'active' : ''}`}
+                                  onClick={() => handleCodePermissionChange(code.name, {
+                                    unlimited: !permission.unlimited,
+                                  })}
+                                >
+                                  <RiRepeatLine />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <motion.button
+                    className="cancel-btn"
+                    onClick={handleCancel}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    className="save-btn"
+                    onClick={handleCreateRole}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={saving}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {saving ? <LoadingSpinner size="small" color="#000" /> : <RiAddLine />}
+                    {saving ? "Creating..." : "Create Role"}
+                  </motion.button>
                 </div>
-
-                <h4>Battle Permissions</h4>
-                <div className="permission-group">
-                  {renderPermissionItem(
-                    "View Battles",
-                    "battles",
-                    "view",
-                    newRole.permissions.battles?.view || false
-                  )}
-                  {renderPermissionItem(
-                    "Edit Battles",
-                    "battles",
-                    "edit",
-                    newRole.permissions.battles?.edit || false
-                  )}
-                  {renderPermissionItem(
-                    "Delete Battles",
-                    "battles",
-                    "delete",
-                    newRole.permissions.battles?.delete || false
-                  )}
-                  {renderPermissionItem(
-                    "Table Summary Analysis",
-                    "tables",
-                    "summary",
-                    newRole.permissions.tables.summary
-                  )}
-                </div>
-
-                <h4>Other Permissions</h4>
-                <div className="permission-group">
-                  {renderPermissionItem(
-                    "View Analytics",
-                    "analytics",
-                    "view",
-                    newRole.permissions.analytics?.view || false
-                  )}
-                  {renderPermissionItem(
-                    "Scanner Access",
-                    "scanner",
-                    "use",
-                    newRole.permissions.scanner?.use || false
-                  )}
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <motion.button
-                  className="cancel-btn"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setEditingRole(null);
-                    resetRoleForm();
-                  }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  className="save-btn"
-                  onClick={editingRole ? handleUpdateRole : handleCreateRole}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {editingRole ? "Update Role" : "Create Role"}
-                </motion.button>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Confirmation Dialog remains outside the form overlay */}
+      {/* Delete Confirmation Dialog */}
       <AnimatePresence>
         {showDeleteConfirm && roleToDelete && (
           <ConfirmDialog
@@ -788,4 +838,5 @@ const RoleSetting = ({ brand, onClose }) => {
   );
 };
 
-export default RoleSetting;
+// Memoize the entire component to prevent unnecessary re-renders
+export default React.memo(RoleSetting);

@@ -18,7 +18,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 1.5rem 1rem;
+    padding: 1.5rem 1.5rem 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
     position: sticky;
@@ -53,6 +53,52 @@
       svg {
         width: 20px;
         height: 20px;
+      }
+    }
+  }
+
+  .settings-tabs {
+    display: flex;
+    padding: 0 1.5rem 1rem;
+    gap: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #151515;
+    position: sticky;
+    top: 72px;
+    z-index: 9;
+
+    .tab-button {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      &.active {
+        background: rgba(255, 200, 7, 0.15);
+        border-color: rgba(255, 200, 7, 0.3);
+        color: #ffc807;
+
+        svg {
+          color: #ffc807;
+        }
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
       }
     }
   }
@@ -317,6 +363,196 @@
 
       &:active {
         transform: translateY(0);
+      }
+    }
+  }
+
+  // Dropbox Settings Styles
+  .dropbox-settings {
+    padding: 1.5rem;
+
+    .section-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+
+      svg {
+        width: 24px;
+        height: 24px;
+        color: #ffc807;
+        margin-bottom: 0.5rem;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+      }
+
+      p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+      }
+    }
+
+    .dropbox-path-selector {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+
+      label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0.75rem;
+      }
+
+      .path-display {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+
+        .selected-path {
+          color: #ffc807;
+          font-family: monospace;
+          font-size: 0.9rem;
+          word-break: break-all;
+        }
+
+        .no-path {
+          color: rgba(255, 255, 255, 0.5);
+          font-style: italic;
+        }
+      }
+
+      .path-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+
+        .save-path-button {
+          background: linear-gradient(135deg, #ffc807, #e6b800);
+          color: #000;
+          border: none;
+          border-radius: 8px;
+          padding: 0.75rem 1.5rem;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #e6b800, #cc9900);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 200, 7, 0.4);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+
+          &:active:not(:disabled) {
+            transform: translateY(0);
+          }
+        }
+      }
+    }
+  }
+
+  // Danger Zone Styles
+  .danger-zone {
+    padding: 1.5rem;
+
+    .section-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+
+      svg {
+        width: 24px;
+        height: 24px;
+        color: #f44336;
+        margin-bottom: 0.5rem;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #f44336;
+      }
+
+      p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+      }
+    }
+
+    .danger-actions {
+      .settings-item {
+        background: rgba(244, 67, 54, 0.1);
+        border: 1px solid rgba(244, 67, 54, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .item-info {
+          h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+          }
+
+          p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+          }
+        }
+
+        .item-actions {
+          .delete-button {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+
+            &:hover {
+              background: linear-gradient(135deg, #d32f2f, #b71c1c);
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+            }
+
+            &:active {
+              transform: translateY(0);
+            }
+          }
+        }
       }
     }
   }

@@ -623,6 +623,257 @@
     }
   }
 
+  // Dropbox Section
+  .dropbox-section {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    h3 {
+      font-size: 1.1rem;
+      color: #ffc807;
+      margin-bottom: 1rem;
+    }
+
+    .section-description {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
+    }
+
+    .dropbox-config {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+
+      .input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0 1rem;
+        transition: all 0.2s ease;
+
+        &:focus-within {
+          border-color: #ffc807;
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        svg {
+          font-size: 1.25rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 0.75rem 0;
+          color: white;
+          font-size: 0.9rem;
+
+          &:focus {
+            outline: none;
+            border: none;
+            background: transparent;
+          }
+
+          &::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+          }
+        }
+      }
+
+      .path-structure-config {
+        position: relative;
+
+        .input-wrapper {
+          position: relative;
+
+          .help-button {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 200, 7, 0.1);
+            border: 1px solid rgba(255, 200, 7, 0.3);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffc807;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.2s ease;
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.2);
+              border-color: rgba(255, 200, 7, 0.5);
+              transform: translateY(-50%) scale(1.1);
+            }
+          }
+
+          input {
+            padding-right: 3rem;
+          }
+        }
+
+        .error-message {
+          color: #ff4444;
+          font-size: 0.8rem;
+          margin-top: 0.5rem;
+          padding-left: 1rem;
+        }
+
+        .path-preview {
+          margin-top: 0.75rem;
+          padding: 0.75rem 1rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          .preview-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            min-width: fit-content;
+          }
+
+          code {
+            background: rgba(255, 200, 7, 0.1);
+            color: #ffc807;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            flex: 1;
+          }
+        }
+
+        .dropbox-help-panel {
+          margin-top: 1rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 1rem;
+          animation: slideDown 0.2s ease-out;
+
+          h4 {
+            color: #ffc807;
+            font-size: 0.95rem;
+            margin: 0 0 0.75rem 0;
+            font-weight: 600;
+          }
+
+          .placeholders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+
+            .placeholder-item {
+              display: grid;
+              grid-template-columns: auto 1fr auto;
+              gap: 0.75rem;
+              align-items: center;
+              padding: 0.5rem;
+              background: rgba(255, 255, 255, 0.02);
+              border-radius: 4px;
+              transition: all 0.2s ease;
+
+              &:hover {
+                background: rgba(255, 255, 255, 0.05);
+              }
+
+              code {
+                background: rgba(255, 200, 7, 0.15);
+                color: #ffc807;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                min-width: fit-content;
+
+                &:hover {
+                  background: rgba(255, 200, 7, 0.25);
+                  transform: scale(1.05);
+                }
+              }
+
+              .placeholder-desc {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 0.8rem;
+              }
+
+              .placeholder-example {
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 0.75rem;
+                font-family: 'Courier New', monospace;
+                min-width: fit-content;
+              }
+            }
+          }
+
+          .help-examples {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 0.75rem;
+
+            h5 {
+              color: rgba(255, 255, 255, 0.8);
+              font-size: 0.85rem;
+              margin: 0 0 0.5rem 0;
+              font-weight: 500;
+            }
+
+            .example-item {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              margin-bottom: 0.5rem;
+              font-size: 0.8rem;
+
+              code {
+                background: rgba(255, 255, 255, 0.05);
+                color: rgba(255, 255, 255, 0.8);
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                min-width: fit-content;
+              }
+
+              span {
+                color: rgba(255, 255, 255, 0.6);
+                font-family: 'Courier New', monospace;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .logo-upload {
     &.error {
       label {

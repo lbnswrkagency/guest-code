@@ -142,7 +142,6 @@ const fulfillOrder = async (session, billingAddress) => {
       throw new Error(`Event with ID ${eventId} not found`);
     }
 
-
     // Get customer email from session (try multiple possible locations)
     const email =
       session.metadata.email ||

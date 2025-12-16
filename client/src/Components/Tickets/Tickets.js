@@ -76,7 +76,9 @@ const Tickets = ({
   event,
   ticketSettings: providedTicketSettings,
 }) => {
-  const [ticketSettings, setTicketSettings] = useState(providedTicketSettings || []);
+  const [ticketSettings, setTicketSettings] = useState(
+    providedTicketSettings || []
+  );
   const [loadingTickets, setLoadingTickets] = useState(!providedTicketSettings);
   const toast = useToast();
   const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
@@ -141,7 +143,7 @@ const Tickets = ({
     if (providedTicketSettings && providedTicketSettings.length > 0) {
       setTicketSettings(providedTicketSettings);
       setLoadingTickets(false);
-      
+
       // Set primary color from first ticket if available
       if (providedTicketSettings[0].color) {
         setPrimaryColor(providedTicketSettings[0].color);
@@ -190,9 +192,12 @@ const Tickets = ({
     if (providedTicketSettings) {
       setTicketSettings(providedTicketSettings);
       setLoadingTickets(false);
-      
+
       // Set primary color from first ticket if available
-      if (providedTicketSettings.length > 0 && providedTicketSettings[0].color) {
+      if (
+        providedTicketSettings.length > 0 &&
+        providedTicketSettings[0].color
+      ) {
         setPrimaryColor(providedTicketSettings[0].color);
         document.documentElement.style.setProperty(
           "--ticket-primary-color",
@@ -222,7 +227,10 @@ const Tickets = ({
             quantity: ticket.quantity || 0,
             available: ticket.available !== undefined ? ticket.available : true,
             // Respect hasCountdown from DB, only default to true if not explicitly set
-            hasCountdown: ticket.hasCountdown !== undefined ? ticket.hasCountdown : !!ticket.endDate,
+            hasCountdown:
+              ticket.hasCountdown !== undefined
+                ? ticket.hasCountdown
+                : !!ticket.endDate,
             endDate: ticket.endDate || null,
             ...ticket,
           };
@@ -703,7 +711,13 @@ const Tickets = ({
         </div>
       </div>
     ),
-    [ticketQuantities, primaryColor, renderCountdown, renderLimitedBadge, handleQuantityChange]
+    [
+      ticketQuantities,
+      primaryColor,
+      renderCountdown,
+      renderLimitedBadge,
+      handleQuantityChange,
+    ]
   );
 
   // Helper function to calculate discount percentage
@@ -753,7 +767,9 @@ const Tickets = ({
             {/* Online Savings Hint - Show for online payments with door prices */}
             {validatedTickets.length > 0 &&
               validatedTickets[0].paymentMethod === "online" &&
-              validatedTickets.some((ticket) => ticket.doorPrice > ticket.price) && (
+              validatedTickets.some(
+                (ticket) => ticket.doorPrice > ticket.price
+              ) && (
                 <div className="online-savings-hint">
                   <FaTag />
                   <span>

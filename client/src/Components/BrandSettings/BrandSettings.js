@@ -7,14 +7,21 @@ import {
   RiShieldUserLine,
   RiUserAddLine,
   RiBarChart2Line,
+  RiUpload2Line,
 } from "react-icons/ri";
 import TeamManagement from "../TeamManagement/TeamManagement";
 import RoleSetting from "../RoleSetting/RoleSetting";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import DropboxFolderBrowser from "../DropboxFolderBrowser/DropboxFolderBrowser";
 import "./BrandSettings.scss";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import AuthContext from "../../contexts/AuthContext";
+import { 
+  getAvailablePlaceholders, 
+  previewPathStructure, 
+  isValidPathStructure 
+} from "../../utils/dropboxUtils";
 
 const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) => {
   const [showTeamManagement, setShowTeamManagement] = useState(false);
@@ -35,6 +42,44 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     spotifyPlaylistId: brand.spotifyPlaylistId || "",
   });
   const [isSavingSpotify, setIsSavingSpotify] = useState(false);
+
+  // Dropbox integration states
+  const [dropboxConfig, setDropboxConfig] = useState({
+    baseFolder: brand.dropboxBaseFolder || "",
+    dateFormat: brand.dropboxDateFormat || "YYYYMMDD",
+    pathStructure: brand.dropboxPathStructure || "/{YYYYMMDD}/photos",
+    videoPathStructure: brand.dropboxVideoPathStructure || "/{YYYYMMDD}/videos",
+    photoSubfolder: brand.dropboxPhotoSubfolder || "",
+    videoSubfolder: brand.dropboxVideoSubfolder || "",
+  });
+
+  // Available date formats for selector
+  const dateFormats = [
+    { value: "YYYYMMDD", label: "YYYYMMDD", example: () => {
+      const d = new Date();
+      return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    }},
+    { value: "DDMMYYYY", label: "DDMMYYYY", example: () => {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${d.getFullYear()}`;
+    }},
+    { value: "DDMMYY", label: "DDMMYY", example: () => {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}`;
+    }},
+    { value: "MMDDYYYY", label: "MMDDYYYY", example: () => {
+      const d = new Date();
+      return `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${d.getFullYear()}`;
+    }},
+    { value: "MMDDYY", label: "MMDDYY", example: () => {
+      const d = new Date();
+      return `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}`;
+    }},
+  ];
+  const [isSavingDropbox, setIsSavingDropbox] = useState(false);
+  const [showDropboxHelp, setShowDropboxHelp] = useState(false);
+  const [pathStructureError, setPathStructureError] = useState("");
+  const [videoPathStructureError, setVideoPathStructureError] = useState("");
 
   const { showSuccess, showError } = useToast();
   const { user } = useContext(AuthContext);
@@ -87,6 +132,25 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     brand.spotifyClientId,
     brand.spotifyClientSecret,
     brand.spotifyPlaylistId,
+  ]);
+
+  // Sync dropboxConfig when brand data changes/loads
+  useEffect(() => {
+    setDropboxConfig({
+      baseFolder: brand.dropboxBaseFolder || "",
+      dateFormat: brand.dropboxDateFormat || "YYYYMMDD",
+      pathStructure: brand.dropboxPathStructure || "/{YYYYMMDD}/photos",
+      videoPathStructure: brand.dropboxVideoPathStructure || "/{YYYYMMDD}/videos",
+      photoSubfolder: brand.dropboxPhotoSubfolder || "",
+      videoSubfolder: brand.dropboxVideoSubfolder || "",
+    });
+  }, [
+    brand.dropboxBaseFolder,
+    brand.dropboxDateFormat,
+    brand.dropboxPathStructure,
+    brand.dropboxVideoPathStructure,
+    brand.dropboxPhotoSubfolder,
+    brand.dropboxVideoSubfolder,
   ]);
 
   const fetchRoles = async () => {
@@ -284,6 +348,61 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     }
   };
 
+  const saveDropboxConfig = async () => {
+    if (!brand || !brand._id) {
+      showError("Brand information is missing.");
+      return;
+    }
+
+    // Validate photo path structure before saving
+    if (dropboxConfig.pathStructure && !isValidPathStructure(dropboxConfig.pathStructure)) {
+      showError("Invalid photo path structure. Must contain valid date placeholders.");
+      return;
+    }
+
+    // Validate video path structure before saving
+    if (dropboxConfig.videoPathStructure && !isValidPathStructure(dropboxConfig.videoPathStructure)) {
+      showError("Invalid video path structure. Must contain valid date placeholders.");
+      return;
+    }
+
+    setIsSavingDropbox(true);
+    try {
+      const response = await axiosInstance.put(`/brands/${brand._id}`, {
+        dropboxBaseFolder: dropboxConfig.baseFolder,
+        dropboxDateFormat: dropboxConfig.dateFormat,
+        dropboxPathStructure: dropboxConfig.pathStructure,
+        dropboxVideoPathStructure: dropboxConfig.videoPathStructure,
+        dropboxPhotoSubfolder: dropboxConfig.photoSubfolder,
+        dropboxVideoSubfolder: dropboxConfig.videoSubfolder,
+      });
+
+      showSuccess("Dropbox configuration updated successfully!");
+
+      // Update the brand object in the parent component if needed
+      if (onSave) {
+        const updatedBrandData = {
+          ...brand,
+          dropboxBaseFolder: dropboxConfig.baseFolder,
+          dropboxDateFormat: dropboxConfig.dateFormat,
+          dropboxPathStructure: dropboxConfig.pathStructure,
+          dropboxVideoPathStructure: dropboxConfig.videoPathStructure,
+          dropboxPhotoSubfolder: dropboxConfig.photoSubfolder,
+          dropboxVideoSubfolder: dropboxConfig.videoSubfolder,
+        };
+        onSave(updatedBrandData, true);
+      }
+    } catch (error) {
+      console.error("Error updating Dropbox configuration:", error);
+      showError(
+        error.response?.data?.message ||
+          "Failed to update Dropbox configuration."
+      );
+    } finally {
+      setIsSavingDropbox(false);
+    }
+  };
+
   return (
     <div
       className="brand-settings-container"
@@ -470,6 +589,256 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
                   >
                     {isSavingSpotify ? "Saving..." : "Save Spotify Configuration"}
                   </motion.button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dropbox Integration Section - Owner only */}
+          {hasFullSettingsAccess() && (
+            <div className="settings-section settings-dropbox">
+              <h3>
+                <RiUpload2Line />
+                Dropbox Integration
+              </h3>
+              <div className="setting-item dropbox-setting">
+                <div className="setting-details">
+                  <h4>Dropbox Configuration</h4>
+                  <p>
+                    Configure your Dropbox folder structure for automatic event gallery path generation.
+                    Connect your Dropbox account to organize event photos automatically.
+                  </p>
+
+                  <div className="dropbox-config">
+                    <div className="config-section">
+                      <label>Base Folder</label>
+                      <DropboxFolderBrowser
+                        selectedPath={dropboxConfig.baseFolder}
+                        onSelectPath={(path) => {
+                          setDropboxConfig(prev => ({ ...prev, baseFolder: path }));
+                        }}
+                        placeholder="Select your brand's base folder in Dropbox"
+                      />
+                      <small className="help-text">
+                        This is the root folder in your Dropbox where all event folders will be organized.
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <label>Date Format</label>
+                      <div className="date-format-selector">
+                        {dateFormats.map((format) => (
+                          <button
+                            key={format.value}
+                            type="button"
+                            className={`date-format-chip ${dropboxConfig.dateFormat === format.value ? 'active' : ''}`}
+                            onClick={() => {
+                              setDropboxConfig(prev => ({ ...prev, dateFormat: format.value }));
+                            }}
+                          >
+                            {format.label}
+                          </button>
+                        ))}
+                      </div>
+                      <small className="help-text date-format-sample">
+                        Sample: {dateFormats.find(f => f.value === dropboxConfig.dateFormat)?.example()}
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <label>Photo Path Structure</label>
+                      <div className="path-structure-input">
+                        <div className="input-wrapper">
+                          <RiUpload2Line />
+                          <input
+                            type="text"
+                            placeholder="e.g., /{YYYYMMDD}/photos"
+                            value={dropboxConfig.pathStructure}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setDropboxConfig(prev => ({ ...prev, pathStructure: value }));
+
+                              // Validate path structure
+                              if (value && !isValidPathStructure(value)) {
+                                setPathStructureError("Invalid path structure. Must contain valid date placeholders.");
+                              } else {
+                                setPathStructureError("");
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="help-button"
+                            onClick={() => setShowDropboxHelp(!showDropboxHelp)}
+                            title="Show available placeholders"
+                          >
+                            ?
+                          </button>
+                        </div>
+
+                        {pathStructureError && (
+                          <div className="error-message">{pathStructureError}</div>
+                        )}
+
+                        {/* Preview */}
+                        {dropboxConfig.baseFolder && dropboxConfig.pathStructure && (
+                          <div className="path-preview">
+                            <span className="preview-label">Preview: </span>
+                            <code>
+                              {dropboxConfig.baseFolder}
+                              {previewPathStructure(dropboxConfig.pathStructure, new Date(), dropboxConfig.dateFormat, dropboxConfig.photoSubfolder)}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                      <small className="help-text">
+                        Define how photo gallery folders are organized using date placeholders.
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <label>Photo Subfolder (Last Folder)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., branded, raw, edited"
+                        value={dropboxConfig.photoSubfolder}
+                        onChange={(e) => {
+                          setDropboxConfig(prev => ({ ...prev, photoSubfolder: e.target.value }));
+                        }}
+                        className="subfolder-input"
+                      />
+                      <small className="help-text">
+                        Optional: Final folder name to append (e.g., "branded" results in /photos/branded)
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <label>Video Path Structure</label>
+                      <div className="path-structure-input">
+                        <div className="input-wrapper">
+                          <RiUpload2Line />
+                          <input
+                            type="text"
+                            placeholder="e.g., /{YYYYMMDD}/videos"
+                            value={dropboxConfig.videoPathStructure}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setDropboxConfig(prev => ({ ...prev, videoPathStructure: value }));
+
+                              // Validate video path structure
+                              if (value && !isValidPathStructure(value)) {
+                                setVideoPathStructureError("Invalid path structure. Must contain valid date placeholders.");
+                              } else {
+                                setVideoPathStructureError("");
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="help-button"
+                            onClick={() => setShowDropboxHelp(!showDropboxHelp)}
+                            title="Show available placeholders"
+                          >
+                            ?
+                          </button>
+                        </div>
+
+                        {videoPathStructureError && (
+                          <div className="error-message">{videoPathStructureError}</div>
+                        )}
+
+                        {/* Preview */}
+                        {dropboxConfig.baseFolder && dropboxConfig.videoPathStructure && (
+                          <div className="path-preview">
+                            <span className="preview-label">Preview: </span>
+                            <code>
+                              {dropboxConfig.baseFolder}
+                              {previewPathStructure(dropboxConfig.videoPathStructure, new Date(), dropboxConfig.dateFormat, dropboxConfig.videoSubfolder)}
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                      <small className="help-text">
+                        Define how video gallery folders are organized using date placeholders.
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <label>Video Subfolder (Last Folder)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., branded, raw, edited"
+                        value={dropboxConfig.videoSubfolder}
+                        onChange={(e) => {
+                          setDropboxConfig(prev => ({ ...prev, videoSubfolder: e.target.value }));
+                        }}
+                        className="subfolder-input"
+                      />
+                      <small className="help-text">
+                        Optional: Final folder name to append (e.g., "branded" results in /videos/branded)
+                      </small>
+                    </div>
+
+                    {/* Help panel */}
+                    <AnimatePresence>
+                      {showDropboxHelp && (
+                        <motion.div
+                          className="dropbox-help-panel"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                        >
+                          <h4>Available Placeholders:</h4>
+                          <div className="placeholders-list">
+                            {getAvailablePlaceholders().map((item) => (
+                              <div key={item.placeholder} className="placeholder-item">
+                                <code onClick={() => {
+                                  const currentValue = dropboxConfig.pathStructure;
+                                  const newValue = currentValue + item.placeholder;
+                                  setDropboxConfig(prev => ({ ...prev, pathStructure: newValue }));
+                                }}>
+                                  {item.placeholder}
+                                </code>
+                                <span className="placeholder-desc">{item.description}</span>
+                                <span className="placeholder-example">Example: {item.example}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="help-examples">
+                            <h5>Examples:</h5>
+                            <div className="example-item">
+                              <code>/&#123;YYYYMMDD&#125;/photos</code>
+                              <span>→ /20251227/photos</span>
+                            </div>
+                            <div className="example-item">
+                              <code>/Galleries/&#123;YYYY&#125;/&#123;MM&#125;/Event-&#123;DD&#125;</code>
+                              <span>→ /Galleries/2025/12/Event-27</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.button
+                      className="save-btn"
+                      onClick={saveDropboxConfig}
+                      disabled={isSavingDropbox || !!pathStructureError || !!videoPathStructureError}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {isSavingDropbox ? (
+                        <>
+                          <div className="loading-spinner" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <RiUpload2Line />
+                          Save Dropbox Configuration
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </div>
