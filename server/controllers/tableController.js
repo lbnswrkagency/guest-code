@@ -250,9 +250,8 @@ const addTableCode = async (req, res) => {
         // Set up the email sender using Brevo
         const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-        // Prioritize startDate over date
-        const eventDate =
-          eventDetailsForEmail?.startDate || eventDetailsForEmail?.date;
+        // Use startDate
+        const eventDate = eventDetailsForEmail?.startDate;
         const formattedDate = formatCodeDate(eventDate);
         const formattedDateDE = formatDateDE(eventDate);
         const dayOfWeek = getDayOfWeek(eventDate);
@@ -789,7 +788,7 @@ const sendTableCodeEmail = async (req, res) => {
     ];
 
     // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const formattedDate = formatCodeDate(eventDate);
     const formattedDateDE = formatDateDE(eventDate);
     const dayOfWeek = getDayOfWeek(eventDate);
@@ -967,7 +966,7 @@ const sendTableConfirmationEmail = async (req, res) => {
     ];
 
     // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const formattedDate = formatCodeDate(eventDate);
     const formattedDateDE = formatDateDE(eventDate);
     const dayOfWeek = getDayOfWeek(eventDate);
@@ -1162,7 +1161,7 @@ const sendTableCancellationEmail = async (req, res) => {
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
     // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const formattedDate = formatCodeDate(eventDate);
 
     // Determine table type
@@ -1335,7 +1334,7 @@ const sendTableDeclinedEmail = async (req, res) => {
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
     // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const formattedDate = formatCodeDate(eventDate);
 
     // Determine table type
@@ -1490,7 +1489,7 @@ const generateTablePNG = async (tableCode, event) => {
     const endTime = event?.endTime || "06:00";
 
     // Prioritize startDate over date with null checks
-    const eventDate = event?.startDate || event?.date || new Date();
+    const eventDate = event?.startDate || new Date();
 
     // Get formatted dates and day of week
     const formattedDateDE = formatDateDE(eventDate);
@@ -1876,7 +1875,7 @@ const generateTablePDF = async (tableCode, event) => {
     }
 
     // Format date - prioritize startDate over date with null checks
-    const eventDate = event?.startDate || event?.date || new Date();
+    const eventDate = event?.startDate || new Date();
     const formattedDate = formatCodeDate(eventDate);
     const formattedDateDE = formatDateDE(eventDate);
     const dayOfWeek = getDayOfWeek(eventDate);
@@ -2316,7 +2315,7 @@ const sendTableUpdateEmail = async (req, res) => {
     ];
 
     // Prioritize startDate over date
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const formattedDate = formatCodeDate(eventDate);
 
     // Determine table type
@@ -2774,8 +2773,8 @@ const generateSummaryPDF = async (eventTableData) => {
       revenue: eventRevenue
     };
   }).sort((a, b) => {
-    const dateA = new Date(a.event.startDate || a.event.date);
-    const dateB = new Date(b.event.startDate || b.event.date);
+    const dateA = new Date(a.event.startDate);
+    const dateB = new Date(b.event.startDate);
     return dateB - dateA;
   });
 
@@ -3118,7 +3117,7 @@ const generateSummaryPDF = async (eventTableData) => {
             <div>
               <div class="event-title">${summary.event.title}</div>
               <div class="event-meta">
-                ${formatCodeDate(summary.event.startDate || summary.event.date)}
+                ${formatCodeDate(summary.event.startDate)}
                 ${summary.event.isWeekly ? ' • Weekly Series' : ''}
               </div>
             </div>
@@ -3164,7 +3163,7 @@ const generateSummaryPDF = async (eventTableData) => {
           ${summary.childEvents.map(child => `
             <div class="child-event">
               <div class="child-event-header">
-                <div class="child-event-title">Week ${child.weekNumber} - ${formatCodeDate(child.event.startDate || child.event.date)}</div>
+                <div class="child-event-title">Week ${child.weekNumber} - ${formatCodeDate(child.event.startDate)}</div>
                 <div class="child-event-stats">
                   <span>${child.checkedInTables}/${child.tableCount} checked-in</span>
                   <span>${child.checkedInPax}/${child.paxCount} guests</span>
@@ -3405,7 +3404,7 @@ const generateTablePlanPDF = async (req, res) => {
     const pdfBuffer = await generateMinimalisticPlanPDF(event, tablesByArea, sortedAreas);
 
     // Set response headers
-    const eventDate = event.startDate || event.date;
+    const eventDate = event.startDate;
     const formattedDate = eventDate ? new Date(eventDate).toISOString().split('T')[0] : 'NoDate';
     const filename = `Table_Plan_${event.title.replace(/\s+/g, '_')}_${formattedDate}.pdf`;
 
@@ -3430,7 +3429,7 @@ const generateTablePlanPDF = async (req, res) => {
  * Designed to minimize ink usage with white background and simple styling
  */
 const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => {
-  const eventDate = event.startDate || event.date;
+  const eventDate = event.startDate;
   const formattedDate = eventDate ? formatCodeDate(eventDate) : 'No Date';
   const totalTables = Object.values(tablesByArea).reduce((sum, tables) => sum + tables.length, 0);
 

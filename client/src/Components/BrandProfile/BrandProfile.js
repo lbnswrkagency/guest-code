@@ -1184,14 +1184,14 @@ const BrandProfile = () => {
                     {/* Dynamic text based on content type */}
                     <span className="button-text-full">
                       {brandHasGalleries && brandHasVideoGalleries
-                        ? "Gallery"
+                        ? "Media"
                         : brandHasGalleries
                         ? "Photos"
                         : "Videos"}
                     </span>
                     <span className="button-text-short">
                       {brandHasGalleries && brandHasVideoGalleries
-                        ? "Gallery"
+                        ? "Media"
                         : brandHasGalleries
                         ? "Photos"
                         : "Videos"}
@@ -1199,10 +1199,10 @@ const BrandProfile = () => {
                     {!isActionButtonsSticky && (
                       <p>
                         {brandHasGalleries && brandHasVideoGalleries
-                          ? "View event media"
+                          ? "Photos & Videos"
                           : brandHasGalleries
-                          ? "View event photos"
-                          : "View event videos"}
+                          ? "Photo gallery"
+                          : "Video gallery"}
                       </p>
                     )}
                   </div>

@@ -97,7 +97,7 @@ const generateCodePDF = async (code, event, codeSettings) => {
     const qrCodeDataUrl = await generateCodeQR(code._id, code.securityToken);
 
     // Format date
-    const eventDate = formatCodeDate(event?.startDate || event?.date);
+    const eventDate = formatCodeDate(event?.startDate);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -474,7 +474,7 @@ const getCodePNG = async (req, res) => {
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
     // Format date
-    const eventDate = formatCodeDate(event?.startDate || event?.date);
+    const eventDate = formatCodeDate(event?.startDate);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -695,7 +695,7 @@ const getCodePNGDownload = async (req, res) => {
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
     // Format date
-    const eventDate = formatCodeDate(event?.startDate || event?.date);
+    const eventDate = formatCodeDate(event?.startDate);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {

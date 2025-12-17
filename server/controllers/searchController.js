@@ -117,9 +117,9 @@ exports.search = async (req, res) => {
                 eventEndDate.setHours(23, 59, 59);
               }
             }
-            // No explicit endDate, use date/startDate as the event date
+            // No explicit endDate, use startDate as the event date
             else {
-              const eventDate = event.startDate || event.date;
+              const eventDate = event.startDate;
               if (!eventDate) return false; // No date information at all
 
               eventEndDate = new Date(eventDate);
@@ -143,9 +143,7 @@ exports.search = async (req, res) => {
 
           // Sort by closest upcoming date
           results.sort((a, b) => {
-            const dateA = a.startDate || a.date;
-            const dateB = b.startDate || b.date;
-            return new Date(dateA) - new Date(dateB);
+            return new Date(a.startDate) - new Date(b.startDate);
           });
 
           // Limit to 10 after filtering
@@ -156,7 +154,6 @@ exports.search = async (req, res) => {
           results = results.map((event) => ({
             _id: event._id,
             name: event.title,
-            date: event.date,
             startDate: event.startDate,
             endDate: event.endDate,
             avatar:
@@ -243,9 +240,9 @@ exports.search = async (req, res) => {
                   eventEndDate.setHours(23, 59, 59);
                 }
               }
-              // No explicit endDate, use date/startDate as the event date
+              // No explicit endDate, use startDate as the event date
               else {
-                const eventDate = event.startDate || event.date;
+                const eventDate = event.startDate;
                 if (!eventDate) return false; // No date information at all
 
                 eventEndDate = new Date(eventDate);
@@ -266,9 +263,7 @@ exports.search = async (req, res) => {
             })
             // Sort by date and limit to 5
             .sort((a, b) => {
-              const dateA = a.startDate || a.date;
-              const dateB = b.startDate || b.date;
-              return new Date(dateA) - new Date(dateB);
+              return new Date(a.startDate) - new Date(b.startDate);
             })
             .slice(0, 5);
 
@@ -284,7 +279,6 @@ exports.search = async (req, res) => {
             ...events.map((event) => ({
               _id: event._id,
               name: event.title,
-              date: event.date,
               startDate: event.startDate,
               endDate: event.endDate,
               avatar:

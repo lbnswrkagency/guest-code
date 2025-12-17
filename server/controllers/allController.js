@@ -90,9 +90,7 @@ exports.getUpcomingEventData = async (req, res) => {
 
     // Step 4: Quick event processing (minimal calculations since we pre-filtered)
     const processedEvents = allEvents.map((event) => {
-      const startDate = event.startDate
-        ? new Date(event.startDate)
-        : new Date(event.date);
+      const startDate = new Date(event.startDate);
 
       let endDate;
       if (event.endDate) {

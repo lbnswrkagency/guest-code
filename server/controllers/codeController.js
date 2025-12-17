@@ -792,7 +792,7 @@ const generateCodePDF = async (code, event, codeSettings) => {
     const accentColor = brand?.colors?.accent || "#000000";
 
     // Format date
-    const eventDate = formatCodeDate(event?.date);
+    const eventDate = formatCodeDate(event?.startDate);
 
     // Generate QR code
     const qrCodeDataUrl = await generateCodeQR(code._id);
@@ -1002,7 +1002,7 @@ const sendCodeEmail = async (code, email, pdfBuffer) => {
     const htmlContent = createEventEmailTemplate({
       recipientName: code.guestName || "Guest",
       eventTitle: event?.title || "Event",
-      eventDate: event?.date,
+      eventDate: event?.startDate,
       eventLocation: event?.location || event?.venue || "",
       eventAddress: event?.street || event?.address || "",
       eventCity: event?.city || "",

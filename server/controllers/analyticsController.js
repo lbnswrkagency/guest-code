@@ -217,7 +217,7 @@ exports.getAnalyticsSummary = async (req, res) => {
       totals,
       eventInfo: {
         title: event.title,
-        date: event.startDate || event.date,
+        date: event.startDate,
         location: event.location,
       },
     };

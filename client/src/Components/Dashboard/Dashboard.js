@@ -144,12 +144,10 @@ const Dashboard = () => {
     // Filter for upcoming and ongoing events
     const upcomingEvents = brandEvents.filter((event) => {
       // Skip events with no date information
-      if (!event.startDate && !event.date) return false;
+      if (!event.startDate) return false;
 
-      // Get the event date and time - prioritize startDate over date
-      const eventDate = event.startDate
-        ? new Date(event.startDate)
-        : new Date(event.date);
+      // Get the event date and time
+      const eventDate = new Date(event.startDate);
 
       // Parse end time (HH:MM format) or use end of day
       let eventEndDateTime = new Date(eventDate);
@@ -181,38 +179,29 @@ const Dashboard = () => {
     // Sort upcoming events by date (ascending)
     if (upcomingEvents.length > 0) {
       upcomingEvents.sort((a, b) => {
-        const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
-        const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
-        return dateA - dateB;
+        return new Date(a.startDate) - new Date(b.startDate);
       });
 
       // Get the most imminent event
       const nextEvent = upcomingEvents[0];
-      const nextEventDate = nextEvent.startDate || nextEvent.date;
-      return new Date(nextEventDate).toISOString().split("T")[0];
+      return new Date(nextEvent.startDate).toISOString().split("T")[0];
     }
 
     // If no upcoming events, find the most recent past event
     const pastEvents = brandEvents.filter((event) => {
-      if (!event.startDate && !event.date) return false;
-      const eventDate = event.startDate
-        ? new Date(event.startDate)
-        : new Date(event.date);
+      if (!event.startDate) return false;
+      const eventDate = new Date(event.startDate);
       return eventDate <= now;
     });
 
     if (pastEvents.length > 0) {
       // Sort by date descending to get the most recent
       pastEvents.sort((a, b) => {
-        const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
-        const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
-        return dateB - dateA;
+        return new Date(b.startDate) - new Date(a.startDate);
       });
 
       const recentEvent = pastEvents[0];
-      return new Date(recentEvent.startDate || recentEvent.date)
-        .toISOString()
-        .split("T")[0];
+      return new Date(recentEvent.startDate).toISOString().split("T")[0];
     }
 
     return null;
@@ -238,12 +227,10 @@ const Dashboard = () => {
       // First check for active events (ongoing right now)
       const activeEvents = brandEvents.filter((event) => {
         // Skip events without any date information
-        if (!event.startDate && !event.date) return false;
+        if (!event.startDate) return false;
 
-        // Get the event date - prioritize startDate
-        const eventDate = event.startDate
-          ? new Date(event.startDate)
-          : new Date(event.date);
+        // Get the event date
+        const eventDate = new Date(event.startDate);
 
         // Calculate end date/time
         let eventEndDateTime;
@@ -292,9 +279,7 @@ const Dashboard = () => {
           const getEndDate = (event) => {
             const baseDate = event.endDate
               ? new Date(event.endDate)
-              : event.startDate
-              ? new Date(event.startDate)
-              : new Date(event.date);
+              : new Date(event.startDate);
 
             if (event.endTime) {
               const [hours, minutes] = event.endTime.split(":").map(Number);
@@ -322,9 +307,7 @@ const Dashboard = () => {
         // Use the active event with the soonest end time
         const activeEvent = sortedActiveEvents[0];
         nextEventBrand = brandWithData;
-        nextEventDate = new Date(activeEvent.startDate || activeEvent.date)
-          .toISOString()
-          .split("T")[0];
+        nextEventDate = new Date(activeEvent.startDate).toISOString().split("T")[0];
 
         // This is active, so it has the highest priority
         return { brand: nextEventBrand, date: nextEventDate };
@@ -333,12 +316,10 @@ const Dashboard = () => {
       // If no active events, filter for upcoming events
       const upcomingEvents = brandEvents.filter((event) => {
         // Skip events without any date information
-        if (!event.startDate && !event.date) return false;
+        if (!event.startDate) return false;
 
-        // Get the event date - prioritize startDate
-        const eventDate = event.startDate
-          ? new Date(event.startDate)
-          : new Date(event.date);
+        // Get the event date
+        const eventDate = new Date(event.startDate);
 
         // Include time information for more accurate comparison
         return eventDate > now;
@@ -346,26 +327,20 @@ const Dashboard = () => {
 
       // Sort by date (ascending)
       const sortedEvents = upcomingEvents.sort((a, b) => {
-        const dateA = a.startDate ? new Date(a.startDate) : new Date(a.date);
-        const dateB = b.startDate ? new Date(b.startDate) : new Date(b.date);
-        return dateA - dateB;
+        return new Date(a.startDate) - new Date(b.startDate);
       });
 
       if (sortedEvents.length > 0) {
         // Find the event closest to now
         const closestEvent = sortedEvents[0];
-        const eventDate = closestEvent.startDate
-          ? new Date(closestEvent.startDate)
-          : new Date(closestEvent.date);
+        const eventDate = new Date(closestEvent.startDate);
         const timeDiff = eventDate - now;
 
         // Set as next event date if it's closer than current closest
         if (timeDiff < closestTimeDiff) {
           closestTimeDiff = timeDiff;
           nextEventBrand = brandWithData;
-          nextEventDate = new Date(closestEvent.startDate || closestEvent.date)
-            .toISOString()
-            .split("T")[0];
+          nextEventDate = new Date(closestEvent.startDate).toISOString().split("T")[0];
         }
       }
     }
@@ -448,12 +423,10 @@ const Dashboard = () => {
       const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
 
       const eventForDate = brandEvents.find((event) => {
-        if (!event.startDate && !event.date) return false;
+        if (!event.startDate) return false;
 
-        // Format date for comparison - prioritize startDate
-        const eventDateStr = event.startDate
-          ? new Date(event.startDate).toISOString().split("T")[0]
-          : new Date(event.date).toISOString().split("T")[0];
+        // Format date for comparison
+        const eventDateStr = new Date(event.startDate).toISOString().split("T")[0];
 
         return eventDateStr === formattedDate;
       });

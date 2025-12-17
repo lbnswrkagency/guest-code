@@ -250,8 +250,8 @@ const Events = () => {
       if (!aIsFavorite && bIsFavorite) return 1;
 
       // Among same priority (both favorite or both not), sort by date (newest first)
-      const aDate = new Date(a.startDate || a.date);
-      const bDate = new Date(b.startDate || b.date);
+      const aDate = new Date(a.startDate);
+      const bDate = new Date(b.startDate);
       return bDate - aDate;
     });
   };
@@ -761,7 +761,7 @@ const EventCard = ({
       const now = new Date();
 
       // Get the event start date
-      const eventStartDate = new Date(event.startDate || event.date);
+      const eventStartDate = new Date(event.startDate);
 
       // If event start date is valid, calculate the next upcoming week
       if (!isNaN(eventStartDate.getTime())) {
@@ -836,7 +836,7 @@ const EventCard = ({
         setIsLive(receivedEvent.isLive || false);
       } catch (error) {
         // Create a fallback calculated occurrence
-        const weekDate = new Date(event.startDate || event.date);
+        const weekDate = new Date(event.startDate);
 
         if (isNaN(weekDate.getTime())) {
           throw new Error("Invalid date");
@@ -938,7 +938,7 @@ const EventCard = ({
     if (currentEvent.isWeekly && currentWeek > 0) {
       try {
         // Calculate the date for this week's occurrence
-        const weekDate = new Date(event.startDate || event.date);
+        const weekDate = new Date(event.startDate);
 
         // Check if the date is valid before proceeding
         if (isNaN(weekDate.getTime())) {
@@ -952,11 +952,10 @@ const EventCard = ({
           ...prev,
           weekNumber: currentWeek,
           startDate: weekDate.toISOString(),
-          date: weekDate.toISOString(), // Keep legacy date field for compatibility
         }));
       } catch (error) {}
     }
-  }, [currentWeek, event.startDate, event.date, currentEvent.isWeekly]);
+  }, [currentWeek, event.startDate, currentEvent.isWeekly]);
 
   // Calculate the date for the current week
   const getWeeklyDate = (baseDate, weekOffset) => {
@@ -1024,7 +1023,7 @@ const EventCard = ({
   };
 
   // Get the display date based on current event
-  const displayDate = currentEvent.startDate || currentEvent.date;
+  const displayDate = currentEvent.startDate;
 
   const handleGoLive = (e) => {
     e.stopPropagation();
@@ -1225,7 +1224,7 @@ const EventCard = ({
                 <div className="detail-item">
                   <RiCalendarEventLine />
                   <span>
-                    {formatDate(currentEvent.startDate || currentEvent.date)}
+                    {formatDate(currentEvent.startDate)}
                   </span>
                 </div>
               )}

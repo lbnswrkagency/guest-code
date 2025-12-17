@@ -121,7 +121,7 @@ const Search = ({ isOpen, onClose }) => {
         console.log("[Search] Event data for URL generation:", {
           id: item._id,
           name: item.name,
-          date: item.date || item.startDate,
+          startDate: item.startDate,
           brandUsername: item.brandUsername,
         });
 
@@ -143,8 +143,8 @@ const Search = ({ isOpen, onClose }) => {
           // Try to get a valid date
           let eventDate;
           try {
-            // Try to use startDate if date is null
-            eventDate = new Date(item.date || item.startDate);
+            // Use startDate
+            eventDate = new Date(item.startDate);
             // Check if date is valid
             if (isNaN(eventDate.getTime())) {
               throw new Error("Invalid date");
@@ -191,7 +191,7 @@ const Search = ({ isOpen, onClose }) => {
               hasBrand: !!item.brand || !!item.brandUsername,
               hasBrandUsername:
                 (item.brand && !!item.brand.username) || !!item.brandUsername,
-              hasDate: !!(item.date || item.startDate),
+              hasStartDate: !!item.startDate,
               hasName: !!item.name,
             }
           );
@@ -270,7 +270,7 @@ const Search = ({ isOpen, onClose }) => {
           {/* Event rendering kept but not visible until feature is enabled
           {item.type === "event" && (
             <p>
-              {formatEventDate(item.date || item.startDate)} •{" "}
+              {formatEventDate(item.startDate)} •{" "}
               {item.location || "TBD"}
             </p>
           )}

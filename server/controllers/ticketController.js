@@ -195,7 +195,7 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
     const htmlContent = createEventEmailTemplate({
       recipientName: `${order.firstName} ${order.lastName}`,
       eventTitle: eventWithLineups?.title || "Event",
-      eventDate: eventWithLineups?.startDate || eventWithLineups?.date,
+      eventDate: eventWithLineups?.startDate,
       eventLocation:
         eventWithLineups?.location || eventWithLineups?.venue || "",
       eventAddress: eventWithLineups?.street || "",
@@ -400,8 +400,8 @@ const generateTicketPDF = async (ticket) => {
     // Generate QR code
     const qrCodeDataUrl = await generateTicketQR(ticket.securityToken);
 
-    // Format date - prioritize startDate over date
-    const eventDate = formatTicketDate(event?.startDate || event?.date);
+    // Format date
+    const eventDate = formatTicketDate(event?.startDate);
 
     // Format ticket name for display - only show the first word (e.g., "EARLY" from "Early Bird")
     const ticketNameParts = ticket.ticketName.split(" ");

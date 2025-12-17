@@ -54,7 +54,7 @@ const createAadeReceipt = async (order, event) => {
         totalAmount: order.originalAmount,
       },
       eventName: event.title,
-      eventDate: event.startDate || event.date,
+      eventDate: event.startDate,
       eventTime: event.startTime,
       eventEndTime: event.endTime,
       eventLocation: event.location,

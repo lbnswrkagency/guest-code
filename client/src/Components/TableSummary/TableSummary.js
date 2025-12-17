@@ -69,8 +69,8 @@ function TableSummary({ isOpen, onClose, selectedEvent, selectedBrand }) {
         }
         
         // Otherwise sort by date (newest first)
-        const dateA = new Date(a.startDate || a.date);
-        const dateB = new Date(b.startDate || b.date);
+        const dateA = new Date(a.startDate);
+        const dateB = new Date(b.startDate);
         return dateB - dateA;
       });
       
@@ -89,9 +89,9 @@ function TableSummary({ isOpen, onClose, selectedEvent, selectedBrand }) {
   };
 
   const formatEventDate = (event) => {
-    // Try startDate first, then date as fallback
-    const dateValue = event.startDate || event.date;
-    
+    // Use startDate
+    const dateValue = event.startDate;
+
     if (!dateValue) {
       return "No Date";
     }

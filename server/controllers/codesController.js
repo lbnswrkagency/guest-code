@@ -1040,7 +1040,7 @@ const verifyCode = async (req, res) => {
       event: {
         _id: event._id,
         title: event.title,
-        date: event.date,
+        startDate: event.startDate,
         location: event.location,
       },
       codeSetting: codeSetting
@@ -1558,7 +1558,7 @@ const sendCodeByEmail = async (req, res) => {
     const emailHtml = createEventEmailTemplate({
       recipientName,
       eventTitle: event.title,
-      eventDate: event.date,
+      eventDate: event.startDate,
       eventLocation: event.location || event.venue || "",
       eventAddress: event.street || event.address || "",
       eventCity: event.city || "",
@@ -1652,8 +1652,8 @@ const generateCodePDF = async (code, event, codeSetting) => {
       codeSetting?.name ||
       code.type.charAt(0).toUpperCase() + code.type.slice(1);
 
-    // Format date - prioritize startDate over date
-    const date = new Date(event?.startDate || event?.date);
+    // Format date
+    const date = new Date(event?.startDate);
     const days = [
       "Sunday",
       "Monday",

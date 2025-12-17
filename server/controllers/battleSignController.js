@@ -142,7 +142,7 @@ const addBattleSign = async (req, res) => {
         recipientName: createdBattleSign.name,
         title: `Battle Registration Received - ${event.title}`,
         eventTitle: event.title,
-        eventDate: event.startDate || event.date,
+        eventDate: event.startDate,
         eventTime: event.startTime,
         eventLocation: event.location,
         eventAddress: event.street && event.city ? `${event.street}, ${event.city}` : (event.street || event.city || ''),
@@ -444,7 +444,7 @@ const sendBattleConfirmationEmail = async (req, res) => {
       recipientName: battleSign.name,
       title: `Battle Pass Ready - ${event.title}`,
       eventTitle: event.title,
-      eventDate: event.startDate || event.date,
+      eventDate: event.startDate,
       eventTime: event.startTime,
       eventLocation: event.location,
       eventAddress: event.street && event.city ? `${event.street}, ${event.city}` : (event.street || event.city || ''),
@@ -555,7 +555,7 @@ const sendBattleDeclineEmail = async (req, res) => {
       recipientName: battleSign.name,
       title: `Battle Registration Update - ${event.title}`,
       eventTitle: event.title,
-      eventDate: event.startDate || event.date,
+      eventDate: event.startDate,
       eventTime: event.startTime,
       eventLocation: event.location,
       eventAddress: event.street && event.city ? `${event.street}, ${event.city}` : (event.street || event.city || ''),
@@ -641,7 +641,7 @@ const sendBattleCancellationEmail = async (req, res) => {
       recipientName: battleSign.name,
       title: `Battle Registration Cancelled - ${event.title}`,
       eventTitle: event.title,
-      eventDate: event.startDate || event.date,
+      eventDate: event.startDate,
       eventTime: event.startTime,
       eventLocation: event.location,
       eventAddress: event.street && event.city ? `${event.street}, ${event.city}` : (event.street || event.city || ''),
@@ -723,7 +723,7 @@ const generateBattlePDF = async (battleCode, event) => {
     const accentColor = "#FFD700"; // Gold accent for battles
     
     // Format dates like in table controller
-    const eventDate = event?.startDate || event?.date;
+    const eventDate = event?.startDate;
     const dateObj = eventDate ? new Date(eventDate) : new Date();
     const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
     const formattedDateDE = dateObj.toLocaleDateString('de-DE');
@@ -1796,7 +1796,7 @@ const generateTournamentBracketHTML = (event, categoryConfig, bracket) => {
         <div class="event-info">
           <div class="event-info-item">
             <div class="event-info-label">Date</div>
-            <div class="event-info-value">${formatDate(event.startDate || event.date)}</div>
+            <div class="event-info-value">${formatDate(event.startDate)}</div>
           </div>
           <div class="event-info-item">
             <div class="event-info-label">Time</div>

@@ -668,12 +668,10 @@ const UpcomingEvent = ({
       const processedEvents = events
         .map((event) => {
           // Skip events with no date information
-          if (!event.startDate && !event.date) return null;
+          if (!event.startDate) return null;
 
-          // Get the start date (prioritize startDate over date)
-          const startDate = event.startDate
-            ? new Date(event.startDate)
-            : new Date(event.date);
+          // Get the start date
+          const startDate = new Date(event.startDate);
 
           // Calculate end date/time
           let endDate;
@@ -801,7 +799,7 @@ const UpcomingEvent = ({
             const matchingEventIndex = upcomingEvents.findIndex((event) => {
               const eventDate =
                 event.calculatedStartDate ||
-                new Date(event.startDate || event.date);
+                new Date(event.startDate);
               if (!eventDate) return false;
 
               const eventDateOnly = new Date(
@@ -1011,13 +1009,13 @@ const UpcomingEvent = ({
     setShowGuestCodeForm(false); // Hide form when changing events
   };
 
-  // Helper function to get the best date field (prioritizing startDate over date)
+  // Helper function to get the best date field
   const getEventDate = (event) => {
     // If we have calculated fields from our processing, use those
     if (event.calculatedStartDate) {
       return event.calculatedStartDate;
     }
-    return event.startDate || event.date;
+    return event.startDate;
   };
 
   // Helper function to check if an event is active
@@ -1031,8 +1029,6 @@ const UpcomingEvent = ({
     const now = new Date();
     const startDate = event.startDate
       ? new Date(event.startDate)
-      : event.date
-      ? new Date(event.date)
       : null;
 
     if (!startDate) return false;
@@ -1848,7 +1844,7 @@ const UpcomingEvent = ({
                       <Tickets
                         eventId={currentEvent._id}
                         eventTitle={currentEvent.title}
-                        eventDate={currentEvent.date}
+                        eventDate={currentEvent.startDate}
                         seamless={seamless}
                         event={currentEvent} // Pass the full event data
                         ticketSettings={visibleTicketSettings} // Pass the already fetched and filtered ticket settings

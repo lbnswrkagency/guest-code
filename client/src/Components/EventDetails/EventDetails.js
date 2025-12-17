@@ -32,9 +32,9 @@ const EventDetails = ({
 
   if (!event) return null;
 
-  // Helper function to get most appropriate date
+  // Helper function to get event date
   const getEventDate = (event) => {
-    return event.startDate || event.date;
+    return event.startDate;
   };
 
   // Format date in a readable way

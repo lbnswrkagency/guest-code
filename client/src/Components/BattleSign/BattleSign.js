@@ -197,12 +197,12 @@ const BattleSign = forwardRef(({ eventId, ...props }, ref) => {
             <span className="battleSign-info-label">Date</span>
             <span className="battleSign-info-value">
               {formatDate(
-                battleConfig.battleDate || event?.startDate || event?.date
+                battleConfig.battleDate || event?.startDate
               )}
             </span>
             <span className="battleSign-info-subvalue">
               {formatDayName(
-                battleConfig.battleDate || event?.startDate || event?.date
+                battleConfig.battleDate || event?.startDate
               )}
             </span>
           </div>

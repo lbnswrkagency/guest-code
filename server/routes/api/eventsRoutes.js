@@ -201,7 +201,7 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
       const templateEvent = existingEvents[0] || parentEvent;
 
       // Calculate the date for this occurrence based on parent timing
-      const occurrenceDate = new Date(parentEvent.date);
+      const occurrenceDate = new Date(parentEvent.startDate);
       occurrenceDate.setDate(occurrenceDate.getDate() + week * 7);
 
       // Create a temporary representation using sequential inheritance
@@ -210,9 +210,8 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
         _id: null, // No ID since it doesn't exist in DB
         parentEventId: parentEvent._id,
         weekNumber: week,
-        date: occurrenceDate,
         startDate: occurrenceDate, // Update timing to match the target week
-        endDate: new Date(occurrenceDate.getTime() + (new Date(parentEvent.endDate || parentEvent.date).getTime() - new Date(parentEvent.startDate || parentEvent.date).getTime())),
+        endDate: new Date(occurrenceDate.getTime() + (new Date(parentEvent.endDate).getTime() - new Date(parentEvent.startDate).getTime())),
         childExists: false, // Flag to indicate this is a calculated occurrence, not a real DB record
       };
 

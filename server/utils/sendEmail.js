@@ -141,7 +141,7 @@ const generateTicketPDF = async (ticket) => {
       };
     };
 
-    const eventDate = formatTicketDate(event?.startDate || event?.date);
+    const eventDate = formatTicketDate(event?.startDate);
 
     // Format ticket name for display - only show the first word (e.g., "EARLY" from "Early Bird")
     const ticketNameParts = ticket.ticketName.split(" ");
@@ -537,7 +537,7 @@ const sendEmail = async (order, receiptInfo = null) => {
     sendSmtpEmail.htmlContent = createEventEmailTemplate({
       recipientName: `${order.firstName} ${order.lastName}`,
       eventTitle: event?.title || "Event",
-      eventDate: event?.date,
+      eventDate: event?.startDate,
       eventLocation: event?.location || event?.venue || "",
       eventAddress: event?.street || "",
       eventCity: event?.city || "",

@@ -457,14 +457,6 @@ exports.login = async (req, res) => {
               // Attach code settings
               event.codeSettings = eventCodeSettings;
 
-              // Ensure date fields
-              if (!event.date && event.startDate) {
-                event.date = event.startDate;
-              }
-              if (!event.startDate && event.date) {
-                event.startDate = event.date;
-              }
-
               // Ensure required fields exist
               event.flyer = event.flyer || {};
               event.lineups = event.lineups || [];

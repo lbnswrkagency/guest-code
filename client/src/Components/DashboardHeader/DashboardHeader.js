@@ -330,11 +330,9 @@ const DashboardHeader = ({
                   // Process events to handle end dates and times properly
                   const eventsWithEndDates = selectedBrand.events
                     .map((event) => {
-                      // Get event start date (prioritize startDate over date)
+                      // Get event start date
                       const startDate = event.startDate
                         ? new Date(event.startDate)
-                        : event.date
-                        ? new Date(event.date)
                         : null;
 
                       if (!startDate) return null;
@@ -494,8 +492,8 @@ const DashboardHeader = ({
         onClose={() => setShowEventsPopup(false)}
         selectedBrand={selectedBrand}
         onSelectEvent={(event) => {
-          if (event && (event.startDate || event.date)) {
-            const eventDate = new Date(event.startDate || event.date)
+          if (event && event.startDate) {
+            const eventDate = new Date(event.startDate)
               .toISOString()
               .split("T")[0];
             handleSelectDate(eventDate);

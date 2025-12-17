@@ -38,7 +38,7 @@ export const generateSlug = (text) => {
  * @returns {Date} The event date to use
  */
 export const getEventDate = (event) => {
-  return event.startDate || event.date;
+  return event.startDate;
 };
 
 /**
@@ -77,7 +77,7 @@ export const createEventSlug = (event, user, brandUsername) => {
     !event ||
     !event._id ||
     !brandUsername ||
-    (!event.startDate && !event.date) ||
+    !event.startDate ||
     !event.title
   ) {
     // If we don't have all the required fields, return null

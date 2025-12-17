@@ -131,7 +131,7 @@ const sendQRCodeEmail = async (
     sendSmtpEmail.htmlContent = createEventEmailTemplate({
       recipientName: name,
       eventTitle: event?.title || "Event",
-      eventDate: event?.date,
+      eventDate: event?.startDate,
       eventLocation: event?.location || event?.venue || "",
       eventAddress: event?.street || event?.address || "",
       eventCity: event?.city || "",

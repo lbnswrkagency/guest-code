@@ -128,29 +128,9 @@ const EventForm = ({
       };
     }
 
-    // For backward compatibility: Create start date from event date and start time
-    const startDate = eventData.date ? new Date(eventData.date) : new Date();
-    if (eventData.startTime) {
-      const [startHours, startMinutes] = eventData.startTime
-        .split(":")
-        .map(Number);
-      startDate.setHours(startHours, startMinutes, 0);
-    }
-
-    // For backward compatibility: Create end date from event date and end time
-    const endDate = eventData.date ? new Date(eventData.date) : new Date();
-    if (eventData.endTime) {
-      const [endHours, endMinutes] = eventData.endTime.split(":").map(Number);
-      // If end time is earlier than start time, it means it's the next day
-      endDate.setHours(endHours, endMinutes, 0);
-      if (
-        endHours < startDate.getHours() ||
-        (endHours === startDate.getHours() &&
-          endMinutes < startDate.getMinutes())
-      ) {
-        endDate.setDate(endDate.getDate() + 1);
-      }
-    }
+    // No legacy date field - use current date as fallback for new events
+    const startDate = new Date();
+    const endDate = new Date();
 
     return { startDate, endDate };
   };
@@ -1647,7 +1627,6 @@ const EventForm = ({
             title: templateEvent.title || "",
             subTitle: templateEvent.subTitle || "",
             description: templateEvent.description || "",
-            date: childEventStartDate.toISOString().split("T")[0],
             startDate: childEventStartDate,
             endDate: childEventEndDate,
             startTime: templateEvent.startTime || "", // From sequential template
@@ -1728,7 +1707,6 @@ const EventForm = ({
             title: parentEventData.title || "",
             subTitle: parentEventData.subTitle || "",
             description: parentEventData.description || "",
-            date: childEventStartDate.toISOString().split("T")[0],
             startDate: childEventStartDate,
             endDate: childEventEndDate,
             startTime: parentEventData.startTime || "",
@@ -1792,7 +1770,6 @@ const EventForm = ({
         title: templateEvent.title || "",
         subTitle: templateEvent.subTitle || "",
         description: templateEvent.description || "",
-        date: "",
         startDate: new Date(), // User must select new date
         endDate: new Date(), // User must select new date
         startTime: templateEvent.startTime || "",
@@ -1866,7 +1843,6 @@ const EventForm = ({
         title: "",
         subTitle: "",
         description: "",
-        date: "",
         startDate: null,
         endDate: null,
         startTime: "",
@@ -2420,7 +2396,7 @@ const EventForm = ({
                 selectedPath={formData.dropboxFolderPath || ""}
                 onSelectPath={handleDropboxFolderSelect}
                 placeholder="Browse Dropbox folders"
-                eventDate={formData.startDate || formData.date}
+                eventDate={formData.startDate}
                 brandDropboxBaseFolder={selectedBrand?.dropboxBaseFolder || ""}
                 autoSuggest={true}
               />
@@ -2500,7 +2476,7 @@ const EventForm = ({
                 selectedPath={formData.dropboxVideoFolderPath || ""}
                 onSelectPath={handleDropboxVideoFolderSelect}
                 placeholder="Browse Dropbox folders"
-                eventDate={formData.startDate || formData.date}
+                eventDate={formData.startDate}
                 brandDropboxBaseFolder={selectedBrand?.dropboxBaseFolder || ""}
                 autoSuggest={false}
               />

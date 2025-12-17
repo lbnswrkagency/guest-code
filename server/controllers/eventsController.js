@@ -216,7 +216,7 @@ exports.createEvent = async (req, res) => {
     const existingEvent = await Event.findOne({
       brand: req.params.brandId,
       title: req.body.title,
-      startDate: req.body.startDate || req.body.date,
+      startDate: req.body.startDate,
     });
 
     if (existingEvent) {
@@ -225,7 +225,7 @@ exports.createEvent = async (req, res) => {
 
     // Check if the slug already exists for the brand on the same date
     // If it does, append a number to make it unique
-    const eventDate = new Date(req.body.startDate || req.body.date);
+    const eventDate = new Date(req.body.startDate);
     const startOfDay = new Date(
       eventDate.getFullYear(),
       eventDate.getMonth(),
@@ -361,9 +361,7 @@ exports.createEvent = async (req, res) => {
     }
 
     // Calculate final startDate and endDate considering startTime and endTime for overnight events
-    let finalStartDate = eventData.startDate
-      ? new Date(eventData.startDate)
-      : new Date(eventData.date);
+    let finalStartDate = new Date(eventData.startDate);
     // Initialize finalEndDate based on finalStartDate initially for calculation
     let finalEndDate = new Date(finalStartDate);
 
@@ -1013,12 +1011,8 @@ exports.editEvent = async (req, res) => {
     // If this is a parent event, calculate its endDate properly if startTime/endTime suggest it spans midnight
     if (!event.parentEventId && weekNumber === 0) {
       const { startTime, endTime } = req.body;
-      let eventStartDate = event.startDate
-        ? new Date(event.startDate)
-        : new Date(event.date);
-      let eventEndDate = event.endDate
-        ? new Date(event.endDate)
-        : new Date(event.date);
+      let eventStartDate = new Date(event.startDate);
+      let eventEndDate = new Date(event.endDate);
 
       if (req.body.startDate) eventStartDate = new Date(req.body.startDate);
       if (req.body.endDate) eventEndDate = new Date(req.body.endDate); // Initial endDate from body or event
@@ -1611,14 +1605,11 @@ exports.getEventProfile = async (req, res) => {
 
           // Manual filtering to check event dates
           eventsOnDate = eventsOnDate.filter((event) => {
-            const eventDateStr = event.date
-              ? new Date(event.date).toISOString().substring(0, 10)
-              : null;
             const eventStartDateStr = event.startDate
               ? new Date(event.startDate).toISOString().substring(0, 10)
               : null;
 
-            return eventDateStr === dateStr || eventStartDateStr === dateStr;
+            return eventStartDateStr === dateStr;
           });
         }
       }
@@ -2317,8 +2308,7 @@ exports.getUserFavoriteEvents = async (req, res) => {
 
     // Sort favorite events by date (newest first)
     const sortedFavoriteEvents = (populatedUser.favoriteEvents || []).sort(
-      (a, b) =>
-        new Date(b.startDate || b.date) - new Date(a.startDate || a.date)
+      (a, b) => new Date(b.startDate) - new Date(a.startDate)
     );
 
     res.status(200).json({

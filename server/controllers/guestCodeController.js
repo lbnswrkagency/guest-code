@@ -119,8 +119,8 @@ const generateGuestCodePDF = async (code, event) => {
     // Generate QR code
     const qrCodeDataUrl = await generateGuestCodeQR(code.securityToken);
 
-    // Format date - prioritize startDate over date
-    const eventDate = formatGuestCodeDate(event?.startDate || event?.date);
+    // Format date
+    const eventDate = formatGuestCodeDate(event?.startDate);
 
     // Use event's startTime if available
     if (event?.startTime && eventDate.time === "20:00") {
@@ -326,7 +326,7 @@ const sendGuestCodeEmail = async (code, event, email, pdfBuffer) => {
     const htmlContent = createEventEmailTemplate({
       recipientName: code.guestName || "Guest",
       eventTitle: event?.title || "Event",
-      eventDate: event?.startDate || event?.date,
+      eventDate: event?.startDate,
       eventLocation: event?.location || event?.venue || "",
       eventAddress: event?.street || event?.address || "",
       eventCity: event?.city || "",

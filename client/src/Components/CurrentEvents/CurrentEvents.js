@@ -58,11 +58,9 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
 
         // Process events to add calculated end dates
         const processedEvents = brandEvents.map((event) => {
-          // Get start date (prioritize startDate over date)
+          // Get start date
           const startDate = event.startDate
             ? new Date(event.startDate)
-            : event.date
-            ? new Date(event.date)
             : new Date(); // Fallback to now if no date
 
           // Set start time if available
@@ -197,9 +195,9 @@ const CurrentEvents = ({ isOpen, onClose, selectedBrand, onSelectEvent }) => {
       : event.startTime;
   };
 
-  // Get best date based on availability (startDate or date)
+  // Get event date
   const getEventDate = (event) => {
-    return event.startDate || event.date;
+    return event.startDate;
   };
 
   // Get event counts by status

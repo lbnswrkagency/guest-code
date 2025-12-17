@@ -811,7 +811,7 @@ exports.checkBrandGalleries = async (req, res) => {
     console.log('📸 [Dropbox Controller] Found events with galleries:', eventsWithGalleries.length);
     eventsWithGalleries.forEach((event, index) => {
       console.log(`  Event ${index + 1}: "${event.title}" (${event._id}) - Path: ${event.dropboxFolderPath}`);
-      console.log(`    Date: ${event.startDate || event.date}`);
+      console.log(`    Date: ${event.startDate}`);
     });
     
     const hasGalleries = eventsWithGalleries.length > 0;
@@ -888,7 +888,7 @@ exports.getBrandGalleryDates = async (req, res) => {
         );
         
         if (mediaFiles.length > 0) {
-          const eventDate = event.startDate || event.date;
+          const eventDate = event.startDate;
           const displayTitle = event.isWeekly && event.weekNumber > 0 
             ? `${event.title} - Week ${event.weekNumber}`
             : event.title;
@@ -1119,7 +1119,7 @@ exports.getEventGalleryById = async (req, res) => {
       res.status(200).json({
         success: true,
         eventTitle: event.title,
-        eventDate: event.startDate || event.date,
+        eventDate: event.startDate,
         folderPath: folderPath,
         media: {
           photos: photos,
@@ -1134,7 +1134,7 @@ exports.getEventGalleryById = async (req, res) => {
         return res.status(200).json({
           success: true,
           eventTitle: event.title,
-          eventDate: event.startDate || event.date,
+          eventDate: event.startDate,
           folderPath: folderPath,
           media: {
             photos: [],
@@ -1300,7 +1300,7 @@ exports.getEventVideoGalleryById = async (req, res) => {
       res.status(200).json({
         success: true,
         eventTitle: event.title,
-        eventDate: event.startDate || event.date,
+        eventDate: event.startDate,
         folderPath: folderPath,
         media: {
           videos: videos,
@@ -1314,7 +1314,7 @@ exports.getEventVideoGalleryById = async (req, res) => {
         return res.status(200).json({
           success: true,
           eventTitle: event.title,
-          eventDate: event.startDate || event.date,
+          eventDate: event.startDate,
           folderPath: folderPath,
           media: {
             videos: [],
@@ -1570,7 +1570,7 @@ exports.getBrandVideoGalleryDates = async (req, res) => {
         );
 
         if (videoFiles.length > 0) {
-          const eventDate = event.startDate || event.date;
+          const eventDate = event.startDate;
           const displayTitle = event.isWeekly && event.weekNumber > 0
             ? `${event.title} - Week ${event.weekNumber}`
             : event.title;
@@ -1778,7 +1778,7 @@ exports.getLatestBrandGallery = async (req, res) => {
     // Log all events found
     eventsWithGalleries.forEach((event, index) => {
       console.log(`  Event ${index + 1}: "${event.title}" (${event._id}) - Path: ${event.dropboxFolderPath}`);
-      console.log(`    Date: ${event.startDate || event.date}`);
+      console.log(`    Date: ${event.startDate}`);
     });
     
     // Try to find one that actually has media (with timeout)

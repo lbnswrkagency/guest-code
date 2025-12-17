@@ -157,7 +157,7 @@ const EventOverview = () => {
                       </div>
                     )}
                     <div className="event-date-badge">
-                      {formatEventDate(event.startDate || event.date)}
+                      {formatEventDate(event.startDate)}
                     </div>
                   </div>
 

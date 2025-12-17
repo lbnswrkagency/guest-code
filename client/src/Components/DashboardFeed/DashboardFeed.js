@@ -145,15 +145,13 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
         // Find events for the selected date
         const eventsForDate = brandEvents.filter((event) => {
-          if (!event.date && !event.startDate) return false;
+          if (!event.startDate) return false;
 
           // Compare dates by converting to YYYY-MM-DD strings
           const formattedSelectedDate = formattedDate;
 
-          // Use startDate if available, otherwise fall back to date
-          const eventStartDate = event.startDate
-            ? new Date(event.startDate).toISOString().split("T")[0]
-            : new Date(event.date).toISOString().split("T")[0];
+          // Use startDate
+          const eventStartDate = new Date(event.startDate).toISOString().split("T")[0];
 
           return eventStartDate === formattedSelectedDate;
         });
@@ -327,11 +325,11 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
       if (
         selectedBrand &&
-        (eventData.startDate || eventData.date) &&
+        eventData.startDate &&
         eventData.title
       ) {
         // Format date for URL (MMDDYY)
-        const eventDate = new Date(eventData.startDate || eventData.date);
+        const eventDate = new Date(eventData.startDate);
         const month = String(eventDate.getMonth() + 1).padStart(2, "0");
         const day = String(eventDate.getDate()).padStart(2, "0");
         const year = String(eventDate.getFullYear()).slice(2);

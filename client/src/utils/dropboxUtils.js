@@ -365,9 +365,9 @@ export const generateSmartDropboxPath = (brandEvents = [], currentEventDate, bra
     .filter(event =>
       event.dropboxFolderPath &&
       event.dropboxFolderPath.trim() !== "" &&
-      new Date(event.startDate || event.date) <= new Date() // Only past events
+      new Date(event.startDate) <= new Date() // Only past events
     )
-    .sort((a, b) => new Date(b.startDate || b.date) - new Date(a.startDate || a.date));
+    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
   if (eventsWithDropboxPath.length > 0 && !dateFormat && !subfolder) {
     // Use the most recent event's path as template and replace the date

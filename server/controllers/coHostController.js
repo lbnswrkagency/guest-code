@@ -117,15 +117,6 @@ exports.getCoHostedEvents = async (req, res) => {
           
           // Attach code settings (regular events get this from Redux store)
           eventObj.codeSettings = eventCodeSettings;
-          
-          // Ensure all required date fields are present and properly formatted
-          if (!eventObj.date && eventObj.startDate) {
-            eventObj.date = eventObj.startDate; // Ensure backward compatibility
-          }
-          
-          if (!eventObj.startDate && eventObj.date) {
-            eventObj.startDate = eventObj.date; // Ensure forward compatibility
-          }
 
           // Ensure flyer object exists (even if empty) for consistent structure
           if (!eventObj.flyer) {

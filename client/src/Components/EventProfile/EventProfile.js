@@ -342,7 +342,7 @@ const EventProfile = () => {
         console.log("[EventProfile] Successfully loaded event:", {
           eventId: eventData._id,
           title: eventData.title,
-          date: eventData.date,
+          startDate: eventData.startDate,
           brand: eventData.brand?.username || "unknown",
         });
 
@@ -1070,7 +1070,7 @@ const EventProfile = () => {
                 <Tickets
                   eventId={event._id}
                   eventTitle={event.title}
-                  eventDate={event.startDate || event.date}
+                  eventDate={event.startDate}
                   event={event}
                   ticketSettings={ticketSettings}
                   fetchTicketSettings={async (eventId) => {

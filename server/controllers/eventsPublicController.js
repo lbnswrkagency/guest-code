@@ -77,10 +77,7 @@ exports.getPublicEvents = async (req, res) => {
     console.log("Total events found:", events.length);
     console.log("Valid events after filtering:", validEvents.length);
     if (validEvents.length > 0) {
-      console.log(
-        "First event date:",
-        validEvents[0].startDate || validEvents[0].date
-      );
+      console.log("First event date:", validEvents[0].startDate);
     }
 
     // Get total count for pagination
