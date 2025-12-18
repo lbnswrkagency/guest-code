@@ -50,6 +50,7 @@ const VideoCarousel = ({
   const [currentGalleryInfo, setCurrentGalleryInfo] = useState(null); // Store actual latest gallery info
   const [showDateSelector, setShowDateSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // Refs for request cancellation and race condition prevention
   const abortControllerRef = useRef(null);
@@ -344,6 +345,16 @@ const VideoCarousel = ({
     };
   }, []);
 
+  // Window resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Handle video click - pass ALL videos for lightbox browsing
   const handleVideoClick = useCallback(
     (video, index) => {
@@ -468,9 +479,15 @@ const VideoCarousel = ({
 
   // Get current selection display text
   const currentSelectionText = useMemo(() => {
+    // Check if we're on a small screen
+    const isSmallScreen = windowWidth <= 600;
+    
     if (selectedEventId === "latest") {
       if (currentGalleryInfo) {
-        return `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
+        // Show only date on small screens
+        return isSmallScreen 
+          ? formatDate(currentGalleryInfo.date)
+          : `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
       }
       return "Latest Videos";
     }
@@ -478,10 +495,13 @@ const VideoCarousel = ({
       (g) => g.eventId === selectedEventId
     );
     if (selectedGallery) {
-      return `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
+      // Show only date on small screens
+      return isSmallScreen 
+        ? formatDate(selectedGallery.date)
+        : `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
     }
     return "Browse Events";
-  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate]);
+  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate, windowWidth]);
 
   // Don't render if no video galleries
   if (!brandHasVideoGalleries) {
@@ -527,7 +547,6 @@ const VideoCarousel = ({
                 className="date-selector-toggle"
                 onClick={() => setShowDateSelector(!showDateSelector)}
               >
-                <RiCalendarEventLine />
                 <span>{currentSelectionText}</span>
                 <RiArrowDownSLine
                   className={showDateSelector ? "rotated" : ""}

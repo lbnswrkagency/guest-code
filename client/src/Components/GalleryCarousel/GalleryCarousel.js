@@ -57,6 +57,7 @@ const GalleryCarousel = ({
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
   const carouselRef = useRef(null);
   const autoPlayIntervalRef = useRef(null);
@@ -235,6 +236,16 @@ const GalleryCarousel = ({
     };
   }, [isAutoPlaying, images.length, loading, config.VISIBLE_IMAGES, config.AUTO_SCROLL_DELAY]);
 
+  // Window resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Memoize navigation handlers to prevent recreation on each render
   const handlePrevious = useCallback(() => {
     setIsAutoPlaying(false);
@@ -381,9 +392,15 @@ const GalleryCarousel = ({
 
   // Get current selection display text
   const currentSelectionText = useMemo(() => {
+    // Check if we're on a small screen
+    const isSmallScreen = windowWidth <= 600;
+    
     if (selectedEventId === 'latest') {
       if (currentGalleryInfo) {
-        return `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
+        // Show only date on small screens
+        return isSmallScreen 
+          ? formatDate(currentGalleryInfo.date)
+          : `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
       }
       return 'Latest Photos';
     }
@@ -391,10 +408,13 @@ const GalleryCarousel = ({
       g => g.eventId === selectedEventId
     );
     if (selectedGallery) {
-      return `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
+      // Show only date on small screens
+      return isSmallScreen 
+        ? formatDate(selectedGallery.date)
+        : `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
     }
     return 'Browse Events';
-  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate]);
+  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate, windowWidth]);
 
   // Don't render if no galleries
   if (!brandHasGalleries) {
@@ -448,7 +468,6 @@ const GalleryCarousel = ({
                 className="date-selector-toggle"
                 onClick={() => setShowDateSelector(!showDateSelector)}
               >
-                <RiCalendarEventLine />
                 <span>{currentSelectionText}</span>
                 <RiArrowDownSLine className={showDateSelector ? 'rotated' : ''} />
               </button>
