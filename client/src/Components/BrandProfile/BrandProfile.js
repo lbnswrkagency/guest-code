@@ -127,81 +127,73 @@ const BrandProfile = () => {
   // Function to check if brand has any galleries available
   const checkBrandGalleries = useCallback(async () => {
     if (!brand?._id) {
-      console.log("⚠️ [BrandProfile] No brand ID available for gallery check");
       return;
     }
 
-    console.log(
-      "🚀 [BrandProfile] Starting gallery check for brand:",
-      brand._id
-    );
     setCheckingGalleries(true);
 
     try {
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/galleries/check`;
-      console.log(
-        "🔍 [BrandProfile] Making gallery check request to:",
-        endpoint
-      );
-
       const response = await axiosInstance.get(endpoint);
-
-      console.log("✅ [BrandProfile] Brand galleries response:", response.data);
-      console.log("📊 [BrandProfile] Response details:");
-      console.log("  - success:", response.data?.success);
-      console.log("  - hasGalleries:", response.data?.hasGalleries);
-      console.log("  - totalEvents:", response.data?.totalEvents);
-      console.log("  - events found:", response.data?.events?.length || 0);
 
       if (response.data && response.data.success) {
         setBrandHasGalleries(response.data.hasGalleries);
-        console.log(
-          "📸 [BrandProfile] Setting brandHasGalleries to:",
-          response.data.hasGalleries
-        );
       } else {
-        console.log(
-          "❌ [BrandProfile] API response indicates failure:",
-          response.data
-        );
         setBrandHasGalleries(false);
       }
     } catch (error) {
       console.error("❌ [BrandProfile] Error checking brand galleries:", error);
-      console.error("❌ [BrandProfile] Error details:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-      });
       setBrandHasGalleries(false);
     } finally {
       setCheckingGalleries(false);
-      console.log("🏁 [BrandProfile] Gallery check completed");
     }
   }, [brand?._id]);
 
   // Function to check if brand has any video galleries available
   const checkBrandVideoGalleries = useCallback(async () => {
     if (!brand?._id) {
+      console.log("🎬 [BrandProfile] No brand ID for video gallery check");
       return;
     }
 
+    console.log("🚀 [BrandProfile] Starting video gallery check for brand:", brand._id);
     try {
       setCheckingVideoGalleries(true);
-      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brands/${brand._id}/check-video-galleries`;
+      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/check`;
+      console.log("🔍 [BrandProfile] Making video gallery check request to:", endpoint);
+      
       const response = await axiosInstance.get(endpoint);
+      console.log("✅ [BrandProfile] Video gallery response:", response.data);
 
       if (response.data && response.data.success) {
+        console.log("📹 [BrandProfile] Setting brandHasVideoGalleries to:", response.data.hasVideoGalleries);
         setBrandHasVideoGalleries(response.data.hasVideoGalleries);
       } else {
+        console.log("❌ [BrandProfile] Video gallery check failed - no success in response");
         setBrandHasVideoGalleries(false);
       }
     } catch (error) {
-      console.error("Error checking brand video galleries:", error);
-      setBrandHasVideoGalleries(false);
+      console.error("❌ [BrandProfile] Error checking brand video galleries:", error);
+      console.log("🔄 [BrandProfile] Trying fallback video gallery check method...");
+      
+      // Fallback: try to fetch latest videos to check if actual videos exist
+      try {
+        const fallbackEndpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/latest`;
+        console.log("🔍 [BrandProfile] Fallback endpoint:", fallbackEndpoint);
+        
+        const fallbackResponse = await axiosInstance.get(fallbackEndpoint);
+        // Check if there are actual videos, not just gallery options
+        const hasActualVideos = fallbackResponse.data?.success && 
+                                fallbackResponse.data?.media?.videos?.length > 0;
+        console.log("📹 [BrandProfile] Fallback result - hasVideoGalleries:", hasActualVideos);
+        setBrandHasVideoGalleries(hasActualVideos);
+      } catch (fallbackError) {
+        console.error("❌ [BrandProfile] Fallback video check also failed:", fallbackError);
+        setBrandHasVideoGalleries(false);
+      }
     } finally {
       setCheckingVideoGalleries(false);
+      console.log("🏁 [BrandProfile] Video gallery check completed");
     }
   }, [brand?._id]);
 
@@ -1158,60 +1150,69 @@ const BrandProfile = () => {
             </motion.button>
           )}
 
-          {/* Gallery button - dynamic based on content */}
-          {/* Only show after BOTH gallery checks complete to prevent "Photos" flashing when videos exist */}
-          {!checkingGalleries &&
-            !checkingVideoGalleries &&
-            (brandHasGalleries || brandHasVideoGalleries) && (
-              <motion.button
-                className="event-action-button gallery-button"
-                whileHover={{ scale: 1.03 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                onClick={() => {
-                  scrollToGallery();
-                }}
-              >
-                <div className="button-content">
-                  <div className="button-icon">
-                    {/* Show appropriate icon: video only = film, photos only or both = image */}
-                    {brandHasVideoGalleries && !brandHasGalleries ? (
-                      <RiFilmLine />
-                    ) : (
-                      <RiImageLine />
-                    )}
-                  </div>
-                  <div className="button-text">
-                    {/* Dynamic text based on content type */}
-                    <span className="button-text-full">
-                      {brandHasGalleries && brandHasVideoGalleries
-                        ? "Media"
-                        : brandHasGalleries
-                        ? "Photos"
-                        : "Videos"}
-                    </span>
-                    <span className="button-text-short">
-                      {brandHasGalleries && brandHasVideoGalleries
-                        ? "Media"
-                        : brandHasGalleries
-                        ? "Photos"
-                        : "Videos"}
-                    </span>
-                    {!isActionButtonsSticky && (
-                      <p>
-                        {brandHasGalleries && brandHasVideoGalleries
-                          ? "Photos & Videos"
-                          : brandHasGalleries
-                          ? "Photo gallery"
-                          : "Video gallery"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="button-arrow">
-                    <RiArrowRightSLine />
-                  </div>
+          {/* Photos button - only show if photos are available */}
+          {!checkingGalleries && brandHasGalleries && (
+            <motion.button
+              className="event-action-button gallery-button photos-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={() => {
+                // Scroll to photo gallery section
+                const photoSection = document.querySelector(
+                  ".upcomingEvent-gallery-section"
+                );
+                if (photoSection) {
+                  photoSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiImageLine />
                 </div>
-              </motion.button>
-            )}
+                <div className="button-text">
+                  <span className="button-text-full">Photos</span>
+                  <span className="button-text-short">Photos</span>
+                  {!isActionButtonsSticky && <p>View photo gallery</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Videos button - only show if videos are available */}
+          {!checkingVideoGalleries && brandHasVideoGalleries && (
+            <motion.button
+              className="event-action-button gallery-button videos-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={() => {
+                // Scroll to video gallery section
+                const videoSection = document.querySelector(
+                  ".upcomingEvent-video-section"
+                );
+                if (videoSection) {
+                  videoSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiFilmLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Videos</span>
+                  <span className="button-text-short">Videos</span>
+                  {!isActionButtonsSticky && <p>Watch event videos</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
         </div>
       </>
     );

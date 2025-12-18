@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./VideoCarousel.scss";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,8 +46,14 @@ const VideoCarousel = ({
   const [error, setError] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState("latest");
   const [availableGalleries, setAvailableGalleries] = useState([]);
+  const [currentGalleryInfo, setCurrentGalleryInfo] = useState(null); // Store actual latest gallery info
   const [showDateSelector, setShowDateSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Refs for request cancellation and race condition prevention
+  const abortControllerRef = useRef(null);
+  const requestIdRef = useRef(0);
+  const isInitializedRef = useRef(false);
 
   // Configuration
   const config = useMemo(
@@ -57,14 +63,26 @@ const VideoCarousel = ({
     []
   );
 
-  // Fetch video gallery
+  // Fetch video gallery with race condition protection
   const fetchVideoGallery = useCallback(
-    async (eventId = "latest") => {
+    async (eventId = "latest", forceRefresh = false) => {
       if (!brandId && !brandUsername) {
-        console.warn("VideoCarousel: No brandId or brandUsername provided");
+        console.warn("🎬 [VideoCarousel] No brandId or brandUsername provided");
         return;
       }
 
+      // Prevent multiple simultaneous requests for the same eventId
+      const currentRequestId = ++requestIdRef.current;
+      
+      // Cancel any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      console.log(`🚀 [VideoCarousel] [Request-${currentRequestId}] Fetching video gallery for eventId:`, eventId);
       setLoading(true);
       setError(null);
 
@@ -79,7 +97,8 @@ const VideoCarousel = ({
             // First get brand ID from username
             const cleanUsername = brandUsername.replace(/^@/, "");
             const brandResponse = await axiosInstance.get(
-              `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+              `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`,
+              { signal: abortControllerRef.current.signal }
             );
             if (brandResponse.data && brandResponse.data._id) {
               endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/videos/latest`;
@@ -94,37 +113,99 @@ const VideoCarousel = ({
           throw new Error("Could not construct video gallery endpoint");
         }
 
-        const response = await axiosInstance.get(endpoint);
+        console.log(`🔍 [VideoCarousel] [Request-${currentRequestId}] Calling endpoint:`, endpoint);
+        const response = await axiosInstance.get(endpoint, { 
+          signal: abortControllerRef.current.signal 
+        });
+
+        // Check if this request is still the latest one
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`⏭️ [VideoCarousel] [Request-${currentRequestId}] Request outdated, ignoring response`);
+          return;
+        }
+
+        console.log(`✅ [VideoCarousel] [Request-${currentRequestId}] Response received:`, response.data);
 
         if (
           response.data?.success &&
           response.data?.media?.videos &&
-          Array.isArray(response.data.media.videos)
+          Array.isArray(response.data.media.videos) &&
+          response.data.media.videos.length > 0
         ) {
           // Take only the first batch of videos
           const videoList = response.data.media.videos.slice(
             0,
             config.INITIAL_LOAD_COUNT
           );
+          console.log("📹 [VideoCarousel] Setting videos:", videoList.length, "videos found");
           setVideos(videoList);
+          
+          // Store current gallery info for display
+          if (eventId === "latest") {
+            // First try to get info from API response
+            if (response.data?.galleryInfo) {
+              console.log("📊 [VideoCarousel] Using galleryInfo from API:", response.data.galleryInfo);
+              setCurrentGalleryInfo({
+                title: response.data.galleryInfo.title || "Latest Video Gallery",
+                date: response.data.galleryInfo.date,
+                mediaCount: response.data.media.videos.length
+              });
+            } else if (availableGalleries.length > 0) {
+              // Fallback: use the first (most recent) gallery from available galleries
+              const sortedGalleries = [...availableGalleries].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+              );
+              const latestGallery = sortedGalleries[0];
+              console.log("📊 [VideoCarousel] Using fallback latest gallery:", latestGallery);
+              setCurrentGalleryInfo({
+                title: latestGallery.title,
+                date: latestGallery.date,
+                mediaCount: response.data.media.videos.length
+              });
+            }
+          } else if (eventId !== "latest") {
+            // For specific event, find it in available galleries
+            const galleryInfo = availableGalleries.find(g => g.eventId === eventId);
+            if (galleryInfo) {
+              setCurrentGalleryInfo(galleryInfo);
+            }
+          }
         } else {
+          console.log(`❌ [VideoCarousel] [Request-${currentRequestId}] No videos found in response - API returned empty array or no success`);
           setVideos([]);
+          setCurrentGalleryInfo(null);
         }
       } catch (err) {
-        console.error("VideoCarousel: Error fetching video gallery:", err);
+        // Check if this request was cancelled
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`⏭️ [VideoCarousel] [Request-${currentRequestId}] Request cancelled, ignoring error`);
+          return;
+        }
+
+        if (err.name === 'AbortError') {
+          console.log(`🚫 [VideoCarousel] [Request-${currentRequestId}] Request aborted`);
+          return;
+        }
+
+        console.error(`❌ [VideoCarousel] [Request-${currentRequestId}] Error fetching video gallery:`, err);
         setError("Failed to load video gallery");
         setVideos([]);
+        setCurrentGalleryInfo(null);
       } finally {
-        setLoading(false);
+        // Only update loading state if this is still the current request
+        if (currentRequestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [brandId, brandUsername, config.INITIAL_LOAD_COUNT]
+    [brandId, brandUsername, config.INITIAL_LOAD_COUNT, availableGalleries]
   );
 
   // Fetch available video galleries (use video-specific dates endpoint)
   const fetchAvailableGalleries = useCallback(async () => {
     if (!brandId && !brandUsername) return;
 
+    console.log("🗓️ [VideoCarousel] Fetching available video galleries...");
     try {
       let endpoint = "";
 
@@ -141,32 +222,120 @@ const VideoCarousel = ({
       }
 
       if (endpoint) {
+        console.log("🔍 [VideoCarousel] Fetching from:", endpoint);
         const response = await axiosInstance.get(endpoint);
+        console.log("📅 [VideoCarousel] Available galleries response:", response.data);
+        
         if (response.data?.galleryOptions) {
+          console.log("📋 [VideoCarousel] Setting available galleries:", response.data.galleryOptions.length);
           setAvailableGalleries(response.data.galleryOptions);
+        } else {
+          console.log("❌ [VideoCarousel] No gallery options in response");
         }
       }
     } catch (err) {
-      console.error("VideoCarousel: Error fetching video gallery dates:", err);
+      console.error("❌ [VideoCarousel] Error fetching video gallery dates:", err);
     }
   }, [brandId, brandUsername]);
 
-  // Initialize when component mounts
+  // Consolidated initialization and update effect
   useEffect(() => {
-    if (brandHasVideoGalleries && (brandId || brandUsername)) {
+    const initializeOrUpdate = async () => {
+      if (!brandHasVideoGalleries || (!brandId && !brandUsername)) {
+        setLoading(false);
+        setVideos([]);
+        setCurrentGalleryInfo(null);
+        return;
+      }
+
+      // First time initialization
+      if (!isInitializedRef.current) {
+        console.log("🔄 [VideoCarousel] Initial setup - fetching available galleries first");
+        await fetchAvailableGalleries();
+        isInitializedRef.current = true;
+        
+        // After fetching galleries, check if we need to auto-select a different event
+        // This will be handled in the separate effect below
+        return;
+      }
+
+      // Fetch videos for selected event
       fetchVideoGallery(selectedEventId);
-      fetchAvailableGalleries();
-    } else {
-      setLoading(false);
-    }
-  }, [
-    brandHasVideoGalleries,
-    brandId,
-    brandUsername,
-    selectedEventId,
-    fetchVideoGallery,
-    fetchAvailableGalleries,
-  ]);
+    };
+
+    initializeOrUpdate();
+  }, [brandHasVideoGalleries, brandId, brandUsername, selectedEventId, fetchVideoGallery, fetchAvailableGalleries]);
+
+  // Smart gallery selection effect - runs after availableGalleries are loaded
+  useEffect(() => {
+    const handleSmartSelection = async () => {
+      // Only run this logic when:
+      // 1. Available galleries have been loaded
+      // 2. Currently on "latest" selection 
+      // 3. Component is initialized
+      if (availableGalleries.length > 0 && selectedEventId === "latest" && isInitializedRef.current) {
+        console.log("🎯 [VideoCarousel] Smart selection - checking if latest needs fallback");
+        
+        // First try to get latest videos
+        try {
+          let endpoint = "";
+          if (brandId) {
+            endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/videos/latest`;
+          } else if (brandUsername) {
+            const cleanUsername = brandUsername.replace(/^@/, "");
+            const brandResponse = await axiosInstance.get(
+              `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+            );
+            if (brandResponse.data?._id) {
+              endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/videos/latest`;
+            }
+          }
+
+          if (endpoint) {
+            const response = await axiosInstance.get(endpoint);
+            const hasActualLatestVideos = response.data?.success && 
+                                         response.data?.media?.videos &&
+                                         response.data.media.videos.length > 0;
+
+            if (!hasActualLatestVideos) {
+              // Latest is empty, auto-select the most recent available gallery
+              const sortedGalleries = [...availableGalleries].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+              );
+              const actualLatestGallery = sortedGalleries[0];
+              
+              if (actualLatestGallery) {
+                console.log("🔄 [VideoCarousel] Auto-selecting actual latest gallery:", actualLatestGallery);
+                setSelectedEventId(actualLatestGallery.eventId);
+                setCurrentGalleryInfo({
+                  title: actualLatestGallery.title,
+                  date: actualLatestGallery.date,
+                  mediaCount: actualLatestGallery.mediaCount
+                });
+                return; // Don't fetch again, the selectedEventId change will trigger the other effect
+              }
+            }
+          }
+        } catch (error) {
+          console.log("🔍 [VideoCarousel] Latest check failed, will fallback in main fetch");
+        }
+        
+        // If we reach here, either latest has videos or fallback failed
+        // Let the main effect handle the fetch
+      }
+    };
+
+    handleSmartSelection();
+  }, [availableGalleries, selectedEventId, brandId, brandUsername]);
+
+  // Cleanup effect - cancel any pending requests on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Handle video click
   const handleVideoClick = useCallback(
@@ -199,6 +368,83 @@ const VideoCarousel = ({
     });
   }, []);
 
+  // Format date with day name for display
+  const formatDateWithDay = useCallback((dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
+  // Enhanced search matching function
+  const matchesSearch = useCallback((gallery, query) => {
+    if (!query) return true;
+    
+    const searchLower = query.toLowerCase().trim();
+    const title = gallery.title?.toLowerCase() || "";
+    
+    // Basic title matching
+    if (title.includes(searchLower)) return true;
+    
+    // Date parsing and matching
+    if (gallery.date) {
+      const date = new Date(gallery.date);
+      const day = date.getDate();
+      const month = date.getMonth() + 1; // JS months are 0-indexed
+      const year = date.getFullYear();
+      
+      // Month names (full and short)
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const shortMonthNames = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec"
+      ];
+      
+      const monthName = monthNames[month - 1];
+      const shortMonthName = shortMonthNames[month - 1];
+      
+      // Format variations to check
+      const dateFormats = [
+        `${day}.${month}.${year}`,         // 12.10.2025
+        `${day}.${month}`,                 // 12.10
+        `${day}/${month}/${year}`,         // 12/10/2025
+        `${day}/${month}`,                 // 12/10
+        `${day}-${month}-${year}`,         // 12-10-2025
+        `${day}-${month}`,                 // 12-10
+        `${monthName} ${day}`,             // october 12
+        `${day} ${monthName}`,             // 12 october
+        `${shortMonthName} ${day}`,        // oct 12
+        `${day} ${shortMonthName}`,        // 12 oct
+        formatDate(gallery.date).toLowerCase(), // formatted date from function
+        formatDateWithDay(gallery.date).toLowerCase() // formatted date with day
+      ];
+      
+      // Check all date format variations
+      if (dateFormats.some(format => format.includes(searchLower))) {
+        return true;
+      }
+      
+      // Partial month name matching (e.g., "octo" matches "october")
+      if (monthName.includes(searchLower) || shortMonthName.includes(searchLower)) {
+        return true;
+      }
+      
+      // Year matching
+      if (year.toString().includes(searchLower)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, [formatDate, formatDateWithDay]);
+
   // Format file size for display
   const formatFileSize = useCallback((bytes) => {
     if (!bytes) return "";
@@ -206,16 +452,28 @@ const VideoCarousel = ({
     return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
   }, []);
 
-  // Filter galleries by search
+  // Filter galleries by enhanced search
   const filteredGalleries = useMemo(
-    () =>
-      availableGalleries.filter(
-        (g) =>
-          g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          formatDate(g.date).toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [availableGalleries, searchQuery, formatDate]
+    () => availableGalleries.filter(gallery => matchesSearch(gallery, searchQuery)),
+    [availableGalleries, searchQuery, matchesSearch]
   );
+
+  // Get current selection display text
+  const currentSelectionText = useMemo(() => {
+    if (selectedEventId === "latest") {
+      if (currentGalleryInfo) {
+        return `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
+      }
+      return "Latest Videos";
+    }
+    const selectedGallery = availableGalleries.find(
+      (g) => g.eventId === selectedEventId
+    );
+    if (selectedGallery) {
+      return `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
+    }
+    return "Browse Events";
+  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate]);
 
   // Don't render if no video galleries
   if (!brandHasVideoGalleries) {
@@ -237,6 +495,14 @@ const VideoCarousel = ({
   // Check if we have videos
   const hasVideos = videos && videos.length > 0;
 
+  // Only return null if no video galleries exist at all
+  // If galleries exist but no videos, show empty state
+  const shouldShowComponent = brandHasVideoGalleries || availableGalleries.length > 0 || hasVideos;
+
+  if (!shouldShowComponent) {
+    return null;
+  }
+
   return (
     <div className="video-carousel">
       <div className="video-header">
@@ -254,7 +520,7 @@ const VideoCarousel = ({
                 onClick={() => setShowDateSelector(!showDateSelector)}
               >
                 <RiCalendarEventLine />
-                <span>Browse Events</span>
+                <span>{currentSelectionText}</span>
                 <RiArrowDownSLine
                   className={showDateSelector ? "rotated" : ""}
                 />
@@ -306,8 +572,15 @@ const VideoCarousel = ({
                             }`}
                             onClick={() => handleEventChange("latest")}
                           >
-                            <span className="item-title">Latest Videos</span>
-                            <span className="item-sub">Most recent videos</span>
+                            <span className="item-title">
+                              {currentGalleryInfo ? currentGalleryInfo.title : "Latest Videos"}
+                            </span>
+                            <span className="item-sub">
+                              {currentGalleryInfo 
+                                ? `${formatDate(currentGalleryInfo.date)} • ${currentGalleryInfo.mediaCount} videos`
+                                : "Most recent videos"
+                              }
+                            </span>
                           </div>
                         )}
 
@@ -324,7 +597,7 @@ const VideoCarousel = ({
                           >
                             <span className="item-title">{gallery.title}</span>
                             <span className="item-sub">
-                              {formatDate(gallery.date)}
+                              {formatDate(gallery.date)} • {gallery.mediaCount} videos
                             </span>
                           </div>
                         ))}
@@ -343,14 +616,14 @@ const VideoCarousel = ({
         </div>
       </div>
 
-      {/* Video Grid OR Empty State */}
+      {/* Video Grid or Empty State */}
       {hasVideos ? (
         <div className="video-grid">
           {videos.map((video, index) => (
             <motion.div
               key={video.id || index}
               className="video-item"
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.02 }}
               onClick={() => handleVideoClick(video, index)}
             >
               <div className={`video-thumbnail ${video.thumbnail ? 'has-thumbnail' : ''}`}>
@@ -374,24 +647,18 @@ const VideoCarousel = ({
                     <RiPlayCircleLine className="play-overlay" />
                   </div>
                 )}
-                {/* Video info overlay on thumbnail */}
-                <div className="video-info-overlay">
-                  <span className="overlay-name" title={video.name}>
-                    {video.name}
-                  </span>
-                  <span className="overlay-size">{formatFileSize(video.size)}</span>
-                </div>
+                {/* Removed overlay info for cleaner, minimalistic look */}
               </div>
               <div className="video-info">
                 <span className="video-name" title={video.name}>
-                  {video.name}
+                  {video.name.replace(/\.[^/.]+$/, "")} {/* Remove file extension */}
                 </span>
-                <span className="video-size">{formatFileSize(video.size)}</span>
               </div>
             </motion.div>
           ))}
         </div>
       ) : (
+        /* Empty state when galleries exist but no videos are available */
         <div className="video-empty">
           <RiFilmLine />
           <p>No videos available for this event</p>

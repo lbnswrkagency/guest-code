@@ -51,6 +51,7 @@ const GalleryCarousel = ({
   const [error, setError] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState('latest');
   const [availableGalleries, setAvailableGalleries] = useState([]);
+  const [currentGalleryInfo, setCurrentGalleryInfo] = useState(null); // Store actual latest gallery info
   const [showDateSelector, setShowDateSelector] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -112,8 +113,38 @@ const GalleryCarousel = ({
         const photos = response.data.media.photos.slice(0, config.INITIAL_LOAD_COUNT);
         setImages(photos);
         setCurrentIndex(0); // Reset to first image
+        
+        // Store current gallery info for display
+        if (eventId === 'latest') {
+          // First try to get info from API response
+          if (response.data?.galleryInfo) {
+            setCurrentGalleryInfo({
+              title: response.data.galleryInfo.title || 'Latest Gallery',
+              date: response.data.galleryInfo.date,
+              mediaCount: response.data.media.photos.length
+            });
+          } else if (availableGalleries.length > 0) {
+            // Fallback: use the first (most recent) gallery from available galleries
+            const sortedGalleries = [...availableGalleries].sort((a, b) => 
+              new Date(b.date) - new Date(a.date)
+            );
+            const latestGallery = sortedGalleries[0];
+            setCurrentGalleryInfo({
+              title: latestGallery.title,
+              date: latestGallery.date,
+              mediaCount: response.data.media.photos.length
+            });
+          }
+        } else if (eventId !== 'latest') {
+          // For specific event, find it in available galleries
+          const galleryInfo = availableGalleries.find(g => g.eventId === eventId);
+          if (galleryInfo) {
+            setCurrentGalleryInfo(galleryInfo);
+          }
+        }
       } else {
         setImages([]);
+        setCurrentGalleryInfo(null);
       }
     } catch (err) {
       console.error("🖼️ [GalleryCarousel] Error fetching gallery:", err);
@@ -122,7 +153,7 @@ const GalleryCarousel = ({
     } finally {
       setLoading(false);
     }
-  }, [brandId, brandUsername, config.INITIAL_LOAD_COUNT]);
+  }, [brandId, brandUsername, config.INITIAL_LOAD_COUNT, availableGalleries]);
 
   // Memoize fetchAvailableGalleries function
   const fetchAvailableGalleries = useCallback(async () => {
@@ -158,12 +189,21 @@ const GalleryCarousel = ({
   // Initialize gallery when component mounts or dependencies change
   useEffect(() => {
     if (brandHasGalleries && (brandId || brandUsername)) {
-      fetchGallery(selectedEventId);
-      fetchAvailableGalleries();
+      // First fetch available galleries to get the latest info, then fetch the actual gallery
+      fetchAvailableGalleries().then(() => {
+        fetchGallery(selectedEventId);
+      });
     } else {
       setLoading(false);
     }
-  }, [brandHasGalleries, brandId, brandUsername, selectedEventId, fetchGallery, fetchAvailableGalleries]);
+  }, [brandHasGalleries, brandId, brandUsername]);
+
+  // Handle selectedEventId changes separately
+  useEffect(() => {
+    if (brandHasGalleries && (brandId || brandUsername) && availableGalleries.length > 0) {
+      fetchGallery(selectedEventId);
+    }
+  }, [selectedEventId, fetchGallery]);
 
   // Auto-scroll functionality with proper cleanup
   useEffect(() => {
@@ -237,6 +277,83 @@ const GalleryCarousel = ({
     });
   }, []);
 
+  // Format date with day name for display
+  const formatDateWithDay = useCallback((dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }, []);
+
+  // Enhanced search matching function (same as VideoCarousel)
+  const matchesSearch = useCallback((gallery, query) => {
+    if (!query) return true;
+    
+    const searchLower = query.toLowerCase().trim();
+    const title = gallery.title?.toLowerCase() || "";
+    
+    // Basic title matching
+    if (title.includes(searchLower)) return true;
+    
+    // Date parsing and matching
+    if (gallery.date) {
+      const date = new Date(gallery.date);
+      const day = date.getDate();
+      const month = date.getMonth() + 1; // JS months are 0-indexed
+      const year = date.getFullYear();
+      
+      // Month names (full and short)
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const shortMonthNames = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec"
+      ];
+      
+      const monthName = monthNames[month - 1];
+      const shortMonthName = shortMonthNames[month - 1];
+      
+      // Format variations to check
+      const dateFormats = [
+        `${day}.${month}.${year}`,         // 12.10.2025
+        `${day}.${month}`,                 // 12.10
+        `${day}/${month}/${year}`,         // 12/10/2025
+        `${day}/${month}`,                 // 12/10
+        `${day}-${month}-${year}`,         // 12-10-2025
+        `${day}-${month}`,                 // 12-10
+        `${monthName} ${day}`,             // october 12
+        `${day} ${monthName}`,             // 12 october
+        `${shortMonthName} ${day}`,        // oct 12
+        `${day} ${shortMonthName}`,        // 12 oct
+        formatDate(gallery.date).toLowerCase(), // formatted date from function
+        formatDateWithDay(gallery.date).toLowerCase() // formatted date with day
+      ];
+      
+      // Check all date format variations
+      if (dateFormats.some(format => format.includes(searchLower))) {
+        return true;
+      }
+      
+      // Partial month name matching (e.g., "octo" matches "october")
+      if (monthName.includes(searchLower) || shortMonthName.includes(searchLower)) {
+        return true;
+      }
+      
+      // Year matching
+      if (year.toString().includes(searchLower)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, [formatDate, formatDateWithDay]);
+
   // Memoize computed values
   const maxIndex = useMemo(() =>
     Math.max(0, images.length - config.VISIBLE_IMAGES),
@@ -248,14 +365,28 @@ const GalleryCarousel = ({
     [images.length, config.VISIBLE_IMAGES]
   );
 
-  // Filter galleries by search query
-  const filteredGalleries = useMemo(() =>
-    availableGalleries.filter(g =>
-      g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      formatDate(g.date).toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-    [availableGalleries, searchQuery, formatDate]
+  // Filter galleries by enhanced search
+  const filteredGalleries = useMemo(() => 
+    availableGalleries.filter(gallery => matchesSearch(gallery, searchQuery)),
+    [availableGalleries, searchQuery, matchesSearch]
   );
+
+  // Get current selection display text
+  const currentSelectionText = useMemo(() => {
+    if (selectedEventId === 'latest') {
+      if (currentGalleryInfo) {
+        return `${currentGalleryInfo.title} • ${formatDate(currentGalleryInfo.date)}`;
+      }
+      return 'Latest Photos';
+    }
+    const selectedGallery = availableGalleries.find(
+      g => g.eventId === selectedEventId
+    );
+    if (selectedGallery) {
+      return `${selectedGallery.title} • ${formatDate(selectedGallery.date)}`;
+    }
+    return 'Browse Events';
+  }, [selectedEventId, availableGalleries, currentGalleryInfo, formatDate]);
 
   // Don't render if no galleries
   if (!brandHasGalleries) {
@@ -276,6 +407,11 @@ const GalleryCarousel = ({
 
   // Check if we have images to show
   const hasImages = images && images.length > 0;
+
+  // Don't render anything if no images are available after loading
+  if (!loading && !hasImages) {
+    return null;
+  }
 
   return (
     <div className="gallery-carousel">
@@ -305,7 +441,7 @@ const GalleryCarousel = ({
                 onClick={() => setShowDateSelector(!showDateSelector)}
               >
                 <RiCalendarEventLine />
-                <span>Browse Events</span>
+                <span>{currentSelectionText}</span>
                 <RiArrowDownSLine className={showDateSelector ? 'rotated' : ''} />
               </button>
 
@@ -337,8 +473,15 @@ const GalleryCarousel = ({
                           className={`picker-item featured ${selectedEventId === 'latest' ? 'active' : ''}`}
                           onClick={() => handleEventChange('latest')}
                         >
-                          <span className="item-title">Latest Gallery</span>
-                          <span className="item-sub">Most recent photos</span>
+                          <span className="item-title">
+                            {currentGalleryInfo ? currentGalleryInfo.title : 'Latest Gallery'}
+                          </span>
+                          <span className="item-sub">
+                            {currentGalleryInfo 
+                              ? `${formatDate(currentGalleryInfo.date)} • ${currentGalleryInfo.mediaCount} photos`
+                              : 'Most recent photos'
+                            }
+                          </span>
                         </div>
                       )}
 
@@ -368,95 +511,87 @@ const GalleryCarousel = ({
         </div>
       </div>
 
-      {/* Show carousel OR empty state */}
-      {hasImages ? (
-        <>
-          <div className="gallery-carousel-container">
-            {/* Navigation buttons */}
-            {showNavigation && (
-              <button
-                className={`nav-button nav-prev ${currentIndex === 0 ? 'disabled' : ''}`}
-                onClick={handlePrevious}
-                disabled={currentIndex === 0}
-              >
-                <RiArrowLeftSLine />
-              </button>
-            )}
+      {/* Show carousel (empty state handled above by returning null) */}
+      <div className="gallery-carousel-container">
+        {/* Navigation buttons */}
+        {showNavigation && (
+          <button
+            className={`nav-button nav-prev ${currentIndex === 0 ? 'disabled' : ''}`}
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+          >
+            <RiArrowLeftSLine />
+          </button>
+        )}
 
-            {/* Images container */}
-            <div className="carousel-viewport">
+        {/* Images container */}
+        <div className="carousel-viewport">
+          <motion.div
+            className="carousel-track"
+            animate={{
+              x: -currentIndex * (config.IMAGE_WIDTH + config.IMAGE_GAP)
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30
+            }}
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
+          >
+            {images.map((image, index) => (
               <motion.div
-                className="carousel-track"
-                animate={{
-                  x: -currentIndex * (config.IMAGE_WIDTH + config.IMAGE_GAP)
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-                onMouseEnter={() => setIsAutoPlaying(false)}
-                onMouseLeave={() => setIsAutoPlaying(true)}
+                key={image.id || index}
+                className="carousel-item"
+                whileHover={{ scale: 1.05 }}
+                onClick={() => handleImageClick(image, index)}
               >
-                {images.map((image, index) => (
-                  <motion.div
-                    key={image.id || index}
-                    className="carousel-item"
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => handleImageClick(image, index)}
-                  >
-                    {image.thumbnail ? (
-                      <img
-                        src={image.thumbnail}
-                        alt={image.name}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="image-placeholder">
-                        <RiImageLine />
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                {image.thumbnail ? (
+                  <img
+                    src={image.thumbnail}
+                    alt={image.name}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="image-placeholder">
+                    <RiImageLine />
+                  </div>
+                )}
               </motion.div>
-            </div>
+            ))}
+          </motion.div>
+        </div>
 
-            {/* Navigation buttons */}
-            {showNavigation && (
-              <button
-                className={`nav-button nav-next ${currentIndex >= maxIndex ? 'disabled' : ''}`}
-                onClick={handleNext}
-                disabled={currentIndex >= maxIndex}
-              >
-                <RiArrowRightSLine />
-              </button>
-            )}
-          </div>
+        {/* Navigation buttons */}
+        {showNavigation && (
+          <button
+            className={`nav-button nav-next ${currentIndex >= maxIndex ? 'disabled' : ''}`}
+            onClick={handleNext}
+            disabled={currentIndex >= maxIndex}
+          >
+            <RiArrowRightSLine />
+          </button>
+        )}
 
-          {/* Progress dots */}
-          {showNavigation && (
-            <div className="carousel-dots">
-              {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`dot ${currentIndex === index ? 'active' : ''}`}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    setIsAutoPlaying(false);
-                    clearTimeout(scrollTimeoutRef.current);
-                    scrollTimeoutRef.current = setTimeout(() => {
-                      setIsAutoPlaying(true);
-                    }, 5000);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="gallery-empty">
-          <RiImageLine />
-          <p>No images available for this event</p>
+      </div>
+
+      {/* Progress dots - moved outside carousel container for proper centering */}
+      {showNavigation && (
+        <div className="carousel-dots">
+          {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+            <div
+              key={index}
+              className={`dot ${currentIndex === index ? 'active' : ''}`}
+              onClick={() => {
+                setCurrentIndex(index);
+                setIsAutoPlaying(false);
+                clearTimeout(scrollTimeoutRef.current);
+                scrollTimeoutRef.current = setTimeout(() => {
+                  setIsAutoPlaying(true);
+                }, 5000);
+              }}
+            />
+          ))}
         </div>
       )}
     </div>
