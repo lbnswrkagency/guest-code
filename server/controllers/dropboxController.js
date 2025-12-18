@@ -1581,7 +1581,7 @@ exports.getBrandVideoGalleryDates = async (req, res) => {
             subTitle: event.subTitle,
             date: eventDate,
             folderPath: videoFolderPath,
-            videoCount: videoFiles.length,
+            mediaCount: videoFiles.length,
             isWeekly: event.isWeekly,
             weekNumber: event.weekNumber || 0,
             parentEventId: event.parentEventId

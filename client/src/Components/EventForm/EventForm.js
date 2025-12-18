@@ -1590,8 +1590,9 @@ const EventForm = ({
           );
 
           let childEventStartDate = new Date(parentStartDateObj);
-          childEventStartDate.setDate(
-            parentStartDateObj.getDate() + weekNum * 7
+          // Use UTC methods to avoid timezone day-shift
+          childEventStartDate.setUTCDate(
+            parentStartDateObj.getUTCDate() + weekNum * 7
           );
 
           // Use template event times if available, otherwise calculate from parent
@@ -1692,8 +1693,9 @@ const EventForm = ({
           );
 
           let childEventStartDate = new Date(parentStartDateObj);
-          childEventStartDate.setDate(
-            parentStartDateObj.getDate() + weekNum * 7
+          // Use UTC methods to avoid timezone day-shift
+          childEventStartDate.setUTCDate(
+            parentStartDateObj.getUTCDate() + weekNum * 7
           );
 
           const duration =
@@ -1761,6 +1763,60 @@ const EventForm = ({
 
       // Call the async function
       fetchSequentialInheritanceData();
+    } else if (!event?._id && parentEventData && !parentEventData.isWeekly) {
+      // Non-weekly child event - inherit from parent (no API call needed, no date calculation)
+      // Determine the parent: use the parentEventData's _id
+      const parentId = parentEventData._id;
+
+      setFormData({
+        title: parentEventData.title || "",
+        subTitle: parentEventData.subTitle || "",
+        description: parentEventData.description || "",
+        startDate: new Date(), // CLEAR - user picks new date
+        endDate: new Date(),   // CLEAR - user picks new date
+        startTime: parentEventData.startTime || "",
+        endTime: parentEventData.endTime || "",
+        location: parentEventData.location || "",
+        street: parentEventData.street || "",
+        postalCode: parentEventData.postalCode || "",
+        city: parentEventData.city || "",
+        music: parentEventData.music || "",
+        isWeekly: false, // NOT weekly
+        isLive: false,
+        flyer: null, // DON'T inherit flyer
+        guestCode: parentEventData.guestCode || false,
+        friendsCode: parentEventData.friendsCode || false,
+        ticketCode: parentEventData.ticketCode || false,
+        tableCode: parentEventData.tableCode || false,
+        tableLayout: parentEventData.tableLayout || "",
+        parentEventId: parentId, // Link to parent for series navigation
+      });
+
+      // Copy lineups from parent
+      if (Array.isArray(parentEventData.lineups)) {
+        setSelectedLineups(parentEventData.lineups);
+      } else {
+        setSelectedLineups([]);
+      }
+
+      // Copy genres from parent
+      if (Array.isArray(parentEventData.genres) && parentEventData.genres.length > 0) {
+        if (typeof parentEventData.genres[0] === "object") {
+          setSelectedGenres(parentEventData.genres);
+        } else {
+          setGenreIdsToSelect(parentEventData.genres);
+        }
+      } else {
+        setSelectedGenres([]);
+      }
+
+      // Copy co-hosts from parent
+      if (Array.isArray(parentEventData.coHosts)) {
+        const validCoHosts = parentEventData.coHosts.filter(c => c != null);
+        setSelectedCoHosts(validCoHosts);
+      } else {
+        setSelectedCoHosts([]);
+      }
     } else if (isCreatingFromTemplate && templateEvent) {
       // Creating a related event from template (non-weekly series)
       // Determine the parent: if templateEvent has a parent, use that; otherwise templateEvent is the parent

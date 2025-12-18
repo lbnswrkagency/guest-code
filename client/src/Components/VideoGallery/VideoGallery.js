@@ -306,7 +306,7 @@ const VideoGallery = ({
           {videoLoading && (
             <div className="video-lightbox-loading">
               <RiLoader4Line className="spinner" />
-              <span className="loading-text">Loading video...</span>
+              <span className="loading-text">✨ Loading original quality • Worth the wait</span>
             </div>
           )}
 

@@ -236,7 +236,7 @@ const EventGallery = ({
           {imageLoading && (
             <div className="lightbox-loading">
               <RiLoader4Line className="spinner" />
-              <span className="loading-text">Loading...</span>
+              <span className="loading-text">✨ Loading original quality • Worth the wait</span>
             </div>
           )}
 

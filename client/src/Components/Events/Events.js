@@ -530,22 +530,49 @@ const Events = () => {
 
   // Check if user can create events for the selected brand
   const canCreateEvents = () => {
+    // DEBUG: Log all relevant values
+    console.log('canCreateEvents check:', {
+      hasUser: !!user,
+      userId: user?._id,
+      hasSelectedBrand: !!selectedBrand,
+      selectedBrandOwner: selectedBrand?.owner,
+      selectedBrandRole: selectedBrand?.role,
+      selectedBrandTeam: selectedBrand?.team?.length,
+    });
+
     if (!user || !selectedBrand) return false;
 
     // If user is the brand owner, they can create events
     const ownerId =
       typeof selectedBrand.owner === "object"
-        ? selectedBrand.owner._id
-        : selectedBrand.owner;
-    const userId = user._id;
+        ? selectedBrand.owner._id?.toString()
+        : selectedBrand.owner?.toString();
+    const userId = user._id?.toString();
 
-    if (ownerId === userId) {
+    if (ownerId && userId && ownerId === userId) {
       return true;
     }
 
     // Check if the brand has the user's role attached with event edit permissions
     if (selectedBrand.role && selectedBrand.role.permissions) {
       return selectedBrand.role.permissions.events?.edit === true;
+    }
+
+    // Fallback: check team array for permissions (backward compatibility)
+    if (selectedBrand.team && Array.isArray(selectedBrand.team)) {
+      const teamMember = selectedBrand.team.find((member) => {
+        const memberId =
+          typeof member.user === "object"
+            ? member.user._id?.toString()
+            : member.user?.toString();
+        return memberId === userId;
+      });
+
+      if (teamMember && teamMember.role) {
+        // Check if the role has event edit permissions
+        const rolePermissions = teamMember.role.permissions;
+        return rolePermissions?.events?.edit === true;
+      }
     }
 
     return false;
@@ -739,6 +766,8 @@ const EventCard = ({
   const [isLive, setIsLive] = useState(event.isLive || false); // Track live status
   const [lastFetchTime, setLastFetchTime] = useState(Date.now()); // Track when we last fetched data
   const [isLoading, setIsLoading] = useState(false);
+  const [childEvents, setChildEvents] = useState([]); // Array of child events for non-weekly
+  const [currentChildIndex, setCurrentChildIndex] = useState(-1); // -1 = viewing parent
   const toast = useToast(); // Add toast context
   const navigate = useNavigate();
   const { user } = useContext(AuthContext); // Get current user
@@ -842,7 +871,8 @@ const EventCard = ({
           throw new Error("Invalid date");
         }
 
-        weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+        // Use UTC methods to avoid timezone day-shift
+        weekDate.setUTCDate(weekDate.getUTCDate() + currentWeek * 7);
 
         // Create a temporary event object with parent data but updated date
         const tempEvent = {
@@ -870,6 +900,36 @@ const EventCard = ({
     }
   }, [event, currentWeek]);
 
+  // Fetch child events for NON-weekly events
+  useEffect(() => {
+    const fetchChildEvents = async () => {
+      // Skip for weekly events (they use weekNumber navigation)
+      if (event.isWeekly) return;
+
+      try {
+        const response = await axiosInstance.get(
+          `/events/children/${event._id}`
+        );
+        if (response.data && response.data.length > 0) {
+          // Sort by createdAt to maintain order
+          const sorted = response.data.sort(
+            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+          );
+          setChildEvents(sorted);
+        } else {
+          setChildEvents([]);
+        }
+      } catch (error) {
+        // No children or error - that's fine
+        setChildEvents([]);
+      }
+    };
+
+    if (event._id && !event.isWeekly) {
+      fetchChildEvents();
+    }
+  }, [event._id, event.isWeekly]);
+
   const getImageUrl = (imageObj) => {
     if (!imageObj) return null;
     if (typeof imageObj === "string") return imageObj;
@@ -892,6 +952,13 @@ const EventCard = ({
     }
     return null;
   };
+
+  // Get the brand for this event (for showing logo as placeholder)
+  const eventBrand = userBrands?.find(
+    (b) =>
+      b._id === event.brand ||
+      (typeof event.brand === "object" && b._id === event.brand._id)
+  );
 
   const handleEditClick = (e) => {
     e.stopPropagation();
@@ -933,6 +1000,34 @@ const EventCard = ({
     setCurrentWeek(newWeek);
   };
 
+  // Handle navigation to previous child event (for non-weekly)
+  const handlePrevChild = (e) => {
+    e.stopPropagation();
+    if (currentChildIndex > -1) {
+      const newIndex = currentChildIndex - 1;
+      setCurrentChildIndex(newIndex);
+      if (newIndex === -1) {
+        // Back to parent
+        setCurrentEvent(event);
+        setIsLive(event.isLive || false);
+      } else {
+        setCurrentEvent(childEvents[newIndex]);
+        setIsLive(childEvents[newIndex].isLive || false);
+      }
+    }
+  };
+
+  // Handle navigation to next child event (for non-weekly)
+  const handleNextChild = (e) => {
+    e.stopPropagation();
+    if (currentChildIndex < childEvents.length - 1) {
+      const newIndex = currentChildIndex + 1;
+      setCurrentChildIndex(newIndex);
+      setCurrentEvent(childEvents[newIndex]);
+      setIsLive(childEvents[newIndex].isLive || false);
+    }
+  };
+
   // Update when currentWeek changes
   useEffect(() => {
     if (currentEvent.isWeekly && currentWeek > 0) {
@@ -945,7 +1040,8 @@ const EventCard = ({
           return;
         }
 
-        weekDate.setDate(weekDate.getDate() + currentWeek * 7);
+        // Use UTC methods to avoid timezone day-shift
+        weekDate.setUTCDate(weekDate.getUTCDate() + currentWeek * 7);
 
         // Update the current event with the new week number and date
         setCurrentEvent((prev) => ({
@@ -1148,7 +1244,7 @@ const EventCard = ({
           {/* Header with image and actions */}
           <div className="event-card-header">
             <div className="event-cover-image glassy-element">
-              {currentEvent.flyer && (
+              {currentEvent.flyer ? (
                 <ProgressiveImage
                   thumbnailSrc={getFlyerImage(currentEvent.flyer)}
                   mediumSrc={getFlyerImage(currentEvent.flyer)}
@@ -1156,32 +1252,90 @@ const EventCard = ({
                   alt={`${currentEvent.title} cover`}
                   className="cover-image"
                 />
-              )}
+              ) : !currentEvent.flyer && eventBrand?.logo ? (
+                // Show brand logo as placeholder when no flyer
+                <img
+                  src={eventBrand.logo.medium || eventBrand.logo.full || eventBrand.logo.thumbnail}
+                  alt={`${eventBrand.name} logo`}
+                  className="cover-image placeholder-logo"
+                />
+              ) : null}
             </div>
           </div>
 
-          {/* Weekly Navigation - positioned below flyer */}
-          {(event.isWeekly || currentEvent.isWeekly) && (
+          {/* Navigation - works for both weekly AND non-weekly with children */}
+          {(event.isWeekly ||
+            currentEvent.isWeekly ||
+            currentEvent.parentEventId ||
+            (!event.isWeekly && hasPermission)) && (
             <div className="weekly-navigation">
-              <button
-                className="nav-arrow prev"
-                onClick={
-                  hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
-                }
-                disabled={currentWeek === 0 || !hasPermission}
-              >
-                <RiArrowLeftSLine />
-              </button>
-              <span className="week-indicator">Week {currentWeek + 1}</span>
-              <button
-                className="nav-arrow next"
-                onClick={
-                  hasPermission ? handleNextWeek : (e) => e.stopPropagation()
-                }
-                disabled={!hasPermission}
-              >
-                <RiArrowRightSLine />
-              </button>
+              {/* Weekly events: show week navigation */}
+              {(event.isWeekly || currentEvent.isWeekly) && (
+                <>
+                  <button
+                    className="nav-arrow prev"
+                    onClick={
+                      hasPermission ? handlePrevWeek : (e) => e.stopPropagation()
+                    }
+                    disabled={currentWeek === 0 || !hasPermission}
+                  >
+                    <RiArrowLeftSLine />
+                  </button>
+                  <span className="week-indicator">Week {currentWeek + 1}</span>
+                  <button
+                    className="nav-arrow next"
+                    onClick={
+                      hasPermission ? handleNextWeek : (e) => e.stopPropagation()
+                    }
+                    disabled={!hasPermission}
+                  >
+                    <RiArrowRightSLine />
+                  </button>
+                </>
+              )}
+
+              {/* Non-weekly events: show navigation like weekly - exactly matching layout */}
+              {!event.isWeekly && !currentEvent.isWeekly && (childEvents.length > 0 || hasPermission) && (
+                <>
+                  {/* < arrow - only show if can go back (not at parent) */}
+                  {childEvents.length > 0 && currentChildIndex > -1 && (
+                    <button
+                      className="nav-arrow prev"
+                      onClick={handlePrevChild}
+                    >
+                      <RiArrowLeftSLine />
+                    </button>
+                  )}
+
+                  {/* Centered label - only show if children exist */}
+                  {childEvents.length > 0 && (
+                    <span className="week-indicator">
+                      {currentChildIndex + 2} of {childEvents.length + 1}
+                    </span>
+                  )}
+
+                  {/* > arrow OR (+) button - mutually exclusive */}
+                  {currentChildIndex < childEvents.length - 1 ? (
+                    <button
+                      className="nav-arrow next"
+                      onClick={handleNextChild}
+                    >
+                      <RiArrowRightSLine />
+                    </button>
+                  ) : hasPermission ? (
+                    <button
+                      className="nav-arrow add-child"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClick(null, currentEvent._id ? currentEvent : event, 0);
+                      }}
+                      title="Create follow-up event"
+                    >
+                      <RiAddCircleLine />
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           )}
 

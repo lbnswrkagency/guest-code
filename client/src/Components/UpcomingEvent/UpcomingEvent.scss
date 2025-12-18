@@ -664,6 +664,16 @@
         object-fit: contain; // Default to contain to show full image
         max-width: 100%;
         max-height: none;
+
+        // Placeholder logo styling - show brand logo when no flyer
+        &.placeholder-logo {
+          opacity: 0.6;
+          max-width: 60%;
+          max-height: 200px;
+          margin: auto;
+          padding: 2rem 0;
+          filter: grayscale(30%);
+        }
       }
 
       &:hover .upcomingEvent-event-image {

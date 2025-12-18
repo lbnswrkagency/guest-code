@@ -139,6 +139,7 @@ $bg-dark: #0a0a0a;
     justify-content: center;
     gap: 1rem;
     z-index: 5;
+    text-align: center;
 
     .spinner {
       font-size: 3rem;
@@ -150,6 +151,7 @@ $bg-dark: #0a0a0a;
       color: rgba(255, 255, 255, 0.7);
       font-size: 0.9rem;
       font-weight: 500;
+      white-space: nowrap;
     }
   }
 

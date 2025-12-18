@@ -64,8 +64,9 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
     const parentEndDateObj = new Date(parentEvent.endDate); // Use parent's actual endDate for date calculation
 
     // Calculate child's actual start date and time
+    // Use UTC methods to avoid timezone day-shift when date crosses midnight in local timezone
     let childStartDate = new Date(parentStartDateObj);
-    childStartDate.setDate(parentStartDateObj.getDate() + weekNumber * 7); // Moves to the correct week, preserving original time
+    childStartDate.setUTCDate(parentStartDateObj.getUTCDate() + weekNumber * 7); // Moves to the correct week, preserving original time
 
     // Calculate duration
     const duration = parentEndDateObj.getTime() - parentStartDateObj.getTime();
@@ -357,7 +358,7 @@ exports.createEvent = async (req, res) => {
     // Add parentEventId for non-weekly event series
     if (parentEventId) {
       eventData.parentEventId = parentEventId;
-      eventData.isLive = true; // Child events should be live by default
+      // Don't auto-set isLive for child events - let frontend control it
     }
 
     // Calculate final startDate and endDate considering startTime and endTime for overnight events

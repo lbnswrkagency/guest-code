@@ -1759,6 +1759,13 @@ const UpcomingEvent = ({
                   className="upcomingEvent-event-image"
                   onError={handleImageError}
                 />
+              ) : currentEvent?.brand?.logo ? (
+                <img
+                  src={currentEvent.brand.logo.medium || currentEvent.brand.logo.full || currentEvent.brand.logo.thumbnail}
+                  alt={`${currentEvent.brand.name || 'Brand'} logo`}
+                  className="upcomingEvent-event-image placeholder-logo"
+                  onError={handleImageError}
+                />
               ) : (
                 <div className="upcomingEvent-no-image">
                   <RiImageLine />

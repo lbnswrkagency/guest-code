@@ -41,7 +41,8 @@ const VideoCarousel = ({
   onVideoClick,
   brandHasVideoGalleries,
 }) => {
-  const [videos, setVideos] = useState([]);
+  const [videos, setVideos] = useState([]); // Sliced videos for carousel display
+  const [allVideos, setAllVideos] = useState([]); // ALL videos for lightbox browsing
   const [loading, setLoading] = useState(!!brandHasVideoGalleries);
   const [error, setError] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState("latest");
@@ -132,12 +133,16 @@ const VideoCarousel = ({
           Array.isArray(response.data.media.videos) &&
           response.data.media.videos.length > 0
         ) {
-          // Take only the first batch of videos
-          const videoList = response.data.media.videos.slice(
+          // Store ALL videos for lightbox browsing
+          const allVideosList = response.data.media.videos;
+          setAllVideos(allVideosList);
+
+          // Take only the first batch of videos for carousel display
+          const videoList = allVideosList.slice(
             0,
             config.INITIAL_LOAD_COUNT
           );
-          console.log("📹 [VideoCarousel] Setting videos:", videoList.length, "videos found");
+          console.log("📹 [VideoCarousel] Setting videos:", videoList.length, "of", allVideosList.length, "total videos");
           setVideos(videoList);
           
           // Store current gallery info for display
@@ -173,6 +178,7 @@ const VideoCarousel = ({
         } else {
           console.log(`❌ [VideoCarousel] [Request-${currentRequestId}] No videos found in response - API returned empty array or no success`);
           setVideos([]);
+          setAllVideos([]);
           setCurrentGalleryInfo(null);
         }
       } catch (err) {
@@ -190,6 +196,7 @@ const VideoCarousel = ({
         console.error(`❌ [VideoCarousel] [Request-${currentRequestId}] Error fetching video gallery:`, err);
         setError("Failed to load video gallery");
         setVideos([]);
+        setAllVideos([]);
         setCurrentGalleryInfo(null);
       } finally {
         // Only update loading state if this is still the current request
@@ -337,14 +344,15 @@ const VideoCarousel = ({
     };
   }, []);
 
-  // Handle video click
+  // Handle video click - pass ALL videos for lightbox browsing
   const handleVideoClick = useCallback(
     (video, index) => {
       if (onVideoClick) {
-        onVideoClick(videos, index);
+        // Pass allVideos so lightbox can browse ALL videos, not just carousel subset
+        onVideoClick(allVideos, index);
       }
     },
-    [onVideoClick, videos]
+    [onVideoClick, allVideos]
   );
 
   // Handle event selection change
@@ -486,7 +494,7 @@ const VideoCarousel = ({
       <div className="video-carousel loading">
         <div className="loading-container">
           <LoadingSpinner />
-          <p>Loading videos...</p>
+          <p>✨ Loading original quality • Worth the wait</p>
         </div>
       </div>
     );

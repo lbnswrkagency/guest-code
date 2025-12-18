@@ -213,6 +213,8 @@ router.get("/:eventId/weekly/:weekNumber", authenticate, async (req, res) => {
         startDate: occurrenceDate, // Update timing to match the target week
         endDate: new Date(occurrenceDate.getTime() + (new Date(parentEvent.endDate).getTime() - new Date(parentEvent.startDate).getTime())),
         childExists: false, // Flag to indicate this is a calculated occurrence, not a real DB record
+        isLive: false, // Uncreated events should not be live
+        flyer: null, // Don't inherit flyer - frontend will show brand.logo as placeholder
       };
 
       return res.status(200).json(tempChildEvent);

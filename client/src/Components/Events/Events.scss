@@ -308,6 +308,17 @@
       background: rgba(255, 255, 255, 0.08);
       border-radius: 12px;
     }
+
+    // Spacer to push (+) button to the right when no children exist
+    .nav-spacer {
+      flex: 1;
+    }
+
+    // (+) button uses .nav-arrow styles, just with dashed border
+    .nav-arrow.add-child {
+      border-style: dashed;
+      margin-left: auto;
+    }
   }
 
   // Series navigation for non-weekly events (create related event)
@@ -538,6 +549,15 @@
         object-fit: contain;
         display: block;
         transition: transform 0.5s ease;
+      }
+
+      // Placeholder logo style for uncreated future weekly events
+      .placeholder-logo {
+        opacity: 0.5;
+        max-width: 60%;
+        max-height: 200px;
+        object-fit: contain;
+        filter: grayscale(30%);
       }
     }
   }

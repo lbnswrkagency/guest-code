@@ -46,7 +46,8 @@ const GalleryCarousel = ({
   onImageClick,
   brandHasGalleries
 }) => {
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // Sliced images for carousel display
+  const [allImages, setAllImages] = useState([]); // ALL images for lightbox browsing
   const [loading, setLoading] = useState(!!brandHasGalleries); // Start with true only if galleries exist
   const [error, setError] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState('latest');
@@ -109,8 +110,12 @@ const GalleryCarousel = ({
       const response = await axiosInstance.get(endpoint);
 
       if (response.data?.success && response.data?.media?.photos && Array.isArray(response.data.media.photos)) {
-        // Take only the first batch of photos for carousel
-        const photos = response.data.media.photos.slice(0, config.INITIAL_LOAD_COUNT);
+        // Store ALL photos for lightbox browsing
+        const allPhotos = response.data.media.photos;
+        setAllImages(allPhotos);
+
+        // Take only the first batch of photos for carousel display
+        const photos = allPhotos.slice(0, config.INITIAL_LOAD_COUNT);
         setImages(photos);
         setCurrentIndex(0); // Reset to first image
         
@@ -144,12 +149,14 @@ const GalleryCarousel = ({
         }
       } else {
         setImages([]);
+        setAllImages([]);
         setCurrentGalleryInfo(null);
       }
     } catch (err) {
       console.error("🖼️ [GalleryCarousel] Error fetching gallery:", err);
       setError("Failed to load gallery");
       setImages([]);
+      setAllImages([]);
     } finally {
       setLoading(false);
     }
@@ -252,12 +259,13 @@ const GalleryCarousel = ({
     }, 5000);
   }, [images.length, config.VISIBLE_IMAGES]);
 
-  // Memoize image click handler - pass images array and clicked index
+  // Memoize image click handler - pass ALL images for lightbox browsing
   const handleImageClick = useCallback((image, index) => {
     if (onImageClick) {
-      onImageClick(images, index);
+      // Pass allImages so lightbox can browse ALL photos, not just carousel subset
+      onImageClick(allImages, index);
     }
-  }, [onImageClick, images]);
+  }, [onImageClick, allImages]);
 
   // Memoize event change handler
   const handleEventChange = useCallback((eventId) => {
@@ -399,7 +407,7 @@ const GalleryCarousel = ({
       <div className="gallery-carousel loading">
         <div className="loading-container">
           <LoadingSpinner />
-          <p>Loading gallery...</p>
+          <p>✨ Loading original quality • Worth the wait</p>
         </div>
       </div>
     );
@@ -418,7 +426,7 @@ const GalleryCarousel = ({
       <div className="gallery-header">
         <h3 className="gallery-title">
           <RiImageLine />
-          Event Gallery
+          Photo Gallery
         </h3>
         
         <div className="gallery-controls">
