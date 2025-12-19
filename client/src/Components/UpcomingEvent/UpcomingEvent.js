@@ -1486,6 +1486,40 @@ const UpcomingEvent = ({
     setShowGuestCodeForm(false);
   };
 
+  // Auto-scroll preview carousel to show selected event
+  useEffect(() => {
+    if (events.length <= maxVisiblePreviews) {
+      // If all events fit in viewport, no need to scroll
+      return;
+    }
+
+    // Calculate if current event is visible in the preview carousel
+    const visibleStartIndex = previewScrollIndex;
+    const visibleEndIndex = previewScrollIndex + maxVisiblePreviews - 1;
+
+    // If current event is not visible, adjust scroll position
+    if (currentIndex < visibleStartIndex || currentIndex > visibleEndIndex) {
+      // Calculate optimal scroll position to center the selected event
+      let newScrollIndex;
+      
+      if (currentIndex < visibleStartIndex) {
+        // Selected event is to the left, scroll left to show it
+        newScrollIndex = Math.max(0, currentIndex - Math.floor(maxVisiblePreviews / 2));
+      } else {
+        // Selected event is to the right, scroll right to show it
+        newScrollIndex = Math.min(
+          events.length - maxVisiblePreviews,
+          currentIndex - Math.floor(maxVisiblePreviews / 2)
+        );
+      }
+
+      // Ensure we don't scroll beyond bounds
+      newScrollIndex = Math.max(0, Math.min(events.length - maxVisiblePreviews, newScrollIndex));
+      
+      setPreviewScrollIndex(newScrollIndex);
+    }
+  }, [currentIndex, events.length, maxVisiblePreviews, previewScrollIndex]);
+
   // Get preview image for an event
   const getPreviewImage = (event) => {
     if (!event?.flyer) return null;
