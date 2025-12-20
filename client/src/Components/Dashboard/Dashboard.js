@@ -459,35 +459,26 @@ const Dashboard = () => {
   };
 
   // Get code settings for the selected event
+  // All code settings come from CodeSettings collection (Redux store)
   const getCodeSettingsForSelectedEvent = () => {
-    console.log('🔵 [Dashboard] getCodeSettingsForSelectedEvent called');
-    console.log('🔵 [Dashboard] selectedEvent:', selectedEvent?._id, selectedEvent?.title);
-    console.log('🔵 [Dashboard] selectedEvent.coHostBrandInfo:', selectedEvent?.coHostBrandInfo);
-    console.log('🔵 [Dashboard] selectedEvent.codeSettings:', selectedEvent?.codeSettings);
-    console.log('🔵 [Dashboard] Redux codeSettings count:', codeSettings?.length);
-
     if (!selectedEvent) {
-      console.log('🔵 [Dashboard] No selectedEvent, returning []');
       return [];
     }
 
-    // Check if this is a co-hosted event with embedded code settings
-    // ONLY use embedded settings for actual co-hosted events
-    if (
-      selectedEvent.coHostBrandInfo &&
-      selectedEvent.codeSettings &&
-      Array.isArray(selectedEvent.codeSettings)
-    ) {
-      console.log('🔵 [Dashboard] Using EMBEDDED codeSettings:', selectedEvent.codeSettings.length, selectedEvent.codeSettings);
-      return selectedEvent.codeSettings;
-    }
-
-    // For regular events, filter code settings from Redux store
-    const reduxSettings = codeSettings.filter(
-      (setting) => setting.eventId === selectedEvent._id
+    // Compare as strings to handle ObjectId vs string mismatch
+    const eventIdStr = selectedEvent._id?.toString();
+    const eventCodeSettings = codeSettings.filter(
+      (setting) => setting.eventId?.toString() === eventIdStr
     );
-    console.log('🔵 [Dashboard] Using REDUX codeSettings:', reduxSettings.length, 'for eventId:', selectedEvent._id);
-    return reduxSettings;
+
+    console.log('🔵 [Dashboard] getCodeSettingsForSelectedEvent:', {
+      eventId: eventIdStr,
+      eventTitle: selectedEvent.title,
+      foundSettings: eventCodeSettings.length,
+      settingNames: eventCodeSettings.map(s => s.name)
+    });
+
+    return eventCodeSettings;
   };
 
   // Get user's role permissions for the selected brand or co-hosted event

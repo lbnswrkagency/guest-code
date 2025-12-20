@@ -65,9 +65,11 @@ export const {
 // Selectors
 export const selectAllCodeSettings = (state) =>
   state.codeSettings?.allCodeSettings || [];
-export const selectCodeSettingsByEventId = (state, eventId) =>
-  state.codeSettings?.allCodeSettings.filter(
-    (setting) => setting.eventId === eventId
+export const selectCodeSettingsByEventId = (state, eventId) => {
+  const eventIdStr = eventId?.toString();
+  return state.codeSettings?.allCodeSettings.filter(
+    (setting) => setting.eventId?.toString() === eventIdStr
   ) || [];
+};
 
 export default codeSettingsSlice.reducer;

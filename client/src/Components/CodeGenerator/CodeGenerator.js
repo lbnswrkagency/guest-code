@@ -35,6 +35,16 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
+    // 🔵 DEBUG: Log received codeSettings
+    console.log("🔵 [CodeGenerator] codeSettings received:", codeSettings);
+    console.log("🔵 [CodeGenerator] codeSettings details:", codeSettings?.map(s => ({
+      name: s.name,
+      type: s.type,
+      isEditable: s.isEditable,
+      isEnabled: s.isEnabled,
+      _id: s._id
+    })));
+
     // Get user role permissions from selectedBrand or co-host permissions
     let userPermissions = {};
 
@@ -47,6 +57,7 @@ function CodeGenerator({
       if (userPermissions instanceof Map) {
         userPermissions = Object.fromEntries(userPermissions);
       }
+      console.log("🔵 [CodeGenerator] Using coHost permissions");
     } else if (selectedBrand?.role?.permissions?.codes) {
       userPermissions = selectedBrand.role.permissions.codes;
 
@@ -54,12 +65,22 @@ function CodeGenerator({
       if (userPermissions instanceof Map) {
         userPermissions = Object.fromEntries(userPermissions);
       }
+      console.log("🔵 [CodeGenerator] Using brand role permissions");
+    } else {
+      console.log("🔵 [CodeGenerator] NO PERMISSIONS FOUND - selectedBrand:", selectedBrand);
+      console.log("🔵 [CodeGenerator] selectedBrand?.role:", selectedBrand?.role);
     }
+
+    console.log("🔵 [CodeGenerator] userPermissions:", userPermissions);
+    console.log("🔵 [CodeGenerator] userPermissions keys:", Object.keys(userPermissions));
 
     // Filter for custom codes (isEditable: true) that are also enabled (isEnabled: true)
     const customCodeSettings = codeSettings.filter(
       (setting) => setting.isEditable === true && setting.isEnabled === true
     );
+
+    console.log("🔵 [CodeGenerator] After filter (isEditable && isEnabled):", customCodeSettings.length);
+    console.log("🔵 [CodeGenerator] customCodeSettings:", customCodeSettings);
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();
@@ -75,10 +96,32 @@ function CodeGenerator({
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
 
     // Filter settings based on user permissions
+    // Permission key format: ${eventId}_${codeName} for event-specific permissions
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
-      const permissionKey = setting.name;
-      return userPermissions[permissionKey]?.generate === true;
+      // Try event-specific permission key first (new format)
+      const eventPermissionKey = selectedEvent?._id ? `${selectedEvent._id}_${setting.name}` : null;
+      // Also try just the code name (legacy format)
+      const simplePermissionKey = setting.name;
+
+      const hasEventPermission = eventPermissionKey && userPermissions[eventPermissionKey]?.generate === true;
+      const hasSimplePermission = userPermissions[simplePermissionKey]?.generate === true;
+
+      return hasEventPermission || hasSimplePermission;
     });
+
+    console.log("🔵 [CodeGenerator] permittedSettings:", permittedSettings.length);
+    console.log("🔵 [CodeGenerator] Permission check details:", uniqueCodeSettings.map(s => {
+      const eventKey = selectedEvent?._id ? `${selectedEvent._id}_${s.name}` : null;
+      return {
+        name: s.name,
+        eventPermissionKey: eventKey,
+        simplePermissionKey: s.name,
+        hasEventPermission: eventKey ? userPermissions[eventKey]?.generate === true : false,
+        hasSimplePermission: userPermissions[s.name]?.generate === true,
+        eventPermissionValue: eventKey ? userPermissions[eventKey] : null,
+        simplePermissionValue: userPermissions[s.name]
+      };
+    }));
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -238,7 +281,10 @@ function CodeGenerator({
     } else {
       return null;
     }
-    const permission = userPermissions[selectedCodeType];
+
+    // Try event-specific permission key first (new format), then simple name (legacy)
+    const eventPermissionKey = selectedEvent?._id ? `${selectedEvent._id}_${selectedCodeType}` : null;
+    const permission = (eventPermissionKey && userPermissions[eventPermissionKey]) || userPermissions[selectedCodeType];
 
     if (!permission) return null;
 

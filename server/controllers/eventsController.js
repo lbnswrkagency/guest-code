@@ -480,11 +480,15 @@ exports.getBrandEvents = async (req, res) => {
       });
     }
 
-    // Get only parent events (events with no parentEventId)
-    // We don't want to include child events in the main list
+    // Get parent events AND non-weekly child events
+    // Weekly child events are excluded (they're created on-demand via Week navigation)
+    // Non-weekly child events are included so they appear in Dashboard
     const events = await Event.find({
       brand: brandId,
-      parentEventId: { $exists: false }, // Only get parent events
+      $or: [
+        { parentEventId: { $exists: false } },  // Parent events
+        { parentEventId: { $exists: true }, isWeekly: { $ne: true } }  // Non-weekly child events
+      ]
     })
       .sort({ startDate: -1 })
       .populate("user", "username firstName lastName avatar")

@@ -1,46 +1,8 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// Define a schema for code settings
-const CodeSettingsSchema = new Schema(
-  {
-    name: { type: String, required: true }, // Custom name for the code
-    type: {
-      type: String,
-      enum: ["guest", "friends", "ticket", "table", "backstage", "custom"],
-      required: true,
-    },
-    condition: { type: String, default: "" },
-    maxPax: { type: Number, default: 1 },
-    limit: { type: Number, default: 0 }, // 0 means unlimited
-    isEnabled: { type: Boolean, default: true },
-    isEditable: { type: Boolean, default: false }, // Whether name can be edited
-    // Additional fields for specific code types
-    price: { type: Number }, // For ticket codes
-    tableNumber: { type: String }, // For table codes
-  },
-  { _id: false }
-);
-
-// Create a separate schema for embedded code settings that doesn't have required fields
-const EmbeddedCodeSettingsSchema = new Schema(
-  {
-    name: { type: String }, // Not required when embedded
-    type: {
-      type: String,
-      enum: ["guest", "friends", "ticket", "table", "backstage", "custom"],
-    },
-    condition: { type: String, default: "" },
-    maxPax: { type: Number, default: 1 },
-    limit: { type: Number, default: 0 }, // 0 means unlimited
-    isEnabled: { type: Boolean, default: true },
-    isEditable: { type: Boolean, default: false }, // Whether name can be edited
-    // Additional fields for specific code types
-    price: { type: Number }, // For ticket codes
-    tableNumber: { type: String }, // For table codes
-  },
-  { _id: false }
-);
+// NOTE: All code settings are now in the CodeSettings collection (server/models/codeSettingsModel.js)
+// Legacy embedded code fields have been removed. See cleanEventCodeSettings.js script.
 
 const EventSchema = new Schema(
   {
@@ -123,78 +85,8 @@ const EventSchema = new Schema(
       },
     },
 
-    // New approach: Array of code settings
-    codeSettings: {
-      type: [CodeSettingsSchema],
-      default: function () {
-        return [
-          // Default code types with predefined settings
-          {
-            name: "Guest Code",
-            type: "guest",
-            condition: "",
-            maxPax: 1,
-            limit: 0,
-            isEnabled: false,
-            isEditable: false,
-          },
-          {
-            name: "Ticket Code",
-            type: "ticket",
-            condition: "",
-            maxPax: 1,
-            limit: 0,
-            isEnabled: false,
-            isEditable: false,
-          },
-          {
-            name: "Friends Code",
-            type: "friends",
-            condition: "",
-            maxPax: 1,
-            limit: 0,
-            isEnabled: false,
-            isEditable: true,
-          },
-          {
-            name: "Backstage Code",
-            type: "backstage",
-            condition: "",
-            maxPax: 1,
-            limit: 0,
-            isEnabled: false,
-            isEditable: true,
-          },
-        ];
-      },
-    },
-
-    // Keep these for backward compatibility
-    guestCode: { type: Boolean, default: false },
-    friendsCode: { type: Boolean, default: false },
-    ticketCode: { type: Boolean, default: false },
-    tableCode: { type: Boolean, default: false },
-    backstageCode: { type: Boolean, default: false },
-    guestCodeSettings: {
-      type: EmbeddedCodeSettingsSchema,
-      default: () => ({}),
-    },
-    friendsCodeSettings: {
-      type: EmbeddedCodeSettingsSchema,
-      default: () => ({}),
-    },
-    ticketCodeSettings: {
-      type: EmbeddedCodeSettingsSchema,
-      default: () => ({}),
-    },
-    tableCodeSettings: {
-      type: EmbeddedCodeSettingsSchema,
-      default: () => ({}),
-    },
-    backstageCodeSettings: {
-      type: EmbeddedCodeSettingsSchema,
-      default: () => ({}),
-    },
+    // NOTE: Code settings are now in CodeSettings collection (codeSettingsModel.js)
+    // Legacy fields (codeSettings, guestCode, friendsCode, etc.) have been removed
 
     // Table layout configuration
     tableLayout: {

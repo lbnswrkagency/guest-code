@@ -165,29 +165,49 @@ const RoleSetting = ({ brand, onClose }) => {
     }
   }, [brand._id, toast]);
 
-  // Fetch code settings for custom codes
+  // Fetch code settings for custom codes from parent events only
   const fetchCodeSettings = useCallback(async () => {
     try {
       const eventsResponse = await axiosInstance.get(`/events/brand/${brand._id}`);
-      
+
       if (eventsResponse.data?.length > 0) {
-        const eventId = eventsResponse.data[0]._id;
-        const codeResponse = await axiosInstance.get(`/code-settings/events/${eventId}`);
-        
-        if (codeResponse.data?.codeSettings) {
-          const customCodes = codeResponse.data.codeSettings
-            .filter(code => code.type === "custom")
-            .map(code => ({
-              name: code.name,
-              displayName: code.name.charAt(0).toUpperCase() + code.name.slice(1),
-              color: code.color || primaryColor,
-              hasLimits: true,
-              maxLimit: code.limit || 999,
-            }));
-          
-          setCodeSettings(customCodes);
-          initializeRoleWithCodePermissions(customCodes);
+        // Filter to only parent events (no parentEventId) to avoid duplicate codes from child events
+        const parentEvents = eventsResponse.data.filter(event => !event.parentEventId);
+        const allCustomCodes = [];
+
+        // Fetch code settings from parent events using Promise.all for performance
+        const codePromises = parentEvents.map(event =>
+          axiosInstance.get(`/code-settings/events/${event._id}`)
+            .then(response => ({ event, codeSettings: response.data?.codeSettings || [] }))
+            .catch(() => ({ event, codeSettings: [] }))
+        );
+
+        const results = await Promise.all(codePromises);
+
+        for (const { event, codeSettings } of results) {
+          if (codeSettings.length > 0) {
+            const customCodes = codeSettings
+              .filter(code => code.type === "custom")
+              .map(code => ({
+                id: code._id,
+                eventId: event._id,
+                eventTitle: event.title,
+                name: code.name,
+                // Permission key includes eventId for event-specific permissions
+                permissionKey: `${event._id}_${code.name}`,
+                displayName: `${code.name} (${event.title})`,
+                color: code.color || primaryColor,
+                hasLimits: true,
+                maxLimit: code.limit || 999,
+              }));
+
+            allCustomCodes.push(...customCodes);
+          }
         }
+
+        // NO deduplication - show ALL codes from ALL events with event-specific permissions
+        setCodeSettings(allCustomCodes);
+        initializeRoleWithCodePermissions(allCustomCodes);
       }
     } catch (error) {
       // Silent fail for code settings
@@ -198,13 +218,14 @@ const RoleSetting = ({ brand, onClose }) => {
   const initializeRoleWithCodePermissions = useCallback((codeTypes) => {
     const codePermissions = {};
     codeTypes.forEach(code => {
-      codePermissions[code.name] = {
+      // Use permissionKey (eventId_codeName) for event-specific permissions
+      codePermissions[code.permissionKey] = {
         generate: false,
         limit: 0,
         unlimited: false,
       };
     });
-    
+
     setNewRole(prev => ({
       ...prev,
       permissions: {
@@ -320,10 +341,10 @@ const RoleSetting = ({ brand, onClose }) => {
       },
     };
     
-    // Initialize custom code permissions
+    // Initialize custom code permissions using permissionKey (eventId_codeName)
     codeSettings.forEach(code => {
-      const existing = role.permissions?.codes?.[code.name] || {};
-      editFormData.permissions.codes[code.name] = {
+      const existing = role.permissions?.codes?.[code.permissionKey] || {};
+      editFormData.permissions.codes[code.permissionKey] = {
         generate: Boolean(existing.generate),
         limit: parseInt(existing.limit) || 0,
         unlimited: Boolean(existing.unlimited),
@@ -348,9 +369,9 @@ const RoleSetting = ({ brand, onClose }) => {
     }));
   }, []);
 
-  // Handle code permission changes
-  const handleCodePermissionChange = useCallback((codeType, changes) => {
-    const codeSetting = codeSettings.find(code => code.name === codeType);
+  // Handle code permission changes (uses permissionKey for event-specific permissions)
+  const handleCodePermissionChange = useCallback((permissionKey, changes) => {
+    const codeSetting = codeSettings.find(code => code.permissionKey === permissionKey);
     const maxLimit = codeSetting?.maxLimit || 999;
 
     if (changes.limit !== undefined) {
@@ -363,8 +384,8 @@ const RoleSetting = ({ brand, onClose }) => {
         ...prev.permissions,
         codes: {
           ...prev.permissions.codes,
-          [codeType]: {
-            ...prev.permissions.codes[codeType],
+          [permissionKey]: {
+            ...prev.permissions.codes[permissionKey],
             ...changes,
           },
         },
@@ -554,14 +575,14 @@ const RoleSetting = ({ brand, onClose }) => {
                             </div>
                             <div className="codes-grid">
                               {codeSettings.map((code) => {
-                                const permission = newRole.permissions.codes?.[code.name] || {};
+                                const permission = newRole.permissions.codes?.[code.permissionKey] || {};
                                 return (
-                                  <div key={code.name} className="code-permission-item">
+                                  <div key={code.permissionKey} className="code-permission-item">
                                     <label className="code-toggle">
                                       <input
                                         type="checkbox"
                                         checked={permission.generate || false}
-                                        onChange={(e) => handleCodePermissionChange(code.name, {
+                                        onChange={(e) => handleCodePermissionChange(code.permissionKey, {
                                           generate: e.target.checked,
                                         })}
                                       />
@@ -569,7 +590,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                         {code.displayName}
                                       </span>
                                     </label>
-                                    
+
                                     {permission.generate && code.hasLimits && (
                                       <div className="code-limits">
                                         <input
@@ -577,7 +598,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                           min="0"
                                           max={code.maxLimit}
                                           value={permission.unlimited ? "" : permission.limit}
-                                          onChange={(e) => handleCodePermissionChange(code.name, {
+                                          onChange={(e) => handleCodePermissionChange(code.permissionKey, {
                                             limit: parseInt(e.target.value) || 0,
                                             unlimited: false,
                                           })}
@@ -588,7 +609,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                         <button
                                           type="button"
                                           className={`unlimited-btn ${permission.unlimited ? 'active' : ''}`}
-                                          onClick={() => handleCodePermissionChange(code.name, {
+                                          onClick={() => handleCodePermissionChange(code.permissionKey, {
                                             unlimited: !permission.unlimited,
                                           })}
                                         >
@@ -741,14 +762,14 @@ const RoleSetting = ({ brand, onClose }) => {
                     </div>
                     <div className="codes-grid">
                       {codeSettings.map((code) => {
-                        const permission = newRole.permissions.codes?.[code.name] || {};
+                        const permission = newRole.permissions.codes?.[code.permissionKey] || {};
                         return (
-                          <div key={code.name} className="code-permission-item">
+                          <div key={code.permissionKey} className="code-permission-item">
                             <label className="code-toggle">
                               <input
                                 type="checkbox"
                                 checked={permission.generate || false}
-                                onChange={(e) => handleCodePermissionChange(code.name, {
+                                onChange={(e) => handleCodePermissionChange(code.permissionKey, {
                                   generate: e.target.checked,
                                 })}
                               />
@@ -756,7 +777,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                 {code.displayName}
                               </span>
                             </label>
-                            
+
                             {permission.generate && code.hasLimits && (
                               <div className="code-limits">
                                 <input
@@ -764,7 +785,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                   min="0"
                                   max={code.maxLimit}
                                   value={permission.unlimited ? "" : permission.limit}
-                                  onChange={(e) => handleCodePermissionChange(code.name, {
+                                  onChange={(e) => handleCodePermissionChange(code.permissionKey, {
                                     limit: parseInt(e.target.value) || 0,
                                     unlimited: false,
                                   })}
@@ -775,7 +796,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                 <button
                                   type="button"
                                   className={`unlimited-btn ${permission.unlimited ? 'active' : ''}`}
-                                  onClick={() => handleCodePermissionChange(code.name, {
+                                  onClick={() => handleCodePermissionChange(code.permissionKey, {
                                     unlimited: !permission.unlimited,
                                   })}
                                 >
