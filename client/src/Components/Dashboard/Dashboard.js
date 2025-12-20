@@ -471,13 +471,6 @@ const Dashboard = () => {
       (setting) => setting.eventId?.toString() === eventIdStr
     );
 
-    console.log('🔵 [Dashboard] getCodeSettingsForSelectedEvent:', {
-      eventId: eventIdStr,
-      eventTitle: selectedEvent.title,
-      foundSettings: eventCodeSettings.length,
-      settingNames: eventCodeSettings.map(s => s.name)
-    });
-
     return eventCodeSettings;
   };
 

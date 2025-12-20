@@ -154,10 +154,6 @@ const EventForm = ({
         music: parentEventData?.music || "",
         isWeekly: true, // It's a child of a weekly event
         flyer: null, // Don't inherit flyer initially
-        guestCode: parentEventData?.guestCode || false,
-        friendsCode: parentEventData?.friendsCode || false,
-        ticketCode: parentEventData?.ticketCode || false,
-        tableCode: parentEventData?.tableCode || false,
         tableLayout: parentEventData?.tableLayout || "",
         dropboxFolderPath: parentEventData?.dropboxFolderPath || "",
         dropboxVideoFolderPath: parentEventData?.dropboxVideoFolderPath || "",
@@ -180,10 +176,6 @@ const EventForm = ({
         music: templateEvent?.music || "",
         isWeekly: false, // Not a weekly event
         flyer: null, // Will inherit flyers in useEffect
-        guestCode: templateEvent?.guestCode || false,
-        friendsCode: templateEvent?.friendsCode || false,
-        ticketCode: templateEvent?.ticketCode || false,
-        tableCode: templateEvent?.tableCode || false,
         tableLayout: templateEvent?.tableLayout || "",
         parentEventId: parentId, // Link to parent for series navigation
       };
@@ -202,10 +194,6 @@ const EventForm = ({
         music: event?.music || "",
         isWeekly: event?.isWeekly || false,
         flyer: null,
-        guestCode: event?.guestCode || false,
-        friendsCode: event?.friendsCode || false,
-        ticketCode: event?.ticketCode || false,
-        tableCode: event?.tableCode || false,
         tableLayout: event?.tableLayout || "",
         dropboxFolderPath: event?.dropboxFolderPath || "",
         dropboxVideoFolderPath: event?.dropboxVideoFolderPath || "",
@@ -1419,10 +1407,6 @@ const EventForm = ({
         isWeekly: event.isWeekly || false,
         isLive: event.isLive || false,
         flyer: event.flyer || null,
-        guestCode: event.guestCode || false,
-        friendsCode: event.friendsCode || false,
-        ticketCode: event.ticketCode || false,
-        tableCode: event.tableCode || false,
         tableLayout: event.tableLayout || "",
         dropboxFolderPath: event.dropboxFolderPath || "",
         dropboxVideoFolderPath: event.dropboxVideoFolderPath || "",
@@ -1602,11 +1586,6 @@ const EventForm = ({
             isWeekly: true,
             isLive: false,
             flyer: templateEvent.flyer || null,
-            guestCode: templateEvent.guestCode || false,
-            friendsCode: templateEvent.friendsCode || false,
-            ticketCode: templateEvent.ticketCode || false,
-            tableCode: templateEvent.tableCode || false,
-            backstageCode: templateEvent.backstageCode || false,
             tableLayout: templateEvent.tableLayout || "",
           });
 
@@ -1683,10 +1662,6 @@ const EventForm = ({
             isWeekly: true,
             isLive: false,
             flyer: parentEventData.flyer || null,
-            guestCode: parentEventData.guestCode || false,
-            friendsCode: parentEventData.friendsCode || false,
-            ticketCode: parentEventData.ticketCode || false,
-            tableCode: parentEventData.tableCode || false,
             tableLayout: parentEventData.tableLayout || "",
           });
 
@@ -1746,10 +1721,6 @@ const EventForm = ({
         isWeekly: false, // NOT weekly
         isLive: false,
         flyer: null, // DON'T inherit flyer
-        guestCode: parentEventData.guestCode || false,
-        friendsCode: parentEventData.friendsCode || false,
-        ticketCode: parentEventData.ticketCode || false,
-        tableCode: parentEventData.tableCode || false,
         tableLayout: parentEventData.tableLayout || "",
         parentEventId: parentId, // Link to parent for series navigation
       });
@@ -1800,10 +1771,6 @@ const EventForm = ({
         isWeekly: false, // Not a weekly event but still a child
         isLive: false,
         flyer: templateEvent.flyer || null,
-        guestCode: templateEvent.guestCode || false,
-        friendsCode: templateEvent.friendsCode || false,
-        ticketCode: templateEvent.ticketCode || false,
-        tableCode: templateEvent.tableCode || false,
         tableLayout: templateEvent.tableLayout || "",
         parentEventId: parentId, // Make it a child event for navigation
       });
@@ -1873,10 +1840,6 @@ const EventForm = ({
         isWeekly: false,
         isLive: false,
         flyer: null,
-        guestCode: false,
-        friendsCode: false,
-        ticketCode: false,
-        tableCode: false,
       });
       setSelectedLineups([]);
       setSelectedGenres([]);

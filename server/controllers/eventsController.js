@@ -120,18 +120,7 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
             .filter((id) => id != null)
         : [], // Filter out any remaining null/undefined IDs
       coHostRolePermissions: templateEvent.coHostRolePermissions || [],
-      // Copy legacy code settings for backward compatibility from sequential template event
-      guestCode: templateEvent.guestCode,
-      friendsCode: templateEvent.friendsCode,
-      ticketCode: templateEvent.ticketCode,
-      tableCode: templateEvent.tableCode,
-      backstageCode: templateEvent.backstageCode,
-      // Use empty objects for embedded code settings to avoid validation errors
-      guestCodeSettings: {},
-      friendsCodeSettings: {},
-      ticketCodeSettings: {},
-      tableCodeSettings: {},
-      backstageCodeSettings: {},
+      // NOTE: Code settings are in CodeSettings collection, not embedded in events
       link: link,
       slug: weeklySlug,
     });
@@ -310,10 +299,6 @@ exports.createEvent = async (req, res) => {
       city,
       music,
       isWeekly,
-      guestCode,
-      friendsCode,
-      ticketCode,
-      tableCode,
       dropboxFolderPath,
       parentEventId,
     } = req.body;
@@ -342,10 +327,7 @@ exports.createEvent = async (req, res) => {
       lineups: lineups,
       genres: genres,
       coHosts: coHosts,
-      guestCode: guestCode,
-      friendsCode: friendsCode,
-      ticketCode: ticketCode,
-      tableCode: tableCode,
+      // NOTE: Code settings are in CodeSettings collection, not embedded in events
       dropboxFolderPath:
         dropboxFolderPath ||
         generateDropboxPath(
@@ -581,10 +563,6 @@ exports.editEvent = async (req, res) => {
       music,
       isWeekly,
       lineups,
-      guestCode,
-      friendsCode,
-      ticketCode,
-      tableCode,
       genres,
       dropboxFolderPath,
     } = req.body;
@@ -732,75 +710,7 @@ exports.editEvent = async (req, res) => {
       });
 
       try {
-        // Remove validation for embedded code settings to prevent errors
-        // These fields are now handled by the CodeSettings model
-        event.guestCodeSettings = {};
-        event.friendsCodeSettings = {};
-        event.ticketCodeSettings = {};
-        event.tableCodeSettings = {};
-        event.backstageCodeSettings = {};
-
         await event.save();
-
-        // Check if we need to update code settings for this child event
-        if (
-          req.body.codeSettings ||
-          req.body.guestCode !== undefined ||
-          req.body.friendsCode !== undefined ||
-          req.body.ticketCode !== undefined ||
-          req.body.tableCode !== undefined ||
-          req.body.backstageCode !== undefined
-        ) {
-          // Import the CodeSettings controller
-          const { configureCodeSettings } = require("./codeSettingsController");
-
-          // Initialize default settings if they don't exist
-          const {
-            initializeDefaultSettings,
-          } = require("./codeSettingsController");
-          await initializeDefaultSettings(event._id);
-
-          // Update the legacy boolean fields if they were changed
-          if (req.body.guestCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: event._id, type: "guest" },
-              { isEnabled: req.body.guestCode },
-              { new: true }
-            );
-          }
-
-          if (req.body.friendsCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: event._id, type: "friends" },
-              { isEnabled: req.body.friendsCode },
-              { new: true }
-            );
-          }
-
-          if (req.body.ticketCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: event._id, type: "ticket" },
-              { isEnabled: req.body.ticketCode },
-              { new: true }
-            );
-          }
-
-          if (req.body.tableCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: event._id, type: "table" },
-              { isEnabled: req.body.tableCode },
-              { new: true }
-            );
-          }
-
-          if (req.body.backstageCode !== undefined) {
-            await CodeSettings.findOneAndUpdate(
-              { eventId: event._id, type: "backstage" },
-              { isEnabled: req.body.backstageCode },
-              { new: true }
-            );
-          }
-        }
 
         // Populate the child event before returning to ensure co-hosts are populated
         const populatedEvent = await Event.findById(event._id)
@@ -917,73 +827,8 @@ exports.editEvent = async (req, res) => {
         // childEvent.parentEventId = event._id; // Already set
         // childEvent.weekNumber = weekNumber; // Already set
 
-        // Remove validation for embedded code settings to prevent errors
-        // These fields are now handled by the CodeSettings model
-        childEvent.guestCodeSettings = {};
-        childEvent.friendsCodeSettings = {};
-        childEvent.ticketCodeSettings = {};
-        childEvent.tableCodeSettings = {};
-        childEvent.backstageCodeSettings = {};
-
         try {
           await childEvent.save();
-
-          // Check if we need to update code settings for this child event
-          if (
-            req.body.codeSettings ||
-            req.body.guestCode !== undefined ||
-            req.body.friendsCode !== undefined ||
-            req.body.ticketCode !== undefined ||
-            req.body.tableCode !== undefined ||
-            req.body.backstageCode !== undefined
-          ) {
-            // Initialize default settings if they don't exist
-            const {
-              initializeDefaultSettings,
-            } = require("./codeSettingsController");
-            await initializeDefaultSettings(childEvent._id);
-
-            // Update the legacy boolean fields if they were changed
-            if (req.body.guestCode !== undefined) {
-              await CodeSettings.findOneAndUpdate(
-                { eventId: childEvent._id, type: "guest" },
-                { isEnabled: req.body.guestCode },
-                { new: true }
-              );
-            }
-
-            if (req.body.friendsCode !== undefined) {
-              await CodeSettings.findOneAndUpdate(
-                { eventId: childEvent._id, type: "friends" },
-                { isEnabled: req.body.friendsCode },
-                { new: true }
-              );
-            }
-
-            if (req.body.ticketCode !== undefined) {
-              await CodeSettings.findOneAndUpdate(
-                { eventId: childEvent._id, type: "ticket" },
-                { isEnabled: req.body.ticketCode },
-                { new: true }
-              );
-            }
-
-            if (req.body.tableCode !== undefined) {
-              await CodeSettings.findOneAndUpdate(
-                { eventId: childEvent._id, type: "table" },
-                { isEnabled: req.body.tableCode },
-                { new: true }
-              );
-            }
-
-            if (req.body.backstageCode !== undefined) {
-              await CodeSettings.findOneAndUpdate(
-                { eventId: childEvent._id, type: "backstage" },
-                { isEnabled: req.body.backstageCode },
-                { new: true }
-              );
-            }
-          }
 
           // Populate the child event before returning to ensure co-hosts are populated
           const populatedChildEvent = await Event.findById(childEvent._id)
@@ -1058,61 +903,6 @@ exports.editEvent = async (req, res) => {
       }
       throw err;
     });
-
-    // Check if we need to update code settings for this event
-    if (
-      req.body.codeSettings ||
-      req.body.guestCode !== undefined ||
-      req.body.friendsCode !== undefined ||
-      req.body.ticketCode !== undefined ||
-      req.body.tableCode !== undefined ||
-      req.body.backstageCode !== undefined
-    ) {
-      // Initialize default settings if they don't exist
-      const { initializeDefaultSettings } = require("./codeSettingsController");
-      await initializeDefaultSettings(eventId);
-
-      // Update the legacy boolean fields if they were changed
-      if (req.body.guestCode !== undefined) {
-        await CodeSettings.findOneAndUpdate(
-          { eventId: eventId, type: "guest" },
-          { isEnabled: req.body.guestCode },
-          { new: true }
-        );
-      }
-
-      if (req.body.friendsCode !== undefined) {
-        await CodeSettings.findOneAndUpdate(
-          { eventId: eventId, type: "friends" },
-          { isEnabled: req.body.friendsCode },
-          { new: true }
-        );
-      }
-
-      if (req.body.ticketCode !== undefined) {
-        await CodeSettings.findOneAndUpdate(
-          { eventId: eventId, type: "ticket" },
-          { isEnabled: req.body.ticketCode },
-          { new: true }
-        );
-      }
-
-      if (req.body.tableCode !== undefined) {
-        await CodeSettings.findOneAndUpdate(
-          { eventId: eventId, type: "table" },
-          { isEnabled: req.body.tableCode },
-          { new: true }
-        );
-      }
-
-      if (req.body.backstageCode !== undefined) {
-        await CodeSettings.findOneAndUpdate(
-          { eventId: eventId, type: "backstage" },
-          { isEnabled: req.body.backstageCode },
-          { new: true }
-        );
-      }
-    }
 
     res.status(200).json(updatedEvent);
   } catch (error) {

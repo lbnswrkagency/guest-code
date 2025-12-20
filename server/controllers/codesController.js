@@ -54,7 +54,7 @@ const generateQR = async (data) => {
   }
 };
 
-// Configure event code settings
+// Configure event code settings - uses CodeSettings collection
 const configureCodeSettings = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -76,49 +76,35 @@ const configureCodeSettings = async (req, res) => {
     }
 
     // Check if user has permission to modify this event
-    if (
-      event.user.toString() !== req.user._id.toString() &&
-      !req.user.isAdmin
-    ) {
+    const userId = req.user._id || req.user.userId;
+    if (event.user.toString() !== userId.toString() && !req.user.isAdmin) {
       return res
         .status(403)
         .json({ message: "Not authorized to modify this event" });
     }
 
-    // Initialize codeSettings array if it doesn't exist
-    if (!event.codeSettings) {
-      event.codeSettings = [];
-    }
-
     // If codeSettingId is provided, update existing code setting
     if (codeSettingId) {
-      const settingIndex = event.codeSettings.findIndex(
-        (setting) => setting._id.toString() === codeSettingId
-      );
-
-      if (settingIndex === -1) {
+      const codeSetting = await CodeSettings.findById(codeSettingId);
+      if (!codeSetting) {
         return res.status(404).json({ message: "Code setting not found" });
       }
 
       // Update the code setting
-      if (name && event.codeSettings[settingIndex].isEditable) {
-        event.codeSettings[settingIndex].name = name;
-      }
+      if (name && codeSetting.isEditable) codeSetting.name = name;
+      if (condition !== undefined) codeSetting.condition = condition;
+      if (maxPax !== undefined) codeSetting.maxPax = maxPax;
+      if (limit !== undefined) codeSetting.limit = limit;
+      if (isEnabled !== undefined) codeSetting.isEnabled = isEnabled;
 
-      if (condition !== undefined)
-        event.codeSettings[settingIndex].condition = condition;
-      if (maxPax !== undefined)
-        event.codeSettings[settingIndex].maxPax = maxPax;
-      if (limit !== undefined) event.codeSettings[settingIndex].limit = limit;
-      if (isEnabled !== undefined)
-        event.codeSettings[settingIndex].isEnabled = isEnabled;
+      await codeSetting.save();
 
-      // Update legacy fields for backward compatibility
-      if (type === "guest") event.guestCode = isEnabled;
-      if (type === "friends") event.friendsCode = isEnabled;
-      if (type === "ticket") event.ticketCode = isEnabled;
-      if (type === "table") event.tableCode = isEnabled;
-      if (type === "backstage") event.backstageCode = isEnabled;
+      // Get all code settings for response
+      const allSettings = await CodeSettings.find({ eventId });
+      return res.status(200).json({
+        message: "Code settings updated successfully",
+        codeSettings: allSettings,
+      });
     }
     // If no codeSettingId, create a new code setting
     else if (type) {
@@ -135,8 +121,9 @@ const configureCodeSettings = async (req, res) => {
         return res.status(400).json({ message: "Invalid code type" });
       }
 
-      // Create new code setting
-      const newCodeSetting = {
+      // Create new code setting in CodeSettings collection
+      const newCodeSetting = new CodeSettings({
+        eventId,
         name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} Code`,
         type,
         condition: condition || "",
@@ -145,28 +132,28 @@ const configureCodeSettings = async (req, res) => {
         isEnabled: isEnabled !== undefined ? isEnabled : true,
         isEditable:
           type === "custom" || (isEditable !== undefined ? isEditable : false),
-      };
+      });
 
-      event.codeSettings.push(newCodeSetting);
+      await newCodeSetting.save();
+
+      // Get all code settings for response
+      const allSettings = await CodeSettings.find({ eventId });
+      return res.status(200).json({
+        message: "Code settings updated successfully",
+        codeSettings: allSettings,
+      });
     } else {
       return res
         .status(400)
         .json({ message: "Either codeSettingId or type must be provided" });
     }
-
-    await event.save();
-
-    return res.status(200).json({
-      message: "Code settings updated successfully",
-      codeSettings: event.codeSettings,
-    });
   } catch (error) {
     console.error("Error configuring code settings:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get all code settings for an event
+// Get all code settings for an event - uses CodeSettings collection
 const getCodeSettings = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -178,12 +165,12 @@ const getCodeSettings = async (req, res) => {
     }
 
     // Check if user has permission to view this event
+    const userId = req.user?._id || req.user?.userId;
     if (
       req.user &&
-      req.user._id &&
+      userId &&
       event.user &&
-      event.user.toString &&
-      event.user.toString() !== req.user._id.toString() &&
+      event.user.toString() !== userId.toString() &&
       !req.user.isAdmin
     ) {
       return res
@@ -191,12 +178,11 @@ const getCodeSettings = async (req, res) => {
         .json({ message: "Not authorized to view this event" });
     }
 
-    // Log warning if event.user is undefined
-    if (!event.user) {
-    }
+    // Get code settings from CodeSettings collection
+    const codeSettings = await CodeSettings.find({ eventId });
 
     return res.status(200).json({
-      codeSettings: event.codeSettings || [],
+      codeSettings: codeSettings || [],
     });
   } catch (error) {
     console.error("Error fetching code settings:", error);
@@ -204,7 +190,7 @@ const getCodeSettings = async (req, res) => {
   }
 };
 
-// Delete a code setting
+// Delete a code setting - uses CodeSettings collection
 const deleteCodeSetting = async (req, res) => {
   try {
     const { eventId, codeSettingId } = req.params;
@@ -216,27 +202,21 @@ const deleteCodeSetting = async (req, res) => {
     }
 
     // Check if user has permission to modify this event
-    if (
-      event.user.toString() !== req.user._id.toString() &&
-      !req.user.isAdmin
-    ) {
+    const userId = req.user._id || req.user.userId;
+    if (event.user.toString() !== userId.toString() && !req.user.isAdmin) {
       return res
         .status(403)
         .json({ message: "Not authorized to modify this event" });
     }
 
-    // Find the code setting
-    const settingIndex = event.codeSettings.findIndex(
-      (setting) => setting._id.toString() === codeSettingId
-    );
-
-    if (settingIndex === -1) {
+    // Find the code setting in CodeSettings collection
+    const codeSetting = await CodeSettings.findById(codeSettingId);
+    if (!codeSetting) {
       return res.status(404).json({ message: "Code setting not found" });
     }
 
     // Check if this is a default code type that shouldn't be deleted
-    const codeType = event.codeSettings[settingIndex].type;
-    if (["guest", "ticket", "friends", "backstage"].includes(codeType)) {
+    if (["guest", "ticket", "friends", "backstage"].includes(codeSetting.type)) {
       return res.status(400).json({
         message:
           "Cannot delete default code types. You can disable them instead.",
@@ -244,12 +224,14 @@ const deleteCodeSetting = async (req, res) => {
     }
 
     // Remove the code setting
-    event.codeSettings.splice(settingIndex, 1);
-    await event.save();
+    await CodeSettings.findByIdAndDelete(codeSettingId);
+
+    // Get remaining code settings for response
+    const remainingSettings = await CodeSettings.find({ eventId });
 
     return res.status(200).json({
       message: "Code setting deleted successfully",
-      codeSettings: event.codeSettings,
+      codeSettings: remainingSettings,
     });
   } catch (error) {
     console.error("Error deleting code setting:", error);
@@ -328,21 +310,6 @@ const createCode = async (req, res) => {
 // Generate a dynamic code with enhanced features
 const createDynamicCode = async (req, res) => {
   try {
-    // Debug logging
-    console.log("🔍 Code generation request received:");
-    console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
-    console.log("🔑 User:", req.user ? req.user._id : "No user");
-    console.log(
-      "🔑 Auth header:",
-      req.headers.authorization ? "Present" : "Missing"
-    );
-    console.log("🔑 User from request body:", req.body.createdBy);
-    console.log("👤 Host information:", {
-      host: req.body.host,
-      hostId: req.body.hostId,
-      metadata: req.body.metadata,
-    });
-
     // Extract fields with fallbacks and multiple naming conventions
     const {
       name,
@@ -387,28 +354,14 @@ const createDynamicCode = async (req, res) => {
       metadata.hostUsername ||
       (req.user ? req.user.username || req.user.email : null);
 
-    // Additional debug info for derived field values
-    console.log("🔶 Effective field values:");
-    console.log("- effectiveEventId:", effectiveEventId);
-    console.log("- effectiveType:", effectiveType);
-    console.log("- effectiveSettings:", effectiveSettings);
-    console.log("- name:", name);
-    console.log("- maxPax/pax:", maxPax || pax);
-    console.log("- effectiveCreatedBy:", effectiveCreatedBy);
-    console.log("- effectiveHost:", effectiveHost);
-    console.log("- effectiveUsername:", effectiveUsername);
-    console.log("- metadata:", JSON.stringify(metadata));
-
     // Validate required fields
     if (!effectiveEventId) {
-      console.error("❌ Missing event ID field");
       return res
         .status(400)
         .json({ message: "Missing required field: event or eventId" });
     }
 
     if (!effectiveType) {
-      console.error("❌ Missing type field");
       return res.status(400).json({ message: "Missing required field: type" });
     }
 
@@ -422,13 +375,10 @@ const createDynamicCode = async (req, res) => {
       "custom",
     ];
     if (!allowedTypes.includes(effectiveType)) {
-      console.warn(`⚠️ Invalid type: ${effectiveType}, defaulting to 'custom'`);
       effectiveType = "custom";
     }
 
     if (!effectiveSettings) {
-      console.error("❌ Missing settings field");
-      console.error("Request body:", JSON.stringify(req.body, null, 2));
       return res.status(400).json({
         message: "Missing required field: settings or codeSettingId",
         details:
@@ -439,21 +389,16 @@ const createDynamicCode = async (req, res) => {
     // Find the event
     const event_ = await Event.findById(effectiveEventId);
     if (!event_) {
-      console.error(`❌ Event not found: ${effectiveEventId}`);
       return res.status(404).json({ message: "Event not found" });
     }
 
     // If createdBy is still undefined, use the event's user as a fallback
     if (!effectiveCreatedBy && event_.user) {
-      console.log(
-        `⚠️ Using event user as fallback for createdBy: ${event_.user}`
-      );
       effectiveCreatedBy = event_.user;
     }
 
     // If still no createdBy, return an error
     if (!effectiveCreatedBy) {
-      console.error("❌ No user ID available for createdBy field");
       return res.status(400).json({
         message: "Missing required field: createdBy",
         details:
@@ -466,13 +411,11 @@ const createDynamicCode = async (req, res) => {
     const codeSetting = await CodeSettings.findById(effectiveSettings);
 
     if (!codeSetting) {
-      console.error("❌ Code setting not found:", effectiveSettings);
       return res.status(404).json({ message: "Code setting not found" });
     }
 
     // Check if the code setting is enabled
     if (!codeSetting.isEnabled) {
-      console.error("❌ Code setting is not enabled:", codeSetting.name);
       return res.status(400).json({
         message: `${codeSetting.name} codes are no longer accepted`,
         status: "disabled",
@@ -481,7 +424,6 @@ const createDynamicCode = async (req, res) => {
 
     // Generate a unique code
     const code = await generateUniqueCode();
-    console.log("✅ Generated unique code:", code);
 
     // Generate a security token for additional validation
     const securityToken = crypto.randomBytes(16).toString("hex");
@@ -498,7 +440,6 @@ const createDynamicCode = async (req, res) => {
 
     // Generate QR code
     const qrCode = await generateQR(qrData);
-    console.log("✅ Generated QR code");
 
     // Create the dynamic code in the database with enhanced features
     const newCode = new Code({
@@ -535,19 +476,7 @@ const createDynamicCode = async (req, res) => {
       },
     });
 
-    console.log("📝 Saving code with data:", {
-      eventId: newCode.eventId,
-      type: newCode.type,
-      name: newCode.name,
-      createdBy: newCode.createdBy,
-      condition: newCode.condition,
-      maxPax: newCode.maxPax,
-      paxChecked: newCode.paxChecked,
-      metadata: newCode.metadata,
-    });
-
     await newCode.save();
-    console.log("✅ Code saved to database");
 
     // Return the generated code data for display
     return res.status(201).json({
@@ -861,9 +790,6 @@ const deleteCode = async (req, res) => {
 
 
         if (!isOwner && !isTeamMember) {
-          console.log(
-            `User ${userId} not authorized to delete code ${codeId}`
-          );
           return res
             .status(403)
             .json({ message: "Not authorized to delete this code" });
@@ -1316,9 +1242,6 @@ const getUserCodeCounts = async (req, res) => {
         createdAt: code.createdAt,
       });
 
-      console.log(
-        `📋 SERVER USER CODE: id=${code._id}, settingId=${settingId}, name=${code.name}`
-      );
     });
 
     // Step 5: Combine the code counts with the code settings details
@@ -1368,16 +1291,12 @@ const findBySecurityToken = async (req, res) => {
       return res.status(400).json({ message: "Security token is required" });
     }
 
-    console.log("Looking for code with securityToken:", securityToken);
-
     // Find the code by security token
     const code = await Code.findOne({ securityToken });
 
     if (!code) {
       return res.status(404).json({ message: "Code not found" });
     }
-
-    console.log("Found code by securityToken:", code.code);
 
     return res.status(200).json({
       message: "Code found",
@@ -1393,12 +1312,6 @@ const findBySecurityToken = async (req, res) => {
 const getEventUserCodes = async (req, res) => {
   try {
     const { eventId, userId, codeSettingIds } = req.body;
-
-    console.log("🔍 Getting codes for event, user and specific settings:", {
-      eventId,
-      userId,
-      codeSettingIds,
-    });
 
     // Validate required fields
     if (!eventId) {
@@ -1422,8 +1335,6 @@ const getEventUserCodes = async (req, res) => {
 
     // Get all codes matching the query
     const codes = await Code.find(query).sort({ createdAt: -1 });
-
-    console.log(`✅ Found ${codes.length} codes for the query`);
 
     // Group codes by codeSettingId
     const codesBySettingId = {};
