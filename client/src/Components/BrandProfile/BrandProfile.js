@@ -780,6 +780,8 @@ const BrandProfile = () => {
         const response = await axiosInstance.get(endpoint);
 
         const codeSettings = response.data?.codeSettings || [];
+        console.log("[BrandProfile] Fetched codeSettings from API for event", event._id, ":", codeSettings);
+        console.log("[BrandProfile] Guest code setting:", codeSettings.find(cs => cs.type === "guest"));
 
         setTicketSettings(fetchedTicketSettings);
         setCodeSettings(codeSettings);
@@ -1027,8 +1029,23 @@ const BrandProfile = () => {
       currentEvent.ticketsAvailable !== false &&
       visibleTicketSettings.length > 0;
 
-    // For guest code, check if it's enabled - always show it if event exists
-    const showGuestCode = !!currentEvent;
+    // For guest code, check if it's enabled AND has a condition configured
+    // DEBUG: Log codeSettings to trace the issue
+    console.log("[BrandProfile] codeSettings state:", codeSettings);
+    console.log("[BrandProfile] currentEvent._id:", currentEvent?._id);
+    console.log("[BrandProfile] currentEvent.codeSettings:", currentEvent?.codeSettings);
+
+    // Use codeSettings STATE variable (not currentEvent.codeSettings which may not exist)
+    const guestCodeSetting = codeSettings?.find(
+      (cs) => cs.type === "guest"
+    );
+    console.log("[BrandProfile] guestCodeSetting found:", guestCodeSetting);
+
+    const showGuestCode =
+      !!currentEvent &&
+      guestCodeSetting?.isEnabled &&
+      guestCodeSetting?.condition;
+    console.log("[BrandProfile] showGuestCode:", showGuestCode, "isEnabled:", guestCodeSetting?.isEnabled, "condition:", guestCodeSetting?.condition);
 
     // For gallery, check if event has dropboxFolderPath
     const showGallery = !!(currentEvent && currentEvent.dropboxFolderPath);
@@ -1161,9 +1178,9 @@ const BrandProfile = () => {
             </motion.button>
           )}
 
-          {/* Photos button - only show if photos are available */}
+          {/* Photos button - only show if photos are confirmed available */}
           {/* actuallyHasPhotos: null = not checked yet, true = has photos, false = no photos */}
-          {!checkingGalleries && brandHasGalleries && actuallyHasPhotos !== false && (
+          {actuallyHasPhotos === true && (
             <motion.button
               className="event-action-button gallery-button photos-button"
               whileHover={{ scale: 1.03 }}

@@ -548,6 +548,7 @@ const UpcomingEvent = ({
         // Store code settings globally (you might want to add state for this)
         if (codeSettings) {
           window.upcomingEventCodeSettingsCache = codeSettings;
+          console.log("[UpcomingEvent] codeSettings received from API:", codeSettings);
         }
 
         // Store table data globally (you might want to add state for this)
@@ -555,8 +556,16 @@ const UpcomingEvent = ({
           window.upcomingEventTableDataCache = tableData;
         }
 
-        // Use the events from comprehensive response
-        events = responseEvents || [];
+        // Use the events from comprehensive response and MERGE codeSettings into each event
+        events = (responseEvents || []).map(event => {
+          const eventId = event._id?.toString();
+          const eventCodeSettings = codeSettings?.[eventId] || [];
+          console.log(`[UpcomingEvent] Merging codeSettings for event ${eventId}:`, eventCodeSettings);
+          return {
+            ...event,
+            codeSettings: eventCodeSettings
+          };
+        });
       } else {
         console.warn(
           "❌ [UpcomingEvent] Comprehensive endpoint failed, falling back to individual calls"
@@ -1653,9 +1662,15 @@ const UpcomingEvent = ({
   const eventImage = getEventImage();
 
   // Get guest code setting if available
+  // DEBUG: Log what we're working with
+  console.log("[UpcomingEvent] currentEvent._id:", currentEvent?._id);
+  console.log("[UpcomingEvent] currentEvent.codeSettings:", currentEvent?.codeSettings);
+
   const guestCodeSetting = currentEvent.codeSettings?.find(
     (cs) => cs.type === "guest"
   );
+  console.log("[UpcomingEvent] guestCodeSetting found:", guestCodeSetting);
+  console.log("[UpcomingEvent] showGuestCode conditions - isEnabled:", guestCodeSetting?.isEnabled, "condition:", guestCodeSetting?.condition);
 
   // Only show navigation when there's more than one event
   const showNavigation = !hideNavigation && events.length > 1;
@@ -1914,12 +1929,17 @@ const UpcomingEvent = ({
             </div>
 
             {/* GuestCode component section - MOVED AFTER TICKETS */}
-            <div
-              ref={guestCodeSectionRef}
-              className="upcomingEvent-guest-code-section"
-            >
-              {currentEvent && <GuestCode event={currentEvent} />}
-            </div>
+            {/* Only render if guest code is enabled AND has a condition set */}
+            {currentEvent &&
+              guestCodeSetting?.isEnabled &&
+              guestCodeSetting?.condition && (
+                <div
+                  ref={guestCodeSectionRef}
+                  className="upcomingEvent-guest-code-section"
+                >
+                  <GuestCode event={currentEvent} />
+                </div>
+              )}
 
             {/* Table booking section - Only shown if layout is configured */}
             {currentEvent &&
