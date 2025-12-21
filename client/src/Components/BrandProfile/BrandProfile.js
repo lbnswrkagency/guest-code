@@ -207,19 +207,16 @@ const BrandProfile = () => {
     }
   }, [loadingProgress.brand, loading, totalProgress]);
 
-  // Effect to check brand galleries when brand is loaded
+  // Effect to check brand galleries when brand is loaded - run BOTH checks in parallel
   useEffect(() => {
-    if (brand && brand._id && !checkingGalleries) {
-      checkBrandGalleries();
+    if (brand && brand._id && !checkingGalleries && !checkingVideoGalleries) {
+      // Run both gallery checks in parallel for faster loading
+      Promise.all([
+        checkBrandGalleries(),
+        checkBrandVideoGalleries()
+      ]);
     }
-  }, [brand, checkBrandGalleries]);
-
-  // Effect to check brand video galleries when brand is loaded
-  useEffect(() => {
-    if (brand && brand._id && !checkingVideoGalleries) {
-      checkBrandVideoGalleries();
-    }
-  }, [brand, checkBrandVideoGalleries]);
+  }, [brand, checkBrandGalleries, checkBrandVideoGalleries]);
 
   // Callbacks to receive actual gallery/video status from carousel components
   const handleGalleryStatusChange = useCallback((hasContent) => {
@@ -768,30 +765,23 @@ const BrandProfile = () => {
 
       setCurrentEvent(eventCopy);
 
+      // OPTIMIZATION: Use codeSettings already merged into event by UpcomingEvent
+      // No need to make another API call - data is already present!
+      const eventCodeSettings = event.codeSettings || [];
+      setCodeSettings(eventCodeSettings);
+
+      // For ticket settings, still need to fetch if not cached
+      // (UpcomingEvent stores these in its own state, not on event object)
       try {
-        // Use the same sophisticated ticket fetching logic as UpcomingEvent
         const fetchedTicketSettings = await fetchTicketSettings(
           event._id,
           eventCopy
         );
-
-        // Use the same endpoint as UpcomingEvent for code settings
-        const endpoint = `${process.env.REACT_APP_API_BASE_URL}/events/profile/${event._id}`;
-        const response = await axiosInstance.get(endpoint);
-
-        const codeSettings = response.data?.codeSettings || [];
-        console.log("[BrandProfile] Fetched codeSettings from API for event", event._id, ":", codeSettings);
-        console.log("[BrandProfile] Guest code setting:", codeSettings.find(cs => cs.type === "guest"));
-
         setTicketSettings(fetchedTicketSettings);
-        setCodeSettings(codeSettings);
         setLoadingProgress((prev) => ({ ...prev, tickets: 100 }));
-
-        // Data fetched successfully
       } catch (error) {
-        // Silent fail - just set empty arrays
+        // Silent fail - just set empty array
         setTicketSettings([]);
-        setCodeSettings([]);
         setLoadingProgress((prev) => ({ ...prev, tickets: 100 }));
       }
     },
@@ -1030,22 +1020,14 @@ const BrandProfile = () => {
       visibleTicketSettings.length > 0;
 
     // For guest code, check if it's enabled AND has a condition configured
-    // DEBUG: Log codeSettings to trace the issue
-    console.log("[BrandProfile] codeSettings state:", codeSettings);
-    console.log("[BrandProfile] currentEvent._id:", currentEvent?._id);
-    console.log("[BrandProfile] currentEvent.codeSettings:", currentEvent?.codeSettings);
-
-    // Use codeSettings STATE variable (not currentEvent.codeSettings which may not exist)
     const guestCodeSetting = codeSettings?.find(
       (cs) => cs.type === "guest"
     );
-    console.log("[BrandProfile] guestCodeSetting found:", guestCodeSetting);
 
     const showGuestCode =
       !!currentEvent &&
       guestCodeSetting?.isEnabled &&
       guestCodeSetting?.condition;
-    console.log("[BrandProfile] showGuestCode:", showGuestCode, "isEnabled:", guestCodeSetting?.isEnabled, "condition:", guestCodeSetting?.condition);
 
     // For gallery, check if event has dropboxFolderPath
     const showGallery = !!(currentEvent && currentEvent.dropboxFolderPath);

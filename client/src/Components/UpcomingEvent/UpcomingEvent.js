@@ -136,8 +136,10 @@ const UpcomingEvent = ({
   const battleSignupSectionRef = useRef(null);
   const gallerySectionRef = useRef(null);
 
-  // Add a ticket settings cache
+  // Add caches for data from comprehensive endpoint
   const [ticketSettingsCache, setTicketSettingsCache] = useState({});
+  const [codeSettingsCache, setCodeSettingsCache] = useState({});
+  const [tableDataCache, setTableDataCache] = useState({});
 
   // Add flag to prevent infinite loops in URL navigation
   const [hasNavigatedFromURL, setHasNavigatedFromURL] = useState(false);
@@ -545,22 +547,20 @@ const UpcomingEvent = ({
           setTicketSettingsCache(ticketSettings);
         }
 
-        // Store code settings globally (you might want to add state for this)
+        // Store code settings in React state (replacing window globals)
         if (codeSettings) {
-          window.upcomingEventCodeSettingsCache = codeSettings;
-          console.log("[UpcomingEvent] codeSettings received from API:", codeSettings);
+          setCodeSettingsCache(codeSettings);
         }
 
-        // Store table data globally (you might want to add state for this)
+        // Store table data in React state (replacing window globals)
         if (tableData) {
-          window.upcomingEventTableDataCache = tableData;
+          setTableDataCache(tableData);
         }
 
         // Use the events from comprehensive response and MERGE codeSettings into each event
         events = (responseEvents || []).map(event => {
           const eventId = event._id?.toString();
           const eventCodeSettings = codeSettings?.[eventId] || [];
-          console.log(`[UpcomingEvent] Merging codeSettings for event ${eventId}:`, eventCodeSettings);
           return {
             ...event,
             codeSettings: eventCodeSettings
@@ -1662,15 +1662,9 @@ const UpcomingEvent = ({
   const eventImage = getEventImage();
 
   // Get guest code setting if available
-  // DEBUG: Log what we're working with
-  console.log("[UpcomingEvent] currentEvent._id:", currentEvent?._id);
-  console.log("[UpcomingEvent] currentEvent.codeSettings:", currentEvent?.codeSettings);
-
   const guestCodeSetting = currentEvent.codeSettings?.find(
     (cs) => cs.type === "guest"
   );
-  console.log("[UpcomingEvent] guestCodeSetting found:", guestCodeSetting);
-  console.log("[UpcomingEvent] showGuestCode conditions - isEnabled:", guestCodeSetting?.isEnabled, "condition:", guestCodeSetting?.condition);
 
   // Only show navigation when there's more than one event
   const showNavigation = !hideNavigation && events.length > 1;
@@ -1958,8 +1952,8 @@ const UpcomingEvent = ({
                       isPublic={true} // Mark as public
                       onClose={toggleTableBooking}
                       tableData={
-                        window.upcomingEventTableDataCache?.[currentEvent._id]
-                      } // Pass pre-fetched table data
+                        tableDataCache?.[currentEvent._id]
+                      } // Pass pre-fetched table data from React state
                     />
                   </div>
                 </div>
