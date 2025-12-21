@@ -526,8 +526,19 @@ exports.getAllEvents = async (req, res) => {
     const brandIds = sortedBrands.map((brand) => brand._id);
 
     // Get events from all these brands and also events where user's brands are co-hosts
+    // Include parent events AND non-weekly child events (exclude weekly child events)
     const events = await Event.find({
-      $or: [{ brand: { $in: brandIds } }, { coHosts: { $in: brandIds } }],
+      $and: [
+        {
+          $or: [{ brand: { $in: brandIds } }, { coHosts: { $in: brandIds } }],
+        },
+        {
+          $or: [
+            { parentEventId: { $exists: false } },  // Parent events
+            { parentEventId: { $exists: true }, isWeekly: { $ne: true } }  // Non-weekly child events
+          ]
+        }
+      ]
     })
       .sort({ startDate: -1 })
       .populate("brand", "name username logo")

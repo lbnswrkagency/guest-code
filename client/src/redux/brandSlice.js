@@ -39,17 +39,7 @@ const brandSlice = createSlice({
   reducers: {
     setBrands: (state, action) => {
       // Store brand data INCLUDING role and roleId for permissions
-      console.log('🔵 [brandSlice] setBrands called with', action.payload?.length, 'brands');
       state.allBrands = action.payload.map((brand) => {
-        // Log role data for debugging
-        console.log(`🔵 [brandSlice] Brand "${brand.name}" (${brand._id}):`, {
-          hasRole: !!brand.role,
-          roleId: brand.roleId,
-          roleName: brand.role?.name,
-          hasPermissions: !!brand.role?.permissions,
-          codesPermissions: brand.role?.permissions?.codes ? Object.keys(brand.role.permissions.codes) : 'none',
-        });
-
         return {
           _id: brand._id,
           name: brand.name,

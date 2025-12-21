@@ -11,8 +11,12 @@
  * Run with: node server/scripts/cleanEventCodeSettings.js
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
+
+console.log('Loading environment from:', path.join(__dirname, '../.env'));
+console.log('MONGODB_URI loaded:', process.env.MONGODB_URI ? 'Yes' : 'No');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/guest-code';
 

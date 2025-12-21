@@ -530,16 +530,6 @@ const Events = () => {
 
   // Check if user can create events for the selected brand
   const canCreateEvents = () => {
-    // DEBUG: Log all relevant values
-    console.log('canCreateEvents check:', {
-      hasUser: !!user,
-      userId: user?._id,
-      hasSelectedBrand: !!selectedBrand,
-      selectedBrandOwner: selectedBrand?.owner,
-      selectedBrandRole: selectedBrand?.role,
-      selectedBrandTeam: selectedBrand?.team?.length,
-    });
-
     if (!user || !selectedBrand) return false;
 
     // If user is the brand owner, they can create events
@@ -695,17 +685,19 @@ const Events = () => {
           <div className="events-grid">
             {events.length > 0 ? (
               <>
-                {events.map((event) => (
-                  <EventCard
-                    key={`${event._id}-${event.updatedAt || ""}`}
-                    event={event}
-                    onClick={handleEventClick}
-                    onSettingsClick={handleSettingsClick}
-                    userBrands={userBrands}
-                    onEventFavorite={handleEventFavorite}
-                    isEventFavorited={isEventFavorited}
-                  />
-                ))}
+                {events
+                  .filter((event) => !event.parentEventId) // Only show parent events
+                  .map((event) => (
+                    <EventCard
+                      key={`${event._id}-${event.updatedAt || ""}`}
+                      event={event}
+                      onClick={handleEventClick}
+                      onSettingsClick={handleSettingsClick}
+                      userBrands={userBrands}
+                      onEventFavorite={handleEventFavorite}
+                      isEventFavorited={isEventFavorited}
+                    />
+                  ))}
                 {canCreateEvents() ? (
                   <div
                     className="event-card add-card"
@@ -716,7 +708,8 @@ const Events = () => {
                   </div>
                 ) : null}
               </>
-            ) : canCreateEvents() ? (
+            ) : events.filter((event) => !event.parentEventId).length === 0 &&
+              canCreateEvents() ? (
               <div
                 className="event-card add-card"
                 onClick={() => setShowForm(true)}
@@ -724,7 +717,7 @@ const Events = () => {
                 <RiAddCircleLine className="add-icon" />
                 <p>No events found. Create your first event!</p>
               </div>
-            ) : (
+            ) : events.filter((event) => !event.parentEventId).length === 0 ? (
               <div className="event-card no-permission-card">
                 <RiCalendarEventLine className="no-permission-icon" />
                 <p>No events found</p>
@@ -732,7 +725,7 @@ const Events = () => {
                   You don't have permission to create events for this brand
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -910,6 +903,7 @@ const EventCard = ({
         const response = await axiosInstance.get(
           `/events/children/${event._id}`
         );
+        
         if (response.data && response.data.length > 0) {
           // Sort by createdAt to maintain order
           const sorted = response.data.sort(
@@ -920,7 +914,6 @@ const EventCard = ({
           setChildEvents([]);
         }
       } catch (error) {
-        // No children or error - that's fine
         setChildEvents([]);
       }
     };
@@ -1315,7 +1308,7 @@ const EventCard = ({
                   )}
 
                   {/* > arrow OR (+) button - mutually exclusive */}
-                  {currentChildIndex < childEvents.length - 1 ? (
+                  {(currentChildIndex < childEvents.length - 1) || (currentChildIndex === -1 && childEvents.length > 0) ? (
                     <button
                       className="nav-arrow next"
                       onClick={handleNextChild}

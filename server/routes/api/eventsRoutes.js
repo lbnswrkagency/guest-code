@@ -128,18 +128,19 @@ router.get(
       }
 
 
-      // Get only parent events (events with no parentEventId)
+      // Get parent events AND non-weekly child events
+      // Weekly child events are excluded (they're created on-demand via Week navigation)
+      // Non-weekly child events are included so they appear in Dashboard
       const events = await Event.find({
         brand: brand._id,
-        parentEventId: { $exists: false }, // Only get parent events
+        $or: [
+          { parentEventId: { $exists: false } },  // Parent events
+          { parentEventId: { $exists: true }, isWeekly: { $ne: true } }  // Non-weekly child events
+        ]
       })
         .sort({ date: -1 })
         .populate("user", "username firstName lastName avatar")
         .populate("lineups")
-        .populate({
-          path: "codeSettings",
-          model: "CodeSettings",
-        })
         .populate("genres")
         .populate("coHosts", "name username logo");
 
@@ -456,18 +457,13 @@ router.get(
     try {
       const { parentId } = req.params;
 
-
-      // Make sure we populate code settings
+      // Remove the problematic codeSettings populate - code settings come from separate collection
       const childEvents = await Event.find({
         parentEventId: parentId,
       })
         .populate("lineups")
-        .populate({
-          path: "codeSettings",
-          model: "CodeSettings",
-        })
-        .populate("genres");
-
+        .populate("genres")
+        .populate("coHosts", "name username logo");
 
       res.status(200).json(childEvents);
     } catch (error) {

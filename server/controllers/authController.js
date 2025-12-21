@@ -306,24 +306,30 @@ exports.login = async (req, res) => {
           }
 
           // STEP 3: Fetch events for this brand
-          const parentEvents = await Event.find({
+          // Get parent events AND non-weekly child events (exclude weekly child events)
+          const events = await Event.find({
             brand: brand._id,
-            parentEventId: null,
+            $or: [
+              { parentEventId: { $exists: false } },  // Parent events
+              { parentEventId: { $exists: true }, isWeekly: { $ne: true } }  // Non-weekly child events
+            ]
           })
             .select("-__v")
             .populate("genres")
             .populate("coHosts", "name username logo")
+            .populate("lineups")
             .lean();
 
-          // Get child events for weekly events
-          const weeklyEventIds = parentEvents
-            .filter((e) => e.isWeekly)
+          // Get weekly child events separately (for backward compatibility with existing logic)
+          const weeklyEventIds = events
+            .filter((e) => e.isWeekly && !e.parentEventId) // Only weekly parent events
             .map((e) => e._id);
 
-          let childEvents = [];
+          let weeklyChildEvents = [];
           if (weeklyEventIds.length > 0) {
-            childEvents = await Event.find({
+            weeklyChildEvents = await Event.find({
               parentEventId: { $in: weeklyEventIds },
+              isWeekly: true
             })
               .select("-__v")
               .populate("genres")
@@ -332,8 +338,8 @@ exports.login = async (req, res) => {
               .lean();
           }
 
-          // Combine all events
-          const allBrandEvents = [...parentEvents, ...childEvents];
+          // Combine all events (main events + weekly child events)
+          const allBrandEvents = [...events, ...weeklyChildEvents];
 
           // STEP 4: Fetch code settings for each event
           await Promise.all(

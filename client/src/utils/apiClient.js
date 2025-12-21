@@ -19,7 +19,7 @@ export const getAllEvents = async () => {
     const response = await axios.get(
       `${process.env.REACT_APP_API_BASE_URL}/events`
     );
-    return response.data.events;
+    return response.data;
   } catch (error) {
     console.error("Error fetching events:", error);
     throw error;
