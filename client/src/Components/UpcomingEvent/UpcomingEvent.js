@@ -73,6 +73,8 @@ const UpcomingEvent = ({
   initialDateHint = null,
   brandHasGalleries: brandHasGalleriesProp = null,
   brandHasVideoGalleries: brandHasVideoGalleriesProp = null,
+  onGalleryStatusChange,
+  onVideoStatusChange,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
 
@@ -1955,6 +1957,7 @@ const UpcomingEvent = ({
                   brandUsername={brandUsername}
                   currentEvent={currentEvent}
                   brandHasGalleries={brandHasGalleries}
+                  onGalleryStatusChange={onGalleryStatusChange}
                   onImageClick={(images, imageIndex) => {
                     // Open the lightbox with images and selected index
                     setGalleryImages(images);
@@ -1976,6 +1979,7 @@ const UpcomingEvent = ({
                   brandUsername={brandUsername}
                   onVideoClick={handleVideoClick}
                   brandHasVideoGalleries={brandHasVideoGalleries}
+                  onVideoStatusChange={onVideoStatusChange}
                 />
               </div>
             )}

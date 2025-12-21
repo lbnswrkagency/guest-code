@@ -1702,8 +1702,8 @@ const EventForm = ({
       fetchSequentialInheritanceData();
     } else if (!event?._id && parentEventData && !parentEventData.isWeekly) {
       // Non-weekly child event - inherit from parent (no API call needed, no date calculation)
-      // Determine the parent: use the parentEventData's _id
-      const parentId = parentEventData._id;
+      // Determine the ROOT parent: if parentEventData already has a parent, use that; otherwise use parentEventData's ID
+      const parentId = parentEventData.parentEventId || parentEventData._id;
 
       setFormData({
         title: parentEventData.title || "",

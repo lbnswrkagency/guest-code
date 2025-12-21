@@ -14,7 +14,6 @@ const getCurrentToken = async () => {
     if (!tokenDoc) {
       // Fallback to env variable for initial setup
       if (process.env.DROPBOX_API_ACCESS_TOKEN) {
-        console.log("[Dropbox] No token in database, using env variable");
         return process.env.DROPBOX_API_ACCESS_TOKEN;
       }
       throw new Error("No Dropbox token available");
@@ -22,7 +21,6 @@ const getCurrentToken = async () => {
 
     // Check if token is expired
     if (tokenDoc.isExpired()) {
-      console.log("[Dropbox] Token expired, refreshing...");
       return await refreshAccessToken(tokenDoc);
     }
 
@@ -40,8 +38,6 @@ const refreshAccessToken = async (tokenDoc) => {
       throw new Error("No refresh token available");
     }
 
-    console.log("[Dropbox] Attempting to refresh access token using refresh token...");
-    
     // Use direct HTTP request to refresh the token
     const axios = require('axios');
     
@@ -59,8 +55,6 @@ const refreshAccessToken = async (tokenDoc) => {
         }
       });
       
-      console.log("[Dropbox] Token refresh successful");
-      
       const { access_token, expires_in } = tokenResponse.data;
       
       if (!access_token) {
@@ -69,19 +63,10 @@ const refreshAccessToken = async (tokenDoc) => {
       
       // Update the token in database
       await tokenDoc.updateTokens(access_token, expires_in || 14400); // Default 4 hours
-      
-      console.log("[Dropbox] Access token refreshed and saved to database");
       return access_token;
       
     } catch (httpError) {
-      console.error("[Dropbox] HTTP refresh error:", {
-        status: httpError.response?.status,
-        statusText: httpError.response?.statusText,
-        data: httpError.response?.data
-      });
-      
       // If HTTP method fails, try the SDK method as fallback
-      console.log("[Dropbox] Trying SDK method as fallback...");
       
       const dbxAuth = new DropboxAuth({
         clientId: process.env.DROPBOX_API_KEY,
@@ -103,12 +88,9 @@ const refreshAccessToken = async (tokenDoc) => {
       
       // Update the token in database
       await tokenDoc.updateTokens(access_token, 14400); // Default 4 hours
-      
-      console.log("[Dropbox] Access token refreshed via SDK and saved to database");
       return access_token;
     }
   } catch (error) {
-    console.error("[Dropbox] Failed to refresh access token:", error);
     throw error;
   }
 };
@@ -137,11 +119,9 @@ const withTokenRefresh = async (operation) => {
     return await operation();
   } catch (error) {
     // Check for expired token errors
-    if (error.status === 401 || 
+    if (error.status === 401 ||
         (error.error?.error?.['.tag'] === 'expired_access_token') ||
         (error.message && error.message.includes('expired'))) {
-      console.log("[Dropbox] Token expired during operation, refreshing...");
-      
       // Get the token document and refresh it
       const tokenDoc = await DropboxToken.findOne({ isActive: true }).sort({ createdAt: -1 });
       if (tokenDoc) {
@@ -165,9 +145,7 @@ exports.getFolderContents = async (req, res) => {
     
     // Ensure path starts with forward slash (unless it's empty for root)
     const normalizedPath = folderPath === "" ? "" : (folderPath.startsWith("/") ? folderPath : `/${folderPath}`);
-    
-    console.log(`[Dropbox] Requesting folder: "${normalizedPath}" (original: "${folderPath}")`);
-    
+
     // Get client with automatic token refresh
     const dbx = await getDropboxClient(true);
     
@@ -177,8 +155,6 @@ exports.getFolderContents = async (req, res) => {
         include_mounted_folders: true,  // Include team/business folders
       });
     }.bind({ dbx }));
-    
-    console.log(`[Dropbox] Found ${listFolderResponse.result.entries.length} items in folder`);
 
     const entries = listFolderResponse.result.entries;
 
@@ -201,7 +177,6 @@ exports.getFolderContents = async (req, res) => {
             )}`;
             return file;
           } catch (error) {
-            console.error("Error fetching thumbnail:", error);
             return file;
           }
         })

@@ -95,6 +95,28 @@ const PrivacyPolicy = () => {
         </li>
       </ul>
 
+      <h3>Third-Party Integrations</h3>
+      <p>
+        GuestCode integrates with third-party services to enhance functionality.
+        These integrations are optional and require your explicit authorization:
+      </p>
+      <ul>
+        <li>
+          <strong>Dropbox:</strong> Event organizers may connect their Dropbox
+          account to display photo galleries on their event pages. When
+          connected, we access folder names and image files from specified
+          Dropbox folders to display them to event guests. We only read data
+          from Dropbox - we never write, delete, or modify any files. Image
+          data is temporarily cached to improve performance but is not
+          permanently stored on our servers. You can disconnect Dropbox access
+          at any time through your brand settings.
+        </li>
+      </ul>
+      <p>
+        When you authorize a third-party integration, you are also subject to
+        that service's privacy policy and terms of service.
+      </p>
+
       <h3>Your Choices</h3>
       <p>
         <strong>Account Information:</strong> You may update, correct, or delete

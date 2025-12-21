@@ -4,12 +4,17 @@
  * This script:
  * 1. Ensures all events have startDate and endDate (migrating from date if needed)
  * 2. Removes the 'date' field from all events using $unset
+ * 3. Drops the legacy index 'brand_1_title_1_date_1' if it exists
  *
  * Run with: node server/scripts/removeDateField.js
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
+
+console.log('Loading environment from:', path.join(__dirname, '../.env'));
+console.log('MONGODB_URI loaded:', process.env.MONGODB_URI ? 'Yes' : 'No');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/guest-code';
 
@@ -115,7 +120,36 @@ async function removeDateField() {
       console.log('   These events may not have had a date field to migrate from.\n');
     }
 
-    // Step 5: Remove 'date' field from ALL events
+    // Step 5: Drop the legacy index BEFORE removing date fields
+    // This MUST happen first, otherwise removing date field will cause duplicate key errors
+    console.log('🗑️  Checking for legacy index brand_1_title_1_date_1...\n');
+    let indexDropped = false;
+
+    try {
+      const indexes = await eventsCollection.indexes();
+      console.log('  Current indexes:', indexes.map(idx => idx.name).join(', '));
+
+      const legacyIndex = indexes.find(idx => idx.name === 'brand_1_title_1_date_1');
+
+      if (legacyIndex) {
+        console.log('  Found legacy index, dropping it...');
+        await eventsCollection.dropIndex('brand_1_title_1_date_1');
+        console.log('  ✅ Dropped legacy index brand_1_title_1_date_1\n');
+        indexDropped = true;
+      } else {
+        console.log('  ✅ Legacy index not found (already removed or never existed)\n');
+      }
+    } catch (indexError) {
+      if (indexError.code === 27) {
+        console.log('  ✅ Legacy index does not exist\n');
+      } else {
+        console.error('  ⚠️  Error dropping legacy index:', indexError.message);
+        console.error('  Cannot proceed without dropping the index first!');
+        throw indexError; // Stop the migration if we can't drop the index
+      }
+    }
+
+    // Step 6: Remove 'date' field from ALL events (now safe after index is dropped)
     console.log('🗑️  Removing date field from all events...\n');
 
     const removeResult = await eventsCollection.updateMany(
@@ -125,7 +159,7 @@ async function removeDateField() {
 
     console.log(`✅ Removed 'date' field from ${removeResult.modifiedCount} events\n`);
 
-    // Step 6: Verify removal
+    // Step 7: Verify removal
     const remainingWithDate = await eventsCollection.countDocuments({ date: { $exists: true } });
 
     if (remainingWithDate > 0) {
@@ -144,6 +178,7 @@ async function removeDateField() {
     console.log(`Migration errors:                 ${migrationErrors}`);
     console.log(`Date fields removed:              ${removeResult.modifiedCount}`);
     console.log(`Events with date field (after):   ${remainingWithDate}`);
+    console.log(`Legacy index dropped:             ${indexDropped ? 'Yes' : 'No (not found)'}`);
     console.log('═══════════════════════════════════════════\n');
 
   } catch (error) {

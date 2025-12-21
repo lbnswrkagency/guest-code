@@ -41,6 +41,7 @@ import Events from "./Components/Events/Events";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
 import Settings from "./Components/Settings/Settings";
+import PrivacyPolicyPage from "./Components/Legal/PrivacyPolicyPage";
 // import DeviceRestriction from "./Components/DeviceRestriction/DeviceRestriction";
 import notificationManager from "./utils/notificationManager";
 import tokenService from "./utils/tokenService";
@@ -113,6 +114,7 @@ const AppRoutes = () => {
       <Route path="/verify/:token" element={<EmailVerification />} />
       <Route path="/verify-email/:token" element={<EmailVerification />} />
       <Route path="/paid" element={<AfterPayment />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
       {/* Direct Public Brand Profile - Key Fix */}
       <Route

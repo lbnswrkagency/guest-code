@@ -435,11 +435,36 @@ exports.createEvent = async (req, res) => {
 
     res.status(201).json(event);
   } catch (error) {
-    // Check if it's truly a duplicate key error
+    // Log the full error for debugging
+    console.error("[createEvent] Error creating event:", {
+      errorCode: error.code,
+      errorMessage: error.message,
+      keyPattern: error.keyPattern,
+      keyValue: error.keyValue,
+      requestBody: {
+        title: req.body.title,
+        startDate: req.body.startDate,
+        parentEventId: req.body.parentEventId,
+        brandId: req.params.brandId,
+      },
+    });
+
+    // Check if it's a duplicate key error (unique constraint violation)
     if (error.code === 11000) {
-      const existingEvent = await Event.findById(error.keyValue._id);
-      if (existingEvent) {
-        return res.status(200).json(existingEvent);
+      console.error("[createEvent] Duplicate key error - attempting to find existing event");
+      // For compound index {brand, title, startDate}, find the existing event
+      try {
+        const existingEvent = await Event.findOne({
+          brand: req.params.brandId,
+          title: req.body.title,
+          startDate: req.body.startDate,
+        });
+        if (existingEvent) {
+          console.log("[createEvent] Found existing event, returning it:", existingEvent._id);
+          return res.status(200).json(existingEvent);
+        }
+      } catch (findError) {
+        console.error("[createEvent] Error finding existing event:", findError.message);
       }
     }
 

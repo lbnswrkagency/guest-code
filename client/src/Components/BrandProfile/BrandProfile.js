@@ -75,10 +75,12 @@ const BrandProfile = () => {
   // Brand gallery state (photos)
   const [brandHasGalleries, setBrandHasGalleries] = useState(false);
   const [checkingGalleries, setCheckingGalleries] = useState(false);
+  const [actuallyHasPhotos, setActuallyHasPhotos] = useState(null); // null = not checked yet, true/false = actual status
 
   // Brand video gallery state
   const [brandHasVideoGalleries, setBrandHasVideoGalleries] = useState(false);
   const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
+  const [actuallyHasVideos, setActuallyHasVideos] = useState(null); // null = not checked yet, true/false = actual status
 
   // More granular loading progress tracking
   const [loadingProgress, setLoadingProgress] = useState({
@@ -218,6 +220,15 @@ const BrandProfile = () => {
       checkBrandVideoGalleries();
     }
   }, [brand, checkBrandVideoGalleries]);
+
+  // Callbacks to receive actual gallery/video status from carousel components
+  const handleGalleryStatusChange = useCallback((hasContent) => {
+    setActuallyHasPhotos(hasContent);
+  }, []);
+
+  const handleVideoStatusChange = useCallback((hasContent) => {
+    setActuallyHasVideos(hasContent);
+  }, []);
 
   // Real loading progress tracking - no artificial simulation
   useEffect(() => {
@@ -1151,7 +1162,8 @@ const BrandProfile = () => {
           )}
 
           {/* Photos button - only show if photos are available */}
-          {!checkingGalleries && brandHasGalleries && (
+          {/* actuallyHasPhotos: null = not checked yet, true = has photos, false = no photos */}
+          {!checkingGalleries && brandHasGalleries && actuallyHasPhotos !== false && (
             <motion.button
               className="event-action-button gallery-button photos-button"
               whileHover={{ scale: 1.03 }}
@@ -1183,7 +1195,8 @@ const BrandProfile = () => {
           )}
 
           {/* Videos button - only show if videos are available */}
-          {!checkingVideoGalleries && brandHasVideoGalleries && (
+          {/* actuallyHasVideos: null = not checked yet, true = has videos, false = no videos */}
+          {!checkingVideoGalleries && brandHasVideoGalleries && actuallyHasVideos !== false && (
             <motion.button
               className="event-action-button gallery-button videos-button"
               whileHover={{ scale: 1.03 }}
@@ -1528,6 +1541,9 @@ const BrandProfile = () => {
           onEventsLoaded={handleEventsLoaded}
           initialDateHint={initialDateHint}
           brandHasGalleries={brandHasGalleries}
+          brandHasVideoGalleries={brandHasVideoGalleries}
+          onGalleryStatusChange={handleGalleryStatusChange}
+          onVideoStatusChange={handleVideoStatusChange}
         />
       </div>
 

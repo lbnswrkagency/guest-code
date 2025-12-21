@@ -3,7 +3,16 @@ import { RiCalendarEventLine } from "react-icons/ri";
 import UpcomingEvent from "../UpcomingEvent";
 import { useAuth } from "../../contexts/AuthContext";
 
-const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHint, brandHasGalleries }) => {
+const BrandProfileFeed = ({
+  brand,
+  onEventChange,
+  onEventsLoaded,
+  initialDateHint,
+  brandHasGalleries,
+  brandHasVideoGalleries,
+  onGalleryStatusChange,
+  onVideoStatusChange,
+}) => {
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const [eventCount, setEventCount] = useState(0);
@@ -31,6 +40,9 @@ const BrandProfileFeed = ({ brand, onEventChange, onEventsLoaded, initialDateHin
             onEventChange={onEventChange}
             initialDateHint={initialDateHint}
             brandHasGalleries={brandHasGalleries}
+            brandHasVideoGalleries={brandHasVideoGalleries}
+            onGalleryStatusChange={onGalleryStatusChange}
+            onVideoStatusChange={onVideoStatusChange}
           />
         </div>
       </div>

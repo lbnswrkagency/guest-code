@@ -1320,7 +1320,8 @@ const EventCard = ({
                       className="nav-arrow add-child"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onClick(null, currentEvent._id ? currentEvent : event, 0);
+                        // Always pass the root parent event, not the current child
+                        onClick(null, event, 0);
                       }}
                       title="Create follow-up event"
                     >

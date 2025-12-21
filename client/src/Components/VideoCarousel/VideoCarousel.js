@@ -34,12 +34,14 @@ const LoadingSpinner = React.memo(({ size = "default", color = "#ffc807" }) => {
  * @param {string} props.brandUsername - Username of the brand
  * @param {Function} props.onVideoClick - Callback for video click (opens VideoGallery)
  * @param {boolean} props.brandHasVideoGalleries - Whether brand has video galleries
+ * @param {Function} props.onVideoStatusChange - Callback to report actual video gallery status
  */
 const VideoCarousel = ({
   brandId,
   brandUsername,
   onVideoClick,
   brandHasVideoGalleries,
+  onVideoStatusChange,
 }) => {
   const [videos, setVideos] = useState([]); // Sliced videos for carousel display
   const [allVideos, setAllVideos] = useState([]); // ALL videos for lightbox browsing
@@ -253,6 +255,10 @@ const VideoCarousel = ({
         setLoading(false);
         setVideos([]);
         setCurrentGalleryInfo(null);
+        // Report no videos if callback exists
+        if (onVideoStatusChange) {
+          onVideoStatusChange(false);
+        }
         return;
       }
 
@@ -272,7 +278,7 @@ const VideoCarousel = ({
     };
 
     initializeOrUpdate();
-  }, [brandHasVideoGalleries, brandId, brandUsername, selectedEventId, fetchVideoGallery, fetchAvailableGalleries]);
+  }, [brandHasVideoGalleries, brandId, brandUsername, selectedEventId, fetchVideoGallery, fetchAvailableGalleries, onVideoStatusChange]);
 
   // Smart gallery selection effect - runs after availableGalleries are loaded
   useEffect(() => {
@@ -344,6 +350,13 @@ const VideoCarousel = ({
       }
     };
   }, []);
+
+  // Report actual video status to parent after loading completes
+  useEffect(() => {
+    if (!loading && onVideoStatusChange) {
+      onVideoStatusChange(videos.length > 0);
+    }
+  }, [loading, videos.length, onVideoStatusChange]);
 
   // Window resize listener
   useEffect(() => {

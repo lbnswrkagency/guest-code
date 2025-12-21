@@ -38,13 +38,15 @@ const LoadingSpinner = React.memo(({ size = "default", color = "#ffc807" }) => {
  * @param {Object} props.currentEvent - Current event object
  * @param {Function} props.onImageClick - Callback for image click
  * @param {boolean} props.brandHasGalleries - Whether brand has galleries
+ * @param {Function} props.onGalleryStatusChange - Callback to report actual gallery status
  */
 const GalleryCarousel = ({
   brandId,
   brandUsername,
   currentEvent,
   onImageClick,
-  brandHasGalleries
+  brandHasGalleries,
+  onGalleryStatusChange
 }) => {
   const [images, setImages] = useState([]); // Sliced images for carousel display
   const [allImages, setAllImages] = useState([]); // ALL images for lightbox browsing
@@ -62,6 +64,7 @@ const GalleryCarousel = ({
   const carouselRef = useRef(null);
   const autoPlayIntervalRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
+  const isInitializedRef = useRef(false); // Track if initial fetch is complete to prevent double fetching
 
   // Configuration constants - synced with CSS values
   const config = useMemo(() => ({
@@ -194,24 +197,51 @@ const GalleryCarousel = ({
     }
   }, [brandId, brandUsername]);
 
-  // Initialize gallery when component mounts or dependencies change
+  // Initialize gallery when component mounts - consolidated to prevent double fetching
   useEffect(() => {
-    if (brandHasGalleries && (brandId || brandUsername)) {
-      // First fetch available galleries to get the latest info, then fetch the actual gallery
-      fetchAvailableGalleries().then(() => {
-        fetchGallery(selectedEventId);
-      });
-    } else {
-      setLoading(false);
-    }
-  }, [brandHasGalleries, brandId, brandUsername]);
+    // Skip if already initialized or no gallery data expected
+    if (isInitializedRef.current) return;
 
-  // Handle selectedEventId changes separately
+    if (!brandHasGalleries || (!brandId && !brandUsername)) {
+      setLoading(false);
+      // Report no galleries if callback exists
+      if (onGalleryStatusChange) {
+        onGalleryStatusChange(false);
+      }
+      return;
+    }
+
+    const initialize = async () => {
+      try {
+        await fetchAvailableGalleries();
+        await fetchGallery(selectedEventId);
+        isInitializedRef.current = true;
+      } catch (err) {
+        console.error("GalleryCarousel: Error during initialization:", err);
+        setLoading(false);
+        if (onGalleryStatusChange) {
+          onGalleryStatusChange(false);
+        }
+      }
+    };
+
+    initialize();
+  }, [brandHasGalleries, brandId, brandUsername, fetchAvailableGalleries, fetchGallery, selectedEventId, onGalleryStatusChange]);
+
+  // Handle selectedEventId changes ONLY after initialization (user selection)
   useEffect(() => {
-    if (brandHasGalleries && (brandId || brandUsername) && availableGalleries.length > 0) {
+    // Only fetch if initialized and user explicitly changed the event (not 'latest')
+    if (isInitializedRef.current && selectedEventId !== 'latest' && availableGalleries.length > 0) {
       fetchGallery(selectedEventId);
     }
-  }, [selectedEventId, fetchGallery]);
+  }, [selectedEventId, fetchGallery, availableGalleries.length]);
+
+  // Report actual gallery status to parent after loading completes
+  useEffect(() => {
+    if (!loading && onGalleryStatusChange) {
+      onGalleryStatusChange(images.length > 0);
+    }
+  }, [loading, images.length, onGalleryStatusChange]);
 
   // Auto-scroll functionality with proper cleanup
   useEffect(() => {
