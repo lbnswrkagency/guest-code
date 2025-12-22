@@ -1142,8 +1142,8 @@ const EventCard = ({
     // Include the current week number for weekly events
     axiosInstance
       .patch(
-        `/events/${event._id}/toggle-live${
-          event.isWeekly && weekToUse > 0 ? `?weekNumber=${weekToUse}` : ""
+        `/events/${currentEvent._id}/toggle-live${
+          currentEvent.isWeekly && weekToUse > 0 ? `?weekNumber=${weekToUse}` : ""
         }`
       )
       .then((response) => {
