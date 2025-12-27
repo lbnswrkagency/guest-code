@@ -32,7 +32,7 @@ const RoleSchema = new Schema(
       analytics: {
         view: { type: Boolean, default: false },
       },
-      codes: { type: Map, of: CodePermissionSchema, default: {} },
+      codes: { type: Schema.Types.Mixed, default: {} },
       scanner: {
         use: { type: Boolean, default: false },
       },

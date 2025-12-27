@@ -23,11 +23,7 @@ const EventSchema = new Schema(
               analytics: {
                 view: { type: Boolean, default: false },
               },
-              codes: {
-                type: Map,
-                of: mongoose.Schema.Types.Mixed,
-                default: {},
-              },
+              codes: { type: Schema.Types.Mixed, default: {} },
               scanner: {
                 use: { type: Boolean, default: false },
               },

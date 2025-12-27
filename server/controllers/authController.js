@@ -11,6 +11,7 @@ const Event = require("../models/eventsModel");
 const CodeSetting = require("../models/codeSettingsModel");
 const Role = require("../models/roleModel");
 const LineUp = require("../models/lineupModel");
+const { resolvePermissions, normalizePermissions } = require("../utils/permissionResolver");
 
 // Token generation with different expiration times
 const generateAccessToken = (userId) => {
@@ -490,31 +491,34 @@ exports.login = async (req, res) => {
                 name: brand.name,
               };
 
-              // Find co-host permissions
-              const coHostPermissions = event.coHostRolePermissions || [];
+              // Find co-host permissions using unified resolver approach
+              // For child events, inherit coHostRolePermissions from parent (same as code settings)
+              let coHostPermissions = event.coHostRolePermissions || [];
+
+              // If this is a child event with no permissions, check the parent
+              if (coHostPermissions.length === 0 && event.parentEventId) {
+                const parentEvent = await Event.findById(event.parentEventId)
+                  .select('coHostRolePermissions')
+                  .lean();
+                coHostPermissions = parentEvent?.coHostRolePermissions || [];
+              }
+
               const brandPermissions = coHostPermissions.find(
-                (cp) => cp.brandId.toString() === brand._id.toString()
+                (cp) => cp.brandId?.toString() === brand._id.toString()
               );
 
               if (brandPermissions) {
-                const rolePermission = brandPermissions.rolePermissions.find(
+                const rolePermission = brandPermissions.rolePermissions?.find(
                   (rp) =>
-                    rp.roleId.toString() === userRoleInBrand._id.toString()
+                    rp.roleId?.toString() === userRoleInBrand._id.toString()
                 );
 
-                if (rolePermission) {
-                  const permissions = JSON.parse(
-                    JSON.stringify(rolePermission.permissions)
+                if (rolePermission?.permissions) {
+                  // Use normalizePermissions to ensure consistent format
+                  // This handles Map-to-object conversion and ensures all fields exist
+                  event.coHostBrandInfo.effectivePermissions = normalizePermissions(
+                    rolePermission.permissions
                   );
-
-                  // Handle Map types for codes
-                  if (rolePermission.permissions.codes instanceof Map) {
-                    permissions.codes = Object.fromEntries(
-                      rolePermission.permissions.codes
-                    );
-                  }
-
-                  event.coHostBrandInfo.effectivePermissions = permissions;
                 } else {
                   event.coHostBrandInfo.effectivePermissions = null;
                 }

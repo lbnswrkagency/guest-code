@@ -186,35 +186,58 @@ const EventCodeSettings = ({
   const toggleCodeEnabled = async (codeSetting) => {
     try {
       const newEnabledState = !codeSetting.isEnabled;
-      const response = await axiosInstance.put(
-        `/code-settings/events/${event._id}`,
-        {
-          codeSettingId: codeSetting._id,
-          isEnabled: newEnabledState,
-        }
-      );
 
-      if (response.data) {
-        setCodeSettings((prev) =>
-          prev.map((cs) =>
-            cs._id === codeSetting._id
-              ? { ...cs, isEnabled: newEnabledState }
-              : cs
-          )
+      // Check if this is a default placeholder ticket code (not yet in database)
+      const isDefaultTicket = codeSetting._id === "default-ticket";
+
+      let response;
+      if (isDefaultTicket) {
+        // Create new ticket code setting in database
+        response = await axiosInstance.put(
+          `/code-settings/events/${event._id}`,
+          {
+            type: "ticket",
+            name: "Ticket",
+            isEnabled: newEnabledState,
+          }
         );
 
-        // Close the expanded settings panel if it's open
-        if (expandedSettings[codeSetting._id]) {
-          setExpandedSettings((prev) => ({
-            ...prev,
-            [codeSetting._id]: false,
-          }));
+        // Update codeSettings with the newly created ticket code
+        if (response.data && response.data.codeSettings) {
+          setCodeSettings(response.data.codeSettings);
         }
-
-        toast.showSuccess(
-          `Code ${newEnabledState ? "enabled" : "disabled"} successfully`
+      } else {
+        // Update existing code setting
+        response = await axiosInstance.put(
+          `/code-settings/events/${event._id}`,
+          {
+            codeSettingId: codeSetting._id,
+            isEnabled: newEnabledState,
+          }
         );
+
+        if (response.data) {
+          setCodeSettings((prev) =>
+            prev.map((cs) =>
+              cs._id === codeSetting._id
+                ? { ...cs, isEnabled: newEnabledState }
+                : cs
+            )
+          );
+        }
       }
+
+      // Close the expanded settings panel if it's open
+      if (expandedSettings[codeSetting._id]) {
+        setExpandedSettings((prev) => ({
+          ...prev,
+          [codeSetting._id]: false,
+        }));
+      }
+
+      toast.showSuccess(
+        `Code ${newEnabledState ? "enabled" : "disabled"} successfully`
+      );
     } catch (error) {
       toast.showError("Failed to toggle code status");
     }
@@ -746,10 +769,21 @@ const EventCodeSettings = ({
       (s) => s.type !== "guest" && s.type !== "ticket"
     );
 
+    // Create a default ticket code placeholder if none exists
+    // This allows users to access ticket settings even for new events
+    const ticketCodeOrDefault = ticketCode || {
+      _id: "default-ticket",
+      type: "ticket",
+      name: "Ticket",
+      isEnabled: false,
+      isEditable: false,
+      color: "#2196F3",
+    };
+
     return (
       <div className="settings-items">
         {guestCode && renderCodeSettingItem(guestCode)}
-        {ticketCode && renderCodeSettingItem(ticketCode)}
+        {renderCodeSettingItem(ticketCodeOrDefault)}
         {otherCodes.map((codeSetting) => renderCodeSettingItem(codeSetting))}
       </div>
     );

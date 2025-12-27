@@ -385,7 +385,9 @@ const Dashboard = () => {
 
     // Get co-hosted events where this brand is a co-host
     const brandCoHostedEvents = coHostedEvents.filter((event) => {
-      const match = event.coHostBrand && event.coHostBrand._id === brand._id;
+      const match =
+        event.coHostBrand &&
+        event.coHostBrand._id?.toString() === brand._id?.toString();
       return match;
     });
 
@@ -431,6 +433,11 @@ const Dashboard = () => {
         return eventDateStr === formattedDate;
       });
 
+      // DEBUG LOG
+      console.log('[DASHBOARD DEBUG] Setting selectedEvent:', eventForDate?.title);
+      console.log('[DASHBOARD DEBUG] eventForDate.codeSettings:', eventForDate?.codeSettings?.length, 'items');
+      console.log('[DASHBOARD DEBUG] eventForDate.coHostBrandInfo:', !!eventForDate?.coHostBrandInfo);
+
       setSelectedEvent(eventForDate || null);
     } else {
       setSelectedEvent(null);
@@ -459,10 +466,16 @@ const Dashboard = () => {
   };
 
   // Get code settings for the selected event
-  // All code settings come from CodeSettings collection (Redux store)
+  // Code settings can come from Redux store OR embedded in the event (co-hosted events)
   const getCodeSettingsForSelectedEvent = () => {
     if (!selectedEvent) {
       return [];
+    }
+
+    // Check if this event has embedded code settings (co-hosted event case)
+    if (selectedEvent.codeSettings && Array.isArray(selectedEvent.codeSettings) && selectedEvent.codeSettings.length > 0) {
+      console.log('[DASHBOARD DEBUG] Using embedded codeSettings from selectedEvent:', selectedEvent.codeSettings.length);
+      return selectedEvent.codeSettings;
     }
 
     // Compare as strings to handle ObjectId vs string mismatch
@@ -471,6 +484,7 @@ const Dashboard = () => {
       (setting) => setting.eventId?.toString() === eventIdStr
     );
 
+    console.log('[DASHBOARD DEBUG] Using Redux codeSettings filtered by eventId:', eventCodeSettings.length);
     return eventCodeSettings;
   };
 
@@ -531,18 +545,10 @@ const Dashboard = () => {
     const permissions = getUserRolePermissions();
     if (!permissions || !permissions.codes) return [];
 
-    // Handle both Map (co-host) and object (regular) permissions
-    let codesPermissions = permissions.codes;
+    // Backend normalizes all permissions to plain objects (no Map conversion needed)
+    const codesPermissions = permissions.codes;
 
-    // If it's a Map, convert to object
-    if (codesPermissions instanceof Map) {
-      codesPermissions = Object.fromEntries(codesPermissions);
-    } else if (
-      typeof codesPermissions === "object" &&
-      codesPermissions !== null
-    ) {
-      // Already an object, use as is
-    } else {
+    if (typeof codesPermissions !== "object" || codesPermissions === null) {
       return [];
     }
 
@@ -567,21 +573,10 @@ const Dashboard = () => {
 
     let canCreateCodes = false;
 
-    if (permissions.codes) {
-      let codesPermissions = permissions.codes;
-
-      // Handle both Map (co-host) and object (regular) permissions
-      if (codesPermissions instanceof Map) {
-        codesPermissions = Object.fromEntries(codesPermissions);
-      } else if (
-        typeof codesPermissions === "object" &&
-        codesPermissions !== null
-      ) {
-        // Already an object, use as is
-      }
-
+    // Backend normalizes all permissions to plain objects (no Map conversion needed)
+    if (permissions.codes && typeof permissions.codes === "object") {
       // Check if any code type has generate permission
-      canCreateCodes = Object.values(codesPermissions).some(
+      canCreateCodes = Object.values(permissions.codes).some(
         (p) => p && p.generate === true
       );
     }

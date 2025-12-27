@@ -35,31 +35,31 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
-    // Get user role permissions from selectedBrand or co-host permissions
-    let userPermissions = {};
+    // DEBUG LOG
+    console.log('\n[CODE-GEN DEBUG] ========== INITIALIZING ==========');
+    console.log('[CODE-GEN DEBUG] selectedEvent:', selectedEvent?.title, '- ID:', selectedEvent?._id);
+    console.log('[CODE-GEN DEBUG] selectedEvent.coHostBrandInfo:', selectedEvent?.coHostBrandInfo);
+    console.log('[CODE-GEN DEBUG] selectedBrand?.role?.permissions:', selectedBrand?.role?.permissions);
+    console.log('[CODE-GEN DEBUG] codeSettings received:', codeSettings?.length, 'items');
+    console.log('[CODE-GEN DEBUG] codeSettings details:', codeSettings?.map(s => ({ name: s.name, isEnabled: s.isEnabled, isEditable: s.isEditable })));
 
-    // Check if this is a co-hosted event with effective permissions
-    if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
-      userPermissions =
-        selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+    // Get user permissions using unified format
+    // Backend now normalizes all permissions to plain objects (no Map conversion needed)
+    const effectivePermissions =
+      selectedEvent?.coHostBrandInfo?.effectivePermissions ||
+      selectedBrand?.role?.permissions;
 
-      // Handle Map to object conversion if needed
-      if (userPermissions instanceof Map) {
-        userPermissions = Object.fromEntries(userPermissions);
-      }
-    } else if (selectedBrand?.role?.permissions?.codes) {
-      userPermissions = selectedBrand.role.permissions.codes;
+    console.log('[CODE-GEN DEBUG] effectivePermissions used:', effectivePermissions);
 
-      // Handle Map to object conversion if needed
-      if (userPermissions instanceof Map) {
-        userPermissions = Object.fromEntries(userPermissions);
-      }
-    }
+    // Get codes permissions (always a plain object now)
+    const userPermissions = effectivePermissions?.codes || {};
+    console.log('[CODE-GEN DEBUG] userPermissions (codes):', userPermissions);
 
     // Filter for custom codes (isEditable: true) that are also enabled (isEnabled: true)
     const customCodeSettings = codeSettings.filter(
       (setting) => setting.isEditable === true && setting.isEnabled === true
     );
+    console.log('[CODE-GEN DEBUG] customCodeSettings (isEditable && isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();
@@ -73,6 +73,7 @@ function CodeGenerator({
 
     // Convert map back to array
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
+    console.log('[CODE-GEN DEBUG] uniqueCodeSettings:', uniqueCodeSettings.length, uniqueCodeSettings.map(s => s.name));
 
     // Filter settings based on user permissions
     // Permission key format: ${eventId}_${codeName} for event-specific permissions
@@ -85,8 +86,12 @@ function CodeGenerator({
       const hasEventPermission = eventPermissionKey && userPermissions[eventPermissionKey]?.generate === true;
       const hasSimplePermission = userPermissions[simplePermissionKey]?.generate === true;
 
+      console.log(`[CODE-GEN DEBUG] Checking "${setting.name}": eventKey=${eventPermissionKey}, hasEventPerm=${hasEventPermission}, hasSimplePerm=${hasSimplePermission}, userPerm=`, userPermissions[simplePermissionKey]);
+
       return hasEventPermission || hasSimplePermission;
     });
+
+    console.log('[CODE-GEN DEBUG] permittedSettings FINAL:', permittedSettings.length, permittedSettings.map(s => s.name));
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -228,21 +233,14 @@ function CodeGenerator({
     if (!selectedCodeType) return null;
 
     // Get permissions from co-host or regular brand role
+    // Backend normalizes all permissions to plain objects (no Map conversion needed)
     let userPermissions = {};
 
     if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
       userPermissions =
         selectedEvent.coHostBrandInfo.effectivePermissions.codes;
-      // Handle Map to object conversion if needed
-      if (userPermissions instanceof Map) {
-        userPermissions = Object.fromEntries(userPermissions);
-      }
     } else if (selectedBrand?.role?.permissions?.codes) {
       userPermissions = selectedBrand.role.permissions.codes;
-      // Handle Map to object conversion if needed
-      if (userPermissions instanceof Map) {
-        userPermissions = Object.fromEntries(userPermissions);
-      }
     } else {
       return null;
     }

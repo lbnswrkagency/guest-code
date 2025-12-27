@@ -62,9 +62,12 @@ export const {
 export const selectAllCoHostedEvents = (state) => state.coHostedEvents?.allCoHostedEvents || [];
 export const selectCoHostedEventsByBrandId = (state, brandId) =>
   state.coHostedEvents?.allCoHostedEvents.filter((event) =>
-    event.coHostBrand && event.coHostBrand._id === brandId
+    event.coHostBrand &&
+    event.coHostBrand._id?.toString() === brandId?.toString()
   ) || [];
 export const selectCoHostedEventById = (state, eventId) =>
-  state.coHostedEvents?.allCoHostedEvents.find((event) => event._id === eventId);
+  state.coHostedEvents?.allCoHostedEvents.find((event) =>
+    event._id?.toString() === eventId?.toString()
+  );
 
 export default coHostedEventsSlice.reducer;
