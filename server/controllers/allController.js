@@ -243,6 +243,10 @@ exports.getUpcomingEventData = async (req, res) => {
       // Smart inheritance: only inherit if child event has no data
       if (event.parentEventId) {
         const parentId = event.parentEventId.toString();
+        
+        // Log inheritance checks for debugging
+        console.log(`[AllController] Checking inheritance for child event ${eventId} from parent ${parentId}`);
+        console.log(`[AllController] Is weekly: ${event.isWeekly}`);
 
         if (!finalTicketSettings[eventId] && ticketSettingsByEvent[parentId]) {
           finalTicketSettings[eventId] = ticketSettingsByEvent[parentId];
@@ -250,9 +254,8 @@ exports.getUpcomingEventData = async (req, res) => {
         if (!finalCodeSettings[eventId] && codeSettingsByEvent[parentId]) {
           finalCodeSettings[eventId] = codeSettingsByEvent[parentId];
         }
-        if (!finalTableData[eventId] && tableDataByEvent[parentId]) {
-          finalTableData[eventId] = tableDataByEvent[parentId];
-        }
+        // Note: We do NOT inherit table data for child events
+        // Each event should have its own table bookings
       }
     });
 

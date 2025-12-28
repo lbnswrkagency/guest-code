@@ -239,6 +239,10 @@ const addTableCode = async (req, res) => {
     };
 
     const createdTableCode = await TableCode.create(tableCodeData);
+    
+    // Log table code creation for debugging
+    console.log(`[TableCode] Created table code for event: ${event}`);
+    console.log(`[TableCode] Table: ${tableNumber}, Status: ${tableCodeData.status}`);
 
     // If this is a public request, send a confirmation email
     if (isPublic && email) {
@@ -545,7 +549,17 @@ const getTableCounts = async (req, res) => {
       // Check if this is a co-hosted event visualization request
       const isCoHostedVisualization = req.query.coHosted === 'true' && hasCoHostPermission;
 
-      // Fetch table codes based on permissions
+      // Log event details for debugging
+      console.log(`[TableCounts] Fetching table counts for event: ${eventId}`);
+      if (eventDetails.parentEventId) {
+        console.log(`[TableCounts] Event has parentEventId: ${eventDetails.parentEventId}`);
+        console.log(`[TableCounts] Event isWeekly: ${eventDetails.isWeekly}`);
+      }
+      if (eventDetails.sourceEventId) {
+        console.log(`[TableCounts] Event has sourceEventId: ${eventDetails.sourceEventId}`);
+      }
+
+      // Fetch table codes based on permissions - only for this specific event
       if (hasTableManage || isCoHostedVisualization) {
         // Users with manage permission OR co-host users requesting visualization can see ALL table codes for this event
         tableCounts = await TableCode.find({ event: eventId });
@@ -556,9 +570,16 @@ const getTableCounts = async (req, res) => {
           hostId: req.user.userId,
         });
       }
+      
+      console.log(`[TableCounts] Found ${tableCounts.length} table codes for event ${eventId}`);
     } else {
-      // For public requests (no authentication), return empty array
-      tableCounts = [];
+      // For public requests (no authentication), fetch table codes for this specific event
+      console.log(`[TableCounts] Public request - Fetching table counts for event: ${eventId}`);
+      
+      // For public requests, return all table codes for the event to show availability
+      tableCounts = await TableCode.find({ event: eventId });
+      
+      console.log(`[TableCounts] Public - Found ${tableCounts.length} table codes for event ${eventId}`);
     }
 
     res.status(200).json({
