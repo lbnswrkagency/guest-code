@@ -4,8 +4,6 @@ import notificationManager from "./notificationManager";
 
 // Create axios instance with base URL
 const baseURL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5173/api";
-console.log("[axiosConfig] Using API base URL:", baseURL);
-console.log("[axiosConfig] Environment:", process.env.NODE_ENV);
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
@@ -67,10 +65,6 @@ axiosInstance.interceptors.response.use(
       const isPublicBrandOrEventRoute =
         window.location.pathname.startsWith("/@");
       if (isPublicBrandOrEventRoute) {
-        console.log(
-          "[axiosConfig] Skipping login redirect for public brand/event route:",
-          window.location.pathname
-        );
         return Promise.reject(error);
       }
 
@@ -81,10 +75,6 @@ axiosInstance.interceptors.response.use(
         originalRequest.url.includes("/codes/counts/") ||
         originalRequest.url.includes("/codes/settings/")
       ) {
-        console.log(
-          "[axiosConfig] Skipping login redirect for public API call:",
-          originalRequest.url
-        );
         return Promise.reject(error);
       }
 
@@ -95,16 +85,12 @@ axiosInstance.interceptors.response.use(
         // Try to refresh the token if we're not on the auth routes
         if (!originalRequest.url.includes("/auth/")) {
           // Attempt to refresh the token
-          console.log("[axiosConfig] Attempting to refresh token due to 401");
 
           try {
             const refreshResult = await tokenService.refreshToken();
 
             // If token refresh was successful, retry the original request
             if (refreshResult && refreshResult.token) {
-              console.log(
-                "[axiosConfig] Token refresh successful, retrying request"
-              );
 
               // Mark this request as retried
               originalRequest._retry = true;
@@ -119,7 +105,6 @@ axiosInstance.interceptors.response.use(
               return axiosInstance(originalRequest);
             }
           } catch (refreshError) {
-            console.error("[axiosConfig] Token refresh failed:", refreshError);
             // Continue to redirect to login
           }
         }
@@ -131,7 +116,6 @@ axiosInstance.interceptors.response.use(
           !isPublicBrandOrEventRoute &&
           window.location.pathname !== redirectUrl
         ) {
-          console.log("[axiosConfig] Redirecting to login due to 401 error");
           window.location.href = redirectUrl;
         }
 

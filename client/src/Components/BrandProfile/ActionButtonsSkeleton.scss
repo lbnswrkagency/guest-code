@@ -1,0 +1,105 @@
+// Action Buttons Skeleton Styles
+.brand-event-actions.skeleton {
+  .skeleton-button {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    cursor: default;
+    
+    .button-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .skeleton-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #e9ecef 0%, #f8f9fa 50%, #e9ecef 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    }
+
+    .skeleton-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skeleton-line {
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #e9ecef 0%, #f8f9fa 50%, #e9ecef 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      
+      &.skeleton-line-title {
+        width: 80%;
+        height: 16px;
+      }
+      
+      &.skeleton-line-subtitle {
+        width: 60%;
+        height: 12px;
+        opacity: 0.7;
+      }
+    }
+
+    .skeleton-arrow {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #e9ecef 0%, #f8f9fa 50%, #e9ecef 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .brand-event-actions.skeleton {
+    .skeleton-button {
+      background: #2a2a2a;
+      border-color: #404040;
+    }
+
+    .skeleton-icon,
+    .skeleton-line,
+    .skeleton-arrow {
+      background: linear-gradient(90deg, #404040 0%, #2a2a2a 50%, #404040 100%);
+      background-size: 200% 100%;
+    }
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .brand-event-actions.skeleton {
+    .skeleton-button {
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      
+      .button-content {
+        gap: 12px;
+      }
+      
+      .skeleton-text {
+        gap: 6px;
+      }
+    }
+  }
+}

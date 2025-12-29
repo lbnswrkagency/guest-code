@@ -42,6 +42,8 @@ import {
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
+import useActionButtonsData from "./hooks/useActionButtonsData";
+import ActionButtonsSkeleton from "./ActionButtonsSkeleton";
 
 const BrandProfile = () => {
   const navigate = useNavigate();
@@ -144,7 +146,6 @@ const BrandProfile = () => {
         setBrandHasGalleries(false);
       }
     } catch (error) {
-      console.error("❌ [BrandProfile] Error checking brand galleries:", error);
       setBrandHasGalleries(false);
     } finally {
       setCheckingGalleries(false);
@@ -154,48 +155,35 @@ const BrandProfile = () => {
   // Function to check if brand has any video galleries available
   const checkBrandVideoGalleries = useCallback(async () => {
     if (!brand?._id) {
-      console.log("🎬 [BrandProfile] No brand ID for video gallery check");
       return;
     }
-
-    console.log("🚀 [BrandProfile] Starting video gallery check for brand:", brand._id);
     try {
       setCheckingVideoGalleries(true);
       const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/check`;
-      console.log("🔍 [BrandProfile] Making video gallery check request to:", endpoint);
       
       const response = await axiosInstance.get(endpoint);
-      console.log("✅ [BrandProfile] Video gallery response:", response.data);
 
       if (response.data && response.data.success) {
-        console.log("📹 [BrandProfile] Setting brandHasVideoGalleries to:", response.data.hasVideoGalleries);
         setBrandHasVideoGalleries(response.data.hasVideoGalleries);
       } else {
-        console.log("❌ [BrandProfile] Video gallery check failed - no success in response");
         setBrandHasVideoGalleries(false);
       }
     } catch (error) {
-      console.error("❌ [BrandProfile] Error checking brand video galleries:", error);
-      console.log("🔄 [BrandProfile] Trying fallback video gallery check method...");
       
       // Fallback: try to fetch latest videos to check if actual videos exist
       try {
         const fallbackEndpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/latest`;
-        console.log("🔍 [BrandProfile] Fallback endpoint:", fallbackEndpoint);
         
         const fallbackResponse = await axiosInstance.get(fallbackEndpoint);
         // Check if there are actual videos, not just gallery options
         const hasActualVideos = fallbackResponse.data?.success && 
                                 fallbackResponse.data?.media?.videos?.length > 0;
-        console.log("📹 [BrandProfile] Fallback result - hasVideoGalleries:", hasActualVideos);
         setBrandHasVideoGalleries(hasActualVideos);
       } catch (fallbackError) {
-        console.error("❌ [BrandProfile] Fallback video check also failed:", fallbackError);
         setBrandHasVideoGalleries(false);
       }
     } finally {
       setCheckingVideoGalleries(false);
-      console.log("🏁 [BrandProfile] Video gallery check completed");
     }
   }, [brand?._id]);
 
@@ -1005,43 +993,40 @@ const BrandProfile = () => {
     );
   }, []);
 
-  // Function to render event action buttons
+  // Centralized action buttons data management
+  const actionButtonsData = useActionButtonsData({
+    currentEvent,
+    ticketSettings,
+    codeSettings,
+    actuallyHasPhotos,
+    actuallyHasVideos,
+    checkingGalleries,
+    checkingVideoGalleries,
+    supportsTableBooking,
+    supportsBattles,
+  });
+
+  // Function to render event action buttons with centralized loading state
   const renderEventActionButtons = () => {
     if (!currentEvent) return null;
 
-    const supportsTableBookingForEvent = supportsTableBooking(currentEvent);
-    const supportsBattlesForEvent = supportsBattles(currentEvent);
+    const { isDataLoaded, buttonVisibility, hasAnyActions } = actionButtonsData;
 
-    // Use the EXACT SAME logic as UpcomingEvent:
-    // {currentEvent && currentEvent.ticketsAvailable !== false && visibleTicketSettings.length > 0 && (...)}
-    const ticketsAvailable =
-      currentEvent &&
-      currentEvent.ticketsAvailable !== false &&
-      visibleTicketSettings.length > 0;
+    // Show skeleton while essential data is loading
+    if (!isDataLoaded) {
+      return (
+        <>
+          <div
+            ref={actionButtonsStickyPosRef}
+            className="action-buttons-sticky-marker"
+          ></div>
+          <ActionButtonsSkeleton />
+        </>
+      );
+    }
 
-    // For guest code, check if it's enabled AND has a condition configured
-    const guestCodeSetting = codeSettings?.find(
-      (cs) => cs.type === "guest"
-    );
-
-    const showGuestCode =
-      !!currentEvent &&
-      guestCodeSetting?.isEnabled &&
-      guestCodeSetting?.condition;
-
-    // For gallery, check if event has dropboxFolderPath
-    const showGallery = !!(currentEvent && currentEvent.dropboxFolderPath);
-
-    // Determine what actions to show based on event configuration
-
-    // Only render if any action is available
-    if (
-      !supportsTableBookingForEvent &&
-      !ticketsAvailable &&
-      !showGuestCode &&
-      !supportsBattlesForEvent &&
-      !showGallery
-    ) {
+    // Don't render if no actions are available
+    if (!hasAnyActions) {
       return null;
     }
 
@@ -1060,7 +1045,7 @@ const BrandProfile = () => {
           }`}
         >
           {/* Tickets button */}
-          {ticketsAvailable && (
+          {buttonVisibility.tickets && (
             <motion.button
               className="event-action-button tickets-button"
               whileHover={{ scale: 1.03 }}
@@ -1084,7 +1069,7 @@ const BrandProfile = () => {
           )}
 
           {/* Guest Code button */}
-          {showGuestCode && (
+          {buttonVisibility.guestCode && (
             <motion.button
               className="event-action-button guestcode-button"
               whileHover={{ scale: 1.03 }}
@@ -1113,7 +1098,7 @@ const BrandProfile = () => {
           )}
 
           {/* Table booking button */}
-          {supportsTableBookingForEvent && (
+          {buttonVisibility.tables && (
             <motion.button
               className="event-action-button table-button"
               whileHover={{ scale: 1.03 }}
@@ -1137,7 +1122,7 @@ const BrandProfile = () => {
           )}
 
           {/* Battle signup button */}
-          {supportsBattlesForEvent && (
+          {buttonVisibility.battles && (
             <motion.button
               className="event-action-button battle-button"
               whileHover={{ scale: 1.03 }}
@@ -1160,9 +1145,8 @@ const BrandProfile = () => {
             </motion.button>
           )}
 
-          {/* Photos button - only show if photos are confirmed available */}
-          {/* actuallyHasPhotos: null = not checked yet, true = has photos, false = no photos */}
-          {actuallyHasPhotos === true && (
+          {/* Photos button */}
+          {buttonVisibility.photos && (
             <motion.button
               className="event-action-button gallery-button photos-button"
               whileHover={{ scale: 1.03 }}
@@ -1193,17 +1177,15 @@ const BrandProfile = () => {
             </motion.button>
           )}
 
-          {/* Videos button - only show if videos are available */}
-          {/* actuallyHasVideos: null = not checked yet, true = has videos, false = no videos */}
-          {!checkingVideoGalleries && brandHasVideoGalleries && actuallyHasVideos !== false && (
+          {/* Videos button */}
+          {buttonVisibility.videos && (
             <motion.button
               className="event-action-button gallery-button videos-button"
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
               onClick={() => {
-                // Scroll to video gallery section
                 const videoSection = document.querySelector(
-                  ".upcomingEvent-video-section"
+                  ".upcomingEvent-video-gallery"
                 );
                 if (videoSection) {
                   videoSection.scrollIntoView({ behavior: "smooth", block: "start" });

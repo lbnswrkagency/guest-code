@@ -244,9 +244,6 @@ exports.getUpcomingEventData = async (req, res) => {
       if (event.parentEventId) {
         const parentId = event.parentEventId.toString();
         
-        // Log inheritance checks for debugging
-        console.log(`[AllController] Checking inheritance for child event ${eventId} from parent ${parentId}`);
-        console.log(`[AllController] Is weekly: ${event.isWeekly}`);
 
         if (!finalTicketSettings[eventId] && ticketSettingsByEvent[parentId]) {
           finalTicketSettings[eventId] = ticketSettingsByEvent[parentId];
