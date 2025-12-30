@@ -339,17 +339,24 @@ async function getDetailedTicketStats(eventId) {
   try {
     // Get all ticket settings for this event
     const ticketSettings = await TicketSettings.find({ eventId });
+    
+    console.log(`[Analytics] Found ${ticketSettings.length} ticket settings for event ${eventId}`);
+    if (ticketSettings.length > 0) {
+      console.log("[Analytics] Ticket settings names:", ticketSettings.map(s => s.name));
+    }
 
     // Get all tickets for the event
     const tickets = await Ticket.find({ eventId });
 
-    console.log(`Found ${tickets.length} tickets for event ${eventId}`);
+    console.log(`[Analytics] Found ${tickets.length} tickets for event ${eventId}`);
     if (tickets.length > 0) {
-      console.log("Sample ticket fields:", Object.keys(tickets[0].toObject()));
-      console.log(
-        "Sample ticket:",
-        JSON.stringify(tickets[0].toObject(), null, 2)
-      );
+      console.log("[Analytics] Sample ticket:", {
+        ticketName: tickets[0].ticketName,
+        ticketType: tickets[0].ticketType,
+        pax: tickets[0].pax,
+        paxChecked: tickets[0].paxChecked
+      });
+      console.log("[Analytics] Unique ticket names:", [...new Set(tickets.map(t => t.ticketName))]);
     }
 
     // Initialize summary object
@@ -370,10 +377,52 @@ async function getDetailedTicketStats(eventId) {
     // Set the payment method in the summary
     summary.paymentMethod = commonPaymentMethod;
 
+    // If we have tickets but no ticket settings, create virtual settings from tickets
+    if (ticketSettings.length === 0 && tickets.length > 0) {
+      console.log("[Analytics] No ticket settings found, creating virtual settings from tickets");
+      
+      // Group tickets by ticketName to create virtual settings
+      const ticketGroups = {};
+      tickets.forEach(ticket => {
+        const key = ticket.ticketName || ticket.ticketType || 'Unknown';
+        if (!ticketGroups[key]) {
+          ticketGroups[key] = {
+            name: key,
+            price: ticket.price,
+            tickets: []
+          };
+        }
+        ticketGroups[key].tickets.push(ticket);
+      });
+
+      // Process each virtual ticket group
+      for (const [ticketName, group] of Object.entries(ticketGroups)) {
+        const categorySold = group.tickets.reduce((sum, ticket) => sum + (ticket.pax || 0), 0);
+        const categoryCheckedIn = group.tickets.reduce((sum, ticket) => sum + (ticket.paxChecked || 0), 0);
+        const categoryRevenue = group.tickets.reduce((sum, ticket) => sum + (ticket.price || 0) * (ticket.pax || 1), 0);
+
+        summary.categories.push({
+          name: ticketName,
+          price: group.price,
+          color: "#2196F3", // Default color
+          paymentMethod: group.tickets[0].paymentMethod || "online",
+          stats: {
+            sold: categorySold,
+            checkedIn: categoryCheckedIn,
+            revenue: categoryRevenue,
+            count: group.tickets.length
+          }
+        });
+
+        // Add to totals
+        summary.totalSold += categorySold;
+        summary.totalCheckedIn += categoryCheckedIn;
+        summary.totalRevenue += categoryRevenue;
+      }
+    }
+
     // Process each ticket setting
     for (const setting of ticketSettings) {
-      console.log(`Processing setting: ${setting.name}`);
-
       // Filter tickets for this category - try multiple field matches
       const categoryTickets = tickets.filter(
         (ticket) =>
@@ -381,10 +430,6 @@ async function getDetailedTicketStats(eventId) {
           ticket.ticketType === setting.name ||
           ticket.ticketName === setting.type ||
           ticket.ticketType === setting.type
-      );
-
-      console.log(
-        `Found ${categoryTickets.length} tickets for setting ${setting.name}`
       );
 
       // Calculate stats for this category

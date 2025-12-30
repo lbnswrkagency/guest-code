@@ -79,9 +79,15 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const [expandedTickets, setExpandedTickets] = useState({});
   const [globalPaymentMethod, setGlobalPaymentMethod] = useState("online"); // Default to online
   const [globalDoorPrice, setGlobalDoorPrice] = useState(""); // Add global door price state
+  const [parentTickets, setParentTickets] = useState([]); // Store parent event tickets
+  const [showCopyFromParent, setShowCopyFromParent] = useState(false); // Show copy button
 
   useEffect(() => {
     fetchTickets();
+    // If this is a child event, also fetch parent tickets to offer as a template
+    if (event.parentEventId || event.sourceEventId) {
+      fetchParentTickets();
+    }
   }, [event._id, codeSetting._id]);
 
   const fetchTickets = async () => {
@@ -99,6 +105,11 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
       );
 
       setTickets(fetchedTickets);
+      
+      // Show copy from parent button if this is a child event with no tickets
+      if ((event.parentEventId || event.sourceEventId) && fetchedTickets.length === 0) {
+        setShowCopyFromParent(true);
+      }
 
       // If any tickets exist, get the payment method from the first ticket
       // as it should be the same for all tickets
@@ -116,9 +127,58 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
     }
   };
 
+  const fetchParentTickets = async () => {
+    try {
+      const parentId = event.parentEventId || event.sourceEventId;
+      if (!parentId) return;
+
+      const response = await axiosInstance.get(
+        `/ticket-settings/events/${parentId}`
+      );
+      const parentTicketData = response.data.ticketSettings || [];
+      setParentTickets(parentTicketData);
+    } catch (error) {
+      console.error("Error fetching parent tickets:", error);
+      // Silently fail - this is just a convenience feature
+    }
+  };
+
   const handleAddTicket = () => {
     setTicketToEdit(null);
     setShowCreateDialog(true);
+  };
+
+  const handleCopyFromParent = async () => {
+    if (!parentTickets || parentTickets.length === 0) {
+      toast.showError("No parent tickets available to copy");
+      return;
+    }
+
+    try {
+      // Copy each parent ticket to this event
+      const copyPromises = parentTickets.map(async (parentTicket, index) => {
+        const { _id, eventId, createdAt, updatedAt, __v, ...ticketData } = parentTicket;
+        
+        // Set sortOrder based on index
+        ticketData.sortOrder = index;
+        
+        return axiosInstance.post(
+          `/ticket-settings/events/${event._id}`,
+          ticketData
+        );
+      });
+
+      await Promise.all(copyPromises);
+      
+      // Refresh tickets
+      await fetchTickets();
+      setShowCopyFromParent(false);
+      
+      toast.showSuccess(`Copied ${parentTickets.length} ticket${parentTickets.length > 1 ? 's' : ''} from parent event`);
+    } catch (error) {
+      console.error("Error copying parent tickets:", error);
+      toast.showError("Failed to copy tickets from parent event");
+    }
   };
 
   const handleEditTicket = (ticket) => {
@@ -431,6 +491,23 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
   const renderTicketList = () => {
     return (
       <div className="ticketCodeSettings-list">
+        {/* Show copy from parent button if available */}
+        {showCopyFromParent && parentTickets.length > 0 && tickets.length === 0 && (
+          <div className="copy-from-parent-section">
+            <div className="copy-from-parent-info">
+              <RiInformationLine />
+              <p>This event has no tickets yet. You can copy tickets from the parent event as a starting point.</p>
+            </div>
+            <button 
+              className="copy-from-parent-button"
+              onClick={handleCopyFromParent}
+            >
+              <RiTicketLine />
+              <span>Copy {parentTickets.length} ticket{parentTickets.length > 1 ? 's' : ''} from parent event</span>
+            </button>
+          </div>
+        )}
+        
         <DragDropContext onDragEnd={handleDragEnd}>
           <StrictModeDroppable droppableId="tickets">
             {(provided, snapshot) => (

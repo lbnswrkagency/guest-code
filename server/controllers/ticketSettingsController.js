@@ -2,18 +2,8 @@ const TicketSettings = require("../models/ticketSettingsModel");
 const Event = require("../models/eventsModel");
 const Brand = require("../models/brandModel");
 
-// Helper to get parent event ID if this is a child event
-const getParentEventId = async (eventId) => {
-  const event = await Event.findById(eventId);
-  if (event && event.parentEventId) {
-    console.log(
-      "[TicketSettings] Child event detected, using parent event ID:",
-      event.parentEventId
-    );
-    return event.parentEventId;
-  }
-  return eventId;
-};
+// Note: Tickets are now bound to each specific event (parent or child)
+// Each event maintains its own independent ticket settings
 
 // Get all ticket settings for an event
 const getTicketSettings = async (req, res) => {
@@ -25,9 +15,6 @@ const getTicketSettings = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-
-    // Get the parent event ID if this is a child event
-    const parentEventId = await getParentEventId(eventId);
 
     // Check if this is a public route (no authentication required)
     const isPublicRoute = req.path.includes("/public/");
@@ -53,8 +40,8 @@ const getTicketSettings = async (req, res) => {
       }
     }
 
-    // Define the query criteria
-    let queryCriteria = { eventId: parentEventId };
+    // Define the query criteria - use the actual event ID
+    let queryCriteria = { eventId: eventId };
 
     // If it's a public route, only fetch visible tickets
     if (isPublicRoute) {
@@ -84,9 +71,6 @@ const createTicketSetting = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-
-    // Get the parent event ID if this is a child event
-    const parentEventId = await getParentEventId(eventId);
 
     // Check authorization
     if (!req.user) {
@@ -120,14 +104,14 @@ const createTicketSetting = async (req, res) => {
     // Create new ticket setting
     const ticketSetting = new TicketSettings({
       ...ticketData,
-      eventId: parentEventId,
+      eventId: eventId,
     });
 
     await ticketSetting.save();
 
     // Get updated list of ticket settings
     const ticketSettings = await TicketSettings.find({
-      eventId: parentEventId,
+      eventId: eventId,
     });
 
     return res.status(201).json({
@@ -151,9 +135,6 @@ const updateTicketSetting = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-
-    // Get the parent event ID if this is a child event
-    const parentEventId = await getParentEventId(eventId);
 
     // Check authorization
     if (!req.user) {
@@ -191,7 +172,7 @@ const updateTicketSetting = async (req, res) => {
 
     // Get updated list of ticket settings
     const ticketSettings = await TicketSettings.find({
-      eventId: parentEventId,
+      eventId: eventId,
     });
 
     return res.status(200).json({
@@ -214,9 +195,6 @@ const deleteTicketSetting = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-
-    // Get the parent event ID if this is a child event
-    const parentEventId = await getParentEventId(eventId);
 
     // Check authorization
     if (!req.user) {
@@ -250,7 +228,7 @@ const deleteTicketSetting = async (req, res) => {
 
     // Get remaining ticket settings
     const ticketSettings = await TicketSettings.find({
-      eventId: parentEventId,
+      eventId: eventId,
     });
 
     return res.status(200).json({
@@ -273,14 +251,11 @@ const reorderTickets = async (req, res) => {
       return res.status(400).json({ message: "No ticket order provided" });
     }
 
-    // Get the parent event ID if this is a child event
-    const parentEventId = await getParentEventId(eventId);
-
     // Verify all tickets belong to this event
     const ticketIds = tickets.map((t) => t._id);
     const existingTickets = await TicketSettings.find({
       _id: { $in: ticketIds },
-      eventId: parentEventId,
+      eventId: eventId,
     });
 
     if (existingTickets.length !== tickets.length) {
@@ -301,7 +276,7 @@ const reorderTickets = async (req, res) => {
 
     // Return the updated list of tickets
     const updatedTickets = await TicketSettings.find({
-      eventId: parentEventId,
+      eventId: eventId,
     }).sort({
       sortOrder: 1,
     });

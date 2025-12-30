@@ -245,9 +245,8 @@ exports.getUpcomingEventData = async (req, res) => {
         const parentId = event.parentEventId.toString();
         
 
-        if (!finalTicketSettings[eventId] && ticketSettingsByEvent[parentId]) {
-          finalTicketSettings[eventId] = ticketSettingsByEvent[parentId];
-        }
+        // Note: We do NOT inherit ticket settings for child events
+        // Each event maintains its own independent tickets
         if (!finalCodeSettings[eventId] && codeSettingsByEvent[parentId]) {
           finalCodeSettings[eventId] = codeSettingsByEvent[parentId];
         }
