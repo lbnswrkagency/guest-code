@@ -346,10 +346,62 @@
         border: 1px solid rgba(255, 71, 87, 0.3);
       }
 
+      &.confirmed {
+        background: rgba(46, 213, 115, 0.15);
+        color: #2ed573;
+        border: 1px solid rgba(46, 213, 115, 0.3);
+      }
+
+      &.declined {
+        background: rgba(255, 71, 87, 0.15);
+        color: #ff4757;
+        border: 1px solid rgba(255, 71, 87, 0.3);
+      }
+
+      &.cancelled {
+        background: rgba(156, 136, 255, 0.15);
+        color: #9c88ff;
+        border: 1px solid rgba(156, 136, 255, 0.3);
+      }
+
       svg {
         font-size: 1rem;
       }
     }
+
+    &.table-status {
+      margin-top: 0.75rem;
+    }
+  }
+
+  // Table notification specific styles
+  .table-actions {
+    button.view-details {
+      background: rgba($primary-color, 0.1);
+      color: $primary-color;
+      border: 1px solid rgba($primary-color, 0.3);
+
+      &:hover {
+        background: rgba($primary-color, 0.15);
+        border-color: rgba($primary-color, 0.4);
+      }
+    }
+  }
+
+  // Inline status text styles in messages
+  .status-confirmed {
+    color: #2ed573;
+    font-weight: 500;
+  }
+
+  .status-declined {
+    color: #ff4757;
+    font-weight: 500;
+  }
+
+  .status-cancelled {
+    color: #9c88ff;
+    font-weight: 500;
   }
 }
 

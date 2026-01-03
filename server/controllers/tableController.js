@@ -5,6 +5,10 @@ const crypto = require("crypto");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 const puppeteer = require("puppeteer");
 const { createEventEmailTemplate } = require("../utils/emailLayout");
+const {
+  createSystemNotification,
+  findUsersWithTablePermission,
+} = require("../utils/notificationHelper");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -239,6 +243,67 @@ const addTableCode = async (req, res) => {
     };
 
     const createdTableCode = await TableCode.create(tableCodeData);
+
+    // Send notifications to team members with tables.manage permission
+    // Only send for pending requests (public or team members without manage permission)
+    if (createdTableCode.status === "pending") {
+      try {
+        const brandId = eventDetails.brand._id || eventDetails.brand;
+        const usersWithPermission = await findUsersWithTablePermission(
+          brandId,
+          event
+        );
+
+        // Determine table type for notification message
+        let tableType = "Table";
+        if (backstagePass) {
+          tableType = "Dancefloor Table";
+        } else if (tableNumber && tableNumber.startsWith("V")) {
+          tableType = "VIP Booth";
+        } else if (tableNumber && tableNumber.startsWith("F")) {
+          tableType = "Front Row Table";
+        }
+
+        // Send notification to each user with permission
+        for (const userId of usersWithPermission) {
+          await createSystemNotification({
+            userId,
+            type: "table_request",
+            title: "New Table Request",
+            message: `${name || `${firstName} ${lastName}`} requested ${tableType} ${tableNumber} for ${pax} ${pax === 1 ? "guest" : "guests"}`,
+            metadata: {
+              tableCode: {
+                _id: createdTableCode._id,
+                tableNumber: createdTableCode.tableNumber,
+                pax: createdTableCode.pax,
+                status: createdTableCode.status,
+                isPublic: createdTableCode.isPublic,
+              },
+              event: {
+                _id: eventDetails._id,
+                title: eventDetails.title,
+              },
+              guest: {
+                name: name || `${firstName} ${lastName}`,
+                email: email || null,
+                phone: phone || null,
+              },
+            },
+            brandId,
+          });
+        }
+
+        console.log(
+          `[TableController] Sent table_request notifications to ${usersWithPermission.length} users`
+        );
+      } catch (notificationError) {
+        // Log but don't fail the table creation if notifications fail
+        console.error(
+          "[TableController] Error sending table request notifications:",
+          notificationError.message
+        );
+      }
+    }
 
     // If this is a public request, send a confirmation email
     if (isPublic && email) {

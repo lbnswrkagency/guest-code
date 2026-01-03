@@ -1704,6 +1704,12 @@ const UpcomingEvent = ({
                           alt={event.title}
                           className="preview-image"
                         />
+                      ) : event.brand?.logo ? (
+                        <img
+                          src={event.brand.logo.medium || event.brand.logo.full || event.brand.logo.thumbnail}
+                          alt={`${event.brand?.name || 'Brand'} logo`}
+                          className="preview-image placeholder-logo"
+                        />
                       ) : (
                         <div className="preview-no-image">
                           <RiImageLine />

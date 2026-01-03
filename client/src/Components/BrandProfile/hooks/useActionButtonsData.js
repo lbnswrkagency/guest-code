@@ -95,7 +95,7 @@ const useActionButtonsData = ({
       tables: !!supportsTableBookingForEvent,
       battles: !!supportsBattlesForEvent,
       photos: actuallyHasPhotos === true,
-      videos: actuallyHasVideos === true || (actuallyHasVideos !== false && !isGalleryDataLoading),
+      videos: actuallyHasVideos === true,
     };
   }, [
     isDataLoaded,
@@ -104,7 +104,6 @@ const useActionButtonsData = ({
     codeSettings,
     actuallyHasPhotos,
     actuallyHasVideos,
-    isGalleryDataLoading,
     supportsTableBooking,
     supportsBattles,
   ]);

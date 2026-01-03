@@ -9,6 +9,7 @@ import {
   RiStarLine,
   RiNotificationLine,
   RiTimeLine,
+  RiTableLine,
 } from "react-icons/ri";
 import "./NotificationPanel.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -101,6 +102,33 @@ const NotificationPanel = ({ onClose }) => {
     }
   };
 
+  // Handle navigation to TableSystem for table notifications
+  const handleNavigateToTables = async (notification) => {
+    try {
+      // Mark as read first
+      await handleMarkAsRead(notification._id);
+
+      // Dispatch a custom event that Dashboard.js will listen for
+      window.dispatchEvent(
+        new CustomEvent("openTableSystem", {
+          detail: {
+            event: notification.metadata?.event,
+            tableCodeId: notification.metadata?.tableCode?._id,
+          },
+        })
+      );
+
+      // Close the notification panel
+      onClose();
+    } catch (error) {
+      console.error(
+        "[NotificationPanel] Error navigating to tables:",
+        error
+      );
+      toast.showError("Failed to open table system");
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case "join_request":
@@ -115,6 +143,11 @@ const NotificationPanel = ({ onClose }) => {
         return <RiStarLine />;
       case "info":
         return <RiNotificationLine />;
+      case "table_request":
+      case "table_request_confirmed":
+      case "table_request_declined":
+      case "table_request_cancelled":
+        return <RiTableLine />;
       default:
         return <RiNotificationLine />;
     }
@@ -362,6 +395,46 @@ const NotificationPanel = ({ onClose }) => {
         case "test":
           messageContent = notification.message;
           break;
+        case "table_request":
+          messageContent = (
+            <>
+              <strong>{metadata?.guest?.name || "Guest"}</strong> requested{" "}
+              <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
+              {metadata?.tableCode?.pax || "?"}{" "}
+              {metadata?.tableCode?.pax === 1 ? "guest" : "guests"}
+              {metadata?.event && (
+                <> for <strong>{metadata.event.title}</strong></>
+              )}
+            </>
+          );
+          break;
+        case "table_request_confirmed":
+          messageContent = (
+            <>
+              <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
+              <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
+              <span className="status-confirmed">confirmed</span>
+            </>
+          );
+          break;
+        case "table_request_declined":
+          messageContent = (
+            <>
+              <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
+              <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
+              <span className="status-declined">declined</span>
+            </>
+          );
+          break;
+        case "table_request_cancelled":
+          messageContent = (
+            <>
+              <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
+              <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
+              <span className="status-cancelled">cancelled</span>
+            </>
+          );
+          break;
         default:
           if (metadata?.mentions) {
             messageContent = metadata.mentions.reduce((msg, mention) => {
@@ -447,6 +520,41 @@ const NotificationPanel = ({ onClose }) => {
               ) : (
                 <span className="rejected">
                   <RiCloseLine /> Rejected
+                </span>
+              )}
+            </div>
+          )}
+          {type === "table_request" && !notification.read && (
+            <div className="actions table-actions">
+              <button
+                className="view-details"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateToTables(notification);
+                }}
+              >
+                <RiTableLine />
+                View Details
+              </button>
+            </div>
+          )}
+          {(type === "table_request_confirmed" ||
+            type === "table_request_declined" ||
+            type === "table_request_cancelled") && (
+            <div className="status-badge table-status">
+              {type === "table_request_confirmed" && (
+                <span className="confirmed">
+                  <RiCheckLine /> Confirmed
+                </span>
+              )}
+              {type === "table_request_declined" && (
+                <span className="declined">
+                  <RiCloseLine /> Declined
+                </span>
+              )}
+              {type === "table_request_cancelled" && (
+                <span className="cancelled">
+                  <RiCloseLine /> Cancelled
                 </span>
               )}
             </div>

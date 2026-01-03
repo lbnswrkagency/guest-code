@@ -1,6 +1,7 @@
 const FriendsCode = require("../models/FriendsCode");
 const BackstageCode = require("../models/BackstageCode");
 const TableCode = require("../models/TableCode"); // Assuming you've created a TableCode model
+const Event = require("../models/eventsModel");
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
 const path = require("path");
@@ -10,6 +11,10 @@ const SibApiV3Sdk = require("sib-api-v3-sdk");
 const { format } = require("date-fns");
 const mongoose = require("mongoose");
 const { createEventEmailTemplate } = require("../utils/emailLayout");
+const {
+  createSystemNotification,
+  findUsersWithTablePermission,
+} = require("../utils/notificationHelper");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -141,6 +146,95 @@ const updateCodeStatus = async (req, res) => {
         error: "Code not found",
         codeId,
       });
+    }
+
+    // Send notifications for table status changes
+    if (type === "table") {
+      try {
+        // Get event details for the notification
+        const event = await Event.findById(updatedCode.event).populate("brand");
+        if (event) {
+          const brandId = event.brand._id || event.brand;
+
+          // Map status to notification type
+          const statusToNotificationType = {
+            confirmed: "table_request_confirmed",
+            declined: "table_request_declined",
+            cancelled: "table_request_cancelled",
+          };
+
+          const notificationType = statusToNotificationType[status];
+
+          if (notificationType) {
+            // Get users with table manage permission
+            const usersWithPermission = await findUsersWithTablePermission(
+              brandId,
+              event._id
+            );
+
+            // Determine table type for notification message
+            let tableType = "Table";
+            if (updatedCode.backstagePass) {
+              tableType = "Dancefloor Table";
+            } else if (
+              updatedCode.tableNumber &&
+              updatedCode.tableNumber.startsWith("V")
+            ) {
+              tableType = "VIP Booth";
+            } else if (
+              updatedCode.tableNumber &&
+              updatedCode.tableNumber.startsWith("F")
+            ) {
+              tableType = "Front Row Table";
+            }
+
+            // Create status-specific message
+            const statusMessages = {
+              confirmed: `${tableType} ${updatedCode.tableNumber} for ${updatedCode.name} has been confirmed`,
+              declined: `${tableType} ${updatedCode.tableNumber} for ${updatedCode.name} has been declined`,
+              cancelled: `${tableType} ${updatedCode.tableNumber} for ${updatedCode.name} has been cancelled`,
+            };
+
+            // Send notification to each user with permission
+            for (const userId of usersWithPermission) {
+              await createSystemNotification({
+                userId,
+                type: notificationType,
+                title: `Table ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                message: statusMessages[status],
+                metadata: {
+                  tableCode: {
+                    _id: updatedCode._id,
+                    tableNumber: updatedCode.tableNumber,
+                    pax: updatedCode.pax,
+                    status: updatedCode.status,
+                    isPublic: updatedCode.isPublic,
+                  },
+                  event: {
+                    _id: event._id,
+                    title: event.title,
+                  },
+                  guest: {
+                    name: updatedCode.name,
+                    email: updatedCode.email || null,
+                  },
+                },
+                brandId,
+              });
+            }
+
+            console.log(
+              `[CodeController] Sent ${notificationType} notifications to ${usersWithPermission.length} users`
+            );
+          }
+        }
+      } catch (notificationError) {
+        // Log but don't fail the status update if notifications fail
+        console.error(
+          "[CodeController] Error sending table status notifications:",
+          notificationError.message
+        );
+      }
     }
 
     res.json(updatedCode);
