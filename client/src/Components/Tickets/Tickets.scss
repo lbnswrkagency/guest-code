@@ -74,6 +74,17 @@
   }
 }
 
+// Subtle ticket bob animation - minimalistic up/down like a ticket stub
+@keyframes ticket-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 // Gold theme variables
 $gold-gradient: linear-gradient(135deg, #f2d07c 0%, #e6b545 50%, #d4af37 100%);
 $gold-highlight: linear-gradient(135deg, #fff3d6 0%, #f2d07c 50%, #e6b545 100%);
@@ -425,10 +436,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     display: block !important;
   }
 
-  // Animation only when active (quantity > 0)
+  // Animation only when active (quantity > 0) - subtle ticket bob
   &.active {
-    animation: float 6s ease-in-out infinite;
-    transform: translateY(-1px) rotateX(2deg);
+    animation: ticket-bob 3s ease-in-out infinite;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
       0 10px 30px -10px rgba(0, 0, 0, 0.3);
   }
