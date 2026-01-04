@@ -394,7 +394,8 @@ const createGuestCode = async (
   guestEmail,
   guestPhone,
   userId,
-  maxPax = 1
+  maxPax = 1,
+  codeSettingId = null
 ) => {
   try {
     // Generate unique code
@@ -416,6 +417,7 @@ const createGuestCode = async (
     // Create new code document
     const newCode = new Code({
       eventId,
+      codeSettingId,
       type: "guest",
       name: `Guest Code for ${guestName}`,
       code,
@@ -562,7 +564,8 @@ const generateGuestCode = async (req, res) => {
         sanitizedEmail,
         sanitizedPhone,
         userId,
-        maxPax
+        maxPax,
+        codeSettings?._id
       );
 
       console.log("[GuestCode] Code created:", {

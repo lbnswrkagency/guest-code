@@ -515,11 +515,25 @@ const validateTicket = async (req, res) => {
             type: legacyType,
           });
 
+          // If not found and this might be a child event, check parent event
+          if (!codeSetting && event && event.parentEventId) {
+            console.log(
+              "CodeSettings not found for child event, checking parent:",
+              event.parentEventId
+            );
+            codeSetting = await CodeSettings.findOne({
+              eventId: event.parentEventId,
+              type: legacyType,
+            });
+          }
+
           console.log(
             "Found code setting for legacy model:",
             codeSetting?.name || "Not found",
             "with color:",
-            codeSetting?.color || "No color"
+            codeSetting?.color || "No color",
+            "with condition:",
+            codeSetting?.condition || "No condition"
           );
         }
       } catch (error) {
