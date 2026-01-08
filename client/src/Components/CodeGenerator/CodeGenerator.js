@@ -75,9 +75,18 @@ function CodeGenerator({
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
     console.log('[CODE-GEN DEBUG] uniqueCodeSettings:', uniqueCodeSettings.length, uniqueCodeSettings.map(s => s.name));
 
+    // Check if user is founder (has full access to all codes)
+    const isFounder = selectedBrand?.role?.isFounder === true;
+    console.log('[CODE-GEN DEBUG] isFounder:', isFounder);
+
     // Filter settings based on user permissions
     // Permission key format: ${eventId}_${codeName} for event-specific permissions
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
+      // Founders have access to all codes
+      if (isFounder) {
+        return true;
+      }
+
       // Try event-specific permission key first (new format)
       const eventPermissionKey = selectedEvent?._id ? `${selectedEvent._id}_${setting.name}` : null;
       // Also try just the code name (legacy format)

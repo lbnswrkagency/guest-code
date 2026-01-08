@@ -452,7 +452,7 @@ const Dashboard = () => {
     const brandEvents = selectedBrand.events || [];
 
     // Get all code settings for these events
-    const brandCodeSettings = brandEvents.flatMap((event) => {
+    const allCodeSettings = brandEvents.flatMap((event) => {
       // Check if this event has embedded code settings (co-hosted case)
       if (event.codeSettings && Array.isArray(event.codeSettings)) {
         return event.codeSettings;
@@ -462,7 +462,17 @@ const Dashboard = () => {
       return codeSettings.filter((setting) => setting.eventId === event._id);
     });
 
-    return brandCodeSettings;
+    // Deduplicate by code name (keep first occurrence)
+    const seenNames = new Set();
+    const uniqueCodeSettings = allCodeSettings.filter((setting) => {
+      if (seenNames.has(setting.name)) {
+        return false;
+      }
+      seenNames.add(setting.name);
+      return true;
+    });
+
+    return uniqueCodeSettings;
   };
 
   // Get code settings for the selected event
