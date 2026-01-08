@@ -248,30 +248,31 @@ const createTicketPDF = async (
 
         <div class="event-date">
           <h3>Date</h3>
-          <p>Sunday, 02.03.2025</p>
+          <p>${event.startDate ? formatDate(event.startDate) : 'TBD'}</p>
         </div>
 
         <div class="event-beats">
           <h3>Beats</h3>
-          <p>Afrobeats<br/>Amapiano<br/>Dancehall</p>
+          <p>${event.genres && event.genres.length > 0 
+            ? event.genres.map(g => g.name || g).join('<br/>') 
+            : 'Various Genres'}</p>
         </div>
 
         <div class="event-bites">
           <h3>Line Up</h3>
-          <p>L'artistique</p>
-          <p>Hendricks</p>
-          <p>Dim Kay</p>
-          <p>J Fyah (MC)</p>
+          ${event.lineups && event.lineups.length > 0 
+            ? event.lineups.map(l => `<p>${l.name || l}</p>`).join('') 
+            : '<p>Special Guests</p>'}
         </div>
 
         <div class="event-hours">
           <h3>Opens</h3>
-          <p>23:00 H</p>
+          <p>${event.startTime || '23:00'} H</p>
         </div>
 
         <div class="event-location">
           <h3>Location</h3>
-          <p>Studio 24<br />Dekeleon 26<br />188 54, Athens<br /></p>
+          <p>${event.location || event.venue || 'TBD'}<br />${event.street || ''}<br />${event.postalCode || ''} ${event.city || ''}<br /></p>
         </div>
         <svg
           width="248"

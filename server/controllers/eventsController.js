@@ -1766,9 +1766,21 @@ exports.generateInvitationCode = async (guestCode) => {
     // Save the InvitationCode to the database
     await invitationCode.save();
 
+    // Fetch the event data with populated fields
+    const eventData = await Event.findById(guestCode.event)
+      .populate("brand")
+      .populate("lineups")
+      .populate("genres");
+
+    // Generate QR code for the invitation
+    const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, {
+      errorCorrectionLevel: "L",
+    });
+
     // Assuming you don't need a QR code URL for PDF creation, proceed directly to PDF generation
     const pdfBuffer = await createTicketPDF(
-      guestCode.event, // Directly passing event ID
+      eventData || { _id: guestCode.event, title: "Event" },
+      qrCodeDataURL,
       formattedName,
       guestCode.email,
       guestCode.condition,

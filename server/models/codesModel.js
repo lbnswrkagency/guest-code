@@ -32,6 +32,9 @@ const CodeSchema = new Schema(
     // Additional fields for specific code types
     price: { type: Number }, // For ticket codes
     tableNumber: { type: String }, // For table codes
+    
+    // Personal invitation settings
+    personalInvite: { type: Boolean, default: true }, // Whether user wants to receive personal invitations
 
     // New fields for dynamic code generation
     isDynamic: { type: Boolean, default: false }, // Flag to indicate dynamic codes

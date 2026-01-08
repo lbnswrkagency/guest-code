@@ -181,4 +181,178 @@ router.put("/:id/update-pax", authenticate, async (req, res) => {
   }
 });
 
+// Unsubscribe from personal invitations
+router.get('/unsubscribe/:codeId', async (req, res) => {
+  try {
+    const { codeId } = req.params;
+    
+    // Find and update the code to set personalInvite to false
+    const code = await Code.findByIdAndUpdate(
+      codeId,
+      { personalInvite: false },
+      { new: true }
+    );
+    
+    if (!code) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Code Not Found - GuestCode</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
+            .container { text-align: center; padding: 40px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; }
+            h1 { color: #d32f2f; }
+            p { color: #666; line-height: 1.6; }
+            .footer { margin-top: 30px; font-size: 14px; color: #999; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Code Not Found</h1>
+            <p>We couldn't find the code you're trying to unsubscribe. It may have already been removed or the link may be invalid.</p>
+            <div class="footer">GuestCode - The Future of Event Management</div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    
+    console.log(`Code ${codeId} unsubscribed from personal invitations for email: ${code.guestEmail}`);
+    
+    // Return a nice HTML page with the thank you message
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Unsubscribed Successfully - GuestCode</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { 
+            font-family: 'Arial', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+          }
+          .container { 
+            text-align: center; 
+            padding: 50px 40px; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            max-width: 600px; 
+            width: 90%;
+            border-top: 5px solid #ffc807;
+          }
+          h1 { 
+            color: #333; 
+            font-size: 28px; 
+            margin-bottom: 20px; 
+            font-weight: 600;
+          }
+          .success-icon {
+            font-size: 60px;
+            color: #4caf50;
+            margin-bottom: 20px;
+          }
+          p { 
+            color: #666; 
+            line-height: 1.8; 
+            font-size: 16px; 
+            margin-bottom: 15px;
+          }
+          .highlight {
+            color: #ffc807;
+            font-weight: bold;
+          }
+          .contact-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            border-left: 4px solid #ffc807;
+          }
+          .footer { 
+            margin-top: 40px; 
+            font-size: 14px; 
+            color: #999; 
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+          }
+          .social-links {
+            margin-top: 20px;
+          }
+          .social-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 500;
+          }
+          .social-links a:hover {
+            color: #ffc807;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="success-icon">✅</div>
+          <h1>You've been unsubscribed!</h1>
+          <p>Thank you again for visiting us in the past. You will no longer receive personal invitations from us.</p>
+          
+          <div class="contact-info">
+            <p><strong>Want to join us again?</strong></p>
+            <p>If you want to come to any of our events, feel free to:</p>
+            <p>📧 Send us an email: <span class="highlight">contact@afrospiti.com</span></p>
+            <p>📱 Text us on Instagram: <span class="highlight">@afrospiti</span></p>
+          </div>
+          
+          <p>We respect your privacy and your choice. You can always contact us if you change your mind!</p>
+          
+          <div class="social-links">
+            <a href="https://instagram.com/afrospiti" target="_blank">Instagram</a>
+            <a href="mailto:contact@afrospiti.com">Email Us</a>
+          </div>
+          
+          <div class="footer">
+            <p>GuestCode - The Future of Event Management</p>
+            <p>Thank you for being part of our community! 🎉</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error unsubscribing code:', error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Error - GuestCode</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
+          .container { text-align: center; padding: 40px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; }
+          h1 { color: #d32f2f; }
+          p { color: #666; line-height: 1.6; }
+          .footer { margin-top: 30px; font-size: 14px; color: #999; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Oops! Something went wrong</h1>
+          <p>We encountered an error while processing your request. Please try again later or contact us directly.</p>
+          <p>Email: contact@afrospiti.com</p>
+          <div class="footer">GuestCode - The Future of Event Management</div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
 module.exports = router;

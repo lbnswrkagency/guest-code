@@ -168,46 +168,83 @@ const sendQRCodeEmail = async (
   }
 };
 
-const sendQRCodeInvitation = async (name, email, pdfPath) => {
+const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null) => {
   console.debug("Preparing QR code invitation email for:", email);
   try {
+    // Fetch event data
+    const Event = require("../models/eventsModel");
+    const event = await Event.findById(eventId)
+      .populate("brand")
+      .populate("lineups")
+      .populate("genres");
+
+    if (!event) {
+      console.error("Event not found for ID:", eventId);
+      throw new Error("Event not found");
+    }
+
     const pdfData = fs.readFileSync(pdfPath);
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
     sendSmtpEmail.sender = {
-      name: "Afro Spiti",
-      email: process.env.SENDER_EMAIL || "contact@afrospiti.com",
+      name: event.brand?.name || "GuestCode",
+      email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject =
-      "Afro Spiti - Personal Invitation - Hendricks Birthday Special - Tonight - Studio 24";
+    sendSmtpEmail.subject = `🎊 Happy New Year! ${event.brand?.name || "GuestCode"} - Personal Invitation - ${event.title}`;
+
+    // Format event date
+    const eventDate = new Date(event.startDate);
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = eventDate.toLocaleDateString('en-US', dateOptions);
+
+    // Create lineup string
+    const lineupString = event.lineups && event.lineups.length > 0 
+      ? event.lineups.map(l => l.name || l).join(", ")
+      : "Special Guest DJs";
+
+    // Create unsubscribe section
+    const unsubscribeSection = codeId ? `
+      <div style="margin-top: 40px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
+        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Don't want to receive personal invitations anymore?</p>
+        <a href="${getBaseUrl()}/api/codes/unsubscribe/${codeId}" 
+           style="color: #666; text-decoration: underline; font-size: 14px;">
+           If you don't want personal invites anymore please press here.
+        </a>
+      </div>
+    ` : '';
 
     // Create additional content specific to the invitation
     const additionalContent = `
-      <div style="background-color: #f8f8f8; border-left: 4px solid #ffc807; padding: 15px; margin: 20px 0;">
+      <div style="background-color: #f8f8f8; border-left: 4px solid ${event.brand?.colors?.primary || '#ffc807'}; padding: 15px; margin: 20px 0;">
+        <p style="font-size: 18px; margin: 0 0 15px; font-weight: bold; color: #d32f2f;">🎊 Happy New Year! 🎊</p>
         <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Invitation Details:</p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Special Event: <strong>Hendricks' Birthday Special</strong></p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Benefit: <strong>Free entrance all night</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Special Event: <strong>${event.title}</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Date: <strong>${formattedDate}</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Lineup: <strong>${lineupString}</strong></p>
+        <p style="font-size: 16px; margin: 0 0 5px;">Benefit: <strong>Happy New Year! Free entrance all night</strong></p>
         <p style="font-size: 16px; margin: 0;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
       </div>
+      ${unsubscribeSection}
     `;
 
     // Use the common email template
     sendSmtpEmail.htmlContent = createEventEmailTemplate({
       recipientName: name,
-      eventTitle: "Afro Spiti - Hendricks Birthday Special",
-      eventDate: new Date(), // Current date since it's tonight
-      eventLocation: "Studio 24",
-      eventAddress: "Studio 24, Athens",
-      eventCity: "Athens",
-      startTime: "22:00",
-      endTime: "04:00",
+      eventTitle: event.title,
+      eventDate: event.startDate,
+      eventLocation: event.location || event.venue || "",
+      eventAddress: event.street || event.address || "",
+      eventCity: event.city || "",
+      eventPostalCode: event.postalCode || "",
+      startTime: event.startTime || "22:00",
+      endTime: event.endTime || "04:00",
       description:
-        "We wanted to say thank you for joining us in the past. This is your personal invitation for Afro Spiti tonight. Join us for a special night as we celebrate Hendricks' Birthday with an incredible lineup!",
-      primaryColor: "#ffc807",
+        `🎊 Happy New Year! We wanted to say thank you for joining us in the past. This is your special New Year invitation for ${event.title}. ${event.description || 'Join us for an incredible night to celebrate the new year!'}`,
+      primaryColor: event.brand?.colors?.primary || "#ffc807",
       additionalContent: additionalContent,
-      footerText: "Remember, your Invitation Code can only be used once.",
+      footerText: "Remember, your Invitation Code can only be used once. Happy New Year! 🎊",
     });
 
     sendSmtpEmail.attachment = [
@@ -221,7 +258,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath) => {
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
     apiInstance.sendTransacEmail(sendSmtpEmail).then(
       function (data) {
-        console.debug("Invitation email sent successfully to:", email);
+        console.debug("Happy New Year invitation email sent successfully to:", email);
       },
       function (error) {
         console.error("Error sending invitation email:", error);
