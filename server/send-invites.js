@@ -237,7 +237,13 @@ async function processInvitations() {
         console.log(chalk.cyan("\n🔍 Fetching from legacy GuestCode model..."));
 
         // No event filter - legacy codes may reference deleted events
-        let guestCodeQuery = {};
+        let guestCodeQuery = {
+          // Only include codes that allow personal invites
+          $or: [
+            { personalInvite: { $ne: false } },
+            { personalInvite: { $exists: false } },
+          ],
+        };
         if (onlyAttendedGuests) {
           guestCodeQuery.paxChecked = { $gt: 0 };
         }
@@ -438,7 +444,13 @@ async function processInvitations() {
         console.log(chalk.cyan("\n🔍 Fetching from legacy GuestCode model..."));
 
         // No event filter - legacy codes may reference deleted events
-        let guestCodeQuery = {};
+        let guestCodeQuery = {
+          // Only include codes that allow personal invites
+          $or: [
+            { personalInvite: { $ne: false } },
+            { personalInvite: { $exists: false } },
+          ],
+        };
         if (onlyAttendedGuests) {
           guestCodeQuery.paxChecked = { $gt: 0 };
         }

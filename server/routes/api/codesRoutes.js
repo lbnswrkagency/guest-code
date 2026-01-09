@@ -4,6 +4,7 @@ const { authenticate } = require("../../middleware/authMiddleware");
 const { optionalAuthenticateToken } = require("../../middleware/auth");
 const codesController = require("../../controllers/codesController");
 const Code = require("../../models/codesModel");
+const GuestCode = require("../../models/GuestCode"); // Legacy model for unsubscribe
 
 // Code Settings Routes
 // Get all code settings for an event (with optional authentication)
@@ -185,14 +186,10 @@ router.put("/:id/update-pax", authenticate, async (req, res) => {
 router.get('/unsubscribe/:codeId', async (req, res) => {
   try {
     const { codeId } = req.params;
-    
-    // Find and update the code to set personalInvite to false
-    const code = await Code.findByIdAndUpdate(
-      codeId,
-      { personalInvite: false },
-      { new: true }
-    );
-    
+
+    // First find the code to get the email
+    const code = await Code.findById(codeId);
+
     if (!code) {
       return res.status(404).send(`
         <!DOCTYPE html>
@@ -219,7 +216,28 @@ router.get('/unsubscribe/:codeId', async (req, res) => {
       `);
     }
     
-    console.log(`Code ${codeId} unsubscribed from personal invitations for email: ${code.guestEmail}`);
+    // Update ALL codes with the same email to prevent future invites
+    // (user may have multiple codes from different events)
+    const email = code.guestEmail;
+    if (email) {
+      // Update new Code model
+      const updateResult = await Code.updateMany(
+        { guestEmail: { $regex: new RegExp(`^${email}$`, 'i') } }, // Case-insensitive email match
+        { personalInvite: false }
+      );
+
+      // Also update legacy GuestCode model
+      const legacyUpdateResult = await GuestCode.updateMany(
+        { email: { $regex: new RegExp(`^${email}$`, 'i') } }, // Legacy model uses 'email' not 'guestEmail'
+        { personalInvite: false }
+      );
+
+      console.log(`Unsubscribed ${updateResult.modifiedCount} codes + ${legacyUpdateResult.modifiedCount} legacy codes for email: ${email}`);
+    } else {
+      // Fallback: just update this one code if no email
+      await Code.findByIdAndUpdate(codeId, { personalInvite: false });
+      console.log(`Code ${codeId} unsubscribed (no email found)`);
+    }
     
     // Return a nice HTML page with the thank you message
     res.send(`

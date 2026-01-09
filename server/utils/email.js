@@ -210,7 +210,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
 
       lineupHtml = `
         <div style="margin: 25px 0;">
-          <p style="font-size: 14px; color: #666; margin: 0 0 10px; font-weight: 600;">WHO'S PLAYING:</p>
+          <p style="font-size: 14px; color: #666; margin: 0 0 10px; font-weight: 600;">LINE UP:</p>
           <table cellpadding="0" cellspacing="0" border="0">
             <tr>${artistsHtml}</tr>
           </table>
