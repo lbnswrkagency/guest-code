@@ -87,6 +87,8 @@ async function sendInviteEmails() {
     let sent = 0;
     let failed = 0;
 
+    const total = pdfFiles.length;
+
     for (let i = 0; i < pdfFiles.length; i++) {
       const pdfFile = pdfFiles[i];
       const pdfPath = path.join(invitesDir, pdfFile);
@@ -109,6 +111,14 @@ async function sendInviteEmails() {
         const recipientEmail = testMode ? testEmail : invitationCode.email;
         const codeIdForUnsubscribe = invitationCode.code || invitationCode.guestCode;
 
+        // Show progress bar with name
+        const current = i + 1;
+        const remaining = total - current;
+        const pct = ((current / total) * 100).toFixed(0).padStart(3);
+        const bar = '█'.repeat(Math.round((current / total) * 20)).padEnd(20, '░');
+        const cleanName = (invitationCode.name || '').replace(/^Guest Code for /i, '').substring(0, 20).padEnd(20);
+        process.stdout.write(`\r  ${chalk.cyan(bar)} ${chalk.white(pct + '%')} ${chalk.gray('|')} ${chalk.white(cleanName)} ${chalk.dim(`(${remaining} left)`)}`);
+
         // Send email
         await sendQRCodeInvitation(
           invitationCode.name,
@@ -118,7 +128,6 @@ async function sendInviteEmails() {
           codeIdForUnsubscribe
         );
 
-        log.sent(invitationCode.name, recipientEmail);
         sent++;
 
         // Update source code and delete PDF in production
@@ -136,19 +145,22 @@ async function sendInviteEmails() {
         // Stop after 1 in test mode
         if (testMode) {
           log.newline();
+          log.newline();
           log.info(`Set ${chalk.bold('testMode = false')} to send all emails`);
           break;
         }
 
-        // Delay between emails
+        // Delay between emails (show countdown)
         if (i < pdfFiles.length - 1) {
-          process.stdout.write(chalk.dim(`    waiting ${DELAY_BETWEEN_EMAILS / 1000}s...`));
-          await sleep(DELAY_BETWEEN_EMAILS);
-          process.stdout.write('\r' + ' '.repeat(40) + '\r');
+          for (let s = DELAY_BETWEEN_EMAILS / 1000; s > 0; s--) {
+            process.stdout.write(`\r  ${chalk.cyan(bar)} ${chalk.white(pct + '%')} ${chalk.gray('|')} ${chalk.green('✓')} ${chalk.white(cleanName)} ${chalk.dim(`next in ${s}s...`)}  `);
+            await sleep(1000);
+          }
         }
 
       } catch (error) {
         failed++;
+        process.stdout.write(`\r  ${chalk.red('✗')} Failed to send                                              \n`);
       }
     }
 

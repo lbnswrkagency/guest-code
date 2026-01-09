@@ -104,13 +104,8 @@ const generateGuestCodePDF = async (code, event) => {
     // Fetch related data
     const brand = event ? await Brand.findById(event.brand) : null;
 
-    // Get code settings to display condition
-    const codeSettings = await mongoose.model("CodeSettings").findOne({
-      eventId: event._id,
-      type: "guest",
-    });
-
-    const condition = codeSettings?.condition || "";
+    // Use condition from code (already saved during creation)
+    const condition = code.condition || "";
 
     // Get brand colors or use defaults
     const primaryColor = brand?.colors?.primary || "#ffc807";
@@ -414,29 +409,35 @@ const createGuestCode = async (
       },
     });
 
+    // Fetch condition from CodeSettings if codeSettingId is provided
+    let condition = "";
+    if (codeSettingId) {
+      const codeSettings = await mongoose.model("CodeSettings").findById(codeSettingId);
+      condition = codeSettings?.condition || "";
+    }
+
     // Create new code document
     const newCode = new Code({
       eventId,
       codeSettingId,
       type: "guest",
-      name: `Guest Code for ${guestName}`,
+      name: guestName,
       code,
       qrCode: qrCodeDataUrl,
       securityToken,
       createdBy:
-        userId || new mongoose.Types.ObjectId("000000000000000000000000"), // Default guest user ID if not provided
+        userId || new mongoose.Types.ObjectId("000000000000000000000000"),
       guestName,
       guestEmail,
       guestPhone,
       status: "active",
-      maxPax: maxPax, // Use the provided maxPax parameter
+      maxPax: maxPax,
       paxChecked: 0,
       usageCount: 0,
+      condition,
     });
 
-    // Save to database
     await newCode.save();
-
     return newCode;
   } catch (error) {
     console.error("[createGuestCode] Error:", error);
@@ -468,10 +469,18 @@ const generateGuestCode = async (req, res) => {
     }
 
     // Get guest code settings to check email/phone requirements
-    const codeSettings = await mongoose.model("CodeSettings").findOne({
+    let codeSettings = await mongoose.model("CodeSettings").findOne({
       eventId: eventId,
       type: "guest",
     });
+
+    // If not found and this is a child event, check parent event
+    if (!codeSettings && event.parentEventId) {
+      codeSettings = await mongoose.model("CodeSettings").findOne({
+        eventId: event.parentEventId,
+        type: "guest",
+      });
+    }
 
     const requirePhone = codeSettings?.requirePhone === true; // Default to false
 

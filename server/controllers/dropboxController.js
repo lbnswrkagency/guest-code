@@ -221,7 +221,6 @@ const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const ensureCacheDir = () => {
   if (!fs.existsSync(CACHE_DIR)) {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
-    console.log('📁 [Cache] Created thumbnail cache directory');
   }
 };
 
@@ -238,19 +237,17 @@ const getCachedThumbnail = (cacheKey) => {
     if (fs.existsSync(cachePath)) {
       const stats = fs.statSync(cachePath);
       const age = Date.now() - stats.mtime.getTime();
-      
+
       if (age < CACHE_MAX_AGE) {
         const thumbnail = fs.readFileSync(cachePath);
-        console.log(`💾 [Cache] Hit for ${cacheKey}`);
         return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
       } else {
         // Cache expired, delete the file
         fs.unlinkSync(cachePath);
-        console.log(`🗑️ [Cache] Expired and removed ${cacheKey}`);
       }
     }
   } catch (error) {
-    console.log(`⚠️ [Cache] Error reading ${cacheKey}:`, error.message);
+    // Silent error - cache miss
   }
   return null;
 };
@@ -261,9 +258,8 @@ const saveThumbnailToCache = (cacheKey, thumbnailBuffer) => {
     ensureCacheDir();
     const cachePath = path.join(CACHE_DIR, cacheKey);
     fs.writeFileSync(cachePath, thumbnailBuffer);
-    console.log(`💾 [Cache] Saved ${cacheKey}`);
   } catch (error) {
-    console.log(`⚠️ [Cache] Error saving ${cacheKey}:`, error.message);
+    // Silent error - cache save failed
   }
 };
 
@@ -271,26 +267,20 @@ const saveThumbnailToCache = (cacheKey, thumbnailBuffer) => {
 const cleanOldCache = () => {
   try {
     if (!fs.existsSync(CACHE_DIR)) return;
-    
+
     const files = fs.readdirSync(CACHE_DIR);
-    let cleaned = 0;
-    
+
     files.forEach(file => {
       const filePath = path.join(CACHE_DIR, file);
       const stats = fs.statSync(filePath);
       const age = Date.now() - stats.mtime.getTime();
-      
+
       if (age > CACHE_MAX_AGE) {
         fs.unlinkSync(filePath);
-        cleaned++;
       }
     });
-    
-    if (cleaned > 0) {
-      console.log(`🧹 [Cache] Cleaned ${cleaned} expired thumbnail(s)`);
-    }
   } catch (error) {
-    console.log('⚠️ [Cache] Error during cleanup:', error.message);
+    // Silent error - cache cleanup failed
   }
 };
 
@@ -572,17 +562,12 @@ exports.handleOAuthCallback = async (req, res) => {
       clientSecret: process.env.DROPBOX_API_SECRET
     });
 
-    console.log('[Dropbox OAuth] Exchanging code for token...');
-    
     const tokenResponse = await dbxAuth.getAccessTokenFromCode(
       process.env.DROPBOX_REDIRECT_URI,
       code
     );
 
     const { access_token, refresh_token, expires_in, account_id } = tokenResponse.result;
-
-    console.log('[Dropbox OAuth] ✅ Token obtained successfully');
-    console.log('[Dropbox OAuth] Token expires in:', expires_in, 'seconds');
 
     // Test the new token with team root access
     const dbxTest = new Dropbox({ 
@@ -613,9 +598,8 @@ exports.handleOAuthCallback = async (req, res) => {
       });
       
       await tokenDoc.save();
-      console.log('[Dropbox OAuth] ✅ Tokens saved to database');
     } catch (dbError) {
-      console.error('[Dropbox OAuth] Failed to save tokens to database:', dbError);
+      console.error('[Dropbox OAuth] Failed to save tokens:', dbError);
     }
     
     // Test folder access
@@ -757,51 +741,38 @@ exports.handleOAuthCallback = async (req, res) => {
 exports.checkBrandGalleries = async (req, res) => {
   try {
     const { brandId } = req.params;
-    
-    console.log('🔍 [Dropbox Controller] checkBrandGalleries called for brandId:', brandId);
-    
+
     // Import models
     const Brand = require("../models/brandModel");
     const Event = require("../models/eventsModel");
-    
+
     // Find the brand
     const brand = await Brand.findById(brandId);
     if (!brand) {
-      console.log('❌ [Dropbox Controller] Brand not found:', brandId);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
         message: "Brand not found",
         hasGalleries: false
       });
     }
-    
-    console.log('✅ [Dropbox Controller] Found brand:', brand.name, 'ID:', brand._id);
-    
+
     // Find all events for this brand that have dropboxFolderPath
     const eventsWithGalleries = await Event.find({
       brand: brandId,
       dropboxFolderPath: { $exists: true, $ne: null, $ne: "" }
     }).select('dropboxFolderPath title startDate date _id').sort({ startDate: -1, date: -1 });
-    
-    console.log('📸 [Dropbox Controller] Found events with galleries:', eventsWithGalleries.length);
-    eventsWithGalleries.forEach((event, index) => {
-      console.log(`  Event ${index + 1}: "${event.title}" (${event._id}) - Path: ${event.dropboxFolderPath}`);
-      console.log(`    Date: ${event.startDate}`);
-    });
-    
+
     const hasGalleries = eventsWithGalleries.length > 0;
-    
-    console.log('🎯 [Dropbox Controller] Final result - hasGalleries:', hasGalleries);
-    
+
     res.json({
       success: true,
       hasGalleries,
       totalEvents: eventsWithGalleries.length,
       events: eventsWithGalleries
     });
-    
+
   } catch (error) {
-    console.error("❌ [Dropbox Controller] Error checking brand galleries:", error);
+    console.error("Error checking brand galleries:", error);
     res.status(500).json({
       success: false,
       message: "Failed to check brand galleries",
@@ -966,12 +937,10 @@ exports.getEventGalleryById = async (req, res) => {
       const imageFiles = entries.filter(file => 
         file['.tag'] === 'file' && isImage(file.name)
       );
-      const videoFiles = entries.filter(file => 
+      const videoFiles = entries.filter(file =>
         file['.tag'] === 'file' && isVideo(file.name)
       );
-      
-      console.log(`📷 [Dropbox Controller] Found ${imageFiles.length} images, ${videoFiles.length} videos in event "${event.title}"`);
-      
+
       // For faster loading, generate thumbnails for first batch, cache others for lazy loading
       const INITIAL_THUMBNAIL_COUNT = 12; // Increased from 8
       const MAX_CONCURRENT_THUMBNAILS = 8; // Increased from 4
@@ -1026,7 +995,6 @@ exports.getEventGalleryById = async (req, res) => {
             cached: false
           };
         } catch (thumbnailError) {
-          console.log(`⚠️ [Dropbox Controller] Thumbnail failed for ${file.name}:`, thumbnailError.message);
           // Return photo without thumbnail
           return {
             id: file.id,
@@ -1044,25 +1012,17 @@ exports.getEventGalleryById = async (req, res) => {
       // Process only the first batch of images with thumbnails
       const initialImages = imageFiles.slice(0, INITIAL_THUMBNAIL_COUNT);
       const remainingImages = imageFiles.slice(INITIAL_THUMBNAIL_COUNT);
-      
-      console.log(`🚀 [Dropbox Controller] Generating thumbnails for first ${initialImages.length} images only`);
-      
+
       // Process initial images in batches for thumbnails
       const batchSize = MAX_CONCURRENT_THUMBNAILS;
-      let cacheHits = 0;
-      
+
       for (let i = 0; i < initialImages.length; i += batchSize) {
         const batch = initialImages.slice(i, i + batchSize);
         const batchResults = await Promise.all(
           batch.map(file => getThumbnailWithCache(file))
         );
-        
-        // Count cache hits for performance metrics
-        cacheHits += batchResults.filter(result => result.cached).length;
-        
+
         photos.push(...batchResults);
-        
-        console.log(`📸 [Dropbox Controller] Processed ${Math.min(i + batchSize, initialImages.length)}/${initialImages.length} initial images (${cacheHits} cache hits) for event "${event.title}"`);
       }
       
       // Add remaining images without thumbnails (for lazy loading)
@@ -1188,8 +1148,6 @@ exports.getEventVideoGalleryById = async (req, res) => {
         file['.tag'] === 'file' && isVideo(file.name)
       );
 
-      console.log(`🎬 [Dropbox Controller] Found ${videoFiles.length} videos in event "${event.title}"`);
-
       // Process videos with thumbnails
       const videos = [];
       const MAX_CONCURRENT_VIDEO_THUMBNAILS = 4;
@@ -1247,7 +1205,6 @@ exports.getEventVideoGalleryById = async (req, res) => {
             cached: false
           };
         } catch (thumbnailError) {
-          console.log(`⚠️ [Dropbox Controller] Video thumbnail failed for ${file.name}:`, thumbnailError.message);
           // Return video without thumbnail
           return {
             id: file.id,
@@ -1269,7 +1226,6 @@ exports.getEventVideoGalleryById = async (req, res) => {
           batch.map(file => getVideoThumbnailWithCache(file))
         );
         videos.push(...batchResults);
-        console.log(`🎬 [Dropbox Controller] Processed ${Math.min(i + MAX_CONCURRENT_VIDEO_THUMBNAILS, videoFiles.length)}/${videoFiles.length} video thumbnails`);
       }
 
       res.status(200).json({
@@ -1315,8 +1271,6 @@ exports.getEventVideoGalleryById = async (req, res) => {
 exports.getLatestBrandVideoGallery = async (req, res) => {
   try {
     const { brandId } = req.params;
-
-    console.log('🎬 [Dropbox Controller] getLatestBrandVideoGallery called for brandId:', brandId);
 
     // Import models
     const Brand = require("../models/brandModel");
@@ -1375,7 +1329,6 @@ exports.getLatestBrandVideoGallery = async (req, res) => {
         );
 
         if (videoFiles.length > 0) {
-          console.log(`✅ [Dropbox Controller] Found ${videoFiles.length} videos in event "${event.title}"`);
           // Found videos, return this event's gallery
           return await exports.getEventVideoGalleryById(
             { params: { eventId: event._id } },
@@ -1596,9 +1549,7 @@ exports.loadThumbnails = async (req, res) => {
         message: "filePaths array is required"
       });
     }
-    
-    console.log(`🔄 [Dropbox Controller] Lazy loading ${filePaths.length} thumbnails`);
-    
+
     // Initialize Dropbox client
     const dbx = await getDropboxClient(true);
     
@@ -1651,7 +1602,6 @@ exports.loadThumbnails = async (req, res) => {
           };
           
         } catch (error) {
-          console.log(`⚠️ [Dropbox Controller] Lazy thumbnail failed for ${filePath}:`, error.message);
           return {
             filePath,
             thumbnail: null,
@@ -1660,17 +1610,13 @@ exports.loadThumbnails = async (req, res) => {
           };
         }
       });
-      
+
       const batchResults = await Promise.all(batchPromises);
       thumbnails.push(...batchResults);
-      
-      console.log(`🔄 [Dropbox Controller] Lazy loaded batch ${Math.ceil((i + 1) / MAX_CONCURRENT)}/${Math.ceil(filePaths.length / MAX_CONCURRENT)}`);
     }
-    
+
     const successful = thumbnails.filter(t => t.success).length;
     const cached = thumbnails.filter(t => t.cached).length;
-    
-    console.log(`✅ [Dropbox Controller] Lazy loading complete: ${successful}/${filePaths.length} successful (${cached} from cache)`);
     
     res.status(200).json({
       success: true,
@@ -1697,32 +1643,26 @@ exports.loadThumbnails = async (req, res) => {
 exports.getLatestBrandGallery = async (req, res) => {
   try {
     const { brandId } = req.params;
-    
-    console.log('🚀 [Dropbox Controller] getLatestBrandGallery called for brandId:', brandId);
-    
+
     // Import models
     const Brand = require("../models/brandModel");
     const Event = require("../models/eventsModel");
-    
+
     // Find the brand
     const brand = await Brand.findById(brandId);
     if (!brand) {
-      console.log('❌ [Dropbox Controller] Brand not found:', brandId);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
         message: "Brand not found"
       });
     }
-    
-    console.log('✅ [Dropbox Controller] Found brand:', brand.name);
-    
+
     // Initialize Dropbox client
     const dbx = await getDropboxClient(true);
-    
+
     // Find the most recent events with gallery (including future events as fallback)
     const now = new Date();
-    console.log('📅 [Dropbox Controller] Current time:', now.toISOString());
-    
+
     // First try to find past events
     let eventsWithGalleries = await Event.find({
       brand: brandId,
@@ -1734,44 +1674,29 @@ exports.getLatestBrandGallery = async (req, res) => {
     }).select('dropboxFolderPath title subTitle startDate date _id isWeekly weekNumber')
     .sort({ startDate: -1, date: -1 })
     .limit(5); // Check last 5 past events
-    
-    console.log('📸 [Dropbox Controller] Found past events with galleries:', eventsWithGalleries.length);
-    
+
     // If no past events, fall back to any events with galleries (including future)
     if (eventsWithGalleries.length === 0) {
-      console.log('⏰ [Dropbox Controller] No past events found, checking all events...');
       eventsWithGalleries = await Event.find({
         brand: brandId,
         dropboxFolderPath: { $exists: true, $ne: null, $ne: "" }
       }).select('dropboxFolderPath title subTitle startDate date _id isWeekly weekNumber')
       .sort({ startDate: -1, date: -1 })
       .limit(5); // Check last 5 events
-      
-      console.log('📸 [Dropbox Controller] Found total events with galleries:', eventsWithGalleries.length);
     }
-    
-    // Log all events found
-    eventsWithGalleries.forEach((event, index) => {
-      console.log(`  Event ${index + 1}: "${event.title}" (${event._id}) - Path: ${event.dropboxFolderPath}`);
-      console.log(`    Date: ${event.startDate}`);
-    });
-    
+
     // Try to find one that actually has media (with timeout)
     for (const event of eventsWithGalleries) {
       try {
-        console.log(`🔍 [Dropbox Controller] Checking event "${event.title}" for media...`);
-        
-        const folderPath = event.dropboxFolderPath.startsWith("/") 
-          ? event.dropboxFolderPath 
+        const folderPath = event.dropboxFolderPath.startsWith("/")
+          ? event.dropboxFolderPath
           : `/${event.dropboxFolderPath}`;
-        
-        console.log(`📁 [Dropbox Controller] Checking folder: ${folderPath}`);
-        
+
         // Add timeout to Dropbox call (increased timeout)
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Dropbox request timeout')), 30000)
         );
-        
+
         const dropboxPromise = withTokenRefresh(async function() {
           return await dbx.filesListFolder({
             path: folderPath,
@@ -1779,31 +1704,25 @@ exports.getLatestBrandGallery = async (req, res) => {
             include_mounted_folders: true
           });
         });
-        
+
         const listFolderResponse = await Promise.race([dropboxPromise, timeoutPromise]);
-        
-        const mediaFiles = listFolderResponse.result.entries.filter(file => 
+
+        const mediaFiles = listFolderResponse.result.entries.filter(file =>
           file['.tag'] === 'file' && (isImage(file.name) || isVideo(file.name))
         );
-        
-        console.log(`📷 [Dropbox Controller] Found ${mediaFiles.length} media files in "${event.title}"`);
-        
+
         if (mediaFiles.length > 0) {
-          console.log(`✅ [Dropbox Controller] Using event "${event.title}" for latest gallery`);
           // Found an event with media, return its gallery
           return await exports.getEventGalleryById(
-            { params: { eventId: event._id } }, 
+            { params: { eventId: event._id } },
             res
           );
         }
       } catch (folderError) {
-        console.log(`⚠️ [Dropbox Controller] Error checking folder for event "${event.title}":`, folderError.message);
         // Continue to next event if this one fails
         continue;
       }
     }
-    
-    console.log('📭 [Dropbox Controller] No events with media found');
     // No events with galleries found
     res.status(200).json({
       success: true,

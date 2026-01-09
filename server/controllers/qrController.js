@@ -451,6 +451,51 @@ const validateTicket = async (req, res) => {
       }
     }
 
+    // If not found in any model, check InvitationCode model (personal invitations)
+    if (!ticket && securityTokenToCheck) {
+      console.log("[QR Validate] Checking InvitationCode by _id:", securityTokenToCheck);
+
+      // InvitationCode QR contains the _id directly
+      if (mongoose.Types.ObjectId.isValid(securityTokenToCheck)) {
+        const invitationByObjectId = await InvitationCode.findById(securityTokenToCheck);
+        console.log(
+          `[QR Validate] Result from InvitationCode (by _id): ${
+            invitationByObjectId ? invitationByObjectId._id : "null"
+          }`
+        );
+
+        if (invitationByObjectId) {
+          console.log("[QR Validate] Found match in InvitationCode model, using it.");
+          ticket = invitationByObjectId;
+          typeOfTicket = "Personal-Invitation";
+
+          // Get event information
+          if (ticket.event) {
+            eventId = ticket.event;
+            const Event = require("../models/eventsModel");
+            event = await Event.findById(ticket.event);
+            console.log(
+              "Found event for InvitationCode:",
+              event ? event.title : "No event found"
+            );
+
+            // Check for event mismatch
+            if (
+              requestEventId &&
+              eventId &&
+              requestEventId !== eventId.toString()
+            ) {
+              console.log("Event mismatch detected for InvitationCode");
+              wrongEventError = true;
+            }
+          }
+
+          // Use guest name as host name
+          hostName = ticket.name || "Guest";
+        }
+      }
+    }
+
     // Once we have the ticket (no matter which model), check for event mismatch
     if (
       ticket &&
@@ -506,12 +551,16 @@ const validateTicket = async (req, res) => {
         else if (typeOfTicket === "Backstage-Code") legacyType = "backstage";
         else if (typeOfTicket === "Table-Code") legacyType = "table";
         else if (typeOfTicket === "Ticket-Code") legacyType = "ticket";
+        else if (typeOfTicket === "Personal-Invitation") legacyType = "guest"; // Invitations use guest settings
         else if (typeOfTicket.includes("Custom")) legacyType = "custom";
         else if (ticket.type) legacyType = ticket.type.toLowerCase();
 
-        if (legacyType && ticket.eventId) {
+        // Get eventId - InvitationCode uses 'event' field instead of 'eventId'
+        const ticketEventId = ticket.eventId || ticket.event;
+
+        if (legacyType && ticketEventId) {
           codeSetting = await CodeSettings.findOne({
-            eventId: ticket.eventId,
+            eventId: ticketEventId,
             type: legacyType,
           });
 
@@ -773,6 +822,11 @@ const increasePax = async (req, res) => {
                 ticket = await BattleCode.findById(ticketId);
                 if (ticket) {
                   model = BattleCode;
+                } else {
+                  ticket = await InvitationCode.findById(ticketId);
+                  if (ticket) {
+                    model = InvitationCode;
+                  }
                 }
               }
             }
@@ -783,6 +837,24 @@ const increasePax = async (req, res) => {
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Special handling for InvitationCode
+    if (model === InvitationCode) {
+      const maxPax = ticket.pax || 1;
+      if (ticket.paxChecked >= maxPax) {
+        return res.status(400).json({
+          message: "Maximum capacity reached for this invitation",
+        });
+      }
+      ticket.paxChecked = (ticket.paxChecked || 0) + 1;
+      await ticket.save();
+      return res.json({
+        _id: ticket._id,
+        paxChecked: ticket.paxChecked,
+        maxPax: maxPax,
+        message: "Guest checked in successfully",
+      });
     }
 
     // Special handling for BattleCode
@@ -879,6 +951,11 @@ const decreasePax = async (req, res) => {
                 ticket = await BattleCode.findById(ticketId);
                 if (ticket) {
                   model = BattleCode;
+                } else {
+                  ticket = await InvitationCode.findById(ticketId);
+                  if (ticket) {
+                    model = InvitationCode;
+                  }
                 }
               }
             }
@@ -889,6 +966,23 @@ const decreasePax = async (req, res) => {
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Special handling for InvitationCode
+    if (model === InvitationCode) {
+      if (ticket.paxChecked <= 0) {
+        return res.status(400).json({
+          message: "No guests are checked in for this invitation",
+        });
+      }
+      ticket.paxChecked = Math.max(0, (ticket.paxChecked || 0) - 1);
+      await ticket.save();
+      return res.json({
+        _id: ticket._id,
+        paxChecked: ticket.paxChecked,
+        maxPax: ticket.pax || 1,
+        message: "Guest checked out successfully",
+      });
     }
 
     // Special handling for BattleCode

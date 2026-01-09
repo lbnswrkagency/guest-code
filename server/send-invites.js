@@ -16,14 +16,17 @@ const chalk = require("chalk");
 // ═══════════════════════════════════════════════════════════
 //  CONFIGURATION
 // ═══════════════════════════════════════════════════════════
-const testMode = true;
+const testMode = false;
 const testEmail = "zafer.gueney@gmail.com";
 
 // ═══════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════
 const log = {
-  header: (text) => console.log(chalk.bold.cyan(`\n${'═'.repeat(60)}\n  ${text}\n${'═'.repeat(60)}`)),
+  header: (text) =>
+    console.log(
+      chalk.bold.cyan(`\n${"═".repeat(60)}\n  ${text}\n${"═".repeat(60)}`)
+    ),
   step: (text) => console.log(chalk.gray(`  → ${text}`)),
   success: (text) => console.log(chalk.green(`  ✓ ${text}`)),
   warn: (text) => console.log(chalk.yellow(`  ⚠ ${text}`)),
@@ -32,8 +35,12 @@ const log = {
   dim: (text) => console.log(chalk.dim(`    ${text}`)),
   progress: (current, total, name, email) => {
     const pct = ((current / total) * 100).toFixed(0).padStart(3);
-    const bar = '█'.repeat(Math.round((current / total) * 20)).padEnd(20, '░');
-    process.stdout.write(`\r  ${chalk.cyan(bar)} ${chalk.white(pct + '%')} ${chalk.gray('|')} ${chalk.white(name.padEnd(20))} ${chalk.dim(email)}`);
+    const bar = "█".repeat(Math.round((current / total) * 20)).padEnd(20, "░");
+    process.stdout.write(
+      `\r  ${chalk.cyan(bar)} ${chalk.white(pct + "%")} ${chalk.gray(
+        "|"
+      )} ${chalk.white(name.padEnd(20))} ${chalk.dim(email)}`
+    );
   },
   newline: () => console.log(),
 };
@@ -54,7 +61,10 @@ async function connectToDatabase() {
 
 async function prompt(question) {
   const readline = require("readline");
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   return new Promise((resolve) => {
     rl.question(chalk.white(`  ${question} `), (answer) => {
       rl.close();
@@ -67,7 +77,9 @@ async function getEventsByTitle() {
   const eventTitle = await prompt("Event title:");
 
   log.step(`Searching for "${eventTitle}"...`);
-  const allEvents = await Event.find({ title: { $regex: eventTitle, $options: "i" } }).sort({ startDate: 1 });
+  const allEvents = await Event.find({
+    title: { $regex: eventTitle, $options: "i" },
+  }).sort({ startDate: 1 });
 
   if (allEvents.length === 0) {
     log.error("No events found");
@@ -78,7 +90,9 @@ async function getEventsByTitle() {
   const pastEvents = allEvents.filter((e) => new Date(e.startDate) <= now);
   const futureEvents = allEvents.filter((e) => new Date(e.startDate) > now);
 
-  log.success(`Found ${allEvents.length} events (${pastEvents.length} past, ${futureEvents.length} upcoming)`);
+  log.success(
+    `Found ${allEvents.length} events (${pastEvents.length} past, ${futureEvents.length} upcoming)`
+  );
 
   if (futureEvents.length === 0) {
     log.warn("No upcoming events - cannot generate invitations");
@@ -86,12 +100,23 @@ async function getEventsByTitle() {
   }
 
   const upcomingEvent = futureEvents[0];
-  log.info(`Target event: ${chalk.bold(upcomingEvent.title)} on ${new Date(upcomingEvent.startDate).toLocaleDateString()}`);
+  log.info(
+    `Target event: ${chalk.bold(upcomingEvent.title)} on ${new Date(
+      upcomingEvent.startDate
+    ).toLocaleDateString()}`
+  );
 
-  const includeLegacy = (await prompt("Include legacy GuestCode model? (y/n):")).toLowerCase() === "y";
-  const onlyAttended = (await prompt("Only guests who attended (paxChecked > 0)? (y/n):")).toLowerCase() === "y";
+  const includeLegacy =
+    (await prompt("Include legacy GuestCode model? (y/n):")).toLowerCase() ===
+    "y";
+  const onlyAttended =
+    (
+      await prompt("Only guests who attended (paxChecked > 0)? (y/n):")
+    ).toLowerCase() === "y";
 
-  const confirm = await prompt(`\nProceed with ${pastEvents.length} past events for codes? (y/n):`);
+  const confirm = await prompt(
+    `\nProceed with ${pastEvents.length} past events for codes? (y/n):`
+  );
   if (confirm.toLowerCase() !== "y") {
     log.warn("Aborted");
     process.exit(0);
@@ -109,17 +134,25 @@ async function processInvitations() {
   try {
     // Header
     console.clear();
-    log.header(testMode ? "INVITATION GENERATOR (TEST MODE)" : "INVITATION GENERATOR");
+    log.header(
+      testMode ? "INVITATION GENERATOR (TEST MODE)" : "INVITATION GENERATOR"
+    );
 
     // Setup
     const invitesDir = path.join(__dirname, "invites");
-    if (!fs.existsSync(invitesDir)) fs.mkdirSync(invitesDir, { recursive: true });
+    if (!fs.existsSync(invitesDir))
+      fs.mkdirSync(invitesDir, { recursive: true });
 
     await connectToDatabase();
     log.newline();
 
     // Get events
-    const { pastEventIds, upcomingEvent, shouldIncludeGuestCode, onlyAttendedGuests } = await getEventsByTitle();
+    const {
+      pastEventIds,
+      upcomingEvent,
+      shouldIncludeGuestCode,
+      onlyAttendedGuests,
+    } = await getEventsByTitle();
     log.newline();
 
     // Fetch codes
@@ -128,16 +161,33 @@ async function processInvitations() {
     let codesQuery = {
       eventId: { $in: pastEventIds },
       type: "guest",
-      $or: [{ personalInvite: { $ne: false } }, { personalInvite: { $exists: false } }],
+      $or: [
+        { personalInvite: { $ne: false } },
+        { personalInvite: { $exists: false } },
+      ],
     };
     if (onlyAttendedGuests) codesQuery.paxChecked = { $gt: 0 };
 
     const guestCodes = await Code.find(codesQuery);
+
+    // Debug: Check how many codes with personalInvite: false exist (should be excluded)
+    const unsubscribedCount = await Code.countDocuments({
+      eventId: { $in: pastEventIds },
+      type: "guest",
+      personalInvite: false
+    });
+    if (unsubscribedCount > 0) {
+      log.dim(`${unsubscribedCount} unsubscribed guests filtered out`);
+    }
+
     let allCodesToProcess = [...guestCodes];
 
     if (shouldIncludeGuestCode) {
       let legacyQuery = {
-        $or: [{ personalInvite: { $ne: false } }, { personalInvite: { $exists: false } }],
+        $or: [
+          { personalInvite: { $ne: false } },
+          { personalInvite: { $exists: false } },
+        ],
       };
       if (onlyAttendedGuests) legacyQuery.paxChecked = { $gt: 0 };
 
@@ -163,13 +213,18 @@ async function processInvitations() {
     for (const code of allCodesToProcess) {
       const email = (code.guestEmail || code.email || "").toLowerCase();
       if (!email) continue;
-      if (!uniqueCodes[email] || (code.createdAt > uniqueCodes[email].createdAt)) {
+      if (
+        !uniqueCodes[email] ||
+        code.createdAt > uniqueCodes[email].createdAt
+      ) {
         uniqueCodes[email] = code;
       }
     }
 
     const totalUnique = Object.keys(uniqueCodes).length;
-    const alreadyCreated = Object.values(uniqueCodes).filter((c) => c.inviteCreated).length;
+    const alreadyCreated = Object.values(uniqueCodes).filter(
+      (c) => c.inviteCreated
+    ).length;
     const toCreate = totalUnique - alreadyCreated;
 
     log.success(`${totalUnique} unique guests found`);
@@ -192,7 +247,10 @@ async function processInvitations() {
 
       log.info(`Guest: ${chalk.bold(cleanName)} (${testEmail})`);
 
-      const event = await Event.findById(upcomingEvent._id).populate("brand").populate("lineups").populate("genres");
+      const event = await Event.findById(upcomingEvent._id)
+        .populate("brand")
+        .populate("lineups")
+        .populate("genres");
 
       const invitationCode = new InvitationCode({
         event: event._id,
@@ -206,17 +264,32 @@ async function processInvitations() {
       });
       await invitationCode.save();
 
-      const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, { errorCorrectionLevel: "L" });
+      const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, {
+        errorCorrectionLevel: "L",
+      });
       const pdfPath = path.join(invitesDir, `${invitationCode._id}.pdf`);
-      await createTicketPDFInvitation(event, qrCodeDataURL, cleanName, testEmail, invitationCode.condition, invitationCode.pax, pdfPath);
+      await createTicketPDFInvitation(
+        event,
+        qrCodeDataURL,
+        cleanName,
+        testEmail,
+        invitationCode.condition,
+        invitationCode.pax,
+        pdfPath
+      );
 
       log.success("PDF created");
       log.newline();
-      log.info(`Set ${chalk.bold('testMode = false')} to process all ${totalUnique} guests`);
-
+      log.info(
+        `Set ${chalk.bold(
+          "testMode = false"
+        )} to process all ${totalUnique} guests`
+      );
     } else {
       // Production mode
-      const confirm = await prompt(`Create ${toCreate} new invitations? (y/n):`);
+      const confirm = await prompt(
+        `Create ${toCreate} new invitations? (y/n):`
+      );
       if (confirm.toLowerCase() !== "y") {
         log.warn("Aborted");
         process.exit(0);
@@ -224,7 +297,10 @@ async function processInvitations() {
 
       log.header(`Processing ${toCreate} invitations`);
 
-      const event = await Event.findById(upcomingEvent._id).populate("brand").populate("lineups").populate("genres");
+      const event = await Event.findById(upcomingEvent._id)
+        .populate("brand")
+        .populate("lineups")
+        .populate("genres");
       let created = 0;
       let skipped = 0;
 
@@ -255,12 +331,25 @@ async function processInvitations() {
           });
           await invitationCode.save();
 
-          const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, { errorCorrectionLevel: "L" });
+          const qrCodeDataURL = await QRCode.toDataURL(
+            `${invitationCode._id}`,
+            { errorCorrectionLevel: "L" }
+          );
           const pdfPath = path.join(invitesDir, `${invitationCode._id}.pdf`);
-          await createTicketPDFInvitation(event, qrCodeDataURL, cleanName, email, invitationCode.condition, invitationCode.pax, pdfPath);
+          await createTicketPDFInvitation(
+            event,
+            qrCodeDataURL,
+            cleanName,
+            email,
+            invitationCode.condition,
+            invitationCode.pax,
+            pdfPath
+          );
 
           if (code.isLegacy) {
-            await GuestCode.findByIdAndUpdate(code._id, { inviteCreated: true });
+            await GuestCode.findByIdAndUpdate(code._id, {
+              inviteCreated: true,
+            });
           } else {
             await Code.findByIdAndUpdate(code._id, { inviteCreated: true });
           }
@@ -277,7 +366,6 @@ async function processInvitations() {
       log.success(`${created} invitations created`);
       log.dim(`${skipped} skipped (already existed)`);
     }
-
   } catch (error) {
     log.error(error.message);
   } finally {

@@ -167,7 +167,6 @@ const sendQRCodeEmail = async (
 };
 
 const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null) => {
-  console.debug("Preparing QR code invitation email for:", email);
   try {
     // Fetch event data
     const Event = require("../models/eventsModel");
@@ -236,7 +235,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     // Build the personal email HTML directly (no generic template)
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
-    sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
+    // No BCC for personal invites - too many emails
     sendSmtpEmail.sender = {
       name: event.brand?.name || "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
@@ -314,14 +313,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     ];
 
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    apiInstance.sendTransacEmail(sendSmtpEmail).then(
-      function () {
-        console.debug("Personal invitation email sent successfully to:", email);
-      },
-      function (error) {
-        console.error("Error sending invitation email:", error);
-      }
-    );
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
   } catch (error) {
     console.error("Error preparing QR code invitation email:", error);
   }
