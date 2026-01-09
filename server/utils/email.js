@@ -16,8 +16,14 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const logoUrl =
   "https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"; // Use the same URL as in your other emails
 
-// Base URL for email links - always production since emails go to real users
-const getBaseUrl = () => {
+// Base URL for email links
+// For API routes (like unsubscribe), use the server URL
+// For frontend routes (like verify-email, reset-password), use the client URL
+const getServerUrl = () => {
+  return process.env.SERVER_URL || "https://guest-code-server.onrender.com";
+};
+
+const getClientUrl = () => {
   return "https://guest-code.com";
 };
 
@@ -25,7 +31,7 @@ const sendVerificationEmail = async (to, token, user) => {
   try {
     console.debug("Preparing verification email...");
 
-    const verificationLink = `${getBaseUrl()}/verify-email/${token}`;
+    const verificationLink = `${getClientUrl()}/verify-email/${token}`;
     const firstName = user?.firstName || "there";
     const username = user?.username || "";
 
@@ -222,7 +228,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     const unsubscribeSection = codeId ? `
       <div style="margin-top: 40px; text-align: center; padding: 30px 20px; border-top: 1px solid #eee; background-color: #fafafa; border-radius: 8px;">
         <p style="font-size: 14px; color: #666; margin: 0 0 15px 0;">Don't want to receive personal invitations?</p>
-        <a href="${getBaseUrl()}/api/codes/unsubscribe/${codeId}"
+        <a href="${getServerUrl()}/api/codes/unsubscribe/${codeId}"
            style="display: inline-block; padding: 10px 24px; background-color: #f0f0f0; color: #666; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; border: 1px solid #ddd;">
            Unsubscribe from invites
         </a>
@@ -307,7 +313,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     sendSmtpEmail.attachment = [
       {
         content: pdfData.toString("base64"),
-        name: path.basename(pdfPath),
+        name: `${cleanName.replace(/\s+/g, "_")}_Invitation.pdf`,
         type: "application/pdf",
       },
     ];
@@ -336,7 +342,7 @@ const sendPasswordResetEmail = async (to, token) => {
       ? `${user.firstName} ${user.lastName}`
       : "GuestCode User";
 
-    const resetLink = `${getBaseUrl()}/reset-password/${token}`;
+    const resetLink = `${getClientUrl()}/reset-password/${token}`;
 
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: to }];
