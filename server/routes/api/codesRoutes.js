@@ -187,10 +187,19 @@ router.get('/unsubscribe/:codeId', async (req, res) => {
   try {
     const { codeId } = req.params;
 
-    // First find the code to get the email
-    const code = await Code.findById(codeId);
+    // First try to find in Code model, then in legacy GuestCode model
+    let code = await Code.findById(codeId);
+    let email = code?.guestEmail;
 
+    // If not found in Code model, try legacy GuestCode model
     if (!code) {
+      const legacyCode = await GuestCode.findById(codeId);
+      if (legacyCode) {
+        email = legacyCode.email;
+      }
+    }
+
+    if (!code && !email) {
       return res.status(404).send(`
         <!DOCTYPE html>
         <html>
@@ -218,7 +227,6 @@ router.get('/unsubscribe/:codeId', async (req, res) => {
     
     // Update ALL codes with the same email to prevent future invites
     // (user may have multiple codes from different events)
-    const email = code.guestEmail;
     if (email) {
       // Update new Code model
       const updateResult = await Code.updateMany(
@@ -234,8 +242,10 @@ router.get('/unsubscribe/:codeId', async (req, res) => {
 
       console.log(`Unsubscribed ${updateResult.modifiedCount} codes + ${legacyUpdateResult.modifiedCount} legacy codes for email: ${email}`);
     } else {
-      // Fallback: just update this one code if no email
-      await Code.findByIdAndUpdate(codeId, { personalInvite: false });
+      // Fallback: just update this one code if no email (shouldn't happen)
+      if (code) {
+        await Code.findByIdAndUpdate(codeId, { personalInvite: false });
+      }
       console.log(`Code ${codeId} unsubscribed (no email found)`);
     }
     
