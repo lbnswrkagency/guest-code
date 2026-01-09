@@ -43,23 +43,31 @@ async function sendInviteEmails() {
 
     console.log(chalk.cyan("\n📂 Reading invitation PDFs..."));
     const invitesDir = path.join(__dirname, "invites");
-    
+
     // Check if invites directory exists
     if (!fs.existsSync(invitesDir)) {
-      console.log(chalk.red("❌ Invites directory not found. Please run send-invites.js first."));
+      console.log(
+        chalk.red(
+          "❌ Invites directory not found. Please run send-invites.js first."
+        )
+      );
       process.exit(1);
     }
-    
+
     const pdfFiles = fs.readdirSync(invitesDir);
     const totalPDFs = pdfFiles.length;
     console.log(chalk.green(`✅ Found ${totalPDFs} PDFs to process`));
 
     if (totalPDFs === 0) {
-      console.log(chalk.yellow("⚠️  No PDFs found. Please run send-invites.js first."));
+      console.log(
+        chalk.yellow("⚠️  No PDFs found. Please run send-invites.js first.")
+      );
       process.exit(0);
     }
 
-    console.log(chalk.cyan("\n🚀 Sending invitation emails with Happy New Year theme..."));
+    console.log(
+      chalk.cyan("\n🚀 Sending invitation emails with Happy New Year theme...")
+    );
     let emailsSent = 0;
     const spinner = ora("Processing invitations...").start();
 
@@ -81,7 +89,8 @@ async function sendInviteEmails() {
             const recipientEmail = testMode ? testEmail : invitationCode.email;
 
             // Updated email sending with Happy New Year theme, eventId, and codeId for unsubscribe
-            const codeIdForUnsubscribe = invitationCode.code || invitationCode.guestCode;
+            const codeIdForUnsubscribe =
+              invitationCode.code || invitationCode.guestCode;
             await sendQRCodeInvitation(
               invitationCode.name,
               recipientEmail,
@@ -90,7 +99,9 @@ async function sendInviteEmails() {
               codeIdForUnsubscribe // Pass codeId for unsubscribe link
             );
             console.log(
-              chalk.green(`\n✅ Happy New Year invitation email sent to: ${recipientEmail}`)
+              chalk.green(
+                `\n✅ Happy New Year invitation email sent to: ${recipientEmail}`
+              )
             );
 
             // In production mode, update source code and delete PDF
@@ -101,7 +112,7 @@ async function sendInviteEmails() {
                 sourceCode.invited = (sourceCode.invited || 0) + 1;
                 await sourceCode.save();
               }
-              
+
               // Delete the PDF after sending
               fs.unlinkSync(pdfPath);
               console.log(chalk.green(`  🗑️ PDF deleted: ${pdfFile}`));
@@ -122,15 +133,24 @@ async function sendInviteEmails() {
             }
 
             // Add a delay between sending emails to avoid being marked as spam
-            if (index < pdfFiles.length - 1) { // Don't delay after the last email
-              console.log(chalk.blue("  ⏳ Waiting 5 seconds before next email..."));
+            if (index < pdfFiles.length - 1) {
+              // Don't delay after the last email
+              console.log(
+                chalk.blue("  ⏳ Waiting 5 seconds before next email...")
+              );
               await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds delay
             }
           } else {
-            console.log(chalk.yellow(`\n⚠️  Source code not found for ${invitationCode.email}, skipping...`));
+            console.log(
+              chalk.yellow(
+                `\n⚠️  Source code not found for ${invitationCode.email}, skipping...`
+              )
+            );
           }
         } else {
-          console.log(chalk.red(`\n❌ InvitationCode not found for ${pdfFile}`));
+          console.log(
+            chalk.red(`\n❌ InvitationCode not found for ${pdfFile}`)
+          );
         }
       } catch (error) {
         console.error(chalk.red(`\n❌ Error processing ${pdfFile}:`), error);
@@ -144,7 +164,9 @@ async function sendInviteEmails() {
       );
     }
 
-    spinner.succeed(chalk.green(`Happy New Year invitation email process completed`));
+    spinner.succeed(
+      chalk.green(`Happy New Year invitation email process completed`)
+    );
     console.log(chalk.yellow(`\n🎉 Summary:`));
     console.log(chalk.yellow(`   Total PDFs processed: ${totalPDFs}`));
     console.log(chalk.yellow(`   Happy New Year emails sent: ${emailsSent}`));

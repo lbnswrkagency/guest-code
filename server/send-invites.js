@@ -74,23 +74,37 @@ async function getEventsByTitle() {
 
   // Filter for future events (upcoming events only)
   const now = new Date();
-  const futureEvents = allEvents.filter(event => new Date(event.startDate) > now);
+  const futureEvents = allEvents.filter(
+    (event) => new Date(event.startDate) > now
+  );
 
   let events;
   if (futureEvents.length > 0) {
     // Use only upcoming events
     events = futureEvents;
     console.log(
-      chalk.green(`✅ Found ${futureEvents.length} upcoming events with title "${eventTitle}"`)
+      chalk.green(
+        `✅ Found ${futureEvents.length} upcoming events with title "${eventTitle}"`
+      )
     );
-    console.log(chalk.cyan(`📅 Filtering for upcoming events only (${allEvents.length - futureEvents.length} past events excluded)`));
+    console.log(
+      chalk.cyan(
+        `📅 Filtering for upcoming events only (${
+          allEvents.length - futureEvents.length
+        } past events excluded)`
+      )
+    );
   } else {
     // If no future events, use all events but warn user
     events = allEvents;
     console.log(
-      chalk.yellow(`⚠️  Found ${allEvents.length} events with title "${eventTitle}" but none are upcoming`)
+      chalk.yellow(
+        `⚠️  Found ${allEvents.length} events with title "${eventTitle}" but none are upcoming`
+      )
     );
-    console.log(chalk.yellow(`📅 Including past events for invitation generation`));
+    console.log(
+      chalk.yellow(`📅 Including past events for invitation generation`)
+    );
   }
 
   // Display events for confirmation
@@ -99,10 +113,12 @@ async function getEventsByTitle() {
     const isUpcoming = eventDate > now;
     const dateStr = eventDate.toLocaleDateString();
     const status = isUpcoming ? chalk.green("UPCOMING") : chalk.red("PAST");
-    
+
     console.log(
       chalk.blue(
-        `  ${index + 1}. ${event.title} - ${dateStr} [${status}] (ID: ${event._id})`
+        `  ${index + 1}. ${event.title} - ${dateStr} [${status}] (ID: ${
+          event._id
+        })`
       )
     );
   });
@@ -110,7 +126,13 @@ async function getEventsByTitle() {
   // If we have upcoming events, prioritize the next one
   if (futureEvents.length > 0) {
     const nextEvent = futureEvents[0];
-    console.log(chalk.cyan(`\n🎯 Next upcoming event: ${nextEvent.title} on ${new Date(nextEvent.startDate).toLocaleDateString()}`));
+    console.log(
+      chalk.cyan(
+        `\n🎯 Next upcoming event: ${nextEvent.title} on ${new Date(
+          nextEvent.startDate
+        ).toLocaleDateString()}`
+      )
+    );
   }
 
   const includeGuestCodeAnswer = await question(
@@ -120,13 +142,32 @@ async function getEventsByTitle() {
   const shouldIncludeGuestCode = includeGuestCodeAnswer.toLowerCase() === "yes";
 
   const paxCheckedAnswer = await question(
-    chalk.cyan("\nOnly include codes where paxChecked > 0 (people who attended)? (yes/no): ")
+    chalk.cyan(
+      "\nOnly include codes where paxChecked > 0 (people who attended)? (yes/no): "
+    )
   );
 
   const onlyAttendedGuests = paxCheckedAnswer.toLowerCase() === "yes";
 
+  // Separate past events (for code queries) from upcoming event (for PDF content)
+  const pastEvents = allEvents.filter(
+    (event) => new Date(event.startDate) <= now
+  );
+  const pastEventIds = pastEvents.map((event) => event._id);
+
+  // Upcoming event is only for PDF content
+  const upcomingEvent = futureEvents.length > 0 ? futureEvents[0] : null;
+
+  console.log(
+    chalk.cyan(
+      `\n📊 Summary: ${pastEvents.length} past events (for codes), ${
+        upcomingEvent ? "1 upcoming event (for PDF content)" : "no upcoming event"
+      }`
+    )
+  );
+
   const confirmAnswer = await question(
-    chalk.cyan(`\nProceed with these ${events.length} events? (yes/no): `)
+    chalk.cyan(`\nProceed with codes from ${pastEvents.length} past events? (yes/no): `)
   );
 
   if (confirmAnswer.toLowerCase() !== "yes") {
@@ -136,28 +177,42 @@ async function getEventsByTitle() {
   }
 
   rl.close();
-  return { events, shouldIncludeGuestCode, onlyAttendedGuests };
+  return { pastEventIds, upcomingEvent, shouldIncludeGuestCode, onlyAttendedGuests };
 }
 
 async function processInvitations() {
   try {
+    // Ensure invites directory exists
+    const invitesDir = path.join(__dirname, "invites");
+    if (!fs.existsSync(invitesDir)) {
+      fs.mkdirSync(invitesDir, { recursive: true });
+      console.log(chalk.green(`✅ Created invites directory: ${invitesDir}`));
+    }
+
     await connectToDatabase();
 
     if (testMode) {
       console.log(
-        chalk.cyan("\n🧪 Test Mode: Analyzing codes and generating one test invitation...")
+        chalk.cyan(
+          "\n🧪 Test Mode: Analyzing codes and generating one test invitation..."
+        )
       );
 
       // Get events for test mode (same as production)
-      const { events, shouldIncludeGuestCode, onlyAttendedGuests } = await getEventsByTitle();
-      const eventIds = events.map(event => event._id);
+      const { pastEventIds, upcomingEvent, shouldIncludeGuestCode, onlyAttendedGuests } =
+        await getEventsByTitle();
 
-      console.log(chalk.cyan("\n🔍 Fetching codes from codesModel..."));
+      if (!upcomingEvent) {
+        console.log(chalk.red("❌ No upcoming event found for PDF content. Aborting."));
+        return;
+      }
 
-      // Fetch guest codes from codesModel (same as production)
+      console.log(chalk.cyan("\n🔍 Fetching codes from codesModel (from past events)..."));
+
+      // Fetch guest codes from codesModel - use PAST events only
       let codesQuery = {
-        eventId: { $in: eventIds },
-        type: "guest"
+        eventId: { $in: pastEventIds },
+        type: "guest",
       };
 
       if (onlyAttendedGuests) {
@@ -167,28 +222,35 @@ async function processInvitations() {
       // Only include codes that allow personal invites (undefined/null = true, false = no)
       codesQuery.$or = [
         { personalInvite: { $ne: false } },
-        { personalInvite: { $exists: false } }
+        { personalInvite: { $exists: false } },
       ];
 
       const guestCodes = await Code.find(codesQuery);
-      console.log(chalk.green(`✅ Found ${guestCodes.length} guest codes from codesModel`));
+      console.log(
+        chalk.green(`✅ Found ${guestCodes.length} guest codes from codesModel`)
+      );
 
       let allCodesToProcess = [...guestCodes];
 
       // Include GuestCode model data if requested (same as production)
       if (shouldIncludeGuestCode) {
         console.log(chalk.cyan("\n🔍 Fetching from legacy GuestCode model..."));
-        
+
+        // No event filter - legacy codes may reference deleted events
         let guestCodeQuery = {};
         if (onlyAttendedGuests) {
           guestCodeQuery.paxChecked = { $gt: 0 };
         }
 
         const legacyGuestCodes = await GuestCode.find(guestCodeQuery);
-        console.log(chalk.green(`✅ Found ${legacyGuestCodes.length} guest codes from GuestCode model`));
-        
+        console.log(
+          chalk.green(
+            `✅ Found ${legacyGuestCodes.length} guest codes from GuestCode model`
+          )
+        );
+
         // Convert legacy GuestCode to compatible format
-        const convertedGuestCodes = legacyGuestCodes.map(code => ({
+        const convertedGuestCodes = legacyGuestCodes.map((code) => ({
           _id: code._id,
           eventId: code.event,
           type: "guest",
@@ -198,7 +260,7 @@ async function processInvitations() {
           maxPax: code.pax,
           paxChecked: code.paxChecked,
           inviteCreated: code.inviteCreated,
-          isLegacy: true
+          isLegacy: true,
         }));
 
         allCodesToProcess = [...allCodesToProcess, ...convertedGuestCodes];
@@ -213,29 +275,47 @@ async function processInvitations() {
 
         if (
           !uniqueCodes[email] ||
-          (uniqueCodes[email].createdAt && code.createdAt && uniqueCodes[email].createdAt < code.createdAt)
+          (uniqueCodes[email].createdAt &&
+            code.createdAt &&
+            uniqueCodes[email].createdAt < code.createdAt)
         ) {
           uniqueCodes[email] = code;
         }
       }
 
       const totalUniqueCodes = Object.keys(uniqueCodes).length;
-      console.log(chalk.green(`✅ ${totalUniqueCodes} unique codes found for processing`));
+      console.log(
+        chalk.green(`✅ ${totalUniqueCodes} unique codes found for processing`)
+      );
 
       // Count codes already processed
-      const processedCodesCount = allCodesToProcess.filter(code => 
-        code.inviteCreated === true
+      const processedCodesCount = allCodesToProcess.filter(
+        (code) => code.inviteCreated === true
       ).length;
-      console.log(chalk.green(`✅ ${processedCodesCount} codes already have invitations created`));
+      console.log(
+        chalk.green(
+          `✅ ${processedCodesCount} codes already have invitations created`
+        )
+      );
 
       // Show what would happen in production
-      const newInvitationsCount = Object.keys(uniqueCodes).filter(email => 
-        !uniqueCodes[email].inviteCreated
+      const newInvitationsCount = Object.keys(uniqueCodes).filter(
+        (email) => !uniqueCodes[email].inviteCreated
       ).length;
       console.log(chalk.yellow(`\n📊 Test Mode Analysis:`));
-      console.log(chalk.yellow(`   Would process: ${totalUniqueCodes} unique emails`));
-      console.log(chalk.yellow(`   Would create: ${newInvitationsCount} new invitations`));
-      console.log(chalk.yellow(`   Would skip: ${totalUniqueCodes - newInvitationsCount} already created`));
+      console.log(
+        chalk.yellow(`   Would process: ${totalUniqueCodes} unique emails`)
+      );
+      console.log(
+        chalk.yellow(`   Would create: ${newInvitationsCount} new invitations`)
+      );
+      console.log(
+        chalk.yellow(
+          `   Would skip: ${
+            totalUniqueCodes - newInvitationsCount
+          } already created`
+        )
+      );
 
       // Now create ONE test invitation using the first available code
       const firstEmail = Object.keys(uniqueCodes)[0];
@@ -245,34 +325,45 @@ async function processInvitations() {
       }
 
       const firstCode = uniqueCodes[firstEmail];
-      
-      // Find the next upcoming event for invitation (not the event from the code)
-      const now = new Date();
-      const upcomingEvents = events.filter(event => new Date(event.startDate) > now);
-      const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : events[0];
-      
-      // Fetch actual event data for PDF generation (use next upcoming event)
-      const event = await Event.findById(nextEvent._id)
+
+      // Fetch actual event data for PDF generation (use upcoming event)
+      const event = await Event.findById(upcomingEvent._id)
         .populate("brand")
         .populate("lineups")
         .populate("genres");
 
-      console.log(chalk.cyan(`\n🧪 Creating test invitation using code for: ${firstEmail}`));
-      console.log(chalk.cyan(`🎯 Invitation will be for upcoming event: ${event.title} (${new Date(event.startDate).toLocaleDateString()})`));
+      console.log(
+        chalk.cyan(
+          `\n🧪 Creating test invitation using code for: ${firstEmail}`
+        )
+      );
+      console.log(
+        chalk.cyan(
+          `🎯 Invitation will be for upcoming event: ${event.title} (${new Date(
+            event.startDate
+          ).toLocaleDateString()})`
+        )
+      );
+
+      // Get the correct name - prefer guestName, strip "Guest Code for " prefix
+      const rawName = firstCode.guestName || firstCode.name || "Guest";
+      const cleanName = rawName.replace(/^Guest Code for /i, "").trim();
 
       // Create InvitationModel for test (link to upcoming event, not code's original event)
       const invitationCode = new InvitationCode({
         event: event._id, // Use upcoming event ID, not original code's event
-        name: firstCode.name || firstCode.guestName || "Test User",
+        name: cleanName,
         email: testEmail, // Use test email instead of actual email
-        condition: "Happy New Year! Free Entrance All Night",
+        condition: "Free entrance all night",
         pax: firstCode.maxPax || firstCode.pax || 1,
         paxChecked: 0,
         guestCode: firstCode.isLegacy ? firstCode._id : null,
         code: firstCode.isLegacy ? null : firstCode._id,
       });
       await invitationCode.save();
-      console.log(chalk.green(`  ✅ Test InvitationModel created successfully`));
+      console.log(
+        chalk.green(`  ✅ Test InvitationModel created successfully`)
+      );
 
       // Generate QR code URL
       const qrCodeDataURL = await QRCode.toDataURL(`${invitationCode._id}`, {
@@ -297,18 +388,31 @@ async function processInvitations() {
       );
       console.log(chalk.green(`  ✅ PDF generated successfully`));
 
-      console.log(chalk.green(`✅ Test invitation generated successfully for ${testEmail}`));
-      console.log(chalk.yellow(`\n🧪 Test completed! Set testMode = false to process all ${totalUniqueCodes} codes.`));
+      console.log(
+        chalk.green(
+          `✅ Test invitation generated successfully for ${testEmail}`
+        )
+      );
+      console.log(
+        chalk.yellow(
+          `\n🧪 Test completed! Set testMode = false to process all ${totalUniqueCodes} codes.`
+        )
+      );
     } else {
       // Production mode - get events by title
-      const { events, shouldIncludeGuestCode, onlyAttendedGuests } = await getEventsByTitle();
-      const eventIds = events.map((event) => event._id);
+      const { pastEventIds, upcomingEvent, shouldIncludeGuestCode, onlyAttendedGuests } =
+        await getEventsByTitle();
 
-      console.log(chalk.cyan("\n🔍 Fetching codes from codesModel..."));
+      if (!upcomingEvent) {
+        console.log(chalk.red("❌ No upcoming event found for PDF content. Aborting."));
+        return;
+      }
 
-      // Fetch guest codes from codesModel
+      console.log(chalk.cyan("\n🔍 Fetching codes from codesModel (from past events)..."));
+
+      // Fetch guest codes from codesModel - use PAST events only
       let codesQuery = {
-        eventId: { $in: eventIds },
+        eventId: { $in: pastEventIds },
         type: "guest",
       };
 
@@ -333,6 +437,7 @@ async function processInvitations() {
       if (shouldIncludeGuestCode) {
         console.log(chalk.cyan("\n🔍 Fetching from legacy GuestCode model..."));
 
+        // No event filter - legacy codes may reference deleted events
         let guestCodeQuery = {};
         if (onlyAttendedGuests) {
           guestCodeQuery.paxChecked = { $gt: 0 };
@@ -417,27 +522,30 @@ async function processInvitations() {
 
       rl.close();
 
-      // Find the next upcoming event to use for all invitations
-      const now = new Date();
-      const upcomingEvents = events.filter(event => new Date(event.startDate) > now);
-      const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : events[0];
-      
       // Fetch the upcoming event data once for all invitations
-      const upcomingEventData = await Event.findById(nextEvent._id)
+      const upcomingEventData = await Event.findById(upcomingEvent._id)
         .populate("brand")
         .populate("lineups")
         .populate("genres");
 
       console.log(chalk.cyan("\n🚀 Generating invitations and PDFs..."));
-      console.log(chalk.cyan(`🎯 All invitations will be for upcoming event: ${upcomingEventData.title} (${new Date(upcomingEventData.startDate).toLocaleDateString()})`));
-      
+      console.log(
+        chalk.cyan(
+          `🎯 All invitations will be for upcoming event: ${
+            upcomingEventData.title
+          } (${new Date(upcomingEventData.startDate).toLocaleDateString()})`
+        )
+      );
+
       let invitationsCreated = 0;
       let skippedInvitations = 0;
       const spinner = ora("Processing invitations...").start();
 
       for (const [index, email] of Object.keys(uniqueCodes).entries()) {
         const code = uniqueCodes[email];
-        const codeName = code.name || code.guestName || email;
+        // Get the correct name - prefer guestName, strip "Guest Code for " prefix
+        const rawName = code.guestName || code.name || email;
+        const codeName = rawName.replace(/^Guest Code for /i, "").trim();
 
         console.log(chalk.blue(`\nProcessing code for ${email}:`));
         console.log(chalk.blue(`  - inviteCreated: ${code.inviteCreated}`));
@@ -454,7 +562,7 @@ async function processInvitations() {
               event: event._id, // Use upcoming event ID, not original code's event
               name: codeName,
               email: email,
-              condition: "Happy New Year! Free Entrance All Night",
+              condition: "Free entrance all night",
               pax: code.maxPax || code.pax || 1,
               paxChecked: 0,
               guestCode: code.isLegacy ? code._id : null,

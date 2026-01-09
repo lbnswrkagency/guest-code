@@ -16,12 +16,9 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const logoUrl =
   "https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"; // Use the same URL as in your other emails
 
-// Environment-aware base URL
+// Base URL for email links - always production since emails go to real users
 const getBaseUrl = () => {
-  if (process.env.NODE_ENV === "production") {
-    return "https://guest-code.com";
-  }
-  return "http://localhost:9231";
+  return "https://guest-code.com";
 };
 
 const sendVerificationEmail = async (to, token, user) => {
@@ -184,7 +181,58 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     }
 
     const pdfData = fs.readFileSync(pdfPath);
+    const primaryColor = event.brand?.colors?.primary || "#ffc807";
 
+    // Clean the name - strip "Guest Code for " prefix if present
+    const cleanName = name.replace(/^Guest Code for /i, "").trim();
+
+    // Format the event date
+    const eventDate = new Date(event.startDate);
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const formattedDate = `${days[eventDate.getDay()]}, ${eventDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
+
+    // Build lineup HTML with pictures
+    let lineupHtml = "";
+    if (event.lineups && event.lineups.length > 0) {
+      const artistsHtml = event.lineups.map(artist => {
+        const avatarUrl = artist.avatar?.medium || artist.avatar?.small || artist.avatar || "";
+        const avatarHtml = avatarUrl
+          ? `<img src="${avatarUrl}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" alt="${artist.name}">`
+          : `<div style="width: 40px; height: 40px; border-radius: 50%; background-color: ${primaryColor}; color: #000; text-align: center; line-height: 40px; font-weight: bold;">${artist.name.charAt(0).toUpperCase()}</div>`;
+
+        return `
+          <td style="padding: 8px; text-align: center;">
+            ${avatarHtml}
+            <div style="font-size: 12px; margin-top: 4px; font-weight: 500;">${artist.name}</div>
+          </td>
+        `;
+      }).join("");
+
+      lineupHtml = `
+        <div style="margin: 25px 0;">
+          <p style="font-size: 14px; color: #666; margin: 0 0 10px; font-weight: 600;">WHO'S PLAYING:</p>
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>${artistsHtml}</tr>
+          </table>
+        </div>
+      `;
+    }
+
+    // Create unsubscribe section
+    const unsubscribeSection = codeId ? `
+      <div style="margin-top: 40px; text-align: center; padding: 30px 20px; border-top: 1px solid #eee; background-color: #fafafa; border-radius: 8px;">
+        <p style="font-size: 14px; color: #666; margin: 0 0 15px 0;">Don't want to receive personal invitations?</p>
+        <a href="${getBaseUrl()}/api/codes/unsubscribe/${codeId}"
+           style="display: inline-block; padding: 10px 24px; background-color: #f0f0f0; color: #666; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; border: 1px solid #ddd;">
+           Unsubscribe from invites
+        </a>
+        <p style="font-size: 12px; color: #999; margin: 15px 0 0 0; font-style: italic; line-height: 1.5;">
+          Sorry if we bothered you – this was not an advertisement, just a heartfelt invite to a great event.
+        </p>
+      </div>
+    ` : '';
+
+    // Build the personal email HTML directly (no generic template)
     let sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.bcc = [{ email: "contact@guest-code.com" }];
@@ -192,60 +240,69 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
       name: event.brand?.name || "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject = `🎊 Happy New Year! ${event.brand?.name || "GuestCode"} - Personal Invitation - ${event.title}`;
+    sendSmtpEmail.subject = `Personal Invitation - ${event.title} - Happy New Year 🎊`;
 
-    // Format event date
-    const eventDate = new Date(event.startDate);
-    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = eventDate.toLocaleDateString('en-US', dateOptions);
+    sendSmtpEmail.htmlContent = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 
-    // Create lineup string
-    const lineupString = event.lineups && event.lineups.length > 0 
-      ? event.lineups.map(l => l.name || l).join(", ")
-      : "Special Guest DJs";
+      <!-- Personal greeting and message FIRST -->
+      <p style="font-size: 18px; line-height: 1.6; margin: 0 0 20px;">Hey ${cleanName},</p>
 
-    // Create unsubscribe section
-    const unsubscribeSection = codeId ? `
-      <div style="margin-top: 40px; text-align: center; padding: 20px 0; border-top: 1px solid #eee;">
-        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Don't want to receive personal invitations anymore?</p>
-        <a href="${getBaseUrl()}/api/codes/unsubscribe/${codeId}" 
-           style="color: #666; text-decoration: underline; font-size: 14px;">
-           If you don't want personal invites anymore please press here.
-        </a>
+      <p style="font-size: 16px; line-height: 1.6; margin: 0 0 15px;">
+        We wanted to reach out personally because you've been part of our community. This isn't just another event email – it's a thank you for being with us.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+        We'd love to see you at <strong>${event.title}</strong>. Your name is on the list, and we've attached your personal invitation below.
+      </p>
+
+      <!-- Event details box BELOW the personal message -->
+      <div style="background-color: #f8f8f8; border-radius: 12px; padding: 20px; margin: 25px 0;">
+        <div style="display: flex; margin-bottom: 15px;">
+          <div style="flex: 1;">
+            <p style="font-size: 12px; color: ${primaryColor}; margin: 0 0 4px; font-weight: 600; text-transform: uppercase;">Event</p>
+            <p style="font-size: 16px; margin: 0; font-weight: 600;">${event.title}</p>
+          </div>
+        </div>
+
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td width="50%" style="padding-right: 10px;">
+              <p style="font-size: 12px; color: ${primaryColor}; margin: 0 0 4px; font-weight: 600; text-transform: uppercase;">Date</p>
+              <p style="font-size: 14px; margin: 0;">${formattedDate}</p>
+            </td>
+            <td width="50%">
+              <p style="font-size: 12px; color: ${primaryColor}; margin: 0 0 4px; font-weight: 600; text-transform: uppercase;">Time</p>
+              <p style="font-size: 14px; margin: 0;">${event.startTime || "22:00"} - ${event.endTime || "06:00"}</p>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top: 15px;">
+              <p style="font-size: 12px; color: ${primaryColor}; margin: 0 0 4px; font-weight: 600; text-transform: uppercase;">Location</p>
+              <p style="font-size: 14px; margin: 0;">${event.location || event.venue || ""}</p>
+              ${event.street ? `<p style="font-size: 14px; margin: 0; color: #666;">${event.street}</p>` : ""}
+              ${event.postalCode || event.city ? `<p style="font-size: 14px; margin: 0; color: #666;">${event.postalCode || ""} ${event.city || ""}</p>` : ""}
+            </td>
+          </tr>
+        </table>
       </div>
-    ` : '';
 
-    // Create additional content specific to the invitation
-    const additionalContent = `
-      <div style="background-color: #f8f8f8; border-left: 4px solid ${event.brand?.colors?.primary || '#ffc807'}; padding: 15px; margin: 20px 0;">
-        <p style="font-size: 18px; margin: 0 0 15px; font-weight: bold; color: #d32f2f;">🎊 Happy New Year! 🎊</p>
-        <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Invitation Details:</p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Special Event: <strong>${event.title}</strong></p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Date: <strong>${formattedDate}</strong></p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Lineup: <strong>${lineupString}</strong></p>
-        <p style="font-size: 16px; margin: 0 0 5px;">Benefit: <strong>Happy New Year! Free entrance all night</strong></p>
-        <p style="font-size: 16px; margin: 0;">Please show the attached Invitation Code at the entrance for it to be scanned.</p>
+      ${lineupHtml}
+
+      <!-- Invitation details -->
+      <div style="background-color: ${primaryColor}20; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+        <p style="font-size: 14px; margin: 0 0 8px; font-weight: 600;">Your Benefit:</p>
+        <p style="font-size: 16px; margin: 0 0 10px; font-weight: bold;">Free entrance all night</p>
+        <p style="font-size: 14px; margin: 0; color: #555;">Please show the attached Personal Invitation at the entrance.</p>
       </div>
+
+      <!-- Closing -->
+      <p style="font-size: 16px; line-height: 1.6; margin: 25px 0 5px;">See you there! 🎊</p>
+      <p style="font-size: 16px; line-height: 1.6; margin: 0;">– The ${event.brand?.name || "Event"} Team</p>
+
       ${unsubscribeSection}
+    </div>
     `;
-
-    // Use the common email template
-    sendSmtpEmail.htmlContent = createEventEmailTemplate({
-      recipientName: name,
-      eventTitle: event.title,
-      eventDate: event.startDate,
-      eventLocation: event.location || event.venue || "",
-      eventAddress: event.street || event.address || "",
-      eventCity: event.city || "",
-      eventPostalCode: event.postalCode || "",
-      startTime: event.startTime || "22:00",
-      endTime: event.endTime || "04:00",
-      description:
-        `🎊 Happy New Year! We wanted to say thank you for joining us in the past. This is your special New Year invitation for ${event.title}. ${event.description || 'Join us for an incredible night to celebrate the new year!'}`,
-      primaryColor: event.brand?.colors?.primary || "#ffc807",
-      additionalContent: additionalContent,
-      footerText: "Remember, your Invitation Code can only be used once. Happy New Year! 🎊",
-    });
 
     sendSmtpEmail.attachment = [
       {
@@ -257,8 +314,8 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
 
     let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
     apiInstance.sendTransacEmail(sendSmtpEmail).then(
-      function (data) {
-        console.debug("Happy New Year invitation email sent successfully to:", email);
+      function () {
+        console.debug("Personal invitation email sent successfully to:", email);
       },
       function (error) {
         console.error("Error sending invitation email:", error);

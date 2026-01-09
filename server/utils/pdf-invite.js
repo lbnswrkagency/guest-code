@@ -94,7 +94,7 @@ const createTicketPDFInvitation = async (
       <body style="position: relative; background-color: ${primaryColor}; width: 390px; height: 760px; overflow: hidden; border-radius: 28px; color: #222222;">
         <!-- Header section with logo -->
         <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 3.25rem 2.313rem 0;">
-          <h1 style="margin: 0; font-weight: 700; font-size: 1.85rem; color: #000000;">Invitation</h1>
+          <h1 style="margin: 0; font-weight: 700; font-size: 1.6rem; color: #000000;">Personal Invitation</h1>
           ${
             event?.brand?.logo?.medium
               ? `<div style="display: flex; align-items: center; justify-content: center; background-color: #000000; border-radius: 50%; width: 3.5rem; height: 3.5rem; overflow: hidden;"><img src="${event.brand.logo.medium}" style="max-width: 2.8rem; max-height: 2.8rem; object-fit: contain;"></div>`
@@ -155,11 +155,11 @@ const createTicketPDFInvitation = async (
             </div>
           </div>
           
-          <!-- Entry Requirements Section -->
+          <!-- Benefit Section -->
           <div style="margin-top: 1.5rem; padding-left: 2.438rem; padding-right: 2.438rem;">
-            <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Entry Requirements</p>
+            <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Benefit</p>
             <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${
-              condition || "Happy New Year! Free entrance all night"
+              condition || "Free entrance all night"
             }</p>
           </div>
           
@@ -167,8 +167,8 @@ const createTicketPDFInvitation = async (
 
           <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 1fr; padding-left: 2.438rem;">
             <div style="margin-top: 0.75rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Guest</p>
-              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${name}</p>        
+              <p style="margin: 0; color: ${primaryColor}; font-weight: 600; font-size: 0.625rem; line-height: 1rem; text-transform: uppercase;">Name</p>
+              <p style="margin: 0; font-weight: 500; font-size: 0.857rem; line-height: 1.25rem;">${name.replace(/^Guest Code for /i, '')}</p>
             </div>
             
             <div style="margin-top: 0.75rem;">
@@ -178,19 +178,9 @@ const createTicketPDFInvitation = async (
           </div>
         </div>
 
-        <!-- QR Code section with centered QR and floating code -->
+        <!-- QR Code section with centered QR -->
         <div style="position: absolute; bottom: 2.938rem; left: 2rem; background-color: #222222; width: 20.375rem; height: 10rem; border-radius: 1.75rem; display: flex; justify-content: center; align-items: center;">
-          <div style="position: relative; width: 100%; height: 100%;">
-            <!-- Centered QR code -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-              <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem;" src="${qrCodeDataURL}"></img>
-            </div>
-            
-            <!-- Floating code text -->
-            <div style="position: absolute; top: 1rem; right: 1.5rem;">
-              <p style="margin: 0; color: ${primaryColor}; font-weight: 500; font-size: 0.7rem;">NEW YEAR 2025</p>
-            </div>
-          </div>
+          <img style="background-color: white; width: 8rem; height: 8rem; border-radius: 0.5rem;" src="${qrCodeDataURL}"></img>
         </div>
       </body>
     </html>`;
