@@ -468,19 +468,12 @@ const generateGuestCode = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Get guest code settings to check email/phone requirements
+    // Get guest code settings - always use parent event's settings for child events
+    const codeSettingsEventId = event.parentEventId || eventId;
     let codeSettings = await mongoose.model("CodeSettings").findOne({
-      eventId: eventId,
+      eventId: codeSettingsEventId,
       type: "guest",
     });
-
-    // If not found and this is a child event, check parent event
-    if (!codeSettings && event.parentEventId) {
-      codeSettings = await mongoose.model("CodeSettings").findOne({
-        eventId: event.parentEventId,
-        type: "guest",
-      });
-    }
 
     const requirePhone = codeSettings?.requirePhone === true; // Default to false
 

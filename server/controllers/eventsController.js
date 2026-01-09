@@ -372,12 +372,15 @@ exports.createEvent = async (req, res) => {
     const event = new Event(eventData);
     await event.save();
 
-    // Initialize default code settings for the event
-    try {
-      const { initializeDefaultSettings } = require("./codeSettingsController");
-      await initializeDefaultSettings(event._id);
-    } catch (settingsError) {
-      // Continue with event creation even if code settings initialization fails
+    // Initialize default code settings for parent events only
+    // Child events inherit CodeSettings from their parent (same pattern as weekly events)
+    if (!eventData.parentEventId) {
+      try {
+        const { initializeDefaultSettings } = require("./codeSettingsController");
+        await initializeDefaultSettings(event._id);
+      } catch (settingsError) {
+        // Continue with event creation even if code settings initialization fails
+      }
     }
 
     // Handle file uploads if they exist
