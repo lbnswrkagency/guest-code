@@ -31,6 +31,7 @@ import Register from "./Components/AuthForm/Register/Register";
 import ForgotPassword from "./Components/AuthForm/ForgotPassword/ForgotPassword";
 import ResetPassword from "./Components/AuthForm/ResetPassword/ResetPassword";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
+import Unsubscribe from "./Components/Unsubscribe/Unsubscribe";
 import RegistrationSuccess from "./Components/RegistrationSuccess/RegistrationSuccess";
 import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
@@ -113,6 +114,7 @@ const AppRoutes = () => {
       <Route path="/registration-success" element={<RegistrationSuccess />} />
       <Route path="/verify/:token" element={<EmailVerification />} />
       <Route path="/verify-email/:token" element={<EmailVerification />} />
+      <Route path="/unsubscribe/:codeId" element={<Unsubscribe />} />
       <Route path="/paid" element={<AfterPayment />} />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
 

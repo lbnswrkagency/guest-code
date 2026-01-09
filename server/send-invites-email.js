@@ -2,6 +2,9 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const GuestCode = require("./models/GuestCode");
 const InvitationCode = require("./models/InvitationModel");
+const Brand = require("./models/brandModel"); // Required for populate
+const LineUp = require("./models/lineupModel"); // Required for populate
+const Genre = require("./models/genreModel"); // Required for populate
 const fs = require("fs");
 const path = require("path");
 const { sendQRCodeInvitation } = require("./utils/email");

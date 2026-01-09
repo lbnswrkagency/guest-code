@@ -16,13 +16,8 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const logoUrl =
   "https://guest-code.s3.eu-north-1.amazonaws.com/server/logo.png"; // Use the same URL as in your other emails
 
-// Base URL for email links
-// For API routes (like unsubscribe), use the server URL
-// For frontend routes (like verify-email, reset-password), use the client URL
-const getServerUrl = () => {
-  return process.env.SERVER_URL || "https://guest-code-server.onrender.com";
-};
-
+// Base URL for email links - all links go to the frontend
+// Frontend routes handle the UI, then call the server API
 const getClientUrl = () => {
   return "https://guest-code.com";
 };
@@ -228,7 +223,7 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
     const unsubscribeSection = codeId ? `
       <div style="margin-top: 40px; text-align: center; padding: 30px 20px; border-top: 1px solid #eee; background-color: #fafafa; border-radius: 8px;">
         <p style="font-size: 14px; color: #666; margin: 0 0 15px 0;">Don't want to receive personal invitations?</p>
-        <a href="${getServerUrl()}/api/codes/unsubscribe/${codeId}"
+        <a href="${getClientUrl()}/unsubscribe/${codeId}"
            style="display: inline-block; padding: 10px 24px; background-color: #f0f0f0; color: #666; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; border: 1px solid #ddd;">
            Unsubscribe from invites
         </a>
