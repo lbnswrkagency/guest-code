@@ -7,6 +7,7 @@ import {
   RiUserLine,
   RiTicket2Line,
   RiSwordLine,
+  RiMailLine,
 } from "react-icons/ri";
 import "./Analytics.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -676,6 +677,16 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
             {/* Battle signups - only show if battle is enabled and has signups */}
             {stats.battle && stats.battle.totalSignups > 0 && renderBattleSection(stats.battle)}
+
+            {/* Personal Invitations - only shown to developers */}
+            {stats.invitations && stats.invitations.count > 0 &&
+              renderStatCard(
+                "Personal Invitations",
+                stats.invitations.totalPax,
+                stats.invitations.checkedIn,
+                "invitation-card",
+                "invitations"
+              )}
 
             {/* Dynamically render custom code types */}
             {stats.customCodeTypes &&

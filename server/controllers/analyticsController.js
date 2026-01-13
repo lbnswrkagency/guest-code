@@ -7,6 +7,7 @@ const User = require("../models/userModel");
 const TicketSettings = require("../models/ticketSettingsModel");
 const BattleSign = require("../models/battleSignModel");
 const BattleCode = require("../models/battleModel");
+const InvitationCode = require("../models/InvitationModel");
 
 // Get analytics summary for a specific event
 exports.getAnalyticsSummary = async (req, res) => {
@@ -153,6 +154,13 @@ exports.getAnalyticsSummary = async (req, res) => {
       battleAnalytics = await getBattleAnalytics(eventId);
     }
 
+    // Get invitation code stats (brand owner only)
+    let invitationStats = null;
+    const isOwner = brand?.owner?.toString() === req.user.userId.toString();
+    if (isOwner) {
+      invitationStats = await getInvitationCodeStats(eventId);
+    }
+
     // Process custom code types from settings
     const customCodeTypes = [];
     const processedTypes = new Set(["guest"]); // Track already processed types
@@ -225,6 +233,11 @@ exports.getAnalyticsSummary = async (req, res) => {
     // Include battle analytics if enabled
     if (battleAnalytics) {
       response.battle = battleAnalytics;
+    }
+
+    // Include invitation stats if developer
+    if (invitationStats) {
+      response.invitations = invitationStats;
     }
 
     res.status(200).json(response);
@@ -606,6 +619,29 @@ async function getBattleAnalytics(eventId) {
       totalCheckedIn: 0,
       statusDistribution: { pending: 0, confirmed: 0, declined: 0 },
       categories: [],
+    };
+  }
+}
+
+// Helper function to get invitation code stats
+async function getInvitationCodeStats(eventId) {
+  try {
+    const invitations = await InvitationCode.find({ event: eventId });
+    const totalSent = invitations.length;
+    const totalPax = invitations.reduce((sum, inv) => sum + (inv.pax || 0), 0);
+    const totalCheckedIn = invitations.reduce((sum, inv) => sum + (inv.paxChecked || 0), 0);
+
+    return {
+      count: totalSent,
+      totalPax,
+      checkedIn: totalCheckedIn,
+    };
+  } catch (error) {
+    console.error("Error getting invitation code stats:", error);
+    return {
+      count: 0,
+      totalPax: 0,
+      checkedIn: 0,
     };
   }
 }

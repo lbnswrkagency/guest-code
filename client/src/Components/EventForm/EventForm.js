@@ -2692,15 +2692,17 @@ const EventForm = ({
                       value={newGenre || ""}
                       onChange={(e) => setNewGenre(e.target.value)}
                       autoFocus
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
+                          e.stopPropagation();
                           handleCreateGenre();
                         }
                       }}
                     />
                     <div className="form-actions">
                       <button
+                        type="button"
                         className="cancel-button"
                         onClick={() => {
                           setShowNewGenreForm(false);
@@ -2710,6 +2712,7 @@ const EventForm = ({
                         Cancel
                       </button>
                       <button
+                        type="button"
                         className="create-button"
                         onClick={handleCreateGenre}
                       >
@@ -2728,15 +2731,17 @@ const EventForm = ({
                       value={editGenreName || ""}
                       onChange={(e) => setEditGenreName(e.target.value)}
                       autoFocus
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
+                          e.stopPropagation();
                           handleSaveGenreEdit();
                         }
                       }}
                     />
                     <div className="form-actions">
                       <button
+                        type="button"
                         className="cancel-button"
                         onClick={() => {
                           setEditingGenre(null);
@@ -2746,6 +2751,7 @@ const EventForm = ({
                         Cancel
                       </button>
                       <button
+                        type="button"
                         className="create-button"
                         onClick={handleSaveGenreEdit}
                       >

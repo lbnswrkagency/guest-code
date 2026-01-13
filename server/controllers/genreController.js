@@ -27,13 +27,16 @@ exports.createGenre = async (req, res) => {
 
     const userId = req.user.userId;
 
-    // Check permissions
+    // Check permissions - owner, admin, or team member
     const isOwner = brand.owner.toString() === userId.toString();
     const isAdmin =
       Array.isArray(brand.admins) &&
       brand.admins.some((adminId) => adminId.toString() === userId.toString());
+    const isTeamMember =
+      Array.isArray(brand.team) &&
+      brand.team.some((member) => member.user && member.user.toString() === userId.toString());
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isTeamMember) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to add genres to this brand",
@@ -138,13 +141,16 @@ exports.updateGenre = async (req, res) => {
       });
     }
 
-    // Check if user is brand owner or admin
+    // Check if user is brand owner, admin, or team member
     const isOwner = brand.owner.toString() === userId.toString();
     const isAdmin =
       Array.isArray(brand.admins) &&
       brand.admins.some((adminId) => adminId.toString() === userId.toString());
+    const isTeamMember =
+      Array.isArray(brand.team) &&
+      brand.team.some((member) => member.user && member.user.toString() === userId.toString());
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isTeamMember) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to update this genre",
@@ -204,13 +210,16 @@ exports.deleteGenre = async (req, res) => {
       });
     }
 
-    // Check if user is brand owner or admin
+    // Check if user is brand owner, admin, or team member
     const isOwner = brand.owner.toString() === userId.toString();
     const isAdmin =
       Array.isArray(brand.admins) &&
       brand.admins.some((adminId) => adminId.toString() === userId.toString());
+    const isTeamMember =
+      Array.isArray(brand.team) &&
+      brand.team.some((member) => member.user && member.user.toString() === userId.toString());
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isTeamMember) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to delete this genre",
