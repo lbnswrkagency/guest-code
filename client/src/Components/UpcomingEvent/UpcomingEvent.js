@@ -1276,20 +1276,17 @@ const UpcomingEvent = ({
     if (event && event.brand) {
       // If brand is a full object
       if (typeof event.brand === "object" && event.brand !== null) {
-        return (
+        return !!(
           event.brand.spotifyClientId &&
           event.brand.spotifyClientSecret &&
           event.brand.spotifyPlaylistId
         );
       }
 
-      // If we only have a brand ID, we need to rely on a special check
-      // This is a simple approach - we can make this more sophisticated later
-      // by checking through known brands with Spotify configured
+      // If we only have a brand ID, check known brands with Spotify configured
       return (
-        // Add brand IDs of brands known to have Spotify configured
-        event.brand === "67d737d6e1299b18afabf4f4" || // Example ID
-        event.brand === "67ba051873bd89352d3ab6db" // Example ID
+        event.brand === "67d737d6e1299b18afabf4f4" ||
+        event.brand === "67ba051873bd89352d3ab6db"
       );
     }
 

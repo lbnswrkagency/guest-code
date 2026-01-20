@@ -164,15 +164,15 @@ const GalleryCarousel = ({
     } finally {
       setLoading(false);
     }
-  }, [brandId, brandUsername, config.INITIAL_LOAD_COUNT, availableGalleries]);
+  }, [brandId, brandUsername, config.INITIAL_LOAD_COUNT]);
 
   // Memoize fetchAvailableGalleries function
   const fetchAvailableGalleries = useCallback(async () => {
     if (!brandId && !brandUsername) return;
-    
+
     try {
       let endpoint = '';
-      
+
       if (brandId) {
         endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/galleries/dates`;
       } else if (brandUsername) {
@@ -185,11 +185,25 @@ const GalleryCarousel = ({
           endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/galleries/dates`;
         }
       }
-      
+
       if (endpoint) {
         const response = await axiosInstance.get(endpoint);
         if (response.data?.galleryOptions) {
-          setAvailableGalleries(response.data.galleryOptions);
+          const galleries = response.data.galleryOptions;
+          setAvailableGalleries(galleries);
+
+          // Set initial currentGalleryInfo from most recent gallery to prevent "Latest Gallery" flash
+          if (galleries.length > 0 && !currentGalleryInfo) {
+            const sortedGalleries = [...galleries].sort((a, b) =>
+              new Date(b.date) - new Date(a.date)
+            );
+            const latestGallery = sortedGalleries[0];
+            setCurrentGalleryInfo({
+              title: latestGallery.title,
+              date: latestGallery.date,
+              mediaCount: latestGallery.mediaCount
+            });
+          }
         }
       }
     } catch (err) {
@@ -455,6 +469,12 @@ const GalleryCarousel = ({
   if (loading) {
     return (
       <div className="gallery-carousel loading">
+        <div className="gallery-header">
+          <h3 className="gallery-title">
+            <RiImageLine />
+            Photo Gallery
+          </h3>
+        </div>
         <div className="loading-container">
           <LoadingSpinner />
           <p>✨ Loading original quality • Worth the wait</p>

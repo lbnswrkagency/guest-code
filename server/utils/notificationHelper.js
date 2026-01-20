@@ -97,7 +97,6 @@ const findUsersWithTablePermission = async (brandId, eventId = null) => {
       }
     }
 
-    console.log("[findUsersWithTablePermission] Found users:", Array.from(userIds));
     return Array.from(userIds);
   } catch (error) {
     console.error("[findUsersWithTablePermission] Error:", error.message);
@@ -115,13 +114,6 @@ const createSystemNotification = async ({
   requestId = null,
 }) => {
   try {
-    console.log("[NotificationHelper] Creating notification:", {
-      userId,
-      type,
-      title,
-      timestamp: new Date().toISOString(),
-    });
-
     const notification = new Notification({
       userId,
       type,
@@ -140,19 +132,12 @@ const createSystemNotification = async ({
     const io = global.io;
 
     if (io) {
-      console.log("[NotificationHelper] Emitting via socket:", {
-        room: `user:${userId}`,
-        notificationId: savedNotification._id,
-      });
       io.to(`user:${userId}`).emit("new_notification", savedNotification);
     }
 
     return savedNotification;
   } catch (error) {
-    console.error("[NotificationHelper] Error creating notification:", {
-      error: error.message,
-      stack: error.stack,
-    });
+    console.error("Error creating notification:", error.message);
     throw error;
   }
 };

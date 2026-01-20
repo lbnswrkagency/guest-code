@@ -223,17 +223,10 @@ const updateCodeStatus = async (req, res) => {
               });
             }
 
-            console.log(
-              `[CodeController] Sent ${notificationType} notifications to ${usersWithPermission.length} users`
-            );
           }
         }
       } catch (notificationError) {
-        // Log but don't fail the status update if notifications fail
-        console.error(
-          "[CodeController] Error sending table status notifications:",
-          notificationError.message
-        );
+        // Silent fail - don't fail the status update if notifications fail
       }
     }
 

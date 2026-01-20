@@ -1240,9 +1240,23 @@
         .button-icon {
           background: rgba(168, 85, 247, 0.15);
           color: #a855f7;
-          
+
           &:hover {
             background: rgba(168, 85, 247, 0.25);
+          }
+        }
+      }
+
+      &.spotify-button {
+        .button-icon {
+          background: none;
+          border-radius: 0;
+          color: #1DB954; // Spotify green
+          width: auto;
+          height: auto;
+
+          svg {
+            font-size: 1.75rem; // Bigger icon
           }
         }
       }

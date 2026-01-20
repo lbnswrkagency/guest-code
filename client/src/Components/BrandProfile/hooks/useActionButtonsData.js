@@ -9,6 +9,7 @@ const useActionButtonsData = ({
   ticketSettings,
   codeSettings,
   actuallyHasPhotos,
+  brandHasGalleries, // Early check - shows button faster while waiting for actuallyHasPhotos
   checkingGalleries,
   supportsTableBooking,
   supportsBattles,
@@ -59,6 +60,7 @@ const useActionButtonsData = ({
         tables: false,
         battles: false,
         photos: false,
+        spotify: false,
       };
     }
 
@@ -82,12 +84,28 @@ const useActionButtonsData = ({
     const supportsTableBookingForEvent = supportsTableBooking?.(currentEvent);
     const supportsBattlesForEvent = supportsBattles?.(currentEvent);
 
+    // For photos: Show early if brandHasGalleries is true (faster initial display)
+    // Then hide if actuallyHasPhotos comes back as false
+    // Logic: brandHasGalleries = folder exists, actuallyHasPhotos = photos actually loaded
+    const showPhotos = actuallyHasPhotos === true ||
+                       (actuallyHasPhotos === null && brandHasGalleries === true);
+
+    // Check if Spotify is configured for this brand
+    const showSpotify = !!(
+      currentEvent?.brand &&
+      typeof currentEvent.brand === "object" &&
+      currentEvent.brand.spotifyClientId &&
+      currentEvent.brand.spotifyClientSecret &&
+      currentEvent.brand.spotifyPlaylistId
+    );
+
     return {
       tickets: !!ticketsAvailable,
       guestCode: !!showGuestCode,
       tables: !!supportsTableBookingForEvent,
       battles: !!supportsBattlesForEvent,
-      photos: actuallyHasPhotos === true,
+      photos: showPhotos,
+      spotify: showSpotify,
     };
   }, [
     isDataLoaded,
@@ -95,6 +113,7 @@ const useActionButtonsData = ({
     ticketSettings,
     codeSettings,
     actuallyHasPhotos,
+    brandHasGalleries,
     supportsTableBooking,
     supportsBattles,
   ]);

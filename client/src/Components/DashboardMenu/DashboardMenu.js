@@ -71,21 +71,8 @@ const DashboardMenu = ({
 
   useEffect(() => {
     if (selectedBrand && user) {
-      // DEBUG LOG
-      console.log('\n[DASHBOARD-MENU DEBUG] ========== PERMISSION CHECK ==========');
-      console.log('[DASHBOARD-MENU DEBUG] selectedEvent:', selectedEvent?.title, '- ID:', selectedEvent?._id);
-      console.log('[DASHBOARD-MENU DEBUG] selectedEvent.parentEventId:', selectedEvent?.parentEventId);
-      console.log('[DASHBOARD-MENU DEBUG] effectivePermissions received:', effectivePermissions);
-      console.log('[DASHBOARD-MENU DEBUG] effectivePermissions.codes:', effectivePermissions?.codes);
-      console.log('[DASHBOARD-MENU DEBUG] codeSettings:', codeSettings?.map(s => s.name));
-
       // If effectivePermissions are provided (for co-hosted events), use them directly
       if (effectivePermissions) {
-        console.log('[DASHBOARD-MENU DEBUG] Using effectivePermissions path');
-        const canGenerateAny = effectivePermissions.codes
-          ? Object.values(effectivePermissions.codes).some(p => p && p.generate === true)
-          : false;
-        console.log('[DASHBOARD-MENU DEBUG] canGenerateAny calculated:', canGenerateAny);
         // Build permissions object using effective permissions
         const calculatedPermissions = {
           analytics: {

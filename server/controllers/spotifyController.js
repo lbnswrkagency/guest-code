@@ -25,18 +25,15 @@ exports.getSpotifyPlaylist = async (req, res) => {
     const { brandUsername } = req.params;
 
     if (!brandUsername) {
-      // Fallback to environment variables if no brand is specified (for backward compatibility)
       return getPlaylistFromEnvVars(req, res);
     }
 
-    // Find the brand by username
     const brand = await Brand.findOne({ username: brandUsername });
 
     if (!brand) {
       return res.status(404).json({ error: "Brand not found" });
     }
 
-    // Check if brand has Spotify configuration
     if (
       !brand.spotifyClientId ||
       !brand.spotifyClientSecret ||
@@ -94,7 +91,7 @@ exports.getSpotifyPlaylist = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in getSpotifyPlaylist:", error);
+    console.error("Error fetching Spotify playlist:", error.message);
     res.status(500).json({ error: "Error fetching Spotify playlist" });
   }
 };

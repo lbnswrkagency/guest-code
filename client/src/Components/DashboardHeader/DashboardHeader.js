@@ -73,7 +73,6 @@ const DashboardHeader = ({
         }
       }
     } catch (err) {
-      console.error("[DashboardHeader] Error fetching fresh events:", err);
       // Fall back to Redux events on error
       setFreshEvents(selectedBrand?.events || []);
     } finally {

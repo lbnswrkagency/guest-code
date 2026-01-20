@@ -950,6 +950,7 @@ const BrandProfile = () => {
     ticketSettings,
     codeSettings,
     actuallyHasPhotos,
+    brandHasGalleries, // Early check - shows Photos button faster
     checkingGalleries,
     supportsTableBooking,
     supportsBattles,
@@ -1118,6 +1119,38 @@ const BrandProfile = () => {
                   <span className="button-text-full">Photos</span>
                   <span className="button-text-short">Photos</span>
                   {!isActionButtonsSticky && <p>View photo gallery</p>}
+                </div>
+                <div className="button-arrow">
+                  <RiArrowRightSLine />
+                </div>
+              </div>
+            </motion.button>
+          )}
+
+          {/* Spotify button */}
+          {buttonVisibility.spotify && (
+            <motion.button
+              className="event-action-button spotify-button"
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              onClick={() => {
+                // Scroll to Spotify section
+                const spotifySection = document.querySelector(
+                  ".upcomingEvent-spotify-section"
+                );
+                if (spotifySection) {
+                  spotifySection.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+            >
+              <div className="button-content">
+                <div className="button-icon">
+                  <RiSpotifyLine />
+                </div>
+                <div className="button-text">
+                  <span className="button-text-full">Playlist</span>
+                  <span className="button-text-short">Playlist</span>
+                  {!isActionButtonsSticky && <p>Listen on Spotify</p>}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />

@@ -51,7 +51,7 @@ exports.getUpcomingEventData = async (req, res) => {
       .select(
         "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
       )
-      .populate("brand", "name username logo")
+      .populate("brand", "name username logo spotifyClientId spotifyClientSecret spotifyPlaylistId")
       .populate("coHosts", "name username logo")
       .populate("user", "username firstName lastName avatar")
       .populate(
@@ -75,7 +75,7 @@ exports.getUpcomingEventData = async (req, res) => {
         .select(
           "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
         )
-        .populate("brand", "name username logo")
+        .populate("brand", "name username logo spotifyClientId spotifyClientSecret spotifyPlaylistId")
         .populate("coHosts", "name username logo")
         .populate("user", "username firstName lastName avatar")
         .populate(

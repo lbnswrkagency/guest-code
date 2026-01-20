@@ -13,7 +13,6 @@ const Spotify = ({ brandUsername }) => {
         setLoading(true);
         setError(null);
 
-        // Determine the API endpoint based on whether a brandUsername is provided
         const endpoint = brandUsername
           ? `${process.env.REACT_APP_API_BASE_URL}/spotify/playlist/${brandUsername}`
           : `${process.env.REACT_APP_API_BASE_URL}/spotify/playlist`;
@@ -23,12 +22,10 @@ const Spotify = ({ brandUsername }) => {
         if (response.data && response.data.items) {
           setPlaylist(response.data);
         } else {
-          console.error("Invalid data structure:", response.data);
           setError("Invalid playlist data received");
         }
       } catch (error) {
-        console.error("Error fetching Spotify playlist:", error);
-        setError("Error loading Spotify playlist");
+        setError(error.response?.data?.error || "Error loading Spotify playlist");
       } finally {
         setLoading(false);
       }
@@ -49,7 +46,6 @@ const Spotify = ({ brandUsername }) => {
 
   // Ensure 'playlist' has 'items' property and it's an array
   if (!Array.isArray(playlist.items)) {
-    console.error("playlist.items is not an array:", playlist.items);
     return <div className="spotify-error">Error loading playlist</div>;
   }
 
