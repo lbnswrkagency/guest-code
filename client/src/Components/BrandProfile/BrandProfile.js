@@ -38,7 +38,6 @@ import {
   RiArrowRightSLine,
   RiSwordLine,
   RiImageLine,
-  RiFilmLine,
 } from "react-icons/ri";
 import SocialLinks from "./SocialLinks";
 import ConfirmDialog from "../../Components/ConfirmDialog/ConfirmDialog";
@@ -78,11 +77,6 @@ const BrandProfile = () => {
   const [brandHasGalleries, setBrandHasGalleries] = useState(false);
   const [checkingGalleries, setCheckingGalleries] = useState(false);
   const [actuallyHasPhotos, setActuallyHasPhotos] = useState(null); // null = not checked yet, true/false = actual status
-
-  // Brand video gallery state
-  const [brandHasVideoGalleries, setBrandHasVideoGalleries] = useState(false);
-  const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
-  const [actuallyHasVideos, setActuallyHasVideos] = useState(null); // null = not checked yet, true/false = actual status
 
   // More granular loading progress tracking
   const [loadingProgress, setLoadingProgress] = useState({
@@ -152,41 +146,6 @@ const BrandProfile = () => {
     }
   }, [brand?._id]);
 
-  // Function to check if brand has any video galleries available
-  const checkBrandVideoGalleries = useCallback(async () => {
-    if (!brand?._id) {
-      return;
-    }
-    try {
-      setCheckingVideoGalleries(true);
-      const endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/check`;
-      
-      const response = await axiosInstance.get(endpoint);
-
-      if (response.data && response.data.success) {
-        setBrandHasVideoGalleries(response.data.hasVideoGalleries);
-      } else {
-        setBrandHasVideoGalleries(false);
-      }
-    } catch (error) {
-      
-      // Fallback: try to fetch latest videos to check if actual videos exist
-      try {
-        const fallbackEndpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brand._id}/videos/latest`;
-        
-        const fallbackResponse = await axiosInstance.get(fallbackEndpoint);
-        // Check if there are actual videos, not just gallery options
-        const hasActualVideos = fallbackResponse.data?.success && 
-                                fallbackResponse.data?.media?.videos?.length > 0;
-        setBrandHasVideoGalleries(hasActualVideos);
-      } catch (fallbackError) {
-        setBrandHasVideoGalleries(false);
-      }
-    } finally {
-      setCheckingVideoGalleries(false);
-    }
-  }, [brand?._id]);
-
   // Update main loading state - show feed after brand loads to allow events to load
   useEffect(() => {
     // Show the feed once brand is loaded (so events can start loading)
@@ -195,24 +154,16 @@ const BrandProfile = () => {
     }
   }, [loadingProgress.brand, loading, totalProgress]);
 
-  // Effect to check brand galleries when brand is loaded - run BOTH checks in parallel
+  // Effect to check brand galleries when brand is loaded
   useEffect(() => {
-    if (brand && brand._id && !checkingGalleries && !checkingVideoGalleries) {
-      // Run both gallery checks in parallel for faster loading
-      Promise.all([
-        checkBrandGalleries(),
-        checkBrandVideoGalleries()
-      ]);
+    if (brand && brand._id && !checkingGalleries) {
+      checkBrandGalleries();
     }
-  }, [brand, checkBrandGalleries, checkBrandVideoGalleries]);
+  }, [brand, checkBrandGalleries]);
 
-  // Callbacks to receive actual gallery/video status from carousel components
+  // Callback to receive actual gallery status from carousel components
   const handleGalleryStatusChange = useCallback((hasContent) => {
     setActuallyHasPhotos(hasContent);
-  }, []);
-
-  const handleVideoStatusChange = useCallback((hasContent) => {
-    setActuallyHasVideos(hasContent);
   }, []);
 
   // Real loading progress tracking - no artificial simulation
@@ -999,9 +950,7 @@ const BrandProfile = () => {
     ticketSettings,
     codeSettings,
     actuallyHasPhotos,
-    actuallyHasVideos,
     checkingGalleries,
-    checkingVideoGalleries,
     supportsTableBooking,
     supportsBattles,
   });
@@ -1169,37 +1118,6 @@ const BrandProfile = () => {
                   <span className="button-text-full">Photos</span>
                   <span className="button-text-short">Photos</span>
                   {!isActionButtonsSticky && <p>View photo gallery</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
-
-          {/* Videos button */}
-          {buttonVisibility.videos && (
-            <motion.button
-              className="event-action-button gallery-button videos-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={() => {
-                const videoSection = document.querySelector(
-                  ".upcomingEvent-video-gallery"
-                );
-                if (videoSection) {
-                  videoSection.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              }}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiFilmLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Videos</span>
-                  <span className="button-text-short">Videos</span>
-                  {!isActionButtonsSticky && <p>Watch event videos</p>}
                 </div>
                 <div className="button-arrow">
                   <RiArrowRightSLine />
@@ -1522,9 +1440,7 @@ const BrandProfile = () => {
           onEventsLoaded={handleEventsLoaded}
           initialDateHint={initialDateHint}
           brandHasGalleries={brandHasGalleries}
-          brandHasVideoGalleries={brandHasVideoGalleries}
           onGalleryStatusChange={handleGalleryStatusChange}
-          onVideoStatusChange={handleVideoStatusChange}
         />
       </div>
 

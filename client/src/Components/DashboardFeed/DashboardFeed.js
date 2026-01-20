@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import "./DashboardFeed.scss";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import {
-  RiCalendarEventLine,
-  RiMapPinLine,
-  RiTimeLine,
-  RiMusic2Line,
   RiInformationLine,
   RiRefreshLine,
-  RiTicketLine,
-  RiGroupLine,
-  RiUserLine,
-  RiVipCrownLine,
-  RiLinkM,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import UpcomingEvent from "../UpcomingEvent/UpcomingEvent";
+import axiosInstance from "../../utils/axiosConfig";
 
 const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const navigate = useNavigate();
@@ -25,329 +17,133 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [eventData, setEventData] = useState(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Helper function to enhance lineup objects with required fields
-  const enhanceLineups = (lineups) => {
-    if (!lineups || !Array.isArray(lineups)) return [];
+  // State for fresh events data from API
+  const [freshEvents, setFreshEvents] = useState([]);
+  const [lastFetchedBrandId, setLastFetchedBrandId] = useState(null);
 
-    return lineups
-      .filter((lineup) => lineup && (lineup._id || lineup.id)) // Filter out null/undefined lineups
-      .map((lineup) => ({
-        _id: lineup._id || lineup.id,
-        name: lineup.name || "Unknown Artist",
-        category: lineup.category || "Other",
-        subtitle: lineup.subtitle || lineup.location || "", // Ensure subtitle is included
-        avatar: lineup.avatar || null,
-        events: lineup.events || [],
-        isActive: lineup.isActive !== undefined ? lineup.isActive : true,
-      }));
-  };
+  // Fetch fresh event data from API when brand changes
+  const fetchFreshEventData = useCallback(async (brandId) => {
+    if (!brandId) return;
 
-  // Effect to use event data from Redux props
-  useEffect(() => {
-    
-    // If we have a selected event, use it directly
-    if (selectedEvent) {
-      // Check if the event has lineups data
-      if (selectedBrand && selectedBrand.lineups) {
-        let eventLineups = [];
-
-        // Handle case where event.lineups is an array of IDs (strings) instead of objects
-        if (selectedEvent.lineups && Array.isArray(selectedEvent.lineups)) {
-          if (
-            selectedEvent.lineups.length > 0 &&
-            typeof selectedEvent.lineups[0] === "string"
-          ) {
-            if (!selectedBrand || !selectedBrand.lineups) {
-              // Handle error condition silently
-            }
-
-            eventLineups = selectedEvent.lineups
-              .map((lineupId) => {
-                // Find the full lineup object from selectedBrand.lineups
-                const fullLineup = selectedBrand?.lineups?.find(
-                  (l) => l?._id === lineupId || l?.id === lineupId
-                );
-
-                return fullLineup || null;
-              })
-              .filter((lineup) => lineup !== null);
-          } else if (
-            selectedEvent.lineups.length > 0 &&
-            typeof selectedEvent.lineups[0] === "object"
-          ) {
-            // If lineups are already objects, use them directly
-            eventLineups = selectedEvent.lineups;
-          }
-        }
-
-        // If no lineups were found or they're not valid objects, try to find lineups associated with this event
-        if (eventLineups.length === 0) {
-          eventLineups = selectedBrand.lineups.filter((lineup) => {
-            // Check if lineup.events exists and contains the event ID
-            if (lineup.events && Array.isArray(lineup.events)) {
-              return lineup.events.some((eventId) => {
-                // Convert both to strings for comparison
-                const lineupEventId = eventId.toString();
-                const currentEventId = selectedEvent._id.toString();
-                return lineupEventId === currentEventId;
-              });
-            }
-            return false;
-          });
-        }
-
-        // Use the helper function to ensure all lineup objects have required properties
-        const validLineups = enhanceLineups(eventLineups);
-
-        // Create a new event object with lineups data
-        const eventWithLineups = {
-          ...selectedEvent,
-          lineups: validLineups.length > 0 ? validLineups : null,
-        };
-
-        setEventData(eventWithLineups);
-        preloadEventImage(eventWithLineups);
-      } else {
-        setEventData(selectedEvent);
-        preloadEventImage(selectedEvent);
-      }
-
-      setIsLoading(false);
+    // Skip if we already fetched for this brand
+    if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
       return;
     }
 
-    // If no event is selected but we have a brand and date, try to find a matching event
-    if (selectedBrand && selectedDate) {
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        // Format date for comparison
-        const formattedDate = new Date(selectedDate)
-          .toISOString()
-          .split("T")[0];
+    try {
+      const response = await axiosInstance.get(
+        `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`
+      );
 
-        // Get events from the brand
-        let brandEvents = [];
+      if (response.data?.success && response.data?.data?.events) {
+        const events = response.data.data.events;
+        console.log('[DashboardFeed] Fresh events from API:', events.length, 'events');
+        console.log('[DashboardFeed] Event titles:', events.map(e => `${e.title} (${e.startDate})`));
+        setFreshEvents(events);
+        setLastFetchedBrandId(brandId);
+      } else {
+        // Fallback: try the brand events endpoint
+        const fallbackResponse = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`
+        );
 
-        // Handle both possible event structures
-        if (Array.isArray(selectedBrand.events)) {
-          brandEvents = selectedBrand.events;
-        } else if (
-          selectedBrand.events &&
-          Array.isArray(selectedBrand.events.items)
-        ) {
-          brandEvents = selectedBrand.events.items;
+        if (Array.isArray(fallbackResponse.data)) {
+          setFreshEvents(fallbackResponse.data);
+          setLastFetchedBrandId(brandId);
+        } else {
+          setFreshEvents([]);
         }
+      }
+    } catch (err) {
+      console.error("[DashboardFeed] Error fetching fresh events:", err);
+      // On error, we'll fall back to Redux data via selectedEvent
+      setFreshEvents([]);
+      setError(null); // Don't show error, just use fallback
+    } finally {
+      setIsLoading(false);
+    }
+  }, [lastFetchedBrandId, freshEvents.length]);
 
+  // Fetch fresh data when brand changes
+  useEffect(() => {
+    if (selectedBrand?._id) {
+      fetchFreshEventData(selectedBrand._id);
+    }
+  }, [selectedBrand?._id, fetchFreshEventData]);
 
-        // Find events for the selected date
-        const eventsForDate = brandEvents.filter((event) => {
+  // Find the correct event from fresh data or fall back to Redux
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Helper function to find the next upcoming event from fresh data
+    const findNextUpcomingFromFresh = () => {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      // Find the first upcoming or active event
+      const upcomingEvent = freshEvents.find((event) => {
+        if (!event.startDate) return false;
+        const eventDate = new Date(event.startDate);
+        return eventDate >= startOfToday;
+      });
+
+      return upcomingEvent || freshEvents[0] || null;
+    };
+
+    // PRIORITY 1: Always use fresh API data when available
+    if (freshEvents.length > 0) {
+      console.log('[DashboardFeed] Using fresh data. selectedDate:', selectedDate);
+
+      // Try to find event matching selectedDate
+      if (selectedDate) {
+        const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
+        console.log('[DashboardFeed] Looking for event on date:', formattedDate);
+
+        const matchingEvent = freshEvents.find((event) => {
           if (!event.startDate) return false;
-
-          // Compare dates by converting to YYYY-MM-DD strings
-          const formattedSelectedDate = formattedDate;
-
-          // Use startDate
-          const eventStartDate = new Date(event.startDate).toISOString().split("T")[0];
-
-          return eventStartDate === formattedSelectedDate;
+          const eventDateStr = new Date(event.startDate).toISOString().split("T")[0];
+          return eventDateStr === formattedDate;
         });
 
-        if (eventsForDate.length > 0) {
-          // Use the first event for this date
-          const event = eventsForDate[0];
-
-          // Check if the event has lineups data
-          if (selectedBrand && selectedBrand.lineups) {
-            let eventLineups = [];
-
-            // Handle case where event.lineups is an array of IDs (strings) instead of objects
-            if (event.lineups && Array.isArray(event.lineups)) {
-              if (
-                event.lineups.length > 0 &&
-                typeof event.lineups[0] === "string"
-              ) {
-                if (!selectedBrand || !selectedBrand.lineups) {
-                  // Handle error condition silently
-                }
-
-                eventLineups = event.lineups
-                  .map((lineupId) => {
-                    // Find the full lineup object from selectedBrand.lineups
-                    const fullLineup = selectedBrand?.lineups?.find(
-                      (l) => l?._id === lineupId || l?.id === lineupId
-                    );
-
-                    return fullLineup || null;
-                  })
-                  .filter((lineup) => lineup !== null);
-              } else if (
-                event.lineups.length > 0 &&
-                typeof event.lineups[0] === "object"
-              ) {
-                // If lineups are already objects, use them directly
-                eventLineups = event.lineups;
-              }
-            }
-
-            // If no lineups were found or they're not valid objects, try to find lineups associated with this event
-            if (eventLineups.length === 0) {
-              eventLineups = selectedBrand.lineups.filter((lineup) => {
-                // Check if lineup.events exists and contains the event ID
-                if (lineup.events && Array.isArray(lineup.events)) {
-                  return lineup.events.some((eventId) => {
-                    // Convert both to strings for comparison
-                    const lineupEventId = eventId.toString();
-                    const currentEventId = event._id.toString();
-                    return lineupEventId === currentEventId;
-                  });
-                }
-                return false;
-              });
-            }
-
-            // Use the helper function to ensure all lineup objects have required properties
-            const validLineups = enhanceLineups(eventLineups);
-
-            // Create a new event object with lineups data
-            const eventWithLineups = {
-              ...event,
-              lineups: validLineups.length > 0 ? validLineups : null,
-            };
-
-            setEventData(eventWithLineups);
-            preloadEventImage(eventWithLineups);
-          } else {
-            // Remove debug logging
-            setEventData(event);
-            preloadEventImage(event);
-          }
+        if (matchingEvent) {
+          console.log('[DashboardFeed] Found matching event:', matchingEvent.title, matchingEvent._id);
+          setEventData(matchingEvent);
+          return;
         } else {
-          setEventData(null);
+          console.log('[DashboardFeed] No match for selectedDate, finding next upcoming');
         }
-      } catch (err) {
-        setError("Failed to process event data. Please try again.");
-      } finally {
-        setIsLoading(false);
       }
-    } else {
-      // No brand, date, or event selected
-      setIsLoading(false);
-      setEventData(null);
-    }
-  }, [selectedBrand, selectedDate, selectedEvent]);
 
-  // Helper function to preload event image
-  const preloadEventImage = (event) => {
-    if (!event) {
-      setImageLoaded(false);
+      // selectedDate doesn't match any fresh event OR no date selected
+      // Find the actual next upcoming event from fresh data
+      // This handles stale selectedDate from Redux
+      const nextUpcoming = findNextUpcomingFromFresh();
+      if (nextUpcoming) {
+        console.log('[DashboardFeed] Using next upcoming event:', nextUpcoming.title, nextUpcoming._id);
+        setEventData(nextUpcoming);
+        return;
+      }
+    }
+
+    // FALLBACK: Only use Redux selectedEvent if we have NO fresh data
+    if (selectedEvent) {
+      setEventData(selectedEvent);
       return;
     }
 
-    const imageUrl = getEventImage(event);
-    if (imageUrl) {
-      const img = new Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        setImageLoaded(true);
-      };
-      img.onerror = () => {
-        setImageLoaded(false);
-      };
-    } else {
-      setImageLoaded(false);
-    }
-  };
-
-  // Get appropriate flyer image or fallback
-  const getEventImage = (event) => {
-    if (!event) return null;
-
-    // Handle case where flyer is a direct string URL
-    if (event.flyer && typeof event.flyer === "string") {
-      return event.flyer;
-    }
-
-    if (!event.flyer) return null;
-
-    // Check for portrait image first (best for mobile)
-    if (event.flyer.portrait && event.flyer.portrait.full) {
-      return event.flyer.portrait.full;
-    }
-
-    // Fallback to landscape
-    if (event.flyer.landscape && event.flyer.landscape.full) {
-      return event.flyer.landscape.full;
-    }
-
-    // Final fallback to square
-    if (event.flyer.square && event.flyer.square.full) {
-      return event.flyer.square.full;
-    }
-
-    // Last resort: check for thumbnail
-    if (event.flyer.thumbnail) {
-      return event.flyer.thumbnail;
-    }
-
-    return null;
-  };
-
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const options = { weekday: "long", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  // Format time
-  const formatTime = (timeString) => {
-    if (!timeString) return "";
-    return timeString;
-  };
+    // No event data available
+    setEventData(null);
+  }, [freshEvents, selectedDate, selectedEvent, isLoading]);
 
   // Handle retry
   const handleRetry = () => {
-    setImageLoaded(false);
-    setEventData(null);
-    setError(null);
-    // This will trigger the useEffect to process data again
-  };
-
-  // Navigate to event profile
-  const handleViewEvent = () => {
-    if (eventData && (eventData._id || eventData.id)) {
-      // Create pretty URL for event
-      const eventId = eventData._id || eventData.id;
-
-      if (
-        selectedBrand &&
-        eventData.startDate &&
-        eventData.title
-      ) {
-        // Format date for URL (MMDDYY)
-        const eventDate = new Date(eventData.startDate);
-        const month = String(eventDate.getMonth() + 1).padStart(2, "0");
-        const day = String(eventDate.getDate()).padStart(2, "0");
-        const year = String(eventDate.getFullYear()).slice(2);
-        const dateSlug = `${month}${day}${year}`;
-
-        // Get brand username
-        const brandUsername = selectedBrand.username || "";
-
-        // Construct URL based on user authentication status with ultra-simplified format
-        const eventPath = user
-          ? `/@${user.username}/@${brandUsername}/${dateSlug}`
-          : `/@${brandUsername}/${dateSlug}`;
-
-        navigate(eventPath);
-      } else {
-        // Fallback to old format if we don't have all the needed data
-        navigate(`/events/${eventId}`);
-      }
+    setLastFetchedBrandId(null); // Reset to force refetch
+    if (selectedBrand?._id) {
+      fetchFreshEventData(selectedBrand._id);
     }
   };
 
@@ -379,14 +175,14 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     return (
       <div className="dashboardFeed-container dashboardFeed-empty">
         <div className="dashboardFeed-empty-content">
-          <motion.div 
+          <motion.div
             className="empty-state-message"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h2 className="empty-state-title">
-              {user?.isAlpha 
+              {user?.isAlpha
                 ? "Join or Create Events, to start your journey."
                 : "Join Events, to start your journey."}
             </h2>
@@ -408,7 +204,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
           <span className="co-hosting-badge">Co-hosting</span>
         </div>
       )}
-      
+
       <div className="dashboardFeed-content">
         <UpcomingEvent
           key={`${selectedBrand?._id}-${eventData?._id}`}

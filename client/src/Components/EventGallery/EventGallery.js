@@ -24,67 +24,124 @@ const EventGallery = ({
   const [downloading, setDownloading] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-  const [fullImageUrl, setFullImageUrl] = useState(null);
   const { showSuccess, showError } = useToast();
   const containerRef = useRef(null);
-  const blobUrlRef = useRef(null);
+
+  // Cache for temporary links - persists across navigation
+  const [linkCache, setLinkCache] = useState({});
+  // Track which images are currently being fetched
+  const fetchingRef = useRef(new Set());
 
   // Minimum swipe distance
   const minSwipeDistance = 50;
 
-  // Reset index only when modal opens (not when initialIndex changes from re-renders)
+  // Ref to access linkCache without triggering re-renders
+  const linkCacheRef = useRef(linkCache);
+  linkCacheRef.current = linkCache;
+
+  // Fetch temporary link for an image (returns direct Dropbox CDN URL)
+  const fetchTempLink = useCallback(async (image) => {
+    if (!image?.path) return image?.thumbnail || null;
+
+    const cacheKey = image.path;
+
+    // Check cache first (use ref to avoid dependency)
+    if (linkCacheRef.current[cacheKey]) {
+      return linkCacheRef.current[cacheKey];
+    }
+
+    // Check if already fetching
+    if (fetchingRef.current.has(cacheKey)) {
+      return null; // Will be handled when fetch completes
+    }
+
+    fetchingRef.current.add(cacheKey);
+
+    try {
+      const response = await axiosInstance.get(
+        `/dropbox/temp-link/${encodeURIComponent(image.path)}`
+      );
+
+      if (response.data?.success && response.data?.url) {
+        const url = response.data.url;
+        // Update cache
+        setLinkCache(prev => ({ ...prev, [cacheKey]: url }));
+        fetchingRef.current.delete(cacheKey);
+        return url;
+      }
+    } catch (err) {
+      console.error("Failed to get temp link:", err);
+      fetchingRef.current.delete(cacheKey);
+    }
+
+    // Fallback to thumbnail
+    return image?.thumbnail || null;
+  }, []); // No dependencies - uses refs
+
+  // Preload adjacent images
+  const preloadAdjacentImages = useCallback((centerIndex) => {
+    if (images.length === 0) return;
+
+    // Preload: next 2, previous 1 (current is handled separately)
+    const preloadIndexes = [
+      centerIndex + 1,
+      centerIndex + 2,
+      centerIndex - 1
+    ].filter(i => i >= 0 && i < images.length);
+
+    // Fetch temp links for all and preload in browser
+    for (const idx of preloadIndexes) {
+      const image = images[idx];
+      if (!image?.path) continue;
+
+      const cacheKey = image.path;
+      // Use ref to check cache without dependency
+      if (linkCacheRef.current[cacheKey] || fetchingRef.current.has(cacheKey)) continue;
+
+      // Fetch in background (don't await)
+      fetchTempLink(image).then(url => {
+        if (url) {
+          // Preload in browser
+          const img = new Image();
+          img.src = url;
+        }
+      });
+    }
+  }, [images, fetchTempLink]);
+
+  // Reset index only when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(initialIndex);
       setImageLoading(true);
-      setFullImageUrl(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Only depend on isOpen - initialIndex is captured at open time
+  }, [isOpen, initialIndex]);
 
-  // Fetch full image when currentIndex changes
+  // Load current image and preload adjacent when index changes
   useEffect(() => {
     if (!isOpen || images.length === 0) return;
 
     const currentImage = images[currentIndex];
     if (!currentImage?.path) {
-      // No path, fallback to thumbnail
-      setFullImageUrl(currentImage?.thumbnail || null);
+      setImageLoading(false);
       return;
     }
 
-    // Cleanup previous blob URL
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
+    // Check cache first - if cached, don't show loading (image will load from browser cache)
+    const cacheKey = currentImage.path;
+    const isCached = !!linkCacheRef.current[cacheKey];
 
-    const loadFullImage = async () => {
+    if (!isCached) {
+      // Only show loading if we need to fetch
       setImageLoading(true);
-      try {
-        const response = await axiosInstance.get(
-          `/dropbox/download/${encodeURIComponent(currentImage.path)}`,
-          { responseType: "blob" }
-        );
-        const url = URL.createObjectURL(new Blob([response.data]));
-        blobUrlRef.current = url;
-        setFullImageUrl(url);
-      } catch (err) {
-        // Fallback to thumbnail if full image fetch fails
-        setFullImageUrl(currentImage.thumbnail || null);
-      }
-    };
+      // Fetch the temp link
+      fetchTempLink(currentImage);
+    }
+    // If cached, imageLoading will be set to false by onLoad handler
 
-    loadFullImage();
-
-    // Cleanup on unmount or when dependencies change
-    return () => {
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [isOpen, currentIndex, images]);
+    // Preload adjacent images in background
+    preloadAdjacentImages(currentIndex);
+  }, [isOpen, currentIndex, images, fetchTempLink, preloadAdjacentImages]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -121,14 +178,24 @@ const EventGallery = ({
   }, [isOpen, currentIndex, images.length]);
 
   const goToPrevious = useCallback(() => {
-    setImageLoading(true);
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
-  }, [images.length]);
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+    const prevImage = images[prevIndex];
+    // Only show loading if not cached
+    if (prevImage?.path && !linkCacheRef.current[prevImage.path]) {
+      setImageLoading(true);
+    }
+    setCurrentIndex(prevIndex);
+  }, [currentIndex, images]);
 
   const goToNext = useCallback(() => {
-    setImageLoading(true);
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
-  }, [images.length]);
+    const nextIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+    const nextImage = images[nextIndex];
+    // Only show loading if not cached
+    if (nextImage?.path && !linkCacheRef.current[nextImage.path]) {
+      setImageLoading(true);
+    }
+    setCurrentIndex(nextIndex);
+  }, [currentIndex, images]);
 
   // Touch handlers for swipe
   const onTouchStart = (e) => {
@@ -154,7 +221,7 @@ const EventGallery = ({
     }
   };
 
-  // Download handler
+  // Download handler - still uses blob for full quality download
   const handleDownload = async () => {
     const currentImage = images[currentIndex];
     if (!currentImage?.path) {
@@ -197,6 +264,8 @@ const EventGallery = ({
   if (!isOpen || images.length === 0) return null;
 
   const currentImage = images[currentIndex];
+  const currentUrl = currentImage?.path ? linkCache[currentImage.path] : null;
+  const displayUrl = currentUrl || currentImage?.thumbnail;
 
   // Render via Portal - completely outside DOM hierarchy
   return createPortal(
@@ -232,19 +301,36 @@ const EventGallery = ({
 
         {/* Image Container */}
         <div className="lightbox-image-container">
-          {/* Loading spinner - always centered on top */}
+          {/* Show thumbnail immediately as placeholder */}
+          {currentImage?.thumbnail && imageLoading && !currentUrl && (
+            <img
+              src={currentImage.thumbnail}
+              alt=""
+              className="lightbox-placeholder-image"
+              style={{
+                position: 'absolute',
+                filter: 'blur(10px)',
+                transform: 'scale(1.1)',
+                opacity: 0.5
+              }}
+            />
+          )}
+
+          {/* Loading spinner - show while fetching temp link OR while image loads */}
           {imageLoading && (
             <div className="lightbox-loading">
               <RiLoader4Line className="spinner" />
-              <span className="loading-text">✨ Loading original quality • Worth the wait</span>
+              <span className="loading-text">
+                {currentUrl ? "Loading full image..." : "✨ Loading • Worth the wait"}
+              </span>
             </div>
           )}
 
-          {/* Image - hidden completely while loading to prevent alt text showing */}
-          {fullImageUrl && (
+          {/* Main Image */}
+          {displayUrl && (
             <motion.img
-              key={currentIndex}
-              src={fullImageUrl}
+              key={`${currentIndex}-${currentUrl ? 'full' : 'thumb'}`}
+              src={displayUrl}
               alt=""
               className={imageLoading ? 'loading' : 'loaded'}
               initial={{ opacity: 0 }}
@@ -257,7 +343,7 @@ const EventGallery = ({
           )}
 
           {/* Placeholder when no image available */}
-          {!fullImageUrl && !imageLoading && (
+          {!displayUrl && !imageLoading && (
             <div className="lightbox-placeholder">
               <RiImageLine />
               <p>Image not available</p>

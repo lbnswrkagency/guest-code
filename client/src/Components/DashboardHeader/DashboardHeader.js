@@ -1,5 +1,5 @@
 // DashboardHeader.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   RiCalendarEventLine,
@@ -10,6 +10,7 @@ import "./DashboardHeader.scss";
 import AvatarUpload from "../AvatarUpload/AvatarUpload";
 import OnlineIndicator from "../OnlineIndicator/OnlineIndicator";
 import CurrentEvents from "../CurrentEvents/CurrentEvents";
+import axiosInstance from "../../utils/axiosConfig";
 
 const DashboardHeader = ({
   user,
@@ -31,6 +32,64 @@ const DashboardHeader = ({
   );
   const [selectedDate, setSelectedDate] = useState(propSelectedDate || null);
   const [currentUser, setCurrentUser] = useState(user);
+
+  // State for fresh events data from API
+  const [freshEvents, setFreshEvents] = useState([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [lastFetchedBrandId, setLastFetchedBrandId] = useState(null);
+
+  // Fetch fresh events data from API when brand changes
+  const fetchFreshEvents = useCallback(async (brandId) => {
+    if (!brandId) return;
+
+    // Skip if we already fetched for this brand
+    if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
+      return;
+    }
+
+    setIsLoadingEvents(true);
+
+    try {
+      const response = await axiosInstance.get(
+        `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`
+      );
+
+      if (response.data?.success && response.data?.data?.events) {
+        const events = response.data.data.events;
+        setFreshEvents(events);
+        setLastFetchedBrandId(brandId);
+      } else {
+        // Fallback: try the brand events endpoint
+        const fallbackResponse = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`
+        );
+
+        if (Array.isArray(fallbackResponse.data)) {
+          setFreshEvents(fallbackResponse.data);
+          setLastFetchedBrandId(brandId);
+        } else {
+          // Fall back to Redux events if API fails
+          setFreshEvents(selectedBrand?.events || []);
+        }
+      }
+    } catch (err) {
+      console.error("[DashboardHeader] Error fetching fresh events:", err);
+      // Fall back to Redux events on error
+      setFreshEvents(selectedBrand?.events || []);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [lastFetchedBrandId, freshEvents.length, selectedBrand?.events]);
+
+  // Fetch fresh events when brand changes
+  useEffect(() => {
+    if (selectedBrand?._id) {
+      fetchFreshEvents(selectedBrand._id);
+    }
+  }, [selectedBrand?._id, fetchFreshEvents]);
+
+  // Use fresh events if available, otherwise fall back to Redux events
+  const eventsForDropdown = freshEvents.length > 0 ? freshEvents : (selectedBrand?.events || []);
 
   // Update local state when props change
   useEffect(() => {
@@ -91,6 +150,10 @@ const DashboardHeader = ({
   const handleSelectBrand = (brand) => {
     setSelectedBrand(brand);
     setBrandDropdown(false);
+
+    // Reset fresh events to force refetch for new brand
+    setFreshEvents([]);
+    setLastFetchedBrandId(null);
 
     // Reset the selected date to null when switching brands
     // This will trigger the parent component to find the next upcoming event
@@ -298,9 +361,7 @@ const DashboardHeader = ({
             whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
             onClick={() => setDateDropdown(!dateDropdown)}
           >
-            {selectedBrand &&
-            selectedBrand.events &&
-            selectedBrand.events.length > 0 ? (
+            {eventsForDropdown.length > 0 ? (
               <>
                 <RiCalendarEventLine className="dashboardHeader-date-display-icon" />
                 <span className="dashboardHeader-date-display-text">
@@ -320,15 +381,13 @@ const DashboardHeader = ({
 
           {dateDropdown && (
             <div className="dashboardHeader-date-options">
-              {selectedBrand &&
-              selectedBrand.events &&
-              selectedBrand.events.length > 0 ? (
+              {eventsForDropdown.length > 0 ? (
                 (() => {
                   // Get current date for comparison
                   const now = new Date();
 
                   // Process events to handle end dates and times properly
-                  const eventsWithEndDates = selectedBrand.events
+                  const eventsWithEndDates = eventsForDropdown
                     .map((event) => {
                       // Get event start date
                       const startDate = event.startDate
@@ -491,6 +550,7 @@ const DashboardHeader = ({
         isOpen={showEventsPopup}
         onClose={() => setShowEventsPopup(false)}
         selectedBrand={selectedBrand}
+        freshEvents={freshEvents} // Pass fresh events to the popup
         onSelectEvent={(event) => {
           if (event && event.startDate) {
             const eventDate = new Date(event.startDate)

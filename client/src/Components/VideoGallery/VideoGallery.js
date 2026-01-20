@@ -11,11 +11,6 @@ import {
   RiDownloadLine,
   RiLoader4Line,
   RiFilmLine,
-  RiPlayLine,
-  RiPauseLine,
-  RiFullscreenLine,
-  RiVolumeUpLine,
-  RiVolumeMuteLine,
 } from "react-icons/ri";
 
 const VideoGallery = ({
@@ -35,10 +30,70 @@ const VideoGallery = ({
   const { showSuccess, showError } = useToast();
   const containerRef = useRef(null);
   const videoRef = useRef(null);
-  const blobUrlRef = useRef(null);
+
+  // Cache for temporary links - persists across navigation
+  const [linkCache, setLinkCache] = useState({});
+  const fetchingRef = useRef(new Set());
+
+  // Ref to access linkCache without triggering re-renders
+  const linkCacheRef = useRef(linkCache);
+  linkCacheRef.current = linkCache;
 
   // Minimum swipe distance
   const minSwipeDistance = 50;
+
+  // Fetch temporary link for a video (returns direct Dropbox CDN URL)
+  const fetchTempLink = useCallback(async (video) => {
+    if (!video?.path) return null;
+
+    const cacheKey = video.path;
+
+    // Check cache first (use ref to avoid dependency)
+    if (linkCacheRef.current[cacheKey]) {
+      return linkCacheRef.current[cacheKey];
+    }
+
+    // Check if already fetching
+    if (fetchingRef.current.has(cacheKey)) {
+      return null;
+    }
+
+    fetchingRef.current.add(cacheKey);
+
+    try {
+      const response = await axiosInstance.get(
+        `/dropbox/temp-link/${encodeURIComponent(video.path)}`
+      );
+
+      if (response.data?.success && response.data?.url) {
+        const url = response.data.url;
+        setLinkCache(prev => ({ ...prev, [cacheKey]: url }));
+        fetchingRef.current.delete(cacheKey);
+        return url;
+      }
+    } catch (err) {
+      console.error("Failed to get temp link for video:", err);
+      fetchingRef.current.delete(cacheKey);
+    }
+
+    return null;
+  }, []); // No dependencies - uses refs
+
+  // Preload next video link
+  const preloadNextVideo = useCallback((centerIndex) => {
+    const nextIndex = centerIndex + 1;
+    if (nextIndex >= videos.length) return;
+
+    const nextVideo = videos[nextIndex];
+    if (!nextVideo?.path) return;
+
+    const cacheKey = nextVideo.path;
+    // Use ref to check cache without dependency
+    if (linkCacheRef.current[cacheKey] || fetchingRef.current.has(cacheKey)) return;
+
+    // Fetch in background
+    fetchTempLink(nextVideo);
+  }, [videos, fetchTempLink]);
 
   // Reset index when modal opens
   useEffect(() => {
@@ -50,63 +105,46 @@ const VideoGallery = ({
     }
   }, [isOpen, initialIndex]);
 
-  // Fetch video when currentIndex changes
+  // Fetch video temp link when currentIndex changes
   useEffect(() => {
     if (!isOpen || videos.length === 0) return;
 
     const currentVideo = videos[currentIndex];
     if (!currentVideo?.path) {
       setVideoUrl(null);
+      setVideoLoading(false);
       return;
     }
 
-    // Cleanup previous blob URL
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-
     const loadVideo = async () => {
-      setVideoLoading(true);
       setIsPlaying(false);
-      try {
-        const response = await axiosInstance.get(
-          `/dropbox/download/${encodeURIComponent(currentVideo.path)}`,
-          { responseType: "blob" }
-        );
 
-        // Determine mime type from extension
-        const extension = currentVideo.extension || currentVideo.name.split('.').pop().toLowerCase();
-        const mimeTypes = {
-          'mp4': 'video/mp4',
-          'mov': 'video/quicktime',
-          'avi': 'video/x-msvideo',
-          'webm': 'video/webm',
-        };
-        const mimeType = mimeTypes[extension] || 'video/mp4';
+      // Check cache first (use ref to avoid dependency loop)
+      const cacheKey = currentVideo.path;
+      const cachedUrl = linkCacheRef.current[cacheKey];
 
-        const url = URL.createObjectURL(new Blob([response.data], { type: mimeType }));
-        blobUrlRef.current = url;
+      if (cachedUrl) {
+        // Already cached - set URL immediately
+        setVideoUrl(cachedUrl);
+        // Loading will be set to false by onLoadedData/onCanPlay
+        return;
+      }
+
+      // Not cached - show loading and fetch
+      setVideoLoading(true);
+      const url = await fetchTempLink(currentVideo);
+      if (url) {
         setVideoUrl(url);
-      } catch (err) {
-        console.error("Failed to load video:", err);
+      } else {
         setVideoUrl(null);
-        showError("Failed to load video");
-      } finally {
         setVideoLoading(false);
+        showError("Failed to load video");
       }
     };
 
     loadVideo();
-
-    // Cleanup on unmount
-    return () => {
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [isOpen, currentIndex, videos, showError]);
+    preloadNextVideo(currentIndex);
+  }, [isOpen, currentIndex, videos, fetchTempLink, preloadNextVideo, showError]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -151,14 +189,26 @@ const VideoGallery = ({
   }, [isOpen, currentIndex, videos.length]);
 
   const goToPrevious = useCallback(() => {
-    setVideoLoading(true);
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : videos.length - 1));
-  }, [videos.length]);
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : videos.length - 1;
+    const prevVideo = videos[prevIndex];
+    // Only show loading if not cached
+    if (!prevVideo?.path || !linkCacheRef.current[prevVideo.path]) {
+      setVideoLoading(true);
+    }
+    setVideoUrl(null); // Always clear current video
+    setCurrentIndex(prevIndex);
+  }, [currentIndex, videos]);
 
   const goToNext = useCallback(() => {
-    setVideoLoading(true);
-    setCurrentIndex((prev) => (prev < videos.length - 1 ? prev + 1 : 0));
-  }, [videos.length]);
+    const nextIndex = currentIndex < videos.length - 1 ? currentIndex + 1 : 0;
+    const nextVideo = videos[nextIndex];
+    // Only show loading if not cached
+    if (!nextVideo?.path || !linkCacheRef.current[nextVideo.path]) {
+      setVideoLoading(true);
+    }
+    setVideoUrl(null); // Always clear current video
+    setCurrentIndex(nextIndex);
+  }, [currentIndex, videos]);
 
   const togglePlayPause = useCallback(() => {
     if (videoRef.current) {
@@ -176,16 +226,6 @@ const VideoGallery = ({
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
       setIsMuted(videoRef.current.muted);
-    }
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (videoRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        videoRef.current.requestFullscreen();
-      }
     }
   }, []);
 
@@ -213,7 +253,7 @@ const VideoGallery = ({
     }
   };
 
-  // Download handler
+  // Download handler - uses temp link for faster download
   const handleDownload = async () => {
     const currentVideo = videos[currentIndex];
     if (!currentVideo?.path) {
@@ -224,21 +264,30 @@ const VideoGallery = ({
     try {
       setDownloading(true);
 
-      const response = await axiosInstance.get(
-        `/dropbox/download/${encodeURIComponent(currentVideo.path)}`,
-        { responseType: "blob" }
-      );
+      // Get or use cached temp link (use ref)
+      let downloadUrl = linkCacheRef.current[currentVideo.path];
+      if (!downloadUrl) {
+        const response = await axiosInstance.get(
+          `/dropbox/temp-link/${encodeURIComponent(currentVideo.path)}`
+        );
+        if (response.data?.success && response.data?.url) {
+          downloadUrl = response.data.url;
+        }
+      }
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = currentVideo.name || "video.mp4";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      showSuccess("Download started");
+      if (downloadUrl) {
+        // Create a temporary link and trigger download
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = currentVideo.name || "video.mp4";
+        link.target = "_blank"; // Open in new tab as Dropbox links may require it
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showSuccess("Download started");
+      } else {
+        showError("Failed to get download link");
+      }
     } catch (error) {
       console.error("Download failed:", error);
       showError("Failed to download video");
@@ -306,11 +355,11 @@ const VideoGallery = ({
           {videoLoading && (
             <div className="video-lightbox-loading">
               <RiLoader4Line className="spinner" />
-              <span className="loading-text">✨ Loading original quality • Worth the wait</span>
+              <span className="loading-text">Loading video...</span>
             </div>
           )}
 
-          {/* Video Player */}
+          {/* Video Player - uses direct Dropbox CDN URL for streaming */}
           {videoUrl && (
             <motion.div
               className="video-player-wrapper"
@@ -324,10 +373,13 @@ const VideoGallery = ({
                 className="video-player"
                 controls
                 playsInline
+                preload="auto"
                 onLoadedData={handleVideoLoad}
+                onCanPlay={handleVideoLoad}
                 onPlay={handleVideoPlay}
                 onPause={handleVideoPause}
-                onError={() => {
+                onError={(e) => {
+                  console.error("Video error:", e);
                   setVideoLoading(false);
                   showError("Failed to play video");
                 }}

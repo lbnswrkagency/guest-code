@@ -1870,6 +1870,160 @@ exports.downloadGalleryFile = async (req, res) => {
   }
 };
 
+// In-memory cache for temporary links (valid for 4 hours)
+const tempLinkCache = new Map();
+const TEMP_LINK_CACHE_DURATION = 3.5 * 60 * 60 * 1000; // 3.5 hours (with buffer before 4-hour expiry)
+
+// Clean up expired cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of tempLinkCache.entries()) {
+    if (now > value.expiresAt) {
+      tempLinkCache.delete(key);
+    }
+  }
+}, 30 * 60 * 1000); // Clean every 30 minutes
+
+/**
+ * Get a temporary direct link to a Dropbox file
+ * Returns a URL that the browser can load directly from Dropbox CDN
+ * Much faster than streaming through server
+ */
+exports.getTemporaryLink = async (req, res) => {
+  try {
+    const { filePath } = req.params;
+
+    if (!filePath) {
+      return res.status(400).json({
+        success: false,
+        message: "File path is required"
+      });
+    }
+
+    // Decode the file path
+    const decodedPath = decodeURIComponent(filePath);
+
+    // Check cache first
+    const cacheKey = decodedPath.toLowerCase();
+    const cached = tempLinkCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json({
+        success: true,
+        url: cached.url,
+        expiresAt: new Date(cached.expiresAt).toISOString(),
+        cached: true
+      });
+    }
+
+    // Get Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Get temporary link from Dropbox (valid for 4 hours)
+    const response = await dbx.filesGetTemporaryLink({ path: decodedPath });
+
+    const expiresAt = Date.now() + TEMP_LINK_CACHE_DURATION;
+
+    // Cache the link
+    tempLinkCache.set(cacheKey, {
+      url: response.result.link,
+      expiresAt
+    });
+
+    res.json({
+      success: true,
+      url: response.result.link,
+      expiresAt: new Date(expiresAt).toISOString(),
+      cached: false
+    });
+
+  } catch (error) {
+    console.error("Error getting temporary link:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get temporary link",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Batch get temporary links for multiple files
+ * Used for preloading adjacent images in the gallery
+ */
+exports.getBatchTemporaryLinks = async (req, res) => {
+  try {
+    const { filePaths } = req.body;
+
+    if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "File paths array is required"
+      });
+    }
+
+    // Limit batch size to prevent abuse
+    const limitedPaths = filePaths.slice(0, 10);
+
+    const dbx = await getDropboxClient(true);
+    const results = {};
+
+    // Process in parallel for speed
+    await Promise.all(
+      limitedPaths.map(async (filePath) => {
+        try {
+          const decodedPath = decodeURIComponent(filePath);
+          const cacheKey = decodedPath.toLowerCase();
+
+          // Check cache first
+          const cached = tempLinkCache.get(cacheKey);
+          if (cached && Date.now() < cached.expiresAt) {
+            results[filePath] = {
+              success: true,
+              url: cached.url,
+              cached: true
+            };
+            return;
+          }
+
+          // Get from Dropbox
+          const response = await dbx.filesGetTemporaryLink({ path: decodedPath });
+          const expiresAt = Date.now() + TEMP_LINK_CACHE_DURATION;
+
+          // Cache it
+          tempLinkCache.set(cacheKey, {
+            url: response.result.link,
+            expiresAt
+          });
+
+          results[filePath] = {
+            success: true,
+            url: response.result.link,
+            cached: false
+          };
+        } catch (err) {
+          results[filePath] = {
+            success: false,
+            error: err.message
+          };
+        }
+      })
+    );
+
+    res.json({
+      success: true,
+      links: results
+    });
+
+  } catch (error) {
+    console.error("Error getting batch temporary links:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get temporary links",
+      error: error.message
+    });
+  }
+};
+
 // Diagnostic endpoint to check account structure and namespaces
 exports.diagnosticCheck = async (req, res) => {
   try {

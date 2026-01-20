@@ -38,7 +38,9 @@
       "Bash(npm run lint)",
       "WebFetch(domain:www.dropbox.com)",
       "Bash(brew upgrade:*)",
-      "Bash(brew reinstall:*)"
+      "Bash(brew reinstall:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.invoicemaker.gr)"
     ],
     "deny": []
   }

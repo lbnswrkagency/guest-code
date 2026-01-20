@@ -27,6 +27,10 @@ router.post("/thumbnails/load", dropboxController.loadThumbnails);
 // File download routes
 router.get("/download/:filePath", dropboxController.downloadGalleryFile);
 
+// Temporary link routes (for fast direct Dropbox CDN access)
+router.get("/temp-link/:filePath", dropboxController.getTemporaryLink);
+router.post("/temp-links/batch", dropboxController.getBatchTemporaryLinks);
+
 router.get("/test-root", async (req, res) => {
   try {
     const { Dropbox } = require("dropbox");

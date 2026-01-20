@@ -21,8 +21,6 @@ import Spotify from "../Spotify/Spotify";
 import BattleSign from "../BattleSign/BattleSign";
 import EventGallery from "../EventGallery/EventGallery";
 import GalleryCarousel from "../GalleryCarousel/GalleryCarousel";
-import VideoCarousel from "../VideoCarousel/VideoCarousel";
-import VideoGallery from "../VideoGallery/VideoGallery";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -41,7 +39,6 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
   RiSwordLine,
-  RiFilmLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -72,9 +69,7 @@ const UpcomingEvent = ({
   onEventChange = () => {},
   initialDateHint = null,
   brandHasGalleries: brandHasGalleriesProp = null,
-  brandHasVideoGalleries: brandHasVideoGalleriesProp = null,
   onGalleryStatusChange,
-  onVideoStatusChange,
 }) => {
   // Component optimized - renders reduced from 100s to ~10
 
@@ -112,18 +107,6 @@ const UpcomingEvent = ({
   const [showGallery, setShowGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
-
-  // Brand video gallery state
-  const [brandHasVideoGalleriesState, setBrandHasVideoGalleries] =
-    useState(false);
-  const brandHasVideoGalleries =
-    brandHasVideoGalleriesProp !== null
-      ? brandHasVideoGalleriesProp
-      : brandHasVideoGalleriesState;
-  const [checkingVideoGalleries, setCheckingVideoGalleries] = useState(false);
-  const [showVideoGallery, setShowVideoGallery] = useState(false);
-  const [videoGalleryVideos, setVideoGalleryVideos] = useState([]);
-  const [videoGalleryInitialIndex, setVideoGalleryInitialIndex] = useState(0);
 
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
@@ -933,47 +916,6 @@ const UpcomingEvent = ({
     }
   }, [brandId, brandUsername]);
 
-  // Function to check if brand has any video galleries available
-  const checkBrandVideoGalleries = useCallback(async () => {
-    if (!brandId && !brandUsername) {
-      return;
-    }
-
-    setCheckingVideoGalleries(true);
-
-    try {
-      let endpoint = "";
-
-      if (brandId) {
-        endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandId}/videos/check`;
-      } else if (brandUsername) {
-        // First get the brand by username to get the brandId
-        const cleanUsername = brandUsername.replace(/^@/, "");
-        const brandResponse = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
-        );
-
-        if (brandResponse.data && brandResponse.data._id) {
-          endpoint = `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${brandResponse.data._id}/videos/check`;
-        }
-      }
-
-      if (endpoint) {
-        const response = await axiosInstance.get(endpoint);
-
-        if (response.data && response.data.success) {
-          setBrandHasVideoGalleries(response.data.hasVideoGalleries);
-        } else {
-          setBrandHasVideoGalleries(false);
-        }
-      }
-    } catch (error) {
-      setBrandHasVideoGalleries(false);
-    } finally {
-      setCheckingVideoGalleries(false);
-    }
-  }, [brandId, brandUsername]);
-
   // Simple image error handler for main event image
   const handleImageError = useCallback((e) => {
     // Could set a fallback image or just let the no-image placeholder show
@@ -991,24 +933,6 @@ const UpcomingEvent = ({
       checkBrandGalleries();
     }
   }, [brandId, brandUsername, checkBrandGalleries, brandHasGalleriesProp]);
-
-  // Effect to check brand video galleries when component mounts or brand changes
-  // Skip if brandHasVideoGalleries prop is provided from parent (BrandProfile already checked)
-  useEffect(() => {
-    if (brandHasVideoGalleriesProp !== null) {
-      // Parent provided the value, skip checking
-      setCheckingVideoGalleries(false);
-      return;
-    }
-    if ((brandId || brandUsername) && !checkingVideoGalleries) {
-      checkBrandVideoGalleries();
-    }
-  }, [
-    brandId,
-    brandUsername,
-    checkBrandVideoGalleries,
-    brandHasVideoGalleriesProp,
-  ]);
 
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -1320,13 +1244,6 @@ const UpcomingEvent = ({
       });
     }
   };
-
-  // Handle video click - opens VideoGallery lightbox
-  const handleVideoClick = useCallback((videos, videoIndex) => {
-    setVideoGalleryVideos(videos);
-    setVideoGalleryInitialIndex(videoIndex);
-    setShowVideoGallery(true);
-  }, []);
 
   // Utility function to check if event supports table booking
   const supportsTableBooking = (event) => {
@@ -1987,22 +1904,6 @@ const UpcomingEvent = ({
                 />
               </div>
             )}
-
-            {/* Video carousel section */}
-            {brandHasVideoGalleries && (
-              <div
-                className="upcomingEvent-video-section"
-                id={`videos-${currentEvent?._id}`}
-              >
-                <VideoCarousel
-                  brandId={brandId}
-                  brandUsername={brandUsername}
-                  onVideoClick={handleVideoClick}
-                  brandHasVideoGalleries={brandHasVideoGalleries}
-                  onVideoStatusChange={onVideoStatusChange}
-                />
-              </div>
-            )}
           </div>
         </motion.div>
       </AnimatePresence>
@@ -2136,14 +2037,6 @@ const UpcomingEvent = ({
         initialIndex={galleryInitialIndex}
         isOpen={showGallery}
         onClose={() => setShowGallery(false)}
-      />
-
-      {/* VideoGallery Lightbox */}
-      <VideoGallery
-        videos={videoGalleryVideos}
-        initialIndex={videoGalleryInitialIndex}
-        isOpen={showVideoGallery}
-        onClose={() => setShowVideoGallery(false)}
       />
     </div>
   );

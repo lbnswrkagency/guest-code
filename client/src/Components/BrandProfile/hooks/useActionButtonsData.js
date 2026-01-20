@@ -9,9 +9,7 @@ const useActionButtonsData = ({
   ticketSettings,
   codeSettings,
   actuallyHasPhotos,
-  actuallyHasVideos,
   checkingGalleries,
-  checkingVideoGalleries,
   supportsTableBooking,
   supportsBattles,
 }) => {
@@ -21,7 +19,6 @@ const useActionButtonsData = ({
     tickets: false,
     codes: false,
     photos: false,
-    videos: false,
   });
 
   // Update data loading state based on dependencies
@@ -31,15 +28,12 @@ const useActionButtonsData = ({
       tickets: !!ticketSettings && ticketSettings.length >= 0, // tickets can be empty array
       codes: !!codeSettings && codeSettings.length >= 0, // codes can be empty array
       photos: actuallyHasPhotos !== null, // null = not checked yet
-      videos: actuallyHasVideos !== null || !checkingVideoGalleries, // not checking = checked
     });
   }, [
     currentEvent,
     ticketSettings,
     codeSettings,
     actuallyHasPhotos,
-    actuallyHasVideos,
-    checkingVideoGalleries,
   ]);
 
   // Calculate if all essential data is loaded
@@ -53,8 +47,8 @@ const useActionButtonsData = ({
 
   // Calculate if gallery data is still loading
   const isGalleryDataLoading = useMemo(() => {
-    return checkingGalleries || checkingVideoGalleries;
-  }, [checkingGalleries, checkingVideoGalleries]);
+    return checkingGalleries;
+  }, [checkingGalleries]);
 
   // Calculate button visibility based on loaded data
   const buttonVisibility = useMemo(() => {
@@ -65,7 +59,6 @@ const useActionButtonsData = ({
         tables: false,
         battles: false,
         photos: false,
-        videos: false,
       };
     }
 
@@ -95,7 +88,6 @@ const useActionButtonsData = ({
       tables: !!supportsTableBookingForEvent,
       battles: !!supportsBattlesForEvent,
       photos: actuallyHasPhotos === true,
-      videos: actuallyHasVideos === true,
     };
   }, [
     isDataLoaded,
@@ -103,7 +95,6 @@ const useActionButtonsData = ({
     ticketSettings,
     codeSettings,
     actuallyHasPhotos,
-    actuallyHasVideos,
     supportsTableBooking,
     supportsBattles,
   ]);
