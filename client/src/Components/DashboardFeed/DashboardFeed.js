@@ -96,45 +96,49 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       return upcomingEvent || freshEvents[0] || null;
     };
 
-    // PRIORITY 1: Always use fresh API data when available
-    if (freshEvents.length > 0) {
-      // Try to find event matching selectedDate
-      if (selectedDate) {
-        const formattedDate = new Date(selectedDate)
+    // Format selectedDate for comparison
+    const formattedSelectedDate = selectedDate
+      ? new Date(selectedDate).toISOString().split("T")[0]
+      : null;
+
+    // PRIORITY 1: Try to find matching event in fresh data
+    if (freshEvents.length > 0 && formattedSelectedDate) {
+      const matchingEvent = freshEvents.find((event) => {
+        if (!event.startDate) return false;
+        const eventDateStr = new Date(event.startDate)
           .toISOString()
           .split("T")[0];
+        return eventDateStr === formattedSelectedDate;
+      });
 
-        const matchingEvent = freshEvents.find((event) => {
-          if (!event.startDate) return false;
-          const eventDateStr = new Date(event.startDate)
-            .toISOString()
-            .split("T")[0];
-          return eventDateStr === formattedDate;
-        });
-
-        if (matchingEvent) {
-          setEventData(matchingEvent);
-          return;
-        } else {
-        }
+      if (matchingEvent) {
+        setEventData(matchingEvent);
+        return;
       }
+    }
 
-      // selectedDate doesn't match any fresh event OR no date selected
-      // Find the actual next upcoming event from fresh data
-      // This handles stale selectedDate from Redux
+    // PRIORITY 2: Check if selectedEvent matches the selected date (for past events not in freshEvents)
+    if (selectedEvent && formattedSelectedDate) {
+      const selectedEventDateStr = selectedEvent.startDate
+        ? new Date(selectedEvent.startDate).toISOString().split("T")[0]
+        : null;
+
+      if (selectedEventDateStr === formattedSelectedDate) {
+        setEventData(selectedEvent);
+        return;
+      }
+    }
+
+    // PRIORITY 3: No specific date selected - find next upcoming from fresh data
+    if (freshEvents.length > 0 && !formattedSelectedDate) {
       const nextUpcoming = findNextUpcomingFromFresh();
       if (nextUpcoming) {
-        console.log(
-          "[DashboardFeed] Using next upcoming event:",
-          nextUpcoming.title,
-          nextUpcoming._id,
-        );
         setEventData(nextUpcoming);
         return;
       }
     }
 
-    // FALLBACK: Only use Redux selectedEvent if we have NO fresh data
+    // FALLBACK: Use selectedEvent if available
     if (selectedEvent) {
       setEventData(selectedEvent);
       return;
