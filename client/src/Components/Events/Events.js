@@ -772,58 +772,83 @@ const EventCard = ({
     // Reset the current event to the new event
     setCurrentEvent(event);
 
+    // Helper function to calculate auto-navigation week
+    const calculateAutoWeek = () => {
+      const now = new Date();
+      const eventStartDate = new Date(event.startDate);
+
+      if (isNaN(eventStartDate.getTime())) {
+        return 0;
+      }
+
+      const diffTime = now.getTime() - eventStartDate.getTime();
+
+      if (diffTime < 0) {
+        return 0;
+      }
+
+      const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksPassed = Math.floor(diffTime / millisecondsInWeek);
+
+      const nextOccurrenceDate = new Date(eventStartDate);
+      nextOccurrenceDate.setDate(
+        eventStartDate.getDate() + (weeksPassed + 1) * 7
+      );
+
+      if (nextOccurrenceDate.getTime() > now.getTime()) {
+        return weeksPassed + 1;
+      } else {
+        return weeksPassed + 2;
+      }
+    };
+
     // If this is a child event (has parentEventId and weekNumber), set currentWeek to event.weekNumber
     if (event.parentEventId && event.weekNumber) {
       setCurrentWeek(event.weekNumber);
+      setIsLive(event.isLive || false);
+      setLastFetchTime(Date.now());
     } else if (event.isWeekly && currentWeek > 0) {
       // Keep the current week number
+      setIsLive(event.isLive || false);
+      setLastFetchTime(Date.now());
     } else if (event.isWeekly) {
       // Auto-navigate to the next upcoming week for weekly events
-      // Get the current date
-      const now = new Date();
-
-      // Get the event start date
-      const eventStartDate = new Date(event.startDate);
-
-      // If event start date is valid, calculate the next upcoming week
-      if (!isNaN(eventStartDate.getTime())) {
-        // Calculate the difference in milliseconds
-        const diffTime = now.getTime() - eventStartDate.getTime();
-
-        // If the event hasn't happened yet, show week 0
-        if (diffTime < 0) {
-          setCurrentWeek(0);
-        } else {
-          // Calculate how many complete weeks have passed
-          const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000;
-          const weeksPassed = Math.floor(diffTime / millisecondsInWeek);
-
-          // Calculate the date of the next occurrence
-          const nextOccurrenceDate = new Date(eventStartDate);
-          nextOccurrenceDate.setDate(
-            eventStartDate.getDate() + (weeksPassed + 1) * 7
+      // But first, check if the series has ended by fetching child events
+      const fetchAndNavigate = async () => {
+        try {
+          // Fetch all child events to check for weeklyEnded
+          const response = await axiosInstance.get(
+            `/events/children/${event._id}`
           );
+          const childEvents = response.data || [];
 
-          // If the next occurrence is in the future, use it
-          // Otherwise, use the one after that
-          if (nextOccurrenceDate.getTime() > now.getTime()) {
-            setCurrentWeek(weeksPassed + 1);
+          // Find the child event with weeklyEnded: true (the last event in the series)
+          const endedEvent = childEvents.find((child) => child.weeklyEnded);
+          const maxWeek = endedEvent ? endedEvent.weekNumber : null;
+
+          // Calculate what week we would auto-navigate to
+          const calculatedWeek = calculateAutoWeek();
+
+          // If series has ended, cap navigation to the ended week
+          if (maxWeek !== null && calculatedWeek > maxWeek) {
+            setCurrentWeek(maxWeek);
           } else {
-            setCurrentWeek(weeksPassed + 2);
+            setCurrentWeek(calculatedWeek);
           }
+        } catch (error) {
+          // If fetch fails, just use calculated week
+          setCurrentWeek(calculateAutoWeek());
         }
-      } else {
-        setCurrentWeek(0); // Default to week 0 if date is invalid
-      }
+      };
+
+      fetchAndNavigate();
+      setIsLive(event.isLive || false);
+      setLastFetchTime(Date.now());
     } else {
       setCurrentWeek(0);
+      setIsLive(event.isLive || false);
+      setLastFetchTime(Date.now());
     }
-
-    // Reset isLive to match the event's isLive status
-    setIsLive(event.isLive || false);
-
-    // Reset the last fetch time
-    setLastFetchTime(Date.now());
   }, [event]);
 
   // When navigating weeks, check if a child event exists for that week
