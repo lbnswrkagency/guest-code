@@ -625,6 +625,26 @@ const EventCodeSettings = ({
                     />
                   </div>
 
+                  {/* Note field - only for guest codes */}
+                  {codeSetting.type === "guest" && (
+                    <div className="settings-field">
+                      <label>Note (Optional)</label>
+                      <input
+                        type="text"
+                        value={getCurrentValue(codeSetting, "note") || ""}
+                        onChange={(e) =>
+                          handleLocalChange(
+                            codeSetting,
+                            "note",
+                            e.target.value
+                          )
+                        }
+                        placeholder="e.g. Only for the Afterparty"
+                      />
+                      <small className="field-hint">Additional info displayed below the condition</small>
+                    </div>
+                  )}
+
                   <div className="settings-field">
                     <label>Max People per Code</label>
                     <div className="max-pax-selector">

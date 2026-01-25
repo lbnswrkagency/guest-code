@@ -675,6 +675,7 @@ exports.editEvent = async (req, res) => {
     if (city !== undefined) event.city = city;
     if (music !== undefined) event.music = music;
     if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
+    if (req.body.weeklyEnded !== undefined) event.weeklyEnded = req.body.weeklyEnded;
     if (dropboxFolderPath !== undefined)
       event.dropboxFolderPath = dropboxFolderPath;
 
@@ -1691,6 +1692,14 @@ exports.generateGuestCode = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
+    // Fetch the note from CodeSettings for this event
+    const parentEventId = event.parentEventId || eventId;
+    const codeSettings = await CodeSettings.findOne({
+      eventId: parentEventId,
+      type: "guest",
+    });
+    const note = codeSettings?.note || "";
+
     // Check for existing guest code with remaining scans
     const existingGuestCode = await GuestCode.findOne({
       email: email.toLowerCase(),
@@ -1716,6 +1725,7 @@ exports.generateGuestCode = async (req, res) => {
       name: formattedName,
       email: email.toLowerCase(),
       condition,
+      note,
       event: eventId,
       pax,
       paxChecked: 0,
@@ -1735,7 +1745,8 @@ exports.generateGuestCode = async (req, res) => {
       condition,
       pax,
       qrCodeDataURL,
-      event
+      event,
+      note
     );
 
     res.status(201).json({ message: "Check your Mails (+Spam). Thank you 🤝" });

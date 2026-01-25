@@ -41,7 +41,7 @@ const getCodeSettingsByBrand = async (req, res) => {
           return event.parentEventId;
         }
         return event._id;
-      })
+      }),
     );
 
     // Remove duplicate event IDs
@@ -76,7 +76,6 @@ const getCodeSettingsByBrand = async (req, res) => {
 const getCodeSettings = async (req, res) => {
   try {
     const { eventId } = req.params;
-    console.log('🟣 [codeSettingsController] getCodeSettings called for event:', eventId);
 
     // Find the event to verify it exists and populate the brand
     const event = await Event.findById(eventId).populate("brand");
@@ -149,17 +148,6 @@ const getCodeSettings = async (req, res) => {
       return settingObj;
     });
 
-    console.log('🟣 [codeSettingsController] RETURNING codeSettings:', formattedSettings.length);
-    formattedSettings.forEach((s, i) => {
-      console.log(`🟣 [codeSettingsController] Setting ${i + 1}:`, {
-        id: s._id,
-        name: s.name,
-        type: s.type,
-        isEnabled: s.isEnabled,
-        isEditable: s.isEditable,
-      });
-    });
-
     return res.status(200).json({
       codeSettings: formattedSettings,
       eventName: event.title, // Include event name
@@ -167,7 +155,7 @@ const getCodeSettings = async (req, res) => {
       primaryColor: primaryColor, // Include brand's primary color
     });
   } catch (error) {
-    console.error('🔴 [codeSettingsController] getCodeSettings Error:', error);
+    console.error("🔴 [codeSettingsController] getCodeSettings Error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -181,6 +169,7 @@ const configureCodeSettings = async (req, res) => {
       name,
       type,
       condition,
+      note,
       maxPax,
       limit,
       isEnabled,
@@ -277,6 +266,7 @@ const configureCodeSettings = async (req, res) => {
               name || `${type.charAt(0).toUpperCase() + type.slice(1)} Code`,
             type,
             condition: condition || "",
+            note: note || "",
             maxPax: maxPax || 1,
             limit: limit || 0,
             isEnabled: isEnabled !== undefined ? isEnabled : true,
@@ -299,6 +289,7 @@ const configureCodeSettings = async (req, res) => {
           codeSetting.name = name;
         }
         if (condition !== undefined) codeSetting.condition = condition;
+        if (note !== undefined) codeSetting.note = note;
         if (maxPax !== undefined) codeSetting.maxPax = maxPax;
         if (limit !== undefined) codeSetting.limit = limit;
         if (isEnabled !== undefined) codeSetting.isEnabled = isEnabled;
@@ -336,6 +327,7 @@ const configureCodeSettings = async (req, res) => {
           name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} Code`,
           type,
           condition: condition || "",
+          note: note || "",
           maxPax: maxPax || 1,
           limit: limit || 0,
           isEnabled: isEnabled !== undefined ? isEnabled : true,
@@ -355,6 +347,7 @@ const configureCodeSettings = async (req, res) => {
           codeSetting.name = name;
         }
         if (condition !== undefined) codeSetting.condition = condition;
+        if (note !== undefined) codeSetting.note = note;
         if (maxPax !== undefined) codeSetting.maxPax = maxPax;
         if (limit !== undefined) codeSetting.limit = limit;
         if (isEnabled !== undefined) codeSetting.isEnabled = isEnabled;
@@ -414,7 +407,10 @@ const configureCodeSettings = async (req, res) => {
 
             // Set permissions for this specific code type
             // Use type for default types (guest, ticket, etc.), use name for custom types
-            const permissionKey = codeSetting.type === 'custom' ? codeSetting.name : codeSetting.type;
+            const permissionKey =
+              codeSetting.type === "custom"
+                ? codeSetting.name
+                : codeSetting.type;
             founderRole.permissions.codes[permissionKey] = {
               generate: true,
               limit: 0,
@@ -422,9 +418,6 @@ const configureCodeSettings = async (req, res) => {
             };
 
             await founderRole.save();
-            console.log(
-              `Updated founder role with permission for new code setting: ${codeSetting.name}`
-            );
           }
         }
       } catch (roleError) {
@@ -531,18 +524,20 @@ const deleteCodeSetting = async (req, res) => {
           isFounder: true,
         });
 
-        if (founderRole && founderRole.permissions && founderRole.permissions.codes) {
+        if (
+          founderRole &&
+          founderRole.permissions &&
+          founderRole.permissions.codes
+        ) {
           // Remove the permission using the correct key (type for defaults, name for custom)
-          const permissionKey = codeSetting.type === 'custom' ? codeSetting.name : codeSetting.type;
+          const permissionKey =
+            codeSetting.type === "custom" ? codeSetting.name : codeSetting.type;
           if (founderRole.permissions.codes[permissionKey]) {
             const updatedCodes = { ...founderRole.permissions.codes };
             delete updatedCodes[permissionKey];
 
             founderRole.permissions.codes = updatedCodes;
             await founderRole.save();
-            console.log(
-              `Removed permission for deleted code setting from founder role: ${permissionKey}`
-            );
           }
         }
       }

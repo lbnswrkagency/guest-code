@@ -6,6 +6,7 @@ import axiosInstance from "../../utils/axiosConfig";
 const GuestCodeSettings = ({ eventId, setShowGuestCodeSettings }) => {
   const navigate = useNavigate();
   const [number, setNumber] = useState("");
+  const [note, setNote] = useState("");
   const [requirePhone, setRequirePhone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -20,6 +21,7 @@ const GuestCodeSettings = ({ eventId, setShowGuestCodeSettings }) => {
           const guestSetting = response.data.codeSettings.find(cs => cs.type === 'guest');
           if (guestSetting) {
             setNumber(guestSetting.condition || "");
+            setNote(guestSetting.note || "");
             setRequirePhone(guestSetting.requirePhone !== undefined ? guestSetting.requirePhone : false);
           }
         }
@@ -47,6 +49,7 @@ const GuestCodeSettings = ({ eventId, setShowGuestCodeSettings }) => {
       await axiosInstance.put(`/code-settings/${eventId}`, {
         type: 'guest',
         condition: number.trim(),
+        note: note.trim(),
         requireEmail: true, // Always require email
         requirePhone
       });
@@ -96,6 +99,21 @@ const GuestCodeSettings = ({ eventId, setShowGuestCodeSettings }) => {
           />
           <small className="field-description">
             Optional message displayed to users when requesting guest codes
+          </small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="note">Note (Optional):</label>
+          <input
+            id="note"
+            type="text"
+            className="input-number"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g., Only for the Afterparty"
+          />
+          <small className="field-description">
+            Additional info displayed below the condition
           </small>
         </div>
 

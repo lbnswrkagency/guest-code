@@ -24,6 +24,10 @@ const CodeSettingsSchema = new Schema(
       type: String,
       default: "",
     },
+    note: {
+      type: String,
+      default: "",
+    },
     maxPax: {
       type: Number,
       default: 1,

@@ -1280,7 +1280,7 @@ const EventCard = ({
                     onClick={
                       hasPermission ? handleNextWeek : (e) => e.stopPropagation()
                     }
-                    disabled={!hasPermission}
+                    disabled={!hasPermission || currentEvent.weeklyEnded}
                   >
                     <RiArrowRightSLine />
                   </button>

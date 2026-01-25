@@ -84,7 +84,8 @@ const sendQRCodeEmail = async (
   condition,
   pax,
   qrCodeDataURL,
-  event
+  event,
+  note = ""
 ) => {
   console.debug("Preparing QR code email for:", email);
   try {
@@ -96,7 +97,8 @@ const sendQRCodeEmail = async (
       name,
       email,
       condition,
-      pax
+      pax,
+      note
     );
 
     // Configure the QR code email
@@ -118,6 +120,7 @@ const sendQRCodeEmail = async (
         <p style="font-size: 16px; margin: 0 0 5px;">Condition: <strong>${
           condition || "No specific conditions"
         }</strong></p>
+        ${note ? `<p style="font-size: 14px; color: #555; font-style: italic; margin: 5px 0;">${note}</p>` : ''}
         <p style="font-size: 16px; margin: 0 0 5px;">People: <strong>${
           pax || 1
         }</strong></p>

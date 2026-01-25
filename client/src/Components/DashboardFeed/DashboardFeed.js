@@ -2,10 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import "./DashboardFeed.scss";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
-import {
-  RiInformationLine,
-  RiRefreshLine,
-} from "react-icons/ri";
+import { RiInformationLine, RiRefreshLine } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import UpcomingEvent from "../UpcomingEvent/UpcomingEvent";
@@ -23,50 +20,51 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
   const [lastFetchedBrandId, setLastFetchedBrandId] = useState(null);
 
   // Fetch fresh event data from API when brand changes
-  const fetchFreshEventData = useCallback(async (brandId) => {
-    if (!brandId) return;
+  const fetchFreshEventData = useCallback(
+    async (brandId) => {
+      if (!brandId) return;
 
-    // Skip if we already fetched for this brand
-    if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
-      return;
-    }
+      // Skip if we already fetched for this brand
+      if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
+        return;
+      }
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await axiosInstance.get(
-        `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`
-      );
-
-      if (response.data?.success && response.data?.data?.events) {
-        const events = response.data.data.events;
-        console.log('[DashboardFeed] Fresh events from API:', events.length, 'events');
-        console.log('[DashboardFeed] Event titles:', events.map(e => `${e.title} (${e.startDate})`));
-        setFreshEvents(events);
-        setLastFetchedBrandId(brandId);
-      } else {
-        // Fallback: try the brand events endpoint
-        const fallbackResponse = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`
+      try {
+        const response = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`,
         );
 
-        if (Array.isArray(fallbackResponse.data)) {
-          setFreshEvents(fallbackResponse.data);
+        if (response.data?.success && response.data?.data?.events) {
+          const events = response.data.data.events;
+          setFreshEvents(events);
           setLastFetchedBrandId(brandId);
         } else {
-          setFreshEvents([]);
+          // Fallback: try the brand events endpoint
+          const fallbackResponse = await axiosInstance.get(
+            `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`,
+          );
+
+          if (Array.isArray(fallbackResponse.data)) {
+            setFreshEvents(fallbackResponse.data);
+            setLastFetchedBrandId(brandId);
+          } else {
+            setFreshEvents([]);
+          }
         }
+      } catch (err) {
+        console.error("[DashboardFeed] Error fetching fresh events:", err);
+        // On error, we'll fall back to Redux data via selectedEvent
+        setFreshEvents([]);
+        setError(null); // Don't show error, just use fallback
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("[DashboardFeed] Error fetching fresh events:", err);
-      // On error, we'll fall back to Redux data via selectedEvent
-      setFreshEvents([]);
-      setError(null); // Don't show error, just use fallback
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lastFetchedBrandId, freshEvents.length]);
+    },
+    [lastFetchedBrandId, freshEvents.length],
+  );
 
   // Fetch fresh data when brand changes
   useEffect(() => {
@@ -82,7 +80,11 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     // Helper function to find the next upcoming event from fresh data
     const findNextUpcomingFromFresh = () => {
       const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
 
       // Find the first upcoming or active event
       const upcomingEvent = freshEvents.find((event) => {
@@ -96,25 +98,24 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
 
     // PRIORITY 1: Always use fresh API data when available
     if (freshEvents.length > 0) {
-      console.log('[DashboardFeed] Using fresh data. selectedDate:', selectedDate);
-
       // Try to find event matching selectedDate
       if (selectedDate) {
-        const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
-        console.log('[DashboardFeed] Looking for event on date:', formattedDate);
+        const formattedDate = new Date(selectedDate)
+          .toISOString()
+          .split("T")[0];
 
         const matchingEvent = freshEvents.find((event) => {
           if (!event.startDate) return false;
-          const eventDateStr = new Date(event.startDate).toISOString().split("T")[0];
+          const eventDateStr = new Date(event.startDate)
+            .toISOString()
+            .split("T")[0];
           return eventDateStr === formattedDate;
         });
 
         if (matchingEvent) {
-          console.log('[DashboardFeed] Found matching event:', matchingEvent.title, matchingEvent._id);
           setEventData(matchingEvent);
           return;
         } else {
-          console.log('[DashboardFeed] No match for selectedDate, finding next upcoming');
         }
       }
 
@@ -123,7 +124,11 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       // This handles stale selectedDate from Redux
       const nextUpcoming = findNextUpcomingFromFresh();
       if (nextUpcoming) {
-        console.log('[DashboardFeed] Using next upcoming event:', nextUpcoming.title, nextUpcoming._id);
+        console.log(
+          "[DashboardFeed] Using next upcoming event:",
+          nextUpcoming.title,
+          nextUpcoming._id,
+        );
         setEventData(nextUpcoming);
         return;
       }

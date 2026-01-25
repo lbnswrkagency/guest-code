@@ -110,7 +110,7 @@ const EventForm = ({
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const isChildEvent =
-    event?.parentEventId || (event?.isWeekly && weekNumber > 0);
+    event?.parentEventId || (event?.isWeekly && weekNumber > 0) || event?.weekNumber > 0;
   const isNewChildEvent = !event?._id && isChildEvent && parentEventData;
   const isCreatingFromTemplate = !event && templateEvent && !parentEventData;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -191,6 +191,7 @@ const EventForm = ({
         city: event?.city || "",
         music: event?.music || "",
         isWeekly: event?.isWeekly || false,
+        weeklyEnded: event?.weeklyEnded || false,
         flyer: null,
         tableLayout: event?.tableLayout || "",
         dropboxFolderPath: event?.dropboxFolderPath || "",
@@ -1314,6 +1315,7 @@ const EventForm = ({
         city: event.city || "",
         music: event.music || "",
         isWeekly: event.isWeekly || false,
+        weeklyEnded: event.weeklyEnded || false,
         isLive: event.isLive || false,
         flyer: event.flyer || null,
         tableLayout: event.tableLayout || "",
@@ -2153,6 +2155,21 @@ const EventForm = ({
                       onChange={handleInputChange}
                     />
                     <span className="toggle-label">Weekly Event</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Show "Last Event" checkbox only for child events of weekly series */}
+              {isChildEvent && (
+                <div className="form-group weekly-event-toggle">
+                  <label className="toggle-container">
+                    <input
+                      type="checkbox"
+                      name="weeklyEnded"
+                      checked={formData.weeklyEnded || false}
+                      onChange={handleInputChange}
+                    />
+                    <span className="toggle-label">This is the last event</span>
                   </label>
                 </div>
               )}

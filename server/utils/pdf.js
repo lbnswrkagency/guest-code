@@ -28,7 +28,8 @@ const createTicketPDF = async (
   name,
   email,
   condition,
-  pax
+  pax,
+  note = ""
 ) => {
   const browser = await puppeteer.launch({
     args: [
@@ -294,15 +295,15 @@ const createTicketPDF = async (
 
       <div class="qrcode">
         <div class="qrcode-text">
-          <h2>FREE ENTRANCE</h3>
-          <p>UNTIL 00:30 H</p>
+          <h2>${condition || 'FREE ENTRANCE'}</h2>
+          ${note ? `<p style="font-size: 16px; font-style: italic; color: #666;">${note}</p>` : ''}
         </div>
 
         <div class="qrcode-data">
         <img src="${qrCodeDataURL}" alt="QR Code" />
         <p>${event._id}</p>
         </div>
-  
+
 
       </div>
     </div>

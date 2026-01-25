@@ -147,6 +147,19 @@ const GuestCode = ({ event }) => {
     return "Please fill in your details to request a guest code for this event.";
   };
 
+  // Function to get note text from code settings
+  const getNoteText = () => {
+    if (event && event.codeSettings && event.codeSettings.length > 0) {
+      const guestCodeSetting = event.codeSettings.find(
+        (cs) => cs.type === "guest"
+      );
+
+      return guestCodeSetting?.note || "";
+    }
+
+    return "";
+  };
+
   // Function to check if limit is reached
   const isLimitReached = () => {
     if (!limitInfo || limitInfo.unlimited) return false;
@@ -368,6 +381,11 @@ const GuestCode = ({ event }) => {
             style={{ color: primaryColor }}
           />
           <p className="condition-text">{getConditionText()}</p>
+          {getNoteText() && (
+            <p className="note-text" style={{ fontSize: '14px', color: '#aaa', fontStyle: 'italic', marginTop: '4px' }}>
+              {getNoteText()}
+            </p>
+          )}
         </div>
 
         {/* Success message */}

@@ -64,12 +64,11 @@ const Dashboard = () => {
     window.dispatchEvent(
       new CustomEvent("navigationStateChanged", {
         detail: { isOpen },
-      })
+      }),
     );
 
     setIsNavigationOpen(isOpen);
   };
-
 
   useEffect(() => {
     // Check if user is logged in
@@ -121,7 +120,7 @@ const Dashboard = () => {
     return () => {
       window.removeEventListener(
         "alphaAccessGranted",
-        handleAlphaAccessGranted
+        handleAlphaAccessGranted,
       );
     };
   }, [user]);
@@ -307,7 +306,9 @@ const Dashboard = () => {
         // Use the active event with the soonest end time
         const activeEvent = sortedActiveEvents[0];
         nextEventBrand = brandWithData;
-        nextEventDate = new Date(activeEvent.startDate).toISOString().split("T")[0];
+        nextEventDate = new Date(activeEvent.startDate)
+          .toISOString()
+          .split("T")[0];
 
         // This is active, so it has the highest priority
         return { brand: nextEventBrand, date: nextEventDate };
@@ -340,7 +341,9 @@ const Dashboard = () => {
         if (timeDiff < closestTimeDiff) {
           closestTimeDiff = timeDiff;
           nextEventBrand = brandWithData;
-          nextEventDate = new Date(closestEvent.startDate).toISOString().split("T")[0];
+          nextEventDate = new Date(closestEvent.startDate)
+            .toISOString()
+            .split("T")[0];
         }
       }
     }
@@ -396,7 +399,7 @@ const Dashboard = () => {
 
     // Get lineups for this brand
     const brandLineups = lineups.filter(
-      (lineup) => lineup.brandId === brand._id
+      (lineup) => lineup.brandId === brand._id,
     );
 
     // Calculate team size
@@ -428,15 +431,12 @@ const Dashboard = () => {
         if (!event.startDate) return false;
 
         // Format date for comparison
-        const eventDateStr = new Date(event.startDate).toISOString().split("T")[0];
+        const eventDateStr = new Date(event.startDate)
+          .toISOString()
+          .split("T")[0];
 
         return eventDateStr === formattedDate;
       });
-
-      // DEBUG LOG
-      console.log('[DASHBOARD DEBUG] Setting selectedEvent:', eventForDate?.title);
-      console.log('[DASHBOARD DEBUG] eventForDate.codeSettings:', eventForDate?.codeSettings?.length, 'items');
-      console.log('[DASHBOARD DEBUG] eventForDate.coHostBrandInfo:', !!eventForDate?.coHostBrandInfo);
 
       setSelectedEvent(eventForDate || null);
     } else {
@@ -483,18 +483,24 @@ const Dashboard = () => {
     }
 
     // Check if this event has embedded code settings (co-hosted event case)
-    if (selectedEvent.codeSettings && Array.isArray(selectedEvent.codeSettings) && selectedEvent.codeSettings.length > 0) {
-      console.log('[DASHBOARD DEBUG] Using embedded codeSettings from selectedEvent:', selectedEvent.codeSettings.length);
+    if (
+      selectedEvent.codeSettings &&
+      Array.isArray(selectedEvent.codeSettings) &&
+      selectedEvent.codeSettings.length > 0
+    ) {
       return selectedEvent.codeSettings;
     }
 
     // Compare as strings to handle ObjectId vs string mismatch
     const eventIdStr = selectedEvent._id?.toString();
     const eventCodeSettings = codeSettings.filter(
-      (setting) => setting.eventId?.toString() === eventIdStr
+      (setting) => setting.eventId?.toString() === eventIdStr,
     );
 
-    console.log('[DASHBOARD DEBUG] Using Redux codeSettings filtered by eventId:', eventCodeSettings.length);
+    console.log(
+      "[DASHBOARD DEBUG] Using Redux codeSettings filtered by eventId:",
+      eventCodeSettings.length,
+    );
     return eventCodeSettings;
   };
 
@@ -518,13 +524,13 @@ const Dashboard = () => {
       // Find co-host permissions for our brand
       const coHostPermission = selectedEvent.coHostRolePermissions.find(
         (permission) =>
-          permission.brandId.toString() === selectedBrand._id.toString()
+          permission.brandId.toString() === selectedBrand._id.toString(),
       );
 
       if (coHostPermission && selectedBrand.role) {
         // Find permissions for our specific role
         const rolePermission = coHostPermission.rolePermissions.find(
-          (rp) => rp.roleId.toString() === selectedBrand.role._id.toString()
+          (rp) => rp.roleId.toString() === selectedBrand.role._id.toString(),
         );
 
         if (rolePermission) {
@@ -565,7 +571,7 @@ const Dashboard = () => {
     // Convert the codes to an array of objects
     return Object.entries(codesPermissions)
       .filter(
-        ([name, permission]) => permission !== null && permission !== undefined
+        ([name, permission]) => permission !== null && permission !== undefined,
       )
       .map(([name, permission]) => ({
         name,
@@ -587,7 +593,7 @@ const Dashboard = () => {
     if (permissions.codes && typeof permissions.codes === "object") {
       // Check if any code type has generate permission
       canCreateCodes = Object.values(permissions.codes).some(
-        (p) => p && p.generate === true
+        (p) => p && p.generate === true,
       );
     }
 
@@ -692,7 +698,7 @@ const Dashboard = () => {
     window.dispatchEvent(
       new CustomEvent("dashboardMounted", {
         detail: { navigationController: true },
-      })
+      }),
     );
 
     return () => {
@@ -708,7 +714,7 @@ const Dashboard = () => {
         if (!selectedEvent || selectedEvent._id !== e.detail.event._id) {
           // Find the event in the events list
           const targetEvent = events.find(
-            (event) => event._id === e.detail.event._id
+            (event) => event._id === e.detail.event._id,
           );
 
           if (targetEvent) {
@@ -750,7 +756,7 @@ const Dashboard = () => {
           window.dispatchEvent(
             new CustomEvent("navigationMenuClick", {
               detail: { source: "dashboard" },
-            })
+            }),
           );
         }}
         onLogout={handleLogout}
@@ -836,11 +842,11 @@ const Dashboard = () => {
                 view: true, // Already checked in menu visibility
                 edit:
                   userRoleForSelectedBrand?.some(
-                    (role) => role.permissions?.battles?.edit
+                    (role) => role.permissions?.battles?.edit,
                   ) || false,
                 delete:
                   userRoleForSelectedBrand?.some(
-                    (role) => role.permissions?.battles?.delete
+                    (role) => role.permissions?.battles?.delete,
                   ) || false,
               },
             }}

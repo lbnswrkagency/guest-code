@@ -59,6 +59,7 @@ const EventSchema = new Schema(
     isWeekly: { type: Boolean, default: false },
     parentEventId: { type: Schema.Types.ObjectId, ref: "Event" },
     weekNumber: { type: Number, default: 0 },
+    weeklyEnded: { type: Boolean, default: false }, // True = no more weeks after this
     sourceEventId: { type: Schema.Types.ObjectId, ref: "Event" }, // For non-weekly series: tracks which event this was created from
     isLive: { type: Boolean, default: false },
     lineups: [{ type: Schema.Types.ObjectId, ref: "LineUp" }],
