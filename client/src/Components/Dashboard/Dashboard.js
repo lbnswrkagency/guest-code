@@ -497,10 +497,6 @@ const Dashboard = () => {
       (setting) => setting.eventId?.toString() === eventIdStr,
     );
 
-    console.log(
-      "[DASHBOARD DEBUG] Using Redux codeSettings filtered by eventId:",
-      eventCodeSettings.length,
-    );
     return eventCodeSettings;
   };
 
