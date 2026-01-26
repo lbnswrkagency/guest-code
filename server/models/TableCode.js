@@ -22,6 +22,8 @@ const TableCodeSchema = new Schema(
       enum: ["pending", "confirmed", "declined", "cancelled"],
       default: "pending",
     },
+    statusChangedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    statusChangedAt: { type: Date },
     code: { type: String, unique: true },
     qrCodeData: { type: String },
     securityToken: { type: String },

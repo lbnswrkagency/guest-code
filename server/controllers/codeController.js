@@ -15,6 +15,8 @@ const {
   createSystemNotification,
   findUsersWithTablePermission,
 } = require("../utils/notificationHelper");
+const Notification = require("../models/notificationModel");
+const User = require("../models/User");
 
 // Configure Brevo API Key
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -135,11 +137,22 @@ const updateCodeStatus = async (req, res) => {
   }
 
   try {
-    const updatedCode = await model.findByIdAndUpdate(
-      codeId,
-      { status },
-      { new: true }
-    );
+    // Get the current user's ID
+    const currentUserId = req.user.userId || req.user._id;
+
+    // For table codes, also store who changed the status
+    const updateData =
+      type === "table"
+        ? {
+            status,
+            statusChangedBy: currentUserId,
+            statusChangedAt: new Date(),
+          }
+        : { status };
+
+    const updatedCode = await model.findByIdAndUpdate(codeId, updateData, {
+      new: true,
+    });
 
     if (!updatedCode) {
       return res.status(404).json({
@@ -166,6 +179,11 @@ const updateCodeStatus = async (req, res) => {
           const notificationType = statusToNotificationType[status];
 
           if (notificationType) {
+            // Get current user's info for the notification
+            const currentUser = await User.findById(currentUserId).select(
+              "username firstName lastName"
+            );
+
             // Get users with table manage permission
             const usersWithPermission = await findUsersWithTablePermission(
               brandId,
@@ -195,38 +213,54 @@ const updateCodeStatus = async (req, res) => {
               cancelled: `${tableType} ${updatedCode.tableNumber} for ${updatedCode.name} has been cancelled`,
             };
 
-            // Send notification to each user with permission
-            for (const userId of usersWithPermission) {
-              await createSystemNotification({
-                userId,
-                type: notificationType,
-                title: `Table ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                message: statusMessages[status],
-                metadata: {
-                  tableCode: {
-                    _id: updatedCode._id,
-                    tableNumber: updatedCode.tableNumber,
-                    pax: updatedCode.pax,
-                    status: updatedCode.status,
-                    isPublic: updatedCode.isPublic,
-                  },
-                  event: {
-                    _id: event._id,
-                    title: event.title,
-                  },
-                  guest: {
-                    name: updatedCode.name,
-                    email: updatedCode.email || null,
-                  },
-                },
-                brandId,
-              });
-            }
+            // Prepare changedBy metadata
+            const changedByMetadata = currentUser
+              ? {
+                  _id: currentUser._id,
+                  username: currentUser.username,
+                  firstName: currentUser.firstName,
+                  lastName: currentUser.lastName,
+                }
+              : { _id: currentUserId };
 
+            // UPDATE existing table_request notifications instead of creating new ones
+            // This prevents duplicate notifications
+            const updateResult = await Notification.updateMany(
+              {
+                type: "table_request",
+                "metadata.tableCode._id": updatedCode._id,
+              },
+              {
+                $set: {
+                  type: notificationType,
+                  title: `Table ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                  message: statusMessages[status],
+                  read: false, // Mark as unread so users see the update
+                  "metadata.tableCode.status": status,
+                  "metadata.changedBy": changedByMetadata,
+                  "metadata.changedAt": new Date(),
+                },
+              }
+            );
+
+            // Emit socket event to notify clients of the update
+            const io = req.app.get("io") || global.io;
+            if (io) {
+              // Notify all users with permission (except the one who made the change)
+              for (const userId of usersWithPermission) {
+                if (userId.toString() !== currentUserId.toString()) {
+                  io.to(`user:${userId}`).emit("notification_updated");
+                }
+              }
+            }
           }
         }
       } catch (notificationError) {
         // Silent fail - don't fail the status update if notifications fail
+        console.error(
+          "[updateCodeStatus] Notification error:",
+          notificationError.message
+        );
       }
     }
 

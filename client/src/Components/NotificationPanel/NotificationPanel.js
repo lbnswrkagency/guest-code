@@ -10,6 +10,7 @@ import {
   RiNotificationLine,
   RiTimeLine,
   RiTableLine,
+  RiCheckDoubleLine,
 } from "react-icons/ri";
 import "./NotificationPanel.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -126,6 +127,21 @@ const NotificationPanel = ({ onClose }) => {
         error
       );
       toast.showError("Failed to open table system");
+    }
+  };
+
+  // Handle mark all notifications as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      await axiosInstance.put("/notifications/mark-all-read");
+      fetchNotifications();
+      toast.showSuccess("All notifications marked as read");
+    } catch (error) {
+      console.error(
+        "[NotificationPanel] Error marking all as read:",
+        error
+      );
+      toast.showError("Failed to mark all as read");
     }
   };
 
@@ -414,6 +430,9 @@ const NotificationPanel = ({ onClose }) => {
               <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
               <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
               <span className="status-confirmed">confirmed</span>
+              {metadata?.changedBy?.username && (
+                <> by <strong>@{metadata.changedBy.username}</strong></>
+              )}
             </>
           );
           break;
@@ -423,6 +442,9 @@ const NotificationPanel = ({ onClose }) => {
               <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
               <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
               <span className="status-declined">declined</span>
+              {metadata?.changedBy?.username && (
+                <> by <strong>@{metadata.changedBy.username}</strong></>
+              )}
             </>
           );
           break;
@@ -432,6 +454,9 @@ const NotificationPanel = ({ onClose }) => {
               <strong>Table {metadata?.tableCode?.tableNumber || "?"}</strong> for{" "}
               <strong>{metadata?.guest?.name || "Guest"}</strong> has been{" "}
               <span className="status-cancelled">cancelled</span>
+              {metadata?.changedBy?.username && (
+                <> by <strong>@{metadata.changedBy.username}</strong></>
+              )}
             </>
           );
           break;
@@ -578,6 +603,15 @@ const NotificationPanel = ({ onClose }) => {
         <h2>Notifications</h2>
         <div className="header-actions">
           <motion.button
+            className="mark-all-read-btn"
+            onClick={handleMarkAllAsRead}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title="Mark all as read"
+          >
+            <RiCheckDoubleLine />
+          </motion.button>
+          <motion.button
             className={`history-toggle ${showHistory ? "active" : ""}`}
             onClick={toggleHistory}
             whileHover={{ scale: 1.1 }}
@@ -614,9 +648,14 @@ const NotificationPanel = ({ onClose }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
-                onClick={() =>
-                  !notification.read && handleMarkAsRead(notification._id)
-                }
+                onClick={() => {
+                  // For table_request notifications, navigate to tables instead of just marking as read
+                  if (notification.type === "table_request" && !notification.read) {
+                    handleNavigateToTables(notification);
+                  } else if (!notification.read) {
+                    handleMarkAsRead(notification._id);
+                  }
+                }}
               >
                 {renderNotificationContent(notification)}
               </motion.div>

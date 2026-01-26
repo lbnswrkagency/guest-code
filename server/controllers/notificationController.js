@@ -120,3 +120,26 @@ exports.deleteNotification = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+
+    const result = await Notification.updateMany(
+      { userId, read: false },
+      { read: true }
+    );
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${userId}`).emit("notifications_all_read");
+    }
+
+    res.json({
+      message: "All notifications marked as read",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error marking all as read" });
+  }
+};

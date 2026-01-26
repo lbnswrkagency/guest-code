@@ -20,6 +20,9 @@ router.post(
   notificationController.createNotification
 );
 
+// Mark all notifications as read for the authenticated user
+router.put("/mark-all-read", authenticateToken, notificationController.markAllAsRead);
+
 // Mark a notification as read
 router.put("/:id/read", authenticateToken, notificationController.markAsRead);
 
