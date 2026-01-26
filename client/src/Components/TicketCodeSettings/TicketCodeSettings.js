@@ -451,38 +451,32 @@ const TicketCodeSettings = ({ event, codeSetting, onSave, onCancel }) => {
             Select the payment method for all tickets in this event.
           </small>
 
-          {globalPaymentMethod === "atEntrance" && (
-            <>
-              <div className="door-price-input">
-                <label>
-                  Door Price (€) <small>(Abendkasse)</small>
-                </label>
-                <div className="input-with-icon">
-                  <RiMoneyDollarCircleLine />
-                  <input
-                    type="number"
-                    value={globalDoorPrice}
-                    onChange={(e) => setGlobalDoorPrice(e.target.value)}
-                    onBlur={() => updateAllTicketsDoorPrice(globalDoorPrice)}
-                    placeholder="35.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <small className="help-text">
-                  Set a higher price for customers who pay at the entrance. This
-                  price will be applied to all tickets.
-                </small>
-              </div>
-              <div className="door-price-note">
-                <RiInformationLine />
-                <span>
-                  This door price will be applied to all tickets and displayed
-                  prominently to customers who pay at the entrance.
-                </span>
-              </div>
-            </>
-          )}
+          <div className="door-price-input">
+            <label>
+              Door Price (€) <small>(Abendkasse)</small>
+            </label>
+            <div className="input-with-icon">
+              <RiMoneyDollarCircleLine />
+              <input
+                type="number"
+                value={globalDoorPrice}
+                onChange={(e) => setGlobalDoorPrice(e.target.value)}
+                onBlur={() => updateAllTicketsDoorPrice(globalDoorPrice)}
+                placeholder="35.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <small className="help-text">
+              Set a price for customers who pay at the door. This encourages early online purchases.
+            </small>
+          </div>
+          <div className="door-price-note">
+            <RiInformationLine />
+            <span>
+              This door price will be shown to customers to encourage online ticket purchases.
+            </span>
+          </div>
         </div>
       </div>
     );

@@ -740,45 +740,22 @@ const Tickets = ({
           </div>
         ) : validatedTickets.length > 0 ? (
           <>
-            {/* Global Door Price Banner - Only show if payment method is atEntrance */}
+            {/* Door Price Hint */}
             {validatedTickets.length > 0 &&
-              validatedTickets[0].paymentMethod === "atEntrance" &&
-              validatedTickets[0].doorPrice && (
-                <div className="global-door-price">
-                  <div className="door-price-icon">
-                    <RiDoorLine />
-                  </div>
-                  <div className="door-price-content">
-                    <div className="door-price-title">
-                      Door Price: {validatedTickets[0].doorPrice.toFixed(2)}€
-                    </div>
-                    <div className="door-price-note">
-                      When buying online save{" "}
-                      {calculateDiscountPercentage(
+              validatedTickets[0].doorPrice &&
+              validatedTickets[0].doorPrice > validatedTickets[0].price && (
+                <div style={{ textAlign: 'center' }}>
+                  <div className="door-price-hint">
+                    <span className="door-price-value">
+                      {validatedTickets[0].doorPrice.toFixed(0)}€ at door
+                    </span>
+                    <span className="door-price-savings">
+                      Save {calculateDiscountPercentage(
                         validatedTickets[0].doorPrice,
                         validatedTickets[0].price
-                      )}
-                      %
-                    </div>
+                      )}%
+                    </span>
                   </div>
-                </div>
-              )}
-
-            {/* Online Savings Hint - Show for online payments with door prices */}
-            {validatedTickets.length > 0 &&
-              validatedTickets[0].paymentMethod === "online" &&
-              validatedTickets.some(
-                (ticket) => ticket.doorPrice > ticket.price
-              ) && (
-                <div className="online-savings-hint">
-                  <FaTag />
-                  <span>
-                    Door Price:{" "}
-                    {Math.max(
-                      ...validatedTickets.map((ticket) => ticket.doorPrice || 0)
-                    ).toFixed(2)}
-                    €
-                  </span>
                 </div>
               )}
 

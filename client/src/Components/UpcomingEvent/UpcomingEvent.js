@@ -1791,40 +1791,40 @@ const UpcomingEvent = ({
               />
             </div>
 
-            {/* Lineup section - MOVED UP BEFORE TICKETS */}
+            {/* Ticket Purchase Section - Render only if there are VISIBLE tickets */}
+            {currentEvent &&
+              currentEvent.ticketsAvailable !== false &&
+              visibleTicketSettings.length > 0 && (
+                <div
+                  ref={ticketSectionRef}
+                  className="upcomingEvent-ticket-section full-width"
+                >
+                  {loadingTickets && !seamless ? (
+                    <div className="upcomingEvent-ticket-loading">
+                      <LoadingSpinner color="#ffc807" />
+                      <p>Loading tickets...</p>
+                    </div>
+                  ) : loadingTickets && seamless ? null : (
+                    <Tickets
+                      eventId={currentEvent._id}
+                      eventTitle={currentEvent.title}
+                      eventDate={currentEvent.startDate}
+                      seamless={seamless}
+                      event={currentEvent} // Pass the full event data
+                      ticketSettings={visibleTicketSettings} // Pass the already fetched and filtered ticket settings
+                      fetchTicketSettings={fetchTicketSettings}
+                    />
+                  )}
+                </div>
+              )}
+
+            {/* Lineup section */}
             {currentEvent.lineups && currentEvent.lineups.length > 0 && (
               <LineUpView lineups={currentEvent.lineups} />
             )}
 
             {/* Content sections wrapper for responsive layout */}
             <div className="upcomingEvent-content-sections">
-              {/* Ticket Purchase Section - Render only if there are VISIBLE tickets */}
-              {currentEvent &&
-                currentEvent.ticketsAvailable !== false &&
-                visibleTicketSettings.length > 0 && (
-                  <div
-                    ref={ticketSectionRef}
-                    className="upcomingEvent-ticket-section full-width"
-                  >
-                    {loadingTickets && !seamless ? (
-                      <div className="upcomingEvent-ticket-loading">
-                        <LoadingSpinner color="#ffc807" />
-                        <p>Loading tickets...</p>
-                      </div>
-                    ) : loadingTickets && seamless ? null : (
-                      // No need to check length again here, already done above
-                      <Tickets
-                        eventId={currentEvent._id}
-                        eventTitle={currentEvent.title}
-                        eventDate={currentEvent.startDate}
-                        seamless={seamless}
-                        event={currentEvent} // Pass the full event data
-                        ticketSettings={visibleTicketSettings} // Pass the already fetched and filtered ticket settings
-                        fetchTicketSettings={fetchTicketSettings}
-                      />
-                    )}
-                  </div>
-                )}
               {/* Battle signup section - Only shown if battles are enabled */}
               {currentEvent && supportsBattles(currentEvent) && (
                 <div

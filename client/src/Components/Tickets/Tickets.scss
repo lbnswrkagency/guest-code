@@ -153,64 +153,27 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   color: var(--text-color);
 }
 
-// Global Door Price Banner
-.global-door-price {
-  display: flex;
+// Door Price Hint - Small subtle badge below title
+.door-price-hint {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  background: rgba(26, 26, 26, 0.9);
-  border-radius: 8px;
-  border-left: 3px solid #d4af37;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  color: #e6e6e6;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  gap: 6px;
+  margin: 0 auto 1rem;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
-
-    .door-price-icon {
-      transform: rotate(10deg);
-      background: #d4af37;
-    }
+  .door-price-value {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: line-through;
   }
 
-  .door-price-icon {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(212, 175, 55, 0.8);
-    color: #1a1a1a;
-    border-radius: 50%;
-    margin-right: 12px;
-    font-size: 20px;
-    transition: all 0.3s ease;
-
-    svg {
-      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
-    }
-  }
-
-  .door-price-content {
-    flex: 1;
-
-    .door-price-title {
-      font-weight: 600;
-      font-size: 16px;
-      margin-bottom: 4px;
-      color: #d4af37;
-    }
-
-    .door-price-note {
-      font-size: 14px;
-      color: #ccc;
-    }
+  .door-price-savings {
+    color: #4ade80;
+    font-weight: 500;
   }
 }
 
