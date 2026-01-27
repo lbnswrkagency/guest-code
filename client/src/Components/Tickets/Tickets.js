@@ -209,6 +209,8 @@ const Tickets = ({
 
   // Memoize the validated tickets to prevent unnecessary re-renders
   const validatedTickets = useMemo(() => {
+    const now = new Date();
+
     return (
       ticketSettings
         .map((ticket) => {
@@ -235,24 +237,64 @@ const Tickets = ({
             ...ticket,
           };
 
-          return normalizedTicket;
-        })
-        .filter(Boolean)
-        // Filter out expired tickets that have countdown enabled
-        .filter((ticket) => {
-          // Only filter by endDate if the ticket has countdown enabled (from DB)
-          // This respects the hasCountdown field set in the database
-          if (ticket.hasCountdown && ticket.endDate) {
-            const now = new Date();
-            const endDate = new Date(ticket.endDate);
-            return endDate > now; // Only include if the end date is in the future
+          // Check if ticket is offline instead of filtering it out
+          let isOffline = false;
+          let offlineSince = null;
+
+          // Check if ticket has countdown and is expired
+          if (normalizedTicket.hasCountdown && normalizedTicket.endDate) {
+            const endDate = new Date(normalizedTicket.endDate);
+            if (endDate <= now) {
+              isOffline = true;
+              offlineSince = endDate;
+            }
           }
 
-          // Keep tickets without countdown enabled
-          return true;
+          // Check if ticket has custom offlineTime and event is today
+          if (!isOffline && normalizedTicket.offlineTime && event?.startDate) {
+            const eventDate = new Date(event.startDate);
+            const todayStr = now.toISOString().split('T')[0];
+            const eventDateStr = eventDate.toISOString().split('T')[0];
+
+            // Only check if event is today
+            if (todayStr === eventDateStr) {
+              const [hours, minutes] = normalizedTicket.offlineTime.split(':').map(Number);
+              const offlineDateTime = new Date(eventDate);
+              offlineDateTime.setHours(hours, minutes, 0, 0);
+
+              if (now >= offlineDateTime) {
+                isOffline = true;
+                offlineSince = offlineDateTime;
+              }
+            }
+          }
+
+          // Check goOfflineAtEventStart
+          if (!isOffline && normalizedTicket.goOfflineAtEventStart && event?.startDate) {
+            const eventStartDateTime = new Date(event.startDate);
+
+            // If event has startTime, use it to set the time
+            if (event.startTime) {
+              const [hours, minutes] = event.startTime.split(':').map(Number);
+              eventStartDateTime.setHours(hours, minutes, 0, 0);
+            }
+
+            if (now >= eventStartDateTime) {
+              isOffline = true;
+              offlineSince = eventStartDateTime;
+            }
+          }
+
+          return {
+            ...normalizedTicket,
+            isOffline,
+            offlineSince,
+          };
         })
+        .filter(Boolean)
+        // Don't filter out offline tickets anymore - show them all
     );
-  }, [ticketSettings]);
+  }, [ticketSettings, event]);
 
   // Memoize these functions to prevent recreation on each render
   const formatDate = useCallback((dateString) => {
@@ -316,6 +358,50 @@ const Tickets = ({
       );
     },
     [primaryColor]
+  );
+
+  // Render offline deadline badge - only shows on event day
+  const renderOfflineDeadline = useCallback(
+    (ticket) => {
+      // Skip if ticket is already offline or has no offline time set
+      if (ticket.isOffline) return null;
+
+      const now = new Date();
+      let deadlineTime = null;
+
+      // Check for custom offline time
+      if (ticket.offlineTime && event?.startDate) {
+        const eventDate = new Date(event.startDate);
+        const todayStr = now.toISOString().split('T')[0];
+        const eventDateStr = eventDate.toISOString().split('T')[0];
+
+        // Only show on event day
+        if (todayStr === eventDateStr) {
+          deadlineTime = ticket.offlineTime;
+        }
+      }
+
+      // Check for goOfflineAtEventStart
+      if (!deadlineTime && ticket.goOfflineAtEventStart && event?.startDate && event?.startTime) {
+        const eventDate = new Date(event.startDate);
+        const todayStr = now.toISOString().split('T')[0];
+        const eventDateStr = eventDate.toISOString().split('T')[0];
+
+        // Only show on event day
+        if (todayStr === eventDateStr) {
+          deadlineTime = event.startTime;
+        }
+      }
+
+      if (!deadlineTime) return null;
+
+      return (
+        <div className="ticket-offline-deadline" style={{ color: primaryColor }}>
+          <RiTimeLine /> Online until {deadlineTime}
+        </div>
+      );
+    },
+    [event, primaryColor]
   );
 
   // Memoize calculateRemainingTime
@@ -634,6 +720,13 @@ const Tickets = ({
     }
   }, [fetchTicketSettings, eventId]);
 
+  // Helper function to format offline time
+  const formatOfflineTime = useCallback((date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, []);
+
   // Memoize the ticket item rendering to prevent unnecessary re-renders
   const renderTicketItem = useCallback(
     (ticket) => (
@@ -641,13 +734,27 @@ const Tickets = ({
         key={ticket._id}
         className={`ticket-item ${
           (ticketQuantities[ticket._id] || 0) > 0 ? "active" : ""
-        }`}
+        } ${ticket.isOffline ? "ticket-offline" : ""}`}
         style={{
           "--ticket-accent-color": ticket.color || primaryColor,
         }}
       >
-        {renderCountdown(ticket)}
-        {renderLimitedBadge(ticket)}
+        {/* Offline overlay */}
+        {ticket.isOffline && (
+          <div className="ticket-offline-overlay">
+            <RiDoorLine className="offline-icon" />
+            <span className="offline-message">
+              {ticket.offlineSince
+                ? `Tickets offline since ${formatOfflineTime(ticket.offlineSince)}`
+                : "Tickets offline"}
+            </span>
+            <span className="door-message">Further tickets only at the door</span>
+          </div>
+        )}
+
+        {!ticket.isOffline && renderCountdown(ticket)}
+        {!ticket.isOffline && renderLimitedBadge(ticket)}
+        {!ticket.isOffline && renderOfflineDeadline(ticket)}
         {ticket.paxPerTicket > 1 && (
           <div className="ticket-group-badge">
             <FaUserFriends />
@@ -697,7 +804,7 @@ const Tickets = ({
           <button
             className="quantity-btn"
             onClick={() => handleQuantityChange(ticket._id, -1)}
-            disabled={(ticketQuantities[ticket._id] || 0) === 0}
+            disabled={ticket.isOffline || (ticketQuantities[ticket._id] || 0) === 0}
           >
             -
           </button>
@@ -705,6 +812,7 @@ const Tickets = ({
           <button
             className="quantity-btn"
             onClick={() => handleQuantityChange(ticket._id, 1)}
+            disabled={ticket.isOffline}
           >
             +
           </button>
@@ -716,7 +824,9 @@ const Tickets = ({
       primaryColor,
       renderCountdown,
       renderLimitedBadge,
+      renderOfflineDeadline,
       handleQuantityChange,
+      formatOfflineTime,
     ]
   );
 

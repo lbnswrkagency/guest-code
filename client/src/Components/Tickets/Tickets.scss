@@ -534,6 +534,46 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     top: 3.5rem;
   }
 
+  // Offline deadline badge - shows when ticket has offline time on event day
+  .ticket-offline-deadline {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
+    color: var(--ticket-accent-color);
+    padding: 0.4rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    background-image: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(30, 30, 30, 0.9) 50%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+
+    svg {
+      font-size: 0.9rem;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+    }
+  }
+
+  // Position offline deadline badge below other badges if they exist
+  .ticket-countdown + .ticket-offline-deadline,
+  .ticket-limited-badge + .ticket-offline-deadline {
+    top: 3.5rem;
+  }
+
+  .ticket-countdown + .ticket-limited-badge + .ticket-offline-deadline {
+    top: 6rem;
+  }
+
   // Discount badge - adjusted position
   .ticket-discount {
     position: absolute;
@@ -723,6 +763,58 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
         opacity: 0.5;
         cursor: not-allowed;
       }
+    }
+  }
+
+  // Offline ticket styling
+  &.ticket-offline {
+    opacity: 0.6;
+    filter: grayscale(0.4);
+    pointer-events: none;
+    position: relative;
+
+    .ticket-offline-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 12px;
+      z-index: 10;
+      padding: 1rem;
+      text-align: center;
+      backdrop-filter: blur(2px);
+
+      .offline-icon {
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 0.8rem;
+      }
+
+      .offline-message {
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+      }
+
+      .door-message {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-style: italic;
+      }
+    }
+
+    // Disable hover effects
+    &:hover {
+      transform: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
     }
   }
 }

@@ -112,6 +112,15 @@ const TicketSettingsSchema = new Schema(
       default: 0,
       description: "Order for displaying tickets",
     },
+    goOfflineAtEventStart: {
+      type: Boolean,
+      default: false,
+      description: "If true, ticket goes offline when event starts",
+    },
+    offlineTime: {
+      type: String,
+      description: "Specific time (HH:mm) when ticket goes offline on event day. Alternative to goOfflineAtEventStart",
+    },
   },
   {
     timestamps: true,
@@ -144,11 +153,32 @@ TicketSettingsSchema.virtual("soldPercentage").get(function () {
 });
 
 // Method to check if ticket is available
-TicketSettingsSchema.methods.isAvailable = function () {
+TicketSettingsSchema.methods.isAvailable = function (eventStartDate, eventStartTime) {
   if (!this.isVisible) return false;
   if (this.hasCountdown && this.endDate && new Date() > this.endDate)
     return false;
   if (this.isLimited && this.soldCount >= this.maxTickets) return false;
+
+  // Check offline time settings
+  const now = new Date();
+  if (this.offlineTime && eventStartDate) {
+    // Calculate offline datetime from event date + offlineTime
+    const eventDate = new Date(eventStartDate);
+    const [hours, minutes] = this.offlineTime.split(':').map(Number);
+    const offlineDateTime = new Date(eventDate);
+    offlineDateTime.setHours(hours, minutes, 0, 0);
+    if (now >= offlineDateTime) return false;
+  }
+
+  if (this.goOfflineAtEventStart && eventStartDate && eventStartTime) {
+    // Calculate event start datetime
+    const eventDate = new Date(eventStartDate);
+    const [hours, minutes] = eventStartTime.split(':').map(Number);
+    const eventStartDateTime = new Date(eventDate);
+    eventStartDateTime.setHours(hours, minutes, 0, 0);
+    if (now >= eventStartDateTime) return false;
+  }
+
   return true;
 };
 

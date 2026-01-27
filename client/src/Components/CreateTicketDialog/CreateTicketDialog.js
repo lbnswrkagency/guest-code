@@ -8,6 +8,7 @@ import {
   RiPaletteLine,
   RiTimeLine,
   RiGroupLine,
+  RiDoorLine,
 } from "react-icons/ri";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import "./CreateTicketDialog.scss";
@@ -29,6 +30,8 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
       minPurchase: 1,
       maxPurchase: 10,
       paxPerTicket: 1, // Add default value for paxPerTicket
+      goOfflineAtEventStart: false, // Ticket goes offline when event starts
+      offlineTime: "", // Custom time (HH:mm) when ticket goes offline on event day
       ...initialData,
     };
 
@@ -342,6 +345,39 @@ const CreateTicketDialog = ({ onClose, onSave, initialData = {} }) => {
               </div>
             )}
           </div>
+
+          <div className="form-row">
+            <div className="form-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={ticketData.goOfflineAtEventStart}
+                  onChange={(e) =>
+                    handleChange("goOfflineAtEventStart", e.target.checked)
+                  }
+                />
+                Go offline at event start
+              </label>
+            </div>
+          </div>
+
+          {!ticketData.goOfflineAtEventStart && (
+            <div className="form-group">
+              <label>Custom Offline Time (on event day)</label>
+              <div className="input-with-icon">
+                <RiDoorLine />
+                <input
+                  type="time"
+                  value={ticketData.offlineTime}
+                  onChange={(e) => handleChange("offlineTime", e.target.value)}
+                  placeholder="e.g. 22:00"
+                />
+              </div>
+              <small className="help-text">
+                Set a specific time when this ticket will go offline on event day. Leave empty to keep ticket available until sold out or countdown ends.
+              </small>
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">

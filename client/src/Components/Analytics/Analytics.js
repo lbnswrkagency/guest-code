@@ -290,7 +290,7 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
             <span className="label">Checked In</span>
           </div>
           <div className="stat">
-            <span className="value">{revenue}€</span>
+            <span className="value">{revenue.toFixed(2)}€</span>
             <span className="label">Revenue</span>
           </div>
         </div>
@@ -366,10 +366,10 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
               <span className="value">{tickets.totalCheckedIn}</span>
               <span className="label">Checked In</span>
             </div>
-            <div className="stat-revenue">
-              <span className="value">{totalRevenue}€</span>
-              <span className="label">Revenue</span>
-            </div>
+          </div>
+          <div className="stat-revenue-row">
+            <span className="value">{totalRevenue.toFixed(2)}€</span>
+            <span className="label">Revenue</span>
           </div>
           <div className="progress-container">
             <div className="progress-bar">
