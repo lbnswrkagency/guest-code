@@ -384,7 +384,10 @@ const Dashboard = () => {
     const userRole = roles.find((role) => role._id === userRoleId);
 
     // Get events for this brand (owned events)
-    const brandEvents = events.filter((event) => event.brand === brand._id);
+    // Use toString() comparison to handle ObjectId vs string type mismatches
+    const brandEvents = events.filter(
+      (event) => event.brand?.toString() === brand._id?.toString()
+    );
 
     // Get co-hosted events where this brand is a co-host
     const brandCoHostedEvents = coHostedEvents.filter((event) => {

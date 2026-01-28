@@ -154,15 +154,9 @@ const DashboardHeader = ({
     setFreshEvents([]);
     setLastFetchedBrandId(null);
 
-    // Reset the selected date to null when switching brands
-    // This will trigger the parent component to find the next upcoming event
-    setSelectedDate(null);
-    if (propSetSelectedDate) {
-      propSetSelectedDate(null);
-    }
-
     // Call parent component's setter if provided
-    // The parent will handle finding the next upcoming event
+    // The parent will handle finding the next upcoming event and setting the date
+    // Local state will sync via useEffect when propSelectedDate changes
     if (propSetSelectedBrand) {
       propSetSelectedBrand(brand);
     }
