@@ -91,7 +91,6 @@ exports.getSpotifyPlaylist = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching Spotify playlist:", error.message);
     res.status(500).json({ error: "Error fetching Spotify playlist" });
   }
 };
@@ -131,7 +130,6 @@ const getPlaylistFromEnvVars = async (req, res) => {
 
     res.json({ items: allTracks });
   } catch (error) {
-    console.error("Error in getPlaylistFromEnvVars:", error);
     res.status(500).json({ error: "Error fetching Spotify playlist" });
   }
 };

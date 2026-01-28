@@ -109,6 +109,32 @@ function TableCodeManagement({
     return ["djarea", "backstage", "vip", "premium"];
   }, [layoutConfig, tableCategories]);
 
+  // Helper to get tables for a category - handles both display names ("VIP") and keys ("vip")
+  const getTablesForCategory = useCallback((category) => {
+    if (!tableCategories || !category) return [];
+
+    // Direct match (category is a tableCategories key like "vip")
+    if (tableCategories[category]) {
+      return tableCategories[category];
+    }
+
+    // Try lowercase match (category is display name like "VIP" or "Standing")
+    const lowercaseCategory = category.toLowerCase();
+    if (tableCategories[lowercaseCategory]) {
+      return tableCategories[lowercaseCategory];
+    }
+
+    // Try to find by partial match (e.g., "VIP Booth" matches "vip")
+    for (const [key, tables] of Object.entries(tableCategories)) {
+      if (lowercaseCategory.includes(key.toLowerCase()) ||
+          key.toLowerCase().includes(lowercaseCategory)) {
+        return tables;
+      }
+    }
+
+    return [];
+  }, [tableCategories]);
+
   // Calculate table permissions from user roles
   const getTablePermissions = () => {
     let hasTableAccess = false;
@@ -880,22 +906,25 @@ function TableCodeManagement({
                     className="table-select-inline"
                     aria-label="Change table number"
                   >
-                    {categoryOrder.map((category) => (
-                      <optgroup
-                        key={category}
-                        label={getCategoryDisplayName(category)}
-                      >
-                        {tableCategories[category]?.map((table) => (
-                          <option
-                            key={table}
-                            value={table}
-                            disabled={isTableBooked(table)}
-                          >
-                            {table}
-                          </option>
-                        )) || null}
-                      </optgroup>
-                    ))}
+                    {categoryOrder.map((category) => {
+                      const tables = getTablesForCategory(category);
+                      return tables.length > 0 ? (
+                        <optgroup
+                          key={category}
+                          label={getCategoryDisplayName(category)}
+                        >
+                          {tables.map((table) => (
+                            <option
+                              key={table}
+                              value={table}
+                              disabled={isTableBooked(table)}
+                            >
+                              {table}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null;
+                    })}
                   </select>
                 </div>
               ) : (

@@ -352,25 +352,9 @@ async function getDetailedTicketStats(eventId) {
   try {
     // Get all ticket settings for this event
     const ticketSettings = await TicketSettings.find({ eventId });
-    
-    console.log(`[Analytics] Found ${ticketSettings.length} ticket settings for event ${eventId}`);
-    if (ticketSettings.length > 0) {
-      console.log("[Analytics] Ticket settings names:", ticketSettings.map(s => s.name));
-    }
 
     // Get all tickets for the event
     const tickets = await Ticket.find({ eventId });
-
-    console.log(`[Analytics] Found ${tickets.length} tickets for event ${eventId}`);
-    if (tickets.length > 0) {
-      console.log("[Analytics] Sample ticket:", {
-        ticketName: tickets[0].ticketName,
-        ticketType: tickets[0].ticketType,
-        pax: tickets[0].pax,
-        paxChecked: tickets[0].paxChecked
-      });
-      console.log("[Analytics] Unique ticket names:", [...new Set(tickets.map(t => t.ticketName))]);
-    }
 
     // Initialize summary object
     const summary = {
@@ -392,8 +376,6 @@ async function getDetailedTicketStats(eventId) {
 
     // If we have tickets but no ticket settings, create virtual settings from tickets
     if (ticketSettings.length === 0 && tickets.length > 0) {
-      console.log("[Analytics] No ticket settings found, creating virtual settings from tickets");
-      
       // Group tickets by ticketName to create virtual settings
       const ticketGroups = {};
       tickets.forEach(ticket => {
