@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./Spotify.scss";
 
-const Spotify = ({ brandUsername }) => {
+const Spotify = ({ brandUsername, onLoadStatusChange }) => {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,6 +33,13 @@ const Spotify = ({ brandUsername }) => {
 
     fetchPlaylist();
   }, [brandUsername]);
+
+  // Notify parent about load status changes
+  useEffect(() => {
+    if (!loading && onLoadStatusChange) {
+      onLoadStatusChange(!error && !!playlist);
+    }
+  }, [loading, error, playlist, onLoadStatusChange]);
 
   if (loading) {
     return <div className="spotify-loading">Loading playlist...</div>;

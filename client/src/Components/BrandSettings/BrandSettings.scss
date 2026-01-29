@@ -1196,3 +1196,214 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+// Guest Upload Configuration Styles
+.settings-guest-upload {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      color: #ffc807;
+    }
+  }
+
+  .guest-upload-setting {
+    .setting-details {
+      h4 {
+        margin-bottom: 0.25rem;
+        font-size: 1.1rem;
+        color: #fff;
+      }
+      p {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 1rem;
+      }
+    }
+  }
+
+  .guest-upload-config {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1rem;
+
+    .config-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      label {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .help-text {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+    }
+
+    .toggle-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+
+      .toggle-info {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+
+        .toggle-icon {
+          font-size: 1.5rem;
+          color: #ffc807;
+          margin-top: 0.1rem;
+        }
+
+        h5 {
+          margin: 0 0 0.25rem 0;
+          font-size: 1rem;
+          color: white;
+          font-weight: 500;
+        }
+
+        p {
+          margin: 0;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+      }
+
+      .toggle-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+
+        .toggle-track {
+          display: block;
+          width: 48px;
+          height: 26px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 13px;
+          position: relative;
+          transition: all 0.3s ease;
+
+          .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+          }
+        }
+
+        &.active {
+          .toggle-track {
+            background: rgba(255, 200, 7, 0.3);
+            border-color: #ffc807;
+
+            .toggle-thumb {
+              left: 24px;
+              background: #ffc807;
+            }
+          }
+        }
+      }
+    }
+
+    .save-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: #ffc807;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+
+      &:hover:not(:disabled) {
+        background: #e6b106;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        border-top: 2px solid black;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      svg {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+// Mobile styles for guest upload
+@media (max-width: 768px) {
+  .settings-guest-upload {
+    .guest-upload-config {
+      gap: 1rem;
+
+      .toggle-setting {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 0.75rem;
+
+        .toggle-info {
+          gap: 0.5rem;
+
+          .toggle-icon {
+            font-size: 1.25rem;
+          }
+
+          h5 {
+            font-size: 0.9rem;
+          }
+
+          p {
+            font-size: 0.8rem;
+          }
+        }
+
+        .toggle-btn {
+          align-self: flex-end;
+        }
+      }
+
+      .save-btn {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}

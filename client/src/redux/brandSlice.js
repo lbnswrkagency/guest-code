@@ -71,6 +71,9 @@ const brandSlice = createSlice({
           spotifyClientId: brand.spotifyClientId,
           spotifyClientSecret: brand.spotifyClientSecret,
           spotifyPlaylistId: brand.spotifyPlaylistId,
+          // Guest upload configuration
+          guestUploadFolder: brand.guestUploadFolder,
+          guestUploadEnabled: brand.guestUploadEnabled,
         };
       });
       state.loading = false;

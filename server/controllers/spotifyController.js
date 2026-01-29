@@ -1,6 +1,22 @@
 const axios = require("axios");
 const Brand = require("../models/brandModel");
 
+// Simple in-memory cache to prevent rate limiting
+const playlistCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCachedPlaylist = (key) => {
+  const cached = playlistCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedPlaylist = (key, data) => {
+  playlistCache.set(key, { data, timestamp: Date.now() });
+};
+
 const fetchAllTracks = async (url, accessToken, allTracks = []) => {
   try {
     const response = await axios.get(url, {
@@ -15,7 +31,6 @@ const fetchAllTracks = async (url, accessToken, allTracks = []) => {
 
     return allTracks;
   } catch (error) {
-    console.error("Error in fetchAllTracks:", error);
     throw error; // Throw the error to be caught in the main function
   }
 };
@@ -26,6 +41,13 @@ exports.getSpotifyPlaylist = async (req, res) => {
 
     if (!brandUsername) {
       return getPlaylistFromEnvVars(req, res);
+    }
+
+    // Check cache first
+    const cacheKey = `playlist:${brandUsername}`;
+    const cached = getCachedPlaylist(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
 
     const brand = await Brand.findOne({ username: brandUsername });
@@ -79,7 +101,7 @@ exports.getSpotifyPlaylist = async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    res.json({
+    const responseData = {
       items: allTracks,
       name: playlistDetails.data.name,
       description: playlistDetails.data.description,
@@ -89,9 +111,23 @@ exports.getSpotifyPlaylist = async (req, res) => {
         name: brand.name,
         username: brand.username,
       },
-    });
+    };
+
+    // Cache the successful response
+    setCachedPlaylist(cacheKey, responseData);
+
+    res.json(responseData);
   } catch (error) {
-    res.status(500).json({ error: "Error fetching Spotify playlist" });
+    // Handle rate limiting specifically
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers?.['retry-after'] || 30;
+      return res.status(429).json({
+        error: "Spotify rate limit exceeded",
+        retryAfter: parseInt(retryAfter)
+      });
+    }
+
+    res.status(500).json({ error: "Error fetching Spotify playlist", details: error.message });
   }
 };
 

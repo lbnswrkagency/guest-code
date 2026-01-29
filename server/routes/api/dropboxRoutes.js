@@ -1,8 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const dropboxController = require("../../controllers/dropboxController");
+const { authenticate } = require("../../middleware/authMiddleware");
+const { optionalAuthenticateToken } = require("../../middleware/auth");
+const multer = require("multer");
+
+// Configure multer for media uploads (memory storage)
+const mediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "video/mp4", "video/quicktime", "video/webm",
+      "image/jpeg", "image/png", "image/gif", "image/webp"
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only videos and photos are allowed."), false);
+    }
+  },
+});
 
 router.get("/folder", dropboxController.getFolderContents);
+
+// Guest/Team media upload routes
+router.post(
+  "/guest-upload",
+  optionalAuthenticateToken,
+  mediaUpload.single("media"),
+  dropboxController.uploadGuestMedia
+);
+
+// Upload settings routes
+router.get("/brand/:brandId/upload-settings", optionalAuthenticateToken, dropboxController.getUploadSettings);
+router.put("/brand/:brandId/upload-settings", authenticate, dropboxController.updateUploadSettings);
 
 // Brand gallery routes (photos)
 router.get("/brand/:brandId/galleries/check", dropboxController.checkBrandGalleries);
@@ -116,6 +148,81 @@ router.get("/oauth/callback", dropboxController.handleOAuthCallback);
 
 // Diagnostic route to check namespaces
 router.get("/diagnostic", dropboxController.diagnosticCheck);
+
+// Token status check route - helps debug auth issues
+router.get("/token-status", async (req, res) => {
+  try {
+    const DropboxToken = require("../../models/dropboxTokenModel");
+    const { Dropbox } = require("dropbox");
+
+    const tokenDoc = await DropboxToken.findOne({ isActive: true }).sort({ createdAt: -1 });
+
+    const status = {
+      database: {
+        hasToken: !!tokenDoc,
+        email: tokenDoc?.email || null,
+        isExpired: tokenDoc?.isExpired?.() || null,
+        expiresAt: tokenDoc?.expiresAt || null,
+        hasRefreshToken: !!tokenDoc?.refreshToken
+      },
+      environment: {
+        hasAccessToken: !!process.env.DROPBOX_API_ACCESS_TOKEN,
+        tokenLength: process.env.DROPBOX_API_ACCESS_TOKEN?.length || 0,
+        hasApiKey: !!process.env.DROPBOX_API_KEY,
+        hasApiSecret: !!process.env.DROPBOX_API_SECRET,
+        hasRootNamespace: !!process.env.DROPBOX_ROOT_NAMESPACE_ID,
+        redirectUri: process.env.DROPBOX_REDIRECT_URI || "NOT SET"
+      },
+      recommendation: ""
+    };
+
+    // Test the token that would be used
+    let tokenToTest = null;
+    if (tokenDoc && !tokenDoc.isExpired()) {
+      tokenToTest = tokenDoc.accessToken;
+      status.tokenSource = "database";
+    } else if (process.env.DROPBOX_API_ACCESS_TOKEN) {
+      tokenToTest = process.env.DROPBOX_API_ACCESS_TOKEN;
+      status.tokenSource = "environment";
+    }
+
+    if (tokenToTest) {
+      try {
+        const dbx = new Dropbox({ accessToken: tokenToTest });
+        const account = await dbx.usersGetCurrentAccount();
+        status.tokenTest = {
+          success: true,
+          account: account.result.email,
+          name: account.result.name.display_name,
+          type: account.result.account_type[".tag"]
+        };
+      } catch (testError) {
+        status.tokenTest = {
+          success: false,
+          error: testError.message,
+          details: testError.error || testError.response?.data
+        };
+      }
+    } else {
+      status.tokenTest = { success: false, error: "No token available to test" };
+    }
+
+    // Recommendation
+    if (!status.database.hasToken && !status.environment.hasAccessToken) {
+      status.recommendation = "No tokens available. Run OAuth: GET /api/dropbox/oauth/authorize";
+    } else if (status.database.hasToken && status.database.isExpired) {
+      status.recommendation = "DB token expired. It should auto-refresh on next request.";
+    } else if (!status.database.hasToken && status.environment.hasAccessToken && !status.tokenTest.success) {
+      status.recommendation = "Env token invalid/expired. Either: 1) Run OAuth locally, or 2) Remove DROPBOX_API_ACCESS_TOKEN from .env to use DB tokens";
+    } else if (status.tokenTest.success) {
+      status.recommendation = "Token working! Connected as: " + status.tokenTest.account;
+    }
+
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Test route for OAuth token
 router.get("/test-oauth-token", async (req, res) => {

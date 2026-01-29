@@ -10,6 +10,77 @@ const Event = require("../models/eventsModel");
  * @param {string} eventId - The event's ID (optional, used to check co-host permissions)
  * @returns {Array<string>} - Array of user IDs who can manage tables
  */
+/**
+ * Find all users who have a specific permission for a given brand
+ * This includes the brand owner and team members with the specified permission
+ * @param {string} brandId - The brand's ID
+ * @param {string} permissionPath - The permission path to check (e.g., "events.edit", "media.upload")
+ * @returns {Array<string>} - Array of user IDs who have the permission
+ */
+const findUsersWithPermission = async (brandId, permissionPath) => {
+  try {
+    const userIds = new Set();
+
+    // 1. Get the brand and its team members
+    const brand = await Brand.findById(brandId).populate("team.role");
+    if (!brand) {
+      console.log("[findUsersWithPermission] Brand not found:", brandId);
+      return [];
+    }
+
+    // 2. Add brand owner (owners have all permissions)
+    if (brand.owner) {
+      userIds.add(brand.owner.toString());
+    }
+
+    // 3. Parse the permission path (e.g., "events.edit" -> ["events", "edit"])
+    const pathParts = permissionPath.split(".");
+
+    // 4. Check each team member's role for the specified permission
+    if (brand.team && brand.team.length > 0) {
+      for (const member of brand.team) {
+        if (!member.user) continue;
+
+        let hasPermission = false;
+
+        // Get the role (either populated or by ID)
+        let role = member.role;
+        if (role && typeof role !== "object") {
+          role = await Role.findById(role);
+        }
+
+        if (role && role.permissions) {
+          // Check if founder role (has all permissions)
+          if (role.isFounder) {
+            hasPermission = true;
+          } else {
+            // Navigate the permission path
+            let currentLevel = role.permissions;
+            for (const part of pathParts) {
+              if (currentLevel && typeof currentLevel === "object") {
+                currentLevel = currentLevel[part];
+              } else {
+                currentLevel = undefined;
+                break;
+              }
+            }
+            hasPermission = currentLevel === true;
+          }
+        }
+
+        if (hasPermission) {
+          userIds.add(member.user.toString());
+        }
+      }
+    }
+
+    return Array.from(userIds);
+  } catch (error) {
+    console.error("[findUsersWithPermission] Error:", error.message);
+    return [];
+  }
+};
+
 const findUsersWithTablePermission = async (brandId, eventId = null) => {
   try {
     const userIds = new Set();
@@ -156,4 +227,5 @@ const createSystemNotification = async ({
 module.exports = {
   createSystemNotification,
   findUsersWithTablePermission,
+  findUsersWithPermission,
 };

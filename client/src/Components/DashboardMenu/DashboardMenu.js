@@ -9,6 +9,7 @@ import {
   RiTableLine,
   RiSwordLine,
   RiSparklingFill,
+  RiUploadCloud2Fill,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
 
@@ -27,6 +28,7 @@ const DashboardMenu = ({
   setShowDropFiles,
   setShowTableSystem,
   setShowSpitixBattle,
+  setShowMediaUpload,
   isOnline,
   selectedEvent,
 }) => {
@@ -471,6 +473,37 @@ const DashboardMenu = ({
                     <RiQrCodeFill />
                   </div>
                   <span>Scanner</span>
+                </motion.div>
+              )}
+
+              {/* Upload Media - Show when brand has upload folder configured */}
+              {selectedBrand?.guestUploadFolder && (
+                <motion.div
+                  className={`menu-item ${isMenuDisabled ? "disabled" : ""}`}
+                  onClick={() => {
+                    if (!isMenuDisabled && setShowMediaUpload) {
+                      setShowMediaUpload(true);
+                      setIsOpen(false);
+                    }
+                  }}
+                  whileHover={
+                    !isMenuDisabled
+                      ? {
+                          scale: 1.05,
+                          y: -5,
+                          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                        }
+                      : {}
+                  }
+                  whileTap={!isMenuDisabled ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45 }}
+                >
+                  <div className="menu-item-icon-wrapper">
+                    <RiUploadCloud2Fill />
+                  </div>
+                  <span>Upload</span>
                 </motion.div>
               )}
             </div>

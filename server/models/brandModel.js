@@ -85,6 +85,10 @@ const BrandSchema = new Schema(
       default: ""
     }, // Last folder for videos (e.g., "branded", "raw")
 
+    // Guest/Team Upload Settings
+    guestUploadFolder: { type: String }, // Dropbox path for guest/team uploads
+    guestUploadEnabled: { type: Boolean, default: false }, // Allow public uploads
+
     // Content
     media: {
       photos: [{ type: String }],

@@ -21,6 +21,7 @@ import Spotify from "../Spotify/Spotify";
 import BattleSign from "../BattleSign/BattleSign";
 import EventGallery from "../EventGallery/EventGallery";
 import GalleryCarousel from "../GalleryCarousel/GalleryCarousel";
+import MediaUpload from "../MediaUpload/MediaUpload";
 import {
   RiCalendarEventLine,
   RiMapPinLine,
@@ -39,6 +40,7 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
   RiSwordLine,
+  RiVideoUploadLine,
 } from "react-icons/ri";
 
 const LoadingSpinner = ({ size = "default", color = "#ffc807" }) => {
@@ -96,6 +98,14 @@ const UpcomingEvent = ({
   // Add state for battle signup
   const [showBattleSignup, setShowBattleSignup] = useState(false);
 
+  // Add state for media upload modal
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [brandUploadSettings, setBrandUploadSettings] = useState({
+    guestUploadEnabled: false,
+    guestUploadFolder: null,
+  });
+
+
   // Brand gallery state (photos)
   // Use prop if provided (from BrandProfile), otherwise use internal state
   const [brandHasGalleriesState, setBrandHasGalleries] = useState(false);
@@ -126,6 +136,9 @@ const UpcomingEvent = ({
 
   // Add flag to prevent infinite loops in URL navigation
   const [hasNavigatedFromURL, setHasNavigatedFromURL] = useState(false);
+
+  // Track Spotify load status (null = not checked, true = success, false = failed)
+  const [spotifyLoaded, setSpotifyLoaded] = useState(null);
 
   // Event preview carousel state
   const [previewScrollIndex, setPreviewScrollIndex] = useState(0);
@@ -934,14 +947,56 @@ const UpcomingEvent = ({
     }
   }, [brandId, brandUsername, checkBrandGalleries, brandHasGalleriesProp]);
 
+  // Effect to fetch brand upload settings
+  useEffect(() => {
+    const fetchUploadSettings = async () => {
+      if (!brandId && !brandUsername) return;
+
+      try {
+        let finalBrandId = brandId;
+
+        // If we only have brandUsername, get the brand ID first
+        if (!finalBrandId && brandUsername) {
+          const cleanUsername = brandUsername.replace(/^@/, "");
+          const brandResponse = await axiosInstance.get(
+            `${process.env.REACT_APP_API_BASE_URL}/brands/profile/username/${cleanUsername}`
+          );
+          if (brandResponse.data && brandResponse.data._id) {
+            finalBrandId = brandResponse.data._id;
+          }
+        }
+
+        if (finalBrandId) {
+          const response = await axiosInstance.get(
+            `${process.env.REACT_APP_API_BASE_URL}/dropbox/brand/${finalBrandId}/upload-settings`
+          );
+
+          if (response.data && response.data.success) {
+            setBrandUploadSettings({
+              guestUploadEnabled: response.data.settings.guestUploadEnabled || false,
+              guestUploadFolder: response.data.settings.guestUploadFolder || null,
+            });
+          }
+        }
+      } catch (error) {
+        // Silent fail - upload feature just won't be shown
+        console.debug("Could not fetch upload settings:", error.message);
+      }
+    };
+
+    fetchUploadSettings();
+  }, [brandId, brandUsername]);
+
   const handlePrevEvent = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
     setShowGuestCodeForm(false); // Hide form when changing events
+    setSpotifyLoaded(null); // Reset Spotify status when changing events
   };
 
   const handleNextEvent = () => {
     setCurrentIndex((prev) => (prev < events.length - 1 ? prev + 1 : prev));
     setShowGuestCodeForm(false); // Hide form when changing events
+    setSpotifyLoaded(null); // Reset Spotify status when changing events
   };
 
   // Helper function to get the best date field
@@ -1901,12 +1956,44 @@ const UpcomingEvent = ({
                 />
               </div>
             )}
+
+            {/* Share Your Moments - Guest Video Upload */}
+            {brandUploadSettings.guestUploadEnabled && brandUploadSettings.guestUploadFolder && (
+              <div className="upcomingEvent-share-moments-section">
+                {!showMediaUpload ? (
+                  <>
+                    <button
+                      className="share-moments-btn"
+                      onClick={() => setShowMediaUpload(true)}
+                    >
+                      <RiVideoUploadLine />
+                      <span>Share Your Moments</span>
+                    </button>
+                    <p className="share-moments-hint">
+                      Upload your videos from the event
+                    </p>
+                  </>
+                ) : (
+                  <div className="upcomingEvent-media-upload-inline">
+                    <MediaUpload
+                      brandId={currentEvent.brand?._id || currentEvent.brand}
+                      eventId={currentEvent._id}
+                      mode="public"
+                      onUploadComplete={() => {
+                        setShowMediaUpload(false);
+                      }}
+                      onClose={() => setShowMediaUpload(false)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Spotify Integration - Show before footer if configured */}
-      {currentEvent && isSpotifyConfigured(currentEvent) && (
+      {/* Spotify Integration - Show before footer if configured and loaded successfully */}
+      {currentEvent && isSpotifyConfigured(currentEvent) && spotifyLoaded !== false && (
         <div className="upcomingEvent-spotify-section">
           <Spotify
             brandUsername={
@@ -1915,6 +2002,7 @@ const UpcomingEvent = ({
                 ? currentEvent.brand.username
                 : brandUsername // Fall back to the prop if the brand object doesn't have a username
             }
+            onLoadStatusChange={setSpotifyLoaded}
           />
         </div>
       )}
@@ -2035,6 +2123,7 @@ const UpcomingEvent = ({
         isOpen={showGallery}
         onClose={() => setShowGallery(false)}
       />
+
     </div>
   );
 };

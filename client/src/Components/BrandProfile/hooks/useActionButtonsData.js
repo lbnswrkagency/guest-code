@@ -13,6 +13,7 @@ const useActionButtonsData = ({
   checkingGalleries,
   supportsTableBooking,
   supportsBattles,
+  spotifyLoadedSuccessfully = null, // null = not checked, true = loaded, false = error (e.g., 429)
 }) => {
   // Track individual data loading states
   const [dataLoadingState, setDataLoadingState] = useState({
@@ -90,14 +91,20 @@ const useActionButtonsData = ({
     const showPhotos = actuallyHasPhotos === true ||
                        (actuallyHasPhotos === null && brandHasGalleries === true);
 
-    // Check if Spotify is configured for this brand
-    const showSpotify = !!(
+    // Check if Spotify is configured for this brand AND loaded successfully
+    // If spotifyLoadedSuccessfully is explicitly false (error occurred like 429), don't show
+    // If spotifyLoadedSuccessfully is null (not checked yet), show based on config
+    // If spotifyLoadedSuccessfully is true, show the button
+    const hasSpotifyConfig = !!(
       currentEvent?.brand &&
       typeof currentEvent.brand === "object" &&
       currentEvent.brand.spotifyClientId &&
       currentEvent.brand.spotifyClientSecret &&
       currentEvent.brand.spotifyPlaylistId
     );
+    const showSpotify = spotifyLoadedSuccessfully === false
+      ? false
+      : hasSpotifyConfig;
 
     return {
       tickets: !!ticketsAvailable,
@@ -116,6 +123,7 @@ const useActionButtonsData = ({
     brandHasGalleries,
     supportsTableBooking,
     supportsBattles,
+    spotifyLoadedSuccessfully,
   ]);
 
   // Calculate if any action buttons should be shown

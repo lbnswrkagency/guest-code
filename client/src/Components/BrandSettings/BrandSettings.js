@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useDispatch } from "react-redux";
+import { updateBrand } from "../../redux/brandSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RiTeamLine,
@@ -8,6 +10,8 @@ import {
   RiUserAddLine,
   RiBarChart2Line,
   RiUpload2Line,
+  RiVideoUploadLine,
+  RiGlobalLine,
 } from "react-icons/ri";
 import TeamManagement from "../TeamManagement/TeamManagement";
 import RoleSetting from "../RoleSetting/RoleSetting";
@@ -53,6 +57,13 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     videoSubfolder: brand.dropboxVideoSubfolder || "",
   });
 
+  // Guest Upload settings states
+  const [guestUploadConfig, setGuestUploadConfig] = useState({
+    uploadFolder: brand.guestUploadFolder || "",
+    uploadEnabled: brand.guestUploadEnabled || false,
+  });
+  const [isSavingGuestUpload, setIsSavingGuestUpload] = useState(false);
+
   // Available date formats for selector
   const dateFormats = [
     { value: "YYYYMMDD", label: "YYYYMMDD", example: () => {
@@ -83,6 +94,7 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
 
   const { showSuccess, showError } = useToast();
   const { user } = useContext(AuthContext);
+  const dispatch = useDispatch();
 
   // Check if user is the brand owner
   const isOwner = () => {
@@ -152,6 +164,14 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     brand.dropboxPhotoSubfolder,
     brand.dropboxVideoSubfolder,
   ]);
+
+  // Sync guestUploadConfig when brand data changes/loads
+  useEffect(() => {
+    setGuestUploadConfig({
+      uploadFolder: brand.guestUploadFolder || "",
+      uploadEnabled: brand.guestUploadEnabled || false,
+    });
+  }, [brand.guestUploadFolder, brand.guestUploadEnabled]);
 
   const fetchRoles = async () => {
     try {
@@ -401,6 +421,60 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
     } finally {
       setIsSavingDropbox(false);
     }
+  };
+
+  const saveGuestUploadConfig = async () => {
+    if (!brand || !brand._id) {
+      showError("Brand information is missing.");
+      return;
+    }
+
+    setIsSavingGuestUpload(true);
+    try {
+      const response = await axiosInstance.put(
+        `/dropbox/brand/${brand._id}/upload-settings`,
+        {
+          guestUploadFolder: guestUploadConfig.uploadFolder,
+          guestUploadEnabled: guestUploadConfig.uploadEnabled,
+        }
+      );
+
+      showSuccess("Guest upload settings updated successfully!");
+
+      // Update Redux store to persist settings across navigation
+      dispatch(updateBrand({
+        brandId: brand._id,
+        brandData: {
+          guestUploadFolder: guestUploadConfig.uploadFolder,
+          guestUploadEnabled: guestUploadConfig.uploadEnabled,
+        }
+      }));
+
+      // Update the brand object in the parent component if needed
+      if (onSave) {
+        const updatedBrandData = {
+          ...brand,
+          guestUploadFolder: guestUploadConfig.uploadFolder,
+          guestUploadEnabled: guestUploadConfig.uploadEnabled,
+        };
+        onSave(updatedBrandData, true);
+      }
+    } catch (error) {
+      console.error("Error updating guest upload settings:", error);
+      showError(
+        error.response?.data?.message ||
+          "Failed to update guest upload settings."
+      );
+    } finally {
+      setIsSavingGuestUpload(false);
+    }
+  };
+
+  const handleGuestUploadToggle = () => {
+    setGuestUploadConfig((prev) => ({
+      ...prev,
+      uploadEnabled: !prev.uploadEnabled,
+    }));
   };
 
   return (
@@ -835,6 +909,87 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
                         <>
                           <RiUpload2Line />
                           Save Dropbox Configuration
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Guest Video Upload Section - Owner only */}
+          {hasFullSettingsAccess() && (
+            <div className="settings-section settings-guest-upload">
+              <h3>
+                <RiVideoUploadLine />
+                Guest Video Upload
+              </h3>
+              <div className="setting-item guest-upload-setting">
+                <div className="setting-details">
+                  <h4>Video Upload Configuration</h4>
+                  <p>
+                    Allow guests and team members to upload videos directly to your
+                    Dropbox. Perfect for collecting event footage from attendees.
+                  </p>
+
+                  <div className="guest-upload-config">
+                    <div className="config-section">
+                      <label>Upload Folder</label>
+                      <DropboxFolderBrowser
+                        selectedPath={guestUploadConfig.uploadFolder}
+                        onSelectPath={(path) => {
+                          setGuestUploadConfig(prev => ({ ...prev, uploadFolder: path }));
+                        }}
+                        placeholder="Select folder for guest uploads"
+                      />
+                      <small className="help-text">
+                        All uploaded videos will be saved to this folder in your Dropbox.
+                      </small>
+                    </div>
+
+                    <div className="config-section">
+                      <div className="toggle-setting">
+                        <div className="toggle-info">
+                          <RiGlobalLine className="toggle-icon" />
+                          <div>
+                            <h5>Allow Public Uploads</h5>
+                            <p>Enable guests (non-team members) to upload videos</p>
+                          </div>
+                        </div>
+                        <motion.button
+                          className={`toggle-btn ${guestUploadConfig.uploadEnabled ? "active" : ""}`}
+                          onClick={handleGuestUploadToggle}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <span className="toggle-track">
+                            <span className="toggle-thumb" />
+                          </span>
+                        </motion.button>
+                      </div>
+                      <small className="help-text">
+                        When enabled, a "Share Your Moments" button will appear on your event pages.
+                        Team members can always upload regardless of this setting.
+                      </small>
+                    </div>
+
+                    <motion.button
+                      className="save-btn"
+                      onClick={saveGuestUploadConfig}
+                      disabled={isSavingGuestUpload || !guestUploadConfig.uploadFolder}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {isSavingGuestUpload ? (
+                        <>
+                          <div className="loading-spinner" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <RiVideoUploadLine />
+                          Save Upload Settings
                         </>
                       )}
                     </motion.button>

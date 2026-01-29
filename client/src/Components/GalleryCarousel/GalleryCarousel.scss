@@ -471,11 +471,11 @@ $border: rgba(255, 255, 255, 0.1);
   }
 
   .carousel-viewport {
-    height: 115px; // Match aspect ratio of 180px width
+    height: 140px; // BIGGER - was 115px
   }
 
   .carousel-item {
-    width: 180px;
+    width: 200px; // BIGGER - was 180px
   }
 }
 
@@ -498,11 +498,11 @@ $border: rgba(255, 255, 255, 0.1);
   }
 
   .carousel-viewport {
-    height: 90px; // Match aspect ratio of 140px width
+    height: 140px; // BIGGER - was 90px
   }
 
   .carousel-item {
-    width: 140px;
+    width: 200px; // BIGGER - was 140px
   }
 
   .carousel-dots .dot {

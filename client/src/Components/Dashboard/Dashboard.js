@@ -25,6 +25,7 @@ import TableSystem from "../TableSystem/TableSystem";
 import Scanner from "../Scanner/Scanner";
 import Analytics from "../Analytics/Analytics";
 import SpitixBattle from "../SpitixBattle/SpitixBattle";
+import MediaUpload from "../MediaUpload/MediaUpload";
 import { motion } from "framer-motion";
 import { RiArrowUpSLine } from "react-icons/ri";
 
@@ -55,6 +56,7 @@ const Dashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showDropFiles, setShowDropFiles] = useState(false);
   const [showTableSystem, setShowTableSystem] = useState(false);
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [shouldRefreshNav, setShouldRefreshNav] = useState(false);
 
@@ -850,6 +852,21 @@ const Dashboard = () => {
               },
             }}
           />
+        ) : showMediaUpload ? (
+          <div className="media-upload-overlay">
+            <MediaUpload
+              brandId={selectedBrand?._id}
+              eventId={selectedEvent?._id}
+              mode="team"
+              onUploadComplete={() => {
+                setShowMediaUpload(false);
+              }}
+              onClose={() => {
+                setShowMediaUpload(false);
+                if (isNavigationOpen) setTimeout(() => setIsNavigationOpen(true), 50);
+              }}
+            />
+          </div>
         ) : (
           <>
             {/* Golden Arrow Guide for new users with no brands */}
@@ -880,6 +897,7 @@ const Dashboard = () => {
               setShowDropFiles={setShowDropFiles}
               setShowTableSystem={setShowTableSystem}
               setShowSpitixBattle={setShowSpitixBattle}
+              setShowMediaUpload={setShowMediaUpload}
               isOnline={true}
             />
             <DashboardFeed

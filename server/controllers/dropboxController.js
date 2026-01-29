@@ -10,7 +10,7 @@ const getCurrentToken = async () => {
   try {
     // Find the active token
     const tokenDoc = await DropboxToken.findOne({ isActive: true }).sort({ createdAt: -1 });
-    
+
     if (!tokenDoc) {
       // Fallback to env variable for initial setup
       if (process.env.DROPBOX_API_ACCESS_TOKEN) {
@@ -290,20 +290,34 @@ setInterval(cleanOldCache, 60 * 60 * 1000);
 
 // Method to handle file uploads
 exports.uploadFile = async (req, res) => {
-  console.log("Starting upload process...");
+  // Check token availability (env OR database)
+  try {
+    const tokenDoc = await DropboxToken.findOne({ isActive: true }).sort({ createdAt: -1 });
 
-  // Check for Dropbox token
+    if (!tokenDoc && !process.env.DROPBOX_API_ACCESS_TOKEN) {
+      return res.status(500).json({
+        message: "Dropbox configuration error",
+        error: "No token available. Run OAuth flow or set DROPBOX_API_ACCESS_TOKEN.",
+      });
+    }
+  } catch (tokenCheckError) {
+    console.error("[Dropbox Upload] Token check error:", tokenCheckError.message);
+  }
+
+  // Legacy check (keeping for backwards compatibility)
   if (!process.env.DROPBOX_API_ACCESS_TOKEN) {
-    console.error("Dropbox API token not found in environment variables");
-    return res.status(500).json({
-      message: "Dropbox configuration error",
-      error: "API token not configured",
-    });
+    // Check if we have a DB token instead
+    const tokenDoc = await DropboxToken.findOne({ isActive: true });
+    if (!tokenDoc) {
+      return res.status(500).json({
+        message: "Dropbox configuration error",
+        error: "API token not configured",
+      });
+    }
   }
 
   // Check for files in request
   if (!req.files || Object.keys(req.files).length === 0) {
-    console.error("No files received in request");
     return res.status(400).json({
       message: "No files were uploaded",
       error: "Missing files in request",
@@ -311,41 +325,29 @@ exports.uploadFile = async (req, res) => {
   }
 
   let uploadedFile = req.files.uploadedFile;
-  console.log("Received file:", {
-    name: uploadedFile.name,
-    size: uploadedFile.size,
-    type: uploadedFile.mimetype,
-  });
 
   // Add timestamp to filename to prevent conflicts
   const timestamp = new Date().getTime();
   const fileName = `${timestamp}_${uploadedFile.name}`;
   const uploadPath = `/promotion_materials/${fileName}`;
 
-  console.log("Attempting to upload to path:", uploadPath);
-
   try {
     // Get client with automatic token refresh
     const dbx = await getDropboxClient(true);
-    
+
     // Try to create the folder first
-    console.log("Checking/creating promotion_materials folder...");
     try {
-      const folderResponse = await dbx.filesCreateFolderV2({
+      await dbx.filesCreateFolderV2({
         path: "/promotion_materials",
       });
-      console.log("Folder created:", folderResponse);
     } catch (error) {
-      if (error.status === 409) {
-        console.log("Folder already exists, continuing...");
-      } else {
-        console.error("Error creating folder:", error);
+      if (error.status !== 409) {
+        // Only throw if not "folder already exists" error
         throw error;
       }
     }
 
     // Attempt the upload
-    console.log("Starting file upload to Dropbox...");
     const response = await dbx
       .filesUpload({
         path: uploadPath,
@@ -353,15 +355,8 @@ exports.uploadFile = async (req, res) => {
         mode: { ".tag": "add" },
       })
       .catch((error) => {
-        console.error("Dropbox upload error:", {
-          error: error.message,
-          status: error.status,
-          response: error.response,
-        });
         throw error;
       });
-
-    console.log("Upload response from Dropbox:", response);
 
     if (!response || !response.result) {
       throw new Error("Invalid response from Dropbox");
@@ -374,16 +369,25 @@ exports.uploadFile = async (req, res) => {
       dropboxResponse: response.result,
     });
   } catch (error) {
-    console.error("Upload failed:", {
+    console.error("[Dropbox Upload] Upload failed:", {
       error: error.message,
-      stack: error.stack,
       status: error.status,
+      errorData: error.error,  // Dropbox SDK puts error details here
+      response: error.response?.data,
     });
+
+    // Check for specific scope errors
+    const errorDetails = error.error || error.response?.data || {};
+    const isScopeError = error.message?.includes("scope") ||
+                         JSON.stringify(errorDetails).includes("scope");
 
     res.status(500).json({
       message: "Failed to upload file",
       error: error.message,
-      details: error.response?.data || "No additional details available",
+      details: errorDetails,
+      hint: isScopeError
+        ? "Token missing required scope. Re-run OAuth flow: /api/dropbox/oauth"
+        : "Check server logs for details"
     });
   }
 };
@@ -526,8 +530,6 @@ exports.initiateOAuth = async (req, res) => {
       undefined, // includeGrantedScopes
       undefined  // no PKCE for testing
     );
-
-    console.log('[Dropbox OAuth] Generated auth URL:', authUrl);
 
     // For testing: directly redirect to Dropbox
     // In production, you'd send this to frontend and let them handle it
@@ -2019,6 +2021,313 @@ exports.getBatchTemporaryLinks = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to get temporary links",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Upload guest/team media to Dropbox
+ * POST /api/dropbox/guest-upload
+ */
+exports.uploadGuestMedia = async (req, res) => {
+  try {
+    const { brandId, eventId, uploaderName, uploaderEmail, uploaderType } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded"
+      });
+    }
+
+    if (!brandId) {
+      return res.status(400).json({
+        success: false,
+        message: "Brand ID is required"
+      });
+    }
+
+    if (!uploaderName) {
+      return res.status(400).json({
+        success: false,
+        message: "Uploader name is required"
+      });
+    }
+
+    // Import models
+    const Brand = require("../models/brandModel");
+    const MediaUpload = require("../models/mediaUploadModel");
+    const { findUsersWithPermission, createSystemNotification } = require("../utils/notificationHelper");
+
+    // Find the brand
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    // Check if brand has guest upload folder configured
+    if (!brand.guestUploadFolder) {
+      return res.status(400).json({
+        success: false,
+        message: "Brand has not configured an upload folder"
+      });
+    }
+
+    // For public uploads (uploaderType === 'guest'), check if public uploads are enabled
+    if (uploaderType === "guest" && !brand.guestUploadEnabled) {
+      return res.status(403).json({
+        success: false,
+        message: "Public uploads are not enabled for this brand"
+      });
+    }
+
+    // For team uploads, verify user is authenticated and has permission
+    if (uploaderType === "team") {
+      if (!req.user || !req.user.userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required for team uploads"
+        });
+      }
+    }
+
+    // Validate file type (videos and photos)
+    const allowedTypes = [
+      "video/mp4", "video/quicktime", "video/webm",
+      "image/jpeg", "image/png", "image/gif", "image/webp"
+    ];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file type. Only videos and photos are allowed."
+      });
+    }
+
+    // Validate file size (100MB limit)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      return res.status(400).json({
+        success: false,
+        message: "File too large. Maximum size is 100MB."
+      });
+    }
+
+    // Generate unique filename with timestamp and uploader name
+    const timestamp = Date.now();
+    const sanitizedName = uploaderName.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20);
+    const fileExtension = file.originalname.split(".").pop();
+    const fileName = `${timestamp}_${sanitizedName}_${file.originalname}`;
+
+    // Construct Dropbox path
+    const dropboxPath = `${brand.guestUploadFolder}/${fileName}`.replace(/\/\//g, "/");
+    const normalizedPath = dropboxPath.startsWith("/") ? dropboxPath : `/${dropboxPath}`;
+
+    // Initialize Dropbox client
+    const dbx = await getDropboxClient(true);
+
+    // Upload file to Dropbox
+    try {
+      await dbx.filesUpload({
+        path: normalizedPath,
+        contents: file.buffer,
+        mode: { ".tag": "add" },
+        autorename: true
+      });
+    } catch (uploadError) {
+      console.error("[uploadGuestMedia] Dropbox upload error:", uploadError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload file to Dropbox",
+        error: uploadError.message
+      });
+    }
+
+    // Create MediaUpload record
+    const mediaUpload = new MediaUpload({
+      brandId: brand._id,
+      eventId: eventId || null,
+      uploaderType: uploaderType || "guest",
+      uploaderUserId: req.user?.userId || null,
+      uploaderName: uploaderName,
+      uploaderEmail: uploaderEmail || null,
+      fileName: fileName,
+      originalFileName: file.originalname,
+      fileSize: file.size,
+      fileType: file.mimetype,
+      dropboxPath: normalizedPath,
+      status: "approved"
+    });
+
+    await mediaUpload.save();
+
+    // Send notifications to team members with events.edit permission
+    try {
+      const usersToNotify = await findUsersWithPermission(brandId, "events.edit");
+
+      // Get actual uploader name for team members
+      let displayName = uploaderName;
+      if (uploaderType === "team" && req.user && req.user.userId) {
+        const User = require("../models/User");
+        const user = await User.findById(req.user.userId).select("firstName lastName username");
+        if (user) {
+          displayName = user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.username || uploaderName;
+        }
+      }
+
+      // Include email in notification message if provided
+      const messageWithEmail = uploaderEmail
+        ? `${displayName} (${uploaderEmail}) uploaded media to ${brand.name}`
+        : `${displayName} uploaded media to ${brand.name}`;
+
+      for (const userId of usersToNotify) {
+        await createSystemNotification({
+          userId,
+          type: "media_uploaded",
+          title: "New Media Upload",
+          message: messageWithEmail,
+          metadata: {
+            uploadId: mediaUpload._id,
+            fileName: file.originalname,
+            uploaderName: displayName,
+            uploaderEmail: uploaderEmail || null,
+            uploaderType: uploaderType || "guest",
+            brandId: brand._id,
+            brandName: brand.name
+          },
+          brandId: brand._id
+        });
+      }
+    } catch (notificationError) {
+      // Don't fail the upload if notifications fail
+      console.error("[uploadGuestMedia] Notification error:", notificationError);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "File uploaded successfully",
+      upload: {
+        id: mediaUpload._id,
+        fileName: fileName,
+        dropboxPath: normalizedPath,
+        fileSize: file.size
+      }
+    });
+
+  } catch (error) {
+    console.error("[uploadGuestMedia] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload media",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get upload settings for a brand
+ * GET /api/dropbox/brand/:brandId/upload-settings
+ */
+exports.getUploadSettings = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    const Brand = require("../models/brandModel");
+    const brand = await Brand.findById(brandId).select("guestUploadFolder guestUploadEnabled name");
+
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      settings: {
+        guestUploadFolder: brand.guestUploadFolder || "",
+        guestUploadEnabled: brand.guestUploadEnabled || false,
+        brandName: brand.name
+      }
+    });
+
+  } catch (error) {
+    console.error("[getUploadSettings] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get upload settings",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Update upload settings for a brand
+ * PUT /api/dropbox/brand/:brandId/upload-settings
+ */
+exports.updateUploadSettings = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { guestUploadFolder, guestUploadEnabled } = req.body;
+
+    const Brand = require("../models/brandModel");
+
+    // Verify user has permission (owner or team member with settings permission)
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    // Check if user is owner
+    const userId = req.user?.userId || req.user?._id;
+    const isOwner = brand.owner.toString() === userId?.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the brand owner can update upload settings"
+      });
+    }
+
+    // Update settings
+    const updateData = {};
+    if (guestUploadFolder !== undefined) {
+      updateData.guestUploadFolder = guestUploadFolder;
+    }
+    if (guestUploadEnabled !== undefined) {
+      updateData.guestUploadEnabled = guestUploadEnabled;
+    }
+
+    const updatedBrand = await Brand.findByIdAndUpdate(
+      brandId,
+      { $set: updateData },
+      { new: true }
+    ).select("guestUploadFolder guestUploadEnabled name");
+
+    res.json({
+      success: true,
+      message: "Upload settings updated successfully",
+      settings: {
+        guestUploadFolder: updatedBrand.guestUploadFolder || "",
+        guestUploadEnabled: updatedBrand.guestUploadEnabled || false,
+        brandName: updatedBrand.name
+      }
+    });
+
+  } catch (error) {
+    console.error("[updateUploadSettings] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update upload settings",
       error: error.message
     });
   }

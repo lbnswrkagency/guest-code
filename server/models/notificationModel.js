@@ -22,6 +22,7 @@ const notificationSchema = new mongoose.Schema({
       "table_request_confirmed",
       "table_request_declined",
       "table_request_cancelled",
+      "media_uploaded",
     ],
     required: true,
   },

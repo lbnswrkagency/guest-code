@@ -2469,3 +2469,139 @@
   }
 }
 
+
+
+// Share Your Moments Section
+.upcomingEvent-share-moments-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+  margin-top: 1rem;
+
+  .share-moments-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: rgba(255, 200, 7, 0.1);
+    border: 1px solid rgba(255, 200, 7, 0.3);
+    border-radius: 8px;
+    color: #ffc807;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    svg {
+      font-size: 1.1rem;
+    }
+
+    &:hover {
+      background: rgba(255, 200, 7, 0.15);
+      border-color: rgba(255, 200, 7, 0.5);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .share-moments-hint {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    margin: 0;
+    text-align: center;
+  }
+}
+
+// Media Upload Inline
+.upcomingEvent-media-upload-inline {
+  width: 100%;
+
+  .media-upload-container {
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(255, 200, 7, 0.15);
+    border-radius: 10px;
+    padding: 1.25rem;
+    max-width: 100%;
+
+    .media-upload-header {
+      margin-bottom: 1rem;
+
+      h3 {
+        font-size: 1rem;
+      }
+    }
+
+    .uploader-info {
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+
+      .input-group {
+        gap: 0.375rem;
+
+        label {
+          font-size: 0.8rem;
+        }
+
+        input {
+          padding: 0.625rem 0.875rem;
+          font-size: 0.9rem;
+          border-radius: 6px;
+        }
+      }
+    }
+
+    .drop-zone {
+      padding: 1.25rem;
+      min-height: 120px;
+      border-radius: 8px;
+    }
+
+    .action-buttons {
+      margin-top: 1rem;
+      gap: 0.75rem;
+
+      button {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 6px;
+      }
+    }
+  }
+}
+
+// Mobile styles
+@media (max-width: 768px) {
+  .upcomingEvent-share-moments-section {
+    padding: 1rem;
+
+    .share-moments-btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+    }
+
+    .share-moments-hint {
+      font-size: 0.75rem;
+    }
+  }
+
+  .upcomingEvent-media-upload-inline {
+    .media-upload-container {
+      padding: 1rem;
+
+      .drop-zone {
+        padding: 1rem;
+        min-height: 100px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+  }
+}
