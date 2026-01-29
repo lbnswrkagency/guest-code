@@ -1957,37 +1957,6 @@ const UpcomingEvent = ({
               </div>
             )}
 
-            {/* Share Your Moments - Guest Video Upload */}
-            {brandUploadSettings.guestUploadEnabled && brandUploadSettings.guestUploadFolder && (
-              <div className="upcomingEvent-share-moments-section">
-                {!showMediaUpload ? (
-                  <>
-                    <button
-                      className="share-moments-btn"
-                      onClick={() => setShowMediaUpload(true)}
-                    >
-                      <RiVideoUploadLine />
-                      <span>Share Your Moments</span>
-                    </button>
-                    <p className="share-moments-hint">
-                      Upload your videos from the event
-                    </p>
-                  </>
-                ) : (
-                  <div className="upcomingEvent-media-upload-inline">
-                    <MediaUpload
-                      brandId={currentEvent.brand?._id || currentEvent.brand}
-                      eventId={currentEvent._id}
-                      mode="public"
-                      onUploadComplete={() => {
-                        setShowMediaUpload(false);
-                      }}
-                      onClose={() => setShowMediaUpload(false)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </motion.div>
       </AnimatePresence>
@@ -2004,6 +1973,38 @@ const UpcomingEvent = ({
             }
             onLoadStatusChange={setSpotifyLoaded}
           />
+        </div>
+      )}
+
+      {/* Share Your Moments - Guest Video Upload (positioned after Spotify) */}
+      {brandUploadSettings.guestUploadEnabled && brandUploadSettings.guestUploadFolder && (
+        <div className="upcomingEvent-share-moments-section">
+          {!showMediaUpload ? (
+            <>
+              <button
+                className="share-moments-btn"
+                onClick={() => setShowMediaUpload(true)}
+              >
+                <RiVideoUploadLine />
+                <span>Share Your Moments</span>
+              </button>
+              <p className="share-moments-hint">
+                Upload your videos from the event
+              </p>
+            </>
+          ) : (
+            <div className="upcomingEvent-media-upload-inline">
+              <MediaUpload
+                brandId={currentEvent.brand?._id || currentEvent.brand}
+                eventId={currentEvent._id}
+                mode="public"
+                onUploadComplete={() => {
+                  setShowMediaUpload(false);
+                }}
+                onClose={() => setShowMediaUpload(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 
