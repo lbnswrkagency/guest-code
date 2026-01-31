@@ -486,6 +486,66 @@ async function getDetailedTicketStats(eventId) {
       }
     }
 
+    // Check for orphaned tickets (tickets with no matching ticket settings)
+    // This handles the case when ticket settings are deleted but tickets still exist
+    const processedTicketNames = new Set();
+    ticketSettings.forEach(setting => {
+      processedTicketNames.add(setting.name);
+      processedTicketNames.add(setting.type);
+    });
+
+    // Also add names from already processed categories
+    summary.categories.forEach(cat => {
+      processedTicketNames.add(cat.name);
+    });
+
+    // Find orphaned tickets (not matching any processed category)
+    const orphanedTickets = tickets.filter(ticket => {
+      const ticketName = ticket.ticketName || ticket.ticketType;
+      return !processedTicketNames.has(ticketName);
+    });
+
+    if (orphanedTickets.length > 0) {
+      // Group orphaned tickets by name
+      const orphanedGroups = {};
+      orphanedTickets.forEach(ticket => {
+        const key = ticket.ticketName || ticket.ticketType || 'Deleted Ticket';
+        if (!orphanedGroups[key]) {
+          orphanedGroups[key] = {
+            name: key,
+            price: ticket.price,
+            tickets: []
+          };
+        }
+        orphanedGroups[key].tickets.push(ticket);
+      });
+
+      // Process each orphaned group
+      for (const [ticketName, group] of Object.entries(orphanedGroups)) {
+        const categorySold = group.tickets.reduce((sum, ticket) => sum + (ticket.pax || 0), 0);
+        const categoryCheckedIn = group.tickets.reduce((sum, ticket) => sum + (ticket.paxChecked || 0), 0);
+        const categoryRevenue = group.tickets.reduce((sum, ticket) => sum + (ticket.price || 0) * (ticket.pax || 1), 0);
+
+        summary.categories.push({
+          name: ticketName,
+          price: group.price,
+          color: "#2196F3", // Default blue color
+          paymentMethod: group.tickets[0]?.paymentMethod || "online",
+          stats: {
+            sold: categorySold,
+            checkedIn: categoryCheckedIn,
+            revenue: categoryRevenue,
+            count: group.tickets.length
+          }
+        });
+
+        // Add to totals
+        summary.totalSold += categorySold;
+        summary.totalCheckedIn += categoryCheckedIn;
+        summary.totalRevenue += categoryRevenue;
+      }
+    }
+
     // Sort categories by number of tickets sold (descending)
     summary.categories.sort((a, b) => b.stats.sold - a.stats.sold);
 
