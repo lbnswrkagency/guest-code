@@ -38,6 +38,8 @@ const MediaUpload = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [error, setError] = useState(null);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(null);
+  const uploadStartTimeRef = useRef(null);
 
   // For public mode - guest information
   const [uploaderName, setUploaderName] = useState("");
@@ -144,6 +146,8 @@ const MediaUpload = ({
     setUploading(true);
     setUploadProgress(0);
     setError(null);
+    setEstimatedTimeRemaining(null);
+    uploadStartTimeRef.current = Date.now();
 
     const formData = new FormData();
     formData.append("media", selectedFile);
@@ -164,11 +168,32 @@ const MediaUpload = ({
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 600000, // 10 minutes timeout for large file uploads
         onUploadProgress: (progressEvent) => {
           const progress = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
           );
           setUploadProgress(progress);
+
+          // Calculate estimated time remaining
+          if (progress > 0 && uploadStartTimeRef.current) {
+            const elapsedTime = Date.now() - uploadStartTimeRef.current;
+            const bytesPerMs = progressEvent.loaded / elapsedTime;
+            const remainingBytes = progressEvent.total - progressEvent.loaded;
+            const remainingMs = remainingBytes / bytesPerMs;
+
+            // Convert to seconds/minutes for display
+            const remainingSecs = Math.ceil(remainingMs / 1000);
+            if (remainingSecs > 60) {
+              const mins = Math.floor(remainingSecs / 60);
+              const secs = remainingSecs % 60;
+              setEstimatedTimeRemaining(`${mins}m ${secs}s`);
+            } else if (remainingSecs > 0) {
+              setEstimatedTimeRemaining(`${remainingSecs}s`);
+            } else {
+              setEstimatedTimeRemaining("Almost done...");
+            }
+          }
         },
       });
 
@@ -184,6 +209,7 @@ const MediaUpload = ({
           setUploadComplete(false);
           setUploaderName("");
           setUploaderEmail("");
+          setEstimatedTimeRemaining(null);
         }, 2000);
       } else {
         throw new Error(response.data.message || "Upload failed");
@@ -327,7 +353,12 @@ const MediaUpload = ({
                         transition={{ duration: 0.3 }}
                       />
                     </div>
-                    <span className="progress-text">{uploadProgress}%</span>
+                    <div className="progress-info">
+                      <span className="progress-text">{uploadProgress}%</span>
+                      {estimatedTimeRemaining && (
+                        <span className="time-remaining">{estimatedTimeRemaining} remaining</span>
+                      )}
+                    </div>
                   </div>
                 )}
               </motion.div>
