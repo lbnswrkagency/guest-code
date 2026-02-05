@@ -707,16 +707,18 @@ const CoHostRoleSettings = ({
                             </div>
                           </div>
 
-                          {/* Custom Codes from Main Host */}
+                          {/* Code Templates from Main Host */}
                           <div className="permission-category codes-category">
-                            <h4>Custom Codes (Main Host)</h4>
+                            <h4>Code Templates</h4>
                             <p className="codes-subtitle">
-                              Configure permissions for the main host's custom
-                              codes
+                              Configure permissions for the main host's code
+                              templates
                             </p>
                             {mainHostCustomCodes &&
                             mainHostCustomCodes.length > 0 ? (
                               mainHostCustomCodes.map((codeSetting) => {
+                                // Use NAME as permission key for backward compatibility with role system
+                                // This ensures permissions match between RoleSetting and CoHostRoleSettings
                                 const codeKey = codeSetting.name;
                                 return (
                                   <div
@@ -729,6 +731,9 @@ const CoHostRoleSettings = ({
                                       }}
                                     >
                                       {codeSetting.name}
+                                      {codeSetting.isGlobal && (
+                                        <span className="global-badge">Global</span>
+                                      )}
                                     </h5>
                                     <div className="code-controls">
                                       <div className="permission-item">
@@ -806,9 +811,9 @@ const CoHostRoleSettings = ({
                               })
                             ) : (
                               <div className="no-custom-codes">
-                                <p>No custom codes found for this event.</p>
+                                <p>No code templates found for this event.</p>
                                 <p className="hint">
-                                  Custom codes must be created by the main host
+                                  Code templates must be created by the main host
                                   first.
                                 </p>
                               </div>

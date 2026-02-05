@@ -2,6 +2,9 @@ const Brand = require("../models/brandModel");
 const Event = require("../models/eventsModel");
 const Role = require("../models/roleModel");
 const CodeSettings = require("../models/codeSettingsModel");
+const EventCodeActivation = require("../models/eventCodeActivationModel");
+const CodeTemplate = require("../models/codeTemplateModel");
+const CodeBrandAttachment = require("../models/codeBrandAttachmentModel");
 const mongoose = require("mongoose");
 const { normalizePermissions, ensurePlainObject } = require("../utils/permissionResolver");
 
@@ -123,8 +126,10 @@ exports.getCoHostedEvents = async (req, res) => {
     const eventsWithFullData = await Promise.all(
       coHostedEvents.map(async (event) => {
         try {
-          // Get code settings - use parent event for child events (code settings are inherited)
+          const brandId = event.brand._id || event.brand;
           const effectiveEventId = event.parentEventId || event._id;
+
+          // Get code settings for this event (CodeTemplate system syncs to CodeSettings)
           const eventCodeSettings = await CodeSettings.find({
             eventId: effectiveEventId
           });
@@ -378,6 +383,9 @@ exports.getCoHostRoles = async (req, res) => {
 };
 
 // Get main host's custom codes for an event
+// Supports:
+// 1. New CodeTemplate system (user-level, via CodeBrandAttachment)
+// 2. Fallback: event-level CodeSettings (CodeTemplate system syncs to CodeSettings)
 exports.getMainHostCustomCodes = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -393,20 +401,67 @@ exports.getMainHostCustomCodes = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Use parent event ID if this is a child event (for weekly events, codes belong to parent)
+    const brandId = event.brand;
+
+    // 1. First, try new CodeTemplate system (user-level, via CodeBrandAttachment)
+    const brandAttachments = await CodeBrandAttachment.find({ brandId })
+      .populate("codeTemplateId");
+
+    if (brandAttachments.length > 0) {
+      // Filter to get only valid templates with global access or specific event activation
+      const effectiveEventId = event.parentEventId || eventId;
+
+      // Get event-specific activations
+      const eventActivations = await EventCodeActivation.find({
+        eventId: effectiveEventId,
+        isEnabled: true
+      });
+      const activatedTemplateIds = new Set(
+        eventActivations.map(ea => ea.codeTemplateId.toString())
+      );
+
+      const activeCodes = [];
+
+      for (const attachment of brandAttachments) {
+        const template = attachment.codeTemplateId;
+        if (!template) continue;
+
+        // Include if global for this brand OR specifically activated for this event
+        if (attachment.isGlobalForBrand || activatedTemplateIds.has(template._id.toString())) {
+          activeCodes.push({
+            _id: template._id,
+            codeTemplateId: template._id, // New field for CodeTemplate reference
+            name: template.name,
+            type: template.type || "custom",
+            color: template.color || "#ffc807",
+            limit: template.defaultLimit || 999,
+            maxPax: template.maxPax || 1,
+            condition: template.condition || "",
+            icon: template.icon || "RiCodeLine",
+            hasLimits: true,
+            isGlobal: attachment.isGlobalForBrand,
+            isCodeTemplateSystem: true // Flag to indicate this is from new CodeTemplate system
+          });
+        }
+      }
+
+      if (activeCodes.length > 0) {
+        return res.status(200).json(activeCodes);
+      }
+    }
+
+    // 2. Fallback: Use event-level CodeSettings (CodeTemplate system syncs to CodeSettings)
     const effectiveEventId = event.parentEventId || eventId;
 
-    // Get custom code settings for this event from the CodeSettings collection
     const codeSettings = await CodeSettings.find({
       eventId: effectiveEventId,
-      type: "custom", // Only get custom codes
-      isEnabled: true // Only get enabled codes
-    }).select("name type color limit maxPax condition icon");
+      type: "custom",
+      isEnabled: true
+    }).select("name type color limit maxPax condition icon codeTemplateId");
 
-
-    // Format the codes similar to how RoleSetting.js does it
     const formattedCodes = codeSettings.map(code => ({
       _id: code._id,
+      codeTemplateId: code.codeTemplateId || null, // Include codeTemplateId if available
       name: code.name,
       type: code.type,
       color: code.color || "#ffc807",
@@ -414,12 +469,14 @@ exports.getMainHostCustomCodes = async (req, res) => {
       maxPax: code.maxPax || 1,
       condition: code.condition || "",
       icon: code.icon || "RiCodeLine",
-      hasLimits: true, // Custom codes typically have limits
-      isCustom: true
+      hasLimits: true,
+      isCustom: true,
+      isBrandLevel: false
     }));
 
     res.status(200).json(formattedCodes);
   } catch (error) {
+    console.error("Error fetching main host custom codes:", error);
     res.status(500).json({ message: "Error fetching main host custom codes" });
   }
 };

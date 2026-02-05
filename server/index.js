@@ -49,6 +49,7 @@ const memberController = require("./controllers/memberController");
 const memberRoutes = require("./routes/api/memberRoutes");
 const allRoutes = require("./routes/allRoutes");
 const coHostRoutes = require("./routes/coHostRoutes");
+const codeTemplateRoutes = require("./routes/codeTemplateRoutes");
 
 // Directory setup
 const tempDir = path.join(__dirname, "temp");
@@ -282,6 +283,8 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/all", allRoutes);
 app.use("/api/co-hosts", coHostRoutes);
+app.use("/api/code-templates", codeTemplateRoutes); // New user-level code templates
+app.use("/api/event-codes", require("./routes/api/eventCodeRoutes"));
 
 // MongoDB connection
 mongoose

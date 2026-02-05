@@ -1,13 +1,48 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import "./CodeGenerator.scss";
-import Navigation from "../Navigation/Navigation";
-import Footer from "../Footer/Footer";
 import CodeManagement from "../CodeManagement/CodeManagement";
 import { BsPeopleFill } from "react-icons/bs";
-import { RiCodeBoxFill, RiCloseLine, RiRefreshLine } from "react-icons/ri";
+import {
+  RiCodeBoxFill,
+  RiCloseLine,
+  RiRefreshLine,
+  RiCodeLine,
+  RiTicketLine,
+  RiUserLine,
+  RiVipLine,
+  RiTableLine,
+  RiHeartLine,
+  RiStarLine,
+  RiFireLine,
+  RiThumbUpLine,
+  RiCupLine,
+  RiGift2Line,
+  RiMedalLine,
+  RiTrophyLine,
+  RiAddLine,
+} from "react-icons/ri";
 import { componentCleanup } from "../../utils/layoutHelpers";
+
+// Icon map for dynamic icon rendering
+const ICON_MAP = {
+  RiCodeLine,
+  RiTicketLine,
+  RiUserLine,
+  RiVipLine,
+  RiTableLine,
+  RiHeartLine,
+  RiStarLine,
+  RiFireLine,
+  RiThumbUpLine,
+  RiCupLine,
+  RiGift2Line,
+  RiMedalLine,
+  RiTrophyLine,
+  RiCodeBoxFill,
+};
 
 function CodeGenerator({
   user,
@@ -41,7 +76,12 @@ function CodeGenerator({
     console.log('[CODE-GEN DEBUG] selectedEvent.coHostBrandInfo:', selectedEvent?.coHostBrandInfo);
     console.log('[CODE-GEN DEBUG] selectedBrand?.role?.permissions:', selectedBrand?.role?.permissions);
     console.log('[CODE-GEN DEBUG] codeSettings received:', codeSettings?.length, 'items');
-    console.log('[CODE-GEN DEBUG] codeSettings details:', codeSettings?.map(s => ({ name: s.name, isEnabled: s.isEnabled, isEditable: s.isEditable })));
+    console.log('[CODE-GEN DEBUG] codeSettings details:', codeSettings?.map(s => ({
+      name: s.name,
+      isEnabled: s.isEnabled,
+      isEditable: s.isEditable,
+      codeTemplateId: s.codeTemplateId || 'MISSING'  // Show if codeTemplateId exists
+    })));
 
     // Get user permissions using unified format
     // Backend now normalizes all permissions to plain objects (no Map conversion needed)
@@ -55,11 +95,14 @@ function CodeGenerator({
     const userPermissions = effectivePermissions?.codes || {};
     console.log('[CODE-GEN DEBUG] userPermissions (codes):', userPermissions);
 
-    // Filter for custom codes (isEditable: true) that are also enabled (isEnabled: true)
+    // Filter for custom codes that:
+    // 1. Have a codeTemplateId (created through the new CodeTemplate system)
+    // 2. Are editable (isEditable: true)
+    // 3. Are enabled (isEnabled: true)
     const customCodeSettings = codeSettings.filter(
-      (setting) => setting.isEditable === true && setting.isEnabled === true
+      (setting) => setting.codeTemplateId && setting.isEditable === true && setting.isEnabled === true
     );
-    console.log('[CODE-GEN DEBUG] customCodeSettings (isEditable && isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
+    console.log('[CODE-GEN DEBUG] customCodeSettings (codeTemplateId && isEditable && isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();
@@ -661,35 +704,98 @@ function CodeGenerator({
     };
   }, []);
 
+  // Get icon component by name
+  const getIconComponent = (iconName) => {
+    return ICON_MAP[iconName] || RiCodeLine;
+  };
+
+  // Calculate progress percentage for the counter
+  const getProgressPercentage = () => {
+    const activePermission = getActivePermission();
+    if (!activePermission || activePermission.unlimited) return 0;
+
+    const limit = activePermission.limit || 0;
+    if (limit === 0) return 0;
+
+    const totalPeopleCount =
+      activeSetting && userCodes[activeSetting._id]
+        ? userCodes[activeSetting._id].reduce(
+            (total, code) => total + (code.maxPax || 1),
+            0
+          )
+        : 0;
+
+    return Math.min(100, (totalPeopleCount / limit) * 100);
+  };
+
   if (!activeSetting) {
     return (
-      <div className="code">
-        <div className="code-wrapper">
-          <Navigation onBack={onClose} />
-          <h1 className="code-title">No Code Types Available</h1>
-          <p>
-            No code types are currently configured for this event or you don't
-            have permissions to generate codes.
-            <br />
-            Please contact the event owner to set up code types.
-          </p>
-        </div>
-        <Footer />
-      </div>
+      <motion.div
+        className="code-generator-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="code-generator-panel"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="panel-header">
+            <h2>
+              <RiCodeBoxFill /> No Codes Available
+            </h2>
+            <div className="header-actions">
+              <button className="close-btn" onClick={onClose}>
+                <RiCloseLine />
+              </button>
+            </div>
+          </div>
+          <div className="panel-body">
+            <div className="no-codes-message">
+              <RiCodeLine className="no-codes-icon" />
+              <h3>No Code Types Available</h3>
+              <p>
+                No code types are currently configured for this event or you don't
+                have permissions to generate codes.
+              </p>
+              <p>Please contact the event owner to set up code types.</p>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
+  const activePermission = getActivePermission();
+
   return (
-    <div className="code-generator">
-      <Navigation onBack={onClose} title={`${type || "Event"} Codes`} />
-      <div className="code-generator-container">
-        {/* Add stylized header similar to Analytics */}
-        <div className="code-header">
+    <motion.div
+      className="code-generator-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="code-generator-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Panel Header */}
+        <div className="panel-header">
           <h2>
-            <RiCodeBoxFill /> Code Generator
-            {selectedEvent && (
-              <span className="event-name"> - {selectedEvent.title}</span>
-            )}
+            <RiCodeBoxFill />
+            <span className="event-title">
+              {selectedEvent?.title || "Generate Code"}
+            </span>
           </h2>
           <div className="header-actions">
             <button
@@ -705,77 +811,55 @@ function CodeGenerator({
           </div>
         </div>
 
-        {/* Event logo container */}
-        <div className="brand-logo-container">
-          {selectedEvent && (
-            <>
-              {selectedEvent.brand &&
-              selectedEvent.brand.logo &&
-              (selectedEvent.brand.logo.full ||
-                selectedEvent.brand.logo.medium ||
-                selectedEvent.brand.logo.thumbnail) ? (
-                <img
-                  src={
-                    selectedEvent.brand.logo.full ||
-                    selectedEvent.brand.logo.medium ||
-                    selectedEvent.brand.logo.thumbnail
-                  }
-                  alt={selectedEvent.name || selectedEvent.title}
-                  className="code-logo"
-                  style={
-                    selectedEvent.primaryColor
-                      ? { borderColor: selectedEvent.primaryColor }
-                      : {}
-                  }
-                />
-              ) : selectedBrand && selectedBrand.logo ? (
-                <img
-                  src={
-                    selectedBrand.logo.full ||
-                    selectedBrand.logo.medium ||
-                    selectedBrand.logo.thumbnail ||
-                    selectedBrand.logo.url
-                  }
-                  alt={selectedBrand.name}
-                  className="code-logo"
-                  style={
-                    selectedEvent.primaryColor
-                      ? { borderColor: selectedEvent.primaryColor }
-                      : {}
-                  }
-                />
-              ) : (
-                <div
-                  className="code-logo-placeholder"
-                  style={
-                    selectedEvent.primaryColor
-                      ? { backgroundColor: selectedEvent.primaryColor }
-                      : {}
-                  }
-                >
-                  {selectedEvent.name ? selectedEvent.name.charAt(0) : "G"}
-                </div>
-              )}
-            </>
+        {/* Panel Body - Scrollable */}
+        <div className="panel-body">
+          {/* Code Type Chips */}
+          {availableSettings && availableSettings.length > 1 && (
+            <div className="code-type-chips">
+              {availableSettings.map((setting) => {
+                const IconComp = getIconComponent(setting.icon);
+                return (
+                  <button
+                    key={setting._id}
+                    className={`type-chip ${
+                      selectedCodeType === setting.name ? "selected" : ""
+                    }`}
+                    onClick={() => handleTabClick(setting.name)}
+                    disabled={isLoading}
+                  >
+                    <IconComp />
+                    {setting.name}
+                  </button>
+                );
+              })}
+            </div>
           )}
-        </div>
 
-        <div className="code-generator-header">
-          <div className="counter-container">
-            <div className="counter-label">{getCounterText()}</div>
-            <div className="counter-value">{getCounterValue()}</div>
+          {/* Counter Card */}
+          <div className="counter-card">
+            <div className="counter-info">
+              <span className="counter-label">{getCounterText()}</span>
+              <span className="counter-value">{getCounterValue()}</span>
+            </div>
+            {activePermission && !activePermission.unlimited && (
+              <div className="counter-progress">
+                <div
+                  className="progress-bar"
+                  style={{ width: `${getProgressPercentage()}%` }}
+                />
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Code Generator View */}
-        <div className="code-generator-section">
-          {renderCodeTypeTabs()}
+          {/* Form Card */}
+          <div className="form-card">
+            <h3>Generate New Code</h3>
 
-          <div className="code-form">
-            <div className="input-container">
+            <div className="form-field">
+              <label>Name</label>
               <input
                 type="text"
-                placeholder="Name"
+                placeholder="Enter guest name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={hasReachedLimit() || isLoading}
@@ -785,46 +869,52 @@ function CodeGenerator({
             {activeSetting &&
               shouldShowPeopleSelector() &&
               activeSetting.maxPax > 1 && (
-                <div className="input-container">
-                  <select
-                    className="people-select"
-                    value={pax}
-                    onChange={(e) => setPax(parseInt(e.target.value))}
-                    disabled={hasReachedLimit() || isLoading}
-                  >
-                    {maxPeopleOptions.map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? "Person" : "People"}
-                      </option>
-                    ))}
-                  </select>
+                <div className="form-row">
+                  <div className="form-field">
+                    <label>People</label>
+                    <select
+                      value={pax}
+                      onChange={(e) => setPax(parseInt(e.target.value))}
+                      disabled={hasReachedLimit() || isLoading}
+                    >
+                      {maxPeopleOptions.map((num) => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? "Person" : "People"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
 
             {activeSetting && activeSetting.customizableCondition && (
-              <div className="input-container">
+              <div className="form-field">
+                <label>Condition</label>
                 <input
                   type="text"
-                  placeholder="Condition (optional)"
+                  placeholder="e.g., Free entry before 12am"
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             )}
 
             {activeSetting && activeSetting.type === "table" && (
-              <div className="input-container">
+              <div className="form-field">
+                <label>Table Number</label>
                 <input
                   type="text"
-                  placeholder="Table Number"
+                  placeholder="e.g., T1, VIP-3"
                   value={tableNumber}
                   onChange={(e) => setTableNumber(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             )}
 
             <button
-              className="code-btn"
+              className={`generate-btn ${hasReachedLimit() ? "limit-reached" : ""}`}
               disabled={
                 !name ||
                 pax < 1 ||
@@ -834,79 +924,91 @@ function CodeGenerator({
               }
               onClick={handleCode}
             >
-              {isLoading
-                ? "Loading..."
-                : hasReachedLimit()
-                ? "Limit Reached"
-                : "Generate Code"}
+              {isLoading ? (
+                "Generating..."
+              ) : hasReachedLimit() ? (
+                "Limit Reached"
+              ) : (
+                <>
+                  <RiAddLine /> Generate Code
+                </>
+              )}
             </button>
           </div>
-        </div>
 
-        {/* Code Management Section */}
-        <div className="code-management-container">
-          <CodeManagement
-            user={user}
-            type={selectedCodeType}
-            codes={
-              activeSetting && userCodes[activeSetting._id]
-                ? userCodes[activeSetting._id].map((code) => ({
-                    ...code,
-                    color: code.color || activeSetting.color || "#2196F3",
-                    icon: code.icon || activeSetting.icon || "RiCodeLine",
-                    metadata: {
-                      ...code.metadata,
-                      settingIcon:
-                        code.metadata?.settingIcon ||
-                        activeSetting.icon ||
-                        "RiCodeLine",
-                    },
-                  }))
-                : []
-            }
-            setCodes={(updatedCodes) => {
-              if (activeSetting) {
-                // Create a copy of userCodes
-                const updatedUserCodes = { ...userCodes };
-                // Update the specific setting's codes
-                updatedUserCodes[activeSetting._id] = updatedCodes;
-                // Update state
-                setUserCodes(updatedUserCodes);
-                // Update total count based on maxPax values
-                const newTotalPeopleCount = Object.values(
-                  updatedUserCodes
-                ).reduce(
-                  (total, settingCodes) =>
-                    total +
-                    settingCodes.reduce(
-                      (settingTotal, code) => settingTotal + (code.maxPax || 1),
-                      0
-                    ),
-                  0
-                );
-                setTotalCodesCount(newTotalPeopleCount);
-                // Force a refresh of the maxPeopleOptions
-                updateMaxPeopleOptions(activeSetting);
+          {/* Generated Codes Section */}
+          <div className="generated-codes-section">
+            <div className="section-header">
+              <h3>Generated Codes</h3>
+              <span className="codes-count">
+                {activeSetting && userCodes[activeSetting._id]
+                  ? userCodes[activeSetting._id].length
+                  : 0}
+              </span>
+            </div>
+
+            <CodeManagement
+              user={user}
+              type={selectedCodeType}
+              codes={
+                activeSetting && userCodes[activeSetting._id]
+                  ? userCodes[activeSetting._id].map((code) => ({
+                      ...code,
+                      color: code.color || activeSetting.color || "#2196F3",
+                      icon: code.icon || activeSetting.icon || "RiCodeLine",
+                      metadata: {
+                        ...code.metadata,
+                        settingIcon:
+                          code.metadata?.settingIcon ||
+                          activeSetting.icon ||
+                          "RiCodeLine",
+                      },
+                    }))
+                  : []
               }
-            }}
-            selectedEvent={selectedEvent}
-            isLoading={isLoading}
-            activeSetting={activeSetting}
-            maxPeopleOptions={maxPeopleOptions}
-            maxPeopleAllowed={getMaxPeopleAllowed()}
-            remainingQuota={getRemainingQuota()}
-            hasLimitReached={hasReachedLimit()}
-            refreshCodes={() => {
-              if (activeSetting) {
-                updateMaxPeopleOptions(activeSetting);
-              }
-            }}
-            refreshCounts={refreshCounts}
-          />
+              setCodes={(updatedCodes) => {
+                if (activeSetting) {
+                  // Create a copy of userCodes
+                  const updatedUserCodes = { ...userCodes };
+                  // Update the specific setting's codes
+                  updatedUserCodes[activeSetting._id] = updatedCodes;
+                  // Update state
+                  setUserCodes(updatedUserCodes);
+                  // Update total count based on maxPax values
+                  const newTotalPeopleCount = Object.values(
+                    updatedUserCodes
+                  ).reduce(
+                    (total, settingCodes) =>
+                      total +
+                      settingCodes.reduce(
+                        (settingTotal, code) => settingTotal + (code.maxPax || 1),
+                        0
+                      ),
+                    0
+                  );
+                  setTotalCodesCount(newTotalPeopleCount);
+                  // Force a refresh of the maxPeopleOptions
+                  updateMaxPeopleOptions(activeSetting);
+                }
+              }}
+              selectedEvent={selectedEvent}
+              isLoading={isLoading}
+              activeSetting={activeSetting}
+              maxPeopleOptions={maxPeopleOptions}
+              maxPeopleAllowed={getMaxPeopleAllowed()}
+              remainingQuota={getRemainingQuota()}
+              hasLimitReached={hasReachedLimit()}
+              refreshCodes={() => {
+                if (activeSetting) {
+                  updateMaxPeopleOptions(activeSetting);
+                }
+              }}
+              refreshCounts={refreshCounts}
+            />
+          </div>
         </div>
-      </div>
-      <Footer />
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

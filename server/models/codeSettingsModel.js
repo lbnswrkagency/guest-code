@@ -75,6 +75,11 @@ const CodeSettingsSchema = new Schema(
     tableNumber: {
       type: String,
     }, // For table codes
+    // Link to CodeTemplate (for codes created from the new template system)
+    codeTemplateId: {
+      type: Schema.Types.ObjectId,
+      ref: "CodeTemplate",
+    },
   },
   {
     timestamps: true,

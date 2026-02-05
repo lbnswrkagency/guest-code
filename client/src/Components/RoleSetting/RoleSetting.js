@@ -165,17 +165,49 @@ const RoleSetting = ({ brand, onClose }) => {
     }
   }, [brand._id, toast]);
 
-  // Fetch code settings for custom codes from parent events only
+  // Fetch code templates from brand level
   const fetchCodeSettings = useCallback(async () => {
+    try {
+      // 1. Try new CodeTemplate system first (/code-templates/brand/:brandId)
+      const newSystemResponse = await axiosInstance.get(`/code-templates/brand/${brand._id}`);
+
+      if (newSystemResponse.data?.templates?.length > 0) {
+        const codeTemplates = newSystemResponse.data.templates.map(template => ({
+          id: template._id,
+          codeTemplateId: template._id,
+          name: template.name,
+          type: template.type || "custom",
+          // Use NAME as permission key for backward compatibility
+          permissionKey: template.name,
+          displayName: template.name,
+          color: template.color || primaryColor,
+          icon: template.icon || "RiCodeLine",
+          hasLimits: true,
+          maxLimit: template.defaultLimit || 999,
+          isGlobal: template.isGlobalForBrand,
+        }));
+
+        setCodeSettings(codeTemplates);
+        initializeRoleWithCodePermissions(codeTemplates);
+        return;
+      }
+    } catch (error) {
+      // New CodeTemplate system failed or returned empty, try fallback
+    }
+
+    // 2. Fallback to legacy event-based approach
+    await fetchLegacyCodeSettings();
+  }, [brand._id, primaryColor]);
+
+  // Legacy fallback for backward compatibility
+  const fetchLegacyCodeSettings = useCallback(async () => {
     try {
       const eventsResponse = await axiosInstance.get(`/events/brand/${brand._id}`);
 
       if (eventsResponse.data?.length > 0) {
-        // Filter to only parent events (no parentEventId) to avoid duplicate codes from child events
         const parentEvents = eventsResponse.data.filter(event => !event.parentEventId);
         const allCustomCodes = [];
 
-        // Fetch code settings from parent events using Promise.all for performance
         const codePromises = parentEvents.map(event =>
           axiosInstance.get(`/code-settings/events/${event._id}`)
             .then(response => ({ event, codeSettings: response.data?.codeSettings || [] }))
@@ -193,7 +225,6 @@ const RoleSetting = ({ brand, onClose }) => {
                 eventId: event._id,
                 eventTitle: event.title,
                 name: code.name,
-                // Permission key includes eventId for event-specific permissions
                 permissionKey: `${event._id}_${code.name}`,
                 displayName: `${code.name} (${event.title})`,
                 color: code.color || primaryColor,
@@ -205,12 +236,11 @@ const RoleSetting = ({ brand, onClose }) => {
           }
         }
 
-        // NO deduplication - show ALL codes from ALL events with event-specific permissions
         setCodeSettings(allCustomCodes);
         initializeRoleWithCodePermissions(allCustomCodes);
       }
     } catch (error) {
-      // Silent fail for code settings
+      // Silent fail for legacy code settings
     }
   }, [brand._id, primaryColor]);
 

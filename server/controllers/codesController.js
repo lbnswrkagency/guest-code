@@ -441,6 +441,10 @@ const createDynamicCode = async (req, res) => {
     // Generate QR code
     const qrCode = await generateQR(qrData);
 
+    // Get icon and color from frontend metadata or from codeSetting
+    const settingIcon = metadata.settingIcon || codeSetting.icon || "RiCodeLine";
+    const settingColor = metadata.settingColor || codeSetting.color || "#2196F3";
+
     // Create the dynamic code in the database with enhanced features
     const newCode = new Code({
       eventId: effectiveEventId,
@@ -465,6 +469,8 @@ const createDynamicCode = async (req, res) => {
         codeType: codeSetting.name,
         settingId: codeSetting._id.toString(),
         settingName: codeSetting.name,
+        settingIcon: settingIcon, // Explicitly set icon
+        settingColor: settingColor, // Explicitly set color
         displayName: codeSetting.name,
         actualType: effectiveType,
         generatedFrom: "CodeGenerator",
@@ -1348,8 +1354,21 @@ const getEventUserCodes = async (req, res) => {
         codesBySettingId[settingId] = [];
       }
 
+      // Convert metadata Map to plain object if needed
+      let metadataObj = {};
+      if (code.metadata) {
+        if (code.metadata instanceof Map) {
+          code.metadata.forEach((value, key) => {
+            metadataObj[key] = value;
+          });
+        } else {
+          metadataObj = code.metadata;
+        }
+      }
+
       codesBySettingId[settingId].push({
         id: code._id,
+        _id: code._id, // Include both for compatibility
         code: code.code,
         name: code.name,
         type: code.type,
@@ -1360,6 +1379,9 @@ const getEventUserCodes = async (req, res) => {
         qrCode: code.qrCode,
         createdAt: code.createdAt,
         status: code.status,
+        metadata: metadataObj, // Include metadata with icon info
+        icon: metadataObj.settingIcon || null, // Directly include icon for easier access
+        color: metadataObj.settingColor || null, // Directly include color for easier access
       });
     });
 

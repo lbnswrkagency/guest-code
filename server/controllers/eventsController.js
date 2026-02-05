@@ -1622,6 +1622,14 @@ exports.getEventProfile = async (req, res) => {
         eventId: eventForCodeSettings,
       });
 
+      // Debug logging for code settings
+      console.log(`[getEventProfile] Event: ${event.title} (${event._id})`);
+      console.log(`[getEventProfile] eventForCodeSettings: ${eventForCodeSettings}`);
+      console.log(`[getEventProfile] Found ${codeSettings.length} CodeSettings:`);
+      codeSettings.forEach(cs => {
+        console.log(`  - ${cs.name}: codeTemplateId=${cs.codeTemplateId || 'NONE'}, isEditable=${cs.isEditable}, isEnabled=${cs.isEnabled}`);
+      });
+
       // After finding the event and related data, prepare the response
       // Check if user is authenticated
       let userRelatedData = {};

@@ -9,6 +9,7 @@ import {
   RiSettings4Line,
   RiKeyLine,
   RiArrowRightLine,
+  RiCodeLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../contexts/SocketContext";
@@ -134,6 +135,17 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       path: `/@${currentUser.username}/events`,
       action: () => {
         navigate(`/@${currentUser.username}/events`);
+        onClose();
+      },
+    });
+
+    // Add Codes
+    menuItems.push({
+      title: "Codes",
+      icon: <RiCodeLine />,
+      path: `/@${currentUser.username}/codes`,
+      action: () => {
+        navigate(`/@${currentUser.username}/codes`);
         onClose();
       },
     });
