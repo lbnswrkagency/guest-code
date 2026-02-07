@@ -3,10 +3,27 @@ const Schema = mongoose.Schema;
 
 const CodeSettingsSchema = new Schema(
   {
+    // Brand this code belongs to (required for all codes)
+    brandId: {
+      type: Schema.Types.ObjectId,
+      ref: "Brand",
+      required: true,
+    },
+    // Event this code is for (null = brand-level code that applies to all events)
     eventId: {
       type: Schema.Types.ObjectId,
       ref: "Event",
-      required: true,
+      default: null,
+    },
+    // If true and eventId is null, this code applies to all events in the brand
+    isGlobalForBrand: {
+      type: Boolean,
+      default: false,
+    },
+    // User who created this code
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     name: {
       type: String,
@@ -86,12 +103,24 @@ const CodeSettingsSchema = new Schema(
   }
 );
 
-// Create a compound index to ensure uniqueness of non-custom code types per event
+// Compound index for unique code names per brand/event combination
+// For brand-level codes (eventId: null), name must be unique within brand
+// For event-level codes, name must be unique within that event
+CodeSettingsSchema.index(
+  { brandId: 1, eventId: 1, name: 1 },
+  { unique: true }
+);
+
+// Index for efficient queries by brand
+CodeSettingsSchema.index({ brandId: 1, isGlobalForBrand: 1 });
+
+// Keep legacy index for backward compatibility during migration
 CodeSettingsSchema.index(
   { eventId: 1, type: 1 },
   {
     unique: true,
     partialFilterExpression: { type: { $ne: "custom" } },
+    sparse: true,
   }
 );
 

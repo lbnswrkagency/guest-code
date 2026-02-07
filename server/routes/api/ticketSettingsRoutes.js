@@ -54,4 +54,36 @@ router.patch(
   ticketSettingsController.toggleTicketVisibility
 );
 
+// =====================================================
+// Brand-level ticket routes
+// =====================================================
+
+// Get all brand-level tickets
+router.get(
+  "/brands/:brandId/tickets",
+  authenticate,
+  ticketSettingsController.getBrandTickets
+);
+
+// Create brand-level ticket
+router.post(
+  "/brands/:brandId/tickets",
+  authenticate,
+  ticketSettingsController.createBrandTicket
+);
+
+// Update brand-level ticket
+router.put(
+  "/brands/:brandId/tickets/:ticketId",
+  authenticate,
+  ticketSettingsController.updateBrandTicket
+);
+
+// Delete brand-level ticket
+router.delete(
+  "/brands/:brandId/tickets/:ticketId",
+  authenticate,
+  ticketSettingsController.deleteBrandTicket
+);
+
 module.exports = router;

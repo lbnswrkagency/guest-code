@@ -10,6 +10,7 @@ import {
   RiKeyLine,
   RiArrowRightLine,
   RiCodeLine,
+  RiTicketLine,
 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../contexts/SocketContext";
@@ -146,6 +147,17 @@ const DashboardNavigation = ({ isOpen, onClose, currentUser, setUser }) => {
       path: `/@${currentUser.username}/codes`,
       action: () => {
         navigate(`/@${currentUser.username}/codes`);
+        onClose();
+      },
+    });
+
+    // Add Tickets
+    menuItems.push({
+      title: "Tickets",
+      icon: <RiTicketLine />,
+      path: `/@${currentUser.username}/ticket-templates`,
+      action: () => {
+        navigate(`/@${currentUser.username}/ticket-templates`);
         onClose();
       },
     });

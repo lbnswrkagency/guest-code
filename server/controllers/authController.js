@@ -343,16 +343,36 @@ exports.login = async (req, res) => {
           const allBrandEvents = [...events, ...weeklyChildEvents];
 
           // STEP 4: Fetch code settings for each event
+          // This now includes brand-level codes (eventId: null, isGlobalForBrand: true)
           await Promise.all(
             allBrandEvents.map(async (event) => {
               try {
                 // For child events, use parent event ID for code settings
                 const effectiveEventId = event.parentEventId || event._id;
 
-                // Fetch code settings from the CodeSettings collection
+                // Fetch code settings: both brand-level global codes AND event-specific codes
+                // IMPORTANT: brandId is REQUIRED - this hides old codes without brandId
                 const codeSettings = await CodeSetting.find({
-                  eventId: effectiveEventId,
+                  brandId: brand._id,  // Required for all codes
+                  $or: [
+                    // Brand-level global codes (apply to all events in brand)
+                    { eventId: null, isGlobalForBrand: true },
+                    // Event-specific codes
+                    { eventId: effectiveEventId },
+                  ],
                 }).lean();
+
+                // Merge codes: event-level overrides brand-level by name
+                const codesByName = new Map();
+                for (const code of codeSettings) {
+                  const name = code.name;
+                  const existingCode = codesByName.get(name);
+                  // If no existing code, or this is event-level (overrides brand-level)
+                  if (!existingCode || code.eventId) {
+                    codesByName.set(name, code);
+                  }
+                }
+                const mergedCodeSettings = Array.from(codesByName.values());
 
                 // Add event to collection with brand reference
                 allEvents.push({
@@ -361,10 +381,12 @@ exports.login = async (req, res) => {
                 });
 
                 // Add code settings to collection with event reference
-                codeSettings.forEach((setting) => {
+                mergedCodeSettings.forEach((setting) => {
                   allCodeSettings.push({
                     ...setting,
                     eventId: event._id.toString(),
+                    // Flag to indicate if inherited from brand
+                    isInherited: setting.eventId === null,
                   });
                 });
               } catch (error) {

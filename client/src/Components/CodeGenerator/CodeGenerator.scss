@@ -143,18 +143,13 @@
   to { transform: translateX(0); }
 }
 
-// Code Type Chips (Horizontal scrollable)
+// Code Type Chips (Flex wrap instead of horizontal scroll)
 .code-type-chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  overflow-x: auto;
   padding-bottom: 0.5rem;
-  -webkit-overflow-scrolling: touch;
-  flex-shrink: 0;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  justify-content: center;
 
   .type-chip {
     flex-shrink: 0;

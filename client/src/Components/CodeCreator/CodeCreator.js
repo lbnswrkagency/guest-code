@@ -104,15 +104,15 @@ const CodeCreator = ({ brand, onClose }) => {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // Fetch code templates from new CodeTemplate system
+  // Fetch brand-level codes from consolidated CodeSettings
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      // Use new CodeTemplate system - fetches codes attached to this brand
-      const response = await axiosInstance.get(`/code-templates/brand/${brand._id}`);
-      setTemplates(response.data.templates || []);
+      // Use new consolidated CodeSettings endpoint
+      const response = await axiosInstance.get(`/code-settings/brands/${brand._id}/codes`);
+      setTemplates(response.data.codes || []);
     } catch (error) {
-      console.log("[CodeCreator] Failed to load templates:", error.message);
+      console.log("[CodeCreator] Failed to load codes:", error.message);
       // Don't show error toast - may just be empty
       setTemplates([]);
     } finally {
@@ -183,25 +183,6 @@ const CodeCreator = ({ brand, onClose }) => {
     toast.showInfo("Code management has moved to the Codes page. Visit /@yourusername/codes to manage your codes.");
     setShowDeleteConfirm(false);
     setTemplateToDelete(null);
-    return;
-
-    // Old code below - no longer used
-    try {
-      await axiosInstance.delete(
-        `/code-templates/${templateToDelete._id}`
-      );
-      setTemplates((prev) =>
-        prev.filter((t) => t._id !== templateToDelete._id)
-      );
-      toast.showSuccess("Code template deleted");
-    } catch (error) {
-      toast.showError(
-        error.response?.data?.message || "Failed to delete code template"
-      );
-    } finally {
-      setShowDeleteConfirm(false);
-      setTemplateToDelete(null);
-    }
   };
 
   // Handle reorder - NOTE: Reordering is now managed at user-level on the Codes page

@@ -80,7 +80,7 @@ function CodeGenerator({
       name: s.name,
       isEnabled: s.isEnabled,
       isEditable: s.isEditable,
-      codeTemplateId: s.codeTemplateId || 'MISSING'  // Show if codeTemplateId exists
+      isInherited: s.isInherited || false
     })));
 
     // Get user permissions using unified format
@@ -95,14 +95,12 @@ function CodeGenerator({
     const userPermissions = effectivePermissions?.codes || {};
     console.log('[CODE-GEN DEBUG] userPermissions (codes):', userPermissions);
 
-    // Filter for custom codes that:
-    // 1. Have a codeTemplateId (created through the new CodeTemplate system)
-    // 2. Are editable (isEditable: true)
-    // 3. Are enabled (isEnabled: true)
+    // Filter for custom codes that are enabled AND have brandId (excludes old legacy codes)
+    // New consolidated CodeSettings model requires brandId
     const customCodeSettings = codeSettings.filter(
-      (setting) => setting.codeTemplateId && setting.isEditable === true && setting.isEnabled === true
+      (setting) => setting.isEnabled === true && setting.brandId
     );
-    console.log('[CODE-GEN DEBUG] customCodeSettings (codeTemplateId && isEditable && isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
+    console.log('[CODE-GEN DEBUG] customCodeSettings (isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();

@@ -2,9 +2,6 @@ const Brand = require("../models/brandModel");
 const Event = require("../models/eventsModel");
 const Role = require("../models/roleModel");
 const CodeSettings = require("../models/codeSettingsModel");
-const EventCodeActivation = require("../models/eventCodeActivationModel");
-const CodeTemplate = require("../models/codeTemplateModel");
-const CodeBrandAttachment = require("../models/codeBrandAttachmentModel");
 const mongoose = require("mongoose");
 const { normalizePermissions, ensurePlainObject } = require("../utils/permissionResolver");
 
@@ -383,9 +380,7 @@ exports.getCoHostRoles = async (req, res) => {
 };
 
 // Get main host's custom codes for an event
-// Supports:
-// 1. New CodeTemplate system (user-level, via CodeBrandAttachment)
-// 2. Fallback: event-level CodeSettings (CodeTemplate system syncs to CodeSettings)
+// Now uses simplified CodeSettings with brand-level support
 exports.getMainHostCustomCodes = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -402,76 +397,45 @@ exports.getMainHostCustomCodes = async (req, res) => {
     }
 
     const brandId = event.brand;
+    const effectiveEventId = event.parentEventId || eventId;
 
-    // 1. First, try new CodeTemplate system (user-level, via CodeBrandAttachment)
-    const brandAttachments = await CodeBrandAttachment.find({ brandId })
-      .populate("codeTemplateId");
+    // Query for both brand-level and event-level codes
+    // IMPORTANT: brandId is REQUIRED to exclude old legacy codes
+    const allCodes = await CodeSettings.find({
+      brandId: brandId, // Required for all codes
+      isEnabled: true,
+      $or: [
+        // Brand-level global codes (apply to all events in brand)
+        { eventId: null, isGlobalForBrand: true },
+        // Event-specific codes
+        { eventId: effectiveEventId },
+      ],
+    }).select("name type color limit maxPax condition icon brandId eventId isGlobalForBrand");
 
-    if (brandAttachments.length > 0) {
-      // Filter to get only valid templates with global access or specific event activation
-      const effectiveEventId = event.parentEventId || eventId;
-
-      // Get event-specific activations
-      const eventActivations = await EventCodeActivation.find({
-        eventId: effectiveEventId,
-        isEnabled: true
-      });
-      const activatedTemplateIds = new Set(
-        eventActivations.map(ea => ea.codeTemplateId.toString())
-      );
-
-      const activeCodes = [];
-
-      for (const attachment of brandAttachments) {
-        const template = attachment.codeTemplateId;
-        if (!template) continue;
-
-        // Include if global for this brand OR specifically activated for this event
-        if (attachment.isGlobalForBrand || activatedTemplateIds.has(template._id.toString())) {
-          activeCodes.push({
-            _id: template._id,
-            codeTemplateId: template._id, // New field for CodeTemplate reference
-            name: template.name,
-            type: template.type || "custom",
-            color: template.color || "#ffc807",
-            limit: template.defaultLimit || 999,
-            maxPax: template.maxPax || 1,
-            condition: template.condition || "",
-            icon: template.icon || "RiCodeLine",
-            hasLimits: true,
-            isGlobal: attachment.isGlobalForBrand,
-            isCodeTemplateSystem: true // Flag to indicate this is from new CodeTemplate system
-          });
-        }
-      }
-
-      if (activeCodes.length > 0) {
-        return res.status(200).json(activeCodes);
+    // Merge codes: event-level overrides brand-level by name
+    const codesByName = new Map();
+    for (const code of allCodes) {
+      const name = code.name;
+      const existingCode = codesByName.get(name);
+      // If no existing code, or this is event-level (overrides brand-level)
+      if (!existingCode || code.eventId) {
+        codesByName.set(name, code);
       }
     }
 
-    // 2. Fallback: Use event-level CodeSettings (CodeTemplate system syncs to CodeSettings)
-    const effectiveEventId = event.parentEventId || eventId;
-
-    const codeSettings = await CodeSettings.find({
-      eventId: effectiveEventId,
-      type: "custom",
-      isEnabled: true
-    }).select("name type color limit maxPax condition icon codeTemplateId");
-
-    const formattedCodes = codeSettings.map(code => ({
+    // Format response
+    const formattedCodes = Array.from(codesByName.values()).map(code => ({
       _id: code._id,
-      codeTemplateId: code.codeTemplateId || null, // Include codeTemplateId if available
       name: code.name,
-      type: code.type,
+      type: code.type || "custom",
       color: code.color || "#ffc807",
       limit: code.limit || 999,
       maxPax: code.maxPax || 1,
       condition: code.condition || "",
       icon: code.icon || "RiCodeLine",
       hasLimits: true,
-      isCustom: true,
-      isBrandLevel: false
+      isGlobal: code.isGlobalForBrand === true,
+      isBrandLevel: code.eventId === null,
     }));
 
     res.status(200).json(formattedCodes);

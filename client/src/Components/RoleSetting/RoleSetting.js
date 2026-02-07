@@ -165,37 +165,36 @@ const RoleSetting = ({ brand, onClose }) => {
     }
   }, [brand._id, toast]);
 
-  // Fetch code templates from brand level
+  // Fetch brand-level codes from consolidated CodeSettings
   const fetchCodeSettings = useCallback(async () => {
     try {
-      // 1. Try new CodeTemplate system first (/code-templates/brand/:brandId)
-      const newSystemResponse = await axiosInstance.get(`/code-templates/brand/${brand._id}`);
+      // Use new consolidated CodeSettings endpoint
+      const response = await axiosInstance.get(`/code-settings/brands/${brand._id}/codes`);
 
-      if (newSystemResponse.data?.templates?.length > 0) {
-        const codeTemplates = newSystemResponse.data.templates.map(template => ({
-          id: template._id,
-          codeTemplateId: template._id,
-          name: template.name,
-          type: template.type || "custom",
-          // Use NAME as permission key for backward compatibility
-          permissionKey: template.name,
-          displayName: template.name,
-          color: template.color || primaryColor,
-          icon: template.icon || "RiCodeLine",
+      if (response.data?.codes?.length > 0) {
+        const brandCodes = response.data.codes.map(code => ({
+          id: code._id,
+          name: code.name,
+          type: code.type || "custom",
+          // Use NAME as permission key
+          permissionKey: code.name,
+          displayName: code.name,
+          color: code.color || primaryColor,
+          icon: code.icon || "RiCodeLine",
           hasLimits: true,
-          maxLimit: template.defaultLimit || 999,
-          isGlobal: template.isGlobalForBrand,
+          maxLimit: code.limit || 999,
+          isGlobal: code.isGlobalForBrand,
         }));
 
-        setCodeSettings(codeTemplates);
-        initializeRoleWithCodePermissions(codeTemplates);
+        setCodeSettings(brandCodes);
+        initializeRoleWithCodePermissions(brandCodes);
         return;
       }
     } catch (error) {
-      // New CodeTemplate system failed or returned empty, try fallback
+      // New endpoint failed, try fallback to legacy
     }
 
-    // 2. Fallback to legacy event-based approach
+    // Fallback to legacy event-based approach for backward compatibility
     await fetchLegacyCodeSettings();
   }, [brand._id, primaryColor]);
 

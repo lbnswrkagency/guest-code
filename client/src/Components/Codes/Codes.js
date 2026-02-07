@@ -70,14 +70,56 @@ const Codes = () => {
     try {
       setLoading(true);
 
-      // Fetch codes and brands in parallel
-      const [codesResponse, brandsResponse] = await Promise.all([
-        axiosInstance.get("/code-templates"),
-        axiosInstance.get("/brands"),
-      ]);
+      // First fetch user's brands
+      const brandsResponse = await axiosInstance.get("/brands");
+      const brands = brandsResponse.data || [];
+      setUserBrands(brands);
 
-      setCodes(codesResponse.data.templates || []);
-      setUserBrands(brandsResponse.data || []);
+      // Fetch brand-level codes for each brand the user manages
+      const allCodes = [];
+      for (const brand of brands) {
+        try {
+          const codesResponse = await axiosInstance.get(`/code-settings/brands/${brand._id}/codes`);
+          // Add brand info to each code
+          for (const code of codesResponse.data.codes || []) {
+            allCodes.push({
+              ...code,
+              brandId: brand._id,
+              brandName: brand.name,
+              brandUsername: brand.username,
+              brandLogo: brand.logo,
+            });
+          }
+        } catch (error) {
+          console.log(`Failed to fetch codes for brand ${brand.name}:`, error.message);
+        }
+      }
+
+      // Group codes by name to merge attachments (codes with same name across brands)
+      const codesByName = {};
+      for (const code of allCodes) {
+        if (!codesByName[code.name]) {
+          codesByName[code.name] = {
+            ...code,
+            attachments: [],
+            // Track all code IDs for this name (one per brand)
+            codeIdsByBrand: {},
+          };
+        }
+        // Add this brand as an attachment
+        codesByName[code.name].attachments.push({
+          brandId: code.brandId,
+          brandName: code.brandName,
+          brandUsername: code.brandUsername,
+          brandLogo: code.brandLogo,
+          isGlobalForBrand: code.isGlobalForBrand !== false,
+          enabledEvents: [],
+        });
+        // Track the code ID for this brand
+        codesByName[code.name].codeIdsByBrand[code.brandId] = code._id;
+      }
+
+      setCodes(Object.values(codesByName));
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.showError("Failed to load data");
@@ -107,28 +149,70 @@ const Codes = () => {
 
   const handleSave = async (codeData) => {
     try {
-      let response;
+      const attachments = codeData.attachments || [];
 
-      if (selectedCode) {
-        // Update existing
-        response = await axiosInstance.put(`/code-templates/${selectedCode._id}`, codeData);
-        setCodes((prev) =>
-          prev.map((c) =>
-            c._id === selectedCode._id ? response.data.template : c
-          )
-        );
-        toast.showSuccess("Code template updated");
-      } else {
-        // Create new
-        response = await axiosInstance.post("/code-templates", codeData);
-        setCodes((prev) => [...prev, response.data.template]);
-        toast.showSuccess("Code template created");
+      // Brand attachment is optional - codes without a brand are user-level only
+      if (attachments.length === 0) {
+        toast.showInfo("Code saved without brand attachment. Attach to a brand to use it in events.");
+        handleCloseDetail();
+        return;
       }
 
+      if (selectedCode) {
+        // EDITING: diff old vs new attachments
+        const oldBrandIds = new Set(
+          selectedCode.attachments?.map(a => a.brandId) || []
+        );
+        const newBrandIds = new Set(attachments.map(a => a.brandId));
+
+        // Delete removed brands
+        for (const brandId of oldBrandIds) {
+          if (!newBrandIds.has(brandId)) {
+            const codeId = selectedCode.codeIdsByBrand?.[brandId];
+            if (codeId) {
+              await axiosInstance.delete(`/code-settings/brands/${brandId}/codes/${codeId}`);
+            }
+          }
+        }
+
+        // Update existing / Create new
+        for (const attachment of attachments) {
+          const brandId = attachment.brandId;
+          const existingCodeId = selectedCode.codeIdsByBrand?.[brandId];
+
+          if (existingCodeId) {
+            // Update existing code for this brand
+            await axiosInstance.put(
+              `/code-settings/brands/${brandId}/codes/${existingCodeId}`,
+              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+            );
+          } else {
+            // Create new code for this brand
+            await axiosInstance.post(
+              `/code-settings/brands/${brandId}/codes`,
+              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+            );
+          }
+        }
+
+        toast.showSuccess("Code updated");
+      } else {
+        // CREATING: Create one CodeSettings per brand
+        for (const attachment of attachments) {
+          await axiosInstance.post(
+            `/code-settings/brands/${attachment.brandId}/codes`,
+            { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+          );
+        }
+        toast.showSuccess("Code created");
+      }
+
+      // Refresh data to get updated state
+      await fetchData();
       handleCloseDetail();
     } catch (error) {
       toast.showError(
-        error.response?.data?.message || "Failed to save code template"
+        error.response?.data?.message || "Failed to save code"
       );
     }
   };
@@ -143,17 +227,36 @@ const Codes = () => {
     if (!codeToDelete) return;
 
     try {
-      await axiosInstance.delete(`/code-templates/${codeToDelete._id}`);
-      setCodes((prev) => prev.filter((c) => c._id !== codeToDelete._id));
-      toast.showSuccess("Code template deleted");
+      // Delete from ALL brands this code is attached to
+      const attachments = codeToDelete.attachments || [];
+      const codeIdsByBrand = codeToDelete.codeIdsByBrand || {};
+
+      if (attachments.length === 0) {
+        toast.showError("Cannot delete code: no brand attachments found");
+        return;
+      }
+
+      for (const attachment of attachments) {
+        const codeId = codeIdsByBrand[attachment.brandId];
+        if (codeId) {
+          await axiosInstance.delete(
+            `/code-settings/brands/${attachment.brandId}/codes/${codeId}`
+          );
+        }
+      }
+
+      toast.showSuccess("Code deleted");
+
+      // Refresh data to get updated state
+      await fetchData();
 
       // Close detail panel if deleting the currently selected code
-      if (selectedCode?._id === codeToDelete._id) {
+      if (selectedCode?.name === codeToDelete.name) {
         handleCloseDetail();
       }
     } catch (error) {
       toast.showError(
-        error.response?.data?.message || "Failed to delete code template"
+        error.response?.data?.message || "Failed to delete code"
       );
     } finally {
       setShowDeleteConfirm(false);
