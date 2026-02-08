@@ -70,37 +70,36 @@ function CodeGenerator({
 
   // Initialize component with settings and user permissions
   useEffect(() => {
-    // DEBUG LOG
-    console.log('\n[CODE-GEN DEBUG] ========== INITIALIZING ==========');
-    console.log('[CODE-GEN DEBUG] selectedEvent:', selectedEvent?.title, '- ID:', selectedEvent?._id);
-    console.log('[CODE-GEN DEBUG] selectedEvent.coHostBrandInfo:', selectedEvent?.coHostBrandInfo);
-    console.log('[CODE-GEN DEBUG] selectedBrand?.role?.permissions:', selectedBrand?.role?.permissions);
-    console.log('[CODE-GEN DEBUG] codeSettings received:', codeSettings?.length, 'items');
-    console.log('[CODE-GEN DEBUG] codeSettings details:', codeSettings?.map(s => ({
-      name: s.name,
-      isEnabled: s.isEnabled,
-      isEditable: s.isEditable,
-      isInherited: s.isInherited || false
-    })));
-
     // Get user permissions using unified format
     // Backend now normalizes all permissions to plain objects (no Map conversion needed)
     const effectivePermissions =
       selectedEvent?.coHostBrandInfo?.effectivePermissions ||
       selectedBrand?.role?.permissions;
 
-    console.log('[CODE-GEN DEBUG] effectivePermissions used:', effectivePermissions);
+    // Debug logging for permission initialization
+    console.log("[CodeGenerator Init] Permission sources:", {
+      isCoHostedEvent: !!selectedEvent?.coHostBrandInfo,
+      coHostBrandInfo: selectedEvent?.coHostBrandInfo,
+      effectivePermissions: selectedEvent?.coHostBrandInfo?.effectivePermissions,
+      brandRolePermissions: selectedBrand?.role?.permissions,
+      finalEffectivePermissions: effectivePermissions,
+    });
 
     // Get codes permissions (always a plain object now)
     const userPermissions = effectivePermissions?.codes || {};
-    console.log('[CODE-GEN DEBUG] userPermissions (codes):', userPermissions);
+    console.log("[CodeGenerator Init] Code permissions:", userPermissions);
+
+    // Use embedded codeSettings for co-hosted events, fall back to Redux for regular events
+    // Co-hosted events receive codeSettings embedded in selectedEvent from backend
+    const sourceCodeSettings = selectedEvent?.codeSettings?.length > 0
+      ? selectedEvent.codeSettings
+      : codeSettings;
 
     // Filter for custom codes that are enabled AND have brandId (excludes old legacy codes)
     // New consolidated CodeSettings model requires brandId
-    const customCodeSettings = codeSettings.filter(
+    const customCodeSettings = sourceCodeSettings.filter(
       (setting) => setting.isEnabled === true && setting.brandId
     );
-    console.log('[CODE-GEN DEBUG] customCodeSettings (isEnabled):', customCodeSettings.length, customCodeSettings.map(s => s.name));
 
     // Create a map to track unique settings by name
     const uniqueSettingsMap = new Map();
@@ -114,34 +113,28 @@ function CodeGenerator({
 
     // Convert map back to array
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
-    console.log('[CODE-GEN DEBUG] uniqueCodeSettings:', uniqueCodeSettings.length, uniqueCodeSettings.map(s => s.name));
 
     // Check if user is founder (has full access to all codes)
     const isFounder = selectedBrand?.role?.isFounder === true;
-    console.log('[CODE-GEN DEBUG] isFounder:', isFounder);
 
     // Filter settings based on user permissions
-    // Permission key format: ${eventId}_${codeName} for event-specific permissions
+    // Permission key format: codeSettingId (primary) or codeName (legacy fallback)
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
       // Founders have access to all codes
       if (isFounder) {
         return true;
       }
 
-      // Try event-specific permission key first (new format)
-      const eventPermissionKey = selectedEvent?._id ? `${selectedEvent._id}_${setting.name}` : null;
+      // Try by codeSettingId first (new stable key format)
+      const idPermission = setting._id && userPermissions[setting._id];
       // Also try just the code name (legacy format)
-      const simplePermissionKey = setting.name;
+      const namePermission = userPermissions[setting.name];
 
-      const hasEventPermission = eventPermissionKey && userPermissions[eventPermissionKey]?.generate === true;
-      const hasSimplePermission = userPermissions[simplePermissionKey]?.generate === true;
+      const hasIdPermission = idPermission?.generate === true;
+      const hasNamePermission = namePermission?.generate === true;
 
-      console.log(`[CODE-GEN DEBUG] Checking "${setting.name}": eventKey=${eventPermissionKey}, hasEventPerm=${hasEventPermission}, hasSimplePerm=${hasSimplePermission}, userPerm=`, userPermissions[simplePermissionKey]);
-
-      return hasEventPermission || hasSimplePermission;
+      return hasIdPermission || hasNamePermission;
     });
-
-    console.log('[CODE-GEN DEBUG] permittedSettings FINAL:', permittedSettings.length, permittedSettings.map(s => s.name));
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -230,8 +223,9 @@ function CodeGenerator({
       !activePermission.unlimited &&
       activePermission.limit > 0
     ) {
-      // Get all codes for this setting
-      const settingCodes = userCodes[setting._id] || [];
+      // Get all codes for this setting (normalize _id to string for lookup)
+      const settingIdStr = setting?._id?.toString();
+      const settingCodes = (settingIdStr && userCodes[settingIdStr]) || [];
 
       // Calculate total people already accounted for (sum of maxPax values)
       const totalPeopleCount = settingCodes.reduce(
@@ -282,29 +276,139 @@ function CodeGenerator({
   const getActivePermission = () => {
     if (!selectedCodeType) return null;
 
+    // Check if this is a co-hosted event
+    const isCoHostedEvent = !!selectedEvent?.coHostBrandInfo;
+
     // Get permissions from co-host or regular brand role
     // Backend normalizes all permissions to plain objects (no Map conversion needed)
     let userPermissions = {};
+    let permissionSource = "none";
 
-    if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
-      userPermissions =
-        selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+    if (isCoHostedEvent) {
+      // For co-hosted events, ONLY use effectivePermissions from the main host
+      // Do NOT fall back to user's own brand permissions (they would have unlimited as founder)
+      if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
+        userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
+        permissionSource = "coHostBrandInfo.effectivePermissions";
+      } else {
+        // No co-host permissions set by main host - log for debugging
+        console.log("[getActivePermission] Co-hosted event but no effectivePermissions:", {
+          hasCoHostBrandInfo: true,
+          hasEffectivePermissions: !!selectedEvent?.coHostBrandInfo?.effectivePermissions,
+          effectivePermissions: selectedEvent?.coHostBrandInfo?.effectivePermissions,
+          hasCodes: !!selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes,
+        });
+        // Return null to indicate no specific permissions (founder access still works via isFounder check)
+        return null;
+      }
     } else if (selectedBrand?.role?.permissions?.codes) {
+      // For regular brand events, use the user's role permissions
       userPermissions = selectedBrand.role.permissions.codes;
+      permissionSource = "selectedBrand.role.permissions";
     } else {
+      console.log("[getActivePermission] No permissions found:", {
+        isCoHostedEvent,
+        hasCoHostBrandInfo: !!selectedEvent?.coHostBrandInfo,
+        hasEffectivePermissions: !!selectedEvent?.coHostBrandInfo?.effectivePermissions,
+        hasCodes: !!selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes,
+        hasBrandRole: !!selectedBrand?.role,
+        hasBrandPerms: !!selectedBrand?.role?.permissions,
+      });
       return null;
     }
 
-    // Try event-specific permission key first (new format), then simple name (legacy)
-    const eventPermissionKey = selectedEvent?._id ? `${selectedEvent._id}_${selectedCodeType}` : null;
-    const permission = (eventPermissionKey && userPermissions[eventPermissionKey]) || userPermissions[selectedCodeType];
+    // Get the active setting to access its _id for permission lookup
+    const settingId = activeSetting?._id;
 
-    if (!permission) return null;
+    // Debug log the permission lookup
+    console.log("[getActivePermission] Looking up:", {
+      selectedCodeType,
+      settingId,
+      permissionSource,
+      availableKeys: Object.keys(userPermissions),
+      userPermissions,
+    });
+
+    // Helper function to normalize code names for fuzzy matching
+    // Removes parenthetical suffixes like "(Local)", "(locally)", etc.
+    const normalizeName = (name) => {
+      if (!name) return "";
+      return name
+        .toLowerCase()
+        .replace(/\s*\([^)]*\)\s*$/g, "") // Remove trailing parenthetical
+        .replace(/\s+/g, " ")              // Normalize whitespace
+        .trim();
+    };
+
+    // Try by codeSettingId first (new stable key), then by name (legacy fallback)
+    // Convert settingId to string for consistent lookup (keys are strings)
+    const settingIdStr = settingId?.toString();
+    let permission =
+      (settingIdStr && userPermissions[settingIdStr]) ||  // By ID as string (primary)
+      userPermissions[selectedCodeType];                   // By exact name (fallback)
+
+    // If no exact match found, try fuzzy name matching for co-hosted events
+    // This handles cases where code names have been modified (e.g., "Friends Code" -> "Friends Code (Local)")
+    if (!permission && isCoHostedEvent) {
+      const normalizedSelectedType = normalizeName(selectedCodeType);
+      const availableKeys = Object.keys(userPermissions);
+
+      // Try to find a permission key that matches when normalized
+      for (const key of availableKeys) {
+        const normalizedKey = normalizeName(key);
+        if (normalizedKey === normalizedSelectedType) {
+          permission = userPermissions[key];
+          console.log("[getActivePermission] Fuzzy match found:", {
+            selectedCodeType,
+            matchedKey: key,
+            normalizedSelectedType,
+            normalizedKey
+          });
+          break;
+        }
+      }
+
+      // If still no match, try partial matching (one contains the other)
+      if (!permission) {
+        for (const key of availableKeys) {
+          const normalizedKey = normalizeName(key);
+          if (normalizedKey.includes(normalizedSelectedType) ||
+              normalizedSelectedType.includes(normalizedKey)) {
+            permission = userPermissions[key];
+            console.log("[getActivePermission] Partial match found:", {
+              selectedCodeType,
+              matchedKey: key
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    if (!permission) {
+      // For co-hosted events, if no permission found for a code, DENY access
+      // The host must explicitly grant access to each code type
+      // This prevents co-hosts from having unlimited access to new codes
+      // that were created AFTER the host set co-host permissions
+      if (isCoHostedEvent && activeSetting) {
+        console.log("[getActivePermission] Co-host - no permission for code, denying access:", selectedCodeType);
+        return {
+          type: selectedCodeType,
+          limit: 0,
+          unlimited: false,
+          hasAccess: false,  // DENY access - host must explicitly grant permission
+        };
+      }
+      console.log("[getActivePermission] No permission found for:", { settingId, selectedCodeType });
+      return null;
+    }
+
+    console.log("[getActivePermission] Found permission:", permission);
 
     return {
       type: selectedCodeType,
       limit: permission.limit || 0,
-      unlimited: permission.unlimited || permission.limit === 0,
+      unlimited: permission.unlimited === true,  // Only use explicit unlimited flag
       hasAccess: permission.generate === true,
     };
   };
@@ -337,13 +441,15 @@ function CodeGenerator({
     // Get the limit value
     const limit = activePermission.limit || 0;
 
-    // If limit is 0, it's unlimited
-    if (limit === 0) return false;
+    // If limit is 0 and not unlimited, user has 0 remaining codes (limit reached)
+    if (limit === 0) return true;
 
     // Calculate how many people are accounted for by summing maxPax values
+    // Normalize _id to string for consistent lookup
+    const settingIdStr = activeSetting?._id?.toString();
     const totalPeopleCount =
-      activeSetting && userCodes[activeSetting._id]
-        ? userCodes[activeSetting._id].reduce(
+      settingIdStr && userCodes[settingIdStr]
+        ? userCodes[settingIdStr].reduce(
             (total, code) => total + (code.maxPax || 1),
             0
           )
@@ -516,11 +622,14 @@ function CodeGenerator({
       return "0";
     }
 
+    // Normalize _id to string for consistent lookup
+    const settingIdStr = activeSetting?._id?.toString();
+
     // For unlimited types, show the count of total people (sum of maxPax)
     if (activePermission.unlimited) {
       // Get the count of people for the active setting
-      if (activeSetting && userCodes[activeSetting._id]) {
-        const totalPeopleCount = userCodes[activeSetting._id].reduce(
+      if (settingIdStr && userCodes[settingIdStr]) {
+        const totalPeopleCount = userCodes[settingIdStr].reduce(
           (total, code) => total + (code.maxPax || 1),
           0
         );
@@ -531,12 +640,11 @@ function CodeGenerator({
 
     // For limited types, show the remaining count
     const limit = activePermission.limit || 0;
-    if (limit === 0) return "∞";
 
     // Calculate total people already accounted for by summing maxPax values
     const totalPeopleCount =
-      activeSetting && userCodes[activeSetting._id]
-        ? userCodes[activeSetting._id].reduce(
+      settingIdStr && userCodes[settingIdStr]
+        ? userCodes[settingIdStr].reduce(
             (total, code) => total + (code.maxPax || 1),
             0
           )
@@ -558,13 +666,12 @@ function CodeGenerator({
     // Get the limit value
     const limit = activePermission.limit || 0;
 
-    // If limit is 0, it's unlimited
-    if (limit === 0) return Infinity;
-
     // Calculate total people already accounted for
+    // Normalize _id to string for consistent lookup
+    const settingIdStr = activeSetting?._id?.toString();
     const totalPeopleCount =
-      activeSetting && userCodes[activeSetting._id]
-        ? userCodes[activeSetting._id].reduce(
+      settingIdStr && userCodes[settingIdStr]
+        ? userCodes[settingIdStr].reduce(
             (total, code) => total + (code.maxPax || 1),
             0
           )
@@ -715,9 +822,11 @@ function CodeGenerator({
     const limit = activePermission.limit || 0;
     if (limit === 0) return 0;
 
+    // Normalize _id to string for consistent lookup
+    const settingIdStr = activeSetting?._id?.toString();
     const totalPeopleCount =
-      activeSetting && userCodes[activeSetting._id]
-        ? userCodes[activeSetting._id].reduce(
+      settingIdStr && userCodes[settingIdStr]
+        ? userCodes[settingIdStr].reduce(
             (total, code) => total + (code.maxPax || 1),
             0
           )
@@ -811,9 +920,9 @@ function CodeGenerator({
 
         {/* Panel Body - Scrollable */}
         <div className="panel-body">
-          {/* Code Type Chips */}
-          {availableSettings && availableSettings.length > 1 && (
-            <div className="code-type-chips">
+          {/* Code Type Chips - Always show when there are settings */}
+          {availableSettings && availableSettings.length >= 1 && (
+            <div className={`code-type-chips ${availableSettings.length === 1 ? 'single-type' : ''}`}>
               {availableSettings.map((setting) => {
                 const IconComp = getIconComponent(setting.icon);
                 return (
@@ -823,7 +932,7 @@ function CodeGenerator({
                       selectedCodeType === setting.name ? "selected" : ""
                     }`}
                     onClick={() => handleTabClick(setting.name)}
-                    disabled={isLoading}
+                    disabled={isLoading || availableSettings.length === 1}
                   >
                     <IconComp />
                     {setting.name}
@@ -939,9 +1048,12 @@ function CodeGenerator({
             <div className="section-header">
               <h3>Generated Codes</h3>
               <span className="codes-count">
-                {activeSetting && userCodes[activeSetting._id]
-                  ? userCodes[activeSetting._id].length
-                  : 0}
+                {(() => {
+                  const settingIdStr = activeSetting?._id?.toString();
+                  return settingIdStr && userCodes[settingIdStr]
+                    ? userCodes[settingIdStr].length
+                    : 0;
+                })()}
               </span>
             </div>
 
@@ -949,8 +1061,10 @@ function CodeGenerator({
               user={user}
               type={selectedCodeType}
               codes={
-                activeSetting && userCodes[activeSetting._id]
-                  ? userCodes[activeSetting._id].map((code) => ({
+                (() => {
+                  const settingIdStr = activeSetting?._id?.toString();
+                  return settingIdStr && userCodes[settingIdStr]
+                    ? userCodes[settingIdStr].map((code) => ({
                       ...code,
                       color: code.color || activeSetting.color || "#2196F3",
                       icon: code.icon || activeSetting.icon || "RiCodeLine",
@@ -962,14 +1076,16 @@ function CodeGenerator({
                           "RiCodeLine",
                       },
                     }))
-                  : []
+                  : [];
+                })()
               }
               setCodes={(updatedCodes) => {
-                if (activeSetting) {
+                const settingIdStr = activeSetting?._id?.toString();
+                if (settingIdStr) {
                   // Create a copy of userCodes
                   const updatedUserCodes = { ...userCodes };
-                  // Update the specific setting's codes
-                  updatedUserCodes[activeSetting._id] = updatedCodes;
+                  // Update the specific setting's codes (use string key)
+                  updatedUserCodes[settingIdStr] = updatedCodes;
                   // Update state
                   setUserCodes(updatedUserCodes);
                   // Update total count based on maxPax values

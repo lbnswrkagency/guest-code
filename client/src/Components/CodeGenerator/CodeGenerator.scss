@@ -185,6 +185,33 @@
       }
     }
   }
+
+  // Single code type - non-interactive appearance
+  &.single-type {
+    .type-chip {
+      cursor: default;
+
+      // Always show as selected since it's the only option
+      background: rgba(255, 200, 7, 0.15);
+      border-color: rgba(255, 200, 7, 0.5);
+      color: #fff;
+
+      svg {
+        color: #ffc807;
+      }
+
+      &:hover {
+        // Remove hover effect for single type
+        background: rgba(255, 200, 7, 0.15);
+        border-color: rgba(255, 200, 7, 0.5);
+      }
+
+      &:disabled {
+        opacity: 1; // Keep full opacity since it's a label, not disabled
+        cursor: default;
+      }
+    }
+  }
 }
 
 // Counter Card

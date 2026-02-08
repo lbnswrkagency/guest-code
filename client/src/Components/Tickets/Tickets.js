@@ -213,6 +213,9 @@ const Tickets = ({
 
     return (
       ticketSettings
+        // Filter out old event-level tickets (those without brandId)
+        // Only brand-level templates should be shown
+        .filter(ticket => ticket.brandId)
         .map((ticket) => {
           if (!ticket || typeof ticket !== "object") {
             return null;

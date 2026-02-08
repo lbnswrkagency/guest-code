@@ -140,7 +140,20 @@ exports.getAnalyticsSummary = async (req, res) => {
     // Fetch all code settings for this event
     // For child events (weekly occurrences), use parent event's codeSettings
     const effectiveEventId = event.parentEventId || eventId;
-    const codeSettings = await CodeSetting.find({ eventId: effectiveEventId });
+    // Get the brand ID for the event (handles both populated and unpopulated cases)
+    const eventBrandId = event.brand._id || event.brand;
+
+    // Get BOTH brand-level AND event-level codes (same pattern as authController.js and coHostController.js)
+    const codeSettings = await CodeSetting.find({
+      brandId: eventBrandId,
+      isEnabled: true,
+      $or: [
+        // Brand-level global codes (apply to all events in brand)
+        { eventId: null, isGlobalForBrand: true },
+        // Event-specific codes
+        { eventId: effectiveEventId },
+      ],
+    });
 
     // Get Guest Codes stats (always present)
     const guestCodes = await getCodesStats(eventId, "guest");
@@ -171,11 +184,11 @@ exports.getAnalyticsSummary = async (req, res) => {
         // Skip if we've already processed this type or if it's a default type
         if (processedTypes.has(setting.name.toLowerCase())) continue;
 
-        // Get stats for this code type
-        const codeStats = await getCodesStats(eventId, setting.name);
+        // Get stats for this code type - pass codeSettingId for accurate querying
+        const codeStats = await getCodesStats(eventId, setting.name, setting._id);
 
-        // Get host summaries for custom codes
-        const hostSummaries = await getHostSummaries(eventId, setting.name);
+        // Get host summaries for custom codes - pass codeSettingId for accurate querying
+        const hostSummaries = await getHostSummaries(eventId, setting.name, setting._id);
 
         // Only add if there are any codes of this type
         if (codeStats.count > 0) {
@@ -189,7 +202,6 @@ exports.getAnalyticsSummary = async (req, res) => {
           processedTypes.add(setting.name.toLowerCase());
         }
       } catch (error) {
-        console.error(`Error processing code type ${setting.name}:`, error);
         // Continue with other code types even if one fails
         continue;
       }
@@ -252,21 +264,29 @@ exports.getAnalyticsSummary = async (req, res) => {
 };
 
 // Helper function to get code stats by type
-async function getCodesStats(eventId, type) {
+async function getCodesStats(eventId, type, codeSettingId = null) {
   try {
     // Handle case sensitivity and variations
     const codeType = type.toLowerCase();
     const typeQuery = new RegExp(`^${codeType}$`, "i");
 
+    // Build query conditions - include codeSettingId for brand-level codes
+    const queryConditions = [
+      { type: typeQuery },
+      { name: typeQuery },
+      { "metadata.codeType": type },
+      { "metadata.settingName": type },
+    ];
+
+    // Add codeSettingId query for brand-level codes
+    if (codeSettingId) {
+      queryConditions.push({ codeSettingId: codeSettingId });
+    }
+
     // Get all codes of the specified type for the event
     const codes = await Code.find({
       eventId,
-      $or: [
-        { type: typeQuery },
-        { name: typeQuery },
-        { "metadata.codeType": type },
-        { "metadata.settingName": type },
-      ],
+      $or: queryConditions,
     });
 
     let totalPax = 0;
@@ -296,17 +316,25 @@ async function getCodesStats(eventId, type) {
 }
 
 // Helper function to get host summaries
-async function getHostSummaries(eventId, type) {
+async function getHostSummaries(eventId, type, codeSettingId = null) {
   try {
+    // Build query conditions - include codeSettingId for brand-level codes
+    const queryConditions = [
+      { type: type.toLowerCase() },
+      { name: type },
+      { "metadata.codeType": type },
+      { "metadata.settingName": type },
+    ];
+
+    // Add codeSettingId query for brand-level codes
+    if (codeSettingId) {
+      queryConditions.push({ codeSettingId: codeSettingId });
+    }
+
     // Get all codes for this type and event
     const codes = await Code.find({
       eventId,
-      $or: [
-        { type: type.toLowerCase() },
-        { name: type },
-        { "metadata.codeType": type },
-        { "metadata.settingName": type },
-      ],
+      $or: queryConditions,
     }).populate("createdBy", "username firstName lastName"); // Populate user data directly
 
     // Group codes by host

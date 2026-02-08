@@ -59,8 +59,10 @@ const PermissionCategory = ({ icon: Icon, title, children }) => (
 );
 
 // Code permission card component
+// Uses code._id as the permission key for stable lookups (not code.name which can vary)
 const CodePermissionCard = ({ code, permissions, onChange }) => {
-  const codeKey = code.name;
+  // Use code._id as key for stable permission lookups (fixes co-host permission mismatch)
+  const codeKey = code._id;
   const codePerms = permissions?.codes?.[codeKey] || {};
 
   return (
@@ -289,9 +291,9 @@ const CoHostRoleSettings = ({
           battles: { view: false, edit: false, delete: false },
         };
 
-        // Initialize code permissions
+        // Initialize code permissions using code._id as key (stable lookup)
         codesRes.data.forEach((code) => {
-          initialPerms[role._id].codes[code.name] = {
+          initialPerms[role._id].codes[code._id] = {
             generate: false,
             limit: 0,
             unlimited: false,
@@ -399,14 +401,19 @@ const CoHostRoleSettings = ({
 
       if (matching) {
         // Merge code permissions intelligently
+        // Note: Co-host default permissions may use code names or IDs
+        // We need to map them to code._id for consistency
         const currentPerms = permissions[targetRole._id] || {};
         const existingCodes = currentPerms.codes || {};
         const coHostCodes = matching.permissions.codes || {};
 
         const mergedCodes = { ...existingCodes };
-        Object.keys(coHostCodes).forEach((codeName) => {
-          if (customCodes.some((c) => c.name === codeName)) {
-            mergedCodes[codeName] = coHostCodes[codeName];
+        Object.keys(coHostCodes).forEach((codeKey) => {
+          // Check if this key matches a code by _id or by name
+          const matchingCode = customCodes.find((c) => c._id === codeKey || c.name === codeKey);
+          if (matchingCode) {
+            // Always store by code._id for consistency
+            mergedCodes[matchingCode._id] = coHostCodes[codeKey];
           }
         });
 
@@ -453,9 +460,12 @@ const CoHostRoleSettings = ({
           const coHostCodes = matching.permissions.codes || {};
 
           const mergedCodes = { ...existingCodes };
-          Object.keys(coHostCodes).forEach((codeName) => {
-            if (customCodes.some((c) => c.name === codeName)) {
-              mergedCodes[codeName] = coHostCodes[codeName];
+          Object.keys(coHostCodes).forEach((codeKey) => {
+            // Check if this key matches a code by _id or by name
+            const matchingCode = customCodes.find((c) => c._id === codeKey || c.name === codeKey);
+            if (matchingCode) {
+              // Always store by code._id for consistency
+              mergedCodes[matchingCode._id] = coHostCodes[codeKey];
             }
           });
 

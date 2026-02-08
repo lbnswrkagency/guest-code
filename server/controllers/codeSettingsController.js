@@ -678,15 +678,14 @@ const createBrandCode = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check user permission
+    // Check user permission - OWNER ONLY for brand-level code management
     const userId = req.user.userId || req.user._id;
     const isOwner = brand.owner.toString() === userId.toString();
-    const isTeamMember = brand.team?.some(
-      (member) => member.user.toString() === userId.toString()
-    );
 
-    if (!isOwner && !isTeamMember && !req.user.isAdmin) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (!isOwner && !req.user.isAdmin) {
+      return res.status(403).json({
+        message: "Only brand owners can create brand-level codes"
+      });
     }
 
     // Check if a brand-level code with the same name already exists
@@ -790,15 +789,14 @@ const updateBrandCode = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check user permission
+    // Check user permission - OWNER ONLY for brand-level code management
     const userId = req.user.userId || req.user._id;
     const isOwner = brand.owner.toString() === userId.toString();
-    const isTeamMember = brand.team?.some(
-      (member) => member.user.toString() === userId.toString()
-    );
 
-    if (!isOwner && !isTeamMember && !req.user.isAdmin) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (!isOwner && !req.user.isAdmin) {
+      return res.status(403).json({
+        message: "Only brand owners can update brand-level codes"
+      });
     }
 
     // Find the code
@@ -874,15 +872,14 @@ const deleteBrandCode = async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    // Check user permission
+    // Check user permission - OWNER ONLY for brand-level code management
     const userId = req.user.userId || req.user._id;
     const isOwner = brand.owner.toString() === userId.toString();
-    const isTeamMember = brand.team?.some(
-      (member) => member.user.toString() === userId.toString()
-    );
 
-    if (!isOwner && !isTeamMember && !req.user.isAdmin) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (!isOwner && !req.user.isAdmin) {
+      return res.status(403).json({
+        message: "Only brand owners can delete brand-level codes"
+      });
     }
 
     // Find the code

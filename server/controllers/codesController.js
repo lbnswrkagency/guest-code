@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Code = require("../models/codesModel");
 const Event = require("../models/eventsModel");
 const CodeSettings = require("../models/codeSettingsModel");
@@ -690,9 +691,31 @@ const updateCode = async (req, res) => {
 
 
         if (!isOwner && !isTeamMember) {
-          return res
-            .status(403)
-            .json({ message: "Not authorized to update this code" });
+          // Check if user is the code creator AND a valid co-host
+          const isCodeCreator = code.createdBy &&
+            code.createdBy.toString() === userId.toString();
+
+          if (isCodeCreator) {
+            // Verify user is still a valid co-host by checking if their brand is in event.coHosts
+            const userBrands = await Brand.find({
+              $or: [{ owner: userId }, { "team.user": userId }]
+            });
+
+            const isValidCoHost = userBrands.some(ub =>
+              event.coHosts?.some(ch => ch.toString() === ub._id.toString())
+            );
+
+            if (!isValidCoHost) {
+              return res
+                .status(403)
+                .json({ message: "Not authorized to update this code" });
+            }
+            // Allow - user created the code and is still a valid co-host
+          } else {
+            return res
+              .status(403)
+              .json({ message: "Not authorized to update this code" });
+          }
         }
 
       } catch (permError) {
@@ -796,9 +819,31 @@ const deleteCode = async (req, res) => {
 
 
         if (!isOwner && !isTeamMember) {
-          return res
-            .status(403)
-            .json({ message: "Not authorized to delete this code" });
+          // Check if user is the code creator AND a valid co-host
+          const isCodeCreator = code.createdBy &&
+            code.createdBy.toString() === userId.toString();
+
+          if (isCodeCreator) {
+            // Verify user is still a valid co-host by checking if their brand is in event.coHosts
+            const userBrands = await Brand.find({
+              $or: [{ owner: userId }, { "team.user": userId }]
+            });
+
+            const isValidCoHost = userBrands.some(ub =>
+              event.coHosts?.some(ch => ch.toString() === ub._id.toString())
+            );
+
+            if (!isValidCoHost) {
+              return res
+                .status(403)
+                .json({ message: "Not authorized to delete this code" });
+            }
+            // Allow - user created the code and is still a valid co-host
+          } else {
+            return res
+              .status(403)
+              .json({ message: "Not authorized to delete this code" });
+          }
         }
 
       } catch (permError) {
@@ -1328,19 +1373,42 @@ const getEventUserCodes = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // Build query
+    // Get the event to check if it has a parent (for weekly events)
+    const event = await Event.findById(eventId).select('parentEventId isWeekly');
+
+    // Build query - for child events, also check parent event's codes
+    // This handles cases where codes are created on different weeks of a weekly event
+    let eventIdsToCheck = [eventId];
+    if (event?.parentEventId) {
+      eventIdsToCheck.push(event.parentEventId);
+    }
+
     const query = {
-      eventId,
+      eventId: { $in: eventIdsToCheck },
       createdBy: userId,
     };
 
     // Add codeSettingIds to query if provided
+    // Convert strings to ObjectIds for proper matching
     if (codeSettingIds && codeSettingIds.length > 0) {
-      query.codeSettingId = { $in: codeSettingIds };
+      // Mongoose should auto-cast, but be explicit to avoid issues
+      const objectIdSettingIds = codeSettingIds.map(id => {
+        try {
+          return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
+        } catch {
+          return id;
+        }
+      });
+      query.codeSettingId = { $in: objectIdSettingIds };
     }
+
+    // Debug logging for troubleshooting
+    console.log('[getEventUserCodes] Query:', JSON.stringify(query, null, 2));
 
     // Get all codes matching the query
     const codes = await Code.find(query).sort({ createdAt: -1 });
+
+    console.log(`[getEventUserCodes] Found ${codes.length} codes for user ${userId}`);
 
     // Group codes by codeSettingId
     const codesBySettingId = {};

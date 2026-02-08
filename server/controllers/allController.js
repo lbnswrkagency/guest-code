@@ -200,7 +200,12 @@ exports.getUpcomingEventData = async (req, res) => {
 
     const [ticketSettingsArray, codeSettingsArray, tableDataArray] =
       await Promise.all([
-        TicketSettings.find({ eventId: { $in: allEventIds } }).lean(),
+        // Query brand-level ticket templates instead of old event-level tickets
+        TicketSettings.find({
+          brandId: targetBrandId,
+          eventId: null,
+          isGlobalForBrand: true
+        }).lean(),
         CodeSettings.find({ eventId: { $in: allEventIds } }).lean(), // Gets all fields by default
         TableCode.find({ event: { $in: allEventIds } }).lean(), // Gets all fields by default
       ]);
@@ -210,13 +215,12 @@ exports.getUpcomingEventData = async (req, res) => {
     const codeSettingsByEvent = {};
     const tableDataByEvent = {};
 
-    // Use reduce for better performance than forEach
-    ticketSettingsArray.reduce((acc, setting) => {
-      const eventId = setting.eventId;
-      if (!acc[eventId]) acc[eventId] = [];
-      acc[eventId].push(setting);
-      return acc;
-    }, ticketSettingsByEvent);
+    // Brand-level tickets apply to ALL events - assign them to each event
+    // ticketSettingsArray now contains brand-level templates (eventId: null, isGlobalForBrand: true)
+    sortedEvents.forEach((event) => {
+      const eventId = event._id.toString();
+      ticketSettingsByEvent[eventId] = ticketSettingsArray;
+    });
 
     codeSettingsArray.reduce((acc, setting) => {
       const eventId = setting.eventId;

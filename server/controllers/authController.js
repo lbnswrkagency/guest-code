@@ -42,17 +42,10 @@ const refreshTokenCookieOptions = {
 };
 
 exports.register = async (req, res) => {
-  console.log("=== REGISTRATION ATTEMPT ===");
-  console.log("Request body:", JSON.stringify(req.body, null, 2));
-  console.log("Content-Type:", req.headers["content-type"]);
-  console.log("Request headers:", JSON.stringify(req.headers, null, 2));
-
   // Check for validation errors first
   const errors = validationResult(req);
-  console.log("Validation errors:", errors.array());
 
   if (!errors.isEmpty()) {
-    console.log("❌ Validation failed:", errors.array());
     return res.status(400).json({
       success: false,
       message: "Validation failed",
@@ -65,29 +58,11 @@ exports.register = async (req, res) => {
   }
 
   const { username, email, password, firstName, lastName, birthday } = req.body;
-  console.log("✅ Validation passed");
-  console.log("Extracted fields:", {
-    username,
-    email,
-    password: password ? "[HIDDEN]" : "MISSING",
-    firstName,
-    lastName,
-    birthday,
-  });
 
   try {
-    console.log("🔍 Checking for existing user...");
     let user = await User.findOne({ $or: [{ email }, { username }] });
-    console.log(
-      "Existing user check result:",
-      user ? "User found" : "No existing user"
-    );
 
     if (user) {
-      console.log(
-        "❌ User already exists:",
-        user.email === email ? "Email taken" : "Username taken"
-      );
       return res.status(400).json({
         success: false,
         message: "Registration failed",
@@ -98,12 +73,9 @@ exports.register = async (req, res) => {
       });
     }
 
-    console.log("🔒 Hashing password...");
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log("✅ Password hashed successfully");
 
-    console.log("👤 Creating new user...");
     user = new User({
       username,
       firstName,
@@ -113,41 +85,23 @@ exports.register = async (req, res) => {
       password: hashedPassword,
     });
 
-    console.log("💾 Saving user to database...");
     await user.save();
-    console.log("✅ User saved successfully with ID:", user._id);
 
-    console.log("🔑 Generating verification token...");
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log("✅ Token generated successfully");
 
-    console.log("📧 Sending verification email...");
     // Send verification email with user details
     await sendVerificationEmail(user.email, token, user);
-    console.log("✅ Verification email sent successfully");
 
-    console.log("🎉 Registration completed successfully!");
     res.json({
       success: true,
       message: "Registration successful",
       details: "Please check your email for verification.",
     });
   } catch (error) {
-    console.log("❌ Registration error occurred:");
-    console.error("Error details:", error);
-    console.error("Error stack:", error.stack);
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-
     // Check if it's a mongoose validation error
     if (error.name === "ValidationError") {
-      console.log("🚨 Mongoose validation error:");
-      Object.keys(error.errors).forEach((key) => {
-        console.log(`  - ${key}: ${error.errors[key].message}`);
-      });
-
       return res.status(400).json({
         success: false,
         message: "Validation failed",
@@ -160,7 +114,6 @@ exports.register = async (req, res) => {
 
     // Check if it's a duplicate key error
     if (error.code === 11000) {
-      console.log("🚨 Duplicate key error:", error.keyPattern);
       return res.status(400).json({
         success: false,
         message: "Registration failed",
@@ -479,9 +432,44 @@ exports.login = async (req, res) => {
             try {
               // Get code settings - use parent event ID for child events (weekly occurrences)
               const effectiveEventId = event.parentEventId || event._id;
-              const eventCodeSettings = await CodeSetting.find({
-                eventId: effectiveEventId,
+              const eventBrandId = event.brand._id || event.brand;
+
+              // Get BOTH brand-level AND event-level codes (same pattern as coHostController.js)
+              const rawCodeSettings = await CodeSetting.find({
+                brandId: eventBrandId,
+                isEnabled: true,
+                $or: [
+                  // Brand-level global codes (apply to all events in brand)
+                  { eventId: null, isGlobalForBrand: true },
+                  // Event-specific codes
+                  { eventId: effectiveEventId },
+                ],
               }).lean();
+
+              // Format code settings with explicit fields (same as coHostController.js)
+              const eventCodeSettings = rawCodeSettings.map(cs => ({
+                _id: cs._id.toString(),
+                name: cs.name,
+                type: cs.type || 'custom',
+                condition: cs.condition || '',
+                note: cs.note || '',
+                maxPax: cs.maxPax || 1,
+                limit: cs.limit || 0,
+                isEnabled: cs.isEnabled,
+                isEditable: cs.isEditable,
+                color: cs.color || '#2196F3',
+                icon: cs.icon || 'RiCodeLine',
+                brandId: (cs.brandId || eventBrandId)?.toString(),
+                eventId: cs.eventId?.toString() || null,
+                isGlobalForBrand: cs.isGlobalForBrand || false,
+                codeTemplateId: cs.codeTemplateId?.toString(),
+                createdBy: cs.createdBy?.toString(),
+                requireEmail: cs.requireEmail,
+                requirePhone: cs.requirePhone,
+                price: cs.price,
+                tableNumber: cs.tableNumber,
+                isInherited: cs.eventId === null,
+              }));
 
               // Attach code settings
               event.codeSettings = eventCodeSettings;
@@ -525,26 +513,49 @@ exports.login = async (req, res) => {
                 coHostPermissions = parentEvent?.coHostRolePermissions || [];
               }
 
+              // More robust brandId comparison
+              const brandIdStr = brand._id.toString();
               const brandPermissions = coHostPermissions.find(
-                (cp) => cp.brandId?.toString() === brand._id.toString()
+                (cp) => {
+                  const cpBrandIdStr = cp.brandId?.toString?.() || String(cp.brandId);
+                  return cpBrandIdStr === brandIdStr;
+                }
               );
 
+              console.log(`[Login CoHost Perms] Event: ${event._id}, Brand: ${brandIdStr}`);
+              console.log(`[Login CoHost Perms] UserRole: ${userRoleInBrand._id}, isFounder: ${userRoleInBrand.isFounder}`);
+              console.log(`[Login CoHost Perms] Available brands:`, coHostPermissions.map(cp => cp.brandId?.toString?.() || String(cp.brandId)));
+              console.log(`[Login CoHost Perms] Found brandPermissions: ${!!brandPermissions}`);
+
               if (brandPermissions) {
-                const rolePermission = brandPermissions.rolePermissions?.find(
-                  (rp) =>
-                    rp.roleId?.toString() === userRoleInBrand._id.toString()
+                console.log(`[Login CoHost Perms] Available roleIds:`,
+                  brandPermissions.rolePermissions?.map(rp => rp.roleId?.toString?.() || String(rp.roleId))
                 );
+
+                // More robust roleId comparison
+                const userRoleIdStr = userRoleInBrand._id.toString();
+                const rolePermission = brandPermissions.rolePermissions?.find(
+                  (rp) => {
+                    const rpRoleIdStr = rp.roleId?.toString?.() || String(rp.roleId);
+                    return rpRoleIdStr === userRoleIdStr;
+                  }
+                );
+
+                console.log(`[Login CoHost Perms] Found rolePermission: ${!!rolePermission}`);
 
                 if (rolePermission?.permissions) {
                   // Use normalizePermissions to ensure consistent format
                   // This handles Map-to-object conversion and ensures all fields exist
-                  event.coHostBrandInfo.effectivePermissions = normalizePermissions(
-                    rolePermission.permissions
-                  );
+                  // Pass eventCodeSettings for permission key remapping (name -> _id)
+                  const normalizedPerms = normalizePermissions(rolePermission.permissions, eventCodeSettings);
+                  console.log(`[Login CoHost Perms] Normalized codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
+                  event.coHostBrandInfo.effectivePermissions = normalizedPerms;
                 } else {
+                  console.log(`[Login CoHost Perms] No permissions object in rolePermission`);
                   event.coHostBrandInfo.effectivePermissions = null;
                 }
               } else {
+                console.log(`[Login CoHost Perms] No brandPermissions found`);
                 event.coHostBrandInfo.effectivePermissions = null;
               }
 

@@ -438,23 +438,8 @@ exports.createEvent = async (req, res) => {
 
     res.status(201).json(event);
   } catch (error) {
-    // Log the full error for debugging
-    console.error("[createEvent] Error creating event:", {
-      errorCode: error.code,
-      errorMessage: error.message,
-      keyPattern: error.keyPattern,
-      keyValue: error.keyValue,
-      requestBody: {
-        title: req.body.title,
-        startDate: req.body.startDate,
-        parentEventId: req.body.parentEventId,
-        brandId: req.params.brandId,
-      },
-    });
-
     // Check if it's a duplicate key error (unique constraint violation)
     if (error.code === 11000) {
-      console.error("[createEvent] Duplicate key error - attempting to find existing event");
       // For compound index {brand, title, startDate}, find the existing event
       try {
         const existingEvent = await Event.findOne({
@@ -463,11 +448,10 @@ exports.createEvent = async (req, res) => {
           startDate: req.body.startDate,
         });
         if (existingEvent) {
-          console.log("[createEvent] Found existing event, returning it:", existingEvent._id);
           return res.status(200).json(existingEvent);
         }
       } catch (findError) {
-        console.error("[createEvent] Error finding existing event:", findError.message);
+        // Continue to error response
       }
     }
 
@@ -1623,17 +1607,37 @@ exports.getEventProfile = async (req, res) => {
       // Get code settings - resolve to parent event for child events
       // Child events should inherit CodeSettings from their parent
       const eventForCodeSettings = event.parentEventId || event._id;
-      const codeSettings = await CodeSettings.find({
+      const rawCodeSettings = await CodeSettings.find({
         eventId: eventForCodeSettings,
       });
 
-      // Debug logging for code settings
-      console.log(`[getEventProfile] Event: ${event.title} (${event._id})`);
-      console.log(`[getEventProfile] eventForCodeSettings: ${eventForCodeSettings}`);
-      console.log(`[getEventProfile] Found ${codeSettings.length} CodeSettings:`);
-      codeSettings.forEach(cs => {
-        console.log(`  - ${cs.name}: codeTemplateId=${cs.codeTemplateId || 'NONE'}, isEditable=${cs.isEditable}, isEnabled=${cs.isEnabled}`);
-      });
+      // Format codeSettings with brandId to match frontend expectations
+      // Uses same pattern as coHostController.js but with fallback for legacy codes
+      const eventBrandId = event.brand?._id || event.brand;
+      const codeSettings = rawCodeSettings.map(cs => ({
+        _id: cs._id.toString(),
+        name: cs.name,
+        type: cs.type || 'custom',
+        condition: cs.condition || '',
+        note: cs.note || '',
+        maxPax: cs.maxPax || 1,
+        limit: cs.limit || 0,
+        isEnabled: cs.isEnabled,
+        isEditable: cs.isEditable,
+        color: cs.color || '#2196F3',
+        icon: cs.icon || 'RiCodeLine',
+        // CRITICAL: Use existing brandId OR fallback to event's brand for legacy codes
+        brandId: (cs.brandId || eventBrandId)?.toString(),
+        eventId: cs.eventId?.toString() || null,
+        isGlobalForBrand: cs.isGlobalForBrand || false,
+        requireEmail: cs.requireEmail,
+        requirePhone: cs.requirePhone,
+        codeTemplateId: cs.codeTemplateId?.toString(),
+        createdBy: cs.createdBy?.toString(),
+        price: cs.price,
+        tableNumber: cs.tableNumber,
+        unlimited: cs.limit === 0,
+      }));
 
       // After finding the event and related data, prepare the response
       // Check if user is authenticated
