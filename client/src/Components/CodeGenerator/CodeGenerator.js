@@ -114,26 +114,36 @@ function CodeGenerator({
     // Convert map back to array
     const uniqueCodeSettings = Array.from(uniqueSettingsMap.values());
 
-    // Check if user is founder (has full access to all codes)
-    const isFounder = selectedBrand?.role?.isFounder === true;
+    // Check if this is a co-hosted event
+    const isCoHostedEvent = !!selectedEvent?.coHostBrandInfo;
+
+    // For co-hosted events, we MUST use co-host permissions (not founder bypass)
+    // Only use founder bypass for events the user's brand directly owns
+    const isFounder = !isCoHostedEvent && selectedBrand?.role?.isFounder === true;
 
     // Filter settings based on user permissions
-    // Permission key format: codeSettingId (primary) or codeName (legacy fallback)
+    // Permission key format: codeSettingId ONLY (no name fallback - prevents old permissions applying to new codes with same name)
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
-      // Founders have access to all codes
+      // Only apply founder bypass for non-co-hosted events
       if (isFounder) {
         return true;
       }
 
-      // Try by codeSettingId first (new stable key format)
-      const idPermission = setting._id && userPermissions[setting._id];
-      // Also try just the code name (legacy format)
-      const namePermission = userPermissions[setting.name];
+      // Must have a valid _id to check permissions
+      if (!setting._id) {
+        return false;
+      }
 
-      const hasIdPermission = idPermission?.generate === true;
-      const hasNamePermission = namePermission?.generate === true;
+      // For co-hosted events, check co-host permissions from main host
+      if (isCoHostedEvent) {
+        const coHostPerms = selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes || {};
+        const idPermission = coHostPerms[setting._id];
+        return idPermission?.generate === true;
+      }
 
-      return hasIdPermission || hasNamePermission;
+      // For regular events, check user's role permissions
+      const idPermission = userPermissions[setting._id];
+      return idPermission?.generate === true;
     });
 
     // Store the filtered settings for use in the component
@@ -329,61 +339,10 @@ function CodeGenerator({
       userPermissions,
     });
 
-    // Helper function to normalize code names for fuzzy matching
-    // Removes parenthetical suffixes like "(Local)", "(locally)", etc.
-    const normalizeName = (name) => {
-      if (!name) return "";
-      return name
-        .toLowerCase()
-        .replace(/\s*\([^)]*\)\s*$/g, "") // Remove trailing parenthetical
-        .replace(/\s+/g, " ")              // Normalize whitespace
-        .trim();
-    };
-
-    // Try by codeSettingId first (new stable key), then by name (legacy fallback)
-    // Convert settingId to string for consistent lookup (keys are strings)
+    // ONLY lookup by codeSettingId - NO name fallback
+    // This prevents old permissions from applying to new codes that happen to have the same name
     const settingIdStr = settingId?.toString();
-    let permission =
-      (settingIdStr && userPermissions[settingIdStr]) ||  // By ID as string (primary)
-      userPermissions[selectedCodeType];                   // By exact name (fallback)
-
-    // If no exact match found, try fuzzy name matching for co-hosted events
-    // This handles cases where code names have been modified (e.g., "Friends Code" -> "Friends Code (Local)")
-    if (!permission && isCoHostedEvent) {
-      const normalizedSelectedType = normalizeName(selectedCodeType);
-      const availableKeys = Object.keys(userPermissions);
-
-      // Try to find a permission key that matches when normalized
-      for (const key of availableKeys) {
-        const normalizedKey = normalizeName(key);
-        if (normalizedKey === normalizedSelectedType) {
-          permission = userPermissions[key];
-          console.log("[getActivePermission] Fuzzy match found:", {
-            selectedCodeType,
-            matchedKey: key,
-            normalizedSelectedType,
-            normalizedKey
-          });
-          break;
-        }
-      }
-
-      // If still no match, try partial matching (one contains the other)
-      if (!permission) {
-        for (const key of availableKeys) {
-          const normalizedKey = normalizeName(key);
-          if (normalizedKey.includes(normalizedSelectedType) ||
-              normalizedSelectedType.includes(normalizedKey)) {
-            permission = userPermissions[key];
-            console.log("[getActivePermission] Partial match found:", {
-              selectedCodeType,
-              matchedKey: key
-            });
-            break;
-          }
-        }
-      }
-    }
+    let permission = settingIdStr ? userPermissions[settingIdStr] : null;
 
     if (!permission) {
       // For co-hosted events, if no permission found for a code, DENY access

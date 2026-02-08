@@ -72,12 +72,20 @@ const Codes = () => {
 
       // First fetch user's brands
       const brandsResponse = await axiosInstance.get("/brands");
-      const brands = brandsResponse.data || [];
-      setUserBrands(brands);
+      const allBrands = brandsResponse.data || [];
 
-      // Fetch brand-level codes for each brand the user manages
+      // Filter to only brands where user is the FOUNDER/OWNER
+      // Users can only attach code templates to brands they own
+      const ownedBrands = allBrands.filter(brand =>
+        brand.owner === user?._id ||
+        brand.owner?.toString() === user?._id?.toString() ||
+        brand.role?.isFounder === true
+      );
+      setUserBrands(ownedBrands);
+
+      // Fetch brand-level codes for each brand the user manages (from all brands they're part of)
       const allCodes = [];
-      for (const brand of brands) {
+      for (const brand of allBrands) {
         try {
           const codesResponse = await axiosInstance.get(`/code-settings/brands/${brand._id}/codes`);
           // Add brand info to each code

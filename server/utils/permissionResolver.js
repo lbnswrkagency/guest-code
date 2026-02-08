@@ -59,23 +59,11 @@ function ensurePlainObject(obj, deep = true) {
 }
 
 /**
- * Normalizes a code name for comparison (removes parenthetical suffixes, lowercase, trim)
- * e.g., "Friends Code (Local)" -> "friends code"
- */
-function normalizeCodeName(name) {
-  if (!name || typeof name !== 'string') return '';
-  return name
-    .toLowerCase()
-    .replace(/\s*\([^)]*\)\s*$/g, '') // Remove parenthetical suffixes like "(Local)"
-    .trim();
-}
-
-/**
  * Remaps permission keys to match current code settings IDs
  *
- * Old permissions may have been saved with code NAMEs as keys, but code names
- * can change over time. This function remaps stored permission keys to match
- * the current code settings' _id values for stable lookup.
+ * IMPORTANT: Only matches by code _id, NOT by name.
+ * This prevents old permissions from auto-applying to new codes that happen to have the same name.
+ * Old permissions stored by name (legacy) will be treated as orphaned and ignored.
  *
  * @param {Object} storedCodes - The codes object from stored permissions (key -> permission)
  * @param {Array} currentCodeSettings - Current code settings for the event
@@ -88,55 +76,29 @@ function remapPermissionKeys(storedCodes, currentCodeSettings) {
 
   const remappedCodes = {};
 
-  // Build lookup maps from current code settings
-  // Map by: _id, exact name, normalized name
+  // Build lookup map from current code settings - ONLY by _id
   const codeById = new Map();
-  const codeByExactName = new Map();
-  const codeByNormalizedName = new Map();
 
   currentCodeSettings.forEach(code => {
     const codeId = code._id?.toString() || code._id;
-    const codeName = code.name;
-    const normalizedName = normalizeCodeName(codeName);
-
-    codeById.set(codeId, code);
-
-    // Only set name maps if not already set (first match wins)
-    if (codeName && !codeByExactName.has(codeName.toLowerCase())) {
-      codeByExactName.set(codeName.toLowerCase(), code);
-    }
-    if (normalizedName && !codeByNormalizedName.has(normalizedName)) {
-      codeByNormalizedName.set(normalizedName, code);
+    if (codeId) {
+      codeById.set(codeId, code);
     }
   });
 
   // Process each stored permission key
   Object.entries(storedCodes).forEach(([key, permission]) => {
-    let matchedCode = null;
-
-    // 1. Try direct ID lookup (key is already a valid code _id)
-    matchedCode = codeById.get(key);
-
-    // 2. Try exact name match (case-insensitive)
-    if (!matchedCode) {
-      matchedCode = codeByExactName.get(key.toLowerCase());
-    }
-
-    // 3. Try normalized name match (handles "Friends Code" matching "Friends Code (Local)")
-    if (!matchedCode) {
-      const normalizedKey = normalizeCodeName(key);
-      matchedCode = codeByNormalizedName.get(normalizedKey);
-    }
+    // ONLY do ID-based lookup - no name matching
+    // This prevents old permissions (stored by name) from auto-applying to new codes
+    const matchedCode = codeById.get(key);
 
     if (matchedCode) {
       // Store permission under the code's _id for stable lookup
       const targetId = matchedCode._id?.toString() || matchedCode._id;
       remappedCodes[targetId] = permission;
-    } else {
-      // Keep original key if no match found (orphaned permission)
-      // This preserves permissions for codes that may have been deleted
-      remappedCodes[key] = permission;
     }
+    // NOTE: We intentionally discard permissions that don't match by ID
+    // This includes legacy permissions stored by name - they will not auto-apply to new codes
   });
 
   return remappedCodes;
@@ -427,5 +389,4 @@ module.exports = {
   getDefaultPermissions,
   getUserRoleInBrand,
   remapPermissionKeys,
-  normalizeCodeName,
 };
