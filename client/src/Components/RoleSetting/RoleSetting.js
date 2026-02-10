@@ -14,7 +14,6 @@ import {
   RiQrScanLine,
   RiBarChartBoxLine,
   RiSaveLine,
-  RiRepeatLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
@@ -508,18 +507,24 @@ const RoleSetting = ({ brand, onClose }) => {
                         <span>{category.title}</span>
                       </div>
                       <div className="permission-toggles">
-                        {category.permissions.map((perm) => (
-                          <label key={perm.key} className="permission-toggle">
-                            <input
-                              type="checkbox"
-                              checked={formData.permissions[category.id]?.[perm.key] || false}
-                              onChange={(e) => handlePermissionChange(
-                                category.id, perm.key, e.target.checked
-                              )}
-                            />
-                            <span>{perm.label}</span>
-                          </label>
-                        ))}
+                        {category.permissions.map((perm) => {
+                          const isChecked = formData.permissions[category.id]?.[perm.key] || false;
+                          return (
+                            <div
+                              key={perm.key}
+                              className={`permission-toggle ${isChecked ? 'checked' : ''}`}
+                              onClick={() => handlePermissionChange(category.id, perm.key, !isChecked)}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {}}
+                                readOnly
+                              />
+                              <span>{perm.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -536,16 +541,20 @@ const RoleSetting = ({ brand, onClose }) => {
                           const permission = formData.permissions.codes?.[code.permissionKey] || {};
                           return (
                             <div key={code.permissionKey} className="code-item">
-                              <label className="code-toggle">
+                              <div
+                                className={`code-toggle ${permission.generate ? 'checked' : ''}`}
+                                onClick={() => handleCodePermissionChange(code.permissionKey, {
+                                  generate: !permission.generate,
+                                })}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={permission.generate || false}
-                                  onChange={(e) => handleCodePermissionChange(code.permissionKey, {
-                                    generate: e.target.checked,
-                                  })}
+                                  onChange={() => {}}
+                                  readOnly
                                 />
                                 <span style={{ color: code.color }}>{code.displayName}</span>
-                              </label>
+                              </div>
 
                               {permission.generate && code.hasLimits && (
                                 <div className="code-limits">
@@ -569,7 +578,7 @@ const RoleSetting = ({ brand, onClose }) => {
                                     })}
                                     title="Unlimited"
                                   >
-                                    <RiRepeatLine />
+                                    ∞
                                   </button>
                                 </div>
                               )}
