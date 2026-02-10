@@ -690,3 +690,39 @@ exports.getCoHostDefaultPermissions = async (req, res) => {
     res.status(500).json({ message: "Error fetching co-host default permissions" });
   }
 };
+
+// Get co-host brand's code templates (for permission inheritance matching by name)
+// This endpoint is used when the main host wants to inherit code permissions from a co-host brand
+// It only returns code names and IDs - no sensitive data
+exports.getCoHostBrandCodes = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Validate brandId
+    if (!brandId || !mongoose.Types.ObjectId.isValid(brandId)) {
+      return res.status(400).json({ message: "Invalid brand ID" });
+    }
+
+    // Fetch the brand's code templates (brand-level codes only)
+    const codes = await CodeSettings.find({
+      brandId: brandId,
+      eventId: null, // Brand-level codes only
+      isGlobalForBrand: true,
+      isEnabled: true,
+    }).select("_id name type color icon");
+
+    // Format response with minimal data needed for matching
+    const formattedCodes = codes.map(code => ({
+      _id: code._id.toString(),
+      name: code.name,
+      type: code.type || "custom",
+      color: code.color || "#ffc807",
+      icon: code.icon || "RiCodeLine",
+    }));
+
+    res.status(200).json({ codes: formattedCodes });
+  } catch (error) {
+    console.error("Error fetching co-host brand codes:", error);
+    res.status(500).json({ message: "Error fetching co-host brand codes" });
+  }
+};

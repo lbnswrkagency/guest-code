@@ -11,7 +11,8 @@ const {
   getMainHostCustomCodes,
   saveCoHostPermissions,
   getCoHostPermissions,
-  getCoHostDefaultPermissions
+  getCoHostDefaultPermissions,
+  getCoHostBrandCodes
 } = require("../controllers/coHostController");
 
 // Search brands for co-hosting
@@ -43,5 +44,8 @@ router.get("/permissions/:eventId/:brandId", authenticate, getCoHostPermissions)
 
 // Get co-host brand's default role permissions (for inheritance)
 router.get("/default-permissions/:brandId", authenticate, getCoHostDefaultPermissions);
+
+// Get co-host brand's code templates (for name-based inheritance matching)
+router.get("/brand-codes/:brandId", authenticate, getCoHostBrandCodes);
 
 module.exports = router;

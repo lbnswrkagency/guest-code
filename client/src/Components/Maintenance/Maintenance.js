@@ -44,14 +44,24 @@ const Maintenance = ({ children }) => {
         transition={{ duration: 0.3 }}
       >
         <div className="maintenance-content">
-          <h1>UNDER MAINTENANCE</h1>
+          <h1>We'll be right back</h1>
+          <p style={{
+            color: 'rgba(255,255,255,0.7)',
+            marginBottom: '24px',
+            fontSize: '14px',
+            lineHeight: '1.6'
+          }}>
+            We're making some improvements to give you a better experience.
+            <br />
+            This won't take long.
+          </p>
           <div className="access-form">
             <form onSubmit={handleSubmit}>
               <input
                 type="password"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="Access code"
+                placeholder="Team access"
                 className={error ? "error" : ""}
                 autoFocus
               />

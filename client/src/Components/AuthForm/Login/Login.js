@@ -147,10 +147,14 @@ function Login() {
     setVerificationEmail("");
   };
 
+  // Check if we're on localhost (development) - maintenance only for production
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1';
+
   const loginContent = (
     <div className="login">
       <Navigation />
-      
+
       {/* Email Verification Modal */}
       <EmailVerificationModal
         isOpen={showVerificationModal}
@@ -252,7 +256,11 @@ function Login() {
     </div>
   );
 
-  // return <Maintenance>{loginContent}</Maintenance>;
+  // Show maintenance only in production (not localhost)
+  if (!isLocalhost) {
+    return <Maintenance>{loginContent}</Maintenance>;
+  }
+
   return loginContent;
 }
 

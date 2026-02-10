@@ -1652,7 +1652,6 @@ exports.getEventProfile = async (req, res) => {
         isGlobalForBrand: cs.isGlobalForBrand || false,
         requireEmail: cs.requireEmail,
         requirePhone: cs.requirePhone,
-        codeTemplateId: cs.codeTemplateId?.toString(),
         createdBy: cs.createdBy?.toString(),
         price: cs.price,
         tableNumber: cs.tableNumber,

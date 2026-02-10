@@ -453,13 +453,20 @@ exports.login = async (req, res) => {
                 ],
               }).lean();
 
-              console.log(`[Login CoHost] Event: ${event._id}, Brand: ${eventBrandId}, Codes found: ${rawCodeSettings.length}`);
-              rawCodeSettings.forEach(cs => {
-                console.log(`  [Code] ${cs.name} | _id: ${cs._id} | brandId: ${cs.brandId} | eventId: ${cs.eventId}`);
-              });
+              // De-duplicate: event-level codes override brand-level codes by name
+              const codesByName = new Map();
+              for (const code of rawCodeSettings) {
+                const name = code.name;
+                const existingCode = codesByName.get(name);
+                // If no existing code, or this is event-level (overrides brand-level)
+                if (!existingCode || code.eventId) {
+                  codesByName.set(name, code);
+                }
+              }
+              const deduplicatedCodes = Array.from(codesByName.values());
 
               // Format code settings with explicit fields (same as coHostController.js)
-              const eventCodeSettings = rawCodeSettings.map(cs => ({
+              const eventCodeSettings = deduplicatedCodes.map(cs => ({
                 _id: cs._id.toString(),
                 name: cs.name,
                 type: cs.type || 'custom',
@@ -474,7 +481,6 @@ exports.login = async (req, res) => {
                 brandId: (cs.brandId || eventBrandId)?.toString(),
                 eventId: cs.eventId?.toString() || null,
                 isGlobalForBrand: cs.isGlobalForBrand || false,
-                codeTemplateId: cs.codeTemplateId?.toString(),
                 createdBy: cs.createdBy?.toString(),
                 requireEmail: cs.requireEmail,
                 requirePhone: cs.requirePhone,
@@ -574,9 +580,7 @@ exports.login = async (req, res) => {
                   // Use normalizePermissions to ensure consistent format
                   // This handles Map-to-object conversion and ensures all fields exist
                   // Pass eventCodeSettings for permission key remapping (name -> _id)
-                  console.log(`[Login CoHost] Stored perm keys:`, Object.keys(rolePermission.permissions?.codes || {}));
                   const normalizedPerms = normalizePermissions(rolePermission.permissions, eventCodeSettings);
-                  console.log(`[Login CoHost] Normalized perm keys:`, Object.keys(normalizedPerms.codes));
                   if (DEBUG_LOGIN) {
                     console.log(`[Login CoHost Perms] Normalized codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
                   }
@@ -628,6 +632,81 @@ exports.login = async (req, res) => {
       lineups: allLineUps,
       coHostedEvents: allCoHostedEvents,
     };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LOGIN SUMMARY - Grouped console logs for debugging
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (DEBUG_LOGIN) {
+      console.log('\n╔══════════════════════════════════════════════════════════════╗');
+      console.log('║                    LOGIN SUMMARY                              ║');
+      console.log('╚══════════════════════════════════════════════════════════════╝');
+      console.log(`👤 User: ${user.username} (${user.email})`);
+
+      // GROUP 1: Own Brands
+      console.log('\n📦 MY BRANDS:');
+      userBrands.forEach(brand => {
+        const roleId = userRoles[brand._id.toString()];
+        const role = allRoles.find(r => r._id.toString() === roleId);
+        const brandEvents = allEvents.filter(e => e.brand === brand._id.toString());
+
+        console.log(`\n  ┌─ ${brand.name}`);
+        console.log(`  │  Role: ${role?.name || 'None'} ${role?.isFounder ? '👑' : ''}`);
+        console.log(`  │  Events: ${brandEvents.length}`);
+
+        // Code settings for this brand (unique names)
+        const brandCodes = allCodeSettings.filter(cs =>
+          brandEvents.some(e => e._id.toString() === cs.eventId)
+        );
+        const uniqueCodes = [...new Set(brandCodes.map(c => c.name))];
+        console.log(`  │  Codes: ${uniqueCodes.join(', ') || 'None'}`);
+
+        // Permissions from role
+        if (role?.permissions?.codes) {
+          const codePerms = Object.entries(role.permissions.codes || {});
+          if (codePerms.length > 0) {
+            console.log(`  │  Code Permissions:`);
+            codePerms.forEach(([codeName, perm]) => {
+              if (perm) {
+                const status = perm.generate ? '✅' : '❌';
+                const limit = perm.unlimited ? '∞' : (perm.limit || 0);
+                console.log(`  │    ${status} ${codeName}: limit ${limit}`);
+              }
+            });
+          }
+        }
+        console.log(`  └─`);
+      });
+
+      // GROUP 2: Co-Hosted Events
+      if (allCoHostedEvents.length > 0) {
+        console.log('\n🤝 CO-HOSTED EVENTS:');
+        allCoHostedEvents.forEach(event => {
+          const coHostBrandName = event.coHostBrand?.name || 'Unknown';
+          const myRole = event.coHostBrandInfo?.userRole?.name || 'None';
+          const perms = event.coHostBrandInfo?.effectivePermissions;
+          const hostBrandName = event.brand?.name || 'Unknown Host';
+
+          console.log(`\n  ┌─ ${event.title} (Host: ${hostBrandName})`);
+          console.log(`  │  As: ${coHostBrandName} → Role: ${myRole}`);
+          console.log(`  │  Host Codes: ${event.codeSettings?.map(c => c.name).join(', ') || 'None'}`);
+
+          if (perms?.codes && Object.keys(perms.codes).length > 0) {
+            console.log(`  │  My Permissions:`);
+            Object.entries(perms.codes).forEach(([codeId, perm]) => {
+              const codeName = event.codeSettings?.find(c => (c._id?.toString?.() || c._id) === codeId)?.name || codeId;
+              const status = perm.generate ? '✅' : '❌';
+              const limit = perm.unlimited ? '∞' : (perm.limit || 0);
+              console.log(`  │    ${status} ${codeName}: limit ${limit}`);
+            });
+          } else {
+            console.log(`  │  My Permissions: None set`);
+          }
+          console.log(`  └─`);
+        });
+      }
+
+      console.log('\n════════════════════════════════════════════════════════════════\n');
+    }
 
     res.json({
       user: userData,

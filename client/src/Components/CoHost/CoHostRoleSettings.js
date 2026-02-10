@@ -381,11 +381,14 @@ const CoHostRoleSettings = ({
   const handleInheritFromCoHost = useCallback(async (roleIndex) => {
     setIsInheriting(true);
     try {
-      const response = await axiosInstance.get(
-        `/co-hosts/default-permissions/${coHostBrand._id}`
-      );
+      // Fetch co-host's default permissions AND their brand-level code templates
+      const [permsResponse, coHostCodesResponse] = await Promise.all([
+        axiosInstance.get(`/co-hosts/default-permissions/${coHostBrand._id}`),
+        axiosInstance.get(`/co-hosts/brand-codes/${coHostBrand._id}`),
+      ]);
 
-      const coHostPerms = response.data;
+      const coHostPerms = permsResponse.data;
+      const coHostBrandCodes = coHostCodesResponse.data?.codes || [];
       const targetRole = roles[roleIndex];
 
       // Find matching role
@@ -400,19 +403,41 @@ const CoHostRoleSettings = ({
       }
 
       if (matching) {
-        // Merge code permissions intelligently
-        // Note: Co-host default permissions may use code names or IDs
-        // We need to map them to code._id for consistency
-        const currentPerms = permissions[targetRole._id] || {};
-        const existingCodes = currentPerms.codes || {};
-        const coHostCodes = matching.permissions.codes || {};
+        const existingCodes = permissions[targetRole._id]?.codes || {};
+        const coHostCodePerms = matching.permissions?.codes || {};
+
+        // Build map: co-host code ID -> code name (lowercase)
+        const coHostCodeIdToName = {};
+        coHostBrandCodes.forEach((code) => {
+          if (code._id && code.name) {
+            coHostCodeIdToName[code._id] = code.name.toLowerCase().trim();
+          }
+        });
+
+        // Build map: host code name (lowercase) -> host code ID
+        const hostCodeNameToId = {};
+        customCodes.forEach((code) => {
+          if (code._id && code.name) {
+            hostCodeNameToId[code.name.toLowerCase().trim()] = code._id;
+          }
+        });
 
         const mergedCodes = { ...existingCodes };
-        Object.keys(coHostCodes).forEach((codeKey) => {
-          // Only match by _id — no name-based fallback
-          const matchingCode = customCodes.find((c) => c._id === codeKey);
-          if (matchingCode) {
-            mergedCodes[matchingCode._id] = coHostCodes[codeKey];
+
+        // Match co-host's code permissions to host's codes BY NAME
+        Object.keys(coHostCodePerms).forEach((coHostCodeId) => {
+          const coHostCodeName = coHostCodeIdToName[coHostCodeId];
+          if (coHostCodeName) {
+            // Find host's code with same name
+            const hostCodeId = hostCodeNameToId[coHostCodeName];
+            if (hostCodeId) {
+              // Apply co-host's permission values to host's code
+              mergedCodes[hostCodeId] = {
+                generate: coHostCodePerms[coHostCodeId]?.generate || false,
+                limit: coHostCodePerms[coHostCodeId]?.limit || 0,
+                unlimited: coHostCodePerms[coHostCodeId]?.unlimited || false,
+              };
+            }
           }
         });
 
@@ -427,6 +452,7 @@ const CoHostRoleSettings = ({
         toast.showSuccess(`Inherited from ${matching.roleName}`);
       }
     } catch (error) {
+      console.error("Failed to inherit permissions:", error);
       toast.showError("Failed to inherit permissions");
     } finally {
       setIsInheriting(false);
@@ -436,12 +462,31 @@ const CoHostRoleSettings = ({
   const handleInheritAll = useCallback(async () => {
     setIsInheriting(true);
     try {
-      const response = await axiosInstance.get(
-        `/co-hosts/default-permissions/${coHostBrand._id}`
-      );
+      // Fetch co-host's default permissions AND their brand-level code templates
+      const [permsResponse, coHostCodesResponse] = await Promise.all([
+        axiosInstance.get(`/co-hosts/default-permissions/${coHostBrand._id}`),
+        axiosInstance.get(`/co-hosts/brand-codes/${coHostBrand._id}`),
+      ]);
 
-      const coHostPerms = response.data;
+      const coHostPerms = permsResponse.data;
+      const coHostBrandCodes = coHostCodesResponse.data?.codes || [];
       const updatedPerms = { ...permissions };
+
+      // Build map: co-host code ID -> code name (lowercase)
+      const coHostCodeIdToName = {};
+      coHostBrandCodes.forEach((code) => {
+        if (code._id && code.name) {
+          coHostCodeIdToName[code._id] = code.name.toLowerCase().trim();
+        }
+      });
+
+      // Build map: host code name (lowercase) -> host code ID
+      const hostCodeNameToId = {};
+      customCodes.forEach((code) => {
+        if (code._id && code.name) {
+          hostCodeNameToId[code.name.toLowerCase().trim()] = code._id;
+        }
+      });
 
       roles.forEach((targetRole) => {
         let matching = coHostPerms.find(
@@ -456,14 +501,24 @@ const CoHostRoleSettings = ({
 
         if (matching) {
           const existingCodes = updatedPerms[targetRole._id]?.codes || {};
-          const coHostCodes = matching.permissions.codes || {};
+          const coHostCodePerms = matching.permissions?.codes || {};
 
           const mergedCodes = { ...existingCodes };
-          Object.keys(coHostCodes).forEach((codeKey) => {
-            // Only match by _id — no name-based fallback
-            const matchingCode = customCodes.find((c) => c._id === codeKey);
-            if (matchingCode) {
-              mergedCodes[matchingCode._id] = coHostCodes[codeKey];
+
+          // Match co-host's code permissions to host's codes BY NAME
+          Object.keys(coHostCodePerms).forEach((coHostCodeId) => {
+            const coHostCodeName = coHostCodeIdToName[coHostCodeId];
+            if (coHostCodeName) {
+              // Find host's code with same name
+              const hostCodeId = hostCodeNameToId[coHostCodeName];
+              if (hostCodeId) {
+                // Apply co-host's permission values to host's code
+                mergedCodes[hostCodeId] = {
+                  generate: coHostCodePerms[coHostCodeId]?.generate || false,
+                  limit: coHostCodePerms[coHostCodeId]?.limit || 0,
+                  unlimited: coHostCodePerms[coHostCodeId]?.unlimited || false,
+                };
+              }
             }
           });
 
@@ -477,6 +532,7 @@ const CoHostRoleSettings = ({
       setPermissions(updatedPerms);
       toast.showSuccess(`Inherited all permissions from ${coHostBrand.name}`);
     } catch (error) {
+      console.error("Failed to inherit permissions:", error);
       toast.showError("Failed to inherit permissions");
     } finally {
       setIsInheriting(false);

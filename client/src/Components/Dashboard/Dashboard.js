@@ -72,18 +72,93 @@ const Dashboard = () => {
     setIsNavigationOpen(isOpen);
   };
 
+  // Login check effect - minimal dependencies
   useEffect(() => {
-    // Check if user is logged in
     if (!user) {
       navigate("/login");
-      return;
     }
+  }, [user, navigate]);
 
-    // Mark data as loaded
-    if (!hasLoggedStore.current) {
+  // Logging effect - runs once when data loads (primitive dependencies only)
+  useEffect(() => {
+    if (!hasLoggedStore.current && brands.length > 0 && user) {
       hasLoggedStore.current = true;
+
+      // ═══════════════════════════════════════════════════════════════════════════
+      // DASHBOARD DATA LOADED - Grouped console logs for debugging
+      // ═══════════════════════════════════════════════════════════════════════════
+      console.log('\n╔══════════════════════════════════════════════════════════════╗');
+      console.log('║                 DASHBOARD DATA LOADED                        ║');
+      console.log('╚══════════════════════════════════════════════════════════════╝');
+      console.log(`👤 User: ${user.username}`);
+
+      // GROUP 1: Own Brands
+      console.log('\n📦 MY BRANDS:');
+      brands.forEach(brand => {
+        const roleId = userRoles[brand._id];
+        const role = roles.find(r => r._id === roleId);
+        const brandEvents = events.filter(e => e.brand?.toString() === brand._id?.toString());
+
+        console.log(`\n  ┌─ ${brand.name}`);
+        console.log(`  │  Role: ${role?.name || 'None'} ${role?.isFounder ? '👑' : ''}`);
+        console.log(`  │  Events: ${brandEvents.length}`);
+
+        // Code settings for this brand (unique names)
+        const brandCodes = codeSettings.filter(cs =>
+          brandEvents.some(e => e._id?.toString() === cs.eventId?.toString())
+        );
+        const uniqueCodes = [...new Set(brandCodes.map(c => c.name))];
+        console.log(`  │  Codes: ${uniqueCodes.join(', ') || 'None'}`);
+
+        // Permissions from role
+        if (role?.permissions?.codes) {
+          const codePerms = Object.entries(role.permissions.codes || {});
+          if (codePerms.length > 0) {
+            console.log(`  │  Code Permissions:`);
+            codePerms.forEach(([codeName, perm]) => {
+              if (perm) {
+                const status = perm.generate ? '✅' : '❌';
+                const limit = perm.unlimited ? '∞' : (perm.limit || 0);
+                console.log(`  │    ${status} ${codeName}: limit ${limit}`);
+              }
+            });
+          }
+        }
+        console.log(`  └─`);
+      });
+
+      // GROUP 2: Co-Hosted Events
+      if (coHostedEvents?.length > 0) {
+        console.log('\n🤝 CO-HOSTED EVENTS:');
+        coHostedEvents.forEach(event => {
+          const coHostBrandName = event.coHostBrand?.name || 'Unknown';
+          const myRole = event.coHostBrandInfo?.userRole?.name || 'None';
+          const perms = event.coHostBrandInfo?.effectivePermissions;
+          const hostBrandName = event.brand?.name || 'Unknown Host';
+
+          console.log(`\n  ┌─ ${event.title} (Host: ${hostBrandName})`);
+          console.log(`  │  As: ${coHostBrandName} → Role: ${myRole}`);
+          console.log(`  │  Host Codes: ${event.codeSettings?.map(c => c.name).join(', ') || 'None'}`);
+
+          if (perms?.codes && Object.keys(perms.codes).length > 0) {
+            console.log(`  │  My Permissions:`);
+            Object.entries(perms.codes).forEach(([codeId, perm]) => {
+              const codeName = event.codeSettings?.find(c => (c._id?.toString?.() || c._id) === codeId)?.name || codeId;
+              const status = perm.generate ? '✅' : '❌';
+              const limit = perm.unlimited ? '∞' : (perm.limit || 0);
+              console.log(`  │    ${status} ${codeName}: limit ${limit}`);
+            });
+          } else {
+            console.log(`  │  My Permissions: None set`);
+          }
+          console.log(`  └─`);
+        });
+      }
+
+      console.log('\n════════════════════════════════════════════════════════════════\n');
     }
-  }, [user, brands, events, roles, codeSettings, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brands.length, user?.username]); // Only primitive values - won't re-trigger on every Redux state change
 
   // Listen for alpha access granted event
   useEffect(() => {
@@ -512,13 +587,6 @@ const Dashboard = () => {
     if (!selectedBrand || !selectedEvent) {
       return null;
     }
-
-    console.log(`[Dashboard] getUserRolePermissions`);
-    console.log(`  selectedBrand:`, selectedBrand?.name, selectedBrand?._id);
-    console.log(`  selectedEvent:`, selectedEvent?.title, selectedEvent?._id);
-    console.log(`  hasCoHostBrandInfo:`, !!selectedEvent?.coHostBrandInfo);
-    console.log(`  effectivePermissions:`, selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes);
-    console.log(`  event.codeSettings count:`, selectedEvent?.codeSettings?.length);
 
     // Check if this is a co-hosted event with coHostBrandInfo
     if (

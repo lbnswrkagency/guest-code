@@ -20,10 +20,11 @@ const CodeSettingsSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    // User who created this code
+    // User who created this code (always required - codes belong to users)
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     name: {
       type: String,
@@ -92,11 +93,6 @@ const CodeSettingsSchema = new Schema(
     tableNumber: {
       type: String,
     }, // For table codes
-    // Link to CodeTemplate (for codes created from the new template system)
-    codeTemplateId: {
-      type: Schema.Types.ObjectId,
-      ref: "CodeTemplate",
-    },
   },
   {
     timestamps: true,

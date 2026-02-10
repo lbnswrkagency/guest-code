@@ -93,10 +93,8 @@ function remapPermissionKeys(storedCodes, currentCodeSettings) {
       const code = codeByName.get(key);
       const codeId = code._id?.toString() || code._id;
       remappedCodes[codeId] = permission;
-      console.log(`[remapPermissionKeys] Converted name→_id: "${key}" → "${codeId}"`);
-    } else {
-      console.log(`[remapPermissionKeys] Dropping unmatched key: "${key}"`);
     }
+    // Unmatched keys are silently dropped (no longer in current code settings)
   });
 
   return remappedCodes;
