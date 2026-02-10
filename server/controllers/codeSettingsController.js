@@ -47,9 +47,10 @@ const getCodeSettingsByBrand = async (req, res) => {
     // Remove duplicate event IDs
     const uniqueEventIds = [...new Set(eventIds)];
 
-    // Find all code settings for these events
+    // Find all code settings for these events (only NEW codes with createdBy)
     const codeSettings = await CodeSettings.find({
       eventId: { $in: uniqueEventIds },
+      createdBy: { $type: "objectId" },  // Only NEW codes
     });
 
     // Add the unlimited field to each code setting before sending
@@ -114,8 +115,11 @@ const getCodeSettings = async (req, res) => {
       }
     }
 
-    // Get all code settings for this event (or its parent)
-    const allCodeSettings = await CodeSettings.find({ eventId: parentEventId });
+    // Get all code settings for this event (or its parent) - only NEW codes
+    const allCodeSettings = await CodeSettings.find({
+      eventId: parentEventId,
+      createdBy: { $type: "objectId" },  // Only NEW codes
+    });
 
     // Check for any potential duplicate types before returning
     const uniqueCodeSettings = [];
@@ -238,6 +242,7 @@ const configureCodeSettings = async (req, res) => {
           codeSetting = await CodeSettings.findOne({
             eventId: parentEventId,
             type,
+            createdBy: { $type: "objectId" },  // Only NEW codes
           });
         } else {
           return res.status(400).json({
@@ -251,6 +256,7 @@ const configureCodeSettings = async (req, res) => {
           codeSetting = await CodeSettings.findOne({
             eventId: parentEventId,
             type,
+            createdBy: { $type: "objectId" },  // Only NEW codes
           });
         }
       }
@@ -426,8 +432,11 @@ const configureCodeSettings = async (req, res) => {
       }
     }
 
-    // Get all code settings for this event to return
-    const allCodeSettings = await CodeSettings.find({ eventId: parentEventId });
+    // Get all code settings for this event to return (only NEW codes)
+    const allCodeSettings = await CodeSettings.find({
+      eventId: parentEventId,
+      createdBy: { $type: "objectId" },  // Only NEW codes
+    });
 
     // Check for any potential duplicate types before returning
     const uniqueCodeSettings = [];
@@ -546,8 +555,11 @@ const deleteCodeSetting = async (req, res) => {
     // Delete the code setting
     await CodeSettings.findByIdAndDelete(codeSettingId);
 
-    // Get all remaining code settings
-    const codeSettings = await CodeSettings.find({ eventId: parentEventId });
+    // Get all remaining code settings (only NEW codes)
+    const codeSettings = await CodeSettings.find({
+      eventId: parentEventId,
+      createdBy: { $type: "objectId" },  // Only NEW codes
+    });
 
     return res.status(200).json({
       message: "Code setting deleted successfully",
@@ -639,10 +651,11 @@ const getBrandCodes = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Get all brand-level codes (eventId is null)
+    // Get all brand-level codes (eventId is null) - only NEW codes
     const brandCodes = await CodeSettings.find({
       brandId: brandId,
       eventId: null,
+      createdBy: { $type: "objectId" },  // Only NEW codes
     }).sort({ sortOrder: 1, createdAt: 1 });
 
     // Format response
@@ -937,9 +950,10 @@ const getCodesForEvent = async (req, res) => {
     // Get parent event ID if this is a child event
     const parentEventId = await getParentEventId(eventId);
 
-    // Query for both brand-level and event-level codes
+    // Query for both brand-level and event-level codes (only NEW codes)
     const allCodes = await CodeSettings.find({
       brandId: brandId,
+      createdBy: { $type: "objectId" },  // Only NEW codes
       $or: [
         { eventId: null, isGlobalForBrand: true }, // Brand-level global codes
         { eventId: parentEventId }, // Event-specific codes

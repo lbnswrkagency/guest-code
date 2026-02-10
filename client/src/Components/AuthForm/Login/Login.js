@@ -258,7 +258,7 @@ function Login() {
 
   // Show maintenance only in production (not localhost)
   if (!isLocalhost) {
-    return <Maintenance>{loginContent}</Maintenance>;
+    return <Maintenance />;
   }
 
   return loginContent;

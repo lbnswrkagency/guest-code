@@ -12,7 +12,7 @@ import {
   selectCodeSettingsByEventId,
 } from "../../redux/codeSettingsSlice";
 import { selectAllLineups } from "../../redux/lineupSlice";
-import { selectAllCoHostedEvents } from "../../redux/coHostedEventsSlice";
+import { selectAllCoHostedEvents, selectAllRelationships } from "../../redux/coHostedEventsSlice";
 import { store } from "../../redux/store";
 import { logout } from "../AuthForm/Login/LoginFunction";
 import Navigation from "../Navigation/Navigation";
@@ -41,6 +41,7 @@ const Dashboard = () => {
   const codeSettings = useSelector(selectAllCodeSettings);
   const lineups = useSelector(selectAllLineups);
   const coHostedEvents = useSelector(selectAllCoHostedEvents);
+  const coHostRelationships = useSelector(selectAllRelationships);
   const userRoles = useSelector((state) => state.roles?.userRoles || {});
 
   // State for selected brand and date
@@ -127,23 +128,25 @@ const Dashboard = () => {
         console.log(`  └─`);
       });
 
-      // GROUP 2: Co-Hosted Events
-      if (coHostedEvents?.length > 0) {
-        console.log('\n🤝 CO-HOSTED EVENTS:');
-        coHostedEvents.forEach(event => {
-          const coHostBrandName = event.coHostBrand?.name || 'Unknown';
-          const myRole = event.coHostBrandInfo?.userRole?.name || 'None';
-          const perms = event.coHostBrandInfo?.effectivePermissions;
-          const hostBrandName = event.brand?.name || 'Unknown Host';
+      // GROUP 2: Co-Host Relationships (one entry per host brand with global permissions)
+      if (coHostRelationships?.length > 0) {
+        console.log('\n🤝 CO-HOST RELATIONSHIPS (Global Permissions):');
 
-          console.log(`\n  ┌─ ${event.title} (Host: ${hostBrandName})`);
+        coHostRelationships.forEach((rel) => {
+          const hostBrandName = rel.hostBrand?.name || 'Unknown Host';
+          const coHostBrandName = rel.coHostBrand?.name || 'Unknown';
+          const myRole = rel.userRole?.name || 'None';
+          const perms = rel.permissions;
+          const eventCount = rel.events?.length || 0;
+
+          console.log(`\n  ┌─ ${hostBrandName} (${eventCount} event${eventCount > 1 ? 's' : ''})`);
           console.log(`  │  As: ${coHostBrandName} → Role: ${myRole}`);
-          console.log(`  │  Host Codes: ${event.codeSettings?.map(c => c.name).join(', ') || 'None'}`);
+          console.log(`  │  Host Codes: ${rel.codeSettings?.map(c => c.name).join(', ') || 'None'}`);
 
           if (perms?.codes && Object.keys(perms.codes).length > 0) {
-            console.log(`  │  My Permissions:`);
+            console.log(`  │  My Permissions (Global):`);
             Object.entries(perms.codes).forEach(([codeId, perm]) => {
-              const codeName = event.codeSettings?.find(c => (c._id?.toString?.() || c._id) === codeId)?.name || codeId;
+              const codeName = rel.codeSettings?.find(c => (c._id?.toString?.() || c._id) === codeId)?.name || codeId;
               const status = perm.generate ? '✅' : '❌';
               const limit = perm.unlimited ? '∞' : (perm.limit || 0);
               console.log(`  │    ${status} ${codeName}: limit ${limit}`);

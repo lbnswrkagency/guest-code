@@ -2,6 +2,7 @@ const Brand = require("../models/brandModel");
 const Event = require("../models/eventsModel");
 const Role = require("../models/roleModel");
 const CodeSettings = require("../models/codeSettingsModel");
+const CoHostRelationship = require("../models/coHostRelationshipModel");
 const mongoose = require("mongoose");
 const { normalizePermissions, ensurePlainObject } = require("../utils/permissionResolver");
 
@@ -44,7 +45,7 @@ exports.searchBrands = async (req, res) => {
   }
 };
 
-// Get all co-hosted events for a brand
+// Get all co-hosted events for a brand - returns grouped by host brand
 exports.getCoHostedEvents = async (req, res) => {
   try {
     const { brandId } = req.params;
@@ -62,22 +63,20 @@ exports.getCoHostedEvents = async (req, res) => {
 
     // Find user's role in this brand
     let userRoleInCoHostBrand = null;
-    
+
     // Check if user is the owner
     if (coHostBrand.owner.toString() === userId.toString()) {
-      // Find the founder role for this brand
-      const Role = require("../models/roleModel");
-      const founderRole = await Role.findOne({ 
-        brandId: brandId, 
-        isFounder: true 
+      const founderRole = await Role.findOne({
+        brandId: brandId,
+        isFounder: true
       });
       userRoleInCoHostBrand = founderRole;
     } else {
       // Check if user is in the team
-      const teamMember = coHostBrand.team.find(member => 
+      const teamMember = coHostBrand.team.find(member =>
         member.user.toString() === userId.toString()
       );
-      
+
       if (teamMember) {
         userRoleInCoHostBrand = teamMember.role;
       } else {
@@ -89,204 +88,123 @@ exports.getCoHostedEvents = async (req, res) => {
       return res.status(403).json({ message: "No role found for user in co-host brand" });
     }
 
-    // Find events where the brand is a co-host - include BOTH parent AND child events
-    // Child events can have their own co-hosts and coHostRolePermissions
+    // Find ALL events where the brand is a co-host
     const coHostedEvents = await Event.find({
       coHosts: brandId
-      // Removed parentEventId filter - child events can have their own co-host permissions
     })
-      .populate("brand", "name username logo colors") // Include brand colors for UI
+      .populate("brand", "name username logo colors")
       .populate("coHosts", "name username logo")
       .populate("user", "username firstName lastName avatar")
-      .populate("lineups") // Full lineup population like regular events
-      .populate("genres") // Full genre population like regular events
-      .sort({ date: -1 }); // Use same sort field as regular events
+      .populate("lineups")
+      .populate("genres")
+      .sort({ date: -1 });
 
-    // For each co-hosted event, fetch and attach code settings AND ensure complete data structure
-    const eventsWithFullData = await Promise.all(
-      coHostedEvents.map(async (event) => {
-        try {
-          const eventBrandId = event.brand._id || event.brand;
-          const effectiveEventId = event.parentEventId || event._id;
+    // Group events by host brand - get global permissions ONCE per relationship
+    const eventsByHostBrand = new Map();
 
-          // Inline migration: backfill brandId on legacy event-level codes
-          await CodeSettings.updateMany(
-            { eventId: effectiveEventId, brandId: null },
-            { $set: { brandId: eventBrandId } }
-          );
+    for (const event of coHostedEvents) {
+      const eventObj = event.toObject();
+      const hostBrandId = (eventObj.brand._id || eventObj.brand).toString();
 
-          // Get code settings for this event - BOTH brand-level AND event-level
-          // This mirrors the logic in getMainHostCustomCodes and getCodesForEvent
-          // Also includes legacy codes with brandId: null as a safety net
-          const rawCodeSettings = await CodeSettings.find({
-            isEnabled: true,
-            $or: [
-              { brandId: eventBrandId, eventId: null, isGlobalForBrand: true },
-              { brandId: eventBrandId, eventId: effectiveEventId },
-              { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
-            ],
-          });
+      if (!eventsByHostBrand.has(hostBrandId)) {
+        // First event for this host brand - fetch global permissions from CoHostRelationship
+        const relationship = await CoHostRelationship.findOne({
+          hostBrand: hostBrandId,
+          coHostBrand: brandId,
+          isActive: true
+        });
 
-          console.log(`[CoHost Debug] Event: ${event._id} "${event.title}"`);
-          console.log(`[CoHost Debug] Query: brandId=${eventBrandId}, effectiveEventId=${effectiveEventId}`);
-          console.log(`[CoHost Debug] Codes found: ${rawCodeSettings.length}`);
-          rawCodeSettings.forEach(cs => {
-            console.log(`  [Code] ${cs.name} | _id: ${cs._id} | brandId: ${cs.brandId} | eventId: ${cs.eventId} | isGlobal: ${cs.isGlobalForBrand}`);
-          });
-
-          // Convert to plain objects with explicit fields to ensure frontend compatibility
-          // The frontend filter requires: isEnabled === true && brandId
-          const eventCodeSettings = rawCodeSettings.map(cs => ({
-            _id: cs._id.toString(),
-            name: cs.name,
-            type: cs.type || 'custom',
-            condition: cs.condition || '',
-            note: cs.note || '',
-            maxPax: cs.maxPax || 1,
-            limit: cs.limit || 0,
-            isEnabled: cs.isEnabled, // Already filtered for true, but include explicitly
-            isEditable: cs.isEditable,
-            color: cs.color || '#2196F3',
-            icon: cs.icon || 'RiCodeLine',
-            // CRITICAL: Use existing brandId OR fallback to event's brand for legacy codes
-            brandId: (cs.brandId || eventBrandId)?.toString(),
-            eventId: cs.eventId?.toString() || null,
-            isGlobalForBrand: cs.isGlobalForBrand || false,
-            createdBy: cs.createdBy?.toString(),
-            requireEmail: cs.requireEmail,
-            requirePhone: cs.requirePhone,
-            price: cs.price,
-            tableNumber: cs.tableNumber,
-            // Add flag to indicate if this is inherited from brand level
-            isInherited: cs.eventId === null,
-          }));
-
-          // Convert event to plain object to ensure consistent structure
-          const eventObj = event.toObject();
-          
-          // Attach code settings (regular events get this from Redux store)
-          eventObj.codeSettings = eventCodeSettings;
-
-          // Ensure flyer object exists (even if empty) for consistent structure
-          if (!eventObj.flyer) {
-            eventObj.flyer = {};
-          }
-
-          // Ensure arrays exist for consistent structure
-          if (!eventObj.lineups) eventObj.lineups = [];
-          if (!eventObj.genres) eventObj.genres = [];
-          if (!eventObj.coHosts) eventObj.coHosts = [];
-
-          // Ensure string fields exist
-          if (!eventObj.title) eventObj.title = '';
-          if (!eventObj.description) eventObj.description = '';
-          if (!eventObj.location) eventObj.location = '';
-
-          // Attach co-host information
-          eventObj.coHostBrandInfo = {
-            brandId: brandId,
-            brandName: coHostBrand.name,
-            userRole: {
-              _id: userRoleInCoHostBrand._id,
-              name: userRoleInCoHostBrand.name,
-              isFounder: userRoleInCoHostBrand.isFounder,
-              permissions: userRoleInCoHostBrand.permissions
-            }
-          };
-
-          // Find co-host permissions for this specific event and brand/role combination
-          // Child events can have their own coHostRolePermissions (per-child overrides).
-          // If a child has none, inherit from parent event.
-          let coHostPermissions = eventObj.coHostRolePermissions || [];
-
-          if (coHostPermissions.length === 0 && eventObj.parentEventId) {
-            const parentEvent = await Event.findById(eventObj.parentEventId)
-              .select('coHostRolePermissions')
-              .lean();
-            coHostPermissions = parentEvent?.coHostRolePermissions || [];
-          }
-
-          // More robust brandId comparison - handle both string and ObjectId
-          const userBrandIdStr = brandId.toString();
-          const brandPermissions = coHostPermissions.find(cp => {
-            const cpBrandIdStr = cp.brandId?.toString?.() || String(cp.brandId);
-            return cpBrandIdStr === userBrandIdStr;
-          });
-
-          // Debug logging for permission resolution
-          console.log(`\n========== CoHost Permission Resolution ==========`);
-          console.log(`Event ID: ${event._id}`);
-          console.log(`Event Title: ${event.title}`);
-          console.log(`Is Child Event: ${!!eventObj.parentEventId}`);
-          console.log(`Co-Host Brand ID: ${brandId}`);
-          console.log(`User Role ID: ${userRoleInCoHostBrand._id}`);
-          console.log(`User Role Name: ${userRoleInCoHostBrand.name}`);
-          console.log(`Is Founder: ${userRoleInCoHostBrand.isFounder}`);
-          console.log(`\nCoHostPermissions count: ${coHostPermissions.length}`);
-          console.log(`Available brands in coHostPermissions:`,
-            coHostPermissions.map(cp => ({
-              brandId: cp.brandId?.toString?.() || String(cp.brandId),
-              roleCount: cp.rolePermissions?.length || 0
-            }))
-          );
-          console.log(`Found brandPermissions for this co-host: ${!!brandPermissions}`);
-
-          if (brandPermissions) {
-            console.log(`\nRole permissions in this brand's coHostPermissions:`);
-            brandPermissions.rolePermissions?.forEach((rp, i) => {
-              const codesObj = rp.permissions?.codes || {};
-              console.log(`  [${i}] RoleId: ${rp.roleId?.toString?.() || String(rp.roleId)}`);
-              console.log(`       Code permissions:`, JSON.stringify(codesObj, null, 2).split('\n').join('\n       '));
-            });
-
-            // More robust roleId comparison - handle both string and ObjectId
-            const userRoleIdStr = userRoleInCoHostBrand._id.toString();
-            console.log(`\nLooking for roleId: ${userRoleIdStr}`);
-
-            const rolePermission = brandPermissions.rolePermissions?.find(rp => {
+        // Find permissions for user's role
+        let effectivePermissions = null;
+        if (relationship) {
+          const userRoleIdStr = userRoleInCoHostBrand._id.toString();
+          const rolePermission = relationship.rolePermissions?.find(
+            (rp) => {
               const rpRoleIdStr = rp.roleId?.toString?.() || String(rp.roleId);
-              const matches = rpRoleIdStr === userRoleIdStr;
-              console.log(`  Comparing: ${rpRoleIdStr} === ${userRoleIdStr} ? ${matches}`);
-              return matches;
-            });
-
-            console.log(`Found matching rolePermission: ${!!rolePermission}`);
-
-            if (rolePermission?.permissions) {
-              // Use normalizePermissions to ensure consistent format
-              // This handles Map-to-object conversion and ensures all fields exist
-              // Pass eventCodeSettings for permission key remapping (name -> _id)
-              console.log(`\nRaw permissions before normalization:`, JSON.stringify(rolePermission.permissions, null, 2));
-              console.log(`[CoHost Debug] Stored permission keys:`, Object.keys(rolePermission.permissions?.codes || {}));
-              const normalizedPerms = normalizePermissions(rolePermission.permissions, eventCodeSettings);
-              console.log(`[CoHost Debug] After normalization — effectivePermissions.codes keys:`, Object.keys(normalizedPerms.codes));
-              console.log(`\nNormalized effectivePermissions.codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
-              console.log(`========== End Permission Resolution ==========\n`);
-              eventObj.coHostBrandInfo.effectivePermissions = normalizedPerms;
-            } else {
-              console.log(`\n⚠️  No permissions found for this role!`);
-              console.log(`    This means main host hasn't set permissions for the founder role.`);
-              console.log(`========== End Permission Resolution ==========\n`);
-              eventObj.coHostBrandInfo.effectivePermissions = null;
+              return rpRoleIdStr === userRoleIdStr;
             }
-          } else {
-            console.log(`\n⚠️  No brandPermissions found for this co-host!`);
-            console.log(`    This means the main host hasn't configured any permissions for this brand.`);
-            console.log(`========== End Permission Resolution ==========\n`);
-            eventObj.coHostBrandInfo.effectivePermissions = null;
-          }
-          
-          return eventObj;
-        } catch (error) {
-          // Return basic event structure if processing fails
-          const eventObj = event.toObject();
-          eventObj.codeSettings = [];
-          return eventObj;
-        }
-      })
-    );
+          );
 
-    res.status(200).json(eventsWithFullData);
+          if (rolePermission?.permissions) {
+            effectivePermissions = rolePermission.permissions;
+          }
+        }
+
+        // Get host brand's code settings (brand-level codes)
+        const hostBrandCodes = await CodeSettings.find({
+          isEnabled: true,
+          createdBy: { $type: "objectId" },
+          brandId: hostBrandId,
+          eventId: null,
+          isGlobalForBrand: true,
+        }).lean();
+
+        const codeSettings = hostBrandCodes.map(cs => ({
+          _id: cs._id.toString(),
+          name: cs.name,
+          type: cs.type || 'custom',
+          condition: cs.condition || '',
+          note: cs.note || '',
+          maxPax: cs.maxPax || 1,
+          limit: cs.limit || 0,
+          isEnabled: cs.isEnabled,
+          color: cs.color || '#2196F3',
+          icon: cs.icon || 'RiCodeLine',
+          brandId: hostBrandId,
+        }));
+
+        // Normalize permissions with code settings for key remapping
+        const normalizedPerms = effectivePermissions
+          ? normalizePermissions(effectivePermissions, codeSettings)
+          : null;
+
+        eventsByHostBrand.set(hostBrandId, {
+          hostBrand: {
+            _id: hostBrandId,
+            name: eventObj.brand.name,
+            username: eventObj.brand.username,
+            logo: eventObj.brand.logo,
+            colors: eventObj.brand.colors,
+          },
+          coHostBrand: {
+            _id: brandId.toString(),
+            name: coHostBrand.name,
+          },
+          userRole: {
+            _id: userRoleInCoHostBrand._id,
+            name: userRoleInCoHostBrand.name,
+            isFounder: userRoleInCoHostBrand.isFounder,
+            permissions: userRoleInCoHostBrand.permissions,
+          },
+          permissions: normalizedPerms,
+          codeSettings: codeSettings,
+          events: [],
+        });
+      }
+
+      // Add event to this host brand's list
+      const relationship = eventsByHostBrand.get(hostBrandId);
+
+      // Ensure required fields exist on event
+      eventObj.flyer = eventObj.flyer || {};
+      eventObj.lineups = eventObj.lineups || [];
+      eventObj.genres = eventObj.genres || [];
+      eventObj.coHosts = eventObj.coHosts || [];
+      eventObj.title = eventObj.title || "";
+      eventObj.description = eventObj.description || "";
+      eventObj.location = eventObj.location || "";
+
+      // Add minimal co-host reference
+      eventObj.coHostBrand = relationship.coHostBrand;
+      eventObj.hostBrandId = hostBrandId;
+
+      relationship.events.push(eventObj);
+    }
+
+    // Convert Map to array
+    const relationships = Array.from(eventsByHostBrand.values());
+
+    res.status(200).json(relationships);
   } catch (error) {
     res.status(500).json({ message: "Error fetching co-hosted events" });
   }
@@ -473,13 +391,14 @@ exports.getMainHostCustomCodes = async (req, res) => {
     );
 
     // Query for both brand-level and event-level codes
-    // Also includes legacy codes with brandId: null as a safety net
+    // Only NEW codes (have createdBy set) - legacy codes are filtered out
     const allCodes = await CodeSettings.find({
       isEnabled: true,
+      createdBy: { $type: "objectId" },  // Only NEW codes
+      brandId: brandId,
       $or: [
-        { brandId: brandId, eventId: null, isGlobalForBrand: true },
-        { brandId: brandId, eventId: effectiveEventId },
-        { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
+        { eventId: null, isGlobalForBrand: true },
+        { eventId: effectiveEventId },
       ],
     }).select("name type color limit maxPax condition icon brandId eventId isGlobalForBrand");
 
@@ -516,91 +435,78 @@ exports.getMainHostCustomCodes = async (req, res) => {
   }
 };
 
-// Save co-host role permissions for an event
+// Save co-host role permissions GLOBALLY to CoHostRelationship model
+// These permissions apply to ALL events where this co-host is added
 exports.saveCoHostPermissions = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { brandId, permissions } = req.body;
+    const { brandId: coHostBrandId, permissions } = req.body;
 
-    // Validate event exists and user has permission
+    // Validate event exists and get the host brand
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check if user has permission to edit this event
-    const brand = await Brand.findOne({
-      _id: event.brand,
+    const hostBrandId = event.brand;
+
+    // Check if user has permission to edit this host brand
+    const hostBrand = await Brand.findOne({
+      _id: hostBrandId,
       $or: [
         { owner: req.user.userId },
         { "team.user": req.user.userId }
       ]
     });
 
-    if (!brand) {
-      return res.status(403).json({ 
-        message: "You don't have permission to edit this event" 
+    if (!hostBrand) {
+      return res.status(403).json({
+        message: "You don't have permission to edit this brand's co-host settings"
       });
     }
 
-    // Check if brand is actually a co-host
-    if (!event.coHosts.includes(brandId)) {
-      return res.status(400).json({ 
-        message: "Brand is not a co-host of this event" 
+    // Check if brand is actually a co-host of this event
+    if (!event.coHosts.includes(coHostBrandId)) {
+      return res.status(400).json({
+        message: "Brand is not a co-host of this event"
       });
     }
-
-    // Update or create co-host role permissions
-    let coHostPermissions = event.coHostRolePermissions || [];
-    
-    // Find existing permissions for this brand
-    const existingIndex = coHostPermissions.findIndex(
-      cp => cp.brandId.toString() === brandId
-    );
 
     // Convert permissions object to the format we need
     const rolePermissions = [];
     Object.keys(permissions).forEach(roleId => {
-      console.log(`[saveCoHostPermissions] Processing roleId: ${roleId}, type: ${typeof roleId}`);
-      console.log(`[saveCoHostPermissions] Codes for this role:`,
-        permissions[roleId]?.codes ? JSON.stringify(permissions[roleId].codes, null, 2) : 'none'
-      );
       rolePermissions.push({
-        roleId: roleId,
+        roleId: new mongoose.Types.ObjectId(roleId),
         permissions: permissions[roleId]
       });
     });
 
-    const newPermissionData = {
-      brandId: brandId,
-      rolePermissions: rolePermissions
-    };
-
-    console.log(`[saveCoHostPermissions] Saving permissions for brand ${brandId}:`,
-      JSON.stringify(newPermissionData, null, 2)
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing permissions
-      coHostPermissions[existingIndex] = newPermissionData;
-    } else {
-      // Add new permissions
-      coHostPermissions.push(newPermissionData);
-    }
-
-    // Save to event
-    event.coHostRolePermissions = coHostPermissions;
-    await event.save();
-
-    console.log(`[saveCoHostPermissions] Saved successfully. Verifying...`);
-    const verifyEvent = await Event.findById(eventId);
-    console.log(`[saveCoHostPermissions] Verification - stored permissions:`,
-      JSON.stringify(verifyEvent.coHostRolePermissions, null, 2)
+    // Update or create CoHostRelationship
+    const updatedRelationship = await CoHostRelationship.findOneAndUpdate(
+      {
+        hostBrand: hostBrandId,
+        coHostBrand: coHostBrandId
+      },
+      {
+        hostBrand: hostBrandId,
+        coHostBrand: coHostBrandId,
+        rolePermissions: rolePermissions,
+        isActive: true
+      },
+      {
+        upsert: true, // Create if doesn't exist
+        new: true,    // Return updated document
+        runValidators: true
+      }
     );
 
     res.status(200).json({
-      message: "Co-host permissions saved successfully",
-      permissions: newPermissionData
+      message: "Co-host permissions saved successfully (global)",
+      permissions: {
+        hostBrand: hostBrandId,
+        coHostBrand: coHostBrandId,
+        rolePermissions: rolePermissions
+      }
     });
   } catch (error) {
     console.error("Error saving co-host permissions:", error);
@@ -608,35 +514,39 @@ exports.saveCoHostPermissions = async (req, res) => {
   }
 };
 
-// Get existing co-host permissions for an event
+// Get GLOBAL co-host permissions from CoHostRelationship model
 exports.getCoHostPermissions = async (req, res) => {
   try {
-    const { eventId, brandId } = req.params;
+    const { eventId, brandId: coHostBrandId } = req.params;
 
+    // Get event to find the host brand
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Find permissions for this brand
-    const coHostPermissions = event.coHostRolePermissions || [];
-    const brandPermissions = coHostPermissions.find(
-      cp => cp.brandId.toString() === brandId
-    );
+    const hostBrandId = event.brand._id || event.brand;
 
-    if (!brandPermissions) {
+    // Find the CoHostRelationship
+    const relationship = await CoHostRelationship.findOne({
+      hostBrand: hostBrandId,
+      coHostBrand: coHostBrandId,
+      isActive: true
+    });
+
+    if (!relationship) {
       return res.status(404).json({ message: "No permissions found for this co-host" });
     }
 
-    // Fetch code settings for key remapping (same logic as getCoHostedEvents)
-    const eventBrandId = event.brand._id || event.brand;
+    // Fetch code settings for key remapping (only NEW codes)
     const effectiveEventId = event.parentEventId || event._id;
     const rawCodeSettings = await CodeSettings.find({
       isEnabled: true,
+      createdBy: { $type: "objectId" },  // Only NEW codes
+      brandId: hostBrandId,
       $or: [
-        { brandId: eventBrandId, eventId: null, isGlobalForBrand: true },
-        { brandId: eventBrandId, eventId: effectiveEventId },
-        { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
+        { eventId: null, isGlobalForBrand: true },
+        { eventId: effectiveEventId },
       ],
     });
 
@@ -647,10 +557,8 @@ exports.getCoHostPermissions = async (req, res) => {
     }));
 
     // Convert to the format the frontend expects
-    // Use normalizePermissions with codeSettings to remap permission keys (name -> _id)
     const formattedPermissions = {};
-    brandPermissions.rolePermissions.forEach(rp => {
-      // Use normalizePermissions to handle Map-to-object conversion and key remapping
+    relationship.rolePermissions.forEach(rp => {
       formattedPermissions[rp.roleId.toString()] = normalizePermissions(rp.permissions, codeSettings);
     });
 
@@ -703,12 +611,13 @@ exports.getCoHostBrandCodes = async (req, res) => {
       return res.status(400).json({ message: "Invalid brand ID" });
     }
 
-    // Fetch the brand's code templates (brand-level codes only)
+    // Fetch the brand's code templates (brand-level codes only, NEW codes)
     const codes = await CodeSettings.find({
       brandId: brandId,
       eventId: null, // Brand-level codes only
       isGlobalForBrand: true,
       isEnabled: true,
+      createdBy: { $type: "objectId" },  // Only NEW codes
     }).select("_id name type color icon");
 
     // Format response with minimal data needed for matching

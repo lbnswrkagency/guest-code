@@ -130,6 +130,7 @@ const BrandSchema = new Schema(
         bannedBy: { type: Schema.Types.ObjectId, ref: "User" },
       },
     ],
+    // NOTE: coHostPermissions moved to CoHostRelationship model
   },
   {
     timestamps: true,
