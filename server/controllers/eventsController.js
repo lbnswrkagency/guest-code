@@ -119,7 +119,10 @@ const generateWeeklyOccurrences = async (parentEvent, weekNumber) => {
             .map((c) => c._id || c)
             .filter((id) => id != null)
         : [], // Filter out any remaining null/undefined IDs
-      coHostRolePermissions: templateEvent.coHostRolePermissions || [],
+      // NOTE: Do NOT copy coHostRolePermissions from template!
+      // Child events inherit from parent at read time (authController/coHostController).
+      // Copying here creates stale snapshots that mask the parent's current permissions.
+      // If per-child overrides are needed, they should be saved directly to the child event.
       // NOTE: Code settings are in CodeSettings collection, not embedded in events
       link: link,
       slug: weeklySlug,
@@ -1606,15 +1609,32 @@ exports.getEventProfile = async (req, res) => {
 
       // Get code settings - resolve to parent event for child events
       // Child events should inherit CodeSettings from their parent
+      // Also include brand-level global codes (matching authController pattern)
       const eventForCodeSettings = event.parentEventId || event._id;
+      const eventBrandId = event.brand?._id || event.brand;
+
       const rawCodeSettings = await CodeSettings.find({
-        eventId: eventForCodeSettings,
+        $or: [
+          { eventId: eventForCodeSettings },
+          { brandId: eventBrandId, eventId: null, isGlobalForBrand: true }
+        ]
       });
+
+      // Dedup: event-level codes override brand-level codes with the same name
+      const deduped = [];
+      const seenNames = new Set();
+      // Process event-level first (they take priority)
+      rawCodeSettings
+        .filter(cs => cs.eventId != null)
+        .forEach(cs => { deduped.push(cs); seenNames.add(cs.name); });
+      // Then add brand-level codes that don't conflict
+      rawCodeSettings
+        .filter(cs => cs.eventId == null)
+        .forEach(cs => { if (!seenNames.has(cs.name)) { deduped.push(cs); seenNames.add(cs.name); } });
 
       // Format codeSettings with brandId to match frontend expectations
       // Uses same pattern as coHostController.js but with fallback for legacy codes
-      const eventBrandId = event.brand?._id || event.brand;
-      const codeSettings = rawCodeSettings.map(cs => ({
+      const codeSettings = deduped.map(cs => ({
         _id: cs._id.toString(),
         name: cs.name,
         type: cs.type || 'custom',

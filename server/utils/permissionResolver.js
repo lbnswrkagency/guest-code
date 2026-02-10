@@ -61,9 +61,9 @@ function ensurePlainObject(obj, deep = true) {
 /**
  * Remaps permission keys to match current code settings IDs
  *
- * IMPORTANT: Only matches by code _id, NOT by name.
- * This prevents old permissions from auto-applying to new codes that happen to have the same name.
- * Old permissions stored by name (legacy) will be treated as orphaned and ignored.
+ * Matches by code _id first. For keys that don't match any _id, attempts to
+ * convert from code name to _id (handles legacy data stored with name keys).
+ * Unmatched keys are dropped.
  *
  * @param {Object} storedCodes - The codes object from stored permissions (key -> permission)
  * @param {Array} currentCodeSettings - Current code settings for the event
@@ -75,30 +75,28 @@ function remapPermissionKeys(storedCodes, currentCodeSettings) {
   }
 
   const remappedCodes = {};
-
-  // Build lookup map from current code settings - ONLY by _id
   const codeById = new Map();
+  const codeByName = new Map();
 
   currentCodeSettings.forEach(code => {
     const codeId = code._id?.toString() || code._id;
-    if (codeId) {
-      codeById.set(codeId, code);
-    }
+    if (codeId) codeById.set(codeId, code);
+    if (code.name) codeByName.set(code.name, code);
   });
 
-  // Process each stored permission key
   Object.entries(storedCodes).forEach(([key, permission]) => {
-    // ONLY do ID-based lookup - no name matching
-    // This prevents old permissions (stored by name) from auto-applying to new codes
-    const matchedCode = codeById.get(key);
-
-    if (matchedCode) {
-      // Store permission under the code's _id for stable lookup
-      const targetId = matchedCode._id?.toString() || matchedCode._id;
-      remappedCodes[targetId] = permission;
+    if (codeById.has(key)) {
+      // Already an _id key — pass through
+      remappedCodes[key] = permission;
+    } else if (codeByName.has(key)) {
+      // Name key — convert to _id
+      const code = codeByName.get(key);
+      const codeId = code._id?.toString() || code._id;
+      remappedCodes[codeId] = permission;
+      console.log(`[remapPermissionKeys] Converted name→_id: "${key}" → "${codeId}"`);
+    } else {
+      console.log(`[remapPermissionKeys] Dropping unmatched key: "${key}"`);
     }
-    // NOTE: We intentionally discard permissions that don't match by ID
-    // This includes legacy permissions stored by name - they will not auto-apply to new codes
   });
 
   return remappedCodes;

@@ -6,7 +6,7 @@ const TicketSettingsSchema = new Schema(
     brandId: {
       type: Schema.Types.ObjectId,
       ref: "Brand",
-      required: true,
+      default: null,
     },
     eventId: {
       type: Schema.Types.ObjectId,
@@ -197,6 +197,12 @@ TicketSettingsSchema.methods.isAvailable = function (eventStartDate, eventStartT
 
 // Index for efficient querying
 TicketSettingsSchema.index({ brandId: 1, eventId: 1, name: 1 });
+
+// User-level unique index: one ticket per name when brandId is null
+TicketSettingsSchema.index(
+  { createdBy: 1, name: 1 },
+  { unique: true, partialFilterExpression: { brandId: null } }
+);
 
 const TicketSettings = mongoose.model("TicketSettings", TicketSettingsSchema);
 

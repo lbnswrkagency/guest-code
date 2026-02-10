@@ -363,36 +363,32 @@ const Tickets = ({
     [primaryColor]
   );
 
-  // Render offline deadline badge - only shows on event day
+  // Render offline deadline badge - shows offline time if set
   const renderOfflineDeadline = useCallback(
     (ticket) => {
-      // Skip if ticket is already offline or has no offline time set
+      // Skip if ticket is already offline
       if (ticket.isOffline) return null;
 
-      const now = new Date();
       let deadlineTime = null;
+      let isEventDay = false;
+
+      const now = new Date();
 
       // Check for custom offline time
-      if (ticket.offlineTime && event?.startDate) {
-        const eventDate = new Date(event.startDate);
-        const todayStr = now.toISOString().split('T')[0];
-        const eventDateStr = eventDate.toISOString().split('T')[0];
-
-        // Only show on event day
-        if (todayStr === eventDateStr) {
-          deadlineTime = ticket.offlineTime;
+      if (ticket.offlineTime) {
+        deadlineTime = ticket.offlineTime;
+        if (event?.startDate) {
+          const eventDate = new Date(event.startDate);
+          isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
         }
       }
 
       // Check for goOfflineAtEventStart
-      if (!deadlineTime && ticket.goOfflineAtEventStart && event?.startDate && event?.startTime) {
-        const eventDate = new Date(event.startDate);
-        const todayStr = now.toISOString().split('T')[0];
-        const eventDateStr = eventDate.toISOString().split('T')[0];
-
-        // Only show on event day
-        if (todayStr === eventDateStr) {
-          deadlineTime = event.startTime;
+      if (!deadlineTime && ticket.goOfflineAtEventStart && event?.startTime) {
+        deadlineTime = event.startTime;
+        if (event?.startDate) {
+          const eventDate = new Date(event.startDate);
+          isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
         }
       }
 
@@ -400,7 +396,7 @@ const Tickets = ({
 
       return (
         <div className="ticket-offline-deadline" style={{ color: primaryColor }}>
-          <RiTimeLine /> Online until {deadlineTime}
+          <RiTimeLine /> {isEventDay ? `Online until ${deadlineTime}` : `Goes offline at ${deadlineTime}`}
         </div>
       );
     },
@@ -764,7 +760,7 @@ const Tickets = ({
             <span>{ticket.paxPerTicket} people per ticket</span>
           </div>
         )}
-        {ticket.originalPrice && ticket.originalPrice > ticket.price && (
+        {ticket.originalPrice > ticket.price && (
           <div
             className="ticket-discount"
             style={{
@@ -788,13 +784,12 @@ const Tickets = ({
           className="ticket-price"
           style={{ color: ticket.color || primaryColor }}
         >
-          {ticket.originalPrice && ticket.originalPrice > ticket.price && (
+          {ticket.originalPrice > ticket.price && (
             <span className="original-price">
-              €{ticket.originalPrice.toFixed(2)}
+              {ticket.originalPrice.toFixed(2)}€
             </span>
           )}
-          €{ticket.price.toFixed(2)}
-          {/* Hide door price on individual tickets since we're showing it globally now */}
+          {ticket.price.toFixed(2)}€
         </div>
 
         {ticket.description && (
@@ -855,7 +850,7 @@ const Tickets = ({
           <>
             {/* Door Price Hint */}
             {validatedTickets.length > 0 &&
-              validatedTickets[0].doorPrice &&
+              validatedTickets[0].doorPrice > 0 &&
               validatedTickets[0].doorPrice > validatedTickets[0].price && (
                 <div style={{ textAlign: 'center' }}>
                   <div className="door-price-hint">
@@ -950,7 +945,7 @@ const Tickets = ({
                     className="total-amount"
                     style={{ color: checkoutColor }}
                   >
-                    €{calculateTotal}
+                    {calculateTotal}€
                   </span>
                 </div>
 

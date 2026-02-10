@@ -76,18 +76,8 @@ function CodeGenerator({
       selectedEvent?.coHostBrandInfo?.effectivePermissions ||
       selectedBrand?.role?.permissions;
 
-    // Debug logging for permission initialization
-    console.log("[CodeGenerator Init] Permission sources:", {
-      isCoHostedEvent: !!selectedEvent?.coHostBrandInfo,
-      coHostBrandInfo: selectedEvent?.coHostBrandInfo,
-      effectivePermissions: selectedEvent?.coHostBrandInfo?.effectivePermissions,
-      brandRolePermissions: selectedBrand?.role?.permissions,
-      finalEffectivePermissions: effectivePermissions,
-    });
-
     // Get codes permissions (always a plain object now)
     const userPermissions = effectivePermissions?.codes || {};
-    console.log("[CodeGenerator Init] Code permissions:", userPermissions);
 
     // Use embedded codeSettings for co-hosted events, fall back to Redux for regular events
     // Co-hosted events receive codeSettings embedded in selectedEvent from backend
@@ -117,34 +107,27 @@ function CodeGenerator({
     // Check if this is a co-hosted event
     const isCoHostedEvent = !!selectedEvent?.coHostBrandInfo;
 
+    console.log(`[CodeGenerator] isCoHostedEvent:`, isCoHostedEvent);
+    console.log(`[CodeGenerator] sourceCodeSettings:`, sourceCodeSettings.length, sourceCodeSettings.map(s => ({ name: s.name, _id: s._id, brandId: s.brandId, isEnabled: s.isEnabled })));
+    console.log(`[CodeGenerator] After isEnabled+brandId filter:`, customCodeSettings.length);
+
     // For co-hosted events, we MUST use co-host permissions (not founder bypass)
     // Only use founder bypass for events the user's brand directly owns
     const isFounder = !isCoHostedEvent && selectedBrand?.role?.isFounder === true;
 
     // Filter settings based on user permissions
-    // Permission key format: codeSettingId ONLY (no name fallback - prevents old permissions applying to new codes with same name)
+    // Unified lookup: try _id first, then name (handles both new _id-keyed
+    // and legacy name-keyed permissions for co-hosted AND own events)
     const permittedSettings = uniqueCodeSettings.filter((setting) => {
-      // Only apply founder bypass for non-co-hosted events
-      if (isFounder) {
-        return true;
-      }
+      if (isFounder) return true;
+      if (!setting._id) return false;
 
-      // Must have a valid _id to check permissions
-      if (!setting._id) {
-        return false;
-      }
-
-      // For co-hosted events, check co-host permissions from main host
-      if (isCoHostedEvent) {
-        const coHostPerms = selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes || {};
-        const idPermission = coHostPerms[setting._id];
-        return idPermission?.generate === true;
-      }
-
-      // For regular events, check user's role permissions
-      const idPermission = userPermissions[setting._id];
-      return idPermission?.generate === true;
+      const permission = userPermissions[setting._id] || userPermissions[setting.name];
+      return permission?.generate === true;
     });
+
+    console.log(`[CodeGenerator] permittedSettings:`, permittedSettings.length, permittedSettings.map(s => s.name));
+    console.log(`[CodeGenerator] userPermission keys:`, Object.keys(userPermissions));
 
     // Store the filtered settings for use in the component
     setAvailableSettings(permittedSettings);
@@ -295,20 +278,15 @@ function CodeGenerator({
     let permissionSource = "none";
 
     if (isCoHostedEvent) {
-      // For co-hosted events, ONLY use effectivePermissions from the main host
-      // Do NOT fall back to user's own brand permissions (they would have unlimited as founder)
+      // For co-hosted events, use effectivePermissions from the main host,
+      // falling back to own role permissions (same chain as the filter useEffect)
       if (selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes) {
         userPermissions = selectedEvent.coHostBrandInfo.effectivePermissions.codes;
         permissionSource = "coHostBrandInfo.effectivePermissions";
+      } else if (selectedBrand?.role?.permissions?.codes) {
+        userPermissions = selectedBrand.role.permissions.codes;
+        permissionSource = "selectedBrand.role.permissions (co-host fallback)";
       } else {
-        // No co-host permissions set by main host - log for debugging
-        console.log("[getActivePermission] Co-hosted event but no effectivePermissions:", {
-          hasCoHostBrandInfo: true,
-          hasEffectivePermissions: !!selectedEvent?.coHostBrandInfo?.effectivePermissions,
-          effectivePermissions: selectedEvent?.coHostBrandInfo?.effectivePermissions,
-          hasCodes: !!selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes,
-        });
-        // Return null to indicate no specific permissions (founder access still works via isFounder check)
         return null;
       }
     } else if (selectedBrand?.role?.permissions?.codes) {
@@ -316,58 +294,36 @@ function CodeGenerator({
       userPermissions = selectedBrand.role.permissions.codes;
       permissionSource = "selectedBrand.role.permissions";
     } else {
-      console.log("[getActivePermission] No permissions found:", {
-        isCoHostedEvent,
-        hasCoHostBrandInfo: !!selectedEvent?.coHostBrandInfo,
-        hasEffectivePermissions: !!selectedEvent?.coHostBrandInfo?.effectivePermissions,
-        hasCodes: !!selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes,
-        hasBrandRole: !!selectedBrand?.role,
-        hasBrandPerms: !!selectedBrand?.role?.permissions,
-      });
       return null;
     }
 
-    // Get the active setting to access its _id for permission lookup
+    // Get the active setting to access its _id and name for permission lookup
     const settingId = activeSetting?._id;
+    const settingName = activeSetting?.name;
 
-    // Debug log the permission lookup
-    console.log("[getActivePermission] Looking up:", {
-      selectedCodeType,
-      settingId,
-      permissionSource,
-      availableKeys: Object.keys(userPermissions),
-      userPermissions,
-    });
-
-    // ONLY lookup by codeSettingId - NO name fallback
-    // This prevents old permissions from applying to new codes that happen to have the same name
     const settingIdStr = settingId?.toString();
-    let permission = settingIdStr ? userPermissions[settingIdStr] : null;
+    // Unified lookup: try _id first, then name (handles both _id-keyed and name-keyed permissions)
+    let permission = (settingIdStr ? userPermissions[settingIdStr] : null)
+      || (settingName ? userPermissions[settingName] : null);
 
     if (!permission) {
       // For co-hosted events, if no permission found for a code, DENY access
       // The host must explicitly grant access to each code type
-      // This prevents co-hosts from having unlimited access to new codes
-      // that were created AFTER the host set co-host permissions
       if (isCoHostedEvent && activeSetting) {
-        console.log("[getActivePermission] Co-host - no permission for code, denying access:", selectedCodeType);
         return {
           type: selectedCodeType,
           limit: 0,
           unlimited: false,
-          hasAccess: false,  // DENY access - host must explicitly grant permission
+          hasAccess: false,
         };
       }
-      console.log("[getActivePermission] No permission found for:", { settingId, selectedCodeType });
       return null;
     }
-
-    console.log("[getActivePermission] Found permission:", permission);
 
     return {
       type: selectedCodeType,
       limit: permission.limit || 0,
-      unlimited: permission.unlimited === true,  // Only use explicit unlimited flag
+      unlimited: permission.unlimited === true,
       hasAccess: permission.generate === true,
     };
   };

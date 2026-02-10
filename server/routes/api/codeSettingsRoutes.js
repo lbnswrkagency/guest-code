@@ -4,6 +4,39 @@ const { authenticate } = require("../../middleware/authMiddleware");
 const codeSettingsController = require("../../controllers/codeSettingsController");
 
 // ========================================
+// USER-LEVEL CODE ROUTES
+// These handle codes not yet attached to any brand
+// ========================================
+
+// Get all user-level codes
+router.get(
+  "/user/codes",
+  authenticate,
+  codeSettingsController.getUserCodes
+);
+
+// Create a user-level code
+router.post(
+  "/user/codes",
+  authenticate,
+  codeSettingsController.createUserCode
+);
+
+// Update a user-level code
+router.put(
+  "/user/codes/:codeId",
+  authenticate,
+  codeSettingsController.updateUserCode
+);
+
+// Delete a user-level code
+router.delete(
+  "/user/codes/:codeId",
+  authenticate,
+  codeSettingsController.deleteUserCode
+);
+
+// ========================================
 // BRAND-LEVEL CODE ROUTES
 // These handle codes that apply to all events in a brand
 // ========================================

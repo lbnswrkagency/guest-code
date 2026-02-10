@@ -83,9 +83,9 @@ const Codes = () => {
       );
       setUserBrands(ownedBrands);
 
-      // Fetch brand-level codes for each brand the user manages (from all brands they're part of)
+      // Fetch brand-level codes only for brands the user owns
       const allCodes = [];
-      for (const brand of allBrands) {
+      for (const brand of ownedBrands) {
         try {
           const codesResponse = await axiosInstance.get(`/code-settings/brands/${brand._id}/codes`);
           // Add brand info to each code
@@ -103,14 +103,34 @@ const Codes = () => {
         }
       }
 
+      // Also fetch user-level codes (no brand attached)
+      let userLevelCodes = [];
+      try {
+        const userCodesResponse = await axiosInstance.get("/code-settings/user/codes");
+        userLevelCodes = userCodesResponse.data.codes || [];
+      } catch (error) {
+        console.log("Failed to fetch user-level codes:", error.message);
+      }
+
       // Group codes by name to merge attachments (codes with same name across brands)
       const codesByName = {};
+
+      // First, add user-level codes (no brand attachment)
+      for (const code of userLevelCodes) {
+        codesByName[code.name] = {
+          ...code,
+          attachments: [],
+          codeIdsByBrand: {},
+          userLevelCodeId: code._id, // Track the user-level code ID
+        };
+      }
+
+      // Then merge brand-level codes
       for (const code of allCodes) {
         if (!codesByName[code.name]) {
           codesByName[code.name] = {
             ...code,
             attachments: [],
-            // Track all code IDs for this name (one per brand)
             codeIdsByBrand: {},
           };
         }
@@ -159,21 +179,14 @@ const Codes = () => {
     try {
       const attachments = codeData.attachments || [];
 
-      // Brand attachment is optional - codes without a brand are user-level only
-      if (attachments.length === 0) {
-        toast.showInfo("Code saved without brand attachment. Attach to a brand to use it in events.");
-        handleCloseDetail();
-        return;
-      }
-
       if (selectedCode) {
-        // EDITING: diff old vs new attachments
+        // EDITING an existing code
         const oldBrandIds = new Set(
           selectedCode.attachments?.map(a => a.brandId) || []
         );
         const newBrandIds = new Set(attachments.map(a => a.brandId));
 
-        // Delete removed brands
+        // Delete removed brand attachments
         for (const brandId of oldBrandIds) {
           if (!newBrandIds.has(brandId)) {
             const codeId = selectedCode.codeIdsByBrand?.[brandId];
@@ -183,34 +196,61 @@ const Codes = () => {
           }
         }
 
-        // Update existing / Create new
-        for (const attachment of attachments) {
-          const brandId = attachment.brandId;
-          const existingCodeId = selectedCode.codeIdsByBrand?.[brandId];
-
-          if (existingCodeId) {
-            // Update existing code for this brand
+        if (attachments.length === 0) {
+          // No brands attached — save/update as user-level code
+          if (selectedCode.userLevelCodeId) {
+            // Update existing user-level code
             await axiosInstance.put(
-              `/code-settings/brands/${brandId}/codes/${existingCodeId}`,
-              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              `/code-settings/user/codes/${selectedCode.userLevelCodeId}`,
+              codeData
             );
           } else {
-            // Create new code for this brand
-            await axiosInstance.post(
-              `/code-settings/brands/${brandId}/codes`,
-              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
-            );
+            // Create new user-level code
+            await axiosInstance.post("/code-settings/user/codes", codeData);
+          }
+        } else {
+          // Has brand attachments — delete user-level version if it existed
+          if (selectedCode.userLevelCodeId) {
+            try {
+              await axiosInstance.delete(`/code-settings/user/codes/${selectedCode.userLevelCodeId}`);
+            } catch (e) {
+              // User-level code may already be gone
+            }
+          }
+
+          // Update existing / Create new brand-level codes
+          for (const attachment of attachments) {
+            const brandId = attachment.brandId;
+            const existingCodeId = selectedCode.codeIdsByBrand?.[brandId];
+
+            if (existingCodeId) {
+              await axiosInstance.put(
+                `/code-settings/brands/${brandId}/codes/${existingCodeId}`,
+                { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              );
+            } else {
+              await axiosInstance.post(
+                `/code-settings/brands/${brandId}/codes`,
+                { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              );
+            }
           }
         }
 
         toast.showSuccess("Code updated");
       } else {
-        // CREATING: Create one CodeSettings per brand
-        for (const attachment of attachments) {
-          await axiosInstance.post(
-            `/code-settings/brands/${attachment.brandId}/codes`,
-            { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
-          );
+        // CREATING a new code
+        if (attachments.length === 0) {
+          // No brand — save as user-level code
+          await axiosInstance.post("/code-settings/user/codes", codeData);
+        } else {
+          // Has brands — create one CodeSettings per brand
+          for (const attachment of attachments) {
+            await axiosInstance.post(
+              `/code-settings/brands/${attachment.brandId}/codes`,
+              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+            );
+          }
         }
         toast.showSuccess("Code created");
       }
@@ -239,11 +279,6 @@ const Codes = () => {
       const attachments = codeToDelete.attachments || [];
       const codeIdsByBrand = codeToDelete.codeIdsByBrand || {};
 
-      if (attachments.length === 0) {
-        toast.showError("Cannot delete code: no brand attachments found");
-        return;
-      }
-
       for (const attachment of attachments) {
         const codeId = codeIdsByBrand[attachment.brandId];
         if (codeId) {
@@ -251,6 +286,11 @@ const Codes = () => {
             `/code-settings/brands/${attachment.brandId}/codes/${codeId}`
           );
         }
+      }
+
+      // Also delete user-level code if it exists
+      if (codeToDelete.userLevelCodeId) {
+        await axiosInstance.delete(`/code-settings/user/codes/${codeToDelete.userLevelCodeId}`);
       }
 
       toast.showSuccess("Code deleted");

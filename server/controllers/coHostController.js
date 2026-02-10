@@ -109,17 +109,29 @@ exports.getCoHostedEvents = async (req, res) => {
           const eventBrandId = event.brand._id || event.brand;
           const effectiveEventId = event.parentEventId || event._id;
 
+          // Inline migration: backfill brandId on legacy event-level codes
+          await CodeSettings.updateMany(
+            { eventId: effectiveEventId, brandId: null },
+            { $set: { brandId: eventBrandId } }
+          );
+
           // Get code settings for this event - BOTH brand-level AND event-level
           // This mirrors the logic in getMainHostCustomCodes and getCodesForEvent
+          // Also includes legacy codes with brandId: null as a safety net
           const rawCodeSettings = await CodeSettings.find({
-            brandId: eventBrandId,
             isEnabled: true,
             $or: [
-              // Brand-level global codes (apply to all events in brand)
-              { eventId: null, isGlobalForBrand: true },
-              // Event-specific codes
-              { eventId: effectiveEventId },
+              { brandId: eventBrandId, eventId: null, isGlobalForBrand: true },
+              { brandId: eventBrandId, eventId: effectiveEventId },
+              { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
             ],
+          });
+
+          console.log(`[CoHost Debug] Event: ${event._id} "${event.title}"`);
+          console.log(`[CoHost Debug] Query: brandId=${eventBrandId}, effectiveEventId=${effectiveEventId}`);
+          console.log(`[CoHost Debug] Codes found: ${rawCodeSettings.length}`);
+          rawCodeSettings.forEach(cs => {
+            console.log(`  [Code] ${cs.name} | _id: ${cs._id} | brandId: ${cs.brandId} | eventId: ${cs.eventId} | isGlobal: ${cs.isGlobalForBrand}`);
           });
 
           // Convert to plain objects with explicit fields to ensure frontend compatibility
@@ -183,17 +195,15 @@ exports.getCoHostedEvents = async (req, res) => {
           };
 
           // Find co-host permissions for this specific event and brand/role combination
+          // Child events can have their own coHostRolePermissions (per-child overrides).
+          // If a child has none, inherit from parent event.
           let coHostPermissions = eventObj.coHostRolePermissions || [];
 
-          // If this is a child event with no permissions, inherit from parent event
-          // (Main host typically sets permissions on the parent event)
           if (coHostPermissions.length === 0 && eventObj.parentEventId) {
-            console.log(`[CoHost Permissions] Child event has no permissions, checking parent: ${eventObj.parentEventId}`);
             const parentEvent = await Event.findById(eventObj.parentEventId)
               .select('coHostRolePermissions')
               .lean();
             coHostPermissions = parentEvent?.coHostRolePermissions || [];
-            console.log(`[CoHost Permissions] Inherited ${coHostPermissions.length} permission entries from parent`);
           }
 
           // More robust brandId comparison - handle both string and ObjectId
@@ -247,7 +257,9 @@ exports.getCoHostedEvents = async (req, res) => {
               // This handles Map-to-object conversion and ensures all fields exist
               // Pass eventCodeSettings for permission key remapping (name -> _id)
               console.log(`\nRaw permissions before normalization:`, JSON.stringify(rolePermission.permissions, null, 2));
+              console.log(`[CoHost Debug] Stored permission keys:`, Object.keys(rolePermission.permissions?.codes || {}));
               const normalizedPerms = normalizePermissions(rolePermission.permissions, eventCodeSettings);
+              console.log(`[CoHost Debug] After normalization — effectivePermissions.codes keys:`, Object.keys(normalizedPerms.codes));
               console.log(`\nNormalized effectivePermissions.codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
               console.log(`========== End Permission Resolution ==========\n`);
               eventObj.coHostBrandInfo.effectivePermissions = normalizedPerms;
@@ -454,16 +466,20 @@ exports.getMainHostCustomCodes = async (req, res) => {
     const brandId = event.brand;
     const effectiveEventId = event.parentEventId || eventId;
 
+    // Inline migration: backfill brandId on legacy event-level codes
+    await CodeSettings.updateMany(
+      { eventId: effectiveEventId, brandId: null },
+      { $set: { brandId: brandId } }
+    );
+
     // Query for both brand-level and event-level codes
-    // IMPORTANT: brandId is REQUIRED to exclude old legacy codes
+    // Also includes legacy codes with brandId: null as a safety net
     const allCodes = await CodeSettings.find({
-      brandId: brandId, // Required for all codes
       isEnabled: true,
       $or: [
-        // Brand-level global codes (apply to all events in brand)
-        { eventId: null, isGlobalForBrand: true },
-        // Event-specific codes
-        { eventId: effectiveEventId },
+        { brandId: brandId, eventId: null, isGlobalForBrand: true },
+        { brandId: brandId, eventId: effectiveEventId },
+        { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
       ],
     }).select("name type color limit maxPax condition icon brandId eventId isGlobalForBrand");
 
@@ -616,11 +632,11 @@ exports.getCoHostPermissions = async (req, res) => {
     const eventBrandId = event.brand._id || event.brand;
     const effectiveEventId = event.parentEventId || event._id;
     const rawCodeSettings = await CodeSettings.find({
-      brandId: eventBrandId,
       isEnabled: true,
       $or: [
-        { eventId: null, isGlobalForBrand: true },
-        { eventId: effectiveEventId },
+        { brandId: eventBrandId, eventId: null, isGlobalForBrand: true },
+        { brandId: eventBrandId, eventId: effectiveEventId },
+        { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
       ],
     });
 

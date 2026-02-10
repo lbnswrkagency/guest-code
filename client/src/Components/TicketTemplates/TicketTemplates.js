@@ -45,12 +45,20 @@ const TicketTemplates = () => {
 
       // First fetch user's brands
       const brandsResponse = await axiosInstance.get("/brands");
-      const brands = brandsResponse.data || [];
-      setUserBrands(brands);
+      const allBrands = brandsResponse.data || [];
 
-      // Fetch brand-level tickets for each brand the user manages
+      // Filter to only brands where user is the FOUNDER/OWNER
+      // Users can only attach ticket templates to brands they own
+      const ownedBrands = allBrands.filter(brand =>
+        brand.owner === user?._id ||
+        brand.owner?.toString() === user?._id?.toString() ||
+        brand.role?.isFounder === true
+      );
+      setUserBrands(ownedBrands);
+
+      // Fetch brand-level tickets only for brands the user owns
       const allTickets = [];
-      for (const brand of brands) {
+      for (const brand of ownedBrands) {
         try {
           const ticketsResponse = await axiosInstance.get(`/ticket-settings/brands/${brand._id}/tickets`);
           // Add brand info to each ticket
@@ -68,14 +76,34 @@ const TicketTemplates = () => {
         }
       }
 
+      // Also fetch user-level tickets (no brand attached)
+      let userLevelTickets = [];
+      try {
+        const userTicketsResponse = await axiosInstance.get("/ticket-settings/user/tickets");
+        userLevelTickets = userTicketsResponse.data.tickets || [];
+      } catch (error) {
+        console.log("Failed to fetch user-level tickets:", error.message);
+      }
+
       // Group tickets by name to merge attachments (tickets with same name across brands)
       const ticketsByName = {};
+
+      // First, add user-level tickets (no brand attachment)
+      for (const ticket of userLevelTickets) {
+        ticketsByName[ticket.name] = {
+          ...ticket,
+          attachments: [],
+          ticketIdsByBrand: {},
+          userLevelTicketId: ticket._id, // Track the user-level ticket ID
+        };
+      }
+
+      // Then merge brand-level tickets
       for (const ticket of allTickets) {
         if (!ticketsByName[ticket.name]) {
           ticketsByName[ticket.name] = {
             ...ticket,
             attachments: [],
-            // Track all ticket IDs for this name (one per brand)
             ticketIdsByBrand: {},
           };
         }
@@ -123,21 +151,14 @@ const TicketTemplates = () => {
     try {
       const attachments = ticketData.attachments || [];
 
-      // Brand attachment is optional - tickets without a brand are user-level only
-      if (attachments.length === 0) {
-        toast.showInfo("Ticket saved without brand attachment. Attach to a brand to use it in events.");
-        handleCloseDetail();
-        return;
-      }
-
       if (selectedTicket) {
-        // EDITING: diff old vs new attachments
+        // EDITING an existing ticket
         const oldBrandIds = new Set(
           selectedTicket.attachments?.map(a => a.brandId) || []
         );
         const newBrandIds = new Set(attachments.map(a => a.brandId));
 
-        // Delete removed brands
+        // Delete removed brand attachments
         for (const brandId of oldBrandIds) {
           if (!newBrandIds.has(brandId)) {
             const ticketId = selectedTicket.ticketIdsByBrand?.[brandId];
@@ -147,34 +168,61 @@ const TicketTemplates = () => {
           }
         }
 
-        // Update existing / Create new
-        for (const attachment of attachments) {
-          const brandId = attachment.brandId;
-          const existingTicketId = selectedTicket.ticketIdsByBrand?.[brandId];
-
-          if (existingTicketId) {
-            // Update existing ticket for this brand
+        if (attachments.length === 0) {
+          // No brands attached — save/update as user-level ticket
+          if (selectedTicket.userLevelTicketId) {
+            // Update existing user-level ticket
             await axiosInstance.put(
-              `/ticket-settings/brands/${brandId}/tickets/${existingTicketId}`,
-              { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              `/ticket-settings/user/tickets/${selectedTicket.userLevelTicketId}`,
+              ticketData
             );
           } else {
-            // Create new ticket for this brand
-            await axiosInstance.post(
-              `/ticket-settings/brands/${brandId}/tickets`,
-              { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
-            );
+            // Create new user-level ticket
+            await axiosInstance.post("/ticket-settings/user/tickets", ticketData);
+          }
+        } else {
+          // Has brand attachments — delete user-level version if it existed
+          if (selectedTicket.userLevelTicketId) {
+            try {
+              await axiosInstance.delete(`/ticket-settings/user/tickets/${selectedTicket.userLevelTicketId}`);
+            } catch (e) {
+              // User-level ticket may already be gone
+            }
+          }
+
+          // Update existing / Create new brand-level tickets
+          for (const attachment of attachments) {
+            const brandId = attachment.brandId;
+            const existingTicketId = selectedTicket.ticketIdsByBrand?.[brandId];
+
+            if (existingTicketId) {
+              await axiosInstance.put(
+                `/ticket-settings/brands/${brandId}/tickets/${existingTicketId}`,
+                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              );
+            } else {
+              await axiosInstance.post(
+                `/ticket-settings/brands/${brandId}/tickets`,
+                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              );
+            }
           }
         }
 
         toast.showSuccess("Ticket updated");
       } else {
-        // CREATING: Create one TicketSettings per brand
-        for (const attachment of attachments) {
-          await axiosInstance.post(
-            `/ticket-settings/brands/${attachment.brandId}/tickets`,
-            { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
-          );
+        // CREATING a new ticket
+        if (attachments.length === 0) {
+          // No brand — save as user-level ticket
+          await axiosInstance.post("/ticket-settings/user/tickets", ticketData);
+        } else {
+          // Has brands — create one TicketSettings per brand
+          for (const attachment of attachments) {
+            await axiosInstance.post(
+              `/ticket-settings/brands/${attachment.brandId}/tickets`,
+              { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+            );
+          }
         }
         toast.showSuccess("Ticket created");
       }
@@ -203,11 +251,6 @@ const TicketTemplates = () => {
       const attachments = ticketToDelete.attachments || [];
       const ticketIdsByBrand = ticketToDelete.ticketIdsByBrand || {};
 
-      if (attachments.length === 0) {
-        toast.showError("Cannot delete ticket: no brand attachments found");
-        return;
-      }
-
       for (const attachment of attachments) {
         const ticketId = ticketIdsByBrand[attachment.brandId];
         if (ticketId) {
@@ -215,6 +258,11 @@ const TicketTemplates = () => {
             `/ticket-settings/brands/${attachment.brandId}/tickets/${ticketId}`
           );
         }
+      }
+
+      // Also delete user-level ticket if it exists
+      if (ticketToDelete.userLevelTicketId) {
+        await axiosInstance.delete(`/ticket-settings/user/tickets/${ticketToDelete.userLevelTicketId}`);
       }
 
       toast.showSuccess("Ticket deleted");

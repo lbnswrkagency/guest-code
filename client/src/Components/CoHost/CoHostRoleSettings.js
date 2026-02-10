@@ -409,10 +409,9 @@ const CoHostRoleSettings = ({
 
         const mergedCodes = { ...existingCodes };
         Object.keys(coHostCodes).forEach((codeKey) => {
-          // Check if this key matches a code by _id or by name
-          const matchingCode = customCodes.find((c) => c._id === codeKey || c.name === codeKey);
+          // Only match by _id — no name-based fallback
+          const matchingCode = customCodes.find((c) => c._id === codeKey);
           if (matchingCode) {
-            // Always store by code._id for consistency
             mergedCodes[matchingCode._id] = coHostCodes[codeKey];
           }
         });
@@ -461,10 +460,9 @@ const CoHostRoleSettings = ({
 
           const mergedCodes = { ...existingCodes };
           Object.keys(coHostCodes).forEach((codeKey) => {
-            // Check if this key matches a code by _id or by name
-            const matchingCode = customCodes.find((c) => c._id === codeKey || c.name === codeKey);
+            // Only match by _id — no name-based fallback
+            const matchingCode = customCodes.find((c) => c._id === codeKey);
             if (matchingCode) {
-              // Always store by code._id for consistency
               mergedCodes[matchingCode._id] = coHostCodes[codeKey];
             }
           });

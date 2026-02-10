@@ -147,6 +147,9 @@ const DashboardHeader = ({
 
   // Handle brand selection
   const handleSelectBrand = (brand) => {
+    console.log(`[DashboardHeader] Brand selected:`, brand.name, brand._id);
+    console.log(`[DashboardHeader] Role:`, brand.role?.name, `isFounder:`, brand.role?.isFounder);
+    console.log(`[DashboardHeader] Events count:`, brand.events?.length);
     setSelectedBrand(brand);
     setBrandDropdown(false);
 
@@ -164,6 +167,18 @@ const DashboardHeader = ({
 
   // Handle date selection
   const handleSelectDate = (date) => {
+    const allEvents = selectedBrand?.events || [];
+    const matchingEvents = allEvents.filter(e => {
+      if (!e.startDate) return false;
+      return new Date(e.startDate).toISOString().split("T")[0] === date;
+    });
+
+    console.log(`[DashboardHeader] Date selected:`, date);
+    console.log(`[DashboardHeader] Matching events:`, matchingEvents.length);
+    matchingEvents.forEach(e => {
+      console.log(`  [Event] ${e.title} | isCoHosted: ${!!e.coHostBrandInfo} | codeSettings: ${e.codeSettings?.length || 0}`);
+    });
+
     setSelectedDate(date);
     setDateDropdown(false);
 

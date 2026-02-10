@@ -13,6 +13,8 @@ const Role = require("../models/roleModel");
 const LineUp = require("../models/lineupModel");
 const { resolvePermissions, normalizePermissions } = require("../utils/permissionResolver");
 
+const DEBUG_LOGIN = process.env.NODE_ENV !== 'production';
+
 // Token generation with different expiration times
 const generateAccessToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, {
@@ -434,17 +436,27 @@ exports.login = async (req, res) => {
               const effectiveEventId = event.parentEventId || event._id;
               const eventBrandId = event.brand._id || event.brand;
 
+              // Inline migration: backfill brandId on legacy event-level codes
+              await CodeSetting.updateMany(
+                { eventId: effectiveEventId, brandId: null },
+                { $set: { brandId: eventBrandId } }
+              );
+
               // Get BOTH brand-level AND event-level codes (same pattern as coHostController.js)
+              // Also includes legacy codes with brandId: null as a safety net
               const rawCodeSettings = await CodeSetting.find({
-                brandId: eventBrandId,
                 isEnabled: true,
                 $or: [
-                  // Brand-level global codes (apply to all events in brand)
-                  { eventId: null, isGlobalForBrand: true },
-                  // Event-specific codes
-                  { eventId: effectiveEventId },
+                  { brandId: eventBrandId, eventId: null, isGlobalForBrand: true },
+                  { brandId: eventBrandId, eventId: effectiveEventId },
+                  { brandId: null, eventId: effectiveEventId }, // Legacy codes without brandId
                 ],
               }).lean();
+
+              console.log(`[Login CoHost] Event: ${event._id}, Brand: ${eventBrandId}, Codes found: ${rawCodeSettings.length}`);
+              rawCodeSettings.forEach(cs => {
+                console.log(`  [Code] ${cs.name} | _id: ${cs._id} | brandId: ${cs.brandId} | eventId: ${cs.eventId}`);
+              });
 
               // Format code settings with explicit fields (same as coHostController.js)
               const eventCodeSettings = rawCodeSettings.map(cs => ({
@@ -502,15 +514,19 @@ exports.login = async (req, res) => {
               };
 
               // Find co-host permissions using unified resolver approach
-              // For child events, inherit coHostRolePermissions from parent (same as code settings)
+              // Child events can have their own coHostRolePermissions (per-child overrides).
+              // If a child has none, inherit from parent event.
               let coHostPermissions = event.coHostRolePermissions || [];
 
-              // If this is a child event with no permissions, check the parent
+              let coHostPermsSource = 'event itself';
               if (coHostPermissions.length === 0 && event.parentEventId) {
                 const parentEvent = await Event.findById(event.parentEventId)
                   .select('coHostRolePermissions')
                   .lean();
                 coHostPermissions = parentEvent?.coHostRolePermissions || [];
+                coHostPermsSource = 'parent (inherited)';
+              } else if (event.parentEventId && coHostPermissions.length > 0) {
+                coHostPermsSource = 'child (override)';
               }
 
               // More robust brandId comparison
@@ -522,15 +538,19 @@ exports.login = async (req, res) => {
                 }
               );
 
-              console.log(`[Login CoHost Perms] Event: ${event._id}, Brand: ${brandIdStr}`);
-              console.log(`[Login CoHost Perms] UserRole: ${userRoleInBrand._id}, isFounder: ${userRoleInBrand.isFounder}`);
-              console.log(`[Login CoHost Perms] Available brands:`, coHostPermissions.map(cp => cp.brandId?.toString?.() || String(cp.brandId)));
-              console.log(`[Login CoHost Perms] Found brandPermissions: ${!!brandPermissions}`);
+              if (DEBUG_LOGIN) {
+                console.log(`[Login CoHost Perms] Event: ${event._id}, Brand: ${brandIdStr}`);
+                console.log(`[Login CoHost Perms] UserRole: ${userRoleInBrand._id}, isFounder: ${userRoleInBrand.isFounder}`);
+                console.log(`[Login CoHost Perms] Available brands:`, coHostPermissions.map(cp => cp.brandId?.toString?.() || String(cp.brandId)));
+                console.log(`[Login CoHost Perms] Found brandPermissions: ${!!brandPermissions}`);
+              }
 
               if (brandPermissions) {
-                console.log(`[Login CoHost Perms] Available roleIds:`,
-                  brandPermissions.rolePermissions?.map(rp => rp.roleId?.toString?.() || String(rp.roleId))
-                );
+                if (DEBUG_LOGIN) {
+                  console.log(`[Login CoHost Perms] Available roleIds:`,
+                    brandPermissions.rolePermissions?.map(rp => rp.roleId?.toString?.() || String(rp.roleId))
+                  );
+                }
 
                 // More robust roleId comparison
                 const userRoleIdStr = userRoleInBrand._id.toString();
@@ -541,21 +561,36 @@ exports.login = async (req, res) => {
                   }
                 );
 
-                console.log(`[Login CoHost Perms] Found rolePermission: ${!!rolePermission}`);
+                if (DEBUG_LOGIN) {
+                  console.log(`[Login CoHost Perms] Found rolePermission: ${!!rolePermission}`);
+                }
 
                 if (rolePermission?.permissions) {
+                  if (DEBUG_LOGIN) {
+                    console.log(`[Login CoHost Perms] Source: ${coHostPermsSource}`);
+                    console.log(`[Login CoHost Perms] RAW codes BEFORE normalization:`,
+                      JSON.stringify(rolePermission.permissions.codes, null, 2));
+                  }
                   // Use normalizePermissions to ensure consistent format
                   // This handles Map-to-object conversion and ensures all fields exist
                   // Pass eventCodeSettings for permission key remapping (name -> _id)
+                  console.log(`[Login CoHost] Stored perm keys:`, Object.keys(rolePermission.permissions?.codes || {}));
                   const normalizedPerms = normalizePermissions(rolePermission.permissions, eventCodeSettings);
-                  console.log(`[Login CoHost Perms] Normalized codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
+                  console.log(`[Login CoHost] Normalized perm keys:`, Object.keys(normalizedPerms.codes));
+                  if (DEBUG_LOGIN) {
+                    console.log(`[Login CoHost Perms] Normalized codes (after remapping):`, JSON.stringify(normalizedPerms.codes, null, 2));
+                  }
                   event.coHostBrandInfo.effectivePermissions = normalizedPerms;
                 } else {
-                  console.log(`[Login CoHost Perms] No permissions object in rolePermission`);
+                  if (DEBUG_LOGIN) {
+                    console.log(`[Login CoHost Perms] No permissions object in rolePermission`);
+                  }
                   event.coHostBrandInfo.effectivePermissions = null;
                 }
               } else {
-                console.log(`[Login CoHost Perms] No brandPermissions found`);
+                if (DEBUG_LOGIN) {
+                  console.log(`[Login CoHost Perms] No brandPermissions found`);
+                }
                 event.coHostBrandInfo.effectivePermissions = null;
               }
 
@@ -635,6 +670,12 @@ exports.refreshAccessToken = async (req, res) => {
     }
 
     // Verify stored refresh token hash
+    if (!user.refreshToken) {
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      return res.status(401).json({ message: "No stored refresh token" });
+    }
+
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
       user.refreshToken

@@ -289,8 +289,25 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log("[MongoDB] Connection successful");
+    // Sync CodeSettings indexes (old non-partial unique index → new partial indexes)
+    try {
+      const CodeSettings = require("./models/codeSettingsModel");
+      // Drop old indexes that may conflict with updated definitions
+      const indexesToDrop = ["createdBy_1_name_1", "eventId_1_type_1"];
+      for (const indexName of indexesToDrop) {
+        try {
+          await CodeSettings.collection.dropIndex(indexName);
+          console.log(`[MongoDB] Dropped old ${indexName} index`);
+        } catch (dropErr) {
+          // Index may not exist, that's fine
+        }
+      }
+      await CodeSettings.syncIndexes();
+    } catch (e) {
+      console.error("[MongoDB] CodeSettings index sync error:", e.message);
+    }
   })
   .catch((error) => {
     console.error("[MongoDB] Connection error:", error.message);

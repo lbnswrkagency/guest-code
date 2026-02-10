@@ -3,6 +3,14 @@ const router = express.Router();
 const { authenticate } = require("../../middleware/authMiddleware");
 const ticketSettingsController = require("../../controllers/ticketSettingsController");
 
+// =====================================================
+// User-level ticket routes (must be before :eventId routes)
+// =====================================================
+router.get("/user/tickets", authenticate, ticketSettingsController.getUserTickets);
+router.post("/user/tickets", authenticate, ticketSettingsController.createUserTicket);
+router.put("/user/tickets/:ticketId", authenticate, ticketSettingsController.updateUserTicket);
+router.delete("/user/tickets/:ticketId", authenticate, ticketSettingsController.deleteUserTicket);
+
 // Get all ticket settings for an event
 router.get(
   "/events/:eventId",

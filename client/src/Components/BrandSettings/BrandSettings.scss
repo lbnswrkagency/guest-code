@@ -442,41 +442,12 @@
   background: #151515;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 700px;
+  max-width: 900px;
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   position: relative;
-
-  &::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 200, 7, 0.3);
-    border-radius: 4px;
-
-    &:hover {
-      background: rgba(255, 200, 7, 0.5);
-    }
-  }
-
-  .role-settings {
-    padding: 0;
-    max-height: none;
-    height: auto;
-    
-    &::before {
-      display: none;
-    }
-  }
 }
 
 // Team Management Modal Styles
@@ -546,17 +517,7 @@
   padding: 2rem;
 }
 
-.role-settings-modal {
-  background: #151515;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 800px;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
-}
+// Duplicate removed - .role-settings-modal defined above
 
 // Mobile: Keep full screen for modal interfaces
 @media (max-width: 768px) {
@@ -582,16 +543,6 @@
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;
-    
-    .role-settings {
-      padding: 1.5rem;
-      height: 100%;
-      max-height: 100vh;
-      
-      &::before {
-        display: block;
-      }
-    }
   }
 
   .team-management-overlay {
