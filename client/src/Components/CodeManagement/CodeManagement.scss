@@ -1,6 +1,538 @@
 @import "../../_variables";
 
+// ============================================
+// UPGRADED STYLES (Card-based, Mobile-first)
+// ============================================
+
 .code-management {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 0; // Remove padding since parent handles it
+
+  // Empty state
+  .no-codes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+
+    .no-codes-icon {
+      font-size: 2.5rem;
+      color: rgba(255, 255, 255, 0.15);
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+    }
+  }
+
+  // Loading state
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+  }
+
+  // Code Card
+  .code-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    &.editing {
+      border-color: rgba(255, 200, 7, 0.5);
+      background: rgba(255, 200, 7, 0.05);
+    }
+
+    .card-main {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+
+      @media (max-width: 400px) {
+        flex-wrap: wrap;
+      }
+    }
+
+    .code-icon {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+
+      svg {
+        font-size: 1.25rem;
+        color: #fff;
+      }
+
+      @media (max-width: 400px) {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+      }
+    }
+
+    .code-info {
+      flex: 1;
+      min-width: 0;
+
+      h4 {
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .code-value {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.75rem;
+        font-family: monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .edit-name-input {
+        width: 100%;
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 200, 7, 0.3);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 600;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.6);
+        }
+      }
+    }
+
+    .pax-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      flex-shrink: 0;
+
+      svg {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .pax-checked {
+        color: #ffc807;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .pax-separator {
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 0.8rem;
+      }
+
+      .pax-max {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
+      }
+
+      .edit-pax-select {
+        padding: 0.25rem 0.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 200, 7, 0.3);
+        border-radius: 4px;
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 600;
+        width: auto;
+        min-width: 45px;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.6);
+        }
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+      .action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:not(:last-child) {
+          border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+        }
+
+        &.edit:hover {
+          color: #2196f3;
+          background: rgba(33, 150, 243, 0.1);
+        }
+
+        &.email:hover {
+          color: #9c27b0;
+          background: rgba(156, 39, 176, 0.1);
+        }
+
+        &.download:hover {
+          color: #4caf50;
+          background: rgba(76, 175, 80, 0.1);
+        }
+
+        &.view:hover {
+          color: #00bcd4;
+          background: rgba(0, 188, 212, 0.1);
+        }
+
+        &.delete:hover {
+          color: #f44336;
+          background: rgba(244, 67, 54, 0.1);
+        }
+
+        &.save {
+          color: #4caf50;
+          background: rgba(76, 175, 80, 0.1);
+
+          &:hover {
+            background: rgba(76, 175, 80, 0.2);
+          }
+        }
+
+        &.cancel {
+          color: #f44336;
+          background: rgba(244, 67, 54, 0.1);
+
+          &:hover {
+            background: rgba(244, 67, 54, 0.2);
+          }
+        }
+
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  // Load More Button
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 0.875rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+    }
+  }
+}
+
+// ============================================
+// MODAL STYLES (Upgraded)
+// ============================================
+
+// Delete Confirmation Modal
+.delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.delete-modal {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  animation: modalSlideUp 0.3s ease;
+
+  h3 {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0 0 1.25rem;
+
+    strong {
+      color: #fff;
+    }
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+
+    button {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.cancel-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+      }
+
+      &.delete-btn {
+        background: rgba(244, 67, 54, 0.2);
+        border: 1px solid rgba(244, 67, 54, 0.3);
+        color: #f44336;
+
+        &:hover {
+          background: rgba(244, 67, 54, 0.3);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+// PNG View Modal
+.png-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  .png-container {
+    max-width: 100%;
+    max-height: 90vh;
+
+    img {
+      max-width: 100%;
+      max-height: 85vh;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+  }
+}
+
+// Email Modal
+.email-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  .email-modal {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    max-width: 360px;
+    width: 100%;
+    position: relative;
+    animation: modalSlideUp 0.3s ease;
+
+    .close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+      }
+    }
+
+    h3 {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      padding-right: 2rem;
+    }
+
+    .email-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+
+      input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(255, 200, 7, 0.5);
+        }
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+      }
+
+      .send-btn {
+        width: 100%;
+        padding: 0.875rem;
+        background: linear-gradient(135deg, #ffc807 0%, #ffb300 100%);
+        border: none;
+        border-radius: 10px;
+        color: #000;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 200, 7, 0.3);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// LEGACY STYLES (Keep for backward compatibility)
+// ============================================
+
+.code-management-legacy {
   padding: 1rem;
   width: 100%;
   max-width: 100%;

@@ -105,6 +105,8 @@ const createTicketSetting = async (req, res) => {
     const ticketSetting = new TicketSettings({
       ...ticketData,
       eventId: eventId,
+      brandId: event.brand, // Include brandId for event-level tickets
+      createdBy: userId,
     });
 
     await ticketSetting.save();
@@ -352,6 +354,281 @@ const toggleTicketVisibility = async (req, res) => {
   }
 };
 
+// =====================================================
+// Brand-level ticket CRUD functions
+// =====================================================
+
+// Get all brand-level tickets
+const getBrandTickets = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Verify brand exists and user has permission
+    const brand = await Brand.findOne({
+      _id: brandId,
+      $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
+    });
+
+    if (!brand) {
+      return res.status(403).json({ message: "Not authorized to access this brand" });
+    }
+
+    const tickets = await TicketSettings.find({
+      brandId,
+      eventId: null, // Brand-level only
+    }).sort({ sortOrder: 1 });
+
+    res.json({ tickets });
+  } catch (error) {
+    console.error("[TicketSettings] Error fetching brand tickets:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Create brand-level ticket
+const createBrandTicket = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+
+    // Verify brand exists and user has permission
+    const brand = await Brand.findOne({
+      _id: brandId,
+      $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
+    });
+
+    if (!brand) {
+      return res.status(403).json({ message: "Not authorized to access this brand" });
+    }
+
+    const ticket = new TicketSettings({
+      ...req.body,
+      brandId,
+      eventId: null, // Brand-level
+      createdBy: req.user.userId,
+      isGlobalForBrand: req.body.isGlobalForBrand ?? true,
+    });
+
+    await ticket.save();
+    res.status(201).json({ ticket });
+  } catch (error) {
+    console.error("[TicketSettings] Error creating brand ticket:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update brand-level ticket
+const updateBrandTicket = async (req, res) => {
+  try {
+    const { brandId, ticketId } = req.params;
+
+    // Verify brand exists and user has permission
+    const brand = await Brand.findOne({
+      _id: brandId,
+      $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
+    });
+
+    if (!brand) {
+      return res.status(403).json({ message: "Not authorized to access this brand" });
+    }
+
+    const ticket = await TicketSettings.findOneAndUpdate(
+      { _id: ticketId, brandId, eventId: null },
+      req.body,
+      { new: true }
+    );
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.json({ ticket });
+  } catch (error) {
+    console.error("[TicketSettings] Error updating brand ticket:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete brand-level ticket
+const deleteBrandTicket = async (req, res) => {
+  try {
+    const { brandId, ticketId } = req.params;
+
+    // Verify brand exists and user has permission
+    const brand = await Brand.findOne({
+      _id: brandId,
+      $or: [{ owner: req.user.userId }, { "team.user": req.user.userId }],
+    });
+
+    if (!brand) {
+      return res.status(403).json({ message: "Not authorized to access this brand" });
+    }
+
+    const ticket = await TicketSettings.findOneAndDelete({
+      _id: ticketId,
+      brandId,
+      eventId: null,
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.json({ message: "Ticket deleted" });
+  } catch (error) {
+    console.error("[TicketSettings] Error deleting brand ticket:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// =====================================================
+// User-level ticket CRUD functions (brandId: null)
+// =====================================================
+
+// Get all user-level tickets (no brand attached)
+const getUserTickets = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+
+    const userTickets = await TicketSettings.find({
+      createdBy: userId,
+      brandId: null,
+    }).sort({ createdAt: 1 });
+
+    const formattedTickets = userTickets.map((ticket) => {
+      const ticketObj = ticket.toObject();
+      ticketObj._id = ticket._id.toString();
+      return ticketObj;
+    });
+
+    return res.status(200).json({ tickets: formattedTickets });
+  } catch (error) {
+    console.error("[TicketSettings] getUserTickets Error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Create a user-level ticket (no brand attached)
+const createUserTicket = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+    const { name, price } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Ticket name is required" });
+    }
+    if (price === undefined || price === null) {
+      return res.status(400).json({ message: "Ticket price is required" });
+    }
+
+    // Check if user already has a ticket with this name (no brand)
+    const existingTicket = await TicketSettings.findOne({
+      createdBy: userId,
+      brandId: null,
+      name: name,
+    });
+
+    if (existingTicket) {
+      return res.status(400).json({
+        message: `You already have a ticket named "${name}"`,
+      });
+    }
+
+    const newTicket = new TicketSettings({
+      ...req.body,
+      brandId: null,
+      eventId: null,
+      isGlobalForBrand: false,
+      createdBy: userId,
+    });
+
+    await newTicket.save();
+
+    const ticketObj = newTicket.toObject();
+    ticketObj._id = newTicket._id.toString();
+
+    return res.status(201).json({
+      message: "Ticket created successfully",
+      ticket: ticketObj,
+    });
+  } catch (error) {
+    console.error("[TicketSettings] createUserTicket Error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update a user-level ticket
+const updateUserTicket = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+    const { ticketId } = req.params;
+
+    const ticket = await TicketSettings.findOne({
+      _id: ticketId,
+      createdBy: userId,
+      brandId: null,
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Update allowed fields
+    const updatableFields = [
+      "name", "price", "originalPrice", "doorPrice", "description",
+      "color", "hasCountdown", "endDate", "maxPurchases", "isLimited",
+      "maxTickets", "isVisible", "requiresApproval", "minPurchase",
+      "maxPurchase", "paxPerTicket", "paymentMethod", "sortOrder",
+      "goOfflineAtEventStart", "offlineTime",
+    ];
+
+    for (const field of updatableFields) {
+      if (req.body[field] !== undefined) {
+        ticket[field] = req.body[field];
+      }
+    }
+
+    await ticket.save();
+
+    const ticketObj = ticket.toObject();
+    ticketObj._id = ticket._id.toString();
+
+    return res.status(200).json({
+      message: "Ticket updated successfully",
+      ticket: ticketObj,
+    });
+  } catch (error) {
+    console.error("[TicketSettings] updateUserTicket Error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete a user-level ticket
+const deleteUserTicket = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user._id;
+    const { ticketId } = req.params;
+
+    const ticket = await TicketSettings.findOne({
+      _id: ticketId,
+      createdBy: userId,
+      brandId: null,
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    await TicketSettings.findByIdAndDelete(ticketId);
+
+    return res.status(200).json({
+      message: "Ticket deleted successfully",
+    });
+  } catch (error) {
+    console.error("[TicketSettings] deleteUserTicket Error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getTicketSettings,
   createTicketSetting,
@@ -359,4 +636,14 @@ module.exports = {
   deleteTicketSetting,
   reorderTickets,
   toggleTicketVisibility,
+  // Brand-level functions
+  getBrandTickets,
+  createBrandTicket,
+  updateBrandTicket,
+  deleteBrandTicket,
+  // User-level functions
+  getUserTickets,
+  createUserTicket,
+  updateUserTicket,
+  deleteUserTicket,
 };

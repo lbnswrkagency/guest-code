@@ -12,9 +12,11 @@ import {
   RiUpload2Line,
   RiVideoUploadLine,
   RiGlobalLine,
+  RiCodeLine,
 } from "react-icons/ri";
 import TeamManagement from "../TeamManagement/TeamManagement";
 import RoleSetting from "../RoleSetting/RoleSetting";
+import CodeCreator from "../CodeCreator/CodeCreator";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import DropboxFolderBrowser from "../DropboxFolderBrowser/DropboxFolderBrowser";
 import "./BrandSettings.scss";
@@ -30,6 +32,7 @@ import {
 const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) => {
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showRoleSettings, setShowRoleSettings] = useState(false);
+  const [showCodeCreator, setShowCodeCreator] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [settings, setSettings] = useState({
     autoJoinEnabled: brand.settings?.autoJoinEnabled || false,
@@ -525,6 +528,26 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
                 <RiShieldUserLine />
                 <span>Configure Roles</span>
               </motion.button>
+            </div>
+          )}
+
+          {/* Code Templates - Owner only */}
+          {hasFullSettingsAccess() && (
+            <div className="settings-section">
+              <h3>Code Templates</h3>
+              <motion.button
+                className="settings-btn"
+                onClick={() => setShowCodeCreator(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <RiCodeLine />
+                <span>Manage Code Templates</span>
+              </motion.button>
+              <p className="section-description">
+                Create and manage code templates for all your events. These templates
+                can be activated per event and assigned to team roles.
+              </p>
             </div>
           )}
 
@@ -1067,6 +1090,27 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
               onClick={(e) => e.stopPropagation()}
             >
               <RoleSetting brand={brand} onClose={handleRoleSettingsClose} />
+            </motion.div>
+          </motion.div>
+        )}
+        {showCodeCreator && (
+          <motion.div
+            className="code-creator-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "tween", duration: 0.3 }}
+            style={{ zIndex: 1100 }}
+            onClick={() => setShowCodeCreator(false)}
+          >
+            <motion.div
+              className="code-creator-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CodeCreator brand={brand} onClose={() => setShowCodeCreator(false)} />
             </motion.div>
           </motion.div>
         )}

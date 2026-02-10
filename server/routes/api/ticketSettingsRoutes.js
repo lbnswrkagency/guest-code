@@ -3,6 +3,14 @@ const router = express.Router();
 const { authenticate } = require("../../middleware/authMiddleware");
 const ticketSettingsController = require("../../controllers/ticketSettingsController");
 
+// =====================================================
+// User-level ticket routes (must be before :eventId routes)
+// =====================================================
+router.get("/user/tickets", authenticate, ticketSettingsController.getUserTickets);
+router.post("/user/tickets", authenticate, ticketSettingsController.createUserTicket);
+router.put("/user/tickets/:ticketId", authenticate, ticketSettingsController.updateUserTicket);
+router.delete("/user/tickets/:ticketId", authenticate, ticketSettingsController.deleteUserTicket);
+
 // Get all ticket settings for an event
 router.get(
   "/events/:eventId",
@@ -52,6 +60,38 @@ router.patch(
   "/events/:eventId/:ticketId/toggle-visibility",
   authenticate,
   ticketSettingsController.toggleTicketVisibility
+);
+
+// =====================================================
+// Brand-level ticket routes
+// =====================================================
+
+// Get all brand-level tickets
+router.get(
+  "/brands/:brandId/tickets",
+  authenticate,
+  ticketSettingsController.getBrandTickets
+);
+
+// Create brand-level ticket
+router.post(
+  "/brands/:brandId/tickets",
+  authenticate,
+  ticketSettingsController.createBrandTicket
+);
+
+// Update brand-level ticket
+router.put(
+  "/brands/:brandId/tickets/:ticketId",
+  authenticate,
+  ticketSettingsController.updateBrandTicket
+);
+
+// Delete brand-level ticket
+router.delete(
+  "/brands/:brandId/tickets/:ticketId",
+  authenticate,
+  ticketSettingsController.deleteBrandTicket
 );
 
 module.exports = router;

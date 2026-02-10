@@ -3,10 +3,23 @@ const Schema = mongoose.Schema;
 
 const TicketSettingsSchema = new Schema(
   {
+    brandId: {
+      type: Schema.Types.ObjectId,
+      ref: "Brand",
+      default: null,
+    },
     eventId: {
       type: Schema.Types.ObjectId,
       ref: "Event",
-      required: true,
+      default: null, // null = brand-level template
+    },
+    isGlobalForBrand: {
+      type: Boolean,
+      default: false,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     name: {
       type: String,
@@ -181,6 +194,15 @@ TicketSettingsSchema.methods.isAvailable = function (eventStartDate, eventStartT
 
   return true;
 };
+
+// Index for efficient querying
+TicketSettingsSchema.index({ brandId: 1, eventId: 1, name: 1 });
+
+// User-level unique index: one ticket per name when brandId is null
+TicketSettingsSchema.index(
+  { createdBy: 1, name: 1 },
+  { unique: true, partialFilterExpression: { brandId: null } }
+);
 
 const TicketSettings = mongoose.model("TicketSettings", TicketSettingsSchema);
 

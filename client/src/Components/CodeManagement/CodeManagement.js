@@ -1,5 +1,6 @@
 // CodeManagement.js
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import "./CodeManagement.scss";
 import { useToast } from "../Toast/ToastContext";
@@ -20,6 +21,12 @@ import {
   RiMedalLine,
   RiTrophyLine,
   RiMailLine,
+  RiEditLine,
+  RiDeleteBin6Line,
+  RiEyeLine,
+  RiDownloadLine,
+  RiCheckLine,
+  RiCloseLine,
 } from "react-icons/ri";
 
 // Map icon names to React components
@@ -492,196 +499,178 @@ function CodeManagement({
     setRecipientEmail("");
   };
 
-  // Render the list of codes
+  // Render the list of codes with new card-based layout
   const renderCodes = () => {
     if ((isLoading && !localCodes.length) || parentLoading) {
       return <div className="loading">Loading codes...</div>;
     }
 
     if (localCodes.length === 0) {
-      return <div className="no-codes">No codes available for this type.</div>;
+      return (
+        <div className="no-codes">
+          <RiCodeLine className="no-codes-icon" />
+          <p>No codes generated yet</p>
+        </div>
+      );
     }
 
     return (
       <>
-        {localCodes.slice(0, visibleCodes).map((code) => {
-          const codeId = code._id || code.id;
-          const isEditing =
-            editingCode &&
-            (editingCode._id === codeId || editingCode.id === codeId);
-          const primaryColor = selectedEvent?.primaryColor;
-          const codeColor = getCodeColor(code);
-          const codeTypeClass = getCodeTypeClass(code);
+        <AnimatePresence mode="popLayout">
+          {localCodes.slice(0, visibleCodes).map((code) => {
+            const codeId = code._id || code.id;
+            const isEditing =
+              editingCode &&
+              (editingCode._id === codeId || editingCode.id === codeId);
+            const codeColor = getCodeColor(code);
 
-          // Custom styling for the code icon
-          const iconStyle = {
-            background: codeColor
-              ? `linear-gradient(45deg, ${codeColor}, ${adjustColor(
-                  codeColor,
-                  20
-                )})`
-              : undefined,
-          };
+            // Get icon component
+            const iconName =
+              code.metadata?.settingIcon ||
+              code.icon ||
+              activeSetting?.icon ||
+              "RiCodeLine";
+            const IconComponent = iconComponents[iconName] || RiCodeLine;
 
-          return (
-            <div
-              key={codeId}
-              className={`code-management-item ${isEditing ? "editing" : ""}`}
-              style={primaryColor ? { borderColor: `${primaryColor}30` } : {}}
-            >
-              <div className="code-management-item-info">
-                <div className={`code-icon ${codeTypeClass}`} style={iconStyle}>
-                  {(() => {
-                    // Get icon name from code metadata, or from the code itself, or from activeSetting, or fallback to default
-                    const iconName =
-                      code.metadata?.settingIcon ||
-                      code.icon ||
-                      activeSetting?.icon ||
-                      "RiCodeLine";
+            // Custom styling for the code icon
+            const iconStyle = {
+              background: codeColor
+                ? `linear-gradient(135deg, ${codeColor}, ${adjustColor(
+                    codeColor,
+                    30
+                  )})`
+                : "linear-gradient(135deg, #2196f3, #1976d2)",
+            };
 
-                    // Make sure the icon component exists, otherwise use default
-                    const IconComponent = iconComponents[iconName]
-                      ? iconComponents[iconName]
-                      : RiCodeLine;
+            return (
+              <motion.div
+                key={codeId}
+                className={`code-card ${isEditing ? "editing" : ""}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                layout
+              >
+                <div className="card-main">
+                  <div className="code-icon" style={iconStyle}>
+                    <IconComponent />
+                  </div>
 
-                    return <IconComponent className="qr-icon" />;
-                  })()}
+                  <div className="code-info">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        className="edit-name-input"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                      />
+                    ) : (
+                      <h4>{code.name}</h4>
+                    )}
+                    <div className="code-value">{code.code}</div>
+                  </div>
+
+                  <div className="pax-badge">
+                    <BsPeopleFill />
+                    <span className="pax-checked">{code.paxChecked || 0}</span>
+                    <span className="pax-separator">/</span>
+                    {isEditing ? (
+                      <select
+                        className="edit-pax-select"
+                        value={editPax}
+                        onChange={(e) => setEditPax(parseInt(e.target.value))}
+                      >
+                        {Array.from(
+                          { length: getMaxEditValue(editingCode) },
+                          (_, i) => i + 1
+                        ).map((num) => (
+                          <option key={num} value={num}>
+                            {num}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="pax-max">
+                        {code.maxPax || code.pax || 1}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="code-details">
+
+                <div className="card-actions">
                   {isEditing ? (
-                    <input
-                      type="text"
-                      className="edit-name-input"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      autoFocus
-                    />
+                    <>
+                      <button
+                        className="action-btn save"
+                        onClick={saveEdit}
+                        title="Save"
+                      >
+                        <RiCheckLine />
+                      </button>
+                      <button
+                        className="action-btn cancel"
+                        onClick={cancelEdit}
+                        title="Cancel"
+                      >
+                        <RiCloseLine />
+                      </button>
+                    </>
                   ) : (
-                    <h3 className="code-name">{code.name}</h3>
+                    <>
+                      <button
+                        className="action-btn edit"
+                        onClick={() => startEdit(code)}
+                        title="Edit"
+                      >
+                        <RiEditLine />
+                      </button>
+                      <button
+                        className="action-btn email"
+                        onClick={() => openEmailForm(code)}
+                        title="Send by Email"
+                      >
+                        <RiMailLine />
+                      </button>
+                      <button
+                        className="action-btn download"
+                        onClick={() => downloadCodePNG(code)}
+                        title="Download PNG"
+                      >
+                        <RiDownloadLine />
+                      </button>
+                      <button
+                        className="action-btn view"
+                        onClick={() => viewCode(code)}
+                        title="View"
+                      >
+                        <RiEyeLine />
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => confirmDelete(code)}
+                        title="Delete"
+                      >
+                        <RiDeleteBin6Line />
+                      </button>
+                    </>
                   )}
-                  <div className="code-value">{code.code}</div>
                 </div>
-              </div>
-
-              <div className="code-management-item-people">
-                <BsPeopleFill className="people-icon" />
-                <span
-                  className="people-count"
-                  style={primaryColor ? { color: primaryColor } : {}}
-                >
-                  {code.paxChecked || 0}
-                </span>
-                <span className="people-separator">/</span>
-                {isEditing ? (
-                  <select
-                    className="edit-pax-select"
-                    value={editPax}
-                    onChange={(e) => setEditPax(parseInt(e.target.value))}
-                  >
-                    {/* When editing, consider the code's current maxPax plus remaining quota */}
-                    {Array.from(
-                      { length: getMaxEditValue(editingCode) },
-                      (_, i) => i + 1
-                    ).map((num) => (
-                      <option key={num} value={num}>
-                        {num}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="people-max">
-                    {code.maxPax || code.pax || 1}
-                  </span>
-                )}
-              </div>
-
-              <div className="code-management-item-actions">
-                {isEditing ? (
-                  <>
-                    <button
-                      className="save-edit-btn"
-                      onClick={saveEdit}
-                      title="Save"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      className="cancel-edit-btn"
-                      onClick={cancelEdit}
-                      title="Cancel"
-                    >
-                      ✕
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className="edit-btn"
-                      onClick={() => startEdit(code)}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    {/* PDF Download button - commented out as requested
-                    <button
-                      className="download-btn"
-                      onClick={() => downloadCode(code)}
-                      title="Download PDF"
-                    >
-                      📄
-                    </button>
-                    */}
-
-                    <button
-                      className="email-btn"
-                      onClick={() => openEmailForm(code)}
-                      title="Send by Email"
-                    >
-                      <RiMailLine />
-                    </button>
-                    <button
-                      className="download-png-btn"
-                      onClick={() => downloadCodePNG(code)}
-                      title="Download PNG"
-                    >
-                      🖼️
-                    </button>
-                    <button
-                      className="view-btn"
-                      onClick={() => viewCode(code)}
-                      title="View QR"
-                    >
-                      👁️
-                    </button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => confirmDelete(code)}
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {localCodes.length > visibleCodes && (
-          <button
+          <motion.button
             className="load-more-btn"
             onClick={loadMore}
-            style={
-              selectedEvent?.primaryColor
-                ? {
-                    backgroundColor: `${selectedEvent.primaryColor}20`,
-                    borderColor: `${selectedEvent.primaryColor}40`,
-                  }
-                : {}
-            }
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
-            Load More Codes
-          </button>
+            Load More ({localCodes.length - visibleCodes} remaining)
+          </motion.button>
         )}
       </>
     );
@@ -692,101 +681,129 @@ function CodeManagement({
       {renderCodes()}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="code-management-delete">
-          <div className="modal-content">
-            <button
-              className="close-btn"
-              onClick={() => setShowDeleteModal(false)}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            className="delete-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div
+              className="delete-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
-            <div className="delete-content">
               <h3>Delete Code</h3>
               <p>
                 Are you sure you want to delete the code for{" "}
                 <strong>{codeToDelete?.name}</strong>?
               </p>
-              <div className="delete-actions">
+              <div className="modal-actions">
                 <button
-                  className="cancel"
+                  className="cancel-btn"
                   onClick={() => setShowDeleteModal(false)}
                   disabled={isLoading}
                 >
                   Cancel
                 </button>
                 <button
-                  className="confirm"
+                  className="delete-btn"
                   onClick={deleteCode}
                   disabled={isLoading}
                 >
-                  Delete
+                  {isLoading ? "Deleting..." : "Delete"}
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* View QR Code Modal */}
-      {showViewModal && (
-        <div className="modal view-modal">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>View QR Code</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowViewModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
+      {/* View QR Code Modal (legacy - keeping for compatibility) */}
+      <AnimatePresence>
+        {showViewModal && (
+          <motion.div
+            className="png-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowViewModal(false)}
+          >
+            <button className="close-btn" onClick={() => setShowViewModal(false)}>
+              <RiCloseLine />
+            </button>
+            <div className="png-container" onClick={(e) => e.stopPropagation()}>
               <img src={viewingCode?.qrCode} alt="QR Code" />
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* PNG View Modal - Fullscreen */}
-      {showPngModal && (
-        <div className="code-png-modal">
-          <button className="close-btn" onClick={() => setShowPngModal(false)}>
-            ✕
-          </button>
-          <div className="png-container">
-            <img src={pngUrl} alt="Code" />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showPngModal && (
+          <motion.div
+            className="png-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPngModal(false)}
+          >
+            <button className="close-btn" onClick={() => setShowPngModal(false)}>
+              <RiCloseLine />
+            </button>
+            <div className="png-container" onClick={(e) => e.stopPropagation()}>
+              <img src={pngUrl} alt="Code" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Email Code Modal */}
-      {showEmailModal && (
-        <div className="email-modal-overlay">
-          <div className="email-modal">
-            <button className="close-btn" onClick={closeEmailForm}>
-              ×
-            </button>
-            <h3>Send Invitation to</h3>
-            <div className="email-form">
-              <input
-                type="email"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                placeholder="recipient@example.com"
-                autoFocus
-              />
-              <button
-                className="send-btn"
-                onClick={sendCodeByEmail}
-                disabled={sendingEmail || !recipientEmail}
-              >
-                {sendingEmail ? "Sending..." : "Send"}
+      <AnimatePresence>
+        {showEmailModal && (
+          <motion.div
+            className="email-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeEmailForm}
+          >
+            <motion.div
+              className="email-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className="close-btn" onClick={closeEmailForm}>
+                <RiCloseLine />
               </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <h3>Send Code to {emailingCode?.name}</h3>
+              <div className="email-form">
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="recipient@example.com"
+                  autoFocus
+                />
+                <button
+                  className="send-btn"
+                  onClick={sendCodeByEmail}
+                  disabled={sendingEmail || !recipientEmail}
+                >
+                  {sendingEmail ? "Sending..." : "Send Email"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

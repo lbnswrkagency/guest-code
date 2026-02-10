@@ -112,6 +112,13 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       });
 
       if (matchingEvent) {
+        // Preserve co-host metadata from Redux-enriched selectedEvent
+        // The fresh API data doesn't include coHostBrandInfo, so merge it back
+        if (selectedEvent?.coHostBrandInfo) {
+          matchingEvent.coHostBrandInfo = selectedEvent.coHostBrandInfo;
+          matchingEvent.codeSettings = selectedEvent.codeSettings;
+          matchingEvent.coHostBrand = selectedEvent.coHostBrand;
+        }
         setEventData(matchingEvent);
         return;
       }

@@ -39,6 +39,8 @@ import Locations from "./Components/Locations/Locations";
 import BrandProfile from "./Components/BrandProfile/BrandProfile";
 import Brands from "./Components/Brands/Brands";
 import Events from "./Components/Events/Events";
+import Codes from "./Components/Codes/Codes";
+import TicketTemplates from "./Components/TicketTemplates/TicketTemplates";
 import EventProfile from "./Components/EventProfile/EventProfile";
 import AfterPayment from "./Components/AfterPayment/AfterPayment";
 import Settings from "./Components/Settings/Settings";
@@ -85,6 +87,8 @@ const AppRoutes = () => {
           {/* Nested authenticated routes */}
           <Route path="brands" element={<Brands />} />
           <Route path="events" element={<Events />} />
+          <Route path="codes" element={<Codes />} />
+          <Route path="ticket-templates" element={<TicketTemplates />} />
           <Route path="settings" element={<Settings />} />
           <Route path=":brandUsername" element={<BrandProfile />} />
           <Route

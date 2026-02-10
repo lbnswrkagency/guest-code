@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Code = require("../models/codesModel");
 const Event = require("../models/eventsModel");
 const CodeSettings = require("../models/codeSettingsModel");
@@ -441,6 +442,10 @@ const createDynamicCode = async (req, res) => {
     // Generate QR code
     const qrCode = await generateQR(qrData);
 
+    // Get icon and color from frontend metadata or from codeSetting
+    const settingIcon = metadata.settingIcon || codeSetting.icon || "RiCodeLine";
+    const settingColor = metadata.settingColor || codeSetting.color || "#2196F3";
+
     // Create the dynamic code in the database with enhanced features
     const newCode = new Code({
       eventId: effectiveEventId,
@@ -465,6 +470,8 @@ const createDynamicCode = async (req, res) => {
         codeType: codeSetting.name,
         settingId: codeSetting._id.toString(),
         settingName: codeSetting.name,
+        settingIcon: settingIcon, // Explicitly set icon
+        settingColor: settingColor, // Explicitly set color
         displayName: codeSetting.name,
         actualType: effectiveType,
         generatedFrom: "CodeGenerator",
@@ -684,9 +691,31 @@ const updateCode = async (req, res) => {
 
 
         if (!isOwner && !isTeamMember) {
-          return res
-            .status(403)
-            .json({ message: "Not authorized to update this code" });
+          // Check if user is the code creator AND a valid co-host
+          const isCodeCreator = code.createdBy &&
+            code.createdBy.toString() === userId.toString();
+
+          if (isCodeCreator) {
+            // Verify user is still a valid co-host by checking if their brand is in event.coHosts
+            const userBrands = await Brand.find({
+              $or: [{ owner: userId }, { "team.user": userId }]
+            });
+
+            const isValidCoHost = userBrands.some(ub =>
+              event.coHosts?.some(ch => ch.toString() === ub._id.toString())
+            );
+
+            if (!isValidCoHost) {
+              return res
+                .status(403)
+                .json({ message: "Not authorized to update this code" });
+            }
+            // Allow - user created the code and is still a valid co-host
+          } else {
+            return res
+              .status(403)
+              .json({ message: "Not authorized to update this code" });
+          }
         }
 
       } catch (permError) {
@@ -790,9 +819,31 @@ const deleteCode = async (req, res) => {
 
 
         if (!isOwner && !isTeamMember) {
-          return res
-            .status(403)
-            .json({ message: "Not authorized to delete this code" });
+          // Check if user is the code creator AND a valid co-host
+          const isCodeCreator = code.createdBy &&
+            code.createdBy.toString() === userId.toString();
+
+          if (isCodeCreator) {
+            // Verify user is still a valid co-host by checking if their brand is in event.coHosts
+            const userBrands = await Brand.find({
+              $or: [{ owner: userId }, { "team.user": userId }]
+            });
+
+            const isValidCoHost = userBrands.some(ub =>
+              event.coHosts?.some(ch => ch.toString() === ub._id.toString())
+            );
+
+            if (!isValidCoHost) {
+              return res
+                .status(403)
+                .json({ message: "Not authorized to delete this code" });
+            }
+            // Allow - user created the code and is still a valid co-host
+          } else {
+            return res
+              .status(403)
+              .json({ message: "Not authorized to delete this code" });
+          }
         }
 
       } catch (permError) {
@@ -1322,19 +1373,42 @@ const getEventUserCodes = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // Build query
+    // Get the event to check if it has a parent (for weekly events)
+    const event = await Event.findById(eventId).select('parentEventId isWeekly');
+
+    // Build query - for child events, also check parent event's codes
+    // This handles cases where codes are created on different weeks of a weekly event
+    let eventIdsToCheck = [eventId];
+    if (event?.parentEventId) {
+      eventIdsToCheck.push(event.parentEventId);
+    }
+
     const query = {
-      eventId,
+      eventId: { $in: eventIdsToCheck },
       createdBy: userId,
     };
 
     // Add codeSettingIds to query if provided
+    // Convert strings to ObjectIds for proper matching
     if (codeSettingIds && codeSettingIds.length > 0) {
-      query.codeSettingId = { $in: codeSettingIds };
+      // Mongoose should auto-cast, but be explicit to avoid issues
+      const objectIdSettingIds = codeSettingIds.map(id => {
+        try {
+          return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
+        } catch {
+          return id;
+        }
+      });
+      query.codeSettingId = { $in: objectIdSettingIds };
     }
+
+    // Debug logging for troubleshooting
+    console.log('[getEventUserCodes] Query:', JSON.stringify(query, null, 2));
 
     // Get all codes matching the query
     const codes = await Code.find(query).sort({ createdAt: -1 });
+
+    console.log(`[getEventUserCodes] Found ${codes.length} codes for user ${userId}`);
 
     // Group codes by codeSettingId
     const codesBySettingId = {};
@@ -1348,8 +1422,21 @@ const getEventUserCodes = async (req, res) => {
         codesBySettingId[settingId] = [];
       }
 
+      // Convert metadata Map to plain object if needed
+      let metadataObj = {};
+      if (code.metadata) {
+        if (code.metadata instanceof Map) {
+          code.metadata.forEach((value, key) => {
+            metadataObj[key] = value;
+          });
+        } else {
+          metadataObj = code.metadata;
+        }
+      }
+
       codesBySettingId[settingId].push({
         id: code._id,
+        _id: code._id, // Include both for compatibility
         code: code.code,
         name: code.name,
         type: code.type,
@@ -1360,6 +1447,9 @@ const getEventUserCodes = async (req, res) => {
         qrCode: code.qrCode,
         createdAt: code.createdAt,
         status: code.status,
+        metadata: metadataObj, // Include metadata with icon info
+        icon: metadataObj.settingIcon || null, // Directly include icon for easier access
+        color: metadataObj.settingColor || null, // Directly include color for easier access
       });
     });
 

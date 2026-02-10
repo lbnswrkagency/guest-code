@@ -21,18 +21,24 @@ const DELAY_BETWEEN_EMAILS = 5000; // 5 seconds
 //  HELPERS
 // ═══════════════════════════════════════════════════════════
 const log = {
-  header: (text) => console.log(chalk.bold.cyan(`\n${'═'.repeat(60)}\n  ${text}\n${'═'.repeat(60)}`)),
+  header: (text) =>
+    console.log(
+      chalk.bold.cyan(`\n${"═".repeat(60)}\n  ${text}\n${"═".repeat(60)}`),
+    ),
   step: (text) => console.log(chalk.gray(`  → ${text}`)),
   success: (text) => console.log(chalk.green(`  ✓ ${text}`)),
   warn: (text) => console.log(chalk.yellow(`  ⚠ ${text}`)),
   error: (text) => console.log(chalk.red(`  ✗ ${text}`)),
   info: (text) => console.log(chalk.white(`  ${text}`)),
   dim: (text) => console.log(chalk.dim(`    ${text}`)),
-  sent: (name, email) => console.log(chalk.green(`  ✓ `) + chalk.white(name.padEnd(25)) + chalk.dim(email)),
+  sent: (name, email) =>
+    console.log(
+      chalk.green(`  ✓ `) + chalk.white(name.padEnd(25)) + chalk.dim(email),
+    ),
   progress: (current, total) => {
     const pct = ((current / total) * 100).toFixed(0).padStart(3);
-    const bar = '█'.repeat(Math.round((current / total) * 20)).padEnd(20, '░');
-    return `${chalk.cyan(bar)} ${chalk.white(pct + '%')}`;
+    const bar = "█".repeat(Math.round((current / total) * 20)).padEnd(20, "░");
+    return `${chalk.cyan(bar)} ${chalk.white(pct + "%")}`;
   },
   newline: () => console.log(),
 };
@@ -69,7 +75,9 @@ async function sendInviteEmails() {
       process.exit(1);
     }
 
-    const pdfFiles = fs.readdirSync(invitesDir).filter((f) => f.endsWith(".pdf"));
+    const pdfFiles = fs
+      .readdirSync(invitesDir)
+      .filter((f) => f.endsWith(".pdf"));
     if (pdfFiles.length === 0) {
       log.warn("No PDFs found. Run send-invites.js first.");
       process.exit(0);
@@ -109,15 +117,23 @@ async function sendInviteEmails() {
         }
 
         const recipientEmail = testMode ? testEmail : invitationCode.email;
-        const codeIdForUnsubscribe = invitationCode.code || invitationCode.guestCode;
+        const codeIdForUnsubscribe =
+          invitationCode.code || invitationCode.guestCode;
 
         // Show progress bar with name
         const current = i + 1;
         const remaining = total - current;
         const pct = ((current / total) * 100).toFixed(0).padStart(3);
-        const bar = '█'.repeat(Math.round((current / total) * 20)).padEnd(20, '░');
-        const cleanName = (invitationCode.name || '').replace(/^Guest Code for /i, '').substring(0, 20).padEnd(20);
-        process.stdout.write(`\r  ${chalk.cyan(bar)} ${chalk.white(pct + '%')} ${chalk.gray('|')} ${chalk.white(cleanName)} ${chalk.dim(`(${remaining} left)`)}`);
+        const bar = "█"
+          .repeat(Math.round((current / total) * 20))
+          .padEnd(20, "░");
+        const cleanName = (invitationCode.name || "")
+          .replace(/^Guest Code for /i, "")
+          .substring(0, 20)
+          .padEnd(20);
+        process.stdout.write(
+          `\r  ${chalk.cyan(bar)} ${chalk.white(pct + "%")} ${chalk.gray("|")} ${chalk.white(cleanName)} ${chalk.dim(`(${remaining} left)`)}`,
+        );
 
         // Send email
         await sendQRCodeInvitation(
@@ -125,7 +141,7 @@ async function sendInviteEmails() {
           recipientEmail,
           pdfPath,
           invitationCode.event,
-          codeIdForUnsubscribe
+          codeIdForUnsubscribe,
         );
 
         sent++;
@@ -146,21 +162,24 @@ async function sendInviteEmails() {
         if (testMode) {
           log.newline();
           log.newline();
-          log.info(`Set ${chalk.bold('testMode = false')} to send all emails`);
+          log.info(`Set ${chalk.bold("testMode = false")} to send all emails`);
           break;
         }
 
         // Delay between emails (show countdown)
         if (i < pdfFiles.length - 1) {
           for (let s = DELAY_BETWEEN_EMAILS / 1000; s > 0; s--) {
-            process.stdout.write(`\r  ${chalk.cyan(bar)} ${chalk.white(pct + '%')} ${chalk.gray('|')} ${chalk.green('✓')} ${chalk.white(cleanName)} ${chalk.dim(`next in ${s}s...`)}  `);
+            process.stdout.write(
+              `\r  ${chalk.cyan(bar)} ${chalk.white(pct + "%")} ${chalk.gray("|")} ${chalk.green("✓")} ${chalk.white(cleanName)} ${chalk.dim(`next in ${s}s...`)}  `,
+            );
             await sleep(1000);
           }
         }
-
       } catch (error) {
         failed++;
-        process.stdout.write(`\r  ${chalk.red('✗')} Failed to send                                              \n`);
+        process.stdout.write(
+          `\r  ${chalk.red("✗")} Failed to send                                              \n`,
+        );
       }
     }
 
@@ -168,7 +187,6 @@ async function sendInviteEmails() {
     log.header("COMPLETE");
     log.success(`${sent} emails sent`);
     if (failed > 0) log.dim(`${failed} failed`);
-
   } catch (error) {
     log.error(error.message);
   } finally {

@@ -1,0 +1,278 @@
+@import "../../variables";
+
+.brand-attachment-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.2);
+
+    .brand-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .brand-logo-placeholder {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.4);
+
+        svg {
+          font-size: 1.25rem;
+        }
+      }
+
+      .brand-details {
+        display: flex;
+        flex-direction: column;
+
+        .brand-name {
+          color: #fff;
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+
+        .brand-username {
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.8rem;
+        }
+      }
+    }
+
+    .remove-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      svg {
+        font-size: 1.25rem;
+      }
+
+      &:hover {
+        background: rgba(244, 67, 54, 0.15);
+        color: #f44336;
+      }
+    }
+  }
+
+  .attachment-mode {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    .mode-option {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      svg {
+        font-size: 1.25rem;
+        color: rgba(255, 255, 255, 0.4);
+        flex-shrink: 0;
+      }
+
+      .mode-text {
+        display: flex;
+        flex-direction: column;
+
+        .mode-label {
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.85rem;
+          font-weight: 500;
+        }
+
+        .mode-description {
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.75rem;
+        }
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+
+      &.selected {
+        background: rgba(255, 200, 7, 0.1);
+        border-color: rgba(255, 200, 7, 0.3);
+
+        svg {
+          color: #ffc807;
+        }
+
+        .mode-text {
+          .mode-label {
+            color: #fff;
+          }
+
+          .mode-description {
+            color: rgba(255, 200, 7, 0.7);
+          }
+        }
+      }
+    }
+  }
+
+  .events-section {
+    padding: 1rem;
+
+    .events-loading {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+      padding: 1rem;
+    }
+
+    .no-events {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.4);
+
+      svg {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+      }
+
+      span {
+        font-size: 0.85rem;
+      }
+    }
+
+    .events-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .event-item {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        padding: 0.75rem;
+
+        .event-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          cursor: pointer;
+
+          input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ffc807;
+            cursor: pointer;
+            flex-shrink: 0;
+          }
+
+          .event-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 0;
+
+            .event-title {
+              color: rgba(255, 255, 255, 0.8);
+              font-size: 0.9rem;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .weekly-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.25rem;
+              padding: 0.2rem 0.5rem;
+              background: rgba(156, 39, 176, 0.15);
+              border-radius: 4px;
+              color: #ce93d8;
+              font-size: 0.7rem;
+              font-weight: 500;
+              flex-shrink: 0;
+
+              svg {
+                font-size: 0.75rem;
+              }
+            }
+          }
+        }
+
+        .apply-to-children {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+          margin-left: 1.75rem;
+          padding: 0.5rem 0.75rem;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 6px;
+          cursor: pointer;
+
+          input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #ffc807;
+            cursor: pointer;
+          }
+
+          span {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .brand-attachment-card {
+    .attachment-mode {
+      flex-direction: column;
+
+      .mode-option {
+        flex: none;
+      }
+    }
+  }
+}

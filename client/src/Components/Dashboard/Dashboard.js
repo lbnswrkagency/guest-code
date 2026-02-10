@@ -451,10 +451,12 @@ const Dashboard = () => {
 
   // Get code settings for the selected brand
   const getCodeSettingsForBrand = () => {
-    if (!selectedBrand) return [];
+    // Use enhancedSelectedBrand for always-fresh data (includes co-hosted events)
+    const brand = enhancedSelectedBrand || selectedBrand;
+    if (!brand) return [];
 
     // Get events for this brand
-    const brandEvents = selectedBrand.events || [];
+    const brandEvents = brand.events || [];
 
     // Get all code settings for these events
     const allCodeSettings = brandEvents.flatMap((event) => {
@@ -510,6 +512,13 @@ const Dashboard = () => {
     if (!selectedBrand || !selectedEvent) {
       return null;
     }
+
+    console.log(`[Dashboard] getUserRolePermissions`);
+    console.log(`  selectedBrand:`, selectedBrand?.name, selectedBrand?._id);
+    console.log(`  selectedEvent:`, selectedEvent?.title, selectedEvent?._id);
+    console.log(`  hasCoHostBrandInfo:`, !!selectedEvent?.coHostBrandInfo);
+    console.log(`  effectivePermissions:`, selectedEvent?.coHostBrandInfo?.effectivePermissions?.codes);
+    console.log(`  event.codeSettings count:`, selectedEvent?.codeSettings?.length);
 
     // Check if this is a co-hosted event with coHostBrandInfo
     if (
@@ -570,17 +579,25 @@ const Dashboard = () => {
     }
 
     // Convert the codes to an array of objects
+    // Keys are _id strings — look up real name/type from code settings
+    const currentCodeSettings = getCodeSettingsForSelectedEvent();
     return Object.entries(codesPermissions)
       .filter(
-        ([name, permission]) => permission !== null && permission !== undefined,
+        ([key, permission]) => permission !== null && permission !== undefined,
       )
-      .map(([name, permission]) => ({
-        name,
-        type: name,
-        generate: permission.generate || false,
-        limit: permission.limit || 0,
-        unlimited: permission.unlimited || false,
-      }));
+      .map(([key, permission]) => {
+        const match = currentCodeSettings.find(
+          cs => (cs._id?.toString?.() || cs._id) === key
+        );
+        return {
+          key,
+          name: match?.name || key,
+          type: match?.type || 'custom',
+          generate: permission.generate || false,
+          limit: permission.limit || 0,
+          unlimited: permission.unlimited || false,
+        };
+      });
   };
 
   // Prepare access summary for the DashboardMenu
