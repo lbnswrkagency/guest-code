@@ -3,13 +3,11 @@ import { motion } from "framer-motion";
 import "./DashboardFeed.scss";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import { RiInformationLine, RiRefreshLine } from "react-icons/ri";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import UpcomingEvent from "../UpcomingEvent/UpcomingEvent";
+import EventFeed from "../EventFeed/EventFeed";
 import axiosInstance from "../../utils/axiosConfig";
 
 const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -211,7 +209,7 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     );
   }
 
-  // Use UpcomingEvent component to display the selected event
+  // Use EventFeed component to display the selected event
   return (
     <div className="dashboardFeed-container">
       {/* Minimal co-hosting indicator */}
@@ -222,15 +220,10 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       )}
 
       <div className="dashboardFeed-content">
-        <UpcomingEvent
+        <EventFeed
           key={`${selectedBrand?._id}-${eventData?._id}`}
-          brandId={selectedBrand?._id}
-          brandUsername={selectedBrand?.username}
-          seamless={true}
-          events={[eventData]} // Pass as an array with a single event
-          initialEventIndex={0}
-          hideNavigation={true} // Hide the navigation controls
-          hideTableBooking={true} // Hide the table booking section in Dashboard
+          event={eventData}
+          brand={selectedBrand}
         />
       </div>
     </div>

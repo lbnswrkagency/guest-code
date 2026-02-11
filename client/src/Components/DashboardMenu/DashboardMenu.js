@@ -8,7 +8,6 @@ import {
   RiCodeBoxFill,
   RiTableLine,
   RiSwordLine,
-  RiSparklingFill,
   RiUploadCloud2Fill,
 } from "react-icons/ri";
 import "./DashboardMenu.scss";
@@ -270,35 +269,16 @@ const DashboardMenu = ({
       <motion.button
         className="menu-trigger"
         onClick={handleMenuClick}
-        initial={{ scale: 0, opacity: 0, x: -50 }}
-        animate={{
-          scale: 1,
-          opacity: 1,
-          x: 0,
-        }}
-        transition={{
-          duration: 0.5,
-          ease: "easeOut",
-        }}
-        whileHover={{
-          scale: 1.05,
-          boxShadow: "0 0 25px rgba(255, 200, 7, 0.6)",
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
         whileTap={{ scale: 0.98 }}
       >
-        {/* Create a more sophisticated button with multiple elements */}
         <div className="menu-trigger-content">
           <div className="trigger-icon-wrapper">
-            <RiSparklingFill className="sparkle-icon top-left" />
-            <RiSparklingFill className="sparkle-icon top-right" />
-            <RiSparklingFill className="sparkle-icon bottom-left" />
-            <RiSparklingFill className="sparkle-icon bottom-right" />
-            <div className="icon-background"></div>
             <RiToolsFill className="trigger-icon" />
           </div>
-          <div className="trigger-text">
-            <span>Tools</span>
-          </div>
+          <span className="trigger-text">Tools</span>
         </div>
       </motion.button>
 
