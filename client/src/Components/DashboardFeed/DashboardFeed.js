@@ -165,7 +165,6 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
     return (
       <div className="dashboardFeed-container dashboardFeed-loading">
         <LoadingSpinner size="large" color="primary" />
-        <p>Loading event information...</p>
       </div>
     );
   }
