@@ -256,10 +256,10 @@ function Login() {
     </div>
   );
 
-  // Show maintenance only in production (not localhost)
-  if (!isLocalhost) {
-    return <Maintenance />;
-  }
+  // Maintenance mode - uncomment to enable
+  // if (!isLocalhost) {
+  //   return <Maintenance />;
+  // }
 
   return loginContent;
 }

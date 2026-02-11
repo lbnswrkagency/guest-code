@@ -14,8 +14,6 @@ const LineUp = require("../models/lineupModel");
 const CoHostRelationship = require("../models/coHostRelationshipModel");
 const { resolvePermissions, normalizePermissions } = require("../utils/permissionResolver");
 
-const DEBUG_LOGIN = process.env.NODE_ENV !== 'production';
-
 // Token generation with different expiration times
 const generateAccessToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET, {
@@ -546,84 +544,6 @@ exports.login = async (req, res) => {
       lineups: allLineUps,
       coHostedEvents: allCoHostedEvents,
     };
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // LOGIN SUMMARY - Grouped console logs for debugging
-    // ═══════════════════════════════════════════════════════════════════════════
-    if (DEBUG_LOGIN) {
-      console.log('\n╔══════════════════════════════════════════════════════════════╗');
-      console.log('║                    LOGIN SUMMARY                              ║');
-      console.log('╚══════════════════════════════════════════════════════════════╝');
-      console.log(`👤 User: ${user.username} (${user.email})`);
-
-      // GROUP 1: Own Brands
-      console.log('\n📦 MY BRANDS:');
-      userBrands.forEach(brand => {
-        const roleId = userRoles[brand._id.toString()];
-        const role = allRoles.find(r => r._id.toString() === roleId);
-        const brandEvents = allEvents.filter(e => e.brand === brand._id.toString());
-
-        console.log(`\n  ┌─ ${brand.name}`);
-        console.log(`  │  Role: ${role?.name || 'None'} ${role?.isFounder ? '👑' : ''}`);
-        console.log(`  │  Events: ${brandEvents.length}`);
-
-        // Code settings for this brand (unique names)
-        const brandCodes = allCodeSettings.filter(cs =>
-          brandEvents.some(e => e._id.toString() === cs.eventId)
-        );
-        const uniqueCodes = [...new Set(brandCodes.map(c => c.name))];
-        console.log(`  │  Codes: ${uniqueCodes.join(', ') || 'None'}`);
-
-        // Permissions from role
-        if (role?.permissions?.codes) {
-          const codePerms = Object.entries(role.permissions.codes || {});
-          if (codePerms.length > 0) {
-            console.log(`  │  Code Permissions:`);
-            codePerms.forEach(([codeName, perm]) => {
-              if (perm) {
-                const status = perm.generate ? '✅' : '❌';
-                const limit = perm.unlimited ? '∞' : (perm.limit || 0);
-                console.log(`  │    ${status} ${codeName}: limit ${limit}`);
-              }
-            });
-          }
-        }
-        console.log(`  └─`);
-      });
-
-      // GROUP 2: Co-Host Relationships (one entry per host brand with global permissions)
-      if (allCoHostedEvents.length > 0) {
-        console.log('\n🤝 CO-HOST RELATIONSHIPS (Global Permissions):');
-
-        // allCoHostedEvents is now an array of relationships, not individual events
-        allCoHostedEvents.forEach((relationship) => {
-          const hostBrandName = relationship.hostBrand?.name || 'Unknown Host';
-          const coHostBrandName = relationship.coHostBrand?.name || 'Unknown';
-          const myRole = relationship.userRole?.name || 'None';
-          const perms = relationship.permissions;
-          const eventCount = relationship.events?.length || 0;
-
-          console.log(`\n  ┌─ ${hostBrandName} (${eventCount} event${eventCount > 1 ? 's' : ''})`);
-          console.log(`  │  As: ${coHostBrandName} → Role: ${myRole}`);
-          console.log(`  │  Host Codes: ${relationship.codeSettings?.map(c => c.name).join(', ') || 'None'}`);
-
-          if (perms?.codes && Object.keys(perms.codes).length > 0) {
-            console.log(`  │  My Permissions (Global):`);
-            Object.entries(perms.codes).forEach(([codeId, perm]) => {
-              const codeName = relationship.codeSettings?.find(c => (c._id?.toString?.() || c._id) === codeId)?.name || codeId;
-              const status = perm.generate ? '✅' : '❌';
-              const limit = perm.unlimited ? '∞' : (perm.limit || 0);
-              console.log(`  │    ${status} ${codeName}: limit ${limit}`);
-            });
-          } else {
-            console.log(`  │  My Permissions: None set`);
-          }
-          console.log(`  └─`);
-        });
-      }
-
-      console.log('\n════════════════════════════════════════════════════════════════\n');
-    }
 
     res.json({
       user: userData,

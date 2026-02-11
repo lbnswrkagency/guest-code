@@ -98,7 +98,7 @@ const DashboardMenu = ({
               // Backend now normalizes all permissions to plain objects (no Map conversion needed)
               if (effectivePermissions.codes) {
                 return Object.values(effectivePermissions.codes).some(
-                  (p) => p && p.generate === true
+                  (p) => p && p.generate === true,
                 );
               }
               return accessSummary.canCreateCodes || false;
@@ -110,17 +110,6 @@ const DashboardMenu = ({
             permissions: codePermissions || [],
           },
         };
-
-        console.log(`[DashboardMenu] Permissions calculated:`);
-        console.log(`  effectivePermissions provided:`, !!effectivePermissions);
-        console.log(`  codes.canGenerateAny:`, calculatedPermissions?.codes?.canGenerateAny);
-        console.log(`  codeSettings count:`, codeSettings?.length);
-        console.log(`  codePermissions count:`, codePermissions?.length);
-        if (effectivePermissions?.codes) {
-          Object.entries(effectivePermissions.codes).forEach(([key, perm]) => {
-            console.log(`  [CodePerm] ${key} → generate: ${perm?.generate}, limit: ${perm?.limit}, unlimited: ${perm?.unlimited}`);
-          });
-        }
 
         setPermissions(calculatedPermissions);
         return;

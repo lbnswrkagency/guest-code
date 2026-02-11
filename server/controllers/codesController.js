@@ -1402,13 +1402,8 @@ const getEventUserCodes = async (req, res) => {
       query.codeSettingId = { $in: objectIdSettingIds };
     }
 
-    // Debug logging for troubleshooting
-    console.log('[getEventUserCodes] Query:', JSON.stringify(query, null, 2));
-
     // Get all codes matching the query
     const codes = await Code.find(query).sort({ createdAt: -1 });
-
-    console.log(`[getEventUserCodes] Found ${codes.length} codes for user ${userId}`);
 
     // Group codes by codeSettingId
     const codesBySettingId = {};

@@ -28,7 +28,7 @@ const DashboardHeader = ({
   const [dateDropdown, setDateDropdown] = useState(false);
   const [showEventsPopup, setShowEventsPopup] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(
-    propSelectedBrand || brands?.[0] || null
+    propSelectedBrand || brands?.[0] || null,
   );
   const [selectedDate, setSelectedDate] = useState(propSelectedDate || null);
   const [currentUser, setCurrentUser] = useState(user);
@@ -39,46 +39,49 @@ const DashboardHeader = ({
   const [lastFetchedBrandId, setLastFetchedBrandId] = useState(null);
 
   // Fetch fresh events data from API when brand changes
-  const fetchFreshEvents = useCallback(async (brandId) => {
-    if (!brandId) return;
+  const fetchFreshEvents = useCallback(
+    async (brandId) => {
+      if (!brandId) return;
 
-    // Skip if we already fetched for this brand
-    if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
-      return;
-    }
+      // Skip if we already fetched for this brand
+      if (brandId === lastFetchedBrandId && freshEvents.length > 0) {
+        return;
+      }
 
-    setIsLoadingEvents(true);
+      setIsLoadingEvents(true);
 
-    try {
-      const response = await axiosInstance.get(
-        `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`
-      );
-
-      if (response.data?.success && response.data?.data?.events) {
-        const events = response.data.data.events;
-        setFreshEvents(events);
-        setLastFetchedBrandId(brandId);
-      } else {
-        // Fallback: try the brand events endpoint
-        const fallbackResponse = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`
+      try {
+        const response = await axiosInstance.get(
+          `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`,
         );
 
-        if (Array.isArray(fallbackResponse.data)) {
-          setFreshEvents(fallbackResponse.data);
+        if (response.data?.success && response.data?.data?.events) {
+          const events = response.data.data.events;
+          setFreshEvents(events);
           setLastFetchedBrandId(brandId);
         } else {
-          // Fall back to Redux events if API fails
-          setFreshEvents(selectedBrand?.events || []);
+          // Fallback: try the brand events endpoint
+          const fallbackResponse = await axiosInstance.get(
+            `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`,
+          );
+
+          if (Array.isArray(fallbackResponse.data)) {
+            setFreshEvents(fallbackResponse.data);
+            setLastFetchedBrandId(brandId);
+          } else {
+            // Fall back to Redux events if API fails
+            setFreshEvents(selectedBrand?.events || []);
+          }
         }
+      } catch (err) {
+        // Fall back to Redux events on error
+        setFreshEvents(selectedBrand?.events || []);
+      } finally {
+        setIsLoadingEvents(false);
       }
-    } catch (err) {
-      // Fall back to Redux events on error
-      setFreshEvents(selectedBrand?.events || []);
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, [lastFetchedBrandId, freshEvents.length, selectedBrand?.events]);
+    },
+    [lastFetchedBrandId, freshEvents.length, selectedBrand?.events],
+  );
 
   // Fetch fresh events when brand changes
   useEffect(() => {
@@ -88,7 +91,8 @@ const DashboardHeader = ({
   }, [selectedBrand?._id, fetchFreshEvents]);
 
   // Use fresh events if available, otherwise fall back to Redux events
-  const eventsForDropdown = freshEvents.length > 0 ? freshEvents : (selectedBrand?.events || []);
+  const eventsForDropdown =
+    freshEvents.length > 0 ? freshEvents : selectedBrand?.events || [];
 
   // Update local state when props change
   useEffect(() => {
@@ -127,7 +131,6 @@ const DashboardHeader = ({
     }
   }, [brands, selectedBrand, propSetSelectedBrand]);
 
-
   // Update currentUser when user prop changes
   useEffect(() => {
     setCurrentUser(user);
@@ -147,9 +150,6 @@ const DashboardHeader = ({
 
   // Handle brand selection
   const handleSelectBrand = (brand) => {
-    console.log(`[DashboardHeader] Brand selected:`, brand.name, brand._id);
-    console.log(`[DashboardHeader] Role:`, brand.role?.name, `isFounder:`, brand.role?.isFounder);
-    console.log(`[DashboardHeader] Events count:`, brand.events?.length);
     setSelectedBrand(brand);
     setBrandDropdown(false);
 
@@ -168,15 +168,17 @@ const DashboardHeader = ({
   // Handle date selection
   const handleSelectDate = (date) => {
     const allEvents = selectedBrand?.events || [];
-    const matchingEvents = allEvents.filter(e => {
+    const matchingEvents = allEvents.filter((e) => {
       if (!e.startDate) return false;
       return new Date(e.startDate).toISOString().split("T")[0] === date;
     });
 
     console.log(`[DashboardHeader] Date selected:`, date);
     console.log(`[DashboardHeader] Matching events:`, matchingEvents.length);
-    matchingEvents.forEach(e => {
-      console.log(`  [Event] ${e.title} | isCoHosted: ${!!e.coHostBrandInfo} | codeSettings: ${e.codeSettings?.length || 0}`);
+    matchingEvents.forEach((e) => {
+      console.log(
+        `  [Event] ${e.title} | isCoHosted: ${!!e.coHostBrandInfo} | codeSettings: ${e.codeSettings?.length || 0}`,
+      );
     });
 
     setSelectedDate(date);
@@ -473,14 +475,17 @@ const DashboardHeader = ({
                   });
 
                   // Create cutoff time: current time - 12 hours for past events
-                  const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+                  const twelveHoursAgo = new Date(
+                    now.getTime() - 12 * 60 * 60 * 1000,
+                  );
 
                   // Separate past and active/future events based on end dates + 12 hour buffer
                   const pastDates = uniqueDates.filter((item) => {
                     // Find all events for this date
                     const dateEvents = eventsWithEndDates.filter(
                       (e) =>
-                        e.startDate.toISOString().split("T")[0] === item.dateStr
+                        e.startDate.toISOString().split("T")[0] ===
+                        item.dateStr,
                     );
 
                     // Date is considered past only if ALL events on that date have ended + 12 hours buffer
@@ -491,7 +496,8 @@ const DashboardHeader = ({
                     // Find all events for this date
                     const dateEvents = eventsWithEndDates.filter(
                       (e) =>
-                        e.startDate.toISOString().split("T")[0] === item.dateStr
+                        e.startDate.toISOString().split("T")[0] ===
+                        item.dateStr,
                     );
 
                     // Date is active/future if ANY event on that date has not exceeded endDate + 12 hours
@@ -501,41 +507,47 @@ const DashboardHeader = ({
                   // Don't show any past dates - only show active/future dates
                   const limitedActiveFutureDates = activeFutureDates.slice(
                     0,
-                    4
+                    4,
                   );
 
                   // Only return active/future dates
-                  return limitedActiveFutureDates.map(
-                    (item) => {
-                      // Check if this date has any co-hosted events
-                      const dateEvents = eventsWithEndDates.filter(
-                        (e) => e.startDate.toISOString().split("T")[0] === item.dateStr
-                      );
-                      const hasCoHostedEvents = dateEvents.some(e => e.event.coHostBrandInfo);
-                      const isOnlyCoHosted = dateEvents.length > 0 && dateEvents.every(e => e.event.coHostBrandInfo);
+                  return limitedActiveFutureDates.map((item) => {
+                    // Check if this date has any co-hosted events
+                    const dateEvents = eventsWithEndDates.filter(
+                      (e) =>
+                        e.startDate.toISOString().split("T")[0] ===
+                        item.dateStr,
+                    );
+                    const hasCoHostedEvents = dateEvents.some(
+                      (e) => e.event.coHostBrandInfo,
+                    );
+                    const isOnlyCoHosted =
+                      dateEvents.length > 0 &&
+                      dateEvents.every((e) => e.event.coHostBrandInfo);
 
-                      return (
-                        <div
-                          key={item.dateStr}
-                          className={`dashboardHeader-date-options-option ${
-                            selectedDate === item.dateStr
-                              ? "dashboardHeader-date-options-option-selected"
-                              : ""
-                          } ${isOnlyCoHosted ? "co-hosted-only" : hasCoHostedEvents ? "has-co-hosted" : ""}`}
-                          onClick={() => handleSelectDate(item.dateStr)}
-                        >
-                          <span className="date-text">
-                            {item.date.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                          {isOnlyCoHosted && <span className="co-host-indicator">Co-hosting</span>}
-                        </div>
-                      );
-                    }
-                  );
+                    return (
+                      <div
+                        key={item.dateStr}
+                        className={`dashboardHeader-date-options-option ${
+                          selectedDate === item.dateStr
+                            ? "dashboardHeader-date-options-option-selected"
+                            : ""
+                        } ${isOnlyCoHosted ? "co-hosted-only" : hasCoHostedEvents ? "has-co-hosted" : ""}`}
+                        onClick={() => handleSelectDate(item.dateStr)}
+                      >
+                        <span className="date-text">
+                          {item.date.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                        {isOnlyCoHosted && (
+                          <span className="co-host-indicator">Co-hosting</span>
+                        )}
+                      </div>
+                    );
+                  });
                 })()
               ) : (
                 <div className="dashboardHeader-date-options-empty">
