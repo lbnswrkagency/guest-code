@@ -666,13 +666,15 @@ const validateTicket = async (req, res) => {
             );
 
             if (isCoHost) {
-              // Check co-host permissions for this brand/role combination
-              const coHostPermissions = event.coHostRolePermissions || [];
-              const brandPermissions = coHostPermissions.find(
-                cp => cp.brandId.toString() === userBrand._id.toString()
-              );
+              // Look up permissions from CoHostRelationship model (new unified system)
+              const CoHostRelationship = require("../models/coHostRelationshipModel");
+              const relationship = await CoHostRelationship.findOne({
+                hostBrand: event.brand._id || event.brand,
+                coHostBrand: userBrand._id,
+                isActive: true
+              });
 
-              if (brandPermissions) {
+              if (relationship && relationship.rolePermissions) {
                 // Find the user's role in this co-host brand
                 const userRoleInCoHostBrand = userBrand.team?.find(
                   member => member.user.toString() === req.user.userId.toString()
@@ -686,21 +688,18 @@ const validateTicket = async (req, res) => {
                   let rolePermission;
                   if (isCoHostBrandOwner) {
                     // Owners get the permissions of any admin role with scanner access
-                    rolePermission = brandPermissions.rolePermissions.find(rp => {
-                      return rp.permissions && rp.permissions.scanner && rp.permissions.scanner.use === true;
-                    });
+                    rolePermission = relationship.rolePermissions.find(rp =>
+                      rp.permissions?.scanner?.use === true
+                    );
                   } else {
-                    rolePermission = brandPermissions.rolePermissions.find(
+                    rolePermission = relationship.rolePermissions.find(
                       rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
                     );
                   }
 
-                  if (rolePermission && rolePermission.permissions && rolePermission.permissions.scanner) {
-                    hasCoHostPermission = rolePermission.permissions.scanner.use === true;
-                    
-                    if (hasCoHostPermission) {
-                      break; // Found permission, no need to check other brands
-                    }
+                  if (rolePermission?.permissions?.scanner?.use === true) {
+                    hasCoHostPermission = true;
+                    break; // Found permission, no need to check other brands
                   }
                 }
               }
