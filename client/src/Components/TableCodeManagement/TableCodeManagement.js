@@ -16,6 +16,7 @@ function TableCodeManagement({
   selectedEvent,
   counts,
   isLoading: parentIsLoading,
+  effectivePermissions, // Pre-calculated permissions for co-hosted events
 }) {
   const toast = useToast();
   const [codesByCategory, setCodesByCategory] = useState({});
@@ -135,22 +136,23 @@ function TableCodeManagement({
     return [];
   }, [tableCategories]);
 
-  // Calculate table permissions from user roles
+  // Calculate table permissions from user roles or co-host permissions
   const getTablePermissions = () => {
     let hasTableAccess = false;
     let hasTableManage = false;
 
-    // Check if this is a co-hosted event with effective permissions
-    if (selectedEvent?.coHostBrandInfo?.effectivePermissions) {
-      const effectivePermissions = selectedEvent.coHostBrandInfo.effectivePermissions;
-      if (effectivePermissions.tables) {
-        hasTableAccess = effectivePermissions.tables.access === true;
-        hasTableManage = effectivePermissions.tables.manage === true;
-      }
+    // Use effectivePermissions prop first (from Dashboard), then fall back to selectedEvent
+    // This ensures co-host permissions work even if selectedEvent doesn't have coHostBrandInfo
+    const perms = effectivePermissions ||
+                  selectedEvent?.coHostBrandInfo?.effectivePermissions;
+
+    if (perms?.tables) {
+      hasTableAccess = perms.tables.access === true;
+      hasTableManage = perms.tables.manage === true;
     } else {
-      // For regular events, loop through all user roles to check table permissions
+      // Fallback for regular events: check user roles
       userRoles.forEach((role) => {
-        if (role.permissions && role.permissions.tables) {
+        if (role.permissions?.tables) {
           if (role.permissions.tables.access === true) {
             hasTableAccess = true;
           }

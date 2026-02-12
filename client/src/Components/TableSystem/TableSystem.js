@@ -44,6 +44,7 @@ import {
  * @param {Object} props.selectedBrand - Selected brand object
  * @param {boolean} props.isPublic - Whether this is public-facing or admin
  * @param {Object} props.tableData - Pre-fetched table data (optional, for optimization)
+ * @param {Object} props.effectivePermissions - Pre-calculated permissions (for co-hosted events)
  */
 function TableSystem({
   user,
@@ -54,6 +55,7 @@ function TableSystem({
   selectedBrand,
   isPublic = false,
   tableData: providedTableData, // Pre-fetched table data (optional)
+  effectivePermissions, // Pre-calculated permissions for co-hosted events
 }) {
   const toast = useToast();
   const [name, setName] = useState("");
@@ -811,6 +813,7 @@ function TableSystem({
               selectedEvent={selectedEvent}
               counts={tableData}
               isLoading={isLoading}
+              effectivePermissions={effectivePermissions}
             />
           )}
         </div>

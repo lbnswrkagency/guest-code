@@ -110,9 +110,10 @@ const DashboardFeed = ({ selectedBrand, selectedDate, selectedEvent }) => {
       });
 
       if (matchingEvent) {
-        // Preserve co-host metadata from Redux-enriched selectedEvent
-        // The fresh API data doesn't include coHostBrandInfo, so merge it back
-        if (selectedEvent?.coHostBrandInfo) {
+        // Only preserve co-host metadata if this is the SAME event
+        // (prevents stale badge when switching between different dates)
+        if (selectedEvent?.coHostBrandInfo &&
+            selectedEvent._id?.toString() === matchingEvent._id?.toString()) {
           matchingEvent.coHostBrandInfo = selectedEvent.coHostBrandInfo;
           matchingEvent.codeSettings = selectedEvent.codeSettings;
           matchingEvent.coHostBrand = selectedEvent.coHostBrand;

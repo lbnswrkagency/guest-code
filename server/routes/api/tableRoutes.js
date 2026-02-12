@@ -66,6 +66,8 @@ const checkTablePermissions = (requiredPermission) => {
       if (!isTeamMember && !isBrandOwner && !hasRolePermission) {
         // Check if this event has co-hosts and if user's brand is a co-host
         if (event.coHosts && event.coHosts.length > 0) {
+          const CoHostRelationship = require("../../models/coHostRelationshipModel");
+
           // Find all brands where the user is a team member or owner
           const userBrands = await Brand.find({
             $or: [
@@ -81,42 +83,41 @@ const checkTablePermissions = (requiredPermission) => {
             );
 
             if (isCoHost) {
-              // Check co-host permissions for this brand/role combination
-              const coHostPermissions = event.coHostRolePermissions || [];
-              const brandPermissions = coHostPermissions.find(
-                cp => cp.brandId.toString() === userBrand._id.toString()
-              );
+              // Look up permissions from CoHostRelationship model (new unified system)
+              const relationship = await CoHostRelationship.findOne({
+                hostBrand: event.brand._id,
+                coHostBrand: userBrand._id,
+                isActive: true
+              });
 
-              if (brandPermissions) {
+              if (relationship && relationship.rolePermissions) {
                 // Find the user's role in this co-host brand
                 const userRoleInCoHostBrand = userBrand.team?.find(
                   member => member.user.toString() === req.user.userId.toString()
                 )?.role;
 
                 // Check if user is owner of co-host brand
-                const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+                const isCoHostBrandOwner = userBrand.owner &&
+                  userBrand.owner.toString() === req.user.userId.toString();
 
                 if (userRoleInCoHostBrand || isCoHostBrandOwner) {
-                  // Find permissions for this specific role (or use owner permissions)
                   let rolePermission;
+
                   if (isCoHostBrandOwner) {
-                    // Owners get the permissions of any admin role
-                    rolePermission = brandPermissions.rolePermissions.find(rp => {
-                      // Find a role with table permissions
-                      return rp.permissions && rp.permissions.tables && 
-                             (rp.permissions.tables.manage === true || rp.permissions.tables.access === true);
-                    });
+                    // Owners get the permissions of any admin role with table access
+                    rolePermission = relationship.rolePermissions.find(rp =>
+                      rp.permissions?.tables?.[requiredPermission] === true
+                    );
                   } else {
-                    rolePermission = brandPermissions.rolePermissions.find(
+                    // Find permissions for user's specific role
+                    rolePermission = relationship.rolePermissions.find(
                       rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
                     );
                   }
 
-                  if (rolePermission && rolePermission.permissions && rolePermission.permissions.tables) {
-                    hasCoHostPermission = rolePermission.permissions.tables[requiredPermission] === true;
-                    if (hasCoHostPermission) {
-                      break; // Found permission, no need to check other brands
-                    }
+                  if (rolePermission?.permissions?.tables?.[requiredPermission] === true) {
+                    hasCoHostPermission = true;
+                    break; // Found permission, no need to check other brands
                   }
                 }
               }
@@ -212,6 +213,8 @@ const checkTablePermissionsForCode = (requiredPermission) => {
       if (!isTeamMember && !isBrandOwner && !hasRolePermission) {
         // Check if this event has co-hosts and if user's brand is a co-host
         if (event.coHosts && event.coHosts.length > 0) {
+          const CoHostRelationship = require("../../models/coHostRelationshipModel");
+
           // Find all brands where the user is a team member or owner
           const userBrands = await Brand.find({
             $or: [
@@ -227,42 +230,41 @@ const checkTablePermissionsForCode = (requiredPermission) => {
             );
 
             if (isCoHost) {
-              // Check co-host permissions for this brand/role combination
-              const coHostPermissions = event.coHostRolePermissions || [];
-              const brandPermissions = coHostPermissions.find(
-                cp => cp.brandId.toString() === userBrand._id.toString()
-              );
+              // Look up permissions from CoHostRelationship model (new unified system)
+              const relationship = await CoHostRelationship.findOne({
+                hostBrand: event.brand._id,
+                coHostBrand: userBrand._id,
+                isActive: true
+              });
 
-              if (brandPermissions) {
+              if (relationship && relationship.rolePermissions) {
                 // Find the user's role in this co-host brand
                 const userRoleInCoHostBrand = userBrand.team?.find(
                   member => member.user.toString() === req.user.userId.toString()
                 )?.role;
 
                 // Check if user is owner of co-host brand
-                const isCoHostBrandOwner = userBrand.owner && userBrand.owner.toString() === req.user.userId.toString();
+                const isCoHostBrandOwner = userBrand.owner &&
+                  userBrand.owner.toString() === req.user.userId.toString();
 
                 if (userRoleInCoHostBrand || isCoHostBrandOwner) {
-                  // Find permissions for this specific role (or use owner permissions)
                   let rolePermission;
+
                   if (isCoHostBrandOwner) {
-                    // Owners get the permissions of any admin role
-                    rolePermission = brandPermissions.rolePermissions.find(rp => {
-                      // Find a role with table permissions
-                      return rp.permissions && rp.permissions.tables && 
-                             (rp.permissions.tables.manage === true || rp.permissions.tables.access === true);
-                    });
+                    // Owners get the permissions of any admin role with table access
+                    rolePermission = relationship.rolePermissions.find(rp =>
+                      rp.permissions?.tables?.[requiredPermission] === true
+                    );
                   } else {
-                    rolePermission = brandPermissions.rolePermissions.find(
+                    // Find permissions for user's specific role
+                    rolePermission = relationship.rolePermissions.find(
                       rp => rp.roleId.toString() === userRoleInCoHostBrand.toString()
                     );
                   }
 
-                  if (rolePermission && rolePermission.permissions && rolePermission.permissions.tables) {
-                    hasCoHostPermission = rolePermission.permissions.tables[requiredPermission] === true;
-                    if (hasCoHostPermission) {
-                      break; // Found permission, no need to check other brands
-                    }
+                  if (rolePermission?.permissions?.tables?.[requiredPermission] === true) {
+                    hasCoHostPermission = true;
+                    break; // Found permission, no need to check other brands
                   }
                 }
               }

@@ -831,6 +831,7 @@ const Dashboard = () => {
             }}
             selectedEvent={selectedEvent}
             selectedBrand={selectedBrand}
+            effectivePermissions={getUserRolePermissions()}
           />
         ) : showSpitixBattle ? (
           <SpitixBattle
