@@ -40,7 +40,10 @@
       "Bash(brew upgrade:*)",
       "Bash(brew reinstall:*)",
       "WebSearch",
-      "WebFetch(domain:docs.invoicemaker.gr)"
+      "WebFetch(domain:docs.invoicemaker.gr)",
+      "Bash(npm install:*)",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_text_file"
     ],
     "deny": []
   }

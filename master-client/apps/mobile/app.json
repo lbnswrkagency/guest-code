@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "GuestCode",
+    "slug": "guestcode",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "guestcode",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.guestcode.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.guestcode.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

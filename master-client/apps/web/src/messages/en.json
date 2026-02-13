@@ -1,0 +1,25 @@
+{
+  "header": {
+    "search": "Search",
+    "login": "Login"
+  },
+  "home": {
+    "title": "Upcoming Events",
+    "noEvents": "No upcoming events right now",
+    "loadMore": "Load more",
+    "allGenres": "All"
+  },
+  "event": {
+    "at": "at",
+    "free": "Free",
+    "today": "Today",
+    "tomorrow": "Tomorrow"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "footer": {
+    "rights": "All rights reserved"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "header": {
+    "search": "Buscar",
+    "login": "Iniciar sesión"
+  },
+  "home": {
+    "title": "Próximos Eventos",
+    "noEvents": "No hay eventos próximos en este momento",
+    "loadMore": "Cargar más",
+    "allGenres": "Todos"
+  },
+  "event": {
+    "at": "en",
+    "free": "Gratis",
+    "today": "Hoy",
+    "tomorrow": "Mañana"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "footer": {
+    "rights": "Todos los derechos reservados"
+  }
+}

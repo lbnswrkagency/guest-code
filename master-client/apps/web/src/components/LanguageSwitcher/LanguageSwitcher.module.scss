@@ -1,0 +1,28 @@
+.select {
+  appearance: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-gold);
+  }
+
+  option {
+    background: var(--bg-card);
+    color: var(--text);
+  }
+}
