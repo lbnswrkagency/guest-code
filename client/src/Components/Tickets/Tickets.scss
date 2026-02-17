@@ -153,27 +153,65 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   color: var(--text-color);
 }
 
-// Door Price Hint - Small subtle badge below title
+// Door Price Hint - Clean, prominent display of door price
 .door-price-hint {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
   margin: 0 auto 1rem;
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
 
-  .door-price-value {
-    color: rgba(255, 255, 255, 0.5);
-    text-decoration: line-through;
+  .door-icon {
+    font-size: 16px;
+    opacity: 0.7;
   }
 
-  .door-price-savings {
-    color: #4ade80;
+  .door-price-label {
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .door-price-value {
+    font-weight: 700;
+    font-size: 16px;
+    // Color is set dynamically via inline style
+  }
+}
+
+// Global Offline Countdown - displayed above all tickets on event day
+.offline-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto 1.25rem;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  animation: subtle-float 3s ease-in-out infinite;
+
+  .countdown-icon {
+    font-size: 18px;
+  }
+
+  .countdown-text {
+    strong {
+      font-weight: 700;
+    }
+  }
+
+  .countdown-urgent {
+    color: #ff6b6b;
+    animation: pulse 1s ease-in-out infinite;
   }
 }
 

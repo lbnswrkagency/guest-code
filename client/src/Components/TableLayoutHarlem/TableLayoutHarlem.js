@@ -25,20 +25,20 @@ const TableLayoutHarlem = ({
   // Table configuration with minimum spend and max persons - Harlem layout
   const tableConfig = {
     // V tables (VIP area) - €300 minimum, 6-8 persons max
-    V1: { minSpend: 300, maxPersons: 8, category: "V" },
-    V2: { minSpend: 300, maxPersons: 8, category: "V" },
-    V3: { minSpend: 300, maxPersons: 8, category: "V" },
-    V4: { minSpend: 300, maxPersons: 8, category: "V" },
-    V5: { minSpend: 300, maxPersons: 8, category: "V" },
-    V6: { minSpend: 300, maxPersons: 8, category: "V" },
-    V7: { minSpend: 300, maxPersons: 8, category: "V" },
-    V8: { minSpend: 300, maxPersons: 8, category: "V" },
-    V9: { minSpend: 300, maxPersons: 8, category: "V" },
-    V10: { minSpend: 300, maxPersons: 8, category: "V" },
-    V11: { minSpend: 300, maxPersons: 8, category: "V" },
-    V12: { minSpend: 300, maxPersons: 8, category: "V" },
-    V13: { minSpend: 300, maxPersons: 8, category: "V" },
-    V14: { minSpend: 300, maxPersons: 8, category: "V" },
+    V1: { minSpend: 160, maxPersons: 8, category: "V" },
+    V2: { minSpend: 160, maxPersons: 8, category: "V" },
+    V3: { minSpend: 160, maxPersons: 8, category: "V" },
+    V4: { minSpend: 160, maxPersons: 8, category: "V" },
+    V5: { minSpend: 160, maxPersons: 8, category: "V" },
+    V6: { minSpend: 160, maxPersons: 8, category: "V" },
+    V7: { minSpend: 160, maxPersons: 8, category: "V" },
+    V8: { minSpend: 160, maxPersons: 8, category: "V" },
+    V9: { minSpend: 160, maxPersons: 8, category: "V" },
+    V10: { minSpend: 160, maxPersons: 8, category: "V" },
+    V11: { minSpend: 160, maxPersons: 8, category: "V" },
+    V12: { minSpend: 160, maxPersons: 8, category: "V" },
+    V13: { minSpend: 160, maxPersons: 8, category: "V" },
+    V14: { minSpend: 160, maxPersons: 8, category: "V" },
 
     // VS tables (VIP Standing) - €160 minimum, 6 persons max
     VS1: { minSpend: 160, maxPersons: 6, category: "VS" },
@@ -61,25 +61,25 @@ const TableLayoutHarlem = ({
     S13: { minSpend: 120, maxPersons: 6, category: "S" },
 
     // B tables (Backstage) - €500 minimum, 8 persons max
-    B0: { minSpend: 500, maxPersons: 8, category: "B" },
-    B1: { minSpend: 500, maxPersons: 8, category: "B" },
-    B2: { minSpend: 500, maxPersons: 8, category: "B" },
-    B3: { minSpend: 500, maxPersons: 8, category: "B" },
-    B4: { minSpend: 500, maxPersons: 8, category: "B" },
-    B5: { minSpend: 500, maxPersons: 8, category: "B" },
-    B6: { minSpend: 500, maxPersons: 8, category: "B" },
-    B7: { minSpend: 500, maxPersons: 8, category: "B" },
-    B8: { minSpend: 500, maxPersons: 8, category: "B" },
-    B9: { minSpend: 500, maxPersons: 8, category: "B" },
+    B0: { minSpend: 320, maxPersons: 8, category: "B" },
+    B1: { minSpend: 320, maxPersons: 8, category: "B" },
+    B2: { minSpend: 320, maxPersons: 8, category: "B" },
+    B3: { minSpend: 320, maxPersons: 8, category: "B" },
+    B4: { minSpend: 320, maxPersons: 8, category: "B" },
+    B5: { minSpend: 320, maxPersons: 8, category: "B" },
+    B6: { minSpend: 320, maxPersons: 8, category: "B" },
+    B7: { minSpend: 320, maxPersons: 8, category: "B" },
+    B8: { minSpend: 320, maxPersons: 8, category: "B" },
+    B9: { minSpend: 320, maxPersons: 8, category: "B" },
 
     // D tables (Standing Backstage) - €300 minimum, 4 persons max
     D1: { minSpend: 300, maxPersons: 4, category: "D" },
     D2: { minSpend: 300, maxPersons: 4, category: "D" },
 
     // E tables (Exclusive Backstage) - €1000 minimum, 10 persons max
-    E1: { minSpend: 1000, maxPersons: 10, category: "E" },
-    E2: { minSpend: 1000, maxPersons: 10, category: "E" },
-    E3: { minSpend: 1000, maxPersons: 10, category: "E" },
+    E1: { minSpend: 500, maxPersons: 10, category: "E" },
+    E2: { minSpend: 500, maxPersons: 10, category: "E" },
+    E3: { minSpend: 500, maxPersons: 10, category: "E" },
   };
 
   // Categorize tables for the parent components to use
@@ -103,7 +103,21 @@ const TableLayoutHarlem = ({
       "VS2",
       "VS3",
     ],
-    standing: ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13"],
+    standing: [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S12",
+      "S13",
+    ],
     backstage: [
       "B0",
       "B1",
@@ -182,7 +196,7 @@ const TableLayoutHarlem = ({
       (code) =>
         (code.table === table || code.tableNumber === table) &&
         code.status !== "declined" &&
-        code.status !== "cancelled"
+        code.status !== "cancelled",
     );
 
   // Pass configuration to parent component only once

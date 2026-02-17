@@ -1,0 +1,175 @@
+@use '../../styles/variables' as *;
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    border-color: rgba(212, 175, 55, 0.2);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+// Flyer
+.flyerWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--bg-muted);
+  overflow: hidden;
+}
+
+.flyerImg {
+  object-fit: cover;
+  transition: transform 0.4s ease;
+
+  .card:hover & {
+    transform: scale(1.02);
+  }
+}
+
+.flyerPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-muted) 100%);
+}
+
+.placeholderText {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+// Date badge
+.dateBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-gold);
+  color: #000;
+  min-width: 44px;
+}
+
+.dateDay {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dateMonth {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+// Info section
+.info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.time {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gold);
+  letter-spacing: 0.3px;
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+
+  svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+}
+
+// Genre tags
+.genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.genreTag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+// Divider
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+// Brand footer
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brandLogo {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.brandLogoPlaceholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.brandName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}

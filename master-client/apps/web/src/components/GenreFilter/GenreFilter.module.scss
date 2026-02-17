@@ -1,0 +1,53 @@
+@use '../../styles/variables' as *;
+
+.wrapper {
+  padding: 0 16px;
+  max-width: 600px;
+  margin: 0 auto;
+
+  @include mq(tablet) {
+    max-width: 700px;
+  }
+
+  @include mq(laptop) {
+    max-width: 800px;
+  }
+}
+
+.scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-primary);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-gold);
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--color-gold);
+    color: #000;
+    border-color: var(--color-gold);
+    font-weight: 600;
+  }
+}

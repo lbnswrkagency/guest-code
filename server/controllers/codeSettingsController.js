@@ -47,10 +47,14 @@ const getCodeSettingsByBrand = async (req, res) => {
     // Remove duplicate event IDs
     const uniqueEventIds = [...new Set(eventIds)];
 
-    // Find all code settings for these events (only NEW codes with createdBy)
+    // Find all code settings for these events
+    // Include NEW codes (with createdBy) and guest codes (for backwards compatibility)
     const codeSettings = await CodeSettings.find({
       eventId: { $in: uniqueEventIds },
-      createdBy: { $type: "objectId" },  // Only NEW codes
+      $or: [
+        { createdBy: { $type: "objectId" } },  // NEW codes with createdBy
+        { type: "guest" }  // Always include guest codes (backwards compatibility)
+      ]
     });
 
     // Add the unlimited field to each code setting before sending
@@ -115,10 +119,14 @@ const getCodeSettings = async (req, res) => {
       }
     }
 
-    // Get all code settings for this event (or its parent) - only NEW codes
+    // Get all code settings for this event (or its parent)
+    // Include NEW codes (with createdBy) and guest codes (for backwards compatibility)
     const allCodeSettings = await CodeSettings.find({
       eventId: parentEventId,
-      createdBy: { $type: "objectId" },  // Only NEW codes
+      $or: [
+        { createdBy: { $type: "objectId" } },  // NEW codes with createdBy
+        { type: "guest" }  // Always include guest codes (backwards compatibility)
+      ]
     });
 
     // Check for any potential duplicate types before returning
@@ -292,6 +300,14 @@ const configureCodeSettings = async (req, res) => {
           return res.status(404).json({ message: "Code setting not found" });
         }
       } else {
+        // Backfill required fields for legacy codes that don't have them
+        if (!codeSetting.createdBy) {
+          codeSetting.createdBy = userId;
+        }
+        if (!codeSetting.brandId && event.brand) {
+          codeSetting.brandId = event.brand;
+        }
+
         // Update the code setting
         if (name !== undefined && codeSetting.isEditable) {
           codeSetting.name = name;
@@ -352,6 +368,14 @@ const configureCodeSettings = async (req, res) => {
           requirePhone: requirePhone !== undefined ? requirePhone : false,
         });
       } else {
+        // Backfill required fields for legacy codes that don't have them
+        if (!codeSetting.createdBy) {
+          codeSetting.createdBy = userId;
+        }
+        if (!codeSetting.brandId && event.brand) {
+          codeSetting.brandId = event.brand;
+        }
+
         // Update existing setting
         if (name !== undefined && codeSetting.isEditable) {
           codeSetting.name = name;
@@ -381,7 +405,7 @@ const configureCodeSettings = async (req, res) => {
       event.guestCode = codeSetting.isEnabled;
 
       // If this is a child event, update the parent event's legacy fields too
-      if (parentEventId !== eventId.toString()) {
+      if (parentEventId.toString() !== eventId.toString()) {
         const parentEvent = await Event.findById(parentEventId);
         if (parentEvent) {
           parentEvent.guestCode = codeSetting.isEnabled;
@@ -432,10 +456,14 @@ const configureCodeSettings = async (req, res) => {
       }
     }
 
-    // Get all code settings for this event to return (only NEW codes)
+    // Get all code settings for this event to return
+    // Include NEW codes (with createdBy) and guest codes (for backwards compatibility)
     const allCodeSettings = await CodeSettings.find({
       eventId: parentEventId,
-      createdBy: { $type: "objectId" },  // Only NEW codes
+      $or: [
+        { createdBy: { $type: "objectId" } },  // NEW codes with createdBy
+        { type: "guest" }  // Always include guest codes (backwards compatibility)
+      ]
     });
 
     // Check for any potential duplicate types before returning
@@ -555,10 +583,14 @@ const deleteCodeSetting = async (req, res) => {
     // Delete the code setting
     await CodeSettings.findByIdAndDelete(codeSettingId);
 
-    // Get all remaining code settings (only NEW codes)
+    // Get all remaining code settings
+    // Include NEW codes (with createdBy) and guest codes (for backwards compatibility)
     const codeSettings = await CodeSettings.find({
       eventId: parentEventId,
-      createdBy: { $type: "objectId" },  // Only NEW codes
+      $or: [
+        { createdBy: { $type: "objectId" } },  // NEW codes with createdBy
+        { type: "guest" }  // Always include guest codes (backwards compatibility)
+      ]
     });
 
     return res.status(200).json({
@@ -574,12 +606,16 @@ const deleteCodeSetting = async (req, res) => {
 // Only creates guest code - all other code types are dynamically created by hosts
 const initializeDefaultSettings = async (eventId, brandId = null) => {
   try {
-    // If brandId not provided, get it from the event
+    // Always fetch the event to get both brandId and user (creator)
+    const event = await Event.findById(eventId);
+    if (!event) {
+      console.error("Event not found for initializing default settings:", eventId);
+      return false;
+    }
+
+    // Use provided brandId or get from event
     if (!brandId) {
-      const event = await Event.findById(eventId);
-      if (event) {
-        brandId = event.brand;
-      }
+      brandId = event.brand;
     }
 
     // Check if guest setting already exists
@@ -590,9 +626,17 @@ const initializeDefaultSettings = async (eventId, brandId = null) => {
 
     // If guest setting already exists, no need to create anything
     if (existingGuestSetting) {
-      // Update with brandId if missing (migration support)
+      // Update with brandId and createdBy if missing (migration support)
+      let needsSave = false;
       if (!existingGuestSetting.brandId && brandId) {
         existingGuestSetting.brandId = brandId;
+        needsSave = true;
+      }
+      if (!existingGuestSetting.createdBy && event.user) {
+        existingGuestSetting.createdBy = event.user;
+        needsSave = true;
+      }
+      if (needsSave) {
         await existingGuestSetting.save();
       }
       // Backfill brandId on ALL legacy codes for this event
@@ -609,6 +653,7 @@ const initializeDefaultSettings = async (eventId, brandId = null) => {
     const newSetting = new CodeSettings({
       brandId: brandId,
       eventId,
+      createdBy: event.user, // Use event creator as code owner
       name: "Guest Code",
       type: "guest",
       isEnabled: false,
@@ -950,14 +995,24 @@ const getCodesForEvent = async (req, res) => {
     // Get parent event ID if this is a child event
     const parentEventId = await getParentEventId(eventId);
 
-    // Query for both brand-level and event-level codes (only NEW codes)
+    // Query for both brand-level and event-level codes
+    // Include NEW codes (with createdBy) and guest codes (for backwards compatibility)
     const allCodes = await CodeSettings.find({
       brandId: brandId,
-      createdBy: { $type: "objectId" },  // Only NEW codes
-      $or: [
-        { eventId: null, isGlobalForBrand: true }, // Brand-level global codes
-        { eventId: parentEventId }, // Event-specific codes
-      ],
+      $and: [
+        {
+          $or: [
+            { createdBy: { $type: "objectId" } },  // NEW codes with createdBy
+            { type: "guest" }  // Always include guest codes (backwards compatibility)
+          ]
+        },
+        {
+          $or: [
+            { eventId: null, isGlobalForBrand: true }, // Brand-level global codes
+            { eventId: parentEventId }, // Event-specific codes
+          ]
+        }
+      ]
     }).sort({ sortOrder: 1, createdAt: 1 });
 
     // Merge codes: event-level overrides brand-level by name

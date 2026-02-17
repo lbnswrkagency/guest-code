@@ -1,0 +1,25 @@
+{
+  "header": {
+    "search": "Suche",
+    "login": "Anmelden"
+  },
+  "home": {
+    "title": "Kommende Events",
+    "noEvents": "Keine kommenden Events im Moment",
+    "loadMore": "Mehr laden",
+    "allGenres": "Alle"
+  },
+  "event": {
+    "at": "in",
+    "free": "Kostenlos",
+    "today": "Heute",
+    "tomorrow": "Morgen"
+  },
+  "theme": {
+    "light": "Hell",
+    "dark": "Dunkel"
+  },
+  "footer": {
+    "rights": "Alle Rechte vorbehalten"
+  }
+}

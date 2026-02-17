@@ -101,6 +101,9 @@ const Tickets = ({
   // Global door price
   const [globalDoorPrice, setGlobalDoorPrice] = useState(null);
 
+  // Global offline countdown - displayed above all tickets on event day
+  const [offlineCountdown, setOfflineCountdown] = useState(null);
+
   // Effect to get primary color from event code settings or ticketSettings
   useEffect(() => {
     // First try to get color from event.codeSettings
@@ -453,6 +456,90 @@ const Tickets = ({
     return () => clearInterval(interval);
   }, [ticketSettings, calculateRemainingTime]);
 
+  // Get earliest offline time across all tickets - for global countdown
+  const getEarliestOfflineTime = useCallback(() => {
+    if (!ticketSettings || ticketSettings.length === 0 || !event?.startDate) return null;
+
+    const now = new Date();
+    const eventDate = new Date(event.startDate);
+
+    // Check if today is event day
+    const isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
+    if (!isEventDay) return null;
+
+    let earliestTime = null;
+    let earliestMinutes = Infinity;
+
+    ticketSettings.forEach((ticket) => {
+      if (ticket.isOffline) return; // Skip already offline tickets
+
+      let offlineTimeStr = null;
+
+      // Check for custom offline time
+      if (ticket.offlineTime) {
+        offlineTimeStr = ticket.offlineTime;
+      }
+      // Check for goOfflineAtEventStart
+      else if (ticket.goOfflineAtEventStart && event?.startTime) {
+        offlineTimeStr = event.startTime;
+      }
+
+      if (offlineTimeStr) {
+        const [hours, minutes] = offlineTimeStr.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes;
+        if (totalMinutes < earliestMinutes) {
+          earliestMinutes = totalMinutes;
+          earliestTime = offlineTimeStr;
+        }
+      }
+    });
+
+    return earliestTime;
+  }, [ticketSettings, event]);
+
+  // Update global offline countdown every minute on event day
+  useEffect(() => {
+    const updateOfflineCountdown = () => {
+      const earliestTime = getEarliestOfflineTime();
+      if (!earliestTime) {
+        setOfflineCountdown(null);
+        return;
+      }
+
+      const now = new Date();
+      const [hours, minutes] = earliestTime.split(':').map(Number);
+
+      // Create date object for offline time (today)
+      const offlineDate = new Date();
+      offlineDate.setHours(hours, minutes, 0, 0);
+
+      // Calculate remaining time
+      const diff = offlineDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setOfflineCountdown(null);
+        return;
+      }
+
+      const hoursRemaining = Math.floor(diff / (1000 * 60 * 60));
+      const minutesRemaining = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      setOfflineCountdown({
+        hours: hoursRemaining,
+        minutes: minutesRemaining,
+        offlineTime: earliestTime,
+      });
+    };
+
+    // Update immediately
+    updateOfflineCountdown();
+
+    // Update every minute
+    const interval = setInterval(updateOfflineCountdown, 60000);
+
+    return () => clearInterval(interval);
+  }, [getEarliestOfflineTime]);
+
   // Memoize handleQuantityChange to prevent recreation on each render
   const handleQuantityChange = useCallback((ticketId, change) => {
     setTicketQuantities((prev) => ({
@@ -753,7 +840,7 @@ const Tickets = ({
 
         {!ticket.isOffline && renderCountdown(ticket)}
         {!ticket.isOffline && renderLimitedBadge(ticket)}
-        {!ticket.isOffline && renderOfflineDeadline(ticket)}
+        {/* Removed individual offline deadline badge - now shown as global countdown above all tickets */}
         {ticket.paxPerTicket > 1 && (
           <div className="ticket-group-badge">
             <FaUserFriends />
@@ -822,18 +909,10 @@ const Tickets = ({
       primaryColor,
       renderCountdown,
       renderLimitedBadge,
-      renderOfflineDeadline,
       handleQuantityChange,
       formatOfflineTime,
     ]
   );
-
-  // Helper function to calculate discount percentage
-  const calculateDiscountPercentage = (doorPrice, onlinePrice) => {
-    if (!doorPrice || !onlinePrice || doorPrice <= onlinePrice) return null;
-    const discount = ((doorPrice - onlinePrice) / doorPrice) * 100;
-    return Math.round(discount);
-  };
 
   // Render tickets directly without nested containers
   return (
@@ -848,24 +927,37 @@ const Tickets = ({
           </div>
         ) : validatedTickets.length > 0 ? (
           <>
-            {/* Door Price Hint */}
+            {/* Door Price Hint - simplified, showing only door price */}
             {validatedTickets.length > 0 &&
-              validatedTickets[0].doorPrice > 0 &&
-              validatedTickets[0].doorPrice > validatedTickets[0].price && (
-                <div style={{ textAlign: 'center' }}>
-                  <div className="door-price-hint">
-                    <span className="door-price-value">
-                      {validatedTickets[0].doorPrice.toFixed(0)}€ at door
-                    </span>
-                    <span className="door-price-savings">
-                      Save {calculateDiscountPercentage(
-                        validatedTickets[0].doorPrice,
-                        validatedTickets[0].price
-                      )}%
-                    </span>
-                  </div>
+              validatedTickets[0].doorPrice > 0 && (
+                <div className="door-price-hint">
+                  <RiDoorLine className="door-icon" />
+                  <span className="door-price-label">Door Price:</span>
+                  <span className="door-price-value" style={{ color: primaryColor }}>
+                    {validatedTickets[0].doorPrice.toFixed(0)}€
+                  </span>
                 </div>
               )}
+
+            {/* Global Offline Countdown - shown only on event day when there's time left */}
+            {offlineCountdown && (
+              <div className="offline-countdown" style={{ borderColor: primaryColor }}>
+                <RiTimeLine className="countdown-icon" style={{ color: primaryColor }} />
+                {offlineCountdown.hours > 0 ? (
+                  <span className="countdown-text">
+                    Online sales end in <strong>{offlineCountdown.hours}h {offlineCountdown.minutes}m</strong>
+                  </span>
+                ) : offlineCountdown.minutes > 15 ? (
+                  <span className="countdown-text">
+                    Online sales end in <strong>{offlineCountdown.minutes} minutes</strong>
+                  </span>
+                ) : (
+                  <span className="countdown-text countdown-urgent">
+                    Last chance! Only <strong>{offlineCountdown.minutes}m</strong> left to buy online
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="tickets-list">
               {validatedTickets.map(renderTicketItem)}

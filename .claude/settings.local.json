@@ -40,7 +40,8 @@
       "Bash(brew upgrade:*)",
       "Bash(brew reinstall:*)",
       "WebSearch",
-      "WebFetch(domain:docs.invoicemaker.gr)"
+      "WebFetch(domain:docs.invoicemaker.gr)",
+      "Bash(nvm install:*)"
     ],
     "deny": []
   }

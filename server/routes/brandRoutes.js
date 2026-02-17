@@ -100,8 +100,8 @@ router.put("/:brandId/metapixel", brandController.updateBrandMetaPixel);
 router.put("/:brandId/spotify-config", brandController.updateSpotifyConfig);
 
 // User favorite brand management
-router.post("/:brandId/user-favorite", brandController.favoriteUserBrand);
-router.delete("/:brandId/user-favorite", brandController.unfavoriteUserBrand);
-router.get("/user-favorites", brandController.getUserFavoriteBrands);
+router.post("/:brandId/user-favorite", authenticateToken, brandController.favoriteUserBrand);
+router.delete("/:brandId/user-favorite", authenticateToken, brandController.unfavoriteUserBrand);
+router.get("/user-favorites", authenticateToken, brandController.getUserFavoriteBrands);
 
 module.exports = router;
