@@ -15,7 +15,7 @@ const chalk = require("chalk");
 // ═══════════════════════════════════════════════════════════
 const testMode = false;
 const testEmail = "zafer.gueney@gmail.com";
-const DELAY_BETWEEN_EMAILS = 5000; // 5 seconds
+const DELAY_BETWEEN_EMAILS = 500; // 0.5 seconds (120 emails/min - safe for paid Brevo)
 
 // ═══════════════════════════════════════════════════════════
 //  HELPERS

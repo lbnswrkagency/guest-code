@@ -243,13 +243,17 @@ const sendQRCodeInvitation = async (name, email, pdfPath, eventId, codeId = null
       name: event.brand?.name || "GuestCode",
       email: process.env.SENDER_EMAIL || "contact@guest-code.com",
     };
-    sendSmtpEmail.subject = `Personal Invitation - ${event.title} - Happy New Year 🎊`;
+    sendSmtpEmail.subject = `Personal Invitation - ${event.title} feat. DEKKAPA 🎧`;
 
     sendSmtpEmail.htmlContent = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 
       <!-- Personal greeting and message FIRST -->
       <p style="font-size: 18px; line-height: 1.6; margin: 0 0 20px;">Hey ${cleanName},</p>
+
+      <p style="font-size: 16px; line-height: 1.6; margin: 0 0 15px; color: #d4af37;">
+        <strong>We have a special guest tonight – one of Berlin's greatest DJs, DEKKAPA!</strong>
+      </p>
 
       <p style="font-size: 16px; line-height: 1.6; margin: 0 0 15px;">
         We wanted to reach out personally because you've been part of our community. This isn't just another event email – it's a thank you for being with us.

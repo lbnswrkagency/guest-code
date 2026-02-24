@@ -221,7 +221,7 @@ const EventGallery = ({
     }
   };
 
-  // Download handler - still uses blob for full quality download
+  // Download handler - uses Web Share API on mobile, fallback to blob download
   const handleDownload = async () => {
     const currentImage = images[currentIndex];
     if (!currentImage?.path) {
@@ -237,14 +237,44 @@ const EventGallery = ({
         { responseType: "blob" }
       );
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const filename = currentImage.name || "image.jpg";
+
+      // Check if Web Share API is available and supports files (mobile)
+      if (navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: filename,
+            });
+            window.URL.revokeObjectURL(url);
+            showSuccess("Shared successfully");
+            return;
+          }
+        } catch (shareError) {
+          // Share was cancelled or failed, fall through to download
+          if (shareError.name !== "AbortError") {
+            console.log("Share failed, falling back to download");
+          }
+        }
+      }
+
+      // Fallback: Create download link that doesn't cause navigation
       const link = document.createElement("a");
       link.href = url;
-      link.download = currentImage.name || "image.jpg";
+      link.download = filename;
+      link.style.display = "none";
+
+      // Use setTimeout to prevent synchronous navigation issues on mobile
       document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => {
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 0);
 
       showSuccess("Download started");
     } catch (error) {

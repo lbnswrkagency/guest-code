@@ -181,8 +181,8 @@ exports.getAnalyticsSummary = async (req, res) => {
     // Process each code setting
     for (const setting of codeSettings) {
       try {
-        // Skip if we've already processed this type or if it's a default type
-        if (processedTypes.has(setting.name.toLowerCase())) continue;
+        // Skip if we've already processed this type (check by type, not name)
+        if (processedTypes.has(setting.type)) continue;
 
         // Get stats for this code type - pass codeSettingId for accurate querying
         const codeStats = await getCodesStats(eventId, setting.name, setting._id);
@@ -198,8 +198,8 @@ exports.getAnalyticsSummary = async (req, res) => {
             hostSummaries,
           });
 
-          // Mark as processed
-          processedTypes.add(setting.name.toLowerCase());
+          // Mark type as processed
+          processedTypes.add(setting.type);
         }
       } catch (error) {
         // Continue with other code types even if one fails
