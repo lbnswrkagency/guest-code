@@ -176,13 +176,13 @@ exports.getAnalyticsSummary = async (req, res) => {
 
     // Process custom code types from settings
     const customCodeTypes = [];
-    const processedTypes = new Set(["guest"]); // Track already processed types
+    const processedNames = new Set(["guest"]); // Track already processed code names
 
     // Process each code setting
     for (const setting of codeSettings) {
       try {
-        // Skip if we've already processed this type (check by type, not name)
-        if (processedTypes.has(setting.type)) continue;
+        // Skip if we've already processed this name, or if it's a ticket type (tickets have their own section)
+        if (processedNames.has(setting.name) || setting.type === "ticket") continue;
 
         // Get stats for this code type - pass codeSettingId for accurate querying
         const codeStats = await getCodesStats(eventId, setting.name, setting._id);
@@ -198,8 +198,8 @@ exports.getAnalyticsSummary = async (req, res) => {
             hostSummaries,
           });
 
-          // Mark type as processed
-          processedTypes.add(setting.type);
+          // Mark name as processed
+          processedNames.add(setting.name);
         }
       } catch (error) {
         // Continue with other code types even if one fails

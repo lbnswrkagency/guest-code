@@ -270,20 +270,16 @@ const EventGallery = ({
       link.href = url;
       link.download = filename;
       link.style.display = "none";
+      // Prevent Meta Pixel and other global listeners from intercepting the click
+      link.addEventListener("click", (e) => e.stopImmediatePropagation());
       document.body.appendChild(link);
-
-      try {
-        link.click();
-      } catch (clickErr) {
-        // Fallback: open in new tab
-        window.open(url, "_blank");
-      }
+      link.click();
 
       // Delay cleanup to avoid revoking before download starts
       setTimeout(() => {
-        document.body.removeChild(link);
+        if (link.parentNode) link.parentNode.removeChild(link);
         window.URL.revokeObjectURL(url);
-      }, 1000);
+      }, 1500);
 
       showSuccess("Download started");
     } catch (error) {

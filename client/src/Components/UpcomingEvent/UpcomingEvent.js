@@ -93,6 +93,12 @@ const UpcomingEvent = ({
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
+  const handleGalleryImageClick = useCallback((images, imageIndex) => {
+    setGalleryImages(images);
+    setGalleryInitialIndex(imageIndex);
+    setShowGallery(true);
+  }, []);
+
   // Ticket settings state
   const [ticketSettings, setTicketSettings] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -1222,11 +1228,7 @@ const UpcomingEvent = ({
             onToggleBattleSignup={toggleBattleSignup}
             onSpotifyLoadChange={setSpotifyLoaded}
             onGalleryStatusChange={onGalleryStatusChange}
-            onGalleryImageClick={(images, imageIndex) => {
-              setGalleryImages(images);
-              setGalleryInitialIndex(imageIndex);
-              setShowGallery(true);
-            }}
+            onGalleryImageClick={handleGalleryImageClick}
             ticketSectionRef={ticketSectionRef}
             guestCodeSectionRef={guestCodeSectionRef}
             tableBookingSectionRef={tableBookingSectionRef}
