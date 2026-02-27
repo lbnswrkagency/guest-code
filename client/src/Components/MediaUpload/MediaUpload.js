@@ -8,23 +8,28 @@ import {
   RiErrorWarningLine,
   RiUserLine,
   RiMailLine,
+  RiImageLine,
+  RiAddLine,
+  RiDeleteBinLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
 import "./MediaUpload.scss";
 
-/**
- * MediaUpload Component
- *
- * A reusable component for uploading videos to Dropbox via the brand's configured upload folder.
- *
- * Props:
- * - brandId (required): The brand's ID
- * - eventId (optional): Links upload to a specific event
- * - mode: "team" (authenticated users) or "public" (guests)
- * - onUploadComplete: Callback when upload succeeds
- * - onClose: Callback to close the upload modal
- */
+const MAX_FILES = 20;
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const ALLOWED_TYPES = [
+  "video/mp4", "video/quicktime", "video/webm",
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+];
+
+const FILE_STATUS = {
+  PENDING: "pending",
+  UPLOADING: "uploading",
+  DONE: "done",
+  ERROR: "error",
+};
+
 const MediaUpload = ({
   brandId,
   eventId = null,
@@ -33,43 +38,73 @@ const MediaUpload = ({
   onClose = () => {},
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [files, setFiles] = useState([]); // { file, status, progress, error, id }
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadComplete, setUploadComplete] = useState(false);
+  const [currentFileIndex, setCurrentFileIndex] = useState(-1);
+  const [allDone, setAllDone] = useState(false);
   const [error, setError] = useState(null);
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(null);
-  const uploadStartTimeRef = useRef(null);
 
   // For public mode - guest information
   const [uploaderName, setUploaderName] = useState("");
   const [uploaderEmail, setUploaderEmail] = useState("");
 
   const fileInputRef = useRef(null);
+  const addMoreInputRef = useRef(null);
+  const uploadStartTimeRef = useRef(null);
+  const abortRef = useRef(false);
   const { showSuccess, showError } = useToast();
 
-  // File validation
+  // Validate a single file
   const validateFile = (file) => {
-    const allowedTypes = [
-      // Videos
-      "video/mp4", "video/quicktime", "video/webm",
-      // Photos
-      "image/jpeg", "image/png", "image/gif", "image/webp"
-    ];
-    const maxSize = 100 * 1024 * 1024; // 100MB
-
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return "Only MP4, MOV, WebM, JPEG, PNG, GIF, and WebP files are allowed.";
     }
-
-    if (file.size > maxSize) {
+    if (file.size > MAX_FILE_SIZE) {
       return "File too large. Maximum size is 100MB.";
     }
-
     return null;
   };
 
-  // Handle drag events
+  // Add files to the queue
+  const addFiles = useCallback((newFiles) => {
+    setError(null);
+    const fileArray = Array.from(newFiles);
+    const currentCount = files.length;
+    const remaining = MAX_FILES - currentCount;
+
+    if (remaining <= 0) {
+      showError(`Maximum ${MAX_FILES} files allowed.`);
+      return;
+    }
+
+    const toAdd = fileArray.slice(0, remaining);
+    if (fileArray.length > remaining) {
+      showError(`Only ${remaining} more file${remaining !== 1 ? "s" : ""} can be added. (Max ${MAX_FILES})`);
+    }
+
+    const validFiles = [];
+    for (const file of toAdd) {
+      const err = validateFile(file);
+      if (err) {
+        showError(`${file.name}: ${err}`);
+      } else {
+        validFiles.push({
+          file,
+          status: FILE_STATUS.PENDING,
+          progress: 0,
+          error: null,
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        });
+      }
+    }
+
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      setAllDone(false);
+    }
+  }, [files.length, showError]);
+
+  // Drag handlers
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -86,54 +121,100 @@ const MediaUpload = ({
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
-        showError(validationError);
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
+    if (e.dataTransfer.files.length > 0) {
+      addFiles(e.dataTransfer.files);
     }
-  }, [showError]);
+  }, [addFiles]);
 
-  // Handle file input change
+  // File input change
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
-        showError(validationError);
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
+    if (e.target.files.length > 0) {
+      addFiles(e.target.files);
     }
+    e.target.value = "";
   };
 
-  // Handle file selection via button click
-  const handleSelectFile = () => {
-    fileInputRef.current?.click();
+  const handleSelectFile = () => fileInputRef.current?.click();
+  const handleAddMore = () => addMoreInputRef.current?.click();
+
+  // Remove a file from the queue
+  const handleRemoveFile = (id) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  // Remove selected file
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
+  // Clear all files
+  const handleClearAll = () => {
+    setFiles([]);
+    setAllDone(false);
     setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setCurrentFileIndex(-1);
   };
 
-  // Handle upload
+  // Upload one file
+  const uploadSingleFile = async (fileEntry, index) => {
+    return new Promise((resolve) => {
+      const formData = new FormData();
+      formData.append("media", fileEntry.file);
+      formData.append("brandId", brandId);
+      formData.append("uploaderType", mode === "team" ? "team" : "guest");
+      formData.append("uploaderName", uploaderName.trim() || "Team Member");
+      if (eventId) formData.append("eventId", eventId);
+      if (uploaderEmail.trim()) formData.append("uploaderEmail", uploaderEmail.trim());
+
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileEntry.id ? { ...f, status: FILE_STATUS.UPLOADING, progress: 0 } : f
+        )
+      );
+      setCurrentFileIndex(index);
+
+      axiosInstance
+        .post("/dropbox/guest-upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 600000,
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.id === fileEntry.id ? { ...f, progress } : f
+              )
+            );
+          },
+        })
+        .then((response) => {
+          if (response.data.success) {
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.id === fileEntry.id
+                  ? { ...f, status: FILE_STATUS.DONE, progress: 100 }
+                  : f
+              )
+            );
+            resolve(true);
+          } else {
+            throw new Error(response.data.message || "Upload failed");
+          }
+        })
+        .catch((err) => {
+          const errorMsg = err.response?.data?.message || err.message || "Upload failed";
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileEntry.id
+                ? { ...f, status: FILE_STATUS.ERROR, error: errorMsg }
+                : f
+            )
+          );
+          resolve(false);
+        });
+    });
+  };
+
+  // Handle sequential upload of all files
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError("Please select a file to upload");
+    if (files.length === 0) {
+      setError("Please select files to upload");
       return;
     }
 
@@ -143,102 +224,82 @@ const MediaUpload = ({
       return;
     }
 
+    const pendingFiles = files.filter((f) => f.status === FILE_STATUS.PENDING);
+    if (pendingFiles.length === 0) {
+      setError("No pending files to upload");
+      return;
+    }
+
     setUploading(true);
-    setUploadProgress(0);
     setError(null);
-    setEstimatedTimeRemaining(null);
+    setAllDone(false);
+    abortRef.current = false;
     uploadStartTimeRef.current = Date.now();
 
-    const formData = new FormData();
-    formData.append("media", selectedFile);
-    formData.append("brandId", brandId);
-    formData.append("uploaderType", mode === "team" ? "team" : "guest");
-    formData.append("uploaderName", uploaderName.trim() || "Team Member");
+    let successCount = 0;
+    let failCount = 0;
 
-    if (eventId) {
-      formData.append("eventId", eventId);
-    }
+    for (let i = 0; i < files.length; i++) {
+      if (abortRef.current) break;
 
-    if (uploaderEmail.trim()) {
-      formData.append("uploaderEmail", uploaderEmail.trim());
-    }
-
-    try {
-      const response = await axiosInstance.post("/dropbox/guest-upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 600000, // 10 minutes timeout for large file uploads
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(progress);
-
-          // Calculate estimated time remaining
-          if (progress > 0 && uploadStartTimeRef.current) {
-            const elapsedTime = Date.now() - uploadStartTimeRef.current;
-            const bytesPerMs = progressEvent.loaded / elapsedTime;
-            const remainingBytes = progressEvent.total - progressEvent.loaded;
-            const remainingMs = remainingBytes / bytesPerMs;
-
-            // Convert to seconds/minutes for display
-            const remainingSecs = Math.ceil(remainingMs / 1000);
-            if (remainingSecs > 60) {
-              const mins = Math.floor(remainingSecs / 60);
-              const secs = remainingSecs % 60;
-              setEstimatedTimeRemaining(`${mins}m ${secs}s`);
-            } else if (remainingSecs > 0) {
-              setEstimatedTimeRemaining(`${remainingSecs}s`);
-            } else {
-              setEstimatedTimeRemaining("Almost done...");
-            }
-          }
-        },
-      });
-
-      if (response.data.success) {
-        setUploadComplete(true);
-        showSuccess("Media uploaded successfully!");
-        onUploadComplete(response.data.upload);
-
-        // Reset after a short delay
-        setTimeout(() => {
-          setSelectedFile(null);
-          setUploadProgress(0);
-          setUploadComplete(false);
-          setUploaderName("");
-          setUploaderEmail("");
-          setEstimatedTimeRemaining(null);
-        }, 2000);
-      } else {
-        throw new Error(response.data.message || "Upload failed");
+      const fileEntry = files[i];
+      if (fileEntry.status !== FILE_STATUS.PENDING) {
+        if (fileEntry.status === FILE_STATUS.DONE) successCount++;
+        if (fileEntry.status === FILE_STATUS.ERROR) failCount++;
+        continue;
       }
-    } catch (err) {
-      console.error("Upload error:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Failed to upload video";
-      setError(errorMessage);
-      showError(errorMessage);
-    } finally {
-      setUploading(false);
+
+      const result = await uploadSingleFile(fileEntry, i);
+      if (result) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    setUploading(false);
+    setCurrentFileIndex(-1);
+    setAllDone(true);
+
+    if (successCount > 0 && failCount === 0) {
+      showSuccess(`${successCount} file${successCount !== 1 ? "s" : ""} uploaded successfully!`);
+      onUploadComplete();
+    } else if (successCount > 0 && failCount > 0) {
+      showSuccess(`${successCount} uploaded, ${failCount} failed.`);
+    } else if (failCount > 0) {
+      showError(`All ${failCount} uploads failed.`);
     }
   };
 
   // Format file size
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
+
+  // Check if file is an image
+  const isImage = (file) => file.type.startsWith("image/");
+
+  // Get file icon
+  const getFileIcon = (file) => {
+    return isImage(file) ? <RiImageLine /> : <RiVideoLine />;
+  };
+
+  // Summary counts
+  const pendingCount = files.filter((f) => f.status === FILE_STATUS.PENDING).length;
+  const doneCount = files.filter((f) => f.status === FILE_STATUS.DONE).length;
+  const errorCount = files.filter((f) => f.status === FILE_STATUS.ERROR).length;
+  const hasFiles = files.length > 0;
 
   return (
     <div className="media-upload-container">
       <div className="media-upload-header">
         <h3>
-          <RiVideoLine />
-          {mode === "team" ? "Upload Video" : "Share Your Moments"}
+          <RiUpload2Line />
+          {mode === "team" ? "Upload Media" : "Share Your Moments"}
         </h3>
         <button className="close-btn" onClick={onClose} aria-label="Close">
           <RiCloseLine />
@@ -281,111 +342,146 @@ const MediaUpload = ({
           </div>
         )}
 
-        {/* Drop zone */}
+        {/* Overall progress when uploading */}
+        {uploading && (
+          <div className="upload-overall-progress">
+            <div className="overall-progress-text">
+              Uploading {currentFileIndex + 1} of {files.length}...
+            </div>
+            <div className="overall-progress-bar">
+              <motion.div
+                className="overall-progress-fill"
+                initial={{ width: 0 }}
+                animate={{ width: `${((doneCount + (files[currentFileIndex]?.progress || 0) / 100) / files.length) * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* All done summary */}
+        {allDone && !uploading && (
+          <motion.div
+            className="upload-summary"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {errorCount === 0 ? (
+              <div className="summary-success">
+                <RiCheckLine />
+                <span>{doneCount} file{doneCount !== 1 ? "s" : ""} uploaded successfully!</span>
+              </div>
+            ) : (
+              <div className="summary-mixed">
+                <span>{doneCount} uploaded, {errorCount} failed</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Drop zone - compact when files are selected */}
         <div
-          className={`drop-zone ${isDragging ? "dragging" : ""} ${
-            selectedFile ? "has-file" : ""
-          } ${uploadComplete ? "complete" : ""}`}
+          className={`drop-zone ${isDragging ? "dragging" : ""} ${hasFiles ? "compact" : ""}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={!selectedFile ? handleSelectFile : undefined}
+          onClick={!hasFiles ? handleSelectFile : undefined}
         >
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/gif,image/webp"
+            multiple
+            hidden
+          />
+          <input
+            type="file"
+            ref={addMoreInputRef}
+            onChange={handleFileChange}
+            accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/gif,image/webp"
+            multiple
             hidden
           />
 
-          <AnimatePresence mode="wait">
-            {uploadComplete ? (
-              <motion.div
-                key="complete"
-                className="upload-state complete-state"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
+          {!hasFiles && (
+            <div className="upload-state empty-state">
+              <div className="upload-icon">
+                <RiUpload2Line />
+              </div>
+              <p className="upload-text">Drag and drop your files here</p>
+              <p className="upload-subtext">or click to select</p>
+              <p className="upload-hint">
+                Photos & Videos up to 100MB each (max {MAX_FILES} files)
+              </p>
+            </div>
+          )}
+
+          {hasFiles && (
+            <div className="upload-state compact-state" onClick={handleAddMore}>
+              <RiAddLine />
+              <span>Add more files</span>
+              <span className="file-count">{files.length}/{MAX_FILES}</span>
+            </div>
+          )}
+        </div>
+
+        {/* File queue */}
+        {hasFiles && (
+          <div className="file-queue">
+            {files.map((entry) => (
+              <div
+                key={entry.id}
+                className={`file-queue-item ${entry.status}`}
               >
-                <div className="success-icon">
-                  <RiCheckLine />
-                </div>
-                <p>Upload Complete!</p>
-              </motion.div>
-            ) : selectedFile ? (
-              <motion.div
-                key="file"
-                className="upload-state file-state"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="file-info">
-                  <RiVideoLine className="file-icon" />
-                  <div className="file-details">
-                    <span className="file-name">{selectedFile.name}</span>
-                    <span className="file-size">
-                      {formatFileSize(selectedFile.size)}
-                    </span>
-                  </div>
-                  {!uploading && (
-                    <button
-                      className="remove-file-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveFile();
-                      }}
-                      aria-label="Remove file"
-                    >
-                      <RiCloseLine />
-                    </button>
+                <div className="file-queue-item-icon">
+                  {entry.status === FILE_STATUS.DONE ? (
+                    <RiCheckLine className="status-done" />
+                  ) : entry.status === FILE_STATUS.ERROR ? (
+                    <RiErrorWarningLine className="status-error" />
+                  ) : (
+                    getFileIcon(entry.file)
                   )}
                 </div>
 
-                {uploading && (
-                  <div className="progress-container">
-                    <div className="progress-bar">
+                <div className="file-queue-item-info">
+                  <span className="file-queue-item-name">{entry.file.name}</span>
+                  <span className="file-queue-item-size">
+                    {formatFileSize(entry.file.size)}
+                    {entry.status === FILE_STATUS.ERROR && entry.error && (
+                      <span className="file-queue-item-error"> - {entry.error}</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Per-file progress */}
+                {entry.status === FILE_STATUS.UPLOADING && (
+                  <div className="file-queue-item-progress">
+                    <div className="mini-progress-bar">
                       <motion.div
-                        className="progress-fill"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${uploadProgress}%` }}
-                        transition={{ duration: 0.3 }}
+                        className="mini-progress-fill"
+                        animate={{ width: `${entry.progress}%` }}
+                        transition={{ duration: 0.2 }}
                       />
                     </div>
-                    <div className="progress-info">
-                      <span className="progress-text">{uploadProgress}%</span>
-                      {estimatedTimeRemaining && (
-                        <span className="time-remaining">{estimatedTimeRemaining} remaining</span>
-                      )}
-                    </div>
+                    <span className="mini-progress-text">{entry.progress}%</span>
                   </div>
                 )}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                className="upload-state empty-state"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="upload-icon">
-                  <RiUpload2Line />
-                </div>
-                <p className="upload-text">
-                  Drag and drop your video here
-                </p>
-                <p className="upload-subtext">
-                  or click to select a file
-                </p>
-                <p className="upload-hint">
-                  MP4, MOV, WebM, JPEG, PNG, GIF, WebP (max 100MB)
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+
+                {/* Remove button (only when not uploading) */}
+                {!uploading && entry.status !== FILE_STATUS.DONE && (
+                  <button
+                    className="file-queue-item-remove"
+                    onClick={() => handleRemoveFile(entry.id)}
+                    aria-label="Remove file"
+                  >
+                    <RiCloseLine />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Error message */}
         {error && (
@@ -401,30 +497,41 @@ const MediaUpload = ({
 
         {/* Action buttons */}
         <div className="action-buttons">
+          {hasFiles && !uploading && (
+            <button
+              className="clear-btn"
+              onClick={handleClearAll}
+            >
+              <RiDeleteBinLine />
+              Clear All
+            </button>
+          )}
           <button
             className="cancel-btn"
             onClick={onClose}
             disabled={uploading}
           >
-            Cancel
+            {allDone ? "Close" : "Cancel"}
           </button>
-          <button
-            className="upload-btn"
-            onClick={handleUpload}
-            disabled={!selectedFile || uploading || uploadComplete}
-          >
-            {uploading ? (
-              <>
-                <span className="spinner" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <RiUpload2Line />
-                Upload
-              </>
-            )}
-          </button>
+          {pendingCount > 0 && (
+            <button
+              className="upload-btn"
+              onClick={handleUpload}
+              disabled={uploading || pendingCount === 0}
+            >
+              {uploading ? (
+                <>
+                  <span className="spinner" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <RiUpload2Line />
+                  Upload {pendingCount} file{pendingCount !== 1 ? "s" : ""}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -11,20 +11,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 
     h3 {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: #fff;
       margin: 0;
 
       svg {
         color: #ffc807;
-        font-size: 1.4rem;
+        font-size: 1.3rem;
       }
     }
 
@@ -52,19 +52,19 @@
     .uploader-info {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
 
       .input-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.4rem;
 
         label {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.875rem;
+          font-size: 0.8rem;
           color: #ccc;
 
           svg {
@@ -77,7 +77,7 @@
 
           .optional {
             color: #666;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
           }
         }
 
@@ -85,9 +85,9 @@
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          padding: 0.75rem 1rem;
+          padding: 0.6rem 0.85rem;
           color: #fff;
-          font-size: 1rem;
+          font-size: 0.9rem;
           transition: all 0.2s ease;
 
           &:focus {
@@ -108,6 +108,67 @@
       }
     }
 
+    // Overall upload progress bar
+    .upload-overall-progress {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: rgba(255, 200, 7, 0.06);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 200, 7, 0.15);
+
+      .overall-progress-text {
+        font-size: 0.8rem;
+        color: #ffc807;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .overall-progress-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+
+        .overall-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ffc807, #ffde59);
+          border-radius: 2px;
+        }
+      }
+    }
+
+    // Upload summary (after all done)
+    .upload-summary {
+      margin-bottom: 1rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+
+      .summary-success {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #4caf50;
+        background: rgba(76, 175, 80, 0.08);
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+
+        svg {
+          font-size: 1.1rem;
+        }
+      }
+
+      .summary-mixed {
+        color: #ffc807;
+        background: rgba(255, 200, 7, 0.08);
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+      }
+    }
+
+    // Drop zone
     .drop-zone {
       border: 2px dashed rgba(255, 255, 255, 0.2);
       border-radius: 12px;
@@ -115,7 +176,7 @@
       text-align: center;
       cursor: pointer;
       transition: all 0.3s ease;
-      min-height: 180px;
+      min-height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -132,15 +193,18 @@
         transform: scale(1.01);
       }
 
-      &.has-file {
-        cursor: default;
-        border-style: solid;
-        border-color: rgba(255, 200, 7, 0.3);
-      }
+      // Compact mode when files are already selected
+      &.compact {
+        min-height: 0;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-style: dashed;
+        border-color: rgba(255, 255, 255, 0.15);
 
-      &.complete {
-        border-color: #4caf50;
-        background: rgba(76, 175, 80, 0.08);
+        &:hover {
+          border-color: rgba(255, 200, 7, 0.4);
+          background: rgba(255, 200, 7, 0.04);
+        }
       }
 
       .upload-state {
@@ -148,9 +212,9 @@
 
         &.empty-state {
           .upload-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 0.85rem;
             background: linear-gradient(135deg, rgba(255, 200, 7, 0.2), rgba(255, 200, 7, 0.05));
             border-radius: 50%;
             display: flex;
@@ -158,191 +222,249 @@
             justify-content: center;
 
             svg {
-              font-size: 2rem;
+              font-size: 1.75rem;
               color: #ffc807;
             }
           }
 
           .upload-text {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #fff;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
           }
 
           .upload-subtext {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             color: #888;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
           }
 
           .upload-hint {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #666;
           }
         }
 
-        &.file-state {
-          .file-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+        &.compact-state {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          color: rgba(255, 200, 7, 0.7);
+          font-size: 0.8rem;
+          font-weight: 500;
 
-            .file-icon {
-              font-size: 2rem;
-              color: #ffc807;
-              flex-shrink: 0;
-            }
-
-            .file-details {
-              flex: 1;
-              min-width: 0; // Critical for text-overflow to work in flexbox
-              text-align: left;
-              overflow: hidden;
-
-              .file-name {
-                display: block;
-                font-size: 0.875rem;
-                color: #fff;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                max-width: 100%;
-              }
-
-              .file-size {
-                display: block;
-                font-size: 0.75rem;
-                color: #888;
-                margin-top: 0.25rem;
-              }
-            }
-
-            .remove-file-btn {
-              background: rgba(255, 107, 107, 0.1);
-              border: none;
-              border-radius: 6px;
-              padding: 0.5rem;
-              color: #ff6b6b;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              flex-shrink: 0;
-
-              &:hover {
-                background: rgba(255, 107, 107, 0.2);
-              }
-
-              svg {
-                font-size: 1.25rem;
-              }
-            }
-          }
-
-          .progress-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-
-            .progress-bar {
-              width: 100%;
-              height: 6px;
-              background: rgba(255, 255, 255, 0.1);
-              border-radius: 3px;
-              overflow: hidden;
-
-              .progress-fill {
-                height: 100%;
-                background: linear-gradient(90deg, #ffc807, #ffde59);
-                border-radius: 3px;
-              }
-            }
-
-            .progress-info {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-
-            .progress-text {
-              font-size: 0.875rem;
-              color: #ffc807;
-              font-weight: 600;
-            }
-
-            .time-remaining {
-              font-size: 0.75rem;
-              color: #888;
-            }
-          }
-        }
-
-        &.complete-state {
-          .success-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            svg {
-              font-size: 2rem;
-              color: #4caf50;
-            }
-          }
-
-          p {
+          svg {
             font-size: 1rem;
-            color: #4caf50;
-            font-weight: 600;
+          }
+
+          .file-count {
+            color: #666;
+            font-size: 0.75rem;
           }
         }
       }
     }
 
+    // File queue
+    .file-queue {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+
+      // Scrollbar styling
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 2px;
+      }
+    }
+
+    .file-queue-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0.6rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease;
+
+      &.uploading {
+        border-color: rgba(255, 200, 7, 0.2);
+        background: rgba(255, 200, 7, 0.03);
+      }
+
+      &.done {
+        border-color: rgba(76, 175, 80, 0.2);
+        background: rgba(76, 175, 80, 0.03);
+      }
+
+      &.error {
+        border-color: rgba(255, 107, 107, 0.2);
+        background: rgba(255, 107, 107, 0.03);
+      }
+
+      &-icon {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1rem;
+        color: #888;
+
+        .status-done {
+          color: #4caf50;
+        }
+
+        .status-error {
+          color: #ff6b6b;
+        }
+      }
+
+      &-info {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      &-name {
+        display: block;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &-size {
+        display: block;
+        font-size: 0.68rem;
+        color: #666;
+        margin-top: 0.1rem;
+      }
+
+      &-error {
+        color: #ff6b6b;
+      }
+
+      &-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-shrink: 0;
+        width: 80px;
+
+        .mini-progress-bar {
+          flex: 1;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 2px;
+          overflow: hidden;
+
+          .mini-progress-fill {
+            height: 100%;
+            background: #ffc807;
+            border-radius: 2px;
+          }
+        }
+
+        .mini-progress-text {
+          font-size: 0.68rem;
+          color: #ffc807;
+          font-weight: 600;
+          min-width: 28px;
+          text-align: right;
+        }
+      }
+
+      &-remove {
+        background: none;
+        border: none;
+        padding: 0.25rem;
+        color: #666;
+        cursor: pointer;
+        flex-shrink: 0;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: #ff6b6b;
+          background: rgba(255, 107, 107, 0.1);
+        }
+
+        svg {
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    // Error message
     .error-message {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      padding: 0.6rem 0.85rem;
       background: rgba(255, 107, 107, 0.1);
       border-radius: 8px;
       color: #ff6b6b;
-      font-size: 0.875rem;
+      font-size: 0.8rem;
 
       svg {
         flex-shrink: 0;
       }
     }
 
+    // Action buttons
     .action-buttons {
       display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
 
       button {
-        flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: 0.875rem 1.5rem;
+        gap: 0.4rem;
+        padding: 0.75rem 1rem;
         border-radius: 8px;
-        font-size: 1rem;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+
+        &.clear-btn {
+          background: rgba(255, 107, 107, 0.08);
+          border: 1px solid rgba(255, 107, 107, 0.15);
+          color: #ff6b6b;
+          font-size: 0.78rem;
+          padding: 0.6rem 0.85rem;
+
+          &:hover {
+            background: rgba(255, 107, 107, 0.15);
+          }
+        }
 
         &.cancel-btn {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: #888;
+          flex: 0;
+          white-space: nowrap;
 
           &:hover:not(:disabled) {
             background: rgba(255, 255, 255, 0.1);
@@ -354,10 +476,11 @@
           background: linear-gradient(135deg, #ffc807, #e6b400);
           border: none;
           color: #000;
+          flex: 1;
 
           &:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(255, 200, 7, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255, 200, 7, 0.3);
           }
 
           &:disabled {
@@ -367,8 +490,8 @@
           }
 
           .spinner {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border: 2px solid rgba(0, 0, 0, 0.2);
             border-top-color: #000;
             border-radius: 50%;
@@ -391,44 +514,55 @@
   }
 }
 
-// Responsive styles
+// Responsive
 @media (max-width: 480px) {
   .media-upload-container {
     padding: 1rem;
     border-radius: 12px;
 
-    .media-upload-header {
-      h3 {
-        font-size: 1.1rem;
-      }
+    .media-upload-header h3 {
+      font-size: 1rem;
     }
 
     .media-upload-content {
       .drop-zone {
         padding: 1.5rem;
-        min-height: 150px;
+        min-height: 130px;
 
         .upload-state.empty-state {
           .upload-icon {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
 
             svg {
-              font-size: 1.5rem;
+              font-size: 1.4rem;
             }
           }
 
           .upload-text {
-            font-size: 0.875rem;
+            font-size: 0.85rem;
           }
         }
       }
 
-      .action-buttons {
-        flex-direction: column;
+      .file-queue {
+        max-height: 220px;
+      }
 
-        button {
-          width: 100%;
+      .action-buttons {
+        flex-wrap: wrap;
+
+        button.upload-btn {
+          flex: 1 1 100%;
+          order: -1;
+        }
+
+        button.cancel-btn {
+          flex: 1;
+        }
+
+        button.clear-btn {
+          flex: 1;
         }
       }
     }

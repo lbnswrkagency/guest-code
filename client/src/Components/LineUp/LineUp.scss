@@ -1,648 +1,335 @@
-@import "../../_variables";
-@import "../../_glassy";
+// LineUp Component - Compact Chip Design
+// =====================================================
+
+// Design Tokens
+$accent: #ffc807;
+$accent-dim: rgba(255, 200, 7, 0.15);
+$bg-chip: rgba(255, 255, 255, 0.04);
+$bg-dark: #1a1a1a;
+$bg-darker: #0d0d0d;
+$border-subtle: rgba(255, 255, 255, 0.08);
+$border-hover: rgba(255, 200, 7, 0.25);
+$text-primary: #fff;
+$text-muted: rgba(255, 255, 255, 0.5);
+$text-secondary: rgba(255, 255, 255, 0.7);
+$danger: #f44336;
+$danger-bg: rgba(244, 67, 54, 0.1);
+
+// =====================================================
+// MODAL OVERLAY & CONTAINER
+// =====================================================
 
 .lineup-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .lineup-modal {
   width: 90%;
-  overflow: auto;
-  max-width: 600px;
-  max-height: 80vh;
-  background: linear-gradient(
-    135deg,
-    rgba(21, 21, 21, 0.98) 0%,
-    rgba(30, 30, 30, 0.95) 50%,
-    rgba(21, 21, 21, 0.98) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 1rem;
-  padding: 1.5rem;
+  max-width: 520px;
+  max-height: 85vh;
+  background: linear-gradient(180deg, $bg-dark 0%, $bg-darker 100%);
+  border: 1px solid $border-subtle;
+  border-radius: 16px;
+  padding: 1.25rem;
   position: relative;
-  // overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 200, 7, 0.1);
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 
-  // Subtle golden glow
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 40%,
-      rgba(255, 200, 7, 0.03) 50%,
-      transparent 60%
-    );
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
+  // Scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
   }
-
-  // Top accent line
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 2px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 200, 7, 0.6),
-      transparent
-    );
-    border-radius: 0 0 2px 2px;
-    z-index: 2;
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
-
-  // All content should be above the overlays
-  & > * {
-    position: relative;
-    z-index: 3;
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 200, 7, 0.2);
+    border-radius: 4px;
   }
 
   h2 {
     text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 1.25rem;
+    margin: 0 0 1rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    background: linear-gradient(135deg, #ffffff 0%, #ffc807 50%, #ffffff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: $text-muted;
   }
 
   .close-button {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid $border-subtle;
     border-radius: 6px;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 20px;
+    color: $text-muted;
+    font-size: 18px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
     transition: all 0.2s ease;
     z-index: 10;
 
     &:hover {
-      background: rgba(255, 200, 7, 0.1);
-      border-color: rgba(255, 200, 7, 0.3);
-      color: #ffc807;
-      transform: scale(1.05);
+      border-color: $accent;
+      color: $accent;
     }
   }
 }
+
+// =====================================================
+// CATEGORY GROUPS
+// =====================================================
 
 .lineup-content {
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
-.lineup-section {
-  margin-bottom: 20px;
+.lineup-category-group {
+  margin-bottom: 1rem;
 
-  h3 {
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-    color: rgba(255, 255, 255, 0.9);
+  &:last-child {
+    margin-bottom: 0;
   }
 }
 
-.lineup-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
 
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+  .category-name {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: $text-muted;
+  }
+
+  .add-to-category {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid $border-subtle;
+    color: $text-muted;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $accent;
+      color: $accent;
+      background: $accent-dim;
+    }
   }
 }
 
-.lineup-item {
-  background: linear-gradient(
-    135deg,
-    rgba(21, 21, 21, 0.98) 0%,
-    rgba(30, 30, 30, 0.95) 50%,
-    rgba(21, 21, 21, 0.98) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 0.75rem;
-  padding: 1rem;
+// =====================================================
+// COMPACT CHIPS
+// =====================================================
+
+.lineup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lineup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: $bg-chip;
+  border: 1px solid $border-subtle;
+  border-radius: 20px;
   cursor: pointer;
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 200, 7, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-
-  // Golden glow effect
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 40%,
-      rgba(255, 200, 7, 0.03) 50%,
-      transparent 60%
-    );
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  // Top accent line
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 200, 7, 0.4),
-      transparent
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
+  transition: all 0.2s ease;
+  max-width: 100%;
 
   &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4),
-      0 4px 15px rgba(255, 200, 7, 0.15);
-    border-color: rgba(255, 200, 7, 0.25);
+    border-color: $border-hover;
+    background: rgba(255, 255, 255, 0.06);
 
-    &::before {
+    .chip-actions {
       opacity: 1;
-    }
-
-    &::after {
-      opacity: 1;
-    }
-
-    .delete-icon,
-    .edit-icon {
-      opacity: 1;
-      transform: scale(1.1);
     }
   }
 
   &.selected {
-    border-color: rgba(255, 200, 7, 0.5);
-    background: linear-gradient(
-      135deg,
-      rgba(255, 200, 7, 0.12) 0%,
-      rgba(21, 21, 21, 0.98) 50%,
-      rgba(255, 200, 7, 0.08) 100%
-    );
-    box-shadow: 0 8px 25px rgba(255, 200, 7, 0.2), 0 4px 15px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
+    border-color: $accent;
+    background: $accent-dim;
 
-    &::before {
-      opacity: 1;
+    .chip-name {
+      color: $accent;
     }
 
-    &::after {
-      opacity: 1;
+    .selected-check {
+      display: flex;
     }
   }
 
-  .delete-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
+  .chip-avatar {
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: rgba(255, 60, 60, 0.1);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    color: rgba(255, 60, 60, 0.8);
-    border: 1px solid rgba(255, 60, 60, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      background: rgba(255, 60, 60, 0.2);
-      color: rgba(255, 60, 60, 1);
-      border-color: rgba(255, 60, 60, 0.4);
-      transform: scale(1.15);
-      box-shadow: 0 4px 12px rgba(255, 60, 60, 0.2);
-    }
-
-    &.always-visible {
-      opacity: 0.8;
-    }
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.1);
   }
 
-  .edit-icon {
-    position: absolute;
-    top: 10px;
-    right: 45px; // Position to the left of delete button
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 200, 7, 0.1);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    color: rgba(255, 200, 7, 0.8);
-    border: 1px solid rgba(255, 200, 7, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      background: rgba(255, 200, 7, 0.2);
-      color: #ffc807;
-      border-color: rgba(255, 200, 7, 0.4);
-      transform: scale(1.15);
-      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.2);
-    }
-
-    &.always-visible {
-      opacity: 0.8;
-    }
-  }
-
-  .lineup-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin: 0 auto 8px;
+  .chip-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $text-primary;
+    white-space: nowrap;
     overflow: hidden;
-    background-color: #2a2a2a;
-    display: flex;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+
+  .chip-subtitle {
+    font-size: 0.75rem;
+    color: $text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+
+  .selected-check {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $accent;
+    color: #000;
+    font-size: 10px;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+  }
 
-    @media (max-width: 480px) {
-      width: 40px;
-      height: 40px;
-    }
+  .chip-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .avatar-placeholder {
-      width: 100%;
-      height: 100%;
-      background-color: #2a2a2a;
+    .chip-action-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 12px;
+      transition: all 0.15s ease;
+      padding: 0;
 
-      &:after {
-        content: "";
-        width: 30px;
-        height: 30px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(255,255,255,0.3)'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
+      &:hover {
+        color: $accent;
+        background: $accent-dim;
+      }
+
+      &.delete-btn:hover {
+        color: $danger;
+        background: $danger-bg;
       }
     }
   }
-
-  .lineup-info {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    flex: 1;
-    width: 100%;
-    overflow: hidden;
-
-    .lineup-category {
-      font-size: 0.8rem;
-      color: #ffbc05;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    .lineup-name {
-      font-size: 1rem;
-      color: white;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .lineup-subtitle {
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.7);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
-  .selected-indicator {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    width: 18px;
-    height: 18px;
-    background-color: #ffc807;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #000;
-    font-size: 10px;
-  }
 }
 
-.add-new-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.02) 0%,
-    rgba(0, 0, 0, 0.3) 100%
-  );
-  border-radius: 0.75rem;
-  padding: 1rem;
-  margin: 1rem 0;
-  cursor: pointer;
-  border: 1px solid rgba(255, 200, 7, 0.2);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
-  position: relative;
-  overflow: hidden;
+// =====================================================
+// ADD NEW BUTTON (Compact)
+// =====================================================
 
-  // Golden accent line
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 200, 7, 0.4),
-      transparent
-    );
+.add-new-lineup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  background: transparent;
+  border: 1px dashed $border-hover;
+  border-radius: 20px;
+  color: $accent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  svg {
+    font-size: 14px;
   }
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 200, 7, 0.05) 0%,
-      rgba(0, 0, 0, 0.35) 100%
-    );
-    transform: translateY(-2px);
-    border-color: rgba(255, 200, 7, 0.4);
-    box-shadow: 0 4px 15px rgba(255, 200, 7, 0.1);
-  }
-
-  .add-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 200, 7, 0.15),
-      rgba(255, 200, 7, 0.08)
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffc807;
-    font-size: 18px;
-    margin-right: 0.75rem;
-    border: 1px solid rgba(255, 200, 7, 0.2);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-  }
-
-  span {
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 500;
-    background: linear-gradient(135deg, #ffffff 0%, #ffc807 50%, #ffffff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 0.025em;
+    background: $accent-dim;
+    border-style: solid;
   }
 }
 
-.compact-add-form {
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+// =====================================================
+// BOTTOM ACTIONS
+// =====================================================
 
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(min-content, max-content));
-    grid-gap: 10px;
-    // align-items: center;
+.lineup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid $border-subtle;
+  margin-top: 0.5rem;
 
-    @media (max-width: 480px) {
-      grid-template-columns: repeat(4, minmax(min-content, max-content));
-      grid-gap: 8px;
-    }
+  button {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-    @media (max-width: 360px) {
-      grid-template-columns: repeat(4, minmax(min-content, max-content));
-      grid-gap: 6px;
-    }
-
-    .avatar-cell {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s ease;
+    &.cancel-button {
+      background: transparent;
+      border: 1px solid $border-subtle;
+      color: $text-secondary;
 
       &:hover {
-        transform: scale(1.05);
-      }
-
-      .avatar-upload {
-        margin: 0 auto;
-      }
-
-      .avatar-preview {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        overflow: hidden;
-        background-color: #2a2a2a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        @media (max-width: 480px) {
-          width: 40px;
-          height: 40px;
-        }
-
-        @media (max-width: 360px) {
-          width: 36px;
-          height: 36px;
-        }
-
-        .preview-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
+        border-color: rgba(255, 255, 255, 0.15);
+        color: $text-primary;
       }
     }
 
-    .category-cell {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background-color: #2a2a2a;
-      color: #fff;
-      font-size: 14px;
-      width: 4rem;
-      @media (max-width: 480px) {
-        padding: 6px 10px;
-        font-size: 13px;
-      }
-
-      @media (max-width: 360px) {
-        padding: 5px 8px;
-        font-size: 12px;
-      }
-
-      &:focus {
-        border-color: #ffc807;
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.1);
-      }
-
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-      }
-    }
-
-    .name-cell {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background-color: #2a2a2a;
-      color: #fff;
-      font-size: 14px;
-      width: 6rem;
-      @media (max-width: 480px) {
-        padding: 6px 10px;
-        font-size: 13px;
-      }
-
-      @media (max-width: 360px) {
-        padding: 5px 8px;
-        font-size: 12px;
-      }
-
-      &:focus {
-        border-color: #ffc807;
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.1);
-      }
-
-      &::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-      }
-    }
-
-    .category-cell {
-      font-size: 13px;
-
-      @media (max-width: 480px) {
-        font-size: 12px;
-      }
-
-      @media (max-width: 360px) {
-        font-size: 11px;
-      }
-    }
-
-    .check-cell {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: rgba(255, 200, 7, 0.1);
-      color: rgba(255, 200, 7, 0.5);
+    &.save-button {
+      background: $accent;
       border: none;
-      cursor: pointer;
-      font-size: 20px;
-      transition: all 0.2s ease;
+      color: #000;
+      font-weight: 600;
 
-      @media (max-width: 480px) {
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
-      }
-
-      @media (max-width: 360px) {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-      }
-
-      &.active {
-        background-color: #ffc807;
-        color: #000;
-
-        &:hover {
-          background-color: #ffda47;
-          transform: scale(1.05);
-        }
+      &:hover:not(:disabled) {
+        background: #ffda47;
       }
 
       &:disabled {
@@ -653,357 +340,121 @@
   }
 }
 
-.lineup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 200, 7, 0.1);
-  margin-top: 1rem;
-
-  button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(8px);
-    position: relative;
-    overflow: hidden;
-
-    // Shimmer effect
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-      );
-      transition: left 0.5s ease;
-    }
-
-    &:hover::before {
-      left: 100%;
-    }
-
-    &.cancel-button {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(0, 0, 0, 0.3) 100%
-      );
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.8);
-
-      &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.08) 0%,
-          rgba(0, 0, 0, 0.4) 100%
-        );
-        border-color: rgba(255, 255, 255, 0.25);
-        color: #fff;
-        transform: translateY(-1px);
-      }
-    }
-
-    &.save-button {
-      background: linear-gradient(
-        135deg,
-        #ffc807 0%,
-        rgba(255, 200, 7, 0.9) 100%
-      );
-      border: 1px solid rgba(255, 200, 7, 0.3);
-      color: #1a1a1a;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(255, 200, 7, 0.2);
-
-      &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #ffffff 0%, #ffc807 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(255, 200, 7, 0.4);
-        border-color: rgba(255, 200, 7, 0.6);
-      }
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.4);
-        border-color: rgba(255, 255, 255, 0.1);
-        box-shadow: none;
-      }
-    }
-  }
-}
+// =====================================================
+// LOADING SPINNER
+// =====================================================
 
 .loading-spinner-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 150px;
+  min-height: 80px;
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 200, 7, 0.1);
-  border-top-color: #ffc807;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255, 200, 7, 0.15);
+  border-top-color: $accent;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-.crop-modal-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2000;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(3px);
-}
+// =====================================================
+// FORM OVERLAY (Add/Edit)
+// =====================================================
 
-// Add delete confirmation dialog styles
-.delete-confirmation-overlay {
+// Z-INDEX HIERARCHY:
+// - lineup-overlay: 1000
+// - lineup-form-overlay: 1100
+// - delete-confirmation-overlay: 1150
+// - crop-modal-wrapper: 1200
+
+.lineup-form-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1200;
-  backdrop-filter: blur(5px);
+  z-index: 1100;
+  backdrop-filter: blur(4px);
 }
 
-.delete-confirmation {
-  width: 90%;
-  max-width: 400px;
-  padding: 20px;
-  @include glassy-base;
-
-  h3 {
-    color: #f44336;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  p {
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  .delete-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-
-    button {
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
-        transition: 0.5s;
-      }
-
-      &:hover::before {
-        left: 100%;
-      }
-
-      &.cancel-delete {
-        background-color: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(5px);
-
-        &:hover {
-          background-color: rgba(0, 0, 0, 0.4);
-          color: #fff;
-          border-color: rgba(255, 255, 255, 0.3);
-        }
-      }
-
-      &.confirm-delete {
-        background-color: rgba(244, 67, 54, 0.1);
-        border: 1px solid rgba(244, 67, 54, 0.3);
-        color: #f44336;
-        backdrop-filter: blur(5px);
-
-        &:hover {
-          background-color: rgba(244, 67, 54, 0.2);
-          border-color: rgba(244, 67, 54, 0.5);
-          box-shadow: 0 2px 10px rgba(244, 67, 54, 0.2);
-        }
-      }
-    }
-  }
-}
-
-// Add new popup form styles
 .add-form-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   width: 90%;
-  max-width: 400px;
-  max-height: 90vh;
-  z-index: 2000;
-  overflow: auto;
-  background-color: #1a1a1a;
+  max-width: 320px;
+  background: linear-gradient(180deg, $bg-dark 0%, $bg-darker 100%);
+  border: 1px solid $border-subtle;
   border-radius: 12px;
-  padding: 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 200, 7, 0.3);
-
-  // Add scrollbar styling
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 200, 7, 0.3);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 200, 7, 0.5);
-  }
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 
   .add-form-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid $border-subtle;
 
     h3 {
-      color: #ffc807;
       margin: 0;
-      font-size: 1.2rem;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: $accent;
     }
 
     .close-form-button {
-      background: none;
+      width: 26px;
+      height: 26px;
+      background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 20px;
+      color: $text-muted;
+      font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
+      border-radius: 6px;
       transition: all 0.2s ease;
 
       &:hover {
-        color: #fff;
-        background-color: rgba(255, 255, 255, 0.1);
+        color: $text-primary;
+        background: rgba(255, 255, 255, 0.05);
       }
     }
   }
 
   .add-form-content {
-    padding: 20px;
+    padding: 1rem;
 
+    // Compact Avatar Upload
     .avatar-upload-container {
-      width: 100px;
-      height: 100px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      margin: 0 auto 20px;
+      margin: 0 auto 0.875rem;
       overflow: hidden;
-      background-color: rgba(42, 42, 42, 0.5);
+      background: rgba(255, 255, 255, 0.05);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      border: 2px dashed rgba(255, 255, 255, 0.2);
-      transition: border-color 0.2s ease, background-color 0.2s ease;
-      position: relative;
-      z-index: 10;
-
-      &::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        padding: 1.5px;
-        background: linear-gradient(
-          225deg,
-          rgba(255, 200, 7, 0.9),
-          rgba(255, 200, 7, 0.5) 40%,
-          rgba(255, 200, 7, 0.3) 60%,
-          rgba(255, 200, 7, 0.8)
-        );
-        -webkit-mask: linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        z-index: 0;
-        opacity: 0.5;
-        pointer-events: none;
-      }
+      border: 1px dashed $border-hover;
+      transition: all 0.2s ease;
 
       &:hover {
-        border-color: #ffc807;
-        background-color: rgba(255, 200, 7, 0.1);
-
-        &::before {
-          opacity: 1;
-        }
+        border-color: $accent;
+        background: $accent-dim;
       }
 
       .avatar-preview {
         width: 100%;
         height: 100%;
-        position: relative;
-        z-index: 1;
 
         img {
           width: 100%;
@@ -1017,234 +468,287 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        color: rgba(255, 255, 255, 0.5);
-        position: relative;
-        z-index: 1;
+        color: $text-muted;
 
         svg {
-          font-size: 24px;
-          margin-bottom: 5px;
+          font-size: 18px;
         }
 
         span {
-          font-size: 12px;
+          display: none;
         }
       }
     }
 
+    // Quick Select Chips
     .quick-categories {
-      margin-bottom: 15px;
+      margin-bottom: 0.75rem;
 
-      p {
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.7);
-        margin-bottom: 0;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      h4 {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: $text-muted;
+        margin: 0 0 0.375rem;
       }
 
       .category-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 10px;
+        gap: 0.375rem;
 
         .category-chip {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 6px;
-          padding: 0.4rem 0.75rem;
-          font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.85);
-          cursor: pointer;
-          transition: all 0.2s ease;
-          position: relative;
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-
-          &.active {
-            background: rgba(255, 200, 7, 0.15);
-            border-color: rgba(255, 200, 7, 0.3);
-            color: #ffc807;
-
-            // When active, make the delete button visible
-            .chip-delete {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
+          gap: 0.375rem;
+          padding: 0.25rem 0.5rem;
+          background: $bg-chip;
+          border: 1px solid $border-subtle;
+          border-radius: 14px;
+          font-size: 0.75rem;
+          color: $text-secondary;
+          cursor: pointer;
+          transition: all 0.15s ease;
 
           &:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.06);
+          }
 
-            &.active {
-              background: rgba(255, 200, 7, 0.2);
-            }
+          &.active {
+            background: $accent-dim;
+            border-color: rgba(255, 200, 7, 0.3);
+            color: $accent;
           }
 
           .chip-content {
             cursor: pointer;
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
           }
 
           .chip-delete {
-            opacity: 1; /* Always visible when rendered */
-            transform: scale(1);
-            transition: all 0.2s ease;
-            background: rgba(255, 60, 60, 0.15);
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
+            background: $danger-bg;
+            color: $danger;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 60, 60, 0.8);
-            font-size: 0.8rem;
+            font-size: 10px;
             cursor: pointer;
-            flex-shrink: 0;
+            transition: all 0.15s ease;
 
             &:hover {
-              background: rgba(255, 60, 60, 0.25);
-              color: rgba(255, 60, 60, 1);
-              transform: scale(1.1);
+              background: rgba(244, 67, 54, 0.2);
             }
           }
         }
 
         .no-categories {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.7rem;
+          color: $text-muted;
           font-style: italic;
-          padding: 6px 0;
+          padding: 0.25rem 0;
         }
       }
     }
 
+    // Form Fields (Compact)
     .form-fields {
-      margin-bottom: 20px;
-
       .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 0.625rem;
 
         label {
           display: block;
-          margin-bottom: 5px;
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 14px;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          margin-bottom: 0.25rem;
+          font-size: 0.7rem;
+          font-weight: 500;
+          color: $text-muted;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         input {
           width: 100%;
-          padding: 10px 12px;
-          background-color: rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: #fff;
-          font-size: 14px;
+          padding: 0.5rem 0.75rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid $border-subtle;
+          border-radius: 8px;
+          color: $text-primary;
+          font-size: 0.85rem;
           transition: all 0.2s ease;
-          backdrop-filter: blur(5px);
-          box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
 
           &:focus {
-            border-color: #ffc807;
+            border-color: rgba(255, 200, 7, 0.4);
             outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 200, 7, 0.2),
-              inset 0 2px 5px rgba(0, 0, 0, 0.2);
           }
 
           &::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: $text-muted;
           }
         }
       }
     }
 
+    // Form Actions
     .form-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 0.5rem;
+      margin-top: 0.875rem;
 
       button {
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 14px;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;
-        transition: background-color 0.2s ease, color 0.2s ease,
-          border-color 0.2s ease;
-        position: relative;
-        overflow: hidden;
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.2),
-            transparent
-          );
-          transition: 0.5s;
-        }
-
-        &:hover::before {
-          left: 100%;
-        }
+        transition: all 0.2s ease;
 
         &.cancel-form-button {
-          background-color: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(5px);
+          background: transparent;
+          border: 1px solid $border-subtle;
+          color: $text-secondary;
 
           &:hover {
-            background-color: rgba(0, 0, 0, 0.4);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: $text-primary;
           }
         }
 
         &.save-form-button {
-          background-color: rgba(255, 200, 7, 0.1);
+          background: rgba(255, 200, 7, 0.15);
           border: 1px solid rgba(255, 200, 7, 0.3);
           color: rgba(255, 200, 7, 0.7);
-          backdrop-filter: blur(5px);
 
-          &:hover:not(:disabled) {
-            background-color: rgba(255, 200, 7, 0.2);
-            color: #ffc807;
-            border-color: rgba(255, 200, 7, 0.5);
+          &.active {
+            background: $accent;
+            border-color: $accent;
+            color: #000;
+
+            &:hover {
+              background: #ffda47;
+            }
           }
 
           &:disabled {
             opacity: 0.5;
             cursor: not-allowed;
           }
-
-          &.active {
-            background-color: rgba(255, 200, 7, 0.8);
-            border-color: #ffc807;
-            color: #000;
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-            box-shadow: 0 2px 10px rgba(255, 200, 7, 0.3);
-
-            &:hover {
-              background-color: #ffc807;
-              box-shadow: 0 4px 15px rgba(255, 200, 7, 0.4);
-            }
-          }
         }
       }
     }
+  }
+}
+
+// =====================================================
+// DELETE CONFIRMATION (Compact)
+// =====================================================
+
+.delete-confirmation-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1150;
+  backdrop-filter: blur(4px);
+}
+
+.delete-confirmation {
+  width: 90%;
+  max-width: 300px;
+  padding: 1rem;
+  background: linear-gradient(180deg, $bg-dark 0%, $bg-darker 100%);
+  border: 1px solid $border-subtle;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  h3 {
+    color: $danger;
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  p {
+    color: $text-secondary;
+    margin: 0 0 1rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+
+    button {
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.cancel-delete {
+        background: transparent;
+        border: 1px solid $border-subtle;
+        color: $text-secondary;
+
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+          color: $text-primary;
+        }
+      }
+
+      &.confirm-delete {
+        background: $danger-bg;
+        border: 1px solid rgba(244, 67, 54, 0.25);
+        color: $danger;
+
+        &:hover {
+          background: rgba(244, 67, 54, 0.15);
+          border-color: rgba(244, 67, 54, 0.4);
+        }
+      }
+    }
+  }
+}
+
+// =====================================================
+// CROP MODAL (Avatar Upload)
+// =====================================================
+
+.crop-modal-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// =====================================================
+// EMPTY STATE
+// =====================================================
+
+.lineup-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: $text-muted;
+
+  svg {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 0.85rem;
+    margin: 0;
   }
 }

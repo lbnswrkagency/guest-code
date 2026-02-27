@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { RiMapPinLine, RiCalendarLine, RiTimeLine } from "react-icons/ri";
+import GalleryCarousel from "../GalleryCarousel/GalleryCarousel";
+import EventGallery from "../EventGallery/EventGallery";
 import "./EventFeed.scss";
 
 // Format date nicely: "Saturday, Feb 15"
@@ -29,6 +31,21 @@ const getInitials = (name) => {
 };
 
 const EventFeed = ({ event, brand }) => {
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
+  const [hasGallery, setHasGallery] = useState(true); // optimistic, carousel self-hides
+
+  const handleGalleryImageClick = useCallback((images, imageIndex) => {
+    setGalleryImages(images);
+    setGalleryInitialIndex(imageIndex);
+    setShowGallery(true);
+  }, []);
+
+  const handleGalleryStatusChange = useCallback((hasImages) => {
+    setHasGallery(hasImages);
+  }, []);
+
   if (!event) {
     return (
       <div className="event-feed event-feed--empty">
@@ -166,6 +183,28 @@ const EventFeed = ({ event, brand }) => {
           </div>
         )}
       </div>
+
+      {/* Gallery Carousel */}
+      {brand && (
+        <div className="event-feed__gallery">
+          <GalleryCarousel
+            brandId={brand._id}
+            brandUsername={brand.username}
+            currentEvent={event}
+            brandHasGalleries={hasGallery}
+            onGalleryStatusChange={handleGalleryStatusChange}
+            onImageClick={handleGalleryImageClick}
+          />
+        </div>
+      )}
+
+      {/* EventGallery Lightbox */}
+      <EventGallery
+        images={galleryImages}
+        initialIndex={galleryInitialIndex}
+        isOpen={showGallery}
+        onClose={() => setShowGallery(false)}
+      />
     </motion.div>
   );
 };

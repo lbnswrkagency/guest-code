@@ -222,7 +222,10 @@ const EventGallery = ({
   };
 
   // Download handler - uses Web Share API on mobile, fallback to blob download
-  const handleDownload = async () => {
+  const handleDownload = async (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     const currentImage = images[currentIndex];
     if (!currentImage?.path) {
       showError("Unable to download image");
@@ -262,19 +265,25 @@ const EventGallery = ({
         }
       }
 
-      // Fallback: Create download link that doesn't cause navigation
+      // Fallback: Create download link (no target="_blank" — it causes Safari to navigate)
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
       link.style.display = "none";
-
-      // Use setTimeout to prevent synchronous navigation issues on mobile
       document.body.appendChild(link);
-      setTimeout(() => {
+
+      try {
         link.click();
+      } catch (clickErr) {
+        // Fallback: open in new tab
+        window.open(url, "_blank");
+      }
+
+      // Delay cleanup to avoid revoking before download starts
+      setTimeout(() => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-      }, 0);
+      }, 1000);
 
       showSuccess("Download started");
     } catch (error) {
@@ -312,13 +321,14 @@ const EventGallery = ({
         onTouchEnd={onTouchEnd}
       >
         {/* Close Button */}
-        <button className="lightbox-close" onClick={onClose}>
+        <button type="button" className="lightbox-close" onClick={onClose}>
           <RiCloseLine />
         </button>
 
         {/* Navigation - Previous */}
         {images.length > 1 && (
           <button
+            type="button"
             className="lightbox-nav lightbox-nav-prev"
             onClick={(e) => {
               e.stopPropagation();
@@ -384,6 +394,7 @@ const EventGallery = ({
         {/* Navigation - Next */}
         {images.length > 1 && (
           <button
+            type="button"
             className="lightbox-nav lightbox-nav-next"
             onClick={(e) => {
               e.stopPropagation();
@@ -401,8 +412,9 @@ const EventGallery = ({
           </span>
 
           <button
+            type="button"
             className="lightbox-download"
-            onClick={handleDownload}
+            onClick={(e) => handleDownload(e)}
             disabled={downloading}
           >
             {downloading ? (

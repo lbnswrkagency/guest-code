@@ -205,6 +205,19 @@
       border-color: rgba(255, 200, 7, 0.4);
     }
   }
+
+  // Gallery section
+  &__gallery {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+
+    .gallery-carousel {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+  }
 }
 
 // Tablet and up - grid layout with flyer on left
@@ -250,6 +263,10 @@
     &__location {
       margin-bottom: 1rem;
       padding-bottom: 1rem;
+    }
+
+    &__gallery {
+      grid-column: 1 / -1;
     }
 
     &__artist {

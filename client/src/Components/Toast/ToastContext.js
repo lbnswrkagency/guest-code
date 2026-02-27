@@ -53,30 +53,25 @@ export const ToastProvider = ({ children }) => {
 
   const showError = useCallback(
     (message, options = {}) => {
-      // Check if a toast with this ID already exists
-      if (options.id && toasts.some((toast) => toast.id === options.id)) {
-        // Don't add duplicate toast with same ID
-        return;
-      }
-
       const id = options.id || Date.now();
-      const toast = {
-        id,
-        message,
-        type: "error",
-        duration: options.duration || 5000,
-      };
+      const duration = options.duration || 5000;
 
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => {
+        // Check if a toast with this ID already exists
+        if (options.id && prev.some((t) => t.id === options.id)) {
+          return prev; // Don't add duplicate
+        }
+        return [...prev, { id, message, type: "error", duration }];
+      });
 
       // Auto remove after duration
-      if (toast.duration > 0) {
+      if (duration > 0) {
         setTimeout(() => {
           removeToast(id);
-        }, toast.duration);
+        }, duration);
       }
     },
-    [toasts, addToast, removeToast]
+    [removeToast]
   );
 
   const showInfo = useCallback(

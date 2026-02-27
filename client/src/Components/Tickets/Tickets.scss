@@ -97,8 +97,8 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 // Main wrapper - no borders, padding, or margins
 .tickets-wrapper {
   width: 100%;
-  margin: 1.5rem 0;
-  padding: 1.5rem;
+  margin: 1rem 0;
+  padding: 1rem;
   background: rgba(18, 18, 18, 0.7);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -146,11 +146,15 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 }
 
 .tickets-title {
-  font-size: 1.5rem;
-  margin-bottom: 1.2rem;
-  margin-top: 0;
-  text-align: center;
-  color: var(--text-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 200, 7, 0.7);
+  margin: 0 0 1rem;
+  text-align: left;
+  padding-bottom: 0.5rem;
+  border-bottom: 1.5px solid rgba(255, 200, 7, 0.15);
 }
 
 // Door Price Hint - Clean, prominent display of door price
@@ -401,14 +405,14 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     rgba(20, 20, 20, 0.95)
   );
   border-radius: 12px;
-  padding: 1.5rem 1.5rem 1.5rem 2.5rem;
+  padding: 1.1rem 1.1rem 1.1rem 2rem;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15),
     inset 0 1px 1px rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
   overflow: hidden;
   transform-style: preserve-3d;
   perspective: 1000px;
-  border-left: 15px solid var(--ticket-accent-color);
+  border-left: 12px solid var(--ticket-accent-color);
 
   // Remove all conflicting pseudo-elements
   &:before,
@@ -463,9 +467,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     right: 1rem;
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
     color: var(--ticket-accent-color);
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.55rem;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -500,7 +504,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 
   // Add a new rule after the ticket-countdown class
   .ticket-countdown + .ticket-group-badge {
-    top: 3.5rem;
+    top: 3rem;
   }
 
   // Countdown badge
@@ -510,9 +514,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     right: 1rem;
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
     color: var(--ticket-accent-color);
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.55rem;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -542,9 +546,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     right: 1rem;
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
     color: var(--ticket-accent-color);
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.55rem;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -569,7 +573,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 
   // Position limited badge below countdown if both exist
   .ticket-countdown + .ticket-limited-badge {
-    top: 3.5rem;
+    top: 3rem;
   }
 
   // Offline deadline badge - shows when ticket has offline time on event day
@@ -579,9 +583,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     right: 1rem;
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
     color: var(--ticket-accent-color);
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.55rem;
     border-radius: 20px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -605,11 +609,11 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   // Position offline deadline badge below other badges if they exist
   .ticket-countdown + .ticket-offline-deadline,
   .ticket-limited-badge + .ticket-offline-deadline {
-    top: 3.5rem;
+    top: 3rem;
   }
 
   .ticket-countdown + .ticket-limited-badge + .ticket-offline-deadline {
-    top: 6rem;
+    top: 5rem;
   }
 
   // Discount badge - adjusted position
@@ -644,8 +648,8 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding-top: 0.5rem;
+    margin-bottom: 0.6rem;
+    padding-top: 0.25rem;
 
     svg {
       font-size: 1.3rem;
@@ -655,7 +659,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 
     h4 {
       margin: 0;
-      font-size: 1.2rem;
+      font-size: 1.05rem;
       font-weight: 600;
       color: #fff;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -665,9 +669,9 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
 
   // Ticket price
   .ticket-price {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
     color: var(--ticket-accent-color);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     position: relative;
@@ -717,10 +721,10 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   // Ticket description
   .ticket-description {
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.4;
-    margin-bottom: 1.2rem;
-    min-height: 2.5rem;
+    margin-bottom: 0.8rem;
+    min-height: 0;
     position: relative;
     padding-left: 0.5rem;
 
@@ -749,7 +753,7 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    margin-top: 0.5rem;
+    margin-top: 0.35rem;
 
     // Analog style counter
     background: rgba(0, 0, 0, 0.3);
@@ -1246,15 +1250,15 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
   }
 
   .ticket-item {
-    padding: 1.25rem 1.25rem 1.25rem 2.25rem;
+    padding: 1rem 1rem 1rem 1.75rem;
   }
 
   .ticket-header h4 {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .ticket-price {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
 }
 

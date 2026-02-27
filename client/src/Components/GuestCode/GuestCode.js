@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./GuestCode.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -7,7 +7,6 @@ import {
   RiUserLine,
   RiMailLine,
   RiCodeSSlashLine,
-  RiTicket2Line,
   RiVipCrownLine,
   RiGroupLine,
   RiShieldCheckLine,
@@ -17,21 +16,14 @@ import {
   RiPhoneLine,
 } from "react-icons/ri";
 
-/**
- * GuestCode component for requesting guest codes for events
- * @param {Object} props
- * @param {Object} props.event - The event object containing all event details
- */
 const GuestCode = ({ event }) => {
   const toast = useToast();
 
-  // State for form fields
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestPax, setGuestPax] = useState(1);
   const [maxPax, setMaxPax] = useState(5);
-  const [primaryColor, setPrimaryColor] = useState("#d4af37"); // Default gold color
   const [generatingCode, setGeneratingCode] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [formErrors, setFormErrors] = useState({});
@@ -40,162 +32,71 @@ const GuestCode = ({ event }) => {
   const [limitInfo, setLimitInfo] = useState(null);
   const [isLoadingLimit, setIsLoadingLimit] = useState(false);
 
-  // Validate email format
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const guestCodeSettings = useMemo(() => {
+    if (!event?.codeSettings?.length) return null;
+    return event.codeSettings.find((cs) => cs.type === "guest") || null;
+  }, [event]);
 
-  // Validate phone format (accepts various formats including local numbers)
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const isValidPhone = (phone) => {
-    // Remove spaces, dashes, parentheses, and other common separators
-    const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
-    
-    // Accept various formats:
-    // - International: +49123456789
-    // - Local German: 0123456789 (10-11 digits starting with 0)
-    // - Other international: 49123456789 (without +)
-    // - General: any number with 7-15 digits
+    const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, "");
     const phoneRegex = /^(\+?[1-9]\d{1,14}|0\d{9,10})$/;
-    
     return phoneRegex.test(cleanPhone) && cleanPhone.length >= 7;
   };
 
-  // Get guest code settings
-  const getGuestCodeSettings = () => {
-    if (event && event.codeSettings && event.codeSettings.length > 0) {
-      return event.codeSettings.find(cs => cs.type === 'guest');
-    }
-    return null;
-  };
+  const isPhoneRequired = () => guestCodeSettings?.requirePhone === true;
 
-  // Email is always required
-  const isEmailRequired = () => true;
-
-  // Check if phone is required
-  const isPhoneRequired = () => {
-    const settings = getGuestCodeSettings();
-    return settings?.requirePhone === true; // Default to false
-  };
-
-  // Effect to fetch limit information
   useEffect(() => {
     const fetchLimitInfo = async () => {
-      if (event && event._id) {
+      if (event?._id) {
         try {
           setIsLoadingLimit(true);
-          
           const response = await axiosInstance.get(
             `/codes/counts/${event._id}?type=guest`
           );
-          
-          if (response.data) {
-            setLimitInfo(response.data);
-          }
-        } catch (error) {
-          // Silent error handling
+          if (response.data) setLimitInfo(response.data);
+        } catch {
+          // Silent
         } finally {
           setIsLoadingLimit(false);
         }
       }
     };
-
     fetchLimitInfo();
   }, [event]);
 
-  // Effect to get maxPax and primaryColor from event code settings
   useEffect(() => {
-    if (event && event.codeSettings && event.codeSettings.length > 0) {
-      const guestCodeSetting = event.codeSettings.find(
-        (cs) => cs.type === "guest"
-      );
-
-      if (guestCodeSetting) {
-        // Set maxPax if available
-        if (guestCodeSetting.maxPax) {
-          setMaxPax(guestCodeSetting.maxPax);
-        } else {
-          // Default to 5 if not specified
-          setMaxPax(5);
-        }
-
-        // Set primary color if available
-        if (guestCodeSetting.primaryColor) {
-          setPrimaryColor(guestCodeSetting.primaryColor);
-          // Apply the color to CSS variables for dynamic styling
-          document.documentElement.style.setProperty(
-            "--guest-code-primary-color",
-            guestCodeSetting.primaryColor
-          );
-        }
-      }
+    if (guestCodeSettings) {
+      setMaxPax(guestCodeSettings.maxPax || 5);
     }
-  }, [event]);
+  }, [guestCodeSettings]);
 
-  // Function to get condition text from code settings
-  const getConditionText = () => {
-    if (event && event.codeSettings && event.codeSettings.length > 0) {
-      const guestCodeSetting = event.codeSettings.find(
-        (cs) => cs.type === "guest"
-      );
+  const conditionText =
+    guestCodeSettings?.condition ||
+    "Please fill in your details to request a guest code for this event.";
 
-      if (guestCodeSetting && guestCodeSetting.condition) {
-        return guestCodeSetting.condition;
-      }
-    }
+  const noteText = guestCodeSettings?.note || "";
 
-    return "Please fill in your details to request a guest code for this event.";
-  };
-
-  // Function to get note text from code settings
-  const getNoteText = () => {
-    if (event && event.codeSettings && event.codeSettings.length > 0) {
-      const guestCodeSetting = event.codeSettings.find(
-        (cs) => cs.type === "guest"
-      );
-
-      return guestCodeSetting?.note || "";
-    }
-
-    return "";
-  };
-
-  // Function to check if limit is reached
   const isLimitReached = () => {
     if (!limitInfo || limitInfo.unlimited) return false;
     return limitInfo.totalPax >= limitInfo.limit;
   };
 
-  // Function to get remaining slots
-  const getRemainingSlots = () => {
-    if (!limitInfo || limitInfo.unlimited) return null;
-    return Math.max(0, limitInfo.limit - limitInfo.totalPax);
-  };
-
-  // Function to check if we should show limit info
   const shouldShowLimit = () => {
-    const guestCodeSetting = event?.codeSettings?.find(
-      (cs) => cs.type === "guest"
-    );
     return (
       limitInfo &&
       !limitInfo.unlimited &&
       limitInfo.limit > 0 &&
-      guestCodeSetting &&
-      !guestCodeSetting.unlimited &&
-      guestCodeSetting.limit > 0
+      guestCodeSettings &&
+      !guestCodeSettings.unlimited &&
+      guestCodeSettings.limit > 0
     );
   };
 
-  // Handle field change
   const handleFieldChange = (field, value) => {
-    // Update form touched state
-    setFormTouched((prev) => ({
-      ...prev,
-      [field]: true,
-    }));
+    setFormTouched((prev) => ({ ...prev, [field]: true }));
 
-    // Update field value
     switch (field) {
       case "name":
         setGuestName(value);
@@ -213,31 +114,22 @@ const GuestCode = ({ event }) => {
         break;
     }
 
-    // Clear error for this field if it exists
     if (formErrors[field]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [field]: null,
-      }));
+      setFormErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
   const handleGenerateGuestCode = async () => {
     try {
-      // Validate guest name and email
       const errors = {};
-      if (!guestName.trim()) {
-        errors.name = "Please enter your name";
-      }
+      if (!guestName.trim()) errors.name = "Please enter your name";
 
-      // Email is always required
       if (!guestEmail.trim()) {
         errors.email = "Please enter your email";
       } else if (!isValidEmail(guestEmail)) {
         errors.email = "Please enter a valid email address";
       }
 
-      // Validate phone if required
       if (isPhoneRequired()) {
         if (!guestPhone.trim()) {
           errors.phone = "Please enter your phone number";
@@ -252,91 +144,71 @@ const GuestCode = ({ event }) => {
         return;
       }
 
-      // Clear previous errors and warnings
       setFormErrors({});
       setExistingCodeWarning("");
-
-      // Set generating state
       setGeneratingCode(true);
-
-      // Use info toast to let the user know we're processing
       toast.showInfo("Processing your request...");
 
-      // Make sure we have the event ID
-      if (!event || !event._id) {
+      if (!event?._id) {
         toast.showError("Event information is missing");
         setGeneratingCode(false);
         return;
       }
 
-      const eventId = event._id;
-
       const requestData = {
-        eventId: eventId,
-        guestName: guestName,
-        guestEmail: guestEmail, // Email is always included
+        eventId: event._id,
+        guestName,
+        guestEmail,
         maxPax: guestPax,
       };
 
-      // Add phone if required and provided
       if (isPhoneRequired() && guestPhone) {
         requestData.guestPhone = guestPhone;
       }
 
-      const response = await axiosInstance.post("/guest-code/generate", requestData);
+      const response = await axiosInstance.post(
+        "/guest-code/generate",
+        requestData
+      );
 
-      // Check for the already exists case (status 409)
-      if (response.data && response.data.alreadyExists) {
+      if (response.data?.alreadyExists) {
         setExistingCodeWarning(
           response.data.message ||
             "You already received a Guest Code for this event."
         );
         toast.showInfo("You already have a Guest Code for this event.");
-      }
-      // Check for success
-      else if (response.data && (response.data.success || response.data.code)) {
-        // Clear form fields
+      } else if (response.data?.success || response.data?.code) {
         setGuestName("");
         setGuestEmail("");
         setGuestPhone("");
         setGuestPax(1);
         setFormTouched({});
 
-        // Show success message
         const contactInfo = [];
         if (guestEmail) contactInfo.push(`email (${guestEmail})`);
         if (guestPhone) contactInfo.push(`phone (${guestPhone})`);
-        
-        setSuccessMessage(
-          `Guest code sent to your ${contactInfo.join(' and ')}. Please check your messages.`
-        );
-        setTimeout(() => {
-          setSuccessMessage("");
-        }, 5000); // Clear the message after 5 seconds
 
-        // Show success toast
+        setSuccessMessage(
+          `Guest code sent to your ${contactInfo.join(" and ")}. Please check your messages.`
+        );
+        setTimeout(() => setSuccessMessage(""), 5000);
         toast.showSuccess("Guest code generated and sent successfully");
 
-        // Refresh limit info after successful generation
         try {
-          const response = await axiosInstance.get(
+          const refreshResponse = await axiosInstance.get(
             `/codes/counts/${event._id}?type=guest`
           );
-          if (response.data) {
-            setLimitInfo(response.data);
-          }
-        } catch (error) {
-          // Silent error handling
+          if (refreshResponse.data) setLimitInfo(refreshResponse.data);
+        } catch {
+          // Silent
         }
       } else {
-        // If response doesn't have expected success properties, show an error
         toast.showError(
           response.data?.message || "Failed to generate guest code"
         );
       }
     } catch (error) {
-      // Check for 409 Conflict status (already exists)
-      if (error.response && error.response.status === 409) {
+      if (error.response?.status === 409) {
         setExistingCodeWarning(
           error.response.data.message ||
             "You already received a Guest Code for this event."
@@ -352,130 +224,108 @@ const GuestCode = ({ event }) => {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleGenerateGuestCode();
+  };
+
+  const fieldClassName = (field, validCheck) => {
+    if (formErrors[field]) return "guest-code__input--error";
+    if (formTouched[field] && validCheck) return "guest-code__input--valid";
+    return "";
+  };
+
   return (
-    <div className="guest-code-container">
+    <div className="guest-code">
       <motion.div
-        className="guest-code-card"
-        initial={{ opacity: 0, y: 20 }}
+        className="guest-code__card"
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          background: `linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95))`,
-          borderLeft: `4px solid ${primaryColor}`,
-        }}
+        transition={{ duration: 0.3 }}
       >
-        <div className="card-header">
-          <div className="title-area">
-            <RiVipCrownLine
-              className="title-icon"
-              style={{ color: primaryColor }}
-            />
-            <h3 className="guest-code-title">Request Guest Code</h3>
-          </div>
+        {/* Header */}
+        <div className="guest-code__header">
+          <h3 className="guest-code__title">Guest Code</h3>
         </div>
 
-        {/* Condition text from code settings */}
-        <div className="condition-wrapper">
-          <RiShieldCheckLine
-            className="condition-icon"
-            style={{ color: primaryColor }}
-          />
-          <p className="condition-text">{getConditionText()}</p>
-          {getNoteText() && (
-            <p className="note-text" style={{ fontSize: '14px', color: '#aaa', fontStyle: 'italic', marginTop: '4px' }}>
-              {getNoteText()}
-            </p>
-          )}
+        {/* Condition */}
+        <div className="guest-code__condition">
+          <RiShieldCheckLine className="guest-code__condition-icon" />
+          <p className="guest-code__condition-text">{conditionText}</p>
+          {noteText && <p className="guest-code__condition-note">{noteText}</p>}
         </div>
 
-        {/* Success message */}
+        {/* Success */}
         <AnimatePresence>
           {successMessage && (
             <motion.div
-              className="success-message"
+              className="guest-code__success"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="success-content"
-              >
-                <RiMailSendLine className="success-icon" />
+              <div className="guest-code__success-content">
+                <RiMailSendLine className="guest-code__success-icon" />
                 {successMessage}
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Existing code warning message */}
+        {/* Warning */}
         <AnimatePresence>
           {existingCodeWarning && (
             <motion.div
-              className="warning-message"
+              className="guest-code__warning"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="warning-content"
-              >
-                <RiCodeSSlashLine className="warning-icon" />
+              <div className="guest-code__warning-content">
+                <RiCodeSSlashLine className="guest-code__warning-icon" />
                 {existingCodeWarning}
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Limit Display */}
+        {/* Limit */}
         {shouldShowLimit() && limitInfo && (
-          <div className="limit-display">
-            <div className="limit-content">
-              <RiFireLine
-                className="limit-icon"
-                style={{ color: primaryColor }}
-              />
-              <div className="limit-text">
-                <span className="limit-remaining">
+          <div className="guest-code__limit">
+            <div className="guest-code__limit-content">
+              <RiFireLine className="guest-code__limit-icon" />
+              <div className="guest-code__limit-text">
+                <span className="guest-code__limit-remaining">
                   {limitInfo.totalPax}/{limitInfo.limit}
                 </span>
-                <span className="limit-label">limited</span>
+                <span className="guest-code__limit-label">limited</span>
               </div>
-              <div className="limit-bar">
-                <div
-                  className="limit-progress"
-                  style={{
-                    width: `${Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        (limitInfo.totalPax / (limitInfo.limit || 1)) * 100
-                      )
-                    )}%`,
-                    backgroundColor: primaryColor,
-                  }}
-                />
-              </div>
+            </div>
+            <div className="guest-code__limit-bar">
+              <div
+                className="guest-code__limit-progress"
+                style={{
+                  width: `${Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      (limitInfo.totalPax / (limitInfo.limit || 1)) * 100
+                    )
+                  )}%`,
+                }}
+              />
             </div>
           </div>
         )}
 
-        <div
-          className={`guest-code-form ${
-            isLimitReached() ? "limit-reached" : ""
-          }`}
-          style={{ position: "relative" }}
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className={`guest-code__form ${isLimitReached() ? "guest-code__form--disabled" : ""}`}
         >
-          <div className="form-group">
-            <div
-              className="input-icon"
-              style={{ color: formTouched.name ? primaryColor : undefined }}
-            >
+          {/* Name */}
+          <div className="guest-code__field">
+            <div className={`guest-code__field-icon ${formTouched.name ? "guest-code__field-icon--active" : ""}`}>
               <RiUserLine />
             </div>
             <input
@@ -484,38 +334,21 @@ const GuestCode = ({ event }) => {
               value={guestName}
               onChange={(e) => handleFieldChange("name", e.target.value)}
               onBlur={() => setFormTouched((prev) => ({ ...prev, name: true }))}
-              className={
-                formErrors.name
-                  ? "error"
-                  : formTouched.name && guestName
-                  ? "valid"
-                  : ""
-              }
-              style={{
-                borderColor:
-                  formTouched.name && !formErrors.name && guestName
-                    ? `${primaryColor}40`
-                    : undefined,
-              }}
+              className={`guest-code__input ${fieldClassName("name", guestName)}`}
             />
             {formErrors.name && (
-              <div className="error-message">{formErrors.name}</div>
+              <div className="guest-code__error">{formErrors.name}</div>
             )}
             {formTouched.name && guestName && !formErrors.name && (
-              <div
-                className="valid-indicator"
-                style={{ backgroundColor: primaryColor }}
-              ></div>
+              <div className="guest-code__valid-dot" />
             )}
           </div>
 
-          <div className="form-group">
-              <div
-                className="input-icon"
-                style={{ color: formTouched.email ? primaryColor : undefined }}
-              >
-                <RiMailLine />
-              </div>
+          {/* Email */}
+          <div className="guest-code__field">
+            <div className={`guest-code__field-icon ${formTouched.email ? "guest-code__field-icon--active" : ""}`}>
+              <RiMailLine />
+            </div>
             <input
               type="email"
               placeholder="Your Email"
@@ -530,41 +363,20 @@ const GuestCode = ({ event }) => {
                   }));
                 }
               }}
-              className={
-                formErrors.email
-                  ? "error"
-                  : formTouched.email && isValidEmail(guestEmail)
-                  ? "valid"
-                  : ""
-              }
-              style={{
-                borderColor:
-                  formTouched.email &&
-                  !formErrors.email &&
-                  isValidEmail(guestEmail)
-                    ? `${primaryColor}40`
-                    : undefined,
-              }}
+              className={`guest-code__input ${fieldClassName("email", isValidEmail(guestEmail))}`}
             />
             {formErrors.email && (
-              <div className="error-message">{formErrors.email}</div>
+              <div className="guest-code__error">{formErrors.email}</div>
             )}
-            {formTouched.email &&
-              isValidEmail(guestEmail) &&
-              !formErrors.email && (
-                <div
-                  className="valid-indicator"
-                  style={{ backgroundColor: primaryColor }}
-                ></div>
-              )}
+            {formTouched.email && isValidEmail(guestEmail) && !formErrors.email && (
+              <div className="guest-code__valid-dot" />
+            )}
           </div>
 
+          {/* Phone (conditional) */}
           {isPhoneRequired() && (
-            <div className="form-group">
-              <div
-                className="input-icon"
-                style={{ color: formTouched.phone ? primaryColor : undefined }}
-              >
+            <div className="guest-code__field">
+              <div className={`guest-code__field-icon ${formTouched.phone ? "guest-code__field-icon--active" : ""}`}>
                 <RiPhoneLine />
               </div>
               <input
@@ -581,53 +393,27 @@ const GuestCode = ({ event }) => {
                     }));
                   }
                 }}
-                className={
-                  formErrors.phone
-                    ? "error"
-                    : formTouched.phone && isValidPhone(guestPhone)
-                    ? "valid"
-                    : ""
-                }
-                style={{
-                  borderColor:
-                    formTouched.phone &&
-                    !formErrors.phone &&
-                    isValidPhone(guestPhone)
-                      ? `${primaryColor}40`
-                      : undefined,
-                }}
+                className={`guest-code__input ${fieldClassName("phone", isValidPhone(guestPhone))}`}
               />
               {formErrors.phone && (
-                <div className="error-message">{formErrors.phone}</div>
+                <div className="guest-code__error">{formErrors.phone}</div>
               )}
-              {formTouched.phone &&
-                isValidPhone(guestPhone) &&
-                !formErrors.phone && (
-                  <div
-                    className="valid-indicator"
-                    style={{ backgroundColor: primaryColor }}
-                  ></div>
-                )}
+              {formTouched.phone && isValidPhone(guestPhone) && !formErrors.phone && (
+                <div className="guest-code__valid-dot" />
+              )}
             </div>
           )}
 
-          <div className="form-group">
-            <div
-              className="input-icon"
-              style={{ color: formTouched.pax ? primaryColor : undefined }}
-            >
+          {/* Pax */}
+          <div className="guest-code__field">
+            <div className={`guest-code__field-icon ${formTouched.pax ? "guest-code__field-icon--active" : ""}`}>
               <RiGroupLine />
             </div>
             <select
               value={guestPax}
               onChange={(e) => handleFieldChange("pax", e.target.value)}
               onBlur={() => setFormTouched((prev) => ({ ...prev, pax: true }))}
-              className={
-                formErrors.pax ? "error" : formTouched.pax ? "valid" : ""
-              }
-              style={{
-                borderColor: formTouched.pax ? `${primaryColor}40` : undefined,
-              }}
+              className={`guest-code__select ${fieldClassName("pax", true)}`}
             >
               {[...Array(maxPax)].map((_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -636,77 +422,56 @@ const GuestCode = ({ event }) => {
               ))}
             </select>
             {formErrors.pax && (
-              <div className="error-message">{formErrors.pax}</div>
-            )}
-            {formTouched.pax && !formErrors.pax && (
-              <div
-                className="valid-indicator"
-                style={{ backgroundColor: primaryColor }}
-              ></div>
+              <div className="guest-code__error">{formErrors.pax}</div>
             )}
           </div>
 
+          {/* Submit */}
           <motion.button
-            className="guest-code-button"
-            onClick={handleGenerateGuestCode}
+            type="submit"
+            className="guest-code__submit"
             disabled={generatingCode || isLimitReached()}
-            whileHover={
-              !isLimitReached()
-                ? { y: -2, boxShadow: "0 6px 20px rgba(0,0,0,0.3)" }
-                : {}
-            }
-            whileTap={
-              !isLimitReached()
-                ? { y: 0, boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }
-                : {}
-            }
-            style={{
-              background: primaryColor,
-              backgroundImage: generatingCode
-                ? "none"
-                : `linear-gradient(to bottom, ${primaryColor}DD, ${primaryColor})`,
-            }}
+            whileHover={!isLimitReached() ? { y: -1 } : {}}
+            whileTap={!isLimitReached() ? { y: 0 } : {}}
           >
             {generatingCode ? (
               <>
-                <div className="loading-spinner"></div>
+                <div className="guest-code__submit-spinner" />
                 <span>Generating...</span>
               </>
             ) : (
               <>
-                <RiCodeSSlashLine className="button-icon" />
-                <span>
-                  {isLimitReached() ? "Limit Reached" : "Generate Guest Code"}
-                </span>
+                <RiCodeSSlashLine className="guest-code__submit-icon" />
+                <span>{isLimitReached() ? "Limit Reached" : "Generate Guest Code"}</span>
               </>
             )}
           </motion.button>
-        </div>
+        </form>
 
-        {/* Limit Reached Overlay */}
+        {/* Sold-out overlay */}
         <AnimatePresence>
           {isLimitReached() && (
             <motion.div
-              className="limit-reached-overlay"
+              className="guest-code__sold-out"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="limit-reached-content">
+              <div className="guest-code__sold-out-content">
                 <motion.div
-                  className="limit-reached-icon"
-                  initial={{ scale: 0.8, rotate: -10 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ duration: 0.5, ease: "backOut" }}
+                  className="guest-code__sold-out-icon"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, ease: "backOut" }}
                 >
                   <RiAlertLine />
                 </motion.div>
                 <motion.h3
-                  className="limit-reached-title"
-                  initial={{ y: 20, opacity: 0 }}
+                  className="guest-code__sold-out-title"
+                  initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
+                  transition={{ delay: 0.15, duration: 0.3 }}
                 >
                   SOLD OUT
                 </motion.h3>
@@ -715,11 +480,10 @@ const GuestCode = ({ event }) => {
           )}
         </AnimatePresence>
 
-        <div className="guest-code-footer">
-          <RiShieldCheckLine style={{ color: primaryColor }} />
-          <span>
-            Your information is secure and will only be used for this event
-          </span>
+        {/* Footer */}
+        <div className="guest-code__footer">
+          <RiShieldCheckLine />
+          <span>Your information is secure and will only be used for this event</span>
         </div>
       </motion.div>
     </div>

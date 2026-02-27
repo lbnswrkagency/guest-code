@@ -1854,9 +1854,11 @@ exports.downloadGalleryFile = async (req, res) => {
     
     // Extract filename from path
     const filename = decodedPath.split('/').pop();
-    
-    // Set appropriate headers
-    res.setHeader('Content-Type', 'application/octet-stream');
+
+    // Set appropriate Content-Type based on file extension
+    const ext = filename.split('.').pop().toLowerCase();
+    const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+    res.setHeader('Content-Type', mimeMap[ext] || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     
     // Send file data

@@ -41,7 +41,8 @@
       "Bash(brew reinstall:*)",
       "WebSearch",
       "WebFetch(domain:docs.invoicemaker.gr)",
-      "Bash(nvm install:*)"
+      "Bash(nvm install:*)",
+      "Bash(tail:*)"
     ],
     "deny": []
   }

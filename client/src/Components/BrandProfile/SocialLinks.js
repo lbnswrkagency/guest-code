@@ -157,12 +157,10 @@ const SocialLinks = ({ social }) => {
               }}
               initial={{ scale: 1 }}
               whileHover={{
-                scale: 1.1,
-                color: "#fff",
-                backgroundColor: config.color,
+                scale: 1.12,
               }}
               whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
               <Icon size={18} />
             </motion.a>

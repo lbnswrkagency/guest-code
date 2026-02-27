@@ -1,84 +1,22 @@
 @import "../../_variables";
 @import "../../_media-queries";
 
-// Add CSS variable for nav height if it doesn't exist elsewhere
-:root {
-  --nav-height: 56px;
-  --button-height: 70px;
-  --button-icon-size: 40px;
-  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-  --sidebar-width: 120px; // Add sidebar width variable
-}
-
 .eventDetails-container {
   width: 100%;
   max-width: 100%;
   margin: 1rem 0;
-  position: relative;
-  overflow: hidden;
   box-sizing: border-box;
 }
 
 .eventDetails-card {
-  background: linear-gradient(
-    135deg,
-    rgba(21, 21, 21, 0.98) 0%,
-    rgba(30, 30, 30, 0.95) 50%,
-    rgba(21, 21, 21, 0.98) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(21, 21, 21, 0.98);
   border-radius: 1rem;
-  border: 1px solid rgba(255, 200, 7, 0.1);
-  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 2px solid rgba(255, 200, 7, 0.3);
   width: 100%;
   max-width: 100%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-
-  // Subtle golden glow
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 40%,
-      rgba(255, 200, 7, 0.03) 50%,
-      transparent 60%
-    );
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  // Top accent line
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 200, 7, 0.6),
-      transparent
-    );
-    border-radius: 0 0 2px 2px;
-    z-index: 2;
-  }
-
-  // All content should be above the overlays
-  & > * {
-    position: relative;
-    z-index: 3;
-  }
 }
 
 .eventDetails-content {
@@ -94,55 +32,22 @@
 }
 
 .eventDetails-section {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.02) 0%,
-    rgba(0, 0, 0, 0.3) 100%
-  );
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: rgba(255, 200, 7, 0.15);
-    box-shadow: 0 2px 8px rgba(255, 200, 7, 0.1);
-  }
 
   .eventDetails-section-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 200, 7, 0.08) 0%,
-      rgba(255, 200, 7, 0.03) 100%
-    );
+    background: rgba(255, 200, 7, 0.05);
     border-bottom: 1px solid rgba(255, 200, 7, 0.1);
-    position: relative;
-
-    // Add subtle glow line at top
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 20%;
-      right: 20%;
-      height: 1px;
-      background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 200, 7, 0.4),
-        transparent
-      );
-    }
 
     svg {
       color: #ffc807;
       font-size: 1.1rem;
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
 
     h4 {
@@ -150,15 +55,6 @@
       font-size: 0.95rem;
       font-weight: 600;
       color: white;
-      background: linear-gradient(
-        135deg,
-        #ffffff 0%,
-        #ffc807 50%,
-        #ffffff 100%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
       letter-spacing: 0.025em;
     }
   }
@@ -183,22 +79,8 @@
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.02) 0%,
-    rgba(0, 0, 0, 0.2) 100%
-  );
+  background: rgba(0, 0, 0, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: rgba(255, 200, 7, 0.1);
-    background: linear-gradient(
-      135deg,
-      rgba(255, 200, 7, 0.02) 0%,
-      rgba(0, 0, 0, 0.25) 100%
-    );
-  }
 
   .eventDetails-detail-label {
     display: flex;
@@ -212,7 +94,6 @@
     svg {
       font-size: 0.9rem;
       color: rgba(255, 200, 7, 0.9);
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
     }
   }
 
@@ -221,21 +102,14 @@
     font-size: 1rem;
     font-weight: 500;
     padding-left: 1.3rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     text-align: left;
+
     &.eventDetails-music-value {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       color: rgba(255, 255, 255, 0.9);
       padding-left: 0;
-
-      svg {
-        color: #ffc807;
-        font-size: 1.2rem;
-        margin-right: 0.5rem;
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-      }
 
       .eventDetails-genre-tags {
         display: flex;
@@ -244,11 +118,7 @@
         width: 100%;
 
         .eventDetails-genre-tag {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 200, 7, 0.15),
-            rgba(255, 170, 0, 0.2)
-          );
+          background: rgba(255, 200, 7, 0.12);
           color: #ffc807;
           padding: 6px 14px;
           border-radius: 50px;
@@ -256,149 +126,10 @@
           font-weight: 500;
           white-space: nowrap;
           letter-spacing: 0.025em;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 200, 7, 0.25);
-          transition: all 0.2s ease;
-          backdrop-filter: blur(8px);
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(255, 200, 7, 0.2);
-            background: linear-gradient(
-              135deg,
-              rgba(255, 200, 7, 0.2),
-              rgba(255, 170, 0, 0.3)
-            );
-            border-color: rgba(255, 200, 7, 0.4);
-          }
+          border: 1px solid rgba(255, 200, 7, 0.2);
         }
       }
     }
-
-    &.eventDetails-description-value {
-      font-size: 0.9rem;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.9);
-      padding-left: 0;
-    }
-  }
-}
-
-.eventDetails-availability-section {
-  .eventDetails-availability-items {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-    gap: 1rem;
-    padding: 1rem;
-  }
-
-  .eventDetails-availability-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    position: relative;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-
-      .eventDetails-availability-action {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .eventDetails-availability-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(255, 200, 7, 0.15);
-      color: #ffc807;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-    }
-
-    .eventDetails-availability-text {
-      flex: 1;
-
-      h5 {
-        margin: 0 0 0.2rem 0;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: white;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.6);
-        line-height: 1.4;
-      }
-    }
-
-    .eventDetails-availability-action {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      font-size: 1.2rem;
-      flex-shrink: 0;
-      opacity: 0.7;
-      transition: all 0.3s ease;
-      transform: translateX(-5px);
-
-      svg {
-        transition: transform 0.2s ease;
-      }
-    }
-
-    &:hover .eventDetails-availability-action svg {
-      transform: translateX(2px);
-    }
-
-    &.tickets-available {
-      border-left: 3px solid #ffc807;
-
-      &:hover .eventDetails-availability-action {
-        background: rgba(255, 200, 7, 0.2);
-        color: #ffc807;
-      }
-    }
-
-    &.guest-code-available {
-      border-left: 3px solid #2196f3;
-
-      .eventDetails-availability-icon {
-        background: rgba(33, 150, 243, 0.15);
-        color: #2196f3;
-      }
-
-      &:hover .eventDetails-availability-action {
-        background: rgba(33, 150, 243, 0.2);
-        color: #2196f3;
-      }
-    }
-  }
-}
-
-.eventDetails-description {
-  margin-bottom: 1.5rem;
-  p {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #333;
-    margin: 0;
   }
 }
 
@@ -407,26 +138,10 @@
   .eventDetails-section-content.eventDetails-time-grid {
     grid-template-columns: 1fr;
   }
-
-  .eventDetails-availability-section .eventDetails-availability-items {
-    grid-template-columns: 1fr;
-  }
 }
 
-// Laptop and bigger screens - adjust content width
 @media (min-width: 1024px) {
   .eventDetails-content {
     max-width: 90%;
-  }
-}
-
-// Dark mode adjustments
-@media (prefers-color-scheme: dark) {
-  .eventDetails-card {
-    background: linear-gradient(
-      135deg,
-      rgba(25, 25, 25, 0.97),
-      rgba(15, 15, 15, 0.99)
-    );
   }
 }

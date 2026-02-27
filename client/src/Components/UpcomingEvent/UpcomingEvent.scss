@@ -13,17 +13,7 @@
   border-radius: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  animation: subtle-glow 2s ease-in-out infinite alternate;
   box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-
-  @keyframes subtle-glow {
-    from {
-      box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-    }
-    to {
-      box-shadow: 0 4px 16px rgba(79, 172, 254, 0.5);
-    }
-  }
 
   @media (max-width: 768px) {
     font-size: 0.7rem;
@@ -41,29 +31,9 @@
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 100%;
-  padding: 0.5rem; // Base padding for mobile
-  contain: layout style; // Prevent layout shifts during load
-  overflow: hidden; // CRITICAL - prevent any child from stretching page
-
-  @include mq(tablet) {
-    padding: 0.75rem !important;
-  }
-
-  @include mq(tablet-landscape) {
-    padding: 0.9rem !important;
-  }
-
-  @include mq(laptop) {
-    padding: 1.1rem !important;
-  }
-
-  @include mq(desktop) {
-    padding: 1.3rem !important;
-  }
-
-  @include mq(desktop-large) {
-    padding: 1.5rem !important;
-  }
+  padding: clamp(0.5rem, 2vw, 1.5rem);
+  contain: layout style;
+  overflow: hidden;
 
   // Seamless mode - removes container styling
   &.upcomingEvent-seamless {
@@ -124,213 +94,34 @@
     vertical-align: middle;
   }
 
-  &.upcomingEvent-empty,
-  &.upcomingEvent-error {
-    min-height: 280px;
+  // Simple empty state — minimalistic, quiet
+  .upcomingEvent-empty-simple {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 2rem;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2.5rem 1.5rem;
+    min-height: 180px;
     text-align: center;
 
-    .upcomingEvent-empty {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
+    .empty-icon {
+      font-size: 1.75rem;
+      color: rgba(255, 200, 7, 0.35);
     }
 
-    .upcomingEvent-empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      background: linear-gradient(
-        145deg,
-        rgba(25, 25, 25, 0.9),
-        rgba(15, 15, 15, 0.95)
-      );
-      border-radius: 16px;
-      padding: 2.5rem 1.5rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2),
-        0 15px 45px rgba(0, 0, 0, 0.15);
-      position: relative;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transform-style: preserve-3d;
-      perspective: 1000px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    h2 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.55);
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
 
-      // Paper texture overlay
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-        pointer-events: none;
-        z-index: 1;
-        opacity: 0.4;
-        border-radius: 16px;
-        mix-blend-mode: overlay;
-      }
-
-      // Top light edge
-      &::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(
-          to right,
-          transparent,
-          rgba(255, 255, 255, 0.1),
-          transparent
-        );
-      }
-
-      // Hover effect
-      &:hover {
-        transform: translateY(-5px) scale(1.02);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25),
-          0 20px 60px rgba(0, 0, 0, 0.2);
-
-        .empty-state-icon-wrapper {
-          .icon-glow {
-            opacity: 0.8;
-            transform: scale(1.2);
-          }
-
-          .upcomingEvent-empty-icon {
-            transform: translateY(-2px) scale(1.1);
-            color: $primary-color;
-          }
-        }
-
-        .empty-state-decoration {
-          .decoration-dot {
-            animation-duration: 1.2s;
-          }
-
-          .decoration-line {
-            animation-duration: 1.8s;
-          }
-        }
-      }
-
-      // Enhanced icon wrapper
-      .empty-state-icon-wrapper {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 0.5rem;
-        animation: float-subtle 6s ease-in-out infinite;
-
-        .icon-glow {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          background: radial-gradient(
-            circle,
-            rgba(255, 200, 7, 0.3) 0%,
-            rgba(255, 200, 7, 0.1) 40%,
-            rgba(255, 200, 7, 0) 70%
-          );
-          animation: pulse-glow 4s ease-in-out infinite;
-          z-index: 0;
-          opacity: 0.5;
-          transition: all 0.5s ease;
-        }
-
-        .upcomingEvent-empty-icon {
-          font-size: 3.5rem;
-          color: rgba(255, 255, 255, 0.8);
-          z-index: 1;
-          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-          transition: all 0.5s ease;
-        }
-      }
-
-      // Title styling
-      .empty-state-title {
-        font-size: 1.4rem;
-        font-weight: 600;
-        color: #fff;
-        margin: 0.5rem 0 0;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        letter-spacing: 0.5px;
-      }
-
-      // Divider
-      .empty-state-divider {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 0.5rem 0;
-
-        span {
-          width: 60px;
-          height: 2px;
-          background: linear-gradient(
-            to right,
-            transparent,
-            $primary-color,
-            transparent
-          );
-          border-radius: 2px;
-          animation: horizontal-pulse 4s ease-in-out infinite;
-        }
-      }
-
-      // Message
-      .empty-state-message {
-        font-size: 1rem;
-        color: rgba(255, 255, 255, 0.7);
-        margin: 0;
-        font-weight: 400;
-        max-width: 80%;
-        line-height: 1.4;
-      }
-
-      // Decorative bottom element
-      .empty-state-decoration {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1rem;
-
-        .decoration-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: $primary-color;
-          animation: dot-pulse 3s ease-in-out infinite;
-
-          &:nth-child(1) {
-            animation-delay: 0s;
-          }
-
-          &:nth-child(3) {
-            animation-delay: 0.5s;
-          }
-        }
-
-        .decoration-line {
-          width: 40px;
-          height: 2px;
-          background: rgba(255, 200, 7, 0.4);
-          border-radius: 2px;
-          animation: horizontal-pulse 3.5s ease-in-out infinite;
-        }
-      }
+    p {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.35);
+      margin: 0;
     }
   }
 
@@ -441,27 +232,16 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 0.7rem; // Slightly increased for better readability
-            color: rgba(255, 200, 7, 0.9); // Golden color
-            font-weight: 700; // Increased weight
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9),
-              0 0 6px rgba(255, 200, 7, 0.3); // Golden glow
+            font-size: 0.7rem;
+            color: #ffc807;
+            font-weight: 700;
             text-align: center;
 
             span {
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
-              letter-spacing: 0.05em; // More letter spacing for elegance
-              background: linear-gradient(
-                45deg,
-                rgba(255, 200, 7, 0.8) 0%,
-                #ffc807 50%,
-                rgba(255, 200, 7, 0.8) 100%
-              );
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
+              letter-spacing: 0.05em;
             }
           }
         }
@@ -539,7 +319,6 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-top: none;
     gap: 1.5rem;
-    backdrop-filter: blur(10px);
 
     .upcomingEvent-navigation-indicator {
       display: flex;
@@ -609,14 +388,8 @@
   .upcomingEvent-card {
     display: flex;
     flex-direction: column;
-    transition: transform 0.2s ease, box-shadow 0.3s ease;
     position: relative;
     z-index: 2;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    }
 
     .upcomingEvent-image-wrapper {
       width: 100%;
@@ -627,8 +400,8 @@
       grid-row: 1/2;
 
       @media (min-width: 1024px) {
-        grid-column: 1/2 !important;
-        grid-row: 1/4 !important;
+        grid-column: 1/2;
+        grid-row: 1/4;
         align-self: center;
         justify-self: center;
         width: 30rem;
@@ -733,21 +506,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 1rem 0; // Add some padding for portrait images
-
-        /* Add a subtle grain texture overlay */
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-          opacity: 0.4;
-          pointer-events: none;
-          z-index: 0;
-        }
+        padding: 1rem 0;
       }
 
       .upcomingEvent-image-container {
@@ -791,23 +550,7 @@
       line-height: 1.2;
       text-align: center;
       position: relative;
-
-      // Subtle golden gradient text effect
-      background: linear-gradient(
-        135deg,
-        #ffffff 10%,
-        rgba(255, 200, 7, 0.9) 45%,
-        #ffc807 55%,
-        rgba(255, 200, 7, 0.9) 65%,
-        #ffffff 90%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-
-      // Enhanced text shadow for depth
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
-        drop-shadow(0 0 6px rgba(255, 200, 7, 0.2));
+      color: #fff;
 
       @media (max-width: 768px) {
         font-size: 1.8rem;
@@ -818,7 +561,6 @@
         font-size: 1.6rem;
       }
 
-      // Subtle golden underline
       &::after {
         content: "";
         position: absolute;
@@ -831,12 +573,9 @@
           to right,
           transparent,
           rgba(255, 200, 7, 0.7),
-          #ffc807,
-          rgba(255, 200, 7, 0.7),
           transparent
         );
         border-radius: 2px;
-        box-shadow: 0 0 6px rgba(255, 200, 7, 0.3);
 
         @media (max-width: 768px) {
           width: 50px;
@@ -1022,82 +761,22 @@
   }
 
   .upcomingEvent-subtitle-header {
-    margin: 1.5rem 0;
+    margin: 1.5rem auto;
     position: relative;
-    background: linear-gradient(
-      135deg,
-      rgba(21, 21, 21, 0.98) 0%,
-      rgba(30, 30, 30, 0.95) 50%,
-      rgba(21, 21, 21, 0.98) 100%
-    );
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(21, 21, 21, 0.95);
     border-radius: 1rem;
     border: 1px solid rgba(255, 200, 7, 0.1);
     padding: 0.75rem 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
     max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
+    overflow: hidden;
 
-    // Subtle golden glow
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        45deg,
-        transparent 40%,
-        rgba(255, 200, 7, 0.03) 50%,
-        transparent 60%
-      );
-      border-radius: inherit;
-      pointer-events: none;
-    }
-
-    // Top accent line
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px;
-      height: 2px;
-      background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 200, 7, 0.6),
-        transparent
-      );
-      border-radius: 0 0 2px 2px;
-    }
-
-    // Beautiful subtitle text styling
     .upcomingEvent-event-subtitle {
-      position: relative;
-      z-index: 3;
       margin: 0;
-      font-size: 1rem; // Base mobile size
+      font-size: 1rem;
       font-weight: 600;
-      color: white;
-      background: linear-gradient(
-        135deg,
-        #ffffff 0%,
-        #ffc807 50%,
-        #ffffff 100%
-      );
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #ffc807;
       letter-spacing: 0.025em;
       text-align: center;
-      text-transform: none;
-      text-shadow: none;
     }
   }
 
@@ -1264,46 +943,10 @@
 .upcomingEvent-footer {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(
-    145deg,
-    rgba(25, 25, 25, 0.9),
-    rgba(15, 15, 15, 0.95)
-  );
+  background: rgba(21, 21, 21, 0.95);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
-  overflow: hidden;
-
-  // Paper texture overlay
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.3;
-    mix-blend-mode: overlay;
-  }
-
-  // Top light edge
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
-  }
 
   &-content {
     position: relative;
@@ -1549,175 +1192,9 @@
   margin: 2rem auto;
   overflow: hidden;
 
-  // Make Spotify match the other sections styling
   .spotify {
     overflow: hidden;
     border-radius: 12px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-    }
-  }
-}
-
-@keyframes shine {
-  0% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.5;
-  }
-}
-
-// Define some new animations for the empty state
-@keyframes float-subtle {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes pulse-glow {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes horizontal-pulse {
-  0%,
-  100% {
-    transform: scaleX(0.7);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-}
-
-@keyframes dot-pulse {
-  0%,
-  100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 1;
-  }
-}
-
-// Define premium animation keyframes
-@keyframes floating {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-6px) rotate(-1deg);
-  }
-  50% {
-    transform: translateY(0) rotate(0deg);
-  }
-  75% {
-    transform: translateY(4px) rotate(1deg);
-  }
-}
-
-@keyframes glowing {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-}
-
-@keyframes inner-glow {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-}
-
-@keyframes rotate-slow {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse-fade {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes diamond-sparkle {
-  0%,
-  100% {
-    opacity: 0.7;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes line-extend {
-  0%,
-  100% {
-    width: 40px;
-    opacity: 0.6;
-  }
-  50% {
-    width: 50px;
-    opacity: 1;
   }
 }
 
@@ -1733,356 +1210,27 @@
   }
 }
 
-// Premium Empty State styling
-.premium-empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 350px;
-  width: 100%;
-  padding: 2rem;
+// Premium empty state removed — replaced by .upcomingEvent-empty-simple
 
-  .premium-empty-inner {
-    width: 100%;
-    max-width: 420px;
-    background: linear-gradient(
-      145deg,
-      rgba(30, 30, 30, 0.95),
-      rgba(20, 20, 20, 0.98)
-    );
-    border-radius: 16px;
-    padding: 2.5rem 2rem;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transform-style: preserve-3d;
-    perspective: 1000px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-    // Gold grain texture overlay
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E"),
-        linear-gradient(to right, rgba(255, 200, 7, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 200, 7, 0.03) 1px, transparent 1px);
-      background-size: 200px 200px, 15px 15px, 15px 15px;
-      pointer-events: none;
-      z-index: 1;
-      opacity: 0.3;
-      mix-blend-mode: overlay;
-      border-radius: 16px;
-    }
-
-    // Border glow on hover
-    &:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4),
-        0 10px 20px rgba(0, 0, 0, 0.25), 0 0 15px rgba(255, 200, 7, 0.15);
-      border-color: rgba(255, 200, 7, 0.3);
-
-      .calendar-icon {
-        color: $primary-color;
-        transform: rotate(5deg) scale(1.1);
-      }
-
-      .icon-glow-outer {
-        animation-duration: 2.5s;
-        opacity: 0.9;
-      }
-
-      .icon-glow-inner {
-        animation-duration: 2s;
-        opacity: 0.8;
-      }
-
-      .pulse-circle {
-        animation-duration: 1.5s;
-      }
-
-      .icon-ring {
-        animation-duration: 8s;
-        border-color: rgba(255, 200, 7, 0.8);
-      }
-
-      .divider-diamond {
-        animation-duration: 1.5s;
-      }
-
-      .decoration-dot {
-        animation-duration: 1s;
-      }
-
-      .decoration-line {
-        animation-duration: 1.5s;
-      }
-    }
-  }
-
-  // Top accent styling
-  .top-accent-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    display: flex;
-    overflow: hidden;
-
-    span {
-      flex: 1;
-      height: 100%;
-
-      &:nth-child(1) {
-        background: linear-gradient(
-          to right,
-          transparent,
-          rgba(255, 200, 7, 0.5)
-        );
-      }
-
-      &:nth-child(2) {
-        background: rgba(255, 200, 7, 0.8);
-        max-width: 60px;
-      }
-
-      &:nth-child(3) {
-        background: linear-gradient(
-          to left,
-          transparent,
-          rgba(255, 200, 7, 0.5)
-        );
-      }
-    }
-  }
-
-  // Icon styling
-  .icon-container {
-    position: relative;
-    width: 110px;
-    height: 110px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-
-    .icon-glow-outer {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle,
-        rgba(255, 200, 7, 0.3) 0%,
-        rgba(255, 200, 7, 0.1) 50%,
-        rgba(255, 200, 7, 0) 70%
-      );
-      animation: glowing 4s ease-in-out infinite;
-      z-index: 1;
-      opacity: 0.6;
-    }
-
-    .icon-glow-inner {
-      position: absolute;
-      width: 70%;
-      height: 70%;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle,
-        rgba(255, 200, 7, 0.5) 0%,
-        rgba(255, 200, 7, 0.2) 50%,
-        rgba(255, 200, 7, 0) 70%
-      );
-      animation: inner-glow 3s ease-in-out infinite;
-      z-index: 2;
-      opacity: 0.5;
-    }
-
-    .icon-wrapper {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 3;
-      animation: floating 6s ease-in-out infinite;
-
-      .icon-ring {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        border: 2px dashed rgba(255, 200, 7, 0.6);
-        animation: rotate-slow 12s linear infinite;
-      }
-
-      .calendar-icon {
-        font-size: 3.8rem;
-        color: rgba(255, 255, 255, 0.9);
-        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
-        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        z-index: 4;
-      }
-    }
-
-    .pulse-circle {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 3px solid rgba(255, 200, 7, 0.3);
-      animation: pulse-ring 3s ease-in-out infinite;
-      z-index: 0;
-    }
-  }
-
-  // Title styling
-  .empty-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0.5rem 0 1rem;
-    text-align: center;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
-    position: relative;
-    transform: translateZ(30px);
-  }
-
-  // Divider styling
-  .empty-divider {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin: 1rem 0;
-    width: 100%;
-    justify-content: center;
-
-    .divider-line {
-      height: 2px;
-      width: 45px;
-      background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 200, 7, 0.7),
-        transparent
-      );
-      animation: line-extend 3s ease-in-out infinite;
-    }
-
-    .divider-diamond {
-      width: 10px;
-      height: 10px;
-      background-color: $primary-color;
-      transform: rotate(45deg);
-      animation: diamond-sparkle 3s ease-in-out infinite;
-      box-shadow: 0 0 10px rgba(255, 200, 7, 0.4);
-    }
-  }
-
-  // Message styling
-  .empty-message {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0.5rem 0 1.5rem;
-    text-align: center;
-    font-weight: 400;
-    max-width: 80%;
-    line-height: 1.5;
-    letter-spacing: 0.3px;
-  }
-
-  // Decoration styling
-  .empty-decoration {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 1rem 0;
-
-    .decoration-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: $primary-color;
-      animation: dot-pulse 3s ease-in-out infinite;
-      box-shadow: 0 0 6px rgba(255, 200, 7, 0.4);
-
-      &:nth-child(1) {
-        animation-delay: 0s;
-      }
-
-      &:nth-child(3) {
-        animation-delay: 0.5s;
-      }
-    }
-
-    .decoration-line {
-      width: 30px;
-      height: 2px;
-      background: linear-gradient(
-        to right,
-        rgba(255, 200, 7, 0.3),
-        rgba(255, 200, 7, 0.7),
-        rgba(255, 200, 7, 0.3)
-      );
-      animation: line-extend 3s ease-in-out infinite;
-    }
-  }
-
-  // Bottom accent styling
-  .bottom-accent {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    overflow: hidden;
-
-    .bottom-accent-line {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 200, 7, 0.5),
-        transparent
-      );
-    }
-  }
-}
-
-// Desktop Grid Layout - Beautiful centered layout for laptop and bigger screens
+// Desktop Grid Layout
 @media (min-width: 1024px) {
   .upcomingEvent-card {
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto auto auto;
-    gap: 2rem;
+    gap: clamp(1.5rem, 2vw, 3rem);
     align-items: center;
-    max-width: 1200px;
+    max-width: clamp(1100px, 80vw, 1400px);
     margin: 0 auto;
-    padding: 2rem;
+    padding: clamp(1.5rem, 2vw, 3rem);
     text-align: center;
 
-    // Content wrapper contains title and subtitle
     .upcomingEvent-content-wrapper {
       grid-row: 1;
       grid-column: 1;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: clamp(1.2rem, 1.5vw, 2.5rem);
       align-items: center;
       width: 100%;
 
@@ -2090,7 +1238,7 @@
         text-align: center;
 
         .upcomingEvent-event-title {
-          font-size: 3rem;
+          font-size: clamp(2.5rem, 3vw, 4rem);
           font-weight: 800;
           line-height: 1.1;
           margin: 0;
@@ -2109,23 +1257,21 @@
         justify-content: center;
 
         .upcomingEvent-subtitle-header {
-          // Only adjust sizing for desktop - inherit beautiful styling from base
-          padding: 1rem 2rem;
-          max-width: 600px;
+          padding: clamp(0.8rem, 1vw, 1.5rem) clamp(1.5rem, 2vw, 3rem);
+          max-width: clamp(500px, 50vw, 800px);
 
           .upcomingEvent-event-subtitle {
-            font-size: 1.4rem; // Only adjust font size for desktop
+            font-size: clamp(1.2rem, 1.5vw, 1.8rem);
           }
         }
       }
     }
 
-    // Image wrapper positioned in center
     .upcomingEvent-image-wrapper {
       grid-row: 2;
       grid-column: 1;
       height: fit-content;
-      max-height: 500px;
+      max-height: clamp(400px, 40vw, 700px);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -2133,7 +1279,7 @@
 
       .upcomingEvent-image-container {
         .upcomingEvent-event-image {
-          max-height: 500px;
+          max-height: clamp(400px, 40vw, 700px);
           width: auto;
           height: auto;
           object-fit: contain;
@@ -2143,7 +1289,6 @@
       }
     }
 
-    // Description positioned below image
     .upcomingEvent-description-container {
       grid-row: 3;
       grid-column: 1;
@@ -2152,18 +1297,12 @@
       width: 100%;
 
       .upcomingEvent-event-description {
-        max-width: 700px;
+        max-width: clamp(600px, 60vw, 900px);
         text-align: center;
-        padding: 1.5rem 2rem;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.08),
-          rgba(255, 255, 255, 0.04)
-        );
+        padding: clamp(1.2rem, 1.5vw, 2.5rem) clamp(1.5rem, 2vw, 3rem);
+        background: rgba(255, 255, 255, 0.06);
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(10px);
         position: relative;
         overflow: hidden;
 
@@ -2174,220 +1313,45 @@
           left: 0;
           width: 4px;
           height: 100%;
-          background: linear-gradient(180deg, #ffc807, #ffaa07);
+          background: linear-gradient(180deg, #ffc807, rgba(255, 200, 7, 0.3));
           border-radius: 0 2px 2px 0;
         }
       }
     }
 
-    // Full-width sections span the full width
     .upcomingEvent-full-width-sections {
       grid-row: 4;
-      grid-column: 1;
+      grid-column: 1 / -1;
       width: 100%;
       max-width: 100%;
-      min-width: 0; // Allow shrinking
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 2rem;
-      margin-top: 2rem;
-      overflow: hidden; // Prevent gallery carousel from stretching
+      gap: clamp(2rem, 2.5vw, 4rem);
+      margin-top: clamp(2rem, 2.5vw, 4rem);
+      overflow: hidden;
 
-      // All children should also be able to shrink
       > * {
         min-width: 0;
         max-width: 100%;
       }
-
-      @media (min-width: 1024px) {
-        grid-column: 1/3;
-      }
     }
 
-    // Adjust flyer sizing for different formats in desktop view
-    &.has-portrait-flyer
-      .upcomingEvent-image-wrapper
-      .upcomingEvent-image-container {
-      .upcomingEvent-event-image {
-        max-height: 600px;
-        width: auto;
-        height: auto;
-      }
+    // Flyer aspect-ratio adjustments
+    &.has-portrait-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container .upcomingEvent-event-image {
+      max-height: clamp(500px, 50vw, 700px);
+      width: auto;
+      height: auto;
     }
 
-    &.has-square-flyer
-      .upcomingEvent-image-wrapper
-      .upcomingEvent-image-container {
-      .upcomingEvent-event-image {
-        max-height: 500px;
-        max-width: 100%;
-      }
+    &.has-square-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container .upcomingEvent-event-image {
+      max-height: clamp(400px, 40vw, 600px);
+      max-width: 100%;
     }
 
-    &.has-landscape-flyer
-      .upcomingEvent-image-wrapper
-      .upcomingEvent-image-container {
-      .upcomingEvent-event-image {
-        max-height: 400px;
-        width: 100%;
-      }
-    }
-  }
-}
-
-// Medium desktop layout optimization for 1280x800 screens
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .upcomingEvent-card {
-    gap: 1.5rem;
-    max-width: 1100px;
-    padding: 1.5rem;
-
-    .upcomingEvent-content-wrapper {
-      gap: 1.2rem;
-
-      .upcomingEvent-header {
-        .upcomingEvent-event-title {
-          font-size: 2.5rem;
-        }
-      }
-
-      .upcomingEvent-subtitle-wrapper {
-        .upcomingEvent-subtitle-header {
-          padding: 0.8rem 1.5rem;
-          max-width: 500px;
-
-          .upcomingEvent-event-subtitle {
-            font-size: 1.2rem;
-          }
-        }
-      }
-    }
-
-    .upcomingEvent-image-wrapper {
-      max-height: 400px;
-
-      .upcomingEvent-image-container {
-        .upcomingEvent-event-image {
-          max-height: 400px;
-        }
-      }
-    }
-
-    .upcomingEvent-description-container {
-      .upcomingEvent-event-description {
-        font-size: 0.9rem;
-        line-height: 1.6;
-        padding: 1.2rem 1.5rem;
-        max-width: 600px;
-      }
-    }
-  }
-}
-
-// Enhanced desktop layout for larger screens
-@media (min-width: 1200px) {
-  .upcomingEvent-card {
-    gap: 2.5rem;
-    max-width: 1300px;
-    padding: 2.5rem;
-
-    .upcomingEvent-content-wrapper {
-      gap: 2rem;
-
-      .upcomingEvent-header {
-        .upcomingEvent-event-title {
-          font-size: 3.5rem;
-        }
-      }
-
-      .upcomingEvent-subtitle-wrapper {
-        .upcomingEvent-subtitle-header {
-          padding: 1.2rem 2.5rem;
-          max-width: 700px;
-
-          .upcomingEvent-event-subtitle {
-            font-size: 1.6rem;
-          }
-        }
-      }
-    }
-
-    .upcomingEvent-image-wrapper {
-      max-height: 600px;
-
-      .upcomingEvent-image-container {
-        .upcomingEvent-event-image {
-          max-height: 600px;
-        }
-      }
-    }
-
-    .upcomingEvent-description-container {
-      .upcomingEvent-event-description {
-        font-size: 1.05rem;
-        line-height: 1.7;
-        padding: 2rem 2.5rem;
-        max-width: 800px;
-      }
-    }
-
-    .upcomingEvent-full-width-sections {
-      margin-top: 3rem;
-      gap: 3rem;
-    }
-  }
-}
-
-// Premium desktop layout for very large screens
-@media (min-width: 1440px) {
-  .upcomingEvent-card {
-    gap: 3rem;
-    max-width: 1400px;
-    padding: 3rem;
-
-    .upcomingEvent-content-wrapper {
-      gap: 2.5rem;
-
-      .upcomingEvent-header {
-        .upcomingEvent-event-title {
-          font-size: 4rem;
-        }
-      }
-
-      .upcomingEvent-subtitle-wrapper {
-        .upcomingEvent-subtitle-header {
-          padding: 1.5rem 3rem;
-          max-width: 800px;
-
-          .upcomingEvent-event-subtitle {
-            font-size: 1.8rem;
-          }
-        }
-      }
-    }
-
-    .upcomingEvent-image-wrapper {
-      max-height: 700px;
-
-      .upcomingEvent-image-container {
-        .upcomingEvent-event-image {
-          max-height: 700px;
-        }
-      }
-    }
-
-    .upcomingEvent-description-container {
-      .upcomingEvent-event-description {
-        font-size: 1.1rem;
-        line-height: 1.8;
-        padding: 2.5rem 3rem;
-        max-width: 900px;
-      }
-    }
-
-    .upcomingEvent-full-width-sections {
-      margin-top: 4rem;
-      gap: 4rem;
+    &.has-landscape-flyer .upcomingEvent-image-wrapper .upcomingEvent-image-container .upcomingEvent-event-image {
+      max-height: clamp(350px, 30vw, 500px);
+      width: 100%;
     }
   }
 }
@@ -2397,11 +1361,6 @@
   max-width: 85%;
   display: flex;
   justify-content: center;
-  @media (min-width: 1024px) {
-    grid-column: 2/3 !important;
-    grid-row: 2/4 !important;
-    align-self: start;
-  }
 
   .upcomingEvent-event-description {
     color: rgba(255, 255, 255, 0.85);
@@ -2409,27 +1368,16 @@
     line-height: 1.5;
     margin: 0;
     padding: 1.5rem 1.75rem;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(255, 255, 255, 0.04) 50%,
-      rgba(255, 200, 7, 0.02) 100%
-    );
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
     overflow: hidden;
     font-weight: 400;
     letter-spacing: 0.025em;
     text-align: left;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     width: 100%;
 
-    // Add accent border on the left
     &::before {
       content: "";
       position: absolute;
@@ -2437,29 +1385,8 @@
       top: 0;
       width: 4px;
       height: 100%;
-      background: linear-gradient(
-        180deg,
-        #ffc807 0%,
-        rgba(255, 200, 7, 0.7) 50%,
-        rgba(255, 200, 7, 0.3) 100%
-      );
+      background: linear-gradient(180deg, #ffc807, rgba(255, 200, 7, 0.3));
       border-radius: 0 2px 2px 0;
-    }
-
-    // Add subtle texture overlay
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(
-        circle at 30% 20%,
-        rgba(255, 200, 7, 0.05) 0%,
-        transparent 50%
-      );
-      pointer-events: none;
     }
 
     @media (max-width: 768px) {

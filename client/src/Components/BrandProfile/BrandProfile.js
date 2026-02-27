@@ -35,7 +35,6 @@ import {
   RiTicketLine,
   RiVipCrownLine,
   RiTableLine,
-  RiArrowRightSLine,
   RiSwordLine,
   RiImageLine,
 } from "react-icons/ri";
@@ -50,6 +49,12 @@ const BrandProfile = () => {
   const { brandUsername } = useParams();
   const { user, setUser } = useAuth();
   const toast = useToast();
+  // Use ref to avoid toast/navigate/user causing fetchBrand to be recreated
+  // (which would trigger the useEffect and show loading screen on every toast)
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -101,10 +106,7 @@ const BrandProfile = () => {
     return ticketSettings.filter((ticket) => ticket.isVisible !== false);
   }, [ticketSettings]);
 
-  // State for sticky action buttons
-  const [isActionButtonsSticky, setIsActionButtonsSticky] = useState(false);
   const actionButtonsRef = useRef(null);
-  const actionButtonsStickyPosRef = useRef(null);
   const brandProfileRef = useRef(null);
 
   // Handler for when events are loaded from UpcomingEvent - memoized to prevent re-renders
@@ -227,38 +229,36 @@ const BrandProfile = () => {
       const response = await axiosInstance.get(apiEndpoint);
 
       setBrand(response.data);
-      if (user) {
-        setIsFollowing(response.data.userStatus?.isFollowing || false);
-        setIsMember(response.data.userStatus?.isMember || false);
-        setIsFavorited(response.data.userStatus?.isFavorited || false);
+      // Use functional check — user ref not needed, just check truthiness at call time
+      if (response.data.userStatus) {
+        setIsFollowing(response.data.userStatus.isFollowing || false);
+        setIsMember(response.data.userStatus.isMember || false);
+        setIsFavorited(response.data.userStatus.isFavorited || false);
       }
 
       setLoadingProgress((prev) => ({ ...prev, brand: 100 }));
     } catch (error) {
       // Check for authentication error - redirect to login instead of showing toast
       if (error.response?.status === 401) {
-        // Redirect to login page without showing error toast
-        navigate("/login", {
+        navigateRef.current("/login", {
           state: {
             from: location.pathname,
           },
         });
-        return; // Exit early to prevent further error handling
+        return;
       }
 
       // Handle 404 "Brand not found" error
       if (error.response?.status === 404) {
-        // Redirect to login instead of showing toast
-        navigate("/login");
+        navigateRef.current("/login");
         return;
       } else {
-        toast.showError("Failed to load brand profile");
-        // Don't redirect - just show error state
+        toastRef.current.showError("Failed to load brand profile");
         setBrand(null);
         setLoading(false);
       }
     }
-  }, [cleanUsername, user, toast, navigate, location.pathname]);
+  }, [cleanUsername, location.pathname]);
 
   const shouldSkipFetch = useMemo(() => {
     // Never skip fetching - always load brand profile data
@@ -268,8 +268,8 @@ const BrandProfile = () => {
 
   useEffect(() => {
     if (!cleanUsername) {
-      toast.showError("Invalid brand profile");
-      navigate("/");
+      toastRef.current.showError("Invalid brand profile");
+      navigateRef.current("/");
       return;
     }
 
@@ -729,143 +729,43 @@ const BrandProfile = () => {
 
   // Scroll handler functions for action buttons
   const scrollToTickets = useCallback((e) => {
-    e.stopPropagation();
-    const ticketsSection = document.querySelector(
-      ".upcomingEvent-ticket-section"
-    );
-    if (ticketsSection) {
-      ticketsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    e?.stopPropagation();
+    const section = document.querySelector(".event-summary__section--tickets");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
   const scrollToGuestCode = useCallback((e) => {
-    e.stopPropagation();
-    const guestCodeSection = document.querySelector(
-      ".upcomingEvent-guest-code-section"
-    );
-    if (guestCodeSection) {
-      guestCodeSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    e?.stopPropagation();
+    const section = document.querySelector(".event-summary__section--guest-code");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
   const scrollToGallery = useCallback((e) => {
-    e?.stopPropagation(); // Use optional chaining to handle cases where no event is passed
-    // Scroll to the gallery section in UpcomingEvent
-    const gallerySection = document.querySelector(
-      ".upcomingEvent-gallery-section"
-    );
-    if (gallerySection) {
-      gallerySection.scrollIntoView({ behavior: "smooth", block: "start" });
+    e?.stopPropagation();
+    const section = document.querySelector(".event-summary__section--gallery");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
   const scrollToTableBooking = useCallback((e) => {
-    e.stopPropagation();
-    const tableSection = document.querySelector(
-      ".upcomingEvent-table-booking-section"
-    );
-    if (tableSection) {
-      tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    e?.stopPropagation();
+    const section = document.querySelector(".event-summary__section--table");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
   const scrollToBattleSignup = useCallback((e) => {
-    e.stopPropagation();
-
-    // First trigger the battle signup to show (similar to handleBattleSignupClick in UpcomingEvent)
-    // Find and click the battle meta-tag to trigger the form visibility
-    const battleMetaTag = document.querySelector(".meta-tag.battle");
-    if (battleMetaTag) {
-      battleMetaTag.click();
+    e?.stopPropagation();
+    const section = document.querySelector(".event-summary__section--battle");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-
-    // Then scroll to the section after a short delay
-    setTimeout(() => {
-      const battleSection = document.querySelector(
-        ".upcomingEvent-battle-signup-section"
-      );
-      if (battleSection) {
-        battleSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
-  }, []);
-
-  // Cache the sticky position calculation
-  const [cachedStickyPos, setCachedStickyPos] = useState(0);
-  const lastScrollY = useRef(0);
-  const scrollTimeout = useRef(null);
-
-  // Throttled scroll handler for sticky action buttons
-  const handleActionButtonsScroll = useCallback(() => {
-    if (
-      !actionButtonsRef.current ||
-      !actionButtonsStickyPosRef.current ||
-      !brandProfileRef.current
-    )
-      return;
-
-    const scrollY = window.scrollY || window.pageYOffset;
-
-    // Only recalculate sticky position when necessary
-    let stickyPos = cachedStickyPos;
-    if (stickyPos === 0 && actionButtonsStickyPosRef.current) {
-      const rect = actionButtonsStickyPosRef.current.getBoundingClientRect();
-      stickyPos = rect.top + scrollY;
-      setCachedStickyPos(stickyPos);
-    }
-
-    const navHeight = 56; // Navigation height
-    const buffer = 20; // Increased buffer to prevent rapid state changes
-
-    const shouldBeSticky = scrollY > stickyPos - navHeight - buffer;
-
-    // Only update state if it actually changed and we've moved enough
-    const scrollDelta = Math.abs(scrollY - lastScrollY.current);
-    if (shouldBeSticky !== isActionButtonsSticky && scrollDelta > 5) {
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-
-      scrollTimeout.current = setTimeout(() => {
-        setIsActionButtonsSticky(shouldBeSticky);
-      }, 100); // Increased delay to prevent rapid changes
-    }
-
-    lastScrollY.current = scrollY;
-  }, [isActionButtonsSticky, cachedStickyPos]);
-
-  // Setup throttled scroll listener for sticky action buttons
-  useEffect(() => {
-    let ticking = false;
-
-    const throttledScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          handleActionButtonsScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", throttledScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", throttledScroll);
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-    };
-  }, [handleActionButtonsScroll]);
-
-  // Recalculate sticky position when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      setCachedStickyPos(0); // Reset cached position on resize
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const renderActions = () => {
@@ -876,6 +776,7 @@ const BrandProfile = () => {
     return (
       <div className="brand-actions">
         <motion.button
+          type="button"
           className={`action-button ${isFollowing ? "active" : ""}`}
           onClick={handleFollow}
           whileHover={{ scale: 1.05 }}
@@ -885,6 +786,7 @@ const BrandProfile = () => {
           {isFollowing ? "Following" : "Follow"}
         </motion.button>
         <motion.button
+          type="button"
           className={`action-button ${getJoinButtonClass()}`}
           onClick={handleJoinRequest}
           whileHover={{ scale: 1.05 }}
@@ -894,6 +796,7 @@ const BrandProfile = () => {
           {getJoinButtonText()}
         </motion.button>
         <motion.button
+          type="button"
           className={`action-button ${isFavorited ? "active" : ""}`}
           onClick={handleFavorite}
           whileHover={{ scale: 1.05 }}
@@ -902,6 +805,7 @@ const BrandProfile = () => {
           {isFavorited ? <RiStarFill /> : <RiStarLine />}
         </motion.button>
         <motion.button
+          type="button"
           className="action-button"
           onClick={handleShare}
           whileHover={{ scale: 1.05 }}
@@ -956,7 +860,7 @@ const BrandProfile = () => {
     supportsBattles,
   });
 
-  // Function to render event action buttons with centralized loading state
+  // Function to render event action buttons as compact horizontal pills
   const renderEventActionButtons = () => {
     if (!currentEvent) return null;
 
@@ -964,15 +868,7 @@ const BrandProfile = () => {
 
     // Show skeleton while essential data is loading
     if (!isDataLoaded) {
-      return (
-        <>
-          <div
-            ref={actionButtonsStickyPosRef}
-            className="action-buttons-sticky-marker"
-          ></div>
-          <ActionButtonsSkeleton />
-        </>
-      );
+      return <ActionButtonsSkeleton />;
     }
 
     // Don't render if no actions are available
@@ -981,185 +877,58 @@ const BrandProfile = () => {
     }
 
     return (
-      <>
-        {/* Sticky position marker */}
-        <div
-          ref={actionButtonsStickyPosRef}
-          className="action-buttons-sticky-marker"
-        ></div>
+      <div ref={actionButtonsRef} className="brand-event-actions">
+        {buttonVisibility.tickets && (
+          <button type="button" className="action-pill tickets-pill" onClick={scrollToTickets}>
+            <RiTicketLine />
+            <span>Tickets</span>
+          </button>
+        )}
 
-        <div
-          ref={actionButtonsRef}
-          className={`brand-event-actions ${
-            isActionButtonsSticky ? "sticky" : ""
-          }`}
-        >
-          {/* Tickets button */}
-          {buttonVisibility.tickets && (
-            <motion.button
-              className="event-action-button tickets-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={scrollToTickets}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiTicketLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Tickets</span>
-                  <span className="button-text-short">Tickets</span>
-                  {!isActionButtonsSticky && <p>Buy tickets online</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
+        {buttonVisibility.guestCode && (
+          <button type="button" className="action-pill guestcode-pill" onClick={scrollToGuestCode}>
+            <RiVipCrownLine />
+            <span>Guest Code</span>
+          </button>
+        )}
 
-          {/* Guest Code button */}
-          {buttonVisibility.guestCode && (
-            <motion.button
-              className="event-action-button guestcode-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={scrollToGuestCode}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiVipCrownLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Guest Code</span>
-                  <span className="button-text-short">Codes</span>
-                  {!isActionButtonsSticky && (
-                    <p>
-                      {codeSettings.find((setting) => setting.type === "guest")
-                        ?.condition || "Free entry with code"}
-                    </p>
-                  )}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
+        {buttonVisibility.tables && (
+          <button type="button" className="action-pill table-pill" onClick={scrollToTableBooking}>
+            <RiTableLine />
+            <span>Book Table</span>
+          </button>
+        )}
 
-          {/* Table booking button */}
-          {buttonVisibility.tables && (
-            <motion.button
-              className="event-action-button table-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={scrollToTableBooking}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiTableLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Book Table</span>
-                  <span className="button-text-short">Tables</span>
-                  {!isActionButtonsSticky && <p>Reserve your table now</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
+        {buttonVisibility.battles && (
+          <button type="button" className="action-pill battle-pill" onClick={scrollToBattleSignup}>
+            <RiSwordLine />
+            <span>Battle</span>
+          </button>
+        )}
 
-          {/* Battle signup button */}
-          {buttonVisibility.battles && (
-            <motion.button
-              className="event-action-button battle-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={scrollToBattleSignup}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiSwordLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Join Battle</span>
-                  <span className="button-text-short">Battle</span>
-                  {!isActionButtonsSticky && <p>Sign up for battle</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
+        {buttonVisibility.photos && (
+          <button type="button" className="action-pill photos-pill" onClick={scrollToGallery}>
+            <RiImageLine />
+            <span>Photos</span>
+          </button>
+        )}
 
-          {/* Photos button */}
-          {buttonVisibility.photos && (
-            <motion.button
-              className="event-action-button gallery-button photos-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={() => {
-                // Scroll to photo gallery section
-                const photoSection = document.querySelector(
-                  ".upcomingEvent-gallery-section"
-                );
-                if (photoSection) {
-                  photoSection.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              }}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiImageLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Photos</span>
-                  <span className="button-text-short">Photos</span>
-                  {!isActionButtonsSticky && <p>View photo gallery</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
-
-          {/* Spotify button */}
-          {buttonVisibility.spotify && (
-            <motion.button
-              className="event-action-button spotify-button"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              onClick={() => {
-                // Scroll to Spotify section
-                const spotifySection = document.querySelector(
-                  ".upcomingEvent-spotify-section"
-                );
-                if (spotifySection) {
-                  spotifySection.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              }}
-            >
-              <div className="button-content">
-                <div className="button-icon">
-                  <RiSpotifyLine />
-                </div>
-                <div className="button-text">
-                  <span className="button-text-full">Playlist</span>
-                  <span className="button-text-short">Playlist</span>
-                  {!isActionButtonsSticky && <p>Listen on Spotify</p>}
-                </div>
-                <div className="button-arrow">
-                  <RiArrowRightSLine />
-                </div>
-              </div>
-            </motion.button>
-          )}
-        </div>
-      </>
+        {buttonVisibility.spotify && (
+          <button
+            type="button"
+            className="action-pill spotify-pill"
+            onClick={() => {
+              const section = document.querySelector(".event-summary__section--spotify");
+              if (section) {
+                section.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }}
+          >
+            <RiSpotifyLine />
+            <span>Playlist</span>
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -1376,7 +1145,13 @@ const BrandProfile = () => {
 
             <div className="brand-details brand-details--minimal">
               <h1>{brand.name}</h1>
-              <span className="username">@{brand.username}</span>
+              <div className="brand-meta-row">
+                <span className="username">@{brand.username}</span>
+                {brand.social &&
+                  Object.keys(brand.social).some(
+                    (key) => brand.social[key]
+                  ) && <SocialLinks social={brand.social} />}
+              </div>
             </div>
 
             {renderActions()}
@@ -1384,38 +1159,6 @@ const BrandProfile = () => {
 
           {/* Event action buttons section */}
           {renderEventActionButtons()}
-
-          {/* {user && (
-            <div className="brand-stats">
-              <div className="stat-item">
-                <span className="stat-value">{brand.team?.length || 0}</span>
-                <span className="stat-label">
-                  {(brand.team?.length || 0) === 1 ? "Member" : "Members"}
-                </span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">
-                  {brand.followers?.length || 0}
-                </span>
-                <span className="stat-label">
-                  {(brand.followers?.length || 0) === 1
-                    ? "Follower"
-                    : "Followers"}
-                </span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">{brand.events?.length || 0}</span>
-                <span className="stat-label">
-                  {(brand.events?.length || 0) === 1 ? "Event" : "Events"}
-                </span>
-              </div>
-            </div>
-          )} */}
-
-          {brand.social &&
-            Object.keys(brand.social).some((key) => brand.social[key]) && (
-              <SocialLinks social={brand.social} />
-            )}
 
           {/* Lineup Section */}
           {brand.lineups && brand.lineups.length > 0 && (

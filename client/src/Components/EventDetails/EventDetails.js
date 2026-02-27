@@ -7,75 +7,10 @@ import {
   RiMusic2Line,
   RiMapPin2Line,
 } from "react-icons/ri";
+import { getEventDate, formatDate, formatTime } from "../../utils/dateFormatters";
 
-/**
- * EventDetails component for displaying event information in a clean, organized layout
- * @param {Object} props
- * @param {Object} props.event - The event object containing all event details
- * @param {Function} props.scrollToGallery - Function to scroll to gallery section
- * @param {boolean} props.brandHasGalleries - Whether the brand has galleries available
- */
-const EventDetails = ({ 
-  event, 
-  scrollToTickets,
-  scrollToGuestCode,
-  scrollToTableBooking,
-  scrollToBattleSignup,
-  scrollToGallery,
-  brandHasGalleries,
-  hasTickets,
-  ticketPaymentMethod,
-  brandHasBattles,
-  supportsBattles,
-  supportsTableBooking
-}) => {
-
+const EventDetails = ({ event }) => {
   if (!event) return null;
-
-  // Helper function to get event date
-  const getEventDate = (event) => {
-    return event.startDate;
-  };
-
-  // Format date in a readable way
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date TBD";
-    const date = new Date(dateString);
-    const options = { weekday: "short", month: "short", day: "numeric" };
-    return date.toLocaleDateString("en-US", options);
-  };
-
-  // Format time for display
-  const formatTime = (timeString) => {
-    if (!timeString) return "TBA";
-
-    try {
-      // Check if timeString is a valid time format (HH:MM)
-      if (/^\d{1,2}:\d{2}$/.test(timeString)) {
-        return timeString;
-      }
-
-      // If it's a date object with time, extract just the time
-      if (
-        timeString instanceof Date ||
-        (typeof timeString === "string" && timeString.includes("T"))
-      ) {
-        const date = new Date(timeString);
-        if (!isNaN(date.getTime())) {
-          return date.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-        }
-      }
-
-      // Return the original if it doesn't match known formats
-      return timeString;
-    } catch (error) {
-      return timeString || "TBA";
-    }
-  };
 
   return (
     <div className="eventDetails-container">
@@ -110,7 +45,6 @@ const EventDetails = ({
                 </div>
               </div>
 
-              {/* End Date (if different from start date) */}
               {(event.endDate || event.startDate) && (
                 <div className="eventDetails-detail-item">
                   <div className="eventDetails-detail-label">
@@ -208,4 +142,4 @@ const EventDetails = ({
   );
 };
 
-export default EventDetails;
+export default React.memo(EventDetails);

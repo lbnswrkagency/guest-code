@@ -294,7 +294,7 @@ const GalleryCarousel = ({
   const handlePrevious = useCallback(() => {
     setIsAutoPlaying(false);
     setCurrentIndex((prev) => Math.max(0, prev - 1));
-    
+
     // Resume auto-play after 5 seconds
     clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
@@ -306,9 +306,34 @@ const GalleryCarousel = ({
     setIsAutoPlaying(false);
     const maxIndex = Math.max(0, images.length - config.VISIBLE_IMAGES);
     setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
-    
+
     // Resume auto-play after 5 seconds
     clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsAutoPlaying(true);
+    }, 5000);
+  }, [images.length, config.VISIBLE_IMAGES]);
+
+  // Touch/swipe drag handler for mobile
+  const handleDragEnd = useCallback((event, info) => {
+    const swipeThreshold = 50;
+    const velocity = info.velocity.x;
+    const offset = info.offset.x;
+
+    setIsAutoPlaying(false);
+    clearTimeout(scrollTimeoutRef.current);
+
+    const maxIdx = Math.max(0, images.length - config.VISIBLE_IMAGES);
+
+    if (offset < -swipeThreshold || velocity < -300) {
+      // Swiped left — go forward
+      setCurrentIndex((prev) => Math.min(maxIdx, prev + 1));
+    } else if (offset > swipeThreshold || velocity > 300) {
+      // Swiped right — go back
+      setCurrentIndex((prev) => Math.max(0, prev - 1));
+    }
+
+    // Resume auto-play after 5 seconds
     scrollTimeoutRef.current = setTimeout(() => {
       setIsAutoPlaying(true);
     }, 5000);
@@ -470,10 +495,7 @@ const GalleryCarousel = ({
     return (
       <div className="gallery-carousel loading">
         <div className="gallery-header">
-          <h3 className="gallery-title">
-            <RiImageLine />
-            Photo Gallery
-          </h3>
+          <h3 className="gallery-title">Photo Gallery</h3>
         </div>
         <div className="loading-container">
           <LoadingSpinner />
@@ -494,10 +516,7 @@ const GalleryCarousel = ({
   return (
     <div className="gallery-carousel">
       <div className="gallery-header">
-        <h3 className="gallery-title">
-          <RiImageLine />
-          Photo Gallery
-        </h3>
+        <h3 className="gallery-title">Photo Gallery</h3>
         
         <div className="gallery-controls">
           {/* Auto-play toggle */}
@@ -602,25 +621,31 @@ const GalleryCarousel = ({
         )}
 
         {/* Images container */}
-        <div className="carousel-viewport">
+        <div className="carousel-viewport" ref={carouselRef}>
           <motion.div
             className="carousel-track"
+            drag="x"
+            dragConstraints={carouselRef}
+            dragElastic={0.1}
+            onDragEnd={handleDragEnd}
             animate={{
               x: -currentIndex * (config.IMAGE_WIDTH + config.IMAGE_GAP)
             }}
             transition={{
               type: "spring",
-              stiffness: 300,
-              damping: 30
+              stiffness: 260,
+              damping: 26,
             }}
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
+            style={{ cursor: "grab" }}
+            whileTap={{ cursor: "grabbing" }}
           >
             {images.map((image, index) => (
               <motion.div
                 key={image.id || index}
                 className="carousel-item"
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.03 }}
                 onClick={() => handleImageClick(image, index)}
               >
                 {image.thumbnail ? (
@@ -628,6 +653,7 @@ const GalleryCarousel = ({
                     src={image.thumbnail}
                     alt={image.name}
                     loading="lazy"
+                    draggable={false}
                   />
                 ) : (
                   <div className="image-placeholder">
