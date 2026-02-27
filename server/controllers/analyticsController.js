@@ -181,8 +181,8 @@ exports.getAnalyticsSummary = async (req, res) => {
     // Process each code setting
     for (const setting of codeSettings) {
       try {
-        // Skip if we've already processed this name, or if it's a ticket type (tickets have their own section)
-        if (processedNames.has(setting.name) || setting.type === "ticket") continue;
+        // Skip guest (has dedicated section), tickets (have dedicated section), and already-processed names
+        if (setting.type === "guest" || setting.type === "ticket" || processedNames.has(setting.name)) continue;
 
         // Get stats for this code type - pass codeSettingId for accurate querying
         const codeStats = await getCodesStats(eventId, setting.name, setting._id);
