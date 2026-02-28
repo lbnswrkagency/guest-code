@@ -51,7 +51,8 @@ const GuestCodeSettings = ({ eventId, setShowGuestCodeSettings }) => {
         condition: number.trim(),
         note: note.trim(),
         requireEmail: true, // Always require email
-        requirePhone
+        requirePhone,
+        isEnabled: !!number.trim(),
       });
 
       // Also update the legacy guest code condition if needed

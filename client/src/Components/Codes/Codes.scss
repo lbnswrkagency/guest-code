@@ -170,6 +170,24 @@
     }
   }
 
+  // Built-in card style (Guest Code)
+  &.built-in {
+    border-color: rgba(255, 200, 7, 0.3);
+    background: linear-gradient(135deg, #151515, rgba(255, 200, 7, 0.05));
+
+    .built-in-badge {
+      padding: 0.2rem 0.6rem;
+      background: rgba(255, 200, 7, 0.15);
+      border: 1px solid rgba(255, 200, 7, 0.3);
+      border-radius: 6px;
+      color: #ffc807;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
   // Add card style
   &.add-card {
     display: flex;

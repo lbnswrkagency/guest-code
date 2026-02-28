@@ -14,7 +14,6 @@ const RouteGuard = ({ children }) => {
     "/events/create",
     "/settings",
     "/roles",
-    "/guest-code-settings",
   ];
 
   // Check if the current path is protected

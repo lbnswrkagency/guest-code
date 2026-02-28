@@ -469,11 +469,20 @@ const generateGuestCode = async (req, res) => {
     }
 
     // Get guest code settings - always use parent event's settings for child events
+    // Cascading lookup: event-level → brand-level
     const codeSettingsEventId = event.parentEventId || eventId;
     let codeSettings = await mongoose.model("CodeSettings").findOne({
       eventId: codeSettingsEventId,
       type: "guest",
     });
+
+    // Brand-level fallback if no event-level guest code settings found
+    if (!codeSettings) {
+      const brandId = event.brand?._id || event.brand;
+      codeSettings = await mongoose.model("CodeSettings").findOne({
+        brandId, eventId: null, type: "guest", isGlobalForBrand: true,
+      });
+    }
 
     const requirePhone = codeSettings?.requirePhone === true; // Default to false
 

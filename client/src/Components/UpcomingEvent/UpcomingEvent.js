@@ -14,8 +14,6 @@ import EventSummary from "../EventSummary/EventSummary";
 import EventGallery from "../EventGallery/EventGallery";
 import {
   RiCalendarEventLine,
-  RiArrowLeftSLine,
-  RiArrowRightSLine,
   RiImageLine,
   RiInformationLine,
   RiRefreshLine,
@@ -121,12 +119,8 @@ const UpcomingEvent = ({
   // Track Spotify load status (null = not checked, true = success, false = failed)
   const [spotifyLoaded, setSpotifyLoaded] = useState(null);
 
-  // Event preview carousel state
-  const [previewScrollIndex, setPreviewScrollIndex] = useState(0);
-  const maxVisiblePreviews = 4; // Reduced for larger cards
-  const cardWidth = 120; // 120px + gap
-  const cardGap = 12; // 0.75rem = 12px
-  const totalCardWidth = cardWidth + cardGap;
+  // Event strip ref for auto-scrolling active item into view
+  const stripTrackRef = useRef(null);
 
   // Filter ticket settings to only include visible ones
   const visibleTicketSettings = useMemo(() => {
@@ -990,56 +984,19 @@ const UpcomingEvent = ({
     }
   }, [events, currentIndex]);
 
-  // Event preview carousel functions
-  const handlePreviewScrollLeft = () => {
-    setPreviewScrollIndex((prev) => Math.max(0, prev - 1));
-  };
-
-  const handlePreviewScrollRight = () => {
-    // Calculate how many cards we can scroll based on container width
-    const containerWidth = 600; // approximate container width for larger cards
-    const visibleCards = Math.floor(containerWidth / totalCardWidth);
-    const maxScroll = Math.max(0, events.length - visibleCards);
-    setPreviewScrollIndex((prev) => Math.min(maxScroll, prev + 1));
-  };
-
   const handlePreviewClick = (index) => {
     setCurrentIndex(index);
   };
 
-  // Auto-scroll preview carousel to show selected event
+  // Auto-scroll event strip to keep active item visible
   useEffect(() => {
-    if (events.length <= maxVisiblePreviews) {
-      // If all events fit in viewport, no need to scroll
-      return;
-    }
-
-    // Calculate if current event is visible in the preview carousel
-    const visibleStartIndex = previewScrollIndex;
-    const visibleEndIndex = previewScrollIndex + maxVisiblePreviews - 1;
-
-    // If current event is not visible, adjust scroll position
-    if (currentIndex < visibleStartIndex || currentIndex > visibleEndIndex) {
-      // Calculate optimal scroll position to center the selected event
-      let newScrollIndex;
-      
-      if (currentIndex < visibleStartIndex) {
-        // Selected event is to the left, scroll left to show it
-        newScrollIndex = Math.max(0, currentIndex - Math.floor(maxVisiblePreviews / 2));
-      } else {
-        // Selected event is to the right, scroll right to show it
-        newScrollIndex = Math.min(
-          events.length - maxVisiblePreviews,
-          currentIndex - Math.floor(maxVisiblePreviews / 2)
-        );
+    if (stripTrackRef.current && events.length > 1) {
+      const activeItem = stripTrackRef.current.children[currentIndex];
+      if (activeItem) {
+        activeItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }
-
-      // Ensure we don't scroll beyond bounds
-      newScrollIndex = Math.max(0, Math.min(events.length - maxVisiblePreviews, newScrollIndex));
-      
-      setPreviewScrollIndex(newScrollIndex);
     }
-  }, [currentIndex, events.length, maxVisiblePreviews, previewScrollIndex]);
+  }, [currentIndex, events.length]);
 
   // getPreviewImage imported from eventHelpers
 
@@ -1095,106 +1052,41 @@ const UpcomingEvent = ({
     (cs) => cs.type === "guest"
   );
 
-  // Only show navigation when there's more than one event
-  const showNavigation = events.length > 1;
-
   return (
     <div
       className={`upcomingEvent-container ${loading ? "upcomingEvent-loading" : ""}`}
     >
-      {/* Event Preview Carousel - only show when there are multiple events */}
+      {/* Event Strip - compact horizontal scrollable event selector */}
       {events.length > 1 && (
-        <div className="upcomingEvent-preview-carousel">
-          <div className="preview-carousel-container">
-            <div
-              className="preview-carousel-track"
-              style={{
-                transform: `translateX(-${
-                  previewScrollIndex * totalCardWidth
-                }px)`,
-              }}
-            >
-              {events.map((event, index) => {
-                const previewImage = getPreviewImageUtil(event);
-                const isActive = index === currentIndex;
-
-                return (
-                  <div
-                    key={event._id || `preview-${index}`}
-                    className={`preview-card ${isActive ? "active" : ""}`}
-                    onClick={() => handlePreviewClick(index)}
-                  >
-                    <div className="preview-image-container">
-                      {previewImage ? (
-                        <img
-                          src={previewImage}
-                          alt={event.title}
-                          className="preview-image"
-                        />
-                      ) : event.brand?.logo ? (
-                        <img
-                          src={event.brand.logo.medium || event.brand.logo.full || event.brand.logo.thumbnail}
-                          alt={`${event.brand?.name || 'Brand'} logo`}
-                          className="preview-image placeholder-logo"
-                        />
-                      ) : (
-                        <div className="preview-no-image">
-                          <RiImageLine />
-                        </div>
-                      )}
-                      {isActive && <div className="preview-active-indicator" />}
-                    </div>
-
-                    <div className="preview-info">
-                      <h4 className="preview-title">{event.title}</h4>
-                      {event.subTitle && (
-                        <p className="preview-subtitle">{event.subTitle}</p>
-                      )}
-                      <div className="preview-date">
-                        <span>{formatCompactDate(getEventDate(event))}</span>
-                      </div>
-                    </div>
+        <div className="upcomingEvent-event-strip">
+          <div className="event-strip__track" ref={stripTrackRef}>
+            {events.map((event, index) => {
+              const previewImage = getPreviewImageUtil(event);
+              const isActive = index === currentIndex;
+              return (
+                <button
+                  key={event._id || `strip-${index}`}
+                  className={`event-strip__item ${isActive ? "event-strip__item--active" : ""}`}
+                  onClick={() => handlePreviewClick(index)}
+                  type="button"
+                >
+                  <div className="event-strip__thumb">
+                    {previewImage ? (
+                      <img src={previewImage} alt={event.title} />
+                    ) : event.brand?.logo ? (
+                      <img src={event.brand.logo.medium || event.brand.logo.full || event.brand.logo.thumbnail} alt="" />
+                    ) : (
+                      <RiImageLine />
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  <div className="event-strip__info">
+                    <span className="event-strip__title">{event.title}</span>
+                    <span className="event-strip__date">{formatCompactDate(getEventDate(event))}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </div>
-      )}
-
-      {showNavigation && (
-        <div className="upcomingEvent-navigation">
-          <button
-            type="button"
-            className={`upcomingEvent-nav-button ${
-              currentIndex === 0 ? "upcomingEvent-disabled" : ""
-            }`}
-            onClick={handlePrevEvent}
-            disabled={currentIndex === 0}
-          >
-            <RiArrowLeftSLine />
-          </button>
-          <div className="upcomingEvent-navigation-indicator">
-            {events.map((_, index) => (
-              <div
-                key={index}
-                className={`upcomingEvent-indicator-dot ${
-                  index === currentIndex ? "upcomingEvent-active" : ""
-                }`}
-                onClick={() => setCurrentIndex(index)}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            className={`upcomingEvent-nav-button ${
-              currentIndex === events.length - 1 ? "upcomingEvent-disabled" : ""
-            }`}
-            onClick={handleNextEvent}
-            disabled={currentIndex === events.length - 1}
-          >
-            <RiArrowRightSLine />
-          </button>
         </div>
       )}
 

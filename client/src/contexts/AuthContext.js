@@ -30,7 +30,6 @@ const AuthProviderWithRouter = ({ children }) => {
     "/events",
     "/events/create",
     "/events/:eventId",
-    "/guest-code-settings",
   ];
 
   // Function to fetch user data

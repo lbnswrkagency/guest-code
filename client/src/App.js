@@ -33,7 +33,6 @@ import ResetPassword from "./Components/AuthForm/ResetPassword/ResetPassword";
 import EmailVerification from "./Components/EmailVerification/EmailVerification";
 import Unsubscribe from "./Components/Unsubscribe/Unsubscribe";
 import RegistrationSuccess from "./Components/RegistrationSuccess/RegistrationSuccess";
-import GuestCodeSettings from "./Components/GuestCodeSettings/GuestCodeSettings";
 import DropFiles from "./Components/DropFiles/DropFiles";
 import Locations from "./Components/Locations/Locations";
 import BrandProfile from "./Components/BrandProfile/BrandProfile";
@@ -155,7 +154,7 @@ const AppRoutes = () => {
       />
 
       {/* Utility Routes (Can be public or private depending on implementation) */}
-      <Route path="/guest-code-settings" element={<GuestCodeSettings />} />
+      {/* GuestCodeSettings route removed - Guest Code is now managed from /codes page */}
       <Route path="/upload" element={<DropFiles showDashboard={false} />} />
       <Route path="/locations" element={<Locations />} />
 

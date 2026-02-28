@@ -147,7 +147,40 @@ const Codes = () => {
         codesByName[code.name].codeIdsByBrand[code.brandId] = code._id;
       }
 
-      setCodes(Object.values(codesByName));
+      // Ensure Guest Code always exists as a built-in entry
+      if (codesByName["Guest Code"]) {
+        codesByName["Guest Code"].isBuiltIn = true;
+        codesByName["Guest Code"].type = "guest";
+      } else {
+        // Create a virtual unattached Guest Code card
+        codesByName["Guest Code"] = {
+          _id: "built-in-guest-code",
+          name: "Guest Code",
+          type: "guest",
+          isBuiltIn: true,
+          condition: "",
+          note: "",
+          maxPax: 1,
+          defaultLimit: 0,
+          color: "#ffc807",
+          icon: "RiVipLine",
+          requireEmail: true,
+          requirePhone: false,
+          isEnabled: true,
+          isEditable: false,
+          attachments: [],
+          codeIdsByBrand: {},
+        };
+      }
+
+      // Sort: Guest Code first, then alphabetical
+      const sortedCodes = Object.values(codesByName).sort((a, b) => {
+        if (a.type === "guest") return -1;
+        if (b.type === "guest") return 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      setCodes(sortedCodes);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.showError("Failed to load data");
@@ -177,6 +210,12 @@ const Codes = () => {
 
   const handleSave = async (codeData) => {
     try {
+      // Force guest code constraints
+      if (codeData.type === "guest") {
+        codeData.name = "Guest Code";
+        codeData.isEditable = false;
+      }
+
       const attachments = codeData.attachments || [];
 
       if (selectedCode) {
@@ -267,6 +306,7 @@ const Codes = () => {
 
   const handleDeleteClick = (e, code) => {
     e.stopPropagation();
+    if (code.type === "guest") return; // Cannot delete built-in Guest Code
     setCodeToDelete(code);
     setShowDeleteConfirm(true);
   };
@@ -427,10 +467,11 @@ const Codes = () => {
 const CodeCard = ({ code, isSelected, onClick, onDelete }) => {
   const attachmentCount = code.attachments?.length || 0;
   const IconComponent = ICON_MAP[code.icon] || RiCodeLine;
+  const isBuiltIn = code.type === "guest";
 
   return (
     <motion.div
-      className={`code-card ${isSelected ? "selected" : ""}`}
+      className={`code-card ${isSelected ? "selected" : ""} ${isBuiltIn ? "built-in" : ""}`}
       onClick={onClick}
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
@@ -443,14 +484,18 @@ const CodeCard = ({ code, isSelected, onClick, onDelete }) => {
           <IconComponent />
         </div>
         <div className="card-actions">
-          <motion.button
-            className="action-btn delete"
-            onClick={onDelete}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <RiDeleteBin6Line />
-          </motion.button>
+          {isBuiltIn ? (
+            <span className="built-in-badge">Built-in</span>
+          ) : (
+            <motion.button
+              className="action-btn delete"
+              onClick={onDelete}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <RiDeleteBin6Line />
+            </motion.button>
+          )}
         </div>
       </div>
 

@@ -64,6 +64,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    type: "custom",
     condition: "",
     note: "",
     maxPax: 1,
@@ -82,6 +83,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
     if (code) {
       setFormData({
         name: code.name || "",
+        type: code.type || "custom",
         condition: code.condition || "",
         note: code.note || "",
         maxPax: code.maxPax || 1,
@@ -111,6 +113,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
       // Reset for new code
       setFormData({
         name: "",
+        type: "custom",
         condition: "",
         note: "",
         maxPax: 1,
@@ -136,6 +139,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
   };
 
   const IconComponent = getIconComponent(formData.icon);
+  const isGuestCode = formData.type === "guest";
 
   // Handle adding a brand attachment
   const handleAddBrand = (brandId) => {
@@ -211,7 +215,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="panel-header">
-          <h2>{code ? "Edit Code Template" : "New Code Template"}</h2>
+          <h2>{isGuestCode ? "Guest Code Settings" : (code ? "Edit Code Template" : "New Code Template")}</h2>
           <button className="close-btn" onClick={onClose}>
             <RiCloseLine />
           </button>
@@ -303,7 +307,12 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="e.g., Friends Code, VIP Access"
+                  disabled={isGuestCode}
+                  className={isGuestCode ? "locked" : ""}
                 />
+                {isGuestCode && (
+                  <span className="locked-hint">Name cannot be changed</span>
+                )}
               </div>
             </div>
 

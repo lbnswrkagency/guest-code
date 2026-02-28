@@ -206,7 +206,12 @@ exports.getUpcomingEventData = async (req, res) => {
           eventId: null,
           isGlobalForBrand: true
         }).lean(),
-        CodeSettings.find({ eventId: { $in: allEventIds } }).lean(), // Gets all fields by default
+        CodeSettings.find({
+          $or: [
+            { eventId: { $in: allEventIds } },
+            { brandId: targetBrandId, eventId: null, isGlobalForBrand: true }
+          ]
+        }).lean(),
         TableCode.find({ event: { $in: allEventIds } }).lean(), // Gets all fields by default
       ]);
 
@@ -222,12 +227,35 @@ exports.getUpcomingEventData = async (req, res) => {
       ticketSettingsByEvent[eventId] = ticketSettingsArray;
     });
 
-    codeSettingsArray.reduce((acc, setting) => {
-      const eventId = setting.eventId;
+    // Only use brand-attached codes (brandId must exist)
+    const validCodes = codeSettingsArray.filter(s => s.brandId != null);
+
+    // Separate brand-level and event-level codes
+    const brandLevelCodes = validCodes.filter(s => s.eventId == null);
+    const eventLevelCodes = validCodes.filter(s => s.eventId != null);
+
+    // Group event-level codes by eventId
+    eventLevelCodes.reduce((acc, setting) => {
+      const eventId = setting.eventId.toString();
       if (!acc[eventId]) acc[eventId] = [];
       acc[eventId].push(setting);
       return acc;
     }, codeSettingsByEvent);
+
+    // For each event, merge brand-level codes (event-level overrides by name)
+    sortedEvents.forEach((event) => {
+      const eventId = event._id.toString();
+      const eventCodes = codeSettingsByEvent[eventId] || [];
+      const seenNames = new Set(eventCodes.map(c => c.name));
+      const merged = [...eventCodes];
+      for (const bc of brandLevelCodes) {
+        if (!seenNames.has(bc.name)) {
+          merged.push(bc);
+          seenNames.add(bc.name);
+        }
+      }
+      codeSettingsByEvent[eventId] = merged;
+    });
 
     tableDataArray.reduce((acc, tableCode) => {
       const eventId = tableCode.event.toString();

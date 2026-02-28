@@ -618,7 +618,22 @@ const initializeDefaultSettings = async (eventId, brandId = null) => {
       brandId = event.brand;
     }
 
-    // Check if guest setting already exists
+    // Check if a brand-level guest code already exists — if so, skip event-level creation
+    const existingBrandGuest = await CodeSettings.findOne({
+      brandId, eventId: null, type: "guest", isGlobalForBrand: true,
+    });
+    if (existingBrandGuest) {
+      // Backfill brandId on ALL legacy codes for this event
+      if (brandId) {
+        await CodeSettings.updateMany(
+          { eventId: eventId, brandId: null },
+          { $set: { brandId: brandId } }
+        );
+      }
+      return true; // Brand-level guest code covers this event
+    }
+
+    // Check if event-level guest setting already exists (legacy support)
     const existingGuestSetting = await CodeSettings.findOne({
       eventId,
       type: "guest",
@@ -756,35 +771,47 @@ const createBrandCode = async (req, res) => {
       });
     }
 
+    // Enforce constraints for guest codes
+    if (type === "guest") {
+      req.body.name = "Guest Code";
+      req.body.isEditable = false;
+      if (!color) req.body.color = "#ffc807";
+      if (!icon) req.body.icon = "RiVipLine";
+    }
+
+    // Re-read name after potential override
+    const effectiveName = req.body.name || name;
+
     // Check if a brand-level code with the same name already exists
     const existingCode = await CodeSettings.findOne({
       brandId: brandId,
       eventId: null,
-      name: name,
+      name: effectiveName,
     });
 
     if (existingCode) {
       return res.status(400).json({
-        message: `A code with the name "${name}" already exists for this brand`,
+        message: `A code with the name "${effectiveName}" already exists for this brand`,
       });
     }
 
     // Create the brand-level code
+    const isGuest = type === "guest";
     const newCode = new CodeSettings({
       brandId: brandId,
       eventId: null, // null = brand-level
       isGlobalForBrand: isGlobalForBrand,
       createdBy: userId,
-      name: name,
+      name: effectiveName,
       type: type,
       condition: condition || "",
       note: note || "",
       maxPax: maxPax || 1,
       limit: limit || 0,
       isEnabled: isEnabled !== undefined ? isEnabled : true,
-      isEditable: isEditable !== undefined ? isEditable : true,
-      color: color || "#2196F3",
-      icon: icon || "RiCodeLine",
+      isEditable: isGuest ? false : (isEditable !== undefined ? isEditable : true),
+      color: req.body.color || color || (isGuest ? "#ffc807" : "#2196F3"),
+      icon: req.body.icon || icon || (isGuest ? "RiVipLine" : "RiCodeLine"),
       requireEmail: requireEmail !== undefined ? requireEmail : true,
       requirePhone: requirePhone !== undefined ? requirePhone : false,
       price: price,

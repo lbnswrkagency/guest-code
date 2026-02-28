@@ -85,10 +85,10 @@ function CodeGenerator({
       ? selectedEvent.codeSettings
       : codeSettings;
 
-    // Filter for custom codes that are enabled AND have brandId (excludes old legacy codes)
-    // New consolidated CodeSettings model requires brandId
+    // Filter for codes that are enabled AND have brandId (excludes old legacy codes)
+    // Exclude type "guest" — guest codes are handled by the public GuestCode form, not CodeGenerator
     const customCodeSettings = sourceCodeSettings.filter(
-      (setting) => setting.isEnabled === true && setting.brandId
+      (setting) => setting.isEnabled === true && setting.brandId && setting.type !== "guest"
     );
 
     // Create a map to track unique settings by name
