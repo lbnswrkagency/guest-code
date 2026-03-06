@@ -421,6 +421,38 @@ router.put(
   }
 );
 
+// Door count (Vollzahler) increment/decrement
+router.patch("/:eventId/door-count", authenticate, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { increment } = req.body; // 1 or -1
+
+    if (increment !== 1 && increment !== -1) {
+      return res.status(400).json({ message: "Increment must be 1 or -1" });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Prevent going below 0
+    if (increment === -1 && (event.doorCount || 0) <= 0) {
+      return res.status(200).json({ success: true, doorCount: 0 });
+    }
+
+    const updated = await Event.findByIdAndUpdate(
+      eventId,
+      { $inc: { doorCount: increment } },
+      { new: true }
+    );
+
+    res.status(200).json({ success: true, doorCount: updated.doorCount });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating door count", error: error.message });
+  }
+});
+
 // Add the Go Live toggle route
 router.patch("/:eventId/toggle-live", authenticate, toggleEventLive);
 

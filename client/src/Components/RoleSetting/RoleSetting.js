@@ -14,6 +14,7 @@ import {
   RiQrScanLine,
   RiBarChartBoxLine,
   RiSaveLine,
+  RiDoorOpenLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import "./RoleSetting.scss";
@@ -106,6 +107,15 @@ const RoleSetting = ({ brand, onClose }) => {
       ]
     },
     {
+      id: 'doorCount',
+      title: 'Door Counter',
+      icon: RiDoorOpenLine,
+      color: '#f59e0b',
+      permissions: [
+        { key: 'use', label: 'Use' },
+      ]
+    },
+    {
       id: 'tables',
       title: 'Tables',
       icon: RiTableLine,
@@ -138,6 +148,7 @@ const RoleSetting = ({ brand, onClose }) => {
       analytics: { view: false },
       codes: {},
       scanner: { use: false },
+      doorCount: { use: false },
       tables: { access: false, manage: false, summary: false },
       battles: { view: false, edit: false, delete: false },
     },
@@ -293,6 +304,7 @@ const RoleSetting = ({ brand, onClose }) => {
         team: { ...role.permissions?.team },
         analytics: { ...role.permissions?.analytics },
         scanner: { ...role.permissions?.scanner },
+        doorCount: { ...role.permissions?.doorCount },
         tables: { ...role.permissions?.tables },
         battles: { ...role.permissions?.battles },
         codes: { ...role.permissions?.codes } || {},

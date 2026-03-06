@@ -207,9 +207,12 @@ exports.getAnalyticsSummary = async (req, res) => {
       }
     }
 
+    // Get door count (Vollzahler - paid at door without code)
+    const doorCount = event.doorCount || 0;
+
     // Calculate totals including detailed ticket stats
-    let totalCapacity = guestCodes.generated + ticketStats.totalSold;
-    let totalCheckedIn = guestCodes.checkedIn + ticketStats.totalCheckedIn;
+    let totalCapacity = guestCodes.generated + ticketStats.totalSold + doorCount;
+    let totalCheckedIn = guestCodes.checkedIn + ticketStats.totalCheckedIn + doorCount;
 
     // Add custom code types to totals
     customCodeTypes.forEach((type) => {
@@ -235,6 +238,7 @@ exports.getAnalyticsSummary = async (req, res) => {
       tickets: ticketStats,
       customCodeTypes,
       totals,
+      doorCount,
       eventInfo: {
         title: event.title,
         date: event.startDate,

@@ -50,6 +50,9 @@ exports.createDefaultRoles = async (brandId, userId) => {
         scanner: {
           use: true,
         },
+        doorCount: {
+          use: true,
+        },
         tables: {
           access: true,
           manage: true,
@@ -86,6 +89,9 @@ exports.createDefaultRoles = async (brandId, userId) => {
         },
         codes: limitedCodePermissions,
         scanner: {
+          use: false,
+        },
+        doorCount: {
           use: false,
         },
         tables: {

@@ -8,6 +8,7 @@ import {
   RiTicket2Line,
   RiSwordLine,
   RiMailLine,
+  RiDoorOpenLine,
 } from "react-icons/ri";
 import "./Analytics.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -683,6 +684,26 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
                   codeType.hostSummaries
                 )
               )}
+
+            {/* Door Payments - only show if > 0 */}
+            {stats.doorCount > 0 && (
+              <div className="stat-card door-card">
+                <div className="card-header">
+                  <div className="card-header-content">
+                    <div className="card-icon-wrapper">
+                      <RiDoorOpenLine className="card-icon" />
+                    </div>
+                    <h3>Door Payments</h3>
+                  </div>
+                  <div className="stat-values">
+                    <div className="stat-total">
+                      <span className="value">{stats.doorCount}</span>
+                      <span className="label">Checked In</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Totals - Always present at the bottom */}
             <div className="stat-card total-card">

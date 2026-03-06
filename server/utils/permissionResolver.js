@@ -161,6 +161,9 @@ function normalizePermissions(permissions, codeSettings = null) {
     scanner: {
       use: perms.scanner?.use ?? false,
     },
+    doorCount: {
+      use: perms.doorCount?.use ?? false,
+    },
     tables: {
       access: perms.tables?.access ?? false,
       manage: perms.tables?.manage ?? false,
@@ -194,6 +197,7 @@ function getDefaultPermissions() {
   return {
     analytics: { view: false },
     scanner: { use: false },
+    doorCount: { use: false },
     tables: { access: false, manage: false, summary: false },
     battles: { view: false, edit: false, delete: false },
     codes: {},

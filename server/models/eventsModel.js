@@ -100,6 +100,7 @@ const EventSchema = new Schema(
 
     link: { type: String, required: true, unique: true },
     isPublic: { type: Boolean, default: true },
+    doorCount: { type: Number, default: 0 },
     favoritedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {

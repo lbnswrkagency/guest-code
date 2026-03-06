@@ -36,6 +36,9 @@ const RoleSchema = new Schema(
       scanner: {
         use: { type: Boolean, default: false },
       },
+      doorCount: {
+        use: { type: Boolean, default: false },
+      },
       tables: {
         access: { type: Boolean, default: false },
         manage: { type: Boolean, default: false },

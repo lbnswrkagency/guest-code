@@ -13,6 +13,7 @@ import {
   RiTableLine,
   RiSwordLine,
   RiCodeLine,
+  RiDoorOpenLine,
 } from "react-icons/ri";
 import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
@@ -172,6 +173,14 @@ const RoleCard = ({
                 />
               </PermissionCategory>
 
+              <PermissionCategory icon={RiDoorOpenLine} title="Door Counter">
+                <PermissionToggle
+                  label="Use Door Counter"
+                  checked={permissions[role._id]?.doorCount?.use || false}
+                  onChange={(val) => onPermissionChange(role._id, "doorCount", "use", val)}
+                />
+              </PermissionCategory>
+
               <PermissionCategory icon={RiTableLine} title="Tables">
                 <PermissionToggle
                   label="Access Tables"
@@ -287,6 +296,7 @@ const CoHostRoleSettings = ({
           analytics: { view: false },
           codes: {},
           scanner: { use: false },
+          doorCount: { use: false },
           tables: { access: false, manage: false, summary: false },
           battles: { view: false, edit: false, delete: false },
         };

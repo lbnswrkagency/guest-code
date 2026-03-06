@@ -541,6 +541,7 @@ const Dashboard = () => {
         analytics: { view: false },
         codes: {},
         scanner: { use: false },
+        doorCount: { use: false },
         tables: { access: false, manage: false, summary: false },
         battles: { view: false, edit: false, delete: false },
       };
@@ -802,6 +803,7 @@ const Dashboard = () => {
             }}
             selectedEvent={selectedEvent}
             selectedBrand={selectedBrand}
+            canUseDoorCount={getUserRolePermissions()?.doorCount?.use || false}
           />
         ) : showStatistic ? (
           <Analytics

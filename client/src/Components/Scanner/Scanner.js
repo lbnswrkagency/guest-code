@@ -18,6 +18,9 @@ import {
   RiCalendarEventLine,
   RiQrCodeFill,
   RiRefreshLine,
+  RiAddLine,
+  RiSubtractLine,
+  RiDoorOpenLine,
 } from "react-icons/ri";
 import { componentCleanup } from "../../utils/layoutHelpers";
 import Tesseract from "tesseract.js";
@@ -25,7 +28,7 @@ import Tesseract from "tesseract.js";
 // Add this debug flag to help with troubleshooting
 const DEBUG_SCANNING = false; // Set to true to enable extended logging
 
-function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
+function Scanner({ onClose, selectedEvent, selectedBrand, user, canUseDoorCount }) {
   const [scanResult, setScanResult] = useState(null);
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(true);
@@ -58,6 +61,41 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
   const [showMemberCamera, setShowMemberCamera] = useState(false); // State for member camera view
   const [capturedFrameDataUrl, setCapturedFrameDataUrl] = useState(null); // State to hold captured image data URL
   const [isOcrProcessing, setIsOcrProcessing] = useState(false); // <-- State for OCR loading
+
+  // Door counter state — fetch fresh value on mount since selectedEvent may be stale
+  const [doorCount, setDoorCount] = useState(selectedEvent?.doorCount || 0);
+  const [isDoorCountUpdating, setIsDoorCountUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!canUseDoorCount || !selectedEvent?._id) return;
+    axiosInstance.get(`/events/${selectedEvent._id}`)
+      .then((res) => {
+        const freshCount = res.data?.event?.doorCount ?? res.data?.doorCount ?? 0;
+        setDoorCount(freshCount);
+      })
+      .catch(() => {}); // silent — fallback to prop value
+  }, [selectedEvent?._id, canUseDoorCount]);
+
+  const handleDoorCountUpdate = async (increment) => {
+    if (isDoorCountUpdating) return;
+    if (increment === -1 && doorCount <= 0) return;
+
+    setIsDoorCountUpdating(true);
+    try {
+      const response = await axiosInstance.patch(
+        `/events/${selectedEvent._id}/door-count`,
+        { increment }
+      );
+      if (response.data.success) {
+        setDoorCount(response.data.doorCount);
+        toast.showSuccess(increment === 1 ? "Door +1" : "Door -1");
+      }
+    } catch (error) {
+      toast.showError("Failed to update door count");
+    } finally {
+      setIsDoorCountUpdating(false);
+    }
+  };
 
   // Placeholder for handleMemberPaxUpdate
   const handleMemberPaxUpdate = async (increment) => {
@@ -820,6 +858,34 @@ function Scanner({ onClose, selectedEvent, selectedBrand, user }) {
                 <h1>Guest Scanner</h1>
                 <p>Scan QR codes or enter code manually</p>
               </div>
+
+              {canUseDoorCount && (
+                <div className="door-counter">
+                  <div className="door-counter-label">
+                    <RiDoorOpenLine />
+                    <span>Door Payments</span>
+                  </div>
+                  <div className="door-counter-controls">
+                    <motion.button
+                      className="door-btn decrease"
+                      onClick={() => handleDoorCountUpdate(-1)}
+                      disabled={isDoorCountUpdating || doorCount <= 0}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <RiSubtractLine />
+                    </motion.button>
+                    <span className="door-count-value">{doorCount}</span>
+                    <motion.button
+                      className="door-btn increase"
+                      onClick={() => handleDoorCountUpdate(1)}
+                      disabled={isDoorCountUpdating}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <RiAddLine />
+                    </motion.button>
+                  </div>
+                </div>
+              )}
 
               <div className="scanner-actions">
                 <motion.button

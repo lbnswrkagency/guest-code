@@ -166,6 +166,23 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
 
+    .door-card {
+      border: 1px solid rgba(255, 193, 7, 0.2);
+      background: linear-gradient(
+        45deg,
+        rgba(255, 193, 7, 0.04),
+        rgba(255, 152, 0, 0.08)
+      );
+
+      .card-icon {
+        color: #ffc107;
+      }
+
+      .card-icon-wrapper {
+        background: rgba(255, 193, 7, 0.1);
+      }
+    }
+
     .total-card {
       grid-column: 1 / -1;
       background: linear-gradient(
