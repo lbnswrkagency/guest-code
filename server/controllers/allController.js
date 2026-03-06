@@ -198,11 +198,17 @@ exports.getUpcomingEventData = async (req, res) => {
       }
     });
 
+    // Collect all unique host brand IDs from events (co-hosted events have different brand)
+    const allHostBrandIds = [...new Set(
+      sortedEvents.map(e => (e.brand?._id || e.brand).toString())
+    )];
+
     const [ticketSettingsArray, codeSettingsArray, tableDataArray] =
       await Promise.all([
-        // Query brand-level ticket templates (both global and specific-event)
+        // Query brand-level ticket templates for ALL host brands (not just targetBrandId)
+        // This ensures co-hosted events show the host brand's tickets
         TicketSettings.find({
-          brandId: targetBrandId,
+          brandId: { $in: allHostBrandIds },
           eventId: null,
         }).lean(),
         CodeSettings.find({
@@ -219,12 +225,15 @@ exports.getUpcomingEventData = async (req, res) => {
     const codeSettingsByEvent = {};
     const tableDataByEvent = {};
 
-    // Assign tickets per-event: global tickets apply to all, specific tickets only to enabled events
+    // Assign tickets per-event: match by event's actual host brand, then apply global/specific logic
     sortedEvents.forEach((event) => {
       const eventId = event._id.toString();
       const parentId = event.parentEventId?.toString();
+      const eventBrandId = (event.brand?._id || event.brand).toString();
 
       const applicableTickets = ticketSettingsArray.filter((ticket) => {
+        // Must belong to this event's host brand
+        if (ticket.brandId.toString() !== eventBrandId) return false;
         if (ticket.isGlobalForBrand) return true;
         // Specific events mode — check if this event is enabled
         const enabled = ticket.enabledEvents || [];
