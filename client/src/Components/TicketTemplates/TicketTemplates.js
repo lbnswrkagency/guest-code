@@ -114,6 +114,7 @@ const TicketTemplates = () => {
           brandUsername: ticket.brandUsername,
           brandLogo: ticket.brandLogo,
           isGlobalForBrand: ticket.isGlobalForBrand !== false,
+          enabledEvents: ticket.enabledEvents || [],
         });
         // Track the ticket ID for this brand
         ticketsByName[ticket.name].ticketIdsByBrand[ticket.brandId] = ticket._id;
@@ -198,12 +199,12 @@ const TicketTemplates = () => {
             if (existingTicketId) {
               await axiosInstance.put(
                 `/ticket-settings/brands/${brandId}/tickets/${existingTicketId}`,
-                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true, enabledEvents: attachment.enabledEvents || [] }
               );
             } else {
               await axiosInstance.post(
                 `/ticket-settings/brands/${brandId}/tickets`,
-                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+                { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true, enabledEvents: attachment.enabledEvents || [] }
               );
             }
           }
@@ -220,7 +221,7 @@ const TicketTemplates = () => {
           for (const attachment of attachments) {
             await axiosInstance.post(
               `/ticket-settings/brands/${attachment.brandId}/tickets`,
-              { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              { ...ticketData, isGlobalForBrand: attachment.isGlobalForBrand ?? true, enabledEvents: attachment.enabledEvents || [] }
             );
           }
         }

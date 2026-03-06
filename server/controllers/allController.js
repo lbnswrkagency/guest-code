@@ -200,11 +200,10 @@ exports.getUpcomingEventData = async (req, res) => {
 
     const [ticketSettingsArray, codeSettingsArray, tableDataArray] =
       await Promise.all([
-        // Query brand-level ticket templates instead of old event-level tickets
+        // Query brand-level ticket templates (both global and specific-event)
         TicketSettings.find({
           brandId: targetBrandId,
           eventId: null,
-          isGlobalForBrand: true
         }).lean(),
         CodeSettings.find({
           $or: [
@@ -220,11 +219,25 @@ exports.getUpcomingEventData = async (req, res) => {
     const codeSettingsByEvent = {};
     const tableDataByEvent = {};
 
-    // Brand-level tickets apply to ALL events - assign them to each event
-    // ticketSettingsArray now contains brand-level templates (eventId: null, isGlobalForBrand: true)
+    // Assign tickets per-event: global tickets apply to all, specific tickets only to enabled events
     sortedEvents.forEach((event) => {
       const eventId = event._id.toString();
-      ticketSettingsByEvent[eventId] = ticketSettingsArray;
+      const parentId = event.parentEventId?.toString();
+
+      const applicableTickets = ticketSettingsArray.filter((ticket) => {
+        if (ticket.isGlobalForBrand) return true;
+        // Specific events mode — check if this event is enabled
+        const enabled = ticket.enabledEvents || [];
+        return enabled.some((e) => {
+          const eId = e.eventId?.toString();
+          if (eId === eventId) return true;
+          // For child events, check parent + applyToChildren
+          if (parentId && eId === parentId && e.applyToChildren !== false) return true;
+          return false;
+        });
+      });
+
+      ticketSettingsByEvent[eventId] = applicableTickets;
     });
 
     // Only use brand-attached codes (brandId must exist)

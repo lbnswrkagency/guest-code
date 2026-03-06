@@ -17,6 +17,10 @@ const TicketSettingsSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    enabledEvents: [{
+      eventId: { type: Schema.Types.ObjectId, ref: "Event" },
+      applyToChildren: { type: Boolean, default: true },
+    }],
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

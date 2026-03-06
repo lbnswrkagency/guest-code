@@ -92,6 +92,7 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
             brandUsername: a.brandUsername,
             brandLogo: a.brandLogo,
             isGlobalForBrand: a.isGlobalForBrand !== false,
+            enabledEvents: a.enabledEvents || [],
           }))
         );
       } else {
@@ -175,6 +176,7 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
         attachments: attachments.map((a) => ({
           brandId: a.brandId,
           isGlobalForBrand: a.isGlobalForBrand,
+          enabledEvents: a.enabledEvents || [],
         })),
       });
     } finally {

@@ -1597,15 +1597,28 @@ exports.getEventProfile = async (req, res) => {
               isActive: true,
             }).sort({ sortOrder: 1 });
 
-      // Get ticket settings - ONLY brand-level templates
-      // Old event-level tickets are excluded - use brand templates only
+      // Get ticket settings - brand-level templates (both global and specific-event)
       const brandId = event.brand?._id || event.brand;
 
-      const ticketSettings = await TicketSettings.find({
-        brandId: brandId, // Required - the brand this event belongs to
-        eventId: null, // Brand-level templates only (not old event-specific tickets)
-        isGlobalForBrand: true, // Must be marked as global for brand
+      const allTicketSettings = await TicketSettings.find({
+        brandId: brandId,
+        eventId: null,
       }).sort({ sortOrder: 1, price: 1 });
+
+      // Filter tickets applicable to this event
+      const thisEventId = event._id.toString();
+      const thisParentId = event.parentEventId?.toString();
+
+      const ticketSettings = allTicketSettings.filter((ticket) => {
+        if (ticket.isGlobalForBrand) return true;
+        const enabled = ticket.enabledEvents || [];
+        return enabled.some((e) => {
+          const eId = e.eventId?.toString();
+          if (eId === thisEventId) return true;
+          if (thisParentId && eId === thisParentId && e.applyToChildren !== false) return true;
+          return false;
+        });
+      });
 
       // Get code settings - resolve to parent event for child events
       // Child events should inherit CodeSettings from their parent
