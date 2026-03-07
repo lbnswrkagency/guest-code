@@ -8,6 +8,7 @@ const TicketSettings = require("../models/ticketSettingsModel");
 const BattleSign = require("../models/battleSignModel");
 const BattleCode = require("../models/battleModel");
 const InvitationCode = require("../models/InvitationModel");
+const TableCode = require("../models/TableCode");
 
 // Get analytics summary for a specific event
 exports.getAnalyticsSummary = async (req, res) => {
@@ -167,6 +168,9 @@ exports.getAnalyticsSummary = async (req, res) => {
       battleAnalytics = await getBattleAnalytics(eventId);
     }
 
+    // Get table code stats
+    const tableCodeStats = await getTableCodeStats(eventId);
+
     // Get invitation code stats (brand owner only)
     let invitationStats = null;
     const isOwner = brand?.owner?.toString() === req.user.userId.toString();
@@ -220,6 +224,12 @@ exports.getAnalyticsSummary = async (req, res) => {
       totalCheckedIn += type.stats.checkedIn;
     });
 
+    // Add table code stats to totals
+    if (tableCodeStats && tableCodeStats.totalPax > 0) {
+      totalCapacity += tableCodeStats.totalPax;
+      totalCheckedIn += tableCodeStats.totalCheckedIn;
+    }
+
     // Add battle participants to totals if battle is enabled
     if (battleAnalytics) {
       totalCapacity += battleAnalytics.totalParticipants;
@@ -245,6 +255,11 @@ exports.getAnalyticsSummary = async (req, res) => {
         location: event.location,
       },
     };
+
+    // Include table code stats if there are any
+    if (tableCodeStats && tableCodeStats.totalPax > 0) {
+      response.tableCodes = tableCodeStats;
+    }
 
     // Include battle analytics if enabled
     if (battleAnalytics) {
@@ -694,6 +709,52 @@ async function getBattleAnalytics(eventId) {
       statusDistribution: { pending: 0, confirmed: 0, declined: 0 },
       categories: [],
     };
+  }
+}
+
+// Helper function to get table code stats
+async function getTableCodeStats(eventId) {
+  try {
+    const tableCodes = await TableCode.find({ event: eventId });
+
+    if (tableCodes.length === 0) {
+      return { count: 0, totalPax: 0, totalCheckedIn: 0, tables: [] };
+    }
+
+    let totalPax = 0;
+    let totalCheckedIn = 0;
+
+    // Group by table number for breakdown
+    const tableGroups = {};
+
+    tableCodes.forEach((code) => {
+      totalPax += code.pax || 0;
+      totalCheckedIn += code.paxChecked || 0;
+
+      const tableNum = code.tableNumber || "Unknown";
+      if (!tableGroups[tableNum]) {
+        tableGroups[tableNum] = {
+          tableNumber: tableNum,
+          reservations: 0,
+          totalPax: 0,
+          totalCheckedIn: 0,
+          host: code.host || "",
+        };
+      }
+      tableGroups[tableNum].reservations += 1;
+      tableGroups[tableNum].totalPax += code.pax || 0;
+      tableGroups[tableNum].totalCheckedIn += code.paxChecked || 0;
+    });
+
+    return {
+      count: tableCodes.length,
+      totalPax,
+      totalCheckedIn,
+      tables: Object.values(tableGroups).sort((a, b) => b.totalPax - a.totalPax),
+    };
+  } catch (error) {
+    console.error("Error getting table code stats:", error);
+    return { count: 0, totalPax: 0, totalCheckedIn: 0, tables: [] };
   }
 }
 

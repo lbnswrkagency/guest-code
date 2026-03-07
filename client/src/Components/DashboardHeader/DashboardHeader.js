@@ -51,27 +51,21 @@ const DashboardHeader = ({
       setIsLoadingEvents(true);
 
       try {
+        // Use brand events endpoint to get ALL events (past + future)
+        // This ensures the date dropdown can show recent past dates
         const response = await axiosInstance.get(
-          `${process.env.REACT_APP_API_BASE_URL}/all/upcoming-event-data?brandId=${brandId}`,
+          `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`,
         );
 
-        if (response.data?.success && response.data?.data?.events) {
-          const events = response.data.data.events;
-          setFreshEvents(events);
+        if (Array.isArray(response.data)) {
+          setFreshEvents(response.data);
+          setLastFetchedBrandId(brandId);
+        } else if (response.data?.success && response.data?.data?.events) {
+          setFreshEvents(response.data.data.events);
           setLastFetchedBrandId(brandId);
         } else {
-          // Fallback: try the brand events endpoint
-          const fallbackResponse = await axiosInstance.get(
-            `${process.env.REACT_APP_API_BASE_URL}/events/brand/${brandId}`,
-          );
-
-          if (Array.isArray(fallbackResponse.data)) {
-            setFreshEvents(fallbackResponse.data);
-            setLastFetchedBrandId(brandId);
-          } else {
-            // Fall back to Redux events if API fails
-            setFreshEvents(selectedBrand?.events || []);
-          }
+          // Fall back to Redux events if API fails
+          setFreshEvents(selectedBrand?.events || []);
         }
       } catch (err) {
         // Fall back to Redux events on error
@@ -504,14 +498,17 @@ const DashboardHeader = ({
                     return dateEvents.some((e) => e.endDate >= twelveHoursAgo);
                   });
 
-                  // Don't show any past dates - only show active/future dates
-                  const limitedActiveFutureDates = activeFutureDates.slice(
-                    0,
-                    4,
-                  );
+                  // Show last 3 past dates (most recent first) + current/future dates
+                  const recentPastDates = pastDates
+                    .sort((a, b) => b.date - a.date) // Most recent past first
+                    .slice(0, 3)
+                    .reverse(); // Back to chronological order
 
-                  // Only return active/future dates
-                  return limitedActiveFutureDates.map((item) => {
+                  // Combine: recent past dates + active/future dates (limit total to reasonable amount)
+                  const combinedDates = [...recentPastDates, ...activeFutureDates];
+
+                  return combinedDates.map((item) => {
+                    const isPast = pastDates.some((p) => p.dateStr === item.dateStr);
                     // Check if this date has any co-hosted events
                     const dateEvents = eventsWithEndDates.filter(
                       (e) =>
@@ -532,7 +529,7 @@ const DashboardHeader = ({
                           selectedDate === item.dateStr
                             ? "dashboardHeader-date-options-option-selected"
                             : ""
-                        } ${isOnlyCoHosted ? "co-hosted-only" : hasCoHostedEvents ? "has-co-hosted" : ""}`}
+                        } ${isPast ? "dashboardHeader-date-options-option-past" : ""} ${isOnlyCoHosted ? "co-hosted-only" : hasCoHostedEvents ? "has-co-hosted" : ""}`}
                         onClick={() => handleSelectDate(item.dateStr)}
                       >
                         <span className="date-text">

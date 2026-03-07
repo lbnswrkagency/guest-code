@@ -463,6 +463,14 @@
           font-weight: 500;
         }
 
+        &-past {
+          opacity: 0.55;
+
+          .date-text {
+            color: rgba(255, 255, 255, 0.5);
+          }
+        }
+
         &-active {
           border-left: 3px solid #ffc807;
         }

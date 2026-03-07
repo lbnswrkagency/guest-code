@@ -9,6 +9,7 @@ import {
   RiSwordLine,
   RiMailLine,
   RiDoorOpenLine,
+  RiTableLine,
 } from "react-icons/ri";
 import "./Analytics.scss";
 import axiosInstance from "../../utils/axiosConfig";
@@ -658,6 +659,106 @@ const Analytics = ({ onClose, selectedBrand, selectedEvent, user }) => {
 
             {/* Tickets with categories - only show if sold > 0 */}
             {stats.tickets && stats.tickets.totalSold > 0 && renderTicketsSection(stats.tickets)}
+
+            {/* Table Codes - only show if there are table reservations */}
+            {stats.tableCodes && stats.tableCodes.totalPax > 0 && (
+              <div
+                className={`stat-card table-card clickable ${
+                  expandedCard === "tableCodes" ? "expanded" : ""
+                }`}
+              >
+                <div
+                  className="card-header"
+                  onClick={() =>
+                    setExpandedCard(expandedCard === "tableCodes" ? null : "tableCodes")
+                  }
+                >
+                  <div className="card-header-content">
+                    <div className="card-icon-wrapper">
+                      <RiTableLine className="card-icon" />
+                    </div>
+                    <h3>Table Reservations</h3>
+                    <div className="card-toggle">
+                      <span className="toggle-icon">⌵</span>
+                    </div>
+                  </div>
+
+                  <div className="stat-values">
+                    <div className="stat-total">
+                      <span className="value">{stats.tableCodes.totalPax}</span>
+                      <span className="label">Total Pax</span>
+                    </div>
+                    <div className="stat-checked">
+                      <span className="value">{stats.tableCodes.totalCheckedIn}</span>
+                      <span className="label">Checked In</span>
+                    </div>
+                  </div>
+                  <div className="progress-container">
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${getPercentage(
+                            stats.tableCodes.totalCheckedIn,
+                            stats.tableCodes.totalPax
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="progress-percentage">
+                      {getPercentage(
+                        stats.tableCodes.totalCheckedIn,
+                        stats.tableCodes.totalPax
+                      ).toFixed(0)}
+                      %
+                    </div>
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {expandedCard === "tableCodes" && stats.tableCodes.tables.length > 0 && (
+                    <motion.div
+                      className="host-summaries"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {stats.tableCodes.tables.map((table) => (
+                        <div key={table.tableNumber} className="host-summary">
+                          <div className="host-name">
+                            <RiTableLine />
+                            <span>Table {table.tableNumber}</span>
+                          </div>
+                          <div className="host-stats">
+                            <div className="stat">
+                              <span className="value">{table.totalPax}</span>
+                              <span className="label">Pax</span>
+                            </div>
+                            <div className="stat">
+                              <span className="value">{table.totalCheckedIn}</span>
+                              <span className="label">Checked In</span>
+                            </div>
+                            <div className="stat">
+                              <span className="value">{table.reservations}</span>
+                              <span className="label">Codes</span>
+                            </div>
+                          </div>
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{
+                                width: `${getPercentage(table.totalCheckedIn, table.totalPax)}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* Battle signups - only show if battle is enabled and has signups */}
             {stats.battle && stats.battle.totalSignups > 0 && renderBattleSection(stats.battle)}

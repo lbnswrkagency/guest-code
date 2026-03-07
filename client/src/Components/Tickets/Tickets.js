@@ -256,22 +256,36 @@ const Tickets = ({
             }
           }
 
-          // Check if ticket has custom offlineTime and event is today
+          // Check if ticket has custom offlineTime and event is today (or overnight into next day)
           if (!isOffline && normalizedTicket.offlineTime && event?.startDate) {
-            const eventDate = new Date(event.startDate);
+            const eventStartDate = new Date(event.startDate);
+            const eventEndDate = event.endDate ? new Date(event.endDate) : null;
             const todayStr = now.toISOString().split('T')[0];
-            const eventDateStr = eventDate.toISOString().split('T')[0];
+            const eventStartDateStr = eventStartDate.toISOString().split('T')[0];
+            // Also check if we're on the end date (for overnight events)
+            const eventEndDateStr = eventEndDate ? eventEndDate.toISOString().split('T')[0] : null;
 
-            // Only check if event is today
-            if (todayStr === eventDateStr) {
+            // Check if event is today (start date) or if we're in the overnight window (end date is today)
+            const isEventDay = todayStr === eventStartDateStr;
+            const isOvernightDay = eventEndDateStr && todayStr === eventEndDateStr && eventEndDateStr !== eventStartDateStr;
+
+            if (isEventDay) {
               const [hours, minutes] = normalizedTicket.offlineTime.split(':').map(Number);
-              const offlineDateTime = new Date(eventDate);
+              const offlineDateTime = new Date(eventStartDate);
               offlineDateTime.setHours(hours, minutes, 0, 0);
 
               if (now >= offlineDateTime) {
                 isOffline = true;
                 offlineSince = offlineDateTime;
               }
+            } else if (isOvernightDay) {
+              // We're past midnight on an overnight event - tickets should stay offline
+              // The offline time was on the previous day (event start day) and has already passed
+              const [hours, minutes] = normalizedTicket.offlineTime.split(':').map(Number);
+              const offlineDateTime = new Date(eventStartDate);
+              offlineDateTime.setHours(hours, minutes, 0, 0);
+              isOffline = true;
+              offlineSince = offlineDateTime;
             }
           }
 
@@ -285,7 +299,19 @@ const Tickets = ({
               eventStartDateTime.setHours(hours, minutes, 0, 0);
             }
 
+            // Also check if we're in the overnight window (between event start and end)
+            const eventEndDateTime = event.endDate ? new Date(event.endDate) : null;
+            if (event.endTime && eventEndDateTime) {
+              const [endHours, endMinutes] = event.endTime.split(':').map(Number);
+              eventEndDateTime.setHours(endHours, endMinutes, 0, 0);
+            }
+
             if (now >= eventStartDateTime) {
+              // We're past event start time - offline
+              isOffline = true;
+              offlineSince = eventStartDateTime;
+            } else if (eventEndDateTime && now <= eventEndDateTime && now.toISOString().split('T')[0] !== eventStartDateTime.toISOString().split('T')[0]) {
+              // We're on the next day but before event end (overnight event) - still offline
               isOffline = true;
               offlineSince = eventStartDateTime;
             }
@@ -382,7 +408,10 @@ const Tickets = ({
         deadlineTime = ticket.offlineTime;
         if (event?.startDate) {
           const eventDate = new Date(event.startDate);
-          isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
+          const eventEndDate = event.endDate ? new Date(event.endDate) : null;
+          const todayStr = now.toISOString().split('T')[0];
+          isEventDay = todayStr === eventDate.toISOString().split('T')[0] ||
+            (eventEndDate && todayStr === eventEndDate.toISOString().split('T')[0]);
         }
       }
 
@@ -391,7 +420,10 @@ const Tickets = ({
         deadlineTime = event.startTime;
         if (event?.startDate) {
           const eventDate = new Date(event.startDate);
-          isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
+          const eventEndDate = event.endDate ? new Date(event.endDate) : null;
+          const todayStr = now.toISOString().split('T')[0];
+          isEventDay = todayStr === eventDate.toISOString().split('T')[0] ||
+            (eventEndDate && todayStr === eventEndDate.toISOString().split('T')[0]);
         }
       }
 
@@ -462,10 +494,16 @@ const Tickets = ({
 
     const now = new Date();
     const eventDate = new Date(event.startDate);
+    const eventEndDate = event.endDate ? new Date(event.endDate) : null;
+    const todayStr = now.toISOString().split('T')[0];
 
-    // Check if today is event day
-    const isEventDay = now.toISOString().split('T')[0] === eventDate.toISOString().split('T')[0];
-    if (!isEventDay) return null;
+    // Check if today is event day (start date) or overnight day (end date)
+    const isEventStartDay = todayStr === eventDate.toISOString().split('T')[0];
+    const isOvernightDay = eventEndDate && todayStr === eventEndDate.toISOString().split('T')[0] && todayStr !== eventDate.toISOString().split('T')[0];
+    if (!isEventStartDay && !isOvernightDay) return null;
+
+    // If we're on the overnight day, all offline times have already passed
+    if (isOvernightDay) return null;
 
     let earliestTime = null;
     let earliestMinutes = Infinity;
