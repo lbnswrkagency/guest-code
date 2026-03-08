@@ -56,7 +56,7 @@ exports.getUpcomingEventData = async (req, res) => {
       .populate("user", "username firstName lastName avatar")
       .populate(
         "lineups",
-        "name avatar category subtitle events isActive sortOrder description socialLinks"
+        "name avatar category subtitle events isActive sortOrder categorySortOrder highlight description socialLinks"
       )
       .populate("genres", "name description color")
       .lean();
@@ -80,7 +80,7 @@ exports.getUpcomingEventData = async (req, res) => {
         .populate("user", "username firstName lastName avatar")
         .populate(
           "lineups",
-          "name avatar category subtitle events isActive sortOrder description socialLinks"
+          "name avatar category subtitle events isActive sortOrder categorySortOrder highlight description socialLinks"
         )
         .populate("genres", "name description color")
         .lean();

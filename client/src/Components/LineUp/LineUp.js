@@ -488,6 +488,69 @@ function LineUp({
     setDeleteConfirm({ show: true, type: 'subtitle', item: subtitle });
   };
 
+  // --- Rename category/subtitle ---
+  const [renameState, setRenameState] = useState({ type: null, oldName: "", newName: "" });
+
+  const handleCategoryEditClick = (e, category) => {
+    e.stopPropagation();
+    setRenameState({ type: "category", oldName: category, newName: category });
+  };
+
+  const handleSubtitleEditClick = (e, subtitle) => {
+    e.stopPropagation();
+    setRenameState({ type: "subtitle", oldName: subtitle, newName: subtitle });
+  };
+
+  const handleRenameCancel = () => {
+    setRenameState({ type: null, oldName: "", newName: "" });
+  };
+
+  const handleRenameConfirm = async () => {
+    const { type, oldName, newName } = renameState;
+    if (!newName.trim() || newName.trim() === oldName) {
+      handleRenameCancel();
+      return;
+    }
+
+    try {
+      const currentToken = localStorage.getItem("token");
+      const currentBrandId = selectedBrand?._id || localStorage.getItem("selectedBrandId");
+      if (!currentToken || !currentBrandId) {
+        showError("Authentication required");
+        return;
+      }
+
+      setLoading(true);
+      showLoading(`Renaming ${type}...`);
+
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/lineup/${type}/${currentBrandId}/${encodeURIComponent(oldName)}`,
+        { newName: newName.trim() },
+        { headers: { Authorization: `Bearer ${currentToken}` } }
+      );
+
+      if (response.data.success) {
+        await fetchLineUps();
+        showSuccess(`${type === "category" ? "Category" : "Subtitle"} renamed to "${newName.trim()}"`);
+        // Update the form field if it was using the old name
+        if (type === "category" && newLineUp.category === oldName) {
+          setNewLineUp((prev) => ({ ...prev, category: newName.trim() }));
+        }
+        if (type === "subtitle" && newLineUp.subtitle === oldName) {
+          setNewLineUp((prev) => ({ ...prev, subtitle: newName.trim() }));
+        }
+      } else {
+        showError(response.data.message || `Failed to rename ${type}`);
+      }
+    } catch (error) {
+      console.error(`Error renaming ${type}:`, error);
+      showError(`Failed to rename ${type}`);
+    } finally {
+      setLoading(false);
+      setRenameState({ type: null, oldName: "", newName: "" });
+    }
+  };
+
   const handleDeleteCategory = async () => {
     const categoryToDelete = deleteConfirm.item;
     if (!categoryToDelete) return;
@@ -816,14 +879,22 @@ function LineUp({
                               {category}
                             </div>
                             {newLineUp.category === category && (
-                              <div
-                                className="chip-delete"
-                                onClick={(e) =>
-                                  handleCategoryDeleteClick(e, category)
-                                }
-                              >
-                                <RiDeleteBin2Line />
-                              </div>
+                              <>
+                                <div
+                                  className="chip-edit"
+                                  onClick={(e) => handleCategoryEditClick(e, category)}
+                                >
+                                  <RiEditLine />
+                                </div>
+                                <div
+                                  className="chip-delete"
+                                  onClick={(e) =>
+                                    handleCategoryDeleteClick(e, category)
+                                  }
+                                >
+                                  <RiDeleteBin2Line />
+                                </div>
+                              </>
                             )}
                           </div>
                         ))
@@ -852,14 +923,22 @@ function LineUp({
                               {subtitle}
                             </div>
                             {newLineUp.subtitle === subtitle && (
-                              <div
-                                className="chip-delete"
-                                onClick={(e) =>
-                                  handleSubtitleDeleteClick(e, subtitle)
-                                }
-                              >
-                                <RiDeleteBin2Line />
-                              </div>
+                              <>
+                                <div
+                                  className="chip-edit"
+                                  onClick={(e) => handleSubtitleEditClick(e, subtitle)}
+                                >
+                                  <RiEditLine />
+                                </div>
+                                <div
+                                  className="chip-delete"
+                                  onClick={(e) =>
+                                    handleSubtitleDeleteClick(e, subtitle)
+                                  }
+                                >
+                                  <RiDeleteBin2Line />
+                                </div>
+                              </>
                             )}
                           </div>
                         ))
@@ -946,6 +1025,37 @@ function LineUp({
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Rename Dialog */}
+      {renameState.type && (
+        <div className="delete-confirmation-overlay">
+          <div className="rename-dialog">
+            <h3>Rename {renameState.type === "category" ? "Category" : "Subtitle"}</h3>
+            <input
+              type="text"
+              value={renameState.newName}
+              onChange={(e) => setRenameState((prev) => ({ ...prev, newName: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameConfirm();
+                if (e.key === "Escape") handleRenameCancel();
+              }}
+              autoFocus
+            />
+            <div className="delete-actions">
+              <button className="cancel-delete" onClick={handleRenameCancel}>
+                Cancel
+              </button>
+              <button
+                className="confirm-rename"
+                onClick={handleRenameConfirm}
+                disabled={!renameState.newName.trim() || renameState.newName.trim() === renameState.oldName}
+              >
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm.show && deleteConfirm.item && (() => {

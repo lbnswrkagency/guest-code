@@ -36,6 +36,14 @@ const LineUpSchema = new Schema(
       type: Number,
       default: 0,
     },
+    highlight: {
+      type: Boolean,
+      default: false,
+    },
+    categorySortOrder: {
+      type: Number,
+      default: 0,
+    },
     events: [
       {
         type: Schema.Types.ObjectId,

@@ -56,6 +56,7 @@ const RoleSetting = ({ brand, onClose }) => {
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const formPanelRef = React.useRef(null);
 
   // Check if the current user is the brand owner
   const isBrandOwner = useCallback(() => {
@@ -323,6 +324,11 @@ const RoleSetting = ({ brand, onClose }) => {
 
     setFormData(roleFormData);
     setFormErrors({});
+
+    // On mobile, scroll the form panel into view after React renders
+    setTimeout(() => {
+      formPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   }, [selectedRole, codeSettings]);
 
   // Handle creating new role
@@ -342,6 +348,10 @@ const RoleSetting = ({ brand, onClose }) => {
 
     setFormData(newRoleData);
     setFormErrors({});
+
+    setTimeout(() => {
+      formPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   }, [createInitialRole, codeSettings]);
 
   // Handle permission changes
@@ -482,7 +492,7 @@ const RoleSetting = ({ brand, onClose }) => {
         </aside>
 
         {/* Form Panel (Right Side) */}
-        <main className="role-form-panel">
+        <main className="role-form-panel" ref={formPanelRef}>
           <AnimatePresence mode="wait">
             {selectedRole ? (
               <motion.div

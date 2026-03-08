@@ -86,6 +86,23 @@ const EventFeed = ({ event, brand }) => {
       }, {})
     : {};
 
+  // Sort categories by categorySortOrder, fallback to alphabetical
+  const sortedFeedCategories = Object.keys(groupedLineups).sort((a, b) => {
+    const aOrder = Math.min(...groupedLineups[a].map((l) => l.categorySortOrder ?? 999));
+    const bOrder = Math.min(...groupedLineups[b].map((l) => l.categorySortOrder ?? 999));
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.localeCompare(b);
+  });
+
+  // Sort artists within each category: highlighted first, then by sortOrder
+  Object.values(groupedLineups).forEach((artists) => {
+    artists.sort((a, b) => {
+      if (a.highlight && !b.highlight) return -1;
+      if (!a.highlight && b.highlight) return 1;
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
+  });
+
   return (
     <motion.div
       className="event-feed"
@@ -138,8 +155,8 @@ const EventFeed = ({ event, brand }) => {
         {hasLineups && (
           <div className="event-feed__lineup">
             <div className="event-feed__lineup-categories">
-              {Object.entries(groupedLineups).map(([category, artists]) => {
-                // Add 'S for plural (e.g., "DJ" -> "DJ'S" when multiple)
+              {sortedFeedCategories.map((category) => {
+                const artists = groupedLineups[category];
                 const categoryLabel = artists.length > 1 ? `${category}'S` : category;
                 return (
                 <div key={category} className="event-feed__lineup-category">
@@ -148,7 +165,7 @@ const EventFeed = ({ event, brand }) => {
                     {artists.map((artist, index) => {
                       const avatar = getArtistAvatar(artist);
                       return (
-                        <div key={artist._id || index} className="event-feed__artist">
+                        <div key={artist._id || index} className={`event-feed__artist ${artist.highlight ? "event-feed__artist--highlighted" : ""}`}>
                           <div className="event-feed__artist-avatar">
                             {avatar ? (
                               <img src={avatar} alt={artist.name} loading="lazy" />

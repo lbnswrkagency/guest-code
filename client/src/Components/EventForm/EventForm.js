@@ -23,6 +23,9 @@ import {
   RiMoneyEuroCircleLine,
   RiImageLine,
   RiRefreshLine,
+  RiDraggable,
+  RiStarLine,
+  RiStarFill,
 } from "react-icons/ri";
 import { useToast } from "../Toast/ToastContext";
 import axiosInstance from "../../utils/axiosConfig";
@@ -441,6 +444,203 @@ const EventForm = ({
   // Handle saving selected lineups
   const handleSaveLineups = (lineups) => {
     setSelectedLineups(lineups);
+  };
+
+  // --- Lineup Ordering & Highlighting in EventForm ---
+  const [lineupDragType, setLineupDragType] = useState(null); // 'category' | 'lineup'
+  const [lineupDragItem, setLineupDragItem] = useState(null);
+  const [lineupDragOverItem, setLineupDragOverItem] = useState(null);
+
+  // Group selected lineups by category, sorted by categorySortOrder then sortOrder
+  const groupedSelectedLineups = React.useMemo(() => {
+    const groups = {};
+    selectedLineups
+      .filter((lineup) => lineup && lineup.name)
+      .forEach((lineup) => {
+        const category = lineup.category || "Uncategorized";
+        if (!groups[category]) {
+          groups[category] = { items: [], categorySortOrder: lineup.categorySortOrder || 0 };
+        }
+        groups[category].items.push(lineup);
+        if ((lineup.categorySortOrder || 0) < groups[category].categorySortOrder) {
+          groups[category].categorySortOrder = lineup.categorySortOrder || 0;
+        }
+      });
+    Object.values(groups).forEach((group) => {
+      group.items.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    });
+    return groups;
+  }, [selectedLineups]);
+
+  const sortedSelectedCategoryEntries = React.useMemo(() => {
+    return Object.entries(groupedSelectedLineups).sort(
+      (a, b) => a[1].categorySortOrder - b[1].categorySortOrder
+    );
+  }, [groupedSelectedLineups]);
+
+  // Category drag
+  const handleCategoryDragStart = (e, category) => {
+    setLineupDragType("category");
+    setLineupDragItem(category);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleCategoryDragOver = (e, category) => {
+    e.preventDefault();
+    if (lineupDragType === "category" && lineupDragItem !== category) {
+      setLineupDragOverItem(category);
+    }
+  };
+
+  const handleCategoryDrop = async (e, targetCategory) => {
+    e.preventDefault();
+    if (lineupDragType !== "category" || lineupDragItem === targetCategory) {
+      setLineupDragType(null);
+      setLineupDragItem(null);
+      setLineupDragOverItem(null);
+      return;
+    }
+
+    const entries = [...sortedSelectedCategoryEntries];
+    const fromIdx = entries.findIndex(([cat]) => cat === lineupDragItem);
+    const toIdx = entries.findIndex(([cat]) => cat === targetCategory);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    const [moved] = entries.splice(fromIdx, 1);
+    entries.splice(toIdx, 0, moved);
+
+    // Build bulk update with new categorySortOrder
+    const items = [];
+    entries.forEach(([, group], catIdx) => {
+      group.items.forEach((lineup) => {
+        items.push({ id: lineup._id, sortOrder: lineup.sortOrder || 0, categorySortOrder: catIdx });
+      });
+    });
+
+    // Optimistic update
+    setSelectedLineups((prev) =>
+      prev.map((l) => {
+        const item = items.find((i) => i.id === l._id);
+        return item ? { ...l, categorySortOrder: item.categorySortOrder } : l;
+      })
+    );
+
+    setLineupDragType(null);
+    setLineupDragItem(null);
+    setLineupDragOverItem(null);
+
+    saveBulkReorder(items);
+  };
+
+  // Lineup drag within category
+  const handleLineupDragStart = (e, lineup, category) => {
+    setLineupDragType("lineup");
+    setLineupDragItem({ lineup, category });
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleLineupDragOver = (e, lineup, category) => {
+    e.preventDefault();
+    if (lineupDragType === "lineup" && lineupDragItem.category === category && lineupDragItem.lineup._id !== lineup._id) {
+      setLineupDragOverItem(lineup._id);
+    }
+  };
+
+  const handleLineupDrop = async (e, targetLineup, category) => {
+    e.preventDefault();
+    if (lineupDragType !== "lineup" || lineupDragItem.category !== category || lineupDragItem.lineup._id === targetLineup._id) {
+      setLineupDragType(null);
+      setLineupDragItem(null);
+      setLineupDragOverItem(null);
+      return;
+    }
+
+    const group = groupedSelectedLineups[category];
+    if (!group) return;
+    const list = [...group.items];
+    const fromIdx = list.findIndex((l) => l._id === lineupDragItem.lineup._id);
+    const toIdx = list.findIndex((l) => l._id === targetLineup._id);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    const [movedItem] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, movedItem);
+
+    const items = list.map((l, idx) => ({
+      id: l._id,
+      sortOrder: idx,
+      categorySortOrder: l.categorySortOrder || 0,
+    }));
+
+    setSelectedLineups((prev) =>
+      prev.map((l) => {
+        const item = items.find((i) => i.id === l._id);
+        return item ? { ...l, sortOrder: item.sortOrder } : l;
+      })
+    );
+
+    setLineupDragType(null);
+    setLineupDragItem(null);
+    setLineupDragOverItem(null);
+
+    saveBulkReorder(items);
+  };
+
+  const handleLineupDragEnd = () => {
+    setLineupDragType(null);
+    setLineupDragItem(null);
+    setLineupDragOverItem(null);
+  };
+
+  // API: Bulk reorder
+  const saveBulkReorder = async (items) => {
+    try {
+      await axiosInstance.put("/lineup/reorder", { items });
+    } catch (error) {
+      console.error("Error saving reorder:", error);
+      toast.showError("Failed to save order");
+    }
+  };
+
+  // API: Toggle highlight
+  const handleToggleHighlight = async (e, lineup) => {
+    e.stopPropagation();
+    const newHighlight = !lineup.highlight;
+    setSelectedLineups((prev) =>
+      prev.map((l) => (l._id === lineup._id ? { ...l, highlight: newHighlight } : l))
+    );
+    try {
+      await axiosInstance.patch(`/lineup/${lineup._id}/highlight`);
+    } catch (error) {
+      console.error("Error toggling highlight:", error);
+      toast.showError("Failed to toggle highlight");
+      setSelectedLineups((prev) =>
+        prev.map((l) => (l._id === lineup._id ? { ...l, highlight: !newHighlight } : l))
+      );
+    }
+  };
+
+  // Toggle highlight for all lineups in a category
+  const handleToggleCategoryHighlight = async (e, category) => {
+    e.stopPropagation();
+    const group = groupedSelectedLineups[category];
+    if (!group) return;
+    const allHighlighted = group.items.every((l) => l.highlight);
+    const newValue = !allHighlighted;
+
+    const ids = group.items.map((l) => l._id);
+    setSelectedLineups((prev) =>
+      prev.map((l) => (ids.includes(l._id) ? { ...l, highlight: newValue } : l))
+    );
+
+    try {
+      const toToggle = group.items.filter((l) => l.highlight !== newValue);
+      await Promise.all(
+        toToggle.map((l) => axiosInstance.patch(`/lineup/${l._id}/highlight`))
+      );
+    } catch (error) {
+      console.error("Error toggling category highlight:", error);
+      toast.showError("Failed to toggle highlights");
+    }
   };
 
   // Handle saving selected genres
@@ -2312,28 +2512,29 @@ const EventForm = ({
             <div className="form-section">
               <h3>Line Up</h3>
 
-              {/* Display selected lineups grouped by category */}
+              {/* Display selected lineups grouped by category with drag-and-drop ordering */}
               {selectedLineups.length > 0 && (
                 <div className="selected-lineups-container">
-                  {(() => {
-                    // Group lineups by category
-                    const groupedByCategory = selectedLineups
-                      .filter((lineup) => lineup && lineup.name) // Filter out null/undefined lineups
-                      .reduce((groups, lineup) => {
-                        const category = lineup.category || "Uncategorized";
-                        if (!groups[category]) {
-                          groups[category] = [];
-                        }
-                        groups[category].push(lineup);
-                        return groups;
-                      }, {});
-
-                    // Create an array of JSX elements for each category
-                    return Object.entries(groupedByCategory).map(
-                      ([category, lineups]) => (
-                        <div key={category} className="lineup-category-section">
+                  {sortedSelectedCategoryEntries.map(
+                    ([category, { items: lineups }]) => {
+                      const allHighlighted = lineups.every((l) => l.highlight);
+                      return (
+                        <div
+                          key={category}
+                          className={`lineup-category-section ${lineupDragOverItem === category && lineupDragType === "category" ? "drag-over" : ""}`}
+                          onDragOver={(e) => handleCategoryDragOver(e, category)}
+                          onDrop={(e) => handleCategoryDrop(e, category)}
+                        >
                           <div className="category-header">
-                            {/* Pluralize category name if more than one artist */}
+                            <span
+                              className="category-drag-handle"
+                              draggable
+                              onDragStart={(e) => handleCategoryDragStart(e, category)}
+                              onDragEnd={handleLineupDragEnd}
+                              title="Drag to reorder category"
+                            >
+                              <RiDraggable />
+                            </span>
                             <h4 className="category-title">
                               {category}
                               {lineups.length > 1 &&
@@ -2350,13 +2551,29 @@ const EventForm = ({
                                 ({lineups.length})
                               </span>
                             </h4>
+                            <button
+                              type="button"
+                              className={`category-highlight-btn ${allHighlighted ? "active" : ""}`}
+                              onClick={(e) => handleToggleCategoryHighlight(e, category)}
+                              title={allHighlighted ? "Remove highlight from all" : "Highlight all"}
+                            >
+                              {allHighlighted ? <RiStarFill /> : <RiStarLine />}
+                            </button>
                           </div>
                           <div className="selected-lineups">
                             {lineups.map((lineup) => (
                               <div
                                 key={lineup._id}
-                                className="selected-lineup-item"
+                                className={`selected-lineup-item ${lineup.highlight ? "highlighted" : ""} ${lineupDragOverItem === lineup._id && lineupDragType === "lineup" ? "drag-over" : ""}`}
+                                draggable
+                                onDragStart={(e) => handleLineupDragStart(e, lineup, category)}
+                                onDragOver={(e) => handleLineupDragOver(e, lineup, category)}
+                                onDrop={(e) => handleLineupDrop(e, lineup, category)}
+                                onDragEnd={handleLineupDragEnd}
                               >
+                                <span className="lineup-drag-handle">
+                                  <RiDraggable />
+                                </span>
                                 <div className="lineup-avatar">
                                   {lineup.avatar ? (
                                     <img
@@ -2382,13 +2599,21 @@ const EventForm = ({
                                     </span>
                                   )}
                                 </div>
+                                <button
+                                  type="button"
+                                  className={`lineup-highlight-btn ${lineup.highlight ? "active" : ""}`}
+                                  onClick={(e) => handleToggleHighlight(e, lineup)}
+                                  title={lineup.highlight ? "Remove highlight" : "Highlight"}
+                                >
+                                  {lineup.highlight ? <RiStarFill /> : <RiStarLine />}
+                                </button>
                               </div>
                             ))}
                           </div>
                         </div>
-                      )
-                    );
-                  })()}
+                      );
+                    }
+                  )}
                 </div>
               )}
 

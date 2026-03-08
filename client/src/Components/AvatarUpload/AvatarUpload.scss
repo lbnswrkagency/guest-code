@@ -261,8 +261,8 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
         margin-top: 0.5rem;
         justify-content: center;
         button {
-          width: 30px;
-          height: 30px;
+          width: 48px;
+          height: 48px;
           border-radius: 12px;
           border: none;
           display: flex;
@@ -270,7 +270,7 @@ $avatar-glow: rgba(255, 215, 0, 0.3);
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          font-size: 2rem;
+          font-size: 1.5rem;
 
           &.cancel-button {
             background: rgba(255, 255, 255, 0.15);

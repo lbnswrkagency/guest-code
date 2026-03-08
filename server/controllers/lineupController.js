@@ -611,6 +611,156 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
+exports.bulkReorder = async (req, res) => {
+  try {
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Items array is required",
+      });
+    }
+
+    const ops = items.map((item) => ({
+      updateOne: {
+        filter: { _id: item.id },
+        update: {
+          $set: {
+            sortOrder: item.sortOrder,
+            categorySortOrder: item.categorySortOrder,
+          },
+        },
+      },
+    }));
+
+    await LineUp.bulkWrite(ops);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reorder applied successfully",
+    });
+  } catch (error) {
+    console.error("Error bulk reordering lineups:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to reorder lineups",
+      error: error.message,
+    });
+  }
+};
+
+exports.toggleHighlight = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const lineUp = await LineUp.findById(id);
+    if (!lineUp) {
+      return res.status(404).json({
+        success: false,
+        message: "Line-up entry not found",
+      });
+    }
+
+    lineUp.highlight = !lineUp.highlight;
+    await lineUp.save();
+
+    return res.status(200).json({
+      success: true,
+      lineUp,
+    });
+  } catch (error) {
+    console.error("Error toggling highlight:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to toggle highlight",
+      error: error.message,
+    });
+  }
+};
+
+exports.renameCategory = async (req, res) => {
+  try {
+    const { brandId, category } = req.params;
+    const { newName } = req.body;
+
+    if (!newName || !newName.trim()) {
+      return res.status(400).json({ success: false, message: "New category name is required" });
+    }
+
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ success: false, message: "Brand not found" });
+    }
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin = Array.isArray(brand.admins) && brand.admins.some((id) => id.toString() === userId.toString());
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "You don't have permission to rename categories for this brand" });
+    }
+
+    const result = await LineUp.updateMany(
+      { brandId, category, isActive: true },
+      { category: newName.trim() }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Category "${category}" renamed to "${newName.trim()}"`,
+      updatedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error renaming category:", error);
+    return res.status(500).json({ success: false, message: "Failed to rename category", error: error.message });
+  }
+};
+
+exports.renameSubtitle = async (req, res) => {
+  try {
+    const { brandId, subtitle } = req.params;
+    const { newName } = req.body;
+
+    if (!newName || !newName.trim()) {
+      return res.status(400).json({ success: false, message: "New subtitle name is required" });
+    }
+
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return res.status(404).json({ success: false, message: "Brand not found" });
+    }
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const isOwner = brand.owner.toString() === userId.toString();
+    const isAdmin = Array.isArray(brand.admins) && brand.admins.some((id) => id.toString() === userId.toString());
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "You don't have permission to rename subtitles for this brand" });
+    }
+
+    const result = await LineUp.updateMany(
+      { brandId, subtitle, isActive: true },
+      { subtitle: newName.trim() }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Subtitle "${subtitle}" renamed to "${newName.trim()}"`,
+      updatedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error renaming subtitle:", error);
+    return res.status(500).json({ success: false, message: "Failed to rename subtitle", error: error.message });
+  }
+};
+
 exports.deleteSubtitle = async (req, res) => {
   try {
     const { brandId, subtitle } = req.params;

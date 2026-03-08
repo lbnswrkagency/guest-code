@@ -221,6 +221,11 @@
       font-size: 0.75rem;
       white-space: nowrap;
     }
+
+    &--highlighted {
+      border-color: rgba(255, 200, 7, 0.3);
+      background: rgba(255, 200, 7, 0.08);
+    }
   }
 
   // Genre pills (gold-tinted)

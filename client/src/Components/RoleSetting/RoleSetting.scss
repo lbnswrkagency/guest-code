@@ -683,16 +683,22 @@
   }
 }
 
-// Responsive - tablet
+// Responsive - tablet & mobile: single-column scrollable layout
 @media (max-width: 768px) {
   .role-settings {
+    overflow-y: auto;
+    max-height: 100vh;
+    -webkit-overflow-scrolling: touch;
+
     .role-settings-content {
       flex-direction: column;
       max-height: none;
+      min-height: 0;
     }
 
     .roles-list {
       width: 100%;
+      flex-shrink: 0;
       border-right: none;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding: 0.75rem;
@@ -734,8 +740,9 @@
 
     .role-form-panel {
       padding: 1rem;
-      max-height: calc(70vh - 120px);
-      overflow-y: auto;
+      // No max-height — let it flow naturally inside the scrollable parent
+      max-height: none;
+      overflow-y: visible;
     }
 
     .role-form {
@@ -751,6 +758,7 @@
       .form-actions {
         flex-direction: column-reverse;
         gap: 0.5rem;
+        padding-bottom: 2rem; // breathing room at bottom
 
         button {
           width: 100%;

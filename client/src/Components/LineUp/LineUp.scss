@@ -525,6 +525,24 @@ $danger-bg: rgba(244, 67, 54, 0.1);
             cursor: pointer;
           }
 
+          .chip-edit {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 200, 7, 0.1);
+            color: $accent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+
+            &:hover {
+              background: rgba(255, 200, 7, 0.25);
+            }
+          }
+
           .chip-delete {
             width: 16px;
             height: 16px;
@@ -713,6 +731,60 @@ $danger-bg: rgba(244, 67, 54, 0.1);
           border-color: rgba(244, 67, 54, 0.4);
         }
       }
+    }
+  }
+}
+
+// =====================================================
+// RENAME DIALOG
+// =====================================================
+
+.rename-dialog {
+  width: 90%;
+  max-width: 300px;
+  padding: 1rem;
+  background: linear-gradient(180deg, $bg-dark 0%, $bg-darker 100%);
+  border: 1px solid $border-subtle;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  h3 {
+    color: $accent;
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $border-subtle;
+    border-radius: 8px;
+    color: $text-primary;
+    font-size: 0.85rem;
+    margin-bottom: 0.875rem;
+    transition: all 0.2s ease;
+
+    &:focus {
+      border-color: rgba(255, 200, 7, 0.4);
+      outline: none;
+    }
+  }
+
+  .confirm-rename {
+    background: $accent-dim;
+    border: 1px solid rgba(255, 200, 7, 0.3);
+    color: $accent;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 200, 7, 0.25);
+      border-color: rgba(255, 200, 7, 0.5);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   }
 }

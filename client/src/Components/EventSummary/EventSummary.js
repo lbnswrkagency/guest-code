@@ -124,13 +124,26 @@ const EventSummary = ({
         }, {})
     : {};
 
-  // Sort categories: DJs first, then by count, then alphabetical
+  // Sort categories by categorySortOrder (if available), fallback to legacy sort
   const sortedCategories = Object.keys(groupedLineups).sort((a, b) => {
+    const aOrder = Math.min(...groupedLineups[a].map((l) => l.categorySortOrder ?? 999));
+    const bOrder = Math.min(...groupedLineups[b].map((l) => l.categorySortOrder ?? 999));
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    // Fallback: DJs first, then by count, then alphabetical
     if (a.toLowerCase() === "dj" || a.toLowerCase() === "djs") return -1;
     if (b.toLowerCase() === "dj" || b.toLowerCase() === "djs") return 1;
     const countDiff = groupedLineups[b].length - groupedLineups[a].length;
     if (countDiff !== 0) return countDiff;
     return a.localeCompare(b);
+  });
+
+  // Sort artists within each category: highlighted first, then by sortOrder
+  Object.values(groupedLineups).forEach((artists) => {
+    artists.sort((a, b) => {
+      if (a.highlight && !b.highlight) return -1;
+      if (!a.highlight && b.highlight) return 1;
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
   });
 
   const scrollToTop = () => {
@@ -232,7 +245,7 @@ const EventSummary = ({
                     {groupedLineups[category].map((artist, index) => {
                       const avatar = getArtistAvatar(artist);
                       return (
-                        <div key={artist._id || index} className="event-summary__artist">
+                        <div key={artist._id || index} className={`event-summary__artist ${artist.highlight ? "event-summary__artist--highlighted" : ""}`}>
                           <div className="event-summary__artist-avatar">
                             {avatar ? (
                               <img src={avatar} alt={artist.name} loading="lazy" />
