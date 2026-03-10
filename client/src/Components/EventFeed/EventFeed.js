@@ -178,6 +178,11 @@ const EventFeed = ({ event, brand }) => {
                           <span className="event-feed__artist-name">
                             {artist.name || artist}
                           </span>
+                          {artist.subtitle && (
+                            <span className="event-feed__artist-subtitle">
+                              {artist.subtitle}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
