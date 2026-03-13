@@ -350,6 +350,13 @@ const TableLayoutHarlem = ({
         </div>
 
         <div
+          className={getClass("DJ", " standing-table DJ")}
+          onClick={(e) => handleTableClick("DJ", e)}
+        >
+          DJ
+        </div>
+
+        <div
           className={getClass("S13", " standing-table s13")}
           onClick={(e) => handleTableClick("S13", e)}
         >

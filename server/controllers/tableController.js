@@ -270,6 +270,21 @@ const addTableCode = async (req, res) => {
       hasTableManage = isBrandOwner || hasRolePermission || hasCoHostManagePermission;
     }
 
+    // Check if table is already booked (active reservation exists)
+    if (tableNumber) {
+      const existingBooking = await TableCode.findOne({
+        event,
+        tableNumber,
+        status: { $nin: ["declined", "cancelled"] },
+      });
+
+      if (existingBooking) {
+        return res.status(409).json({
+          message: `Table ${tableNumber} is already reserved`,
+        });
+      }
+    }
+
     // Use the already fetched event details for email
     const eventDetailsForEmail = eventDetails;
 
@@ -674,17 +689,10 @@ const getTableCounts = async (req, res) => {
       const isCoHostedVisualization = req.query.coHosted === 'true' && hasCoHostPermission;
 
 
-      // Fetch table codes based on permissions - only for this specific event
-      if (hasTableManage || isCoHostedVisualization) {
-        // Users with manage permission OR co-host users requesting visualization can see ALL table codes for this event
-        tableCounts = await TableCode.find({ event: eventId });
-      } else {
-        // Users with only access permission can only see their own table codes
-        tableCounts = await TableCode.find({
-          event: eventId,
-          hostId: req.user.userId,
-        });
-      }
+      // All authenticated users need to see all table codes for correct layout visualization
+      // (so "access" users can see which tables are already booked)
+      // Permission differences (manage vs access actions) are handled in the frontend
+      tableCounts = await TableCode.find({ event: eventId });
     } else {
       // For public requests (no authentication), fetch table codes for this specific event
       tableCounts = await TableCode.find({ event: eventId });

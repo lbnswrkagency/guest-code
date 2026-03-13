@@ -157,7 +157,8 @@ $anthracite-hover: #252525;
       right: -5%;
       bottom: 30%;
       background: 
-        /* Gentle wind patterns */ repeating-linear-gradient(
+        /* Gentle wind patterns */
+        repeating-linear-gradient(
           170deg,
           transparent 0px,
           transparent 4px,
@@ -172,7 +173,7 @@ $anthracite-hover: #252525;
           rgba(255, 255, 255, 0.06) 8px
         ),
         /* Moonbeam patterns */
-          repeating-radial-gradient(
+        repeating-radial-gradient(
             ellipse at 25% 20%,
             rgba(255, 255, 255, 0.12) 0px,
             rgba(255, 255, 255, 0.12) 1px,
@@ -186,7 +187,11 @@ $anthracite-hover: #252525;
           transparent 2px,
           transparent 10px
         );
-      background-size: 100% 100%, 90% 90%, 60% 60%, 70% 70%;
+      background-size:
+        100% 100%,
+        90% 90%,
+        60% 60%,
+        70% 70%;
       background-blend-mode: screen;
       transform-origin: bottom center;
       animation: gentleBreeze 25s linear infinite;
@@ -202,23 +207,27 @@ $anthracite-hover: #252525;
       right: 0;
       bottom: 0;
       background: 
-        /* Grass texture */ url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grassFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grassFilter)'/%3E%3C/svg%3E"),
+        /* Grass texture */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grassFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grassFilter)'/%3E%3C/svg%3E"),
         /* Small dots for flower petals */
-          radial-gradient(
+        radial-gradient(
             circle at 50% 50%,
             rgba(144, 238, 144, 0.2) 0%,
             rgba(144, 238, 144, 0.2) 2px,
             transparent 2px
           ),
         /* Subtle garden paths */
-          repeating-linear-gradient(
+        repeating-linear-gradient(
             35deg,
             transparent 0px,
             transparent 5px,
             rgba(34, 139, 34, 0.1) 5px,
             rgba(34, 139, 34, 0.1) 6px
           );
-      background-size: 50px 50px, 8px 8px, 12px 12px;
+      background-size:
+        50px 50px,
+        8px 8px,
+        12px 12px;
       background-blend-mode: overlay, multiply, normal;
       transform: translateZ(0);
       z-index: 1;
@@ -234,7 +243,9 @@ $anthracite-hover: #252525;
 
     background: linear-gradient(135deg, #1a1a1a 0%, #222222 50%, #2a2a2a 100%);
 
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.5),
+      0 2px 6px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     overflow: hidden;
@@ -260,8 +271,10 @@ $anthracite-hover: #252525;
       align-self: end;
       padding-top: 6px;
       overflow: hidden;
-      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8),
-        inset 0 3px 8px rgba(255, 255, 255, 0.1), 0 -4px 12px rgba(0, 0, 0, 0.4),
+      box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.8),
+        inset 0 3px 8px rgba(255, 255, 255, 0.1),
+        0 -4px 12px rgba(0, 0, 0, 0.4),
         0 -8px 20px rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.15);
 
@@ -274,7 +287,8 @@ $anthracite-hover: #252525;
         right: 0;
         bottom: 0;
         background-image: 
-          /* Step 12 (top) */ linear-gradient(
+          /* Step 12 (top) */
+          linear-gradient(
             to bottom,
             transparent 2%,
             rgba(255, 255, 255, 0.12) 2%,
@@ -284,7 +298,7 @@ $anthracite-hover: #252525;
             transparent 6%
           ),
           /* Step 11 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 10%,
               rgba(255, 255, 255, 0.115) 10%,
@@ -294,7 +308,7 @@ $anthracite-hover: #252525;
               transparent 14%
             ),
           /* Step 10 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 18%,
               rgba(255, 255, 255, 0.11) 18%,
@@ -304,7 +318,7 @@ $anthracite-hover: #252525;
               transparent 22%
             ),
           /* Step 9 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 26%,
               rgba(255, 255, 255, 0.105) 26%,
@@ -314,7 +328,7 @@ $anthracite-hover: #252525;
               transparent 30%
             ),
           /* Step 8 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 34%,
               rgba(255, 255, 255, 0.1) 34%,
@@ -324,7 +338,7 @@ $anthracite-hover: #252525;
               transparent 38%
             ),
           /* Step 7 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 42%,
               rgba(255, 255, 255, 0.095) 42%,
@@ -334,7 +348,7 @@ $anthracite-hover: #252525;
               transparent 46%
             ),
           /* Step 6 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 50%,
               rgba(255, 255, 255, 0.09) 50%,
@@ -344,7 +358,7 @@ $anthracite-hover: #252525;
               transparent 54%
             ),
           /* Step 5 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 58%,
               rgba(255, 255, 255, 0.085) 58%,
@@ -354,7 +368,7 @@ $anthracite-hover: #252525;
               transparent 62%
             ),
           /* Step 4 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 66%,
               rgba(255, 255, 255, 0.08) 66%,
@@ -364,7 +378,7 @@ $anthracite-hover: #252525;
               transparent 70%
             ),
           /* Step 3 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 74%,
               rgba(255, 255, 255, 0.075) 74%,
@@ -374,7 +388,7 @@ $anthracite-hover: #252525;
               transparent 78%
             ),
           /* Step 2 */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 82%,
               rgba(255, 255, 255, 0.07) 82%,
@@ -384,7 +398,7 @@ $anthracite-hover: #252525;
               transparent 86%
             ),
           /* Step 1 (bottom) */
-            linear-gradient(
+          linear-gradient(
               to bottom,
               transparent 90%,
               rgba(255, 255, 255, 0.065) 90%,
@@ -405,24 +419,17 @@ $anthracite-hover: #252525;
         right: 0;
         bottom: 0;
         background: 
-          /* Left side shadow */ linear-gradient(
+          /* Left side shadow */
+          linear-gradient(
             90deg,
             rgba(0, 0, 0, 0.6) 0%,
             rgba(0, 0, 0, 0.3) 15%,
             transparent 30%
           ),
           /* Top lighting */
-            linear-gradient(
-              180deg,
-              rgba(255, 255, 255, 0.15) 0%,
-              transparent 20%
-            ),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 20%),
           /* Right side highlight */
-            linear-gradient(
-              270deg,
-              rgba(255, 255, 255, 0.08) 0%,
-              transparent 25%
-            );
+          linear-gradient(270deg, rgba(255, 255, 255, 0.08) 0%, transparent 25%);
         z-index: 3;
       }
     }
@@ -447,8 +454,10 @@ $anthracite-hover: #252525;
       #0a0a0a 100%
     );
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.5);
     border-radius: 8px;
     grid-column: 2/3;
     grid-row: 2/3;
@@ -480,10 +489,8 @@ $anthracite-hover: #252525;
       left: 0;
       right: 0;
       bottom: 0;
-      background-image: linear-gradient(
-          rgba(255, 255, 255, 0.02) 1px,
-          transparent 1px
-        ),
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
       background-size: 30px 30px;
     }
@@ -597,6 +604,14 @@ $anthracite-hover: #252525;
       margin-top: 0.5rem;
     }
 
+    .DJ {
+      grid-column: 5/6;
+      grid-row: 1/2;
+      align-self: center;
+      justify-self: start;
+      margin-left: 0.5rem;
+    }
+
     .s13 {
       grid-column: 2/3;
       grid-row: 2/3;
@@ -690,8 +705,10 @@ $anthracite-hover: #252525;
       border-top: 1px solid rgba(184, 134, 11, 0.15);
       border-bottom: 1px solid rgba(184, 134, 11, 0.15);
 
-      box-shadow: inset 0 2px 6px rgba(184, 134, 11, 0.1),
-        inset 0 -2px 6px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+      box-shadow:
+        inset 0 2px 6px rgba(184, 134, 11, 0.1),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.4);
       border-radius: 8px;
 
       grid-row: 9/11;
@@ -787,7 +804,8 @@ $anthracite-hover: #252525;
         left: 0;
         right: 0;
         bottom: 0;
-        background-image: linear-gradient(
+        background-image:
+          linear-gradient(
             to right,
             transparent 15%,
             rgba(255, 255, 255, 0.1) 15%,
@@ -1010,7 +1028,9 @@ $anthracite-hover: #252525;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 12px rgba(80, 80, 80, 0.6), 0 0 6px rgba(96, 96, 96, 0.4),
+      box-shadow:
+        0 0 12px rgba(80, 80, 80, 0.6),
+        0 0 6px rgba(96, 96, 96, 0.4),
         inset 0 2px 4px rgba(255, 255, 255, 0.4),
         inset 0 -1px 3px rgba(0, 0, 0, 0.15);
       z-index: 20;
@@ -1034,7 +1054,8 @@ $anthracite-hover: #252525;
         right: 0;
         bottom: 0;
         background: 
-          /* Door/entrance patterns */ repeating-linear-gradient(
+          /* Door/entrance patterns */
+          repeating-linear-gradient(
             90deg,
             transparent 0px,
             transparent 8px,
@@ -1071,8 +1092,10 @@ $anthracite-hover: #252525;
     border-right: 1px solid rgba(184, 134, 11, 0.15);
     border-bottom: 1px solid rgba(184, 134, 11, 0.15);
 
-    box-shadow: inset 0 2px 6px rgba(184, 134, 11, 0.1),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      inset 0 2px 6px rgba(184, 134, 11, 0.1),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     grid-column: 3/4;
     grid-row: 2/3;
@@ -1273,8 +1296,10 @@ $anthracite-hover: #252525;
     border-radius: 12px;
     grid-column: 1/4;
     grid-row: 1/2;
-    box-shadow: inset 0 2px 8px rgba(212, 175, 55, 0.15),
-      inset 0 -2px 8px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      inset 0 2px 8px rgba(212, 175, 55, 0.15),
+      inset 0 -2px 8px rgba(0, 0, 0, 0.4),
+      0 6px 20px rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 5;
     border: 1px solid rgba(212, 175, 55, 0.2);
@@ -1305,7 +1330,8 @@ $anthracite-hover: #252525;
       left: 0;
       right: 0;
       bottom: 0;
-      background-image: linear-gradient(
+      background-image:
+        linear-gradient(
           45deg,
           transparent 48%,
           rgba(212, 175, 55, 0.03) 49%,
@@ -1738,7 +1764,8 @@ $anthracite-hover: #252525;
   color: rgba(255, 215, 0, 1);
   font-weight: 700;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3),
+  box-shadow:
+    0 0 20px rgba(255, 215, 0, 0.3),
     inset 0 1px 3px rgba(255, 255, 255, 0.15);
   text-align: center;
   border-radius: 0.5rem;
@@ -1776,7 +1803,8 @@ $anthracite-hover: #252525;
   color: rgba(218, 165, 32, 0.95);
   font-weight: 600;
   text-shadow: 0 0 4px rgba(218, 165, 32, 0.35);
-  box-shadow: 0 0 8px rgba(218, 165, 32, 0.15),
+  box-shadow:
+    0 0 8px rgba(218, 165, 32, 0.15),
     inset 0 1px 2px rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
 
@@ -1828,23 +1856,43 @@ $anthracite-hover: #252525;
 
 @keyframes gentleBreeze {
   0% {
-    background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px;
+    background-position:
+      0px 0px,
+      0px 0px,
+      0px 0px,
+      0px 0px;
     transform: scaleY(1);
   }
   25% {
-    background-position: 3px 5px, -3px 3px, 5px 4px, -4px 6px;
+    background-position:
+      3px 5px,
+      -3px 3px,
+      5px 4px,
+      -4px 6px;
     transform: scaleY(1.01);
   }
   50% {
-    background-position: 6px 10px, -6px 6px, 10px 8px, -8px 12px;
+    background-position:
+      6px 10px,
+      -6px 6px,
+      10px 8px,
+      -8px 12px;
     transform: scaleY(1.02);
   }
   75% {
-    background-position: 9px 15px, -9px 9px, 15px 12px, -12px 18px;
+    background-position:
+      9px 15px,
+      -9px 9px,
+      15px 12px,
+      -12px 18px;
     transform: scaleY(1.01);
   }
   100% {
-    background-position: 12px 20px, -12px 12px, 20px 16px, -16px 24px;
+    background-position:
+      12px 20px,
+      -12px 12px,
+      20px 16px,
+      -16px 24px;
     transform: scaleY(1);
   }
 }
