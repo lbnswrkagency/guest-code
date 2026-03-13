@@ -45,6 +45,9 @@ const TableLayoutHarlem = ({
     VS2: { minSpend: 160, maxPersons: 6, category: "VS" },
     VS3: { minSpend: 160, maxPersons: 6, category: "VS" },
 
+    // DJ table - €160 minimum, 6 persons max
+    DJ: { minSpend: 160, maxPersons: 6, category: "DJ" },
+
     // S tables (Standing) - €120 minimum, 6 persons max
     S1: { minSpend: 120, maxPersons: 6, category: "S" },
     S2: { minSpend: 120, maxPersons: 6, category: "S" },
@@ -117,6 +120,7 @@ const TableLayoutHarlem = ({
       "S11",
       "S12",
       "S13",
+      "DJ",
     ],
     backstage: [
       "B0",
@@ -145,6 +149,7 @@ const TableLayoutHarlem = ({
     VS: "VIP Standing",
     B: "Backstage",
     E: "Exclusive Backstage",
+    DJ: "DJ",
   };
 
   // Theme colors for each category (extracted from SCSS styling)
@@ -184,6 +189,12 @@ const TableLayoutHarlem = ({
       accent: "#ffd700", // Bright gold accent
       text: "#ffd700", // Bright gold text
       border: "rgba(255, 215, 0, 0.5)", // Bright gold border
+    },
+    DJ: {
+      primary: "#1a1a2e", // Dark blue-grey
+      accent: "#e040fb", // Purple accent
+      text: "#e040fb", // Purple text
+      border: "rgba(224, 64, 251, 0.4)", // Purple border
     },
   };
 
