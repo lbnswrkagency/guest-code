@@ -977,6 +977,14 @@ const Tickets = ({
                 </div>
               )}
 
+            {/* Global Age Restriction Hint - shown when any ticket has 18+ restriction */}
+            {validatedTickets.some((t) => t.isAgeRestricted) && (
+              <div className="age-restriction-hint">
+                <FaShieldAlt className="age-hint-icon" />
+                <span>18+ | Bring a valid ID</span>
+              </div>
+            )}
+
             {/* Global Offline Countdown - shown only on event day when there's time left */}
             {offlineCountdown && (
               <div className="offline-countdown" style={{ borderColor: primaryColor }}>
@@ -1129,6 +1137,20 @@ const Tickets = ({
                       </motion.div>
                     )}
                   </motion.div>
+                )}
+
+                {/* Age restriction notice */}
+                {validatedTickets.some(
+                  (t) =>
+                    t.isAgeRestricted && (ticketQuantities[t._id] || 0) > 0
+                ) && (
+                  <div className="age-restriction-notice">
+                    <FaShieldAlt className="age-icon" />
+                    <span>
+                      Age verification (18+) may be required at entrance. Please
+                      bring a valid ID.
+                    </span>
+                  </div>
                 )}
 
                 <button

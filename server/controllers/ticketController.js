@@ -175,6 +175,23 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
         }))
       : [];
 
+    // Check if any ticket is age restricted
+    let hasAgeRestriction = false;
+    for (const item of order.tickets) {
+      const ts = await TicketSettings.findById(item.ticketId);
+      if (ts?.isAgeRestricted) {
+        hasAgeRestriction = true;
+        break;
+      }
+    }
+
+    const ageRestrictionNotice = hasAgeRestriction
+      ? `<div style="background-color: #fff5f5; border-left: 4px solid #dc3232; padding: 15px; margin: 25px 0;">
+        <p style="margin: 0; font-weight: 600; font-size: 16px; color: #dc3232;">18+ Age Restriction</p>
+        <p style="margin: 8px 0 0; font-size: 15px;">This event requires age verification (18+). Please bring a valid ID.</p>
+      </div>`
+      : "";
+
     // Create additional content specific to pay-at-entrance tickets
     const additionalContent = `
       <div style="background-color: #f8f8f8; border-left: 4px solid #ff9800; padding: 15px; margin: 25px 0;">
@@ -183,9 +200,9 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
         <p style="margin: 8px 0 0;">Total Amount Due: <strong>€${totalAmount}</strong></p>
         <p style="margin: 8px 0 0;">Payment Method: <strong>Pay at Entrance</strong></p>
       </div>
-      
+      ${ageRestrictionNotice}
       <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your tickets are attached to this email. Please bring them with you to the event and be prepared to pay the above amount before entry.</p>
-      
+
       <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 4px;">
         <p style="margin: 0; font-size: 14px; color: #666;">Please note that this is not an invoice, but a ticket reservation. Your reservation will be held for the event, but payment must be completed at the venue entrance.</p>
       </div>
@@ -393,6 +410,9 @@ const generateTicketPDF = async (ticket) => {
     // Remove countdown from printed ticket - we'll keep the code but not use it in the template
     let countdownDisplay = "";
 
+    // Check if ticket is age restricted
+    const isAgeRestricted = ticketSettings?.isAgeRestricted || false;
+
     // Get brand colors or use defaults
     const primaryColor = brand?.colors?.primary || "#ffc807";
     const accentColor = brand?.colors?.accent || "#000000";
@@ -423,6 +443,11 @@ const generateTicketPDF = async (ticket) => {
       </div>`
         : "";
 
+    // 18+ badge for age-restricted tickets
+    const ageRestrictionBadge = isAgeRestricted
+      ? `<div style="position: absolute; top: ${ticket.paymentMethod === "atEntrance" ? "2.2rem" : "0.5rem"}; right: 2.313rem; background-color: #dc3232; color: #fff; font-weight: 700; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; z-index: 1;">18+</div>`
+      : "";
+
     // Create HTML template for the ticket
     const htmlTemplate = `
     <html>
@@ -441,7 +466,8 @@ const generateTicketPDF = async (ticket) => {
       <body
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: 'Manrope', sans-serif;">
         ${payAtEntranceHeader}
-        
+        ${ageRestrictionBadge}
+
         <!-- Center the header elements -->
         <div style="position: absolute; top: 3.25rem; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 2.313rem;">
           <h1 style="margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>

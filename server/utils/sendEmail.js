@@ -107,6 +107,17 @@ const generateTicketPDF = async (ticket) => {
       });
     const brand = event ? await Brand.findById(event.brand) : null;
 
+    // Get ticket settings to check for age restriction
+    const TicketSettings = mongoose.model("TicketSettings");
+    const ticketSettings = await TicketSettings.findOne({
+      name: ticket.ticketName,
+      $or: [
+        { eventId: ticket.eventId },
+        { brandId: event?.brand?._id || event?.brand },
+      ],
+    });
+    const isAgeRestricted = ticketSettings?.isAgeRestricted || false;
+
     // Get brand colors or use defaults
     const primaryColor = brand?.colors?.primary || "#ffc807";
     const accentColor = brand?.colors?.accent || "#000000";
@@ -163,6 +174,11 @@ const generateTicketPDF = async (ticket) => {
       </div>`
         : "";
 
+    // 18+ badge for age-restricted tickets
+    const ageRestrictionBadge = isAgeRestricted
+      ? `<div style="position: absolute; top: ${ticket.paymentMethod === "atEntrance" ? "2.2rem" : "0.5rem"}; right: 2.313rem; background-color: #dc3232; color: #fff; font-weight: 700; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; z-index: 1;">18+</div>`
+      : "";
+
     // Create HTML template for the ticket
     const htmlTemplate = `
     <html>
@@ -181,7 +197,8 @@ const generateTicketPDF = async (ticket) => {
       <body
       style="position: relative; color: white; background-color: black; border-radius: 1.75rem; width: 24.375rem; height: 47.438rem; font-family: 'Manrope', sans-serif;">
         ${payAtEntranceHeader}
-        
+        ${ageRestrictionBadge}
+
         <!-- Center the header elements -->
         <div style="position: absolute; top: 3.25rem; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 2.313rem;">
           <h1 style="margin: 0; font-weight: 500; font-size: 1.85rem">Ticket</h1>
@@ -515,6 +532,30 @@ const sendEmail = async (order, receiptInfo = null) => {
       brand?.name || "GuestCode"
     } - Your Receipt and Tickets`;
 
+    // Check if any ticket is age restricted
+    let hasAgeRestriction = false;
+    const TicketSettingsModel = mongoose.model("TicketSettings");
+    for (const item of order.tickets) {
+      const ts = await TicketSettingsModel.findOne({
+        name: item.name,
+        $or: [
+          { eventId: order.eventId },
+          { brandId: event?.brand?._id || event?.brand },
+        ],
+      });
+      if (ts?.isAgeRestricted) {
+        hasAgeRestriction = true;
+        break;
+      }
+    }
+
+    const ageRestrictionNotice = hasAgeRestriction
+      ? `<div style="background-color: #fff5f5; border-left: 4px solid #dc3232; padding: 15px; margin: 25px 0;">
+        <p style="margin: 0; font-weight: 600; font-size: 16px; color: #dc3232;">18+ Age Restriction</p>
+        <p style="margin: 8px 0 0; font-size: 15px;">This event requires age verification (18+). Please bring a valid ID.</p>
+      </div>`
+      : "";
+
     // Create additional content specific to the order and tickets
     const additionalContent = `
       <div style="background-color: #f9f9f9; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 25px 0;">
@@ -529,7 +570,7 @@ const sendEmail = async (order, receiptInfo = null) => {
         }</strong></p>
         <p style="margin: 8px 0 0;">Payment Status: <strong>Successfully Processed</strong></p>
       </div>
-
+      ${ageRestrictionNotice}
       <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">Your receipt and tickets are attached to this email. Please bring your tickets with you to the event.</p>
     `;
 
