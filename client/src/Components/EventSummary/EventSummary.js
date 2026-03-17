@@ -9,6 +9,7 @@ import {
   RiArrowUpLine,
   RiCalendarEventLine,
   RiVideoUploadLine,
+  RiShieldCheckLine,
 } from "react-icons/ri";
 import Tickets from "../Tickets/Tickets";
 import GuestCode from "../GuestCode/GuestCode";
@@ -198,6 +199,12 @@ const EventSummary = ({
               <RiTimeLine />
               {formattedTime}
               {event.endTime && ` - ${formatTime(event.endTime)}`}
+            </span>
+          )}
+          {event.isAgeRestricted && (
+            <span className="event-summary__age-badge">
+              <RiShieldCheckLine />
+              18+
             </span>
           )}
         </div>

@@ -977,8 +977,8 @@ const Tickets = ({
                 </div>
               )}
 
-            {/* Global Age Restriction Hint - shown when any ticket has 18+ restriction */}
-            {validatedTickets.some((t) => t.isAgeRestricted) && (
+            {/* Global Age Restriction Hint - shown when event has 18+ restriction */}
+            {event?.isAgeRestricted && (
               <div className="age-restriction-hint">
                 <FaShieldAlt className="age-hint-icon" />
                 <span>18+ | Bring a valid ID</span>
@@ -1140,10 +1140,7 @@ const Tickets = ({
                 )}
 
                 {/* Age restriction notice */}
-                {validatedTickets.some(
-                  (t) =>
-                    t.isAgeRestricted && (ticketQuantities[t._id] || 0) > 0
-                ) && (
+                {event?.isAgeRestricted && hasSelectedTickets && (
                   <div className="age-restriction-notice">
                     <FaShieldAlt className="age-icon" />
                     <span>

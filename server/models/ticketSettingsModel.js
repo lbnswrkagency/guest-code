@@ -138,11 +138,6 @@ const TicketSettingsSchema = new Schema(
       type: String,
       description: "Specific time (HH:mm) when ticket goes offline on event day. Alternative to goOfflineAtEventStart",
     },
-    isAgeRestricted: {
-      type: Boolean,
-      default: false,
-      description: "If true, ticket requires purchaser to be 18 or older",
-    },
   },
   {
     timestamps: true,

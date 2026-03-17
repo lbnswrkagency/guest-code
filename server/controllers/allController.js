@@ -49,7 +49,7 @@ exports.getUpcomingEventData = async (req, res) => {
       .sort({ startDate: 1, date: 1 })
       .limit(parseInt(limit) * 2) // Increase limit since we're fetching from multiple sources
       .select(
-        "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
+        "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig isAgeRestricted"
       )
       .populate("brand", "name username logo spotifyClientId spotifyClientSecret spotifyPlaylistId")
       .populate("coHosts", "name username logo")
@@ -73,7 +73,7 @@ exports.getUpcomingEventData = async (req, res) => {
         parentEventId: { $in: potentialParents.map((p) => p._id) },
       })
         .select(
-          "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig"
+          "title subTitle description startDate endDate date startTime endTime isWeekly isLive user lineups genres location brand coHosts parentEventId weekNumber flyer street postalCode city music ticketsAvailable codeSettings tableLayout battleConfig isAgeRestricted"
         )
         .populate("brand", "name username logo spotifyClientId spotifyClientSecret spotifyPlaylistId")
         .populate("coHosts", "name username logo")

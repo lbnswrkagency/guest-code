@@ -158,6 +158,7 @@ const EventForm = ({
         flyer: null, // Don't inherit flyer initially
         tableLayout: parentEventData?.tableLayout || "",
         dropboxFolderPath: parentEventData?.dropboxFolderPath || "",
+        isAgeRestricted: parentEventData?.isAgeRestricted || false,
       };
     } else if (isCreatingFromTemplate) {
       // Inherit from template (for non-weekly event series)
@@ -179,6 +180,7 @@ const EventForm = ({
         flyer: null, // Will inherit flyers in useEffect
         tableLayout: templateEvent?.tableLayout || "",
         parentEventId: parentId, // Link to parent for series navigation
+        isAgeRestricted: templateEvent?.isAgeRestricted || false,
       };
     } else {
       // Use existing event data or defaults
@@ -198,6 +200,7 @@ const EventForm = ({
         flyer: null,
         tableLayout: event?.tableLayout || "",
         dropboxFolderPath: event?.dropboxFolderPath || "",
+        isAgeRestricted: event?.isAgeRestricted || false,
       };
     }
   };
@@ -2373,6 +2376,18 @@ const EventForm = ({
                   </label>
                 </div>
               )}
+
+              <div className="form-group weekly-event-toggle">
+                <label className="toggle-container">
+                  <input
+                    type="checkbox"
+                    name="isAgeRestricted"
+                    checked={formData.isAgeRestricted}
+                    onChange={handleInputChange}
+                  />
+                  <span className="toggle-label">18+ Age Restriction</span>
+                </label>
+              </div>
 
               <div className="form-group required">
                 <label>Location</label>

@@ -55,7 +55,6 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
     isVisible: true,
     goOfflineAtEventStart: false,
     offlineTime: "",
-    isAgeRestricted: false,
   });
 
   // Attachments state
@@ -82,7 +81,6 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
         isVisible: ticket.isVisible !== false,
         goOfflineAtEventStart: ticket.goOfflineAtEventStart || false,
         offlineTime: ticket.offlineTime || "",
-        isAgeRestricted: ticket.isAgeRestricted || false,
       });
 
       // Convert attachments to our internal format
@@ -120,7 +118,6 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
         isVisible: true,
         goOfflineAtEventStart: false,
         offlineTime: "",
-        isAgeRestricted: false,
       });
       setAttachments([]);
     }
@@ -450,18 +447,6 @@ const TicketDetailPanel = ({ ticket, userBrands, onSave, onClose }) => {
                   onChange={(e) => handleInputChange("isVisible", e.target.checked)}
                 />
                 <span>Visible to customers</span>
-              </label>
-            </div>
-
-            {/* Age Restriction */}
-            <div className="form-row checkboxes">
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.isAgeRestricted}
-                  onChange={(e) => handleInputChange("isAgeRestricted", e.target.checked)}
-                />
-                <span>18+ Age Restriction</span>
               </label>
             </div>
 

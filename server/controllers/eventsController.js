@@ -662,6 +662,11 @@ exports.editEvent = async (req, res) => {
     if (city !== undefined) event.city = city;
     if (music !== undefined) event.music = music;
     if (isWeekly !== undefined) event.isWeekly = onToBoolean(isWeekly);
+    if (req.body.isAgeRestricted !== undefined) {
+      const isAge = req.body.isAgeRestricted === true || req.body.isAgeRestricted === "true" || req.body.isAgeRestricted === "on";
+      event.isAgeRestricted = isAge;
+      req.body.isAgeRestricted = isAge; // Normalize for the $set at the end
+    }
     if (req.body.weeklyEnded !== undefined) event.weeklyEnded = req.body.weeklyEnded;
     if (dropboxFolderPath !== undefined)
       event.dropboxFolderPath = dropboxFolderPath;

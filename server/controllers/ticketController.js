@@ -175,15 +175,8 @@ const sendPayAtEntranceEmail = async (order, tickets, event) => {
         }))
       : [];
 
-    // Check if any ticket is age restricted
-    let hasAgeRestriction = false;
-    for (const item of order.tickets) {
-      const ts = await TicketSettings.findById(item.ticketId);
-      if (ts?.isAgeRestricted) {
-        hasAgeRestriction = true;
-        break;
-      }
-    }
+    // Check if event has age restriction
+    const hasAgeRestriction = eventWithLineups?.isAgeRestricted || false;
 
     const ageRestrictionNotice = hasAgeRestriction
       ? `<div style="background-color: #fff5f5; border-left: 4px solid #dc3232; padding: 15px; margin: 25px 0;">
@@ -410,8 +403,8 @@ const generateTicketPDF = async (ticket) => {
     // Remove countdown from printed ticket - we'll keep the code but not use it in the template
     let countdownDisplay = "";
 
-    // Check if ticket is age restricted
-    const isAgeRestricted = ticketSettings?.isAgeRestricted || false;
+    // Check if event has age restriction
+    const isAgeRestricted = event?.isAgeRestricted || false;
 
     // Get brand colors or use defaults
     const primaryColor = brand?.colors?.primary || "#ffc807";

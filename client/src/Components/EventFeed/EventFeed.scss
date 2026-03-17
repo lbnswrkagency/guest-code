@@ -66,6 +66,21 @@
     }
   }
 
+  &__age-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #dc3232;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    svg {
+      font-size: 0.9rem;
+    }
+  }
+
   // Title
   &__title {
     font-size: 1.5rem;

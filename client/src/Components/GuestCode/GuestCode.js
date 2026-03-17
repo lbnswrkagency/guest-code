@@ -255,6 +255,13 @@ const GuestCode = ({ event }) => {
           {noteText && <p className="guest-code__condition-note">{noteText}</p>}
         </div>
 
+        {event?.isAgeRestricted && (
+          <div className="guest-code__age-notice">
+            <RiShieldCheckLine className="guest-code__age-notice-icon" />
+            <span>18+ | Bring a valid ID</span>
+          </div>
+        )}
+
         {/* Success */}
         <AnimatePresence>
           {successMessage && (

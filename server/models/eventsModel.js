@@ -53,6 +53,8 @@ const EventSchema = new Schema(
     // NOTE: Code settings are now in CodeSettings collection (codeSettingsModel.js)
     // Legacy fields (codeSettings, guestCode, friendsCode, etc.) have been removed
 
+    isAgeRestricted: { type: Boolean, default: false },
+
     // Table layout configuration
     tableLayout: {
       type: String,

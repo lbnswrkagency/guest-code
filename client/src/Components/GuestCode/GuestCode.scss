@@ -395,6 +395,25 @@
   }
 }
 
+.guest-code__age-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(220, 50, 50, 0.08);
+  border-left: 3px solid #dc3232;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #dc3232;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+
+  &-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+}
+
 // Mobile
 @media (max-width: 480px) {
   .guest-code {

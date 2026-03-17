@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { RiMapPinLine, RiCalendarLine, RiTimeLine } from "react-icons/ri";
+import { RiMapPinLine, RiCalendarLine, RiTimeLine, RiShieldCheckLine } from "react-icons/ri";
 import GalleryCarousel from "../GalleryCarousel/GalleryCarousel";
 import EventGallery from "../EventGallery/EventGallery";
 import "./EventFeed.scss";
@@ -131,6 +131,12 @@ const EventFeed = ({ event, brand }) => {
             <span className="event-feed__time">
               <RiTimeLine />
               {formattedTime}
+            </span>
+          )}
+          {event?.isAgeRestricted && (
+            <span className="event-feed__age-badge">
+              <RiShieldCheckLine />
+              18+
             </span>
           )}
         </div>
