@@ -231,6 +231,60 @@
         gap: 0.75rem;
       }
 
+      .free-toggle {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+          opacity: 1;
+        }
+
+        input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 1.1rem;
+          height: 1.1rem;
+          border: 1.5px solid rgba(212, 175, 55, 0.5);
+          border-radius: 3px;
+          background: transparent;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s ease;
+
+          &:checked {
+            background: #d4af37;
+            border-color: #d4af37;
+
+            &::after {
+              content: "✓";
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              color: #1a1a2e;
+              font-size: 0.7rem;
+              font-weight: 700;
+            }
+          }
+        }
+
+        .free-toggle-label {
+          font-size: 0.65rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #d4af37;
+          font-weight: 600;
+        }
+      }
+
       // Specific status styles with left borders
       &.confirmed {
         border-left: 3px solid #28a745;
@@ -656,6 +710,20 @@
               }
             }
 
+            .free-badge {
+              display: inline-block;
+              padding: 0.2rem 0.5rem;
+              border-radius: 4px;
+              font-size: 0.65rem;
+              text-transform: uppercase;
+              font-weight: 700;
+              margin-top: 0.25rem;
+              margin-left: 0.25rem;
+              background: linear-gradient(135deg, #d4af37, #b8860b);
+              color: #1a1a2e;
+              letter-spacing: 0.05em;
+            }
+
             .edit-pax-select {
               -webkit-appearance: none;
               -moz-appearance: none;
@@ -890,6 +958,7 @@
               }
             }
           }
+
         }
       }
     }

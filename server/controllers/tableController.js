@@ -1907,14 +1907,20 @@ const generateTablePNG = async (tableCode, event) => {
           <div class="info-grid">
             <div class="info-section">
               <p class="info-label">GUEST</p>
-              <p class="info-value">${tableCode.name}</p>        
+              <p class="info-value">${tableCode.name}</p>
             </div>
-            
+
             <div class="info-section">
               <p class="info-label">PEOPLE</p>
               <p class="info-value">${tableCode.pax || 1}</p>
             </div>
           </div>
+
+          ${tableCode.isFree ? `
+          <div style="margin-top: 1rem; text-align: center;">
+            <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, ${accentColor}, #b8860b); color: #1a1a2e; font-weight: 700; font-size: 1rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">FREE</span>
+          </div>
+          ` : ''}
         </div>
 
         <!-- QR Code section -->
@@ -2306,14 +2312,20 @@ const generateTablePDF = async (tableCode, event) => {
           <div class="info-grid">
             <div class="info-section">
               <p class="info-label">GUEST</p>
-              <p class="info-value">${tableCode.name}</p>        
+              <p class="info-value">${tableCode.name}</p>
             </div>
-            
+
             <div class="info-section">
               <p class="info-label">PEOPLE</p>
               <p class="info-value">${tableCode.pax || 1}</p>
             </div>
           </div>
+
+          ${tableCode.isFree ? `
+          <div style="margin-top: 1rem; text-align: center;">
+            <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, ${accentColor}, #b8860b); color: #1a1a2e; font-weight: 700; font-size: 1rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">FREE</span>
+          </div>
+          ` : ''}
         </div>
 
         <!-- QR Code section -->

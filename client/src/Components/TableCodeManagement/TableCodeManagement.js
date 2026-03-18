@@ -470,6 +470,22 @@ function TableCodeManagement({
     }
   };
 
+  const handleToggleFree = async (codeId, currentIsFree) => {
+    setIsLoading(true);
+    try {
+      await axiosInstance.put(`/code/table/edit/${codeId}`, {
+        isFree: !currentIsFree,
+      });
+      toast.showSuccess(`Table marked as ${!currentIsFree ? "free" : "not free"}`);
+      triggerRefresh();
+    } catch (error) {
+      console.error("Error toggling free status:", error);
+      toast.showError("Failed to update free status");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCodeView = async (codeId) => {
     try {
       setIsLoading(true);
@@ -882,6 +898,17 @@ function TableCodeManagement({
         }`}
         style={{ borderLeft: `4px solid ${themeColors?.accent || borderColor}` }}
       >
+        {tablePermissions.manage && code.status === "confirmed" && (
+          <label className="free-toggle" title="Mark as Free">
+            <input
+              type="checkbox"
+              checked={code.isFree || false}
+              onChange={() => handleToggleFree(code._id, code.isFree)}
+              disabled={isLoading}
+            />
+            <span className="free-toggle-label">Free</span>
+          </label>
+        )}
         <div className="reservation-details">
           <div className="reservation-info">
             <div
@@ -963,6 +990,7 @@ function TableCodeManagement({
               <span className={`status-badge ${code.status}`}>
                 {code.status}
               </span>
+              {code.isFree && <span className="free-badge">FREE</span>}
             </div>
           </div>
 
