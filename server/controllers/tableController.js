@@ -3660,6 +3660,16 @@ const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => 
           border-radius: 3px;
           margin-left: 5px;
         }
+        .free-badge {
+          display: inline-block;
+          font-size: 9px;
+          padding: 2px 6px;
+          background: #d4af37;
+          color: #1a1a2e;
+          font-weight: bold;
+          border-radius: 3px;
+          margin-left: 5px;
+        }
         .footer {
           margin-top: 30px;
           text-align: center;
@@ -3690,6 +3700,7 @@ const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => 
                   <div class="table-number">
                     Table ${table.tableNumber}
                     ${table.status === 'pending' ? '<span class="status-badge">PENDING</span>' : ''}
+                    ${table.isFree ? '<span class="free-badge">FREE</span>' : ''}
                   </div>
                   <div class="table-guest">${table.name}</div>
                   <div class="table-pax">${table.pax} guest${table.pax !== 1 ? 's' : ''}</div>
