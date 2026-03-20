@@ -32,7 +32,7 @@ const TableLayoutHarlem = ({
     V5: { minSpend: 160, maxPersons: 6, category: "V" },
     V6: { minSpend: 160, maxPersons: 6, category: "V" },
     V7: { minSpend: 160, maxPersons: 6, category: "V" },
-    V6: { minSpend: 160, maxPersons: 6, category: "V" },
+    V8: { minSpend: 160, maxPersons: 6, category: "V" },
     V9: { minSpend: 160, maxPersons: 6, category: "V" },
     V10: { minSpend: 160, maxPersons: 6, category: "V" },
     V11: { minSpend: 160, maxPersons: 6, category: "V" },
