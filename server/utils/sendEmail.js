@@ -544,7 +544,7 @@ const sendEmail = async (order, receiptInfo = null) => {
           order.originalAmount || order.totalAmount
         ).toFixed(2)} ${order.originalCurrency || "EUR"}</strong></p>
         <p style="margin: 8px 0 0;">Tickets: <strong>${
-          Object.keys(ticketGroups).length
+          Object.values(ticketGroups).reduce((sum, group) => sum + group.length, 0)
         }</strong></p>
         <p style="margin: 8px 0 0;">Payment Status: <strong>Successfully Processed</strong></p>
       </div>
