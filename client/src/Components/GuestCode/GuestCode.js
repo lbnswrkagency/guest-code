@@ -194,6 +194,11 @@ const GuestCode = ({ event }) => {
         setTimeout(() => setSuccessMessage(""), 5000);
         toast.showSuccess("Guest code generated and sent successfully");
 
+        // Fire TikTok Pixel SubmitForm event
+        if (window.ttq) {
+          window.ttq.track('SubmitForm');
+        }
+
         try {
           const refreshResponse = await axiosInstance.get(
             `/codes/counts/${event._id}?type=guest`

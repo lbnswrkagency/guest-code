@@ -736,6 +736,11 @@ const Tickets = ({
             });
           }
 
+          // Fire TikTok Pixel InitiateCheckout event
+          if (window.ttq) {
+            window.ttq.track('InitiateCheckout');
+          }
+
           // Short delay to ensure the toast is visible before redirect
           setTimeout(() => {
             // Redirect to Stripe checkout
@@ -761,6 +766,11 @@ const Tickets = ({
         });
 
         if (response.data.success) {
+          // Fire TikTok Pixel PlaceAnOrder event
+          if (window.ttq) {
+            window.ttq.track('PlaceAnOrder');
+          }
+
           // Update the loading toast to show success
           if (loadingToast) {
             loadingToast.update({
