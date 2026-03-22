@@ -55,6 +55,8 @@ const BrandSchema = new Schema(
 
     // Meta Pixel ID
     metaPixelId: { type: String },
+    // TikTok Pixel ID
+    tiktokPixelId: { type: String },
 
     // Spotify Integration
     spotifyClientId: { type: String },

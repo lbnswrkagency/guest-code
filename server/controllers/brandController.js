@@ -1669,6 +1669,46 @@ exports.updateBrandMetaPixel = async (req, res) => {
   }
 };
 
+// New function specifically for updating TikTok Pixel ID
+exports.updateBrandTiktokPixel = async (req, res) => {
+  try {
+    const { brandId } = req.params;
+    const { tiktokPixelId } = req.body;
+    const userId = req.user._id;
+
+    if (!brandId) {
+      return res.status(400).json({ message: "Brand ID is required." });
+    }
+
+    const brand = await Brand.findById(brandId);
+
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found." });
+    }
+
+    if (brand.owner.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message:
+          "Unauthorized. Only the brand owner can update the TikTok Pixel ID.",
+      });
+    }
+
+    brand.tiktokPixelId = tiktokPixelId || "";
+    await brand.save();
+
+    res.status(200).json({
+      message: "Brand TikTok Pixel ID updated successfully.",
+      tiktokPixelId: brand.tiktokPixelId,
+    });
+  } catch (error) {
+    console.error("[BrandController:updateBrandTiktokPixel] Error:", error);
+    res.status(500).json({
+      message: "Error updating Brand TikTok Pixel ID",
+      error: error.message,
+    });
+  }
+};
+
 // User favorite brand management
 exports.favoriteUserBrand = async (req, res) => {
   try {
@@ -1839,6 +1879,7 @@ module.exports = {
   updateBrandSettings: exports.updateBrandSettings,
   cancelJoinRequest: exports.cancelJoinRequest,
   updateBrandMetaPixel: exports.updateBrandMetaPixel,
+  updateBrandTiktokPixel: exports.updateBrandTiktokPixel,
   updateSpotifyConfig: exports.updateSpotifyConfig,
   favoriteUserBrand: exports.favoriteUserBrand,
   unfavoriteUserBrand: exports.unfavoriteUserBrand,

@@ -41,6 +41,8 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
   const [roles, setRoles] = useState([]);
   const [metaPixelId, setMetaPixelId] = useState(brand.metaPixelId || "");
   const [isSavingPixel, setIsSavingPixel] = useState(false);
+  const [tiktokPixelId, setTiktokPixelId] = useState(brand.tiktokPixelId || "");
+  const [isSavingTiktokPixel, setIsSavingTiktokPixel] = useState(false);
 
   // Spotify integration states
   const [spotifyConfig, setSpotifyConfig] = useState({
@@ -136,6 +138,10 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
   useEffect(() => {
     setMetaPixelId(brand.metaPixelId || "");
   }, [brand.metaPixelId]);
+
+  useEffect(() => {
+    setTiktokPixelId(brand.tiktokPixelId || "");
+  }, [brand.tiktokPixelId]);
 
   useEffect(() => {
     setSpotifyConfig({
@@ -324,6 +330,41 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
       );
     } finally {
       setIsSavingPixel(false);
+    }
+  };
+
+  const handleTiktokPixelChange = (e) => {
+    setTiktokPixelId(e.target.value);
+  };
+
+  const saveTiktokPixelId = async () => {
+    if (!brand || !brand._id) {
+      showError("Brand information is missing.");
+      return;
+    }
+    setIsSavingTiktokPixel(true);
+    try {
+      const response = await axiosInstance.put(
+        `/brands/${brand._id}/tiktokpixel`,
+        { tiktokPixelId }
+      );
+      showSuccess(
+        response.data.message || "TikTok Pixel ID updated successfully!"
+      );
+      if (onSave) {
+        const updatedBrandData = {
+          _id: brand._id,
+          tiktokPixelId: response.data.tiktokPixelId,
+        };
+        onSave(updatedBrandData, true);
+      }
+    } catch (error) {
+      console.error("Error updating TikTok Pixel ID:", error);
+      showError(
+        error.response?.data?.message || "Failed to update TikTok Pixel ID."
+      );
+    } finally {
+      setIsSavingTiktokPixel(false);
     }
   };
 
@@ -620,6 +661,33 @@ const BrandSettings = ({ brand, onClose, onDelete, onSave, userPermissions }) =>
                       whileTap={{ scale: 0.95 }}
                     >
                       {isSavingPixel ? "Saving..." : "Save"}
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+              <div className="setting-item meta-pixel-setting">
+                <RiBarChart2Line className="setting-icon" />
+                <div className="setting-details">
+                  <h4>TikTok Pixel ID</h4>
+                  <p>
+                    Track profile views and conversions with your TikTok Pixel.
+                  </p>
+                  <div className="meta-pixel-input-group">
+                    <input
+                      type="text"
+                      placeholder="Enter your TikTok Pixel ID"
+                      value={tiktokPixelId}
+                      onChange={handleTiktokPixelChange}
+                      className="meta-pixel-input"
+                    />
+                    <motion.button
+                      onClick={saveTiktokPixelId}
+                      disabled={isSavingTiktokPixel}
+                      className="save-pixel-btn"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isSavingTiktokPixel ? "Saving..." : "Save"}
                     </motion.button>
                   </div>
                 </div>

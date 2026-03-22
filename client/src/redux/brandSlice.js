@@ -62,6 +62,7 @@ const brandSlice = createSlice({
           roleId: brand.roleId,
           // Analytics configuration
           metaPixelId: brand.metaPixelId,
+          tiktokPixelId: brand.tiktokPixelId,
           // Dropbox configuration
           dropboxBaseFolder: brand.dropboxBaseFolder,
           dropboxDateFormat: brand.dropboxDateFormat,

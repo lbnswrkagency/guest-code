@@ -589,6 +589,43 @@ const BrandProfile = () => {
     }
   }, [brand?.metaPixelId]);
 
+  // Dynamically load TikTok Pixel script
+  useEffect(() => {
+    if (brand && brand.tiktokPixelId) {
+      const existingScript = document.querySelector(
+        `script[data-tiktok-pixel-id="${brand.tiktokPixelId}"]`
+      );
+      if (existingScript) return;
+
+      // Remove previous TikTok pixel scripts
+      document.querySelectorAll("script[data-tiktok-pixel-id]")
+        .forEach((s) => s.remove());
+
+      const script = document.createElement("script");
+      script.innerHTML = `
+        !function (w, d, t) {
+          w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];
+          ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];
+          ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};
+          for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);
+          ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};
+          ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;
+          ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};
+          var i=d.createElement("script");i.type="text/javascript";i.async=!0;i.src=r+"?sdkid="+e+"&lib="+t;
+          var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(i,a)};
+          ttq.load('${brand.tiktokPixelId}');
+          ttq.page();
+        }(window, document, 'ttq');
+      `;
+      script.setAttribute("data-tiktok-pixel-id", brand.tiktokPixelId);
+      document.head.appendChild(script);
+
+      return () => {
+        document.querySelector(`script[data-tiktok-pixel-id="${brand?.tiktokPixelId}"]`)?.remove();
+      };
+    }
+  }, [brand?.tiktokPixelId]);
+
   const handleLeaveBrand = async () => {
     if (!user) {
       toast.showError("Please log in to leave brands");

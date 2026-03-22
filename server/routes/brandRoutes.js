@@ -96,6 +96,9 @@ router.put("/:brandId/settings", brandController.updateBrandSettings);
 // Meta Pixel management
 router.put("/:brandId/metapixel", brandController.updateBrandMetaPixel);
 
+// TikTok Pixel management
+router.put("/:brandId/tiktokpixel", brandController.updateBrandTiktokPixel);
+
 // Spotify configuration management
 router.put("/:brandId/spotify-config", brandController.updateSpotifyConfig);
 
