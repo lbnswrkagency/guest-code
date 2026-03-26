@@ -346,23 +346,12 @@ exports.createEvent = async (req, res) => {
       // Don't auto-set isLive for child events - let frontend control it
     }
 
-    // Calculate final startDate and endDate considering startTime and endTime for overnight events
+    // Use the frontend's ISO dates directly (time is already embedded in the ISO string).
+    // Only apply the overnight safety check — do NOT re-apply startTime/endTime via setHours(),
+    // as that causes a timezone mismatch (server-local hours applied to UTC-parsed dates).
     let finalStartDate = new Date(eventData.startDate);
-    // Initialize finalEndDate based on finalStartDate initially for calculation
-    let finalEndDate = new Date(finalStartDate);
+    let finalEndDate = new Date(eventData.endDate);
 
-    if (eventData.startTime) {
-      const [sh, sm] = eventData.startTime.split(":").map(Number);
-      finalStartDate.setHours(sh, sm, 0, 0);
-    }
-    // Use the date part of finalStartDate for endDate calculation before applying endTime
-    finalEndDate = new Date(finalStartDate);
-    if (eventData.endTime) {
-      const [eh, em] = eventData.endTime.split(":").map(Number);
-      finalEndDate.setHours(eh, em, 0, 0);
-    }
-
-    // If finalEndDate is on or before finalStartDate after times are applied, it means it's the next day
     if (finalEndDate.getTime() <= finalStartDate.getTime()) {
       finalEndDate.setDate(finalEndDate.getDate() + 1);
     }
@@ -890,36 +879,22 @@ exports.editEvent = async (req, res) => {
       }
     }
 
-    // If this is a parent event, calculate its endDate properly if startTime/endTime suggest it spans midnight
+    // Use the frontend's ISO dates directly (time is already embedded in the ISO string).
+    // Only apply the overnight safety check — do NOT re-apply startTime/endTime via setHours(),
+    // as that causes a timezone mismatch (server-local hours applied to UTC-parsed dates).
     if (!event.parentEventId && weekNumber === 0) {
-      const { startTime, endTime } = req.body;
       let eventStartDate = new Date(event.startDate);
       let eventEndDate = new Date(event.endDate);
 
       if (req.body.startDate) eventStartDate = new Date(req.body.startDate);
-      if (req.body.endDate) eventEndDate = new Date(req.body.endDate); // Initial endDate from body or event
+      if (req.body.endDate) eventEndDate = new Date(req.body.endDate);
 
-      if (startTime) {
-        const [startHours, startMinutes] = startTime.split(":").map(Number);
-        eventStartDate.setHours(startHours, startMinutes, 0, 0);
-        req.body.startTime = startTime; // ensure it's in req.body if only event.startTime was used
+      if (eventEndDate.getTime() <= eventStartDate.getTime()) {
+        eventEndDate.setDate(eventEndDate.getDate() + 1);
       }
-      req.body.startDate = eventStartDate; // update req.body to reflect changes
 
-      if (endTime) {
-        const [endHours, endMinutes] = endTime.split(":").map(Number);
-        // Important: Apply endTime to the date part of eventStartDate to correctly calculate if it spans midnight
-        let tempEndDateForCalc = new Date(eventStartDate);
-        tempEndDateForCalc.setHours(endHours, endMinutes, 0, 0);
-
-        if (tempEndDateForCalc.getTime() <= eventStartDate.getTime()) {
-          tempEndDateForCalc.setDate(tempEndDateForCalc.getDate() + 1);
-        }
-        eventEndDate = tempEndDateForCalc;
-        req.body.endTime = endTime; // ensure it's in req.body
-      }
-      req.body.endDate = eventEndDate; // update req.body to reflect changes
-      // Don't set legacy date field anymore
+      req.body.startDate = eventStartDate;
+      req.body.endDate = eventEndDate;
     }
 
     // For regular events or the parent weekly event (week 0)
