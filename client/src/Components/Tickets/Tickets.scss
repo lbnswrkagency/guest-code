@@ -690,16 +690,15 @@ $gold-glow: 0 0 15px rgba(232, 186, 99, 0.5);
       border-radius: 2px;
     }
 
-    // Original price (crossed out)
+    // Original price (crossed out) - subtle inline display
     .original-price {
-      position: absolute;
-      top: -0.8rem;
-      right: -0.5rem;
-      font-size: 1rem;
+      font-size: 0.75rem;
       font-weight: 400;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.35);
       text-decoration: line-through;
       text-shadow: none;
+      margin-left: 0.5rem;
+      vertical-align: middle;
     }
 
     // Door price (Abendkasse)

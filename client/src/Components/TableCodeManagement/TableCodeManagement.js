@@ -1,10 +1,29 @@
 // TableCodeManagement.js
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
+import axiosInstance from "../../utils/axiosConfig";
 import { useToast } from "../Toast/ToastContext";
-import { RiRefreshLine } from "react-icons/ri";
+import { BsPeopleFill } from "react-icons/bs";
+import {
+  RiRefreshLine,
+  RiEditLine,
+  RiMailLine,
+  RiDownloadLine,
+  RiEyeLine,
+  RiDeleteBin6Line,
+  RiCheckLine,
+  RiCloseLine,
+  RiRestartLine,
+} from "react-icons/ri";
 import "./TableCodeManagement.scss";
+
+// Helper: extract numeric portion from table ID (e.g., "V12" → 12, "D3" → 3)
+const extractTableNumber = (tableId) => {
+  if (!tableId) return 0;
+  const match = tableId.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
 
 function TableCodeManagement({
   user,
@@ -16,7 +35,7 @@ function TableCodeManagement({
   selectedEvent,
   counts,
   isLoading: parentIsLoading,
-  effectivePermissions, // Pre-calculated permissions for co-hosted events
+  effectivePermissions,
 }) {
   const toast = useToast();
   const [codesByCategory, setCodesByCategory] = useState({});
@@ -42,34 +61,30 @@ function TableCodeManagement({
   // Dynamic color mapping for categories based on layout config
   const getTableColors = () => {
     if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
-      // Use theme colors from layout configuration
       const colors = {};
       Object.entries(layoutConfig.categoryAreaNames).forEach(([categoryCode, areaName]) => {
         const themeColor = layoutConfig.categoryThemeColors[categoryCode];
         if (themeColor) {
-          // Use the accent color as the primary display color
           colors[areaName] = themeColor.accent;
         }
       });
       return colors;
     }
-    
-    // Legacy dynamic layout configuration for other layouts
+
     if (layoutConfig?.tableConfig) {
       const colors = {};
       Object.values(layoutConfig.tableConfig).forEach((tableInfo) => {
         if (tableInfo.category) {
           const areaName = layoutConfig.categoryAreaNames?.[tableInfo.category];
           if (areaName) {
-            // Map category to appropriate color for legacy layouts
             switch (tableInfo.category) {
-              case "D": // DJ Area in Venti
+              case "D":
                 colors[areaName] = "#ffd700";
                 break;
-              case "V": // VIP in Venti
+              case "V":
                 colors[areaName] = "#1b5e20";
                 break;
-              case "U": // Upstairs in Venti
+              case "U":
                 colors[areaName] = "#663399";
                 break;
               default:
@@ -80,25 +95,24 @@ function TableCodeManagement({
       });
       return colors;
     }
-    
-    // Fallback to default mapping for backward compatibility
+
     return {
-      djarea: "#ffd700", // Gold for DJ Area tables
-      backstage: "#80221c", // Rich red for backstage/dancefloor
-      vip: "#1b5e20", // Green for VIP
-      premium: "#4a90e2", // Blue for premium/front row
-      standing: "#0f3460", // Blue for standing tables
-      "Standing": "#0f3460", // Blue for standing tables
-      "Standing Backstage": "#b8860b", // Orange for standing backstage
-      "VIP": "#b8860b", // Gold for VIP
-      "Backstage": "#d4af37", // Gold for backstage
-      "Exclusive Backstage": "#ffd700", // Bright gold for exclusive
+      djarea: "#ffd700",
+      backstage: "#80221c",
+      vip: "#1b5e20",
+      premium: "#4a90e2",
+      standing: "#0f3460",
+      "Standing": "#0f3460",
+      "Standing Backstage": "#b8860b",
+      "VIP": "#b8860b",
+      "Backstage": "#d4af37",
+      "Exclusive Backstage": "#ffd700",
     };
   };
 
   const tableColors = getTableColors();
 
-  // Dynamic category order based on layout config - memoized to prevent re-calculation
+  // Dynamic category order based on layout config
   const categoryOrder = useMemo(() => {
     if (layoutConfig?.categoryAreaNames) {
       return Object.values(layoutConfig.categoryAreaNames);
@@ -106,26 +120,22 @@ function TableCodeManagement({
     if (tableCategories) {
       return Object.keys(tableCategories);
     }
-    // Fallback to default order
     return ["djarea", "backstage", "vip", "premium"];
   }, [layoutConfig, tableCategories]);
 
-  // Helper to get tables for a category - handles both display names ("VIP") and keys ("vip")
+  // Helper to get tables for a category
   const getTablesForCategory = useCallback((category) => {
     if (!tableCategories || !category) return [];
 
-    // Direct match (category is a tableCategories key like "vip")
     if (tableCategories[category]) {
       return tableCategories[category];
     }
 
-    // Try lowercase match (category is display name like "VIP" or "Standing")
     const lowercaseCategory = category.toLowerCase();
     if (tableCategories[lowercaseCategory]) {
       return tableCategories[lowercaseCategory];
     }
 
-    // Try to find by partial match (e.g., "VIP Booth" matches "vip")
     for (const [key, tables] of Object.entries(tableCategories)) {
       if (lowercaseCategory.includes(key.toLowerCase()) ||
           key.toLowerCase().includes(lowercaseCategory)) {
@@ -141,8 +151,6 @@ function TableCodeManagement({
     let hasTableAccess = false;
     let hasTableManage = false;
 
-    // Use effectivePermissions prop first (from Dashboard), then fall back to selectedEvent
-    // This ensures co-host permissions work even if selectedEvent doesn't have coHostBrandInfo
     const perms = effectivePermissions ||
                   selectedEvent?.coHostBrandInfo?.effectivePermissions;
 
@@ -150,7 +158,6 @@ function TableCodeManagement({
       hasTableAccess = perms.tables.access === true;
       hasTableManage = perms.tables.manage === true;
     } else {
-      // Fallback for regular events: check user roles
       userRoles.forEach((role) => {
         if (role.permissions?.tables) {
           if (role.permissions.tables.access === true) {
@@ -171,17 +178,14 @@ function TableCodeManagement({
 
   const tablePermissions = getTablePermissions();
 
-  // Dynamic category mapping function - memoized to prevent re-creation
+  // Dynamic category mapping function
   const getCategoryForTable = useMemo(() => {
     return (tableNumber) => {
       if (!tableNumber) return "unknown";
 
-      // If we have layout configuration, use it for categorization
       if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
         const tableInfo = layoutConfig.tableConfig[tableNumber];
-
         if (tableInfo && tableInfo.category) {
-          // Return the actual area name from the layout configuration
           const areaName = layoutConfig.categoryAreaNames[tableInfo.category];
           if (areaName) {
             return areaName;
@@ -189,7 +193,6 @@ function TableCodeManagement({
         }
       }
 
-      // Fallback: check if we have tableCategories prop
       if (tableCategories) {
         for (const [category, tables] of Object.entries(tableCategories)) {
           if (tables.includes(tableNumber)) {
@@ -198,32 +201,26 @@ function TableCodeManagement({
         }
       }
 
-      // Final fallback to checking first character of table number
       const prefix = tableNumber.charAt(0);
-
-      // Handle common layouts
-      if (prefix === "D") return "DJ Area"; // DJ Area tables
-      if (prefix === "V") return "VIP Lounge"; // VIP tables
-      if (prefix === "U") return "Upstairs"; // Upstairs tables
-      if (prefix === "B") return "DJ Area"; // DJ Area tables (alternate)
+      if (prefix === "D") return "DJ Area";
+      if (prefix === "V") return "VIP Lounge";
+      if (prefix === "U") return "Upstairs";
+      if (prefix === "B") return "DJ Area";
       if (prefix === "A" || prefix === "R") return "VIP";
       if (prefix === "F") return "Premium";
       if (prefix === "K") return "Premium";
 
-      return "General"; // Default
+      return "General";
     };
   }, [layoutConfig, tableCategories]);
 
-  // Toggle category visibility - show ONLY the selected category
+  // Toggle category visibility
   const toggleCategoryVisibility = (category) => {
-    const isCurrentlyVisible = visibleCategories.has(category);
     const isOnlyVisible = visibleCategories.size === 1 && visibleCategories.has(category);
-    
+
     if (isOnlyVisible) {
-      // If this is the only visible category, show all categories
       setVisibleCategories(new Set(categoryOrder));
     } else {
-      // Show only this category
       setVisibleCategories(new Set([category]));
     }
   };
@@ -231,22 +228,19 @@ function TableCodeManagement({
   // Get display name for category
   const getCategoryDisplayName = (category) => {
     if (layoutConfig && category) {
-      // Map category code to display name based on dynamic configuration
       switch (category) {
         case "backstage":
-          return "Dancefloor"; // D tables
+          return "Dancefloor";
         case "vip":
-          return "VIP Booth"; // V tables
+          return "VIP Booth";
         case "premium":
-          return "Front Row"; // F tables
+          return "Front Row";
         case "djarea":
-          return "DJ Area"; // B tables
+          return "DJ Area";
         default:
           break;
       }
     }
-
-    // Default fallback names
     if (category === "djarea") return "DJ Area";
     return category.charAt(0).toUpperCase() + category.slice(1);
   };
@@ -254,11 +248,14 @@ function TableCodeManagement({
   useEffect(() => {
     const allCodes = counts?.tableCounts || [];
 
-    // Group the codes received from props
+    // Group codes by category, then sort each group by table number numerically
     const groupedCodes = categoryOrder.reduce((acc, category) => {
-      acc[category] = allCodes.filter(
+      const filtered = allCodes.filter(
         (code) => getCategoryForTable(code.tableNumber) === category
       );
+      // Sort by extracted numeric portion of table ID
+      filtered.sort((a, b) => extractTableNumber(a.tableNumber) - extractTableNumber(b.tableNumber));
+      acc[category] = filtered;
       return acc;
     }, {});
 
@@ -299,7 +296,6 @@ function TableCodeManagement({
       setIsLoading(true);
       try {
         const loadingToast = toast.showLoading("Deleting reservation...");
-        // Use axiosInstance with token refresh capability
         await axiosInstance.delete(`/code/table/delete/${deleteCodeId}`);
         loadingToast.dismiss();
         toast.showSuccess("Reservation deleted successfully");
@@ -327,20 +323,15 @@ function TableCodeManagement({
       try {
         const loadingToast = toast.showLoading("Cancelling reservation...");
 
-        // Get the code details to check if it's a public request
         const code = allCodes.find((c) => c._id === cancelCodeId);
         const isPublicRequest = code?.isPublic === true;
 
-        // Update the status to cancelled
-        // Use axiosInstance with token refresh capability
         await axiosInstance.put(`/code/table/status/${cancelCodeId}`, {
           status: "cancelled",
         });
 
-        // If this is a public request with email, also send cancellation email
         if (isPublicRequest && code.email) {
           try {
-            // Use axiosInstance with token refresh capability
             await axiosInstance.post(`/table/code/${cancelCodeId}/cancel`, {});
             loadingToast.dismiss();
             toast.showSuccess(
@@ -393,20 +384,15 @@ function TableCodeManagement({
         } reservation...`
       );
 
-      // Get the code details to check if it's a public request
       const code = allCodes.find((c) => c._id === codeId);
       const isPublicRequest = code?.isPublic === true;
 
-      // Update the status
-      // Use axiosInstance with token refresh capability
       await axiosInstance.put(`/code/table/status/${codeId}`, {
         status: newStatus,
       });
 
-      // If this is confirming a public request that has an email, also send confirmation email
       if (newStatus === "confirmed" && isPublicRequest && code.email) {
         try {
-          // Use axiosInstance with token refresh capability
           await axiosInstance.post(`/table/code/${codeId}/confirm`, {});
           loadingToast.dismiss();
           toast.showSuccess(
@@ -421,9 +407,7 @@ function TableCodeManagement({
             "Failed to send confirmation email. Please try sending it manually."
           );
         }
-      }
-      // If this is declining a public request that has an email, send decline email
-      else if (newStatus === "declined" && isPublicRequest && code.email) {
+      } else if (newStatus === "declined" && isPublicRequest && code.email) {
         try {
           await axiosInstance.post(
             `/table/code/${codeId}/decline`,
@@ -486,11 +470,26 @@ function TableCodeManagement({
     }
   };
 
+  const handleToggleNoMinimumSpend = async (codeId, currentValue) => {
+    setIsLoading(true);
+    try {
+      await axiosInstance.put(`/code/table/edit/${codeId}`, {
+        noMinimumSpend: !currentValue,
+      });
+      toast.showSuccess(`Table marked as ${!currentValue ? "no minimum spend" : "minimum spend required"}`);
+      triggerRefresh();
+    } catch (error) {
+      console.error("Error toggling no minimum spend:", error);
+      toast.showError("Failed to update minimum spend status");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCodeView = async (codeId) => {
     try {
       setIsLoading(true);
       const loadingToast = toast.showLoading("Preparing your table code...");
-      // Use axiosInstance with token refresh capability
       const response = await axiosInstance.get(`/table/code/${codeId}/png`, {
         responseType: "blob",
       });
@@ -523,7 +522,6 @@ function TableCodeManagement({
         setIsLoading(false);
         return;
       }
-      // Use axiosInstance with token refresh capability
       const response = await axiosInstance.get(
         `/table/code/${codeId}/png-download`,
         {
@@ -579,7 +577,6 @@ function TableCodeManagement({
     setIsLoading(true);
     try {
       const loadingToast = toast.showLoading("Sending email...");
-      // Use axiosInstance with token refresh capability
       await axiosInstance.post(`/table/code/${selectedCodeId}/send`, {
         email: emailRecipient,
       });
@@ -609,14 +606,12 @@ function TableCodeManagement({
     try {
       const loadingToast = toast.showLoading("Updating reservation...");
 
-      // Get the original code before updating
       const originalCode = allCodes.find((c) => c._id === editCodeId);
       const hasChanges =
         originalCode.name !== editName ||
         originalCode.pax != editPax ||
         originalCode.tableNumber !== editTableNumber;
 
-      // Only process if there are actual changes
       if (!hasChanges) {
         loadingToast.dismiss();
         toast.showInfo("No changes detected");
@@ -625,15 +620,12 @@ function TableCodeManagement({
         return;
       }
 
-      // Update the table code
-      // Use axiosInstance with token refresh capability
       await axiosInstance.put(`/code/table/edit/${editCodeId}`, {
         name: editName,
         pax: editPax,
         tableNumber: editTableNumber,
       });
 
-      // Send update notification if this is a public request or has an email
       if (originalCode?.isPublic && originalCode.email) {
         try {
           await axiosInstance.post(`/table/code/${editCodeId}/update`, {
@@ -653,7 +645,6 @@ function TableCodeManagement({
         loadingToast.dismiss();
         toast.showSuccess("Reservation updated successfully");
 
-        // Ask if user wants to send an update email
         if (originalCode?.email) {
           setTimeout(() => {
             if (
@@ -708,43 +699,33 @@ function TableCodeManagement({
         (code) => getCategoryForTable(code.tableNumber) === category
       ) || [];
 
-    // Calculate total tables for this category
     let totalTablesInCategory = 0;
-    
-    // If we have layoutConfig, count tables from the dynamic configuration
+
     if (layoutConfig && layoutConfig.tableConfig && layoutConfig.categoryAreaNames) {
-      // Count tables in layoutConfig that belong to this category
       Object.entries(layoutConfig.tableConfig).forEach(([tableNumber, tableInfo]) => {
         if (tableInfo.category && layoutConfig.categoryAreaNames[tableInfo.category] === category) {
           totalTablesInCategory++;
         }
       });
     } else if (tableCategories) {
-      // Fallback to static tableCategories
-      // Map display names back to tableCategories keys
       const categoryKey = (() => {
-        // Direct key match first
         if (tableCategories[category]) {
           return category;
         }
-        
-        // Map display names to tableCategories keys
         const displayToKeyMap = {
           "DJ Area": "djarea",
-          "VIP Lounge": "vip", 
+          "VIP Lounge": "vip",
           "Upstairs": "upstairs",
           "VIP": "vip",
           "VIP Booth": "vip",
           "Premium": "premium",
-          "Front Row": "premium", 
+          "Front Row": "premium",
           "General": "general",
           "Dancefloor": "backstage",
           "Backstage": "backstage"
         };
-        
         return displayToKeyMap[category] || category.toLowerCase();
       })();
-      
       totalTablesInCategory = tableCategories[categoryKey]?.length || 0;
     }
 
@@ -763,89 +744,29 @@ function TableCodeManagement({
   };
 
   const renderCategoryTitle = (category) => {
-    const counts = getCategoryCounts(category);
+    const catCounts = getCategoryCounts(category);
     const displayName = getCategoryDisplayName(category);
 
-    // Get theme colors for this category if available
-    const getThemeColorsForCategory = () => {
-      if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
-        // Find the category code for this area name
-        const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
-          .find(([code, name]) => name === category)?.[0];
-        
-        if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
-          return layoutConfig.categoryThemeColors[categoryCode];
-        }
-      }
-      return null;
-    };
-
-    const themeColors = getThemeColorsForCategory();
-    const primaryColor = tableColors[category] || "#4a90e2";
-
     return (
-      <div 
-        className="category-header"
-        style={themeColors ? {
-          background: `linear-gradient(135deg, ${themeColors.primary}22, ${themeColors.accent}11)`,
-          borderLeft: `3px solid ${themeColors.accent}`,
-          borderRadius: '8px',
-          padding: '0.75rem 1rem',
-          marginBottom: '0.5rem'
-        } : undefined}
-      >
+      <div className="category-header">
         <h3>
-          <span 
-            style={{ 
-              color: themeColors?.accent || primaryColor,
-              textShadow: themeColors ? `0 0 8px ${themeColors.accent}33` : undefined,
-              fontWeight: '600'
-            }}
-          >
-            {displayName}
-          </span>
+          <span className="category-accent" />
+          <span className="category-name">{displayName}</span>
           <div className="category-counts">
             {tablePermissions.manage ? (
               <>
-                {counts.pending > 0 && (
-                  <span 
-                    className="count-pending"
-                    style={themeColors ? {
-                      color: themeColors.text,
-                      backgroundColor: `${themeColors.accent}20`,
-                      border: `1px solid ${themeColors.accent}50`,
-                      borderRadius: '12px',
-                      padding: '2px 8px'
-                    } : undefined}
-                  >
-                    {counts.pending} Pending
+                {catCounts.pending > 0 && (
+                  <span className="count-pending">
+                    {catCounts.pending} Pending
                   </span>
                 )}
-                <span 
-                  className="count-total"
-                  style={themeColors ? {
-                    color: themeColors.text,
-                    backgroundColor: `${themeColors.primary}40`,
-                    border: `1px solid ${themeColors.border}`,
-                    borderRadius: '12px',
-                    padding: '2px 8px'
-                  } : undefined}
-                >
-                  {counts.accepted}/{counts.total} Reserved
+                <span className="count-total">
+                  {catCounts.accepted}/{catCounts.total} Reserved
                 </span>
               </>
             ) : (
-              <span 
-                className="count-total"
-                style={themeColors ? {
-                  color: themeColors.text,
-                  backgroundColor: `${themeColors.primary}40`,
-                  border: `1px solid ${themeColors.border}`,
-                  borderRadius: '12px',
-                  padding: '2px 8px'
-                } : undefined}
-              >
-                {counts.accepted}/{counts.total} Confirmed
+              <span className="count-total">
+                {catCounts.accepted}/{catCounts.total} Confirmed
               </span>
             )}
           </div>
@@ -855,29 +776,11 @@ function TableCodeManagement({
   };
 
   const renderCodeItem = (code) => {
-    const category = getCategoryForTable(code.tableNumber);
-    const borderColor = tableColors[category] || "#ccc";
     const isEditing = editCodeId === code._id;
-    const isPublicRequest = code.isPublic === true; // Check if this is a public request
-
-    // Get theme colors for this category if available
-    const getThemeColorsForCategory = () => {
-      if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
-        // Find the category code for this area name
-        const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
-          .find(([code, name]) => name === category)?.[0];
-        
-        if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
-          return layoutConfig.categoryThemeColors[categoryCode];
-        }
-      }
-      return null;
-    };
-
-    const themeColors = getThemeColorsForCategory();
+    const isPublicRequest = code.isPublic === true;
 
     // Get table config for maximum persons setting
-    let maxPersons = 10; // default fallback
+    let maxPersons = 10;
     if (layoutConfig && layoutConfig.tableConfig) {
       const tableInfo =
         layoutConfig.tableConfig[
@@ -889,342 +792,345 @@ function TableCodeManagement({
     }
 
     return (
-      <div
+      <motion.div
         key={code._id}
-        className={`reservation-item ${code.status} ${
+        className={`code-card ${code.status} ${
           code.paxChecked > 0 ? "checked-in" : ""
         } ${isEditing ? "editing" : ""} ${
           isPublicRequest ? "public-request" : ""
         }`}
-        style={{ borderLeft: `4px solid ${themeColors?.accent || borderColor}` }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        layout
       >
-        {tablePermissions.manage && code.status === "confirmed" && (
-          <label className="free-toggle" title="Mark as Free">
-            <input
-              type="checkbox"
-              checked={code.isFree || false}
-              onChange={() => handleToggleFree(code._id, code.isFree)}
-              disabled={isLoading}
-            />
-            <span className="free-toggle-label">Free</span>
-          </label>
-        )}
-        <div className="reservation-details">
-          <div className="reservation-info">
-            <div
-              className={`table-number-badge ${
-                isEditing ? "editing-dropdown" : ""
-              }`}
-              style={{
-                background: themeColors 
-                  ? `linear-gradient(45deg, ${themeColors.accent}, ${themeColors.primary}dd)`
-                  : `linear-gradient(45deg, ${borderColor}, ${borderColor}dd)`,
-                boxShadow: themeColors 
-                  ? `0 0 12px ${themeColors.accent}40`
-                  : undefined,
-                border: themeColors 
-                  ? `1px solid ${themeColors.border}`
-                  : undefined,
-              }}
-            >
-              {isEditing ? (
-                <div className="table-select-inline-wrapper">
-                  <select
-                    value={editTableNumber}
-                    onChange={(e) => setEditTableNumber(e.target.value)}
-                    className="table-select-inline"
-                    aria-label="Change table number"
-                  >
-                    {categoryOrder.map((category) => {
-                      const tables = getTablesForCategory(category);
-                      return tables.length > 0 ? (
-                        <optgroup
-                          key={category}
-                          label={getCategoryDisplayName(category)}
-                        >
-                          {tables.map((table) => (
-                            <option
-                              key={table}
-                              value={table}
-                              disabled={isTableBooked(table)}
-                            >
-                              {table}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ) : null;
-                    })}
-                  </select>
-                </div>
-              ) : (
-                code.tableNumber
-              )}
-            </div>
-            <div className="guest-details">
-              {isEditing ? (
-                <input
-                  type="text"
-                  className="edit-name-input"
-                  placeholder="Guest Name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  autoFocus
-                />
-              ) : (
-                <div className="guest-name">{code.name}</div>
-              )}
-              {/* Show contact information for public requests */}
-              {isPublicRequest && (
-                <div className="contact-details">
-                  {code.email && (
-                    <div className="guest-email">{code.email}</div>
-                  )}
-                  {code.phone && (
-                    <div className="guest-phone">{code.phone}</div>
-                  )}
-                </div>
-              )}
-              <div className="host-name">
-                {isPublicRequest ? "Public Request" : `Host: ${code.host}`}
-              </div>
-              <span className={`status-badge ${code.status}`}>
-                {code.status}
-              </span>
-              {code.isFree && <span className="free-badge">FREE</span>}
-            </div>
-          </div>
-
-          <div className="pax-count-badge">
-            <span className="people-icon">👥</span>
-            <span className="people-count">
-              {code.paxChecked > 0 ? code.paxChecked : 0}
-            </span>
-            <span className="people-separator">/</span>
+        <div className="card-main">
+          <div
+            className={`table-icon ${isEditing ? "editing-dropdown" : ""}`}
+          >
             {isEditing ? (
-              <select
-                className="edit-pax-select"
-                value={editPax}
-                onChange={(e) => setEditPax(e.target.value)}
-              >
-                {[...Array(maxPersons)].map((_, index) => (
-                  <option key={index + 1} value={index + 1}>
-                    {index + 1}
-                  </option>
-                ))}
-              </select>
+              <div className="table-select-inline-wrapper">
+                <select
+                  value={editTableNumber}
+                  onChange={(e) => setEditTableNumber(e.target.value)}
+                  className="table-select-inline"
+                  aria-label="Change table number"
+                >
+                  {categoryOrder.map((cat) => {
+                    const tables = getTablesForCategory(cat);
+                    return tables.length > 0 ? (
+                      <optgroup
+                        key={cat}
+                        label={getCategoryDisplayName(cat)}
+                      >
+                        {tables.map((table) => (
+                          <option
+                            key={table}
+                            value={table}
+                            disabled={isTableBooked(table)}
+                          >
+                            {table}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null;
+                  })}
+                </select>
+              </div>
             ) : (
-              <span className="people-max">{code.pax}</span>
+              code.tableNumber
             )}
           </div>
 
-          <div className="reservation-actions">
+          <div className="code-info">
             {isEditing ? (
-              <>
-                <button
-                  onClick={handleEdit}
-                  className="save-edit-btn"
-                  title="Save"
-                  disabled={isLoading}
-                >
-                  ✓
-                </button>
-                <button
-                  onClick={resetEditFields}
-                  className="cancel-edit-btn"
-                  title="Cancel"
-                  disabled={isLoading}
-                >
-                  ✕
-                </button>
-              </>
+              <input
+                type="text"
+                className="edit-name-input"
+                placeholder="Guest Name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                autoFocus
+              />
             ) : (
-              <>
-                {tablePermissions.manage ? (
-                  <>
-                    {code.status === "pending" && (
-                      <>
-                        <button
-                          className="confirm"
-                          onClick={() =>
-                            handleStatusChange(code._id, "confirmed")
-                          }
-                          title="Confirm"
-                          disabled={isLoading}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="decline"
-                          onClick={() =>
-                            handleStatusChange(code._id, "declined")
-                          }
-                          title="Decline"
-                          disabled={isLoading}
-                        >
-                          ✕
-                        </button>
-                        <button
-                          className="edit"
-                          onClick={() => startEdit(code)}
-                          title="Edit"
-                          disabled={isLoading}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="delete"
-                          onClick={() => handleDeleteClick(code._id)}
-                          title="Delete"
-                          disabled={isLoading}
-                        >
-                          🗑️
-                        </button>
-                      </>
-                    )}
-                    {code.status === "confirmed" && (
-                      <>
-                        <button
-                          className="email"
-                          onClick={() => handleSendEmail(code._id)}
-                          title="Send Email"
-                          disabled={isLoading}
-                        >
-                          📧
-                        </button>
-                        <button
-                          className="download"
-                          onClick={() => handleDownload(code._id)}
-                          title="Download"
-                          disabled={isLoading}
-                        >
-                          📥
-                        </button>
-                        <button
-                          className="view"
-                          onClick={() => handleCodeView(code._id)}
-                          title="View QR"
-                          disabled={isLoading}
-                        >
-                          👁️
-                        </button>
-                        <button
-                          className="edit"
-                          onClick={() => startEdit(code)}
-                          title="Edit"
-                          disabled={isLoading}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="cancel"
-                          onClick={() => handleCancelClick(code._id)}
-                          title="Cancel Reservation"
-                          disabled={isLoading}
-                        >
-                          ❌
-                        </button>
-                      </>
-                    )}
-                    {["declined", "cancelled"].includes(code.status) && (
-                      <>
-                        <button
-                          className="reset"
-                          onClick={() =>
-                            handleStatusChange(code._id, "pending")
-                          }
-                          title="Reset to Pending"
-                          disabled={isLoading}
-                        >
-                          🔄
-                        </button>
-                        <button
-                          className="delete"
-                          onClick={() => handleDeleteClick(code._id)}
-                          title="Delete"
-                          disabled={isLoading}
-                        >
-                          🗑️
-                        </button>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {code.hostId === user?._id && (
-                      <>
-                        {code.status === "pending" && (
-                          <>
-                            <button
-                              className="edit"
-                              onClick={() => startEdit(code)}
-                              title="Edit"
-                              disabled={isLoading}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              className="delete"
-                              onClick={() => handleDeleteClick(code._id)}
-                              title="Delete"
-                              disabled={isLoading}
-                            >
-                              🗑️
-                            </button>
-                          </>
-                        )}
-                        {code.status === "confirmed" && (
-                          <>
-                            <button
-                              className="email"
-                              onClick={() => handleSendEmail(code._id)}
-                              title="Send Email"
-                              disabled={isLoading}
-                            >
-                              📧
-                            </button>
-                            <button
-                              className="download"
-                              onClick={() => handleDownload(code._id)}
-                              title="Download"
-                              disabled={isLoading}
-                            >
-                              📥
-                            </button>
-                            <button
-                              className="view"
-                              onClick={() => handleCodeView(code._id)}
-                              title="View QR"
-                              disabled={isLoading}
-                            >
-                              👁️
-                            </button>
-                            <button
-                              className="edit"
-                              onClick={() => startEdit(code)}
-                              title="Edit"
-                              disabled={isLoading}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              className="cancel"
-                              onClick={() => handleCancelClick(code._id)}
-                              title="Cancel Reservation"
-                              disabled={isLoading}
-                            >
-                              ❌
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </>
+              <h4>{code.name}</h4>
+            )}
+            {isPublicRequest && (
+              <div className="contact-details">
+                {code.email && (
+                  <div className="guest-email">{code.email}</div>
                 )}
-              </>
+                {code.phone && (
+                  <div className="guest-phone">{code.phone}</div>
+                )}
+              </div>
+            )}
+            <div className="code-meta">
+              {isPublicRequest ? "Public Request" : `Host: ${code.host}`}
+            </div>
+            <span className={`status-badge ${code.status}`}>
+              {code.status}
+            </span>
+            {code.isFree && <span className="free-badge">FREE</span>}
+            {code.noMinimumSpend && <span className="no-min-badge">NO MIN</span>}
+          </div>
+
+          <div className="card-right">
+            <div className="pax-badge">
+              <BsPeopleFill />
+              <span className="pax-checked">
+                {code.paxChecked > 0 ? code.paxChecked : 0}
+              </span>
+              <span className="pax-separator">/</span>
+              {isEditing ? (
+                <select
+                  className="edit-pax-select"
+                  value={editPax}
+                  onChange={(e) => setEditPax(e.target.value)}
+                >
+                  {[...Array(maxPersons)].map((_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      {index + 1}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="pax-max">{code.pax}</span>
+              )}
+            </div>
+            {tablePermissions.manage && code.status === "confirmed" && (
+              <div className="toggle-group">
+                <label className="free-toggle" title="Mark as Free">
+                  <input
+                    type="checkbox"
+                    checked={code.isFree || false}
+                    onChange={() => handleToggleFree(code._id, code.isFree)}
+                    disabled={isLoading}
+                  />
+                  <span className="free-toggle-label">Free</span>
+                </label>
+                <label className="no-min-toggle" title="No Minimum Spend">
+                  <input
+                    type="checkbox"
+                    checked={code.noMinimumSpend || false}
+                    onChange={() => handleToggleNoMinimumSpend(code._id, code.noMinimumSpend)}
+                    disabled={isLoading}
+                  />
+                  <span className="no-min-toggle-label">No Min</span>
+                </label>
+              </div>
             )}
           </div>
         </div>
-      </div>
+
+        <div className="card-actions">
+          {isEditing ? (
+            <>
+              <button
+                className="action-btn save"
+                onClick={handleEdit}
+                title="Save"
+                disabled={isLoading}
+              >
+                <RiCheckLine />
+              </button>
+              <button
+                className="action-btn cancel"
+                onClick={resetEditFields}
+                title="Cancel"
+                disabled={isLoading}
+              >
+                <RiCloseLine />
+              </button>
+            </>
+          ) : (
+            <>
+              {tablePermissions.manage ? (
+                <>
+                  {code.status === "pending" && (
+                    <>
+                      <button
+                        className="action-btn confirm"
+                        onClick={() =>
+                          handleStatusChange(code._id, "confirmed")
+                        }
+                        title="Confirm"
+                        disabled={isLoading}
+                      >
+                        <RiCheckLine />
+                      </button>
+                      <button
+                        className="action-btn decline"
+                        onClick={() =>
+                          handleStatusChange(code._id, "declined")
+                        }
+                        title="Decline"
+                        disabled={isLoading}
+                      >
+                        <RiCloseLine />
+                      </button>
+                      <button
+                        className="action-btn edit"
+                        onClick={() => startEdit(code)}
+                        title="Edit"
+                        disabled={isLoading}
+                      >
+                        <RiEditLine />
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => handleDeleteClick(code._id)}
+                        title="Delete"
+                        disabled={isLoading}
+                      >
+                        <RiDeleteBin6Line />
+                      </button>
+                    </>
+                  )}
+                  {code.status === "confirmed" && (
+                    <>
+                      <button
+                        className="action-btn email"
+                        onClick={() => handleSendEmail(code._id)}
+                        title="Send Email"
+                        disabled={isLoading}
+                      >
+                        <RiMailLine />
+                      </button>
+                      <button
+                        className="action-btn download"
+                        onClick={() => handleDownload(code._id)}
+                        title="Download"
+                        disabled={isLoading}
+                      >
+                        <RiDownloadLine />
+                      </button>
+                      <button
+                        className="action-btn view"
+                        onClick={() => handleCodeView(code._id)}
+                        title="View QR"
+                        disabled={isLoading}
+                      >
+                        <RiEyeLine />
+                      </button>
+                      <button
+                        className="action-btn edit"
+                        onClick={() => startEdit(code)}
+                        title="Edit"
+                        disabled={isLoading}
+                      >
+                        <RiEditLine />
+                      </button>
+                      <button
+                        className="action-btn cancel-action"
+                        onClick={() => handleCancelClick(code._id)}
+                        title="Cancel Reservation"
+                        disabled={isLoading}
+                      >
+                        <RiCloseLine />
+                      </button>
+                    </>
+                  )}
+                  {["declined", "cancelled"].includes(code.status) && (
+                    <>
+                      <button
+                        className="action-btn reset"
+                        onClick={() =>
+                          handleStatusChange(code._id, "pending")
+                        }
+                        title="Reset to Pending"
+                        disabled={isLoading}
+                      >
+                        <RiRestartLine />
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => handleDeleteClick(code._id)}
+                        title="Delete"
+                        disabled={isLoading}
+                      >
+                        <RiDeleteBin6Line />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {code.hostId === user?._id && (
+                    <>
+                      {code.status === "pending" && (
+                        <>
+                          <button
+                            className="action-btn edit"
+                            onClick={() => startEdit(code)}
+                            title="Edit"
+                            disabled={isLoading}
+                          >
+                            <RiEditLine />
+                          </button>
+                          <button
+                            className="action-btn delete"
+                            onClick={() => handleDeleteClick(code._id)}
+                            title="Delete"
+                            disabled={isLoading}
+                          >
+                            <RiDeleteBin6Line />
+                          </button>
+                        </>
+                      )}
+                      {code.status === "confirmed" && (
+                        <>
+                          <button
+                            className="action-btn email"
+                            onClick={() => handleSendEmail(code._id)}
+                            title="Send Email"
+                            disabled={isLoading}
+                          >
+                            <RiMailLine />
+                          </button>
+                          <button
+                            className="action-btn download"
+                            onClick={() => handleDownload(code._id)}
+                            title="Download"
+                            disabled={isLoading}
+                          >
+                            <RiDownloadLine />
+                          </button>
+                          <button
+                            className="action-btn view"
+                            onClick={() => handleCodeView(code._id)}
+                            title="View QR"
+                            disabled={isLoading}
+                          >
+                            <RiEyeLine />
+                          </button>
+                          <button
+                            className="action-btn edit"
+                            onClick={() => startEdit(code)}
+                            title="Edit"
+                            disabled={isLoading}
+                          >
+                            <RiEditLine />
+                          </button>
+                          <button
+                            className="action-btn cancel-action"
+                            onClick={() => handleCancelClick(code._id)}
+                            title="Cancel Reservation"
+                            disabled={isLoading}
+                          >
+                            <RiCloseLine />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </motion.div>
     );
   };
 
@@ -1246,123 +1152,48 @@ function TableCodeManagement({
   const renderFilterBar = () => {
     const allVisible = categoryOrder.every(cat => visibleCategories.has(cat));
     const totalReservations = categoryOrder.reduce((sum, category) => {
-      const counts = getCategoryCounts(category);
-      return sum + counts.accepted + counts.pending;
+      const catCounts = getCategoryCounts(category);
+      return sum + catCounts.accepted + catCounts.pending;
     }, 0);
 
     return (
-      <div className="category-filter-bar">
-        {/* All button */}
+      <div className="category-filter-tabs">
         <button
-          className={`filter-button ${allVisible ? 'active' : 'inactive'} ${allVisible ? 'only-visible' : ''}`}
+          className={`filter-tab ${allVisible ? 'active' : ''}`}
           onClick={showAllCategories}
-          style={{
-            borderColor: allVisible 
-              ? 'rgba(255, 255, 255, 0.5)'
-              : 'rgba(255, 255, 255, 0.1)',
-            backgroundColor: allVisible 
-              ? 'rgba(255, 255, 255, 0.12)'
-              : 'rgba(255, 255, 255, 0.05)',
-            color: allVisible 
-              ? '#fff'
-              : 'rgba(255, 255, 255, 0.7)',
-            fontWeight: allVisible ? '600' : '500'
-          }}
         >
-          <span>All</span>
-          {totalReservations > 0 && (
-            <span 
-              className="filter-count"
-              style={{
-                backgroundColor: allVisible 
-                  ? '#fff'
-                  : 'rgba(255, 255, 255, 0.6)',
-                color: allVisible ? '#000' : '#000'
-              }}
-            >
-              {totalReservations}
-            </span>
+          All{totalReservations > 0 && (
+            <span className="filter-count">{totalReservations}</span>
           )}
         </button>
 
         {categoryOrder.map((category) => {
-          const counts = getCategoryCounts(category);
+          const catCounts = getCategoryCounts(category);
           const displayName = getCategoryDisplayName(category);
           const isVisible = visibleCategories.has(category);
-          const primaryColor = tableColors[category] || "#4a90e2";
-          
-          // Get theme colors for this category if available
-          const getThemeColorsForCategory = () => {
-            if (layoutConfig?.categoryThemeColors && layoutConfig?.categoryAreaNames) {
-              const categoryCode = Object.entries(layoutConfig.categoryAreaNames)
-                .find(([code, name]) => name === category)?.[0];
-              
-              if (categoryCode && layoutConfig.categoryThemeColors[categoryCode]) {
-                return layoutConfig.categoryThemeColors[categoryCode];
-              }
-            }
-            return null;
-          };
-
-          const themeColors = getThemeColorsForCategory();
-          const totalCount = counts.accepted + counts.pending;
-
+          const totalCount = catCounts.accepted + catCounts.pending;
           const isOnlyVisible = visibleCategories.size === 1 && isVisible;
 
           return (
             <button
               key={category}
-              className={`filter-button ${isVisible ? 'active' : 'inactive'} ${isOnlyVisible ? 'only-visible' : ''}`}
+              className={`filter-tab ${isVisible ? 'active' : ''} ${isOnlyVisible ? 'only-visible' : ''}`}
               onClick={() => toggleCategoryVisibility(category)}
-              style={{
-                borderColor: isVisible 
-                  ? `${themeColors?.accent || primaryColor}60`
-                  : `rgba(255, 255, 255, 0.1)`,
-                backgroundColor: isVisible 
-                  ? `${themeColors?.accent || primaryColor}15`
-                  : `rgba(255, 255, 255, 0.05)`,
-                color: isVisible 
-                  ? `${themeColors?.accent || primaryColor}`
-                  : `rgba(255, 255, 255, 0.7)`,
-                boxShadow: isOnlyVisible 
-                  ? `0 0 0 2px ${themeColors?.accent || primaryColor}40, 0 2px 8px rgba(0,0,0,0.3)`
-                  : undefined
-              }}
             >
-              <span>{displayName}</span>
-              {totalCount > 0 && (
-                <span 
-                  className="filter-count"
-                  style={{
-                    backgroundColor: isVisible 
-                      ? (themeColors?.accent || primaryColor)
-                      : 'rgba(255, 255, 255, 0.6)',
-                    color: isVisible ? '#fff' : '#000'
-                  }}
-                >
-                  {totalCount}
-                </span>
+              {displayName}{totalCount > 0 && (
+                <span className="filter-count">{totalCount}</span>
               )}
             </button>
           );
         })}
-        
-        {/* Reload button */}
+
         <button
-          className={`filter-button reload-button ${isSpinning ? 'spinning' : ''}`}
+          className={`reload-tab ${isSpinning ? 'spinning' : ''}`}
           onClick={handleRefresh}
           disabled={isSpinning}
           title="Refresh Data"
-          style={{
-            marginLeft: '0.5rem',
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            color: 'rgba(255, 255, 255, 0.7)',
-            minWidth: '40px',
-            justifyContent: 'center'
-          }}
         >
-          <RiRefreshLine className={isSpinning ? 'spinning' : ''} />
+          <RiRefreshLine />
         </button>
       </div>
     );
@@ -1370,103 +1201,141 @@ function TableCodeManagement({
 
   return (
     <div className="table-code-management">
-      {showPngModal && (
-        <div className="code-png-modal">
-          <button className="close-btn" onClick={() => setShowPngModal(false)}>
-            ✕
-          </button>
-          <div className="png-container">
-            <img src={pngUrl} alt="Table Code" />
-          </div>
-        </div>
-      )}
-      {showSendEmailModal && (
-        <div className="send-email-modal-overlay">
-          <div className="send-email-modal-content">
-            <button
-              className="close-btn"
-              onClick={() => setShowSendEmailModal(false)}
-            >
-              ×
+      {/* PNG View Modal */}
+      <AnimatePresence>
+        {showPngModal && (
+          <motion.div
+            className="png-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPngModal(false)}
+          >
+            <button className="close-btn" onClick={() => setShowPngModal(false)}>
+              <RiCloseLine />
             </button>
-            <h3>Send Invitation to</h3>
-            <input
-              type="email"
-              value={emailRecipient}
-              onChange={(e) => setEmailRecipient(e.target.value)}
-              placeholder="recipient@example.com"
-              disabled={isSendingEmail}
-              autoFocus
-            />
-            <div className="send-email-modal-buttons">
+            <div className="png-container" onClick={(e) => e.stopPropagation()}>
+              <img src={pngUrl} alt="Table Code" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Send Email Modal */}
+      <AnimatePresence>
+        {showSendEmailModal && (
+          <motion.div
+            className="email-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSendEmailModal(false)}
+          >
+            <motion.div
+              className="email-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
-                className="cancel-btn"
+                className="close-btn"
                 onClick={() => setShowSendEmailModal(false)}
-                disabled={isSendingEmail}
               >
-                Cancel
+                <RiCloseLine />
               </button>
-              <button
-                className="confirm-btn"
-                onClick={confirmSendEmail}
-                disabled={isSendingEmail || !emailRecipient}
-              >
-                {isSendingEmail ? "Sending..." : "Send"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showConfirmDelete && (
-        <div className="delete-modal-overlay">
-          <div className="delete-modal-content">
-            <button
-              className="close-btn"
-              onClick={() => setShowConfirmDelete(false)}
+              <h3>Send Invitation</h3>
+              <div className="email-form">
+                <input
+                  type="email"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  placeholder="recipient@example.com"
+                  disabled={isSendingEmail}
+                  autoFocus
+                />
+                <button
+                  className="send-btn"
+                  onClick={confirmSendEmail}
+                  disabled={isSendingEmail || !emailRecipient}
+                >
+                  {isSendingEmail ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmDelete && (
+          <motion.div
+            className="delete-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowConfirmDelete(false)}
+          >
+            <motion.div
+              className="delete-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
-            <h3>Delete Reservation</h3>
-            <p>Are you sure you want to delete this reservation?</p>
-            <div className="delete-modal-buttons">
-              <button
-                className="cancel-btn"
-                onClick={() => setShowConfirmDelete(false)}
-              >
-                Cancel
-              </button>
-              <button className="confirm-btn" onClick={confirmDelete}>
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showConfirmCancel && (
-        <div className="delete-modal-overlay">
-          <div className="delete-modal-content">
-            <button
-              className="close-btn"
-              onClick={() => setShowConfirmCancel(false)}
+              <h3>Delete Reservation</h3>
+              <p>Are you sure you want to delete this reservation?</p>
+              <div className="modal-actions">
+                <button
+                  className="cancel-btn"
+                  onClick={() => setShowConfirmDelete(false)}
+                >
+                  Cancel
+                </button>
+                <button className="delete-btn" onClick={confirmDelete}>
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmCancel && (
+          <motion.div
+            className="delete-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowConfirmCancel(false)}
+          >
+            <motion.div
+              className="delete-modal"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
-            <h3>Cancel Reservation</h3>
-            <p>Are you sure you want to cancel this reservation?</p>
-            <div className="delete-modal-buttons">
-              <button
-                className="cancel-btn"
-                onClick={() => setShowConfirmCancel(false)}
-              >
-                Close
-              </button>
-              <button className="confirm-btn" onClick={confirmCancel}>
-                Cancel Reservation
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <h3>Cancel Reservation</h3>
+              <p>Are you sure you want to cancel this reservation?</p>
+              <div className="modal-actions">
+                <button
+                  className="cancel-btn"
+                  onClick={() => setShowConfirmCancel(false)}
+                >
+                  Close
+                </button>
+                <button className="delete-btn" onClick={confirmCancel}>
+                  Cancel Reservation
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {parentIsLoading ? (
         <div className="loading-state">
@@ -1488,7 +1357,9 @@ function TableCodeManagement({
               return categoryItems?.length > 0 && isVisible ? (
                 <div key={category} className="table-category">
                   {renderCategoryTitle(category)}
-                  {categoryItems.map((code) => renderCodeItem(code))}
+                  <AnimatePresence mode="popLayout">
+                    {categoryItems.map((code) => renderCodeItem(code))}
+                  </AnimatePresence>
                 </div>
               ) : null;
             })}

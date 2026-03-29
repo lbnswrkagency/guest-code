@@ -35,6 +35,7 @@ const TableCodeSchema = new Schema(
     ],
     isPublic: { type: Boolean, default: false },
     isFree: { type: Boolean, default: false },
+    noMinimumSpend: { type: Boolean, default: false },
   },
   {
     timestamps: true,

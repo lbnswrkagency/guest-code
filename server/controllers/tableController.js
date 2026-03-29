@@ -1921,6 +1921,11 @@ const generateTablePNG = async (tableCode, event) => {
             <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, ${accentColor}, #b8860b); color: #1a1a2e; font-weight: 700; font-size: 1rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">FREE</span>
           </div>
           ` : ''}
+          ${tableCode.noMinimumSpend ? `
+          <div style="margin-top: 0.5rem; text-align: center;">
+            <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, #64b5f6, #1976d2); color: #fff; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">NO MINIMUM SPEND</span>
+          </div>
+          ` : ''}
         </div>
 
         <!-- QR Code section -->
@@ -2324,6 +2329,11 @@ const generateTablePDF = async (tableCode, event) => {
           ${tableCode.isFree ? `
           <div style="margin-top: 1rem; text-align: center;">
             <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, ${accentColor}, #b8860b); color: #1a1a2e; font-weight: 700; font-size: 1rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">FREE</span>
+          </div>
+          ` : ''}
+          ${tableCode.noMinimumSpend ? `
+          <div style="margin-top: 0.5rem; text-align: center;">
+            <span style="display: inline-block; padding: 0.35rem 1.5rem; background: linear-gradient(135deg, #64b5f6, #1976d2); color: #fff; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.15em; border-radius: 6px; text-transform: uppercase;">NO MINIMUM SPEND</span>
           </div>
           ` : ''}
         </div>
@@ -3670,6 +3680,16 @@ const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => 
           border-radius: 3px;
           margin-left: 5px;
         }
+        .no-min-badge {
+          display: inline-block;
+          font-size: 9px;
+          padding: 2px 6px;
+          background: linear-gradient(135deg, #64b5f6, #1976d2);
+          color: #fff;
+          font-weight: bold;
+          border-radius: 3px;
+          margin-left: 5px;
+        }
         .footer {
           margin-top: 30px;
           text-align: center;
@@ -3701,6 +3721,7 @@ const generateMinimalisticPlanPDF = async (event, tablesByArea, sortedAreas) => 
                     Table ${table.tableNumber}
                     ${table.status === 'pending' ? '<span class="status-badge">PENDING</span>' : ''}
                     ${table.isFree ? '<span class="free-badge">FREE</span>' : ''}
+                    ${table.noMinimumSpend ? '<span class="no-min-badge">NO MINIMUM SPEND</span>' : ''}
                   </div>
                   <div class="table-guest">${table.name}</div>
                   <div class="table-pax">${table.pax} guest${table.pax !== 1 ? 's' : ''}</div>

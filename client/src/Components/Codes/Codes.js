@@ -134,7 +134,7 @@ const Codes = () => {
             codeIdsByBrand: {},
           };
         }
-        // Add this brand as an attachment
+        // Add this brand as an attachment (preserve per-brand condition/note)
         codesByName[code.name].attachments.push({
           brandId: code.brandId,
           brandName: code.brandName,
@@ -142,6 +142,8 @@ const Codes = () => {
           brandLogo: code.brandLogo,
           isGlobalForBrand: code.isGlobalForBrand !== false,
           enabledEvents: [],
+          condition: code.condition || "",
+          note: code.note || "",
         });
         // Track the code ID for this brand
         codesByName[code.name].codeIdsByBrand[code.brandId] = code._id;
@@ -262,15 +264,24 @@ const Codes = () => {
             const brandId = attachment.brandId;
             const existingCodeId = selectedCode.codeIdsByBrand?.[brandId];
 
+            // For guest codes, use per-brand condition/note overrides
+            const payload = { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true };
+            if (codeData.type === "guest" && attachment.condition !== undefined) {
+              payload.condition = attachment.condition;
+            }
+            if (codeData.type === "guest" && attachment.note !== undefined) {
+              payload.note = attachment.note;
+            }
+
             if (existingCodeId) {
               await axiosInstance.put(
                 `/code-settings/brands/${brandId}/codes/${existingCodeId}`,
-                { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+                payload
               );
             } else {
               await axiosInstance.post(
                 `/code-settings/brands/${brandId}/codes`,
-                { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+                payload
               );
             }
           }
@@ -285,9 +296,16 @@ const Codes = () => {
         } else {
           // Has brands — create one CodeSettings per brand
           for (const attachment of attachments) {
+            const payload = { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true };
+            if (codeData.type === "guest" && attachment.condition !== undefined) {
+              payload.condition = attachment.condition;
+            }
+            if (codeData.type === "guest" && attachment.note !== undefined) {
+              payload.note = attachment.note;
+            }
             await axiosInstance.post(
               `/code-settings/brands/${attachment.brandId}/codes`,
-              { ...codeData, isGlobalForBrand: attachment.isGlobalForBrand ?? true }
+              payload
             );
           }
         }

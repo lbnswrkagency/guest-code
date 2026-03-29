@@ -104,6 +104,8 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
             brandLogo: a.brandLogo,
             isGlobalForBrand: a.isGlobalForBrand !== false,
             enabledEvents: a.enabledEvents || [],
+            condition: a.condition || "",
+            note: a.note || "",
           }))
         );
       } else {
@@ -155,6 +157,8 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
         brandLogo: brand.logo,
         isGlobalForBrand: true,
         enabledEvents: [],
+        condition: formData.condition || "",
+        note: formData.note || "",
       },
     ]);
   };
@@ -191,6 +195,8 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
           brandId: a.brandId,
           isGlobalForBrand: a.isGlobalForBrand,
           enabledEvents: a.enabledEvents,
+          condition: a.condition,
+          note: a.note,
         })),
       });
     } finally {
@@ -316,27 +322,32 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
               </div>
             </div>
 
-            {/* Condition */}
-            <div className="form-row">
-              <label>Condition (shown to guests)</label>
-              <input
-                type="text"
-                value={formData.condition}
-                onChange={(e) => handleInputChange("condition", e.target.value)}
-                placeholder="e.g., Free entry before 12am"
-              />
-            </div>
+            {/* Condition & Note — hidden for guest codes with brand attachments (moved into each BrandAttachmentCard) */}
+            {!(isGuestCode && attachments.length > 0) && (
+              <>
+                {/* Condition */}
+                <div className="form-row">
+                  <label>Condition (shown to guests)</label>
+                  <input
+                    type="text"
+                    value={formData.condition}
+                    onChange={(e) => handleInputChange("condition", e.target.value)}
+                    placeholder="e.g., Free entry before 12am"
+                  />
+                </div>
 
-            {/* Note */}
-            <div className="form-row">
-              <label>Note (internal)</label>
-              <input
-                type="text"
-                value={formData.note}
-                onChange={(e) => handleInputChange("note", e.target.value)}
-                placeholder="e.g., For VIP guests only"
-              />
-            </div>
+                {/* Note */}
+                <div className="form-row">
+                  <label>Note (internal)</label>
+                  <input
+                    type="text"
+                    value={formData.note}
+                    onChange={(e) => handleInputChange("note", e.target.value)}
+                    placeholder="e.g., For VIP guests only"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Max Pax & Limit */}
             <div className="form-row double">
@@ -420,6 +431,7 @@ const CodeDetailPanel = ({ code, userBrands, onSave, onClose }) => {
                   <BrandAttachmentCard
                     key={attachment.brandId}
                     attachment={attachment}
+                    isGuestCode={isGuestCode}
                     onUpdate={(updates) =>
                       handleUpdateAttachment(attachment.brandId, updates)
                     }

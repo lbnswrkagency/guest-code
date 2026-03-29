@@ -6,6 +6,7 @@ import React, {
   useRef,
   useMemo,
 } from "react";
+import { motion } from "framer-motion";
 import axios from "axios";
 import axiosInstance from "../../utils/axiosConfig"; // Import configured axiosInstance
 import { useToast } from "../Toast/ToastContext";
@@ -655,39 +656,51 @@ function TableSystem({
 
   if (!selectedEvent) {
     return (
-      <div className="table-system">
-        <div className="table-system-wrapper">
-          <Navigation onBack={onClose} />
-          <div className="table-system-content">
-            <h1 className="table-system-title">Table Booking</h1>
+      <motion.div
+        className="table-system-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="table-system-panel"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="panel-header">
+            <h2>
+              <RiTableLine />
+              <span className="event-title">Table Booking</span>
+            </h2>
+            <div className="header-actions">
+              <button className="close-btn" onClick={onClose}>
+                <RiCloseLine />
+              </button>
+            </div>
+          </div>
+          <div className="panel-body">
             <div className="no-event-message">
               <p>Please select an event to manage tables.</p>
             </div>
           </div>
-        </div>
-        <Footer />
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
-  return (
-    <div
-      className="table-system"
-      style={
-        isPublic ? { background: "none", paddingTop: 0, minHeight: "auto" } : {}
-      }
-    >
-      <div className="table-system-wrapper">
-        {/* <Navigation
-          onBack={onClose}
-          // Menu click is handled through global events - we don't need a local handler
-          onMenuClick={() => {
-            // The global event is dispatched in Navigation component
-          }}
-        /> */}
-
-        <div className="table-system-content">
-          {isPublic ? (
+  // Public mode: render inline (no overlay/panel)
+  if (isPublic) {
+    return (
+      <div
+        className="table-system"
+        style={{ background: "none", paddingTop: 0, minHeight: "auto" }}
+      >
+        <div className="table-system-wrapper">
+          <div className="table-system-content">
             <div className="table-booking-header">
               <div className="table-booking-title-wrapper">
                 <h1 className="table-booking-title">
@@ -696,59 +709,100 @@ function TableSystem({
                 <div className="title-decoration"></div>
               </div>
             </div>
-          ) : (
-            <div className="tablesystem-header">
-              <h1 className="tablesystem-title">
-                <RiTableLine /> Table Booking
-                {selectedEvent && (
-                  <span className="event-name"> - {selectedEvent.title}</span>
-                )}
-              </h1>
-              <div className="header-actions">
-                {/* Temporarily commented out - will bring back later */}
-                {/* {tablePermissions.summary && (
-                  <button
-                    className="summary-btn"
-                    onClick={() => setShowTableSummary(true)}
-                    disabled={isLoading}
-                    title="Table Summary Analysis"
-                  >
-                    <RiFileChartLine />
-                  </button>
-                )} */}
-                {tablePermissions.manage && (
-                  <button
-                    className="export-plan-btn"
-                    onClick={handleExportTablePlan}
-                    disabled={isLoading || isGeneratingPlan}
-                    title="Export Table Plan PDF"
-                  >
-                    <RiPrinterLine />
-                  </button>
-                )}
-                <button
-                  className="refresh-btn"
-                  onClick={handleRefresh}
-                  disabled={isSpinning || isLoading}
-                >
-                  <RiRefreshLine className={isSpinning ? "spinning" : ""} />
-                </button>
-                <button className="close-btn" onClick={onClose}>
-                  <RiCloseLine />
-                </button>
-              </div>
-            </div>
-          )}
 
-          {/* Show refresh button and table count summary only in non-public mode */}
-          {!isPublic && (
-            <div className="table-system-count">
-              <h4>Remaining Tables</h4>
-              <div className="table-system-count-number">
-                <p>{isLoading ? "..." : remainingTables}</p>
+            <div className="table-system-form">
+              <TableBookingPopup
+                isOpen={isPopupOpen}
+                onClose={() => {
+                  setIsPopupOpen(false);
+                  setSelectedTable(null);
+                  setTableNumber("");
+                }}
+                tableNumber={selectedTable}
+                onSubmit={handleBookingSubmit}
+                position={popupPosition}
+                isAdmin={tablePermissions.manage}
+                isSubmitting={isSubmitting}
+                isPublic={isPublic}
+              />
+
+              <div className="table-layout-frame">
+                <div className="table-layout-decoration top-left"></div>
+                <div className="table-layout-decoration top-right"></div>
+                <div className="table-layout-decoration bottom-left"></div>
+                <div className="table-layout-decoration bottom-right"></div>
+                <div className="table-layout-overlay"></div>
+                <div className="table-layout-instruction">
+                  <span className="instruction-text">Click a Table </span>
+                </div>
+                <div className="table-layout-container">
+                  {renderTableLayout()}
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin mode: slide-in panel (same pattern as CodeGenerator)
+  return (
+    <motion.div
+      className="table-system-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="table-system-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Panel Header */}
+        <div className="panel-header">
+          <h2>
+            <RiTableLine />
+            <span className="event-title">
+              {selectedEvent?.title || "Table Booking"}
+            </span>
+          </h2>
+          <div className="header-actions">
+            {tablePermissions.manage && (
+              <button
+                className="export-plan-btn"
+                onClick={handleExportTablePlan}
+                disabled={isLoading || isGeneratingPlan}
+                title="Export Table Plan PDF"
+              >
+                <RiPrinterLine />
+              </button>
+            )}
+            <button
+              className="refresh-btn"
+              onClick={handleRefresh}
+              disabled={isSpinning || isLoading}
+            >
+              <RiRefreshLine className={isSpinning ? "spinning" : ""} />
+            </button>
+            <button className="close-btn" onClick={onClose}>
+              <RiCloseLine />
+            </button>
+          </div>
+        </div>
+
+        {/* Panel Body - Scrollable */}
+        <div className="panel-body">
+          <div className="table-system-count">
+            <h4>Remaining Tables</h4>
+            <div className="table-system-count-number">
+              <p>{isLoading ? "..." : remainingTables}</p>
+            </div>
+          </div>
 
           <div className="table-system-form">
             <TableBookingPopup
@@ -766,60 +820,25 @@ function TableSystem({
               isPublic={isPublic}
             />
 
-            {isPublic ? (
-              <div className="table-layout-frame">
-                <div className="table-layout-decoration top-left"></div>
-                <div className="table-layout-decoration top-right"></div>
-                <div className="table-layout-decoration bottom-left"></div>
-                <div className="table-layout-decoration bottom-right"></div>
-                <div className="table-layout-overlay"></div>
-                <div className="table-layout-instruction">
-                  <span className="instruction-text">Click a Table </span>
-                </div>
-                <div className="table-layout-container">
-                  {renderTableLayout()}
-                </div>
-              </div>
-            ) : (
-              <div className="table-layout-container">
-                {renderTableLayout()}
-              </div>
-            )}
+            <div className="table-layout-container">
+              {renderTableLayout()}
+            </div>
           </div>
 
-          {/* Only show refresh button in non-public mode if using old refresh layout */}
-          {!isPublic && !document.querySelector(".tablesystem-header") && (
-            <div className="refresh-button">
-              <button
-                onClick={handleRefresh}
-                title="Refresh Data"
-                className={isSpinning ? "spinning" : ""}
-                disabled={isSpinning || isLoading}
-              >
-                <img src="/image/reload-icon.svg" alt="Refresh" />
-              </button>
-            </div>
-          )}
-
-          {/* Only show TableCodeManagement in non-public mode */}
-          {!isPublic && (
-            <TableCodeManagement
-              user={user}
-              userRoles={userRoles}
-              triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
-              tableCategories={tableCategories}
-              layoutConfig={layoutConfig}
-              refreshTrigger={refreshTrigger}
-              selectedEvent={selectedEvent}
-              counts={tableData}
-              isLoading={isLoading}
-              effectivePermissions={effectivePermissions}
-            />
-          )}
+          <TableCodeManagement
+            user={user}
+            userRoles={userRoles}
+            triggerRefresh={() => setRefreshTrigger((prev) => prev + 1)}
+            tableCategories={tableCategories}
+            layoutConfig={layoutConfig}
+            refreshTrigger={refreshTrigger}
+            selectedEvent={selectedEvent}
+            counts={tableData}
+            isLoading={isLoading}
+            effectivePermissions={effectivePermissions}
+          />
         </div>
-      </div>
-      {/* Only show Footer in non-public mode */}
-      {!isPublic && <Footer />}
+      </motion.div>
 
       {/* Table Summary Modal */}
       {showTableSummary && (
@@ -830,7 +849,7 @@ function TableSystem({
           selectedBrand={selectedBrand}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

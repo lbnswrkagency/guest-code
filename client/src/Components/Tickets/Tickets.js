@@ -919,12 +919,12 @@ const Tickets = ({
           className="ticket-price"
           style={{ color: ticket.color || primaryColor }}
         >
+          {ticket.price.toFixed(2)}€
           {ticket.originalPrice > ticket.price && (
             <span className="original-price">
               {ticket.originalPrice.toFixed(2)}€
             </span>
           )}
-          {ticket.price.toFixed(2)}€
         </div>
 
         {ticket.description && (

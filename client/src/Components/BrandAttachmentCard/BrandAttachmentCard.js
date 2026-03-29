@@ -11,7 +11,7 @@ import {
 import axiosInstance from "../../utils/axiosConfig";
 import "./BrandAttachmentCard.scss";
 
-const BrandAttachmentCard = ({ attachment, onUpdate, onRemove }) => {
+const BrandAttachmentCard = ({ attachment, isGuestCode, onUpdate, onRemove }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(!attachment.isGlobalForBrand);
@@ -125,6 +125,30 @@ const BrandAttachmentCard = ({ attachment, onUpdate, onRemove }) => {
           <RiCloseLine />
         </button>
       </div>
+
+      {/* Per-brand condition/note for Guest Code */}
+      {isGuestCode && (
+        <div className="guest-code-fields">
+          <div className="guest-field">
+            <label>Condition (shown to guests)</label>
+            <input
+              type="text"
+              value={attachment.condition || ""}
+              onChange={(e) => onUpdate({ condition: e.target.value })}
+              placeholder="e.g., Free entry before 12am"
+            />
+          </div>
+          <div className="guest-field">
+            <label>Note (internal)</label>
+            <input
+              type="text"
+              value={attachment.note || ""}
+              onChange={(e) => onUpdate({ note: e.target.value })}
+              placeholder="e.g., For VIP guests only"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="attachment-mode">
         <button
